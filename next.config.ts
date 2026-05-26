@@ -124,6 +124,14 @@ const nextConfig: NextConfig = {
         destination: '/mothersdaycakes',
         permanent: true,
       },
+      // Consolidate duplicate blog slug (no-year version) into the canonical
+      // -2026 variant. Non-2026 had ~15 clicks vs the 2026 version's 52 in
+      // the last 28 days. Permanent redirect (308) lets Google merge signals.
+      {
+        source: '/blog/best-play-areas-kids-birthday-parties-metro-cebu',
+        destination: '/blog/best-play-areas-kids-birthday-parties-metro-cebu-2026',
+        permanent: true,
+      },
     ]
   },
   // Remove console.log in production builds for cleaner output

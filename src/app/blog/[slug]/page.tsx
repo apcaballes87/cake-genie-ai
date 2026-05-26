@@ -147,6 +147,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         authorName={post.author}
         authorUrl={post.author_url}
         image={post.image}
+        imageWidth={post.image ? 1200 : undefined}
+        imageHeight={post.image ? 630 : undefined}
+        imageAlt={post.title}
         description={post.excerpt}
         url={`https://genie.ph/blog/${post.slug}`}
       />

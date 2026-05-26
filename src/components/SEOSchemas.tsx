@@ -276,6 +276,21 @@ export function HowToSchema({ name, description, steps }: { name: string; descri
 }
 
 // JSON-LD Schema for BlogPosting
+// Spec: https://developers.google.com/search/docs/appearance/structured-data/article
+// - image: prefer multiple aspect ratios (16x9, 4x3, 1x1) on a property we own.
+// - License/copyright fields are only emitted when the image is hosted on a
+//   domain we control to avoid claiming ownership over third-party images.
+const OWNED_IMAGE_HOSTS = ['genie.ph', 'cqmhanqnfybyxezhobkx.supabase.co'];
+
+function isOwnedImage(url: string): boolean {
+    try {
+        const host = new URL(url).hostname.toLowerCase();
+        return OWNED_IMAGE_HOSTS.some((owned) => host === owned || host.endsWith(`.${owned}`));
+    } catch {
+        return false;
+    }
+}
+
 export function BlogPostingSchema({
     headline,
     datePublished,
@@ -294,8 +309,11 @@ export function BlogPostingSchema({
     dateModified?: string;
     authorName: string;
     authorUrl?: string;
-    image?: string;
+    /** Single image URL or array of image URLs (Google recommends multiple aspect ratios: 16x9, 4x3, 1x1). */
+    image?: string | string[];
+    /** Width of the primary image (only applied to the first image when an array is provided). */
     imageWidth?: number;
+    /** Height of the primary image (only applied to the first image when an array is provided). */
     imageHeight?: number;
     imageAlt?: string;
     description: string;
@@ -304,23 +322,31 @@ export function BlogPostingSchema({
     // Sanitize string to prevent script injection in JSON-LD
     const sanitize = (str: string | undefined | null) => str ? str.replace(/<\/script/g, '<\\/script') : '';
 
-    // Full ImageObject with licensing metadata instead of bare URL
-    const imageObject = image ? {
-        '@type': 'ImageObject',
-        url: image,
-        contentUrl: image,
-        ...(imageWidth && { width: imageWidth }),
-        ...(imageHeight && { height: imageHeight }),
-        caption: sanitize(imageAlt || headline),
-        creditText: 'Genie.ph',
-        copyrightHolder: {
-            '@type': 'Organization',
-            name: 'Genie.ph'
-        },
-        copyrightNotice: `© ${new Date().getFullYear()} Genie.ph`,
-        license: 'https://genie.ph/terms',
-        acquireLicensePage: 'https://genie.ph/terms#image-licensing'
-    } : undefined;
+    const imageUrls = Array.isArray(image) ? image.filter(Boolean) : (image ? [image] : []);
+
+    const imageObjects = imageUrls.map((src, index) => {
+        const owned = isOwnedImage(src);
+        return {
+            '@type': 'ImageObject',
+            url: src,
+            contentUrl: src,
+            // Apply explicit dimensions to the primary image only.
+            ...(index === 0 && imageWidth ? { width: imageWidth } : {}),
+            ...(index === 0 && imageHeight ? { height: imageHeight } : {}),
+            caption: sanitize(imageAlt || headline),
+            // Only claim authorship/licensing for images we host ourselves.
+            ...(owned ? {
+                creditText: 'Genie.ph',
+                copyrightHolder: {
+                    '@type': 'Organization',
+                    name: 'Genie.ph'
+                },
+                copyrightNotice: `© ${new Date().getFullYear()} Genie.ph`,
+                license: 'https://genie.ph/terms',
+                acquireLicensePage: 'https://genie.ph/terms#image-licensing'
+            } : {})
+        };
+    });
 
     const schema = {
         '@context': 'https://schema.org',
@@ -333,7 +359,7 @@ export function BlogPostingSchema({
             name: sanitize(authorName),
             ...(authorUrl && { url: sanitize(authorUrl) })
         },
-        ...(imageObject && { image: [imageObject] }),
+        ...(imageObjects.length > 0 && { image: imageObjects }),
         description: sanitize(description),
         ...(url && {
             url: sanitize(url),

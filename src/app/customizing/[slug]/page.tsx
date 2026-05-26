@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import CustomizingClient from '../CustomizingClient'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
-import { getCakeBasePriceOptions, getRelatedProductsByKeywords } from '@/services/supabaseService'
+import { getCakeBasePriceOptions, getRelatedProductsByKeywords, getCollectionForDesignKeyword } from '@/services/supabaseService'
 import { CakeType, CakeThickness, BasePriceInfo, HybridAnalysisResult, CakeInfoUI } from '@/types'
 import { CustomizationProvider, CustomizationState } from '@/contexts/CustomizationContext'
 // FAQPageSchema deprecated (restricted to gov/healthcare Aug 2023) — using HTML accordions instead
@@ -645,12 +645,14 @@ function SSRCakeDetails({
     relatedDesigns,
     captionText,
     linkedMerchantProducts,
+    themeCollection,
 }: {
     design: any;
     prices?: BasePriceInfo[];
     relatedDesigns?: any[];
     captionText?: string;
     linkedMerchantProducts?: LinkedMerchantProduct[];
+    themeCollection?: { slug: string; name: string; item_count: number } | null;
 }) {
     const keywords = design.keywords || 'Custom';
     const analysis = design.analysis_json || {};
@@ -888,6 +890,24 @@ function SSRCakeDetails({
                         </div>
                     )}
 
+                    {/* Theme Collection CTA - sends Google + users to the gallery
+                        page for broad "{theme} cake design" queries instead of
+                        ranking this single variant for them. */}
+                    {themeCollection && (
+                        <div className="pt-4 border-t border-slate-200">
+                            <Link
+                                href={`/collections/${themeCollection.slug}`}
+                                className="flex items-center justify-between gap-3 rounded-lg border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-semibold text-pink-700 hover:border-pink-300 hover:bg-pink-100 transition-colors"
+                                aria-label={`See all ${themeCollection.item_count} ${themeCollection.name} designs`}
+                            >
+                                <span>
+                                    See all {themeCollection.item_count} {themeCollection.name} designs
+                                </span>
+                                <span aria-hidden="true">→</span>
+                            </Link>
+                        </div>
+                    )}
+
                     {/* Related Designs Section - SEO Internal Linking */}
                     {relatedDesigns && relatedDesigns.length > 0 && (
                         <div className="space-y-3 pt-4 border-t border-slate-200">
@@ -1081,8 +1101,9 @@ export default async function RecentSearchPage({ params }: Props) {
     let prices: BasePriceInfo[] = [];
     let relatedDesigns: any[] = [];
     let linkedMerchantProducts: LinkedMerchantProduct[] = [];
+    let themeCollection: { slug: string; name: string; item_count: number } | null = null;
     const supabase = await createClient();
-    const [pricesResult, relatedDesignsResult, linkedProductsResult, ratingRowsResult] = await Promise.allSettled([
+    const [pricesResult, relatedDesignsResult, linkedProductsResult, ratingRowsResult, themeCollectionResult] = await Promise.allSettled([
         getCakeBasePriceOptions(seoCakeType, CAKE_TYPE_THICKNESS_MAP[seoCakeType] || '4 in'),
         getRelatedProductsByKeywords(design.keywords, slug, 6, 0),
         getLinkedMerchantProductsByHash(design.p_hash),
@@ -1090,7 +1111,8 @@ export default async function RecentSearchPage({ params }: Props) {
             .from('cakegenie_reviews')
             .select('rating')
             .eq('is_visible', true)
-            .eq('is_approved', true)
+            .eq('is_approved', true),
+        getCollectionForDesignKeyword(design.keywords)
     ]);
 
     if (pricesResult.status === 'fulfilled') {
@@ -1119,6 +1141,10 @@ export default async function RecentSearchPage({ params }: Props) {
             ? ratingRows.reduce((sum: number, r: any) => sum + r.rating, 0) / total
             : 4.8;
         reviewSummary = { total, averageRating };
+    }
+
+    if (themeCollectionResult.status === 'fulfilled' && themeCollectionResult.value.data) {
+        themeCollection = themeCollectionResult.value.data;
     }
 
     // Generate unique caption for image SEO from the first 1-2 sentences of design details
@@ -1189,6 +1215,7 @@ export default async function RecentSearchPage({ params }: Props) {
                 relatedDesigns={relatedDesigns}
                 captionText={captionText}
                 linkedMerchantProducts={linkedMerchantProducts}
+                themeCollection={themeCollection}
             />
 
             <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>

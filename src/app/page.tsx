@@ -10,7 +10,7 @@ import { createClient } from '@/lib/supabase/server';
 import { normalizePublicReviews, REVIEW_SELECT } from '@/lib/reviews';
 import HomepageAeoSections from '@/components/seo/HomepageAeoSections';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { genieBusinessProfile } from '@/lib/seo/genieBusinessProfile';
+import { genieBusinessProfile, buildGenieLocalBusinessSchema } from '@/lib/seo/genieBusinessProfile';
 
 // ISR: Revalidate every hour for fresh data while maintaining fast loads
 export const revalidate = 3600;
@@ -101,6 +101,35 @@ function WebSiteSchema() {
     );
 }
 
+function LocalBusinessSchema({
+    averageRating,
+    reviewCount,
+}: {
+    averageRating: number;
+    reviewCount: number;
+}) {
+    const baseSchema = buildGenieLocalBusinessSchema();
+    const schema = reviewCount > 0
+        ? {
+            ...baseSchema,
+            aggregateRating: {
+                '@type': 'AggregateRating',
+                ratingValue: Number(averageRating.toFixed(2)),
+                ratingCount: reviewCount,
+                bestRating: 5,
+                worstRating: 1,
+            },
+        }
+        : baseSchema;
+
+    return (
+        <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        />
+    );
+}
+
 async function getHomepageReviews() {
     const supabase: SupabaseClient = await createClient();
 
@@ -154,6 +183,10 @@ async function LandingServerSections() {
 
     return (
         <>
+            <LocalBusinessSchema
+                averageRating={homepageReviews.reviewSummary.averageRating}
+                reviewCount={homepageReviews.reviewSummary.total}
+            />
             <LandingClient
                 blogPosts={blogPosts}
                 reviewSummary={homepageReviews.reviewSummary}

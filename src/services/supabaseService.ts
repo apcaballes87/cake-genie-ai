@@ -1186,6 +1186,115 @@ function buildCollectionSlugCandidates(rawSlug: string): string[] {
 }
 
 /**
+ * Convert a free-form theme keyword (e.g. "Kuromi", "My Melody", "Katseye Kpop")
+ * into a slug suitable for collection lookup ("kuromi", "my-melody",
+ * "katseye-kpop"). Returns an empty string when nothing usable remains.
+ */
+function keywordToCollectionSlugBase(keyword: string): string {
+  return keyword
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * Given a design's primary keyword, find the matching `cakegenie_collections`
+ * row (if any) so we can link a single-variant page to its theme gallery.
+ *
+ * Used to fix Search Console pages where high-impression broad queries (e.g.
+ * "kuromi cake design") land on a single product variant instead of a gallery.
+ *
+ * Resolution order:
+ *   1. The full keyword as a slug (e.g. "Kuromi" → kuromi-cake).
+ *   2. Each individual word in the keyword (e.g. "Graduation Bento" →
+ *      graduation-cake, bento-cake).
+ * Skips words shorter than 3 characters and very generic terms.
+ * Returns null if no candidate matches a collection with at least 2 items.
+ */
+const COLLECTION_KEYWORD_STOPWORDS = new Set([
+  'and', 'the', 'a', 'an', 'of', 'in', 'on', 'for', 'with', 'cake', 'cakes',
+  'design', 'designs', 'custom', 'birthday', 'simple', 'mini', 'genie',
+]);
+
+export async function getCollectionForDesignKeyword(
+  keyword: string | null | undefined,
+): Promise<SupabaseServiceResponse<{ slug: string; name: string; item_count: number } | null>> {
+  if (!keyword || !keyword.trim()) {
+    return { data: null, error: null };
+  }
+
+  // Build prioritised probe list:
+  //   priority 0 = full keyword
+  //   priority 1+ = each meaningful word in the keyword (left-to-right)
+  const probes: string[] = [];
+  const seen = new Set<string>();
+
+  const pushProbe = (raw: string) => {
+    const base = keywordToCollectionSlugBase(raw);
+    if (!base || seen.has(base)) return;
+    seen.add(base);
+    probes.push(base);
+  };
+
+  pushProbe(keyword);
+
+  const words = keyword
+    .toLowerCase()
+    .split(/\s+/)
+    .map((w) => w.trim())
+    .filter((w) => w.length >= 3 && !COLLECTION_KEYWORD_STOPWORDS.has(w));
+  for (const word of words) {
+    pushProbe(word);
+  }
+
+  if (probes.length === 0) {
+    return { data: null, error: null };
+  }
+
+  // Build all collection slug candidates for every probe, preserving probe order
+  // so the first probe's matches outrank later probes' matches.
+  const orderedCandidates: string[] = [];
+  const candidateSeen = new Set<string>();
+  for (const probe of probes) {
+    for (const candidate of buildCollectionSlugCandidates(probe)) {
+      if (candidateSeen.has(candidate)) continue;
+      candidateSeen.add(candidate);
+      orderedCandidates.push(candidate);
+    }
+  }
+
+  if (orderedCandidates.length === 0) {
+    return { data: null, error: null };
+  }
+
+  const client = typeof window === 'undefined' ? publicSupabaseClient : supabase;
+  try {
+    const { data, error } = await client
+      .from('cakegenie_collections')
+      .select('slug, name, item_count')
+      .in('slug', orderedCandidates)
+      .gt('item_count', 1)
+      .returns<Array<{ slug: string; name: string; item_count: number }>>();
+
+    if (error || !data || data.length === 0) {
+      return { data: null, error: error || null };
+    }
+
+    // Prefer the candidate that appears earliest in the priority list
+    const ranked = [...data].sort(
+      (a, b) => orderedCandidates.indexOf(a.slug) - orderedCandidates.indexOf(b.slug),
+    );
+    return { data: ranked[0], error: null };
+  } catch (err) {
+    console.error('Exception fetching collection for keyword:', err);
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
  * Gets a specific collection by its slug.
  */
 export async function getCollectionBySlug(slug: string): Promise<SupabaseServiceResponse<any>> {
