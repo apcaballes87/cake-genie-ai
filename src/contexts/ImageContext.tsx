@@ -483,9 +483,16 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 );
             } else {
                 // Generate pHash only when crop-resistant ORB match was not found
-                fingerprint = await generateImageFingerprintWithLegacyCandidates(file, imageSrc);
+                fingerprint = await generateImageFingerprintWithLegacyCandidates(
+                    finalImageBlobToCache ?? file,
+                    imageSrc
+                );
                 pHash = fingerprint.pHash;
-                console.log(`🔍 Server pHash result: ${pHash ?? 'FAILED (null) — new cache writes will be skipped'}`);
+                console.log(
+                    `🔍 Server pHash result: ${pHash
+                        ? pHash
+                        : `FAILED (${fingerprint.error || 'unknown error'}) — new cache writes will be skipped`}`
+                );
 
                 if (orbBackendOfflineOrFailed) {
                     // Case B: FastAPI is offline/errored. Fallback to standard pHash lookup in Supabase

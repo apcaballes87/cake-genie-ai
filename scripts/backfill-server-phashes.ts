@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 import {
   computeImageFingerprint,
@@ -76,7 +77,7 @@ function isDuplicatePHashError(error: unknown) {
 }
 
 async function updateRelatedReferences(
-  supabase: any,
+  supabase: SupabaseClient,
   previousHash: string,
   nextHash: string
 ) {
@@ -84,18 +85,16 @@ async function updateRelatedReferences(
     return;
   }
 
-  const db = supabase as any;
-
   const relatedUpdates = await Promise.all([
-    db
+    supabase
       .from('cakegenie_saved_items')
       .update({ analysis_p_hash: nextHash })
       .eq('analysis_p_hash', previousHash),
-    db
+    supabase
       .from('cakegenie_merchant_products')
       .update({ p_hash: nextHash })
       .eq('p_hash', previousHash),
-    db
+    supabase
       .from('cakegenie_pinterest_pins')
       .update({ p_hash: nextHash })
       .eq('p_hash', previousHash),
@@ -109,12 +108,10 @@ async function updateRelatedReferences(
 }
 
 async function findCanonicalRow(
-  supabase: any,
+  supabase: SupabaseClient,
   pHash: string
 ) {
-  const db = supabase as any;
-
-  const { data, error } = await db
+  const { data, error } = await supabase
     .from('cakegenie_analysis_cache')
     .select('id, p_hash')
     .eq('p_hash', pHash)
@@ -136,7 +133,7 @@ interface RowResult {
 }
 
 async function processRow(
-  supabase: any,
+  supabase: SupabaseClient,
   row: CacheRow,
   dryRun: boolean
 ): Promise<RowResult> {
@@ -147,19 +144,21 @@ async function processRow(
   try {
     const buffer = await fetchImageBuffer(row.original_image_url);
     const fingerprint = await computeImageFingerprint(buffer);
+    const fingerprintedAt = new Date().toISOString();
 
     if (dryRun) {
       console.log(`[dry-run] ${row.id}: p_hash ${row.p_hash} -> ${fingerprint.pHash}`);
       return { updated: 1, aliased: 0, skipped: 0, failed: 0 };
     }
 
-    const db = supabase as any;
-
-    const { error: updateError } = await db
+    const { error: updateError } = await supabase
       .from('cakegenie_analysis_cache')
       .update({
         p_hash: fingerprint.pHash,
         fingerprint_pipeline: fingerprint.pipeline,
+        fingerprint_status: 'ready',
+        fingerprint_error: null,
+        fingerprinted_at: fingerprintedAt,
       })
       .eq('id', row.id)
       .eq('p_hash', row.p_hash);
@@ -175,10 +174,13 @@ async function processRow(
         await updateRelatedReferences(supabase, row.p_hash, canonicalRow.p_hash);
 
         const duplicateMarker = `${DUPLICATE_FINGERPRINT_PREFIX}${canonicalRow.p_hash}`;
-        const { error: aliasError } = await db
+        const { error: aliasError } = await supabase
           .from('cakegenie_analysis_cache')
           .update({
             fingerprint_pipeline: duplicateMarker,
+            fingerprint_status: 'aliased',
+            fingerprint_error: null,
+            fingerprinted_at: fingerprintedAt,
           })
           .eq('id', row.id)
           .eq('p_hash', row.p_hash);
@@ -202,6 +204,15 @@ async function processRow(
     return { updated: 1, aliased: 0, skipped: 0, failed: 0 };
   } catch (error) {
     const message = formatErrorMessage(error);
+    if (!dryRun) {
+      await supabase
+        .from('cakegenie_analysis_cache')
+        .update({
+          fingerprint_status: 'failed',
+          fingerprint_error: message,
+        })
+        .eq('id', row.id);
+    }
     console.warn(`Skipped ${row.id} (${row.original_image_url}): ${message}`);
     return { updated: 0, aliased: 0, skipped: 0, failed: 1 };
   }
@@ -255,7 +266,7 @@ async function main() {
   const { data, error } = await supabase
     .from('cakegenie_analysis_cache')
     .select('id, p_hash, original_image_url')
-    .is('fingerprint_pipeline', null)
+    .or('fingerprint_pipeline.is.null,fingerprint_status.eq.missing,fingerprint_status.eq.failed')
     .not('original_image_url', 'is', null)
     .neq('original_image_url', '')
     .order('created_at', { ascending: true })

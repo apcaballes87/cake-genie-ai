@@ -7,6 +7,7 @@ import { fileToBase64 } from '@/services/geminiService';
 import { Upload, Download, Play, CheckCircle2, Pause, Square } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { generateImageFingerprintWithLegacyCandidates } from '@/lib/utils/serverFingerprint.client';
+import { compressImage } from '@/lib/utils/imageOptimization';
 
 const ADMIN_PIN = '231323';
 type CsvRow = Record<string, string | undefined>;
@@ -146,10 +147,15 @@ export default function BulkAnalysisAdminPage() {
                 const imageSrc = `data:${imageData.mimeType};base64,${imageData.data}`;
 
                 // 2. Generate Hash
-                const fingerprint = await generateImageFingerprintWithLegacyCandidates(file, imageSrc, { crossOrigin: 'anonymous' });
+                const fingerprintInput = await compressImage(file, {
+                    maxSizeMB: 0.5,
+                    maxWidthOrHeight: 1024,
+                    fileType: 'image/webp',
+                });
+                const fingerprint = await generateImageFingerprintWithLegacyCandidates(fingerprintInput, imageSrc, { crossOrigin: 'anonymous' });
                 const pHash = fingerprint.pHash;
                 if (!pHash) {
-                    throw new Error('Failed to generate server image hash.');
+                    throw new Error(fingerprint.error || 'Failed to generate server image hash.');
                 }
 
                 // 3. Call AI endpoint

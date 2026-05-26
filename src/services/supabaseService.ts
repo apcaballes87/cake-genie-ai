@@ -652,14 +652,74 @@ export async function convertToWebP(blob: Blob): Promise<Blob> {
   });
 }
 
-async function triggerOrbFeatureIndexing(cacheId: string, imageBlob: Blob): Promise<void> {
+type AnalysisCacheCoverageUpdate = {
+  fingerprint_status?: string;
+  fingerprint_error?: string | null;
+  fingerprinted_at?: string | null;
+  orb_index_status?: string;
+  orb_index_error?: string | null;
+  orb_index_attempted_at?: string | null;
+  orb_indexed_at?: string | null;
+};
+
+function getInitialOrbIndexCoverage(imageUrl?: string | null, imageBlob?: Blob) {
+  if (imageBlob || (typeof imageUrl === 'string' && imageUrl.trim().length > 0)) {
+    return {
+      orb_index_status: 'pending',
+      orb_index_error: null,
+    };
+  }
+
+  return {
+    orb_index_status: 'missing_source',
+    orb_index_error: 'No cached image source available for ORB indexing.',
+  };
+}
+
+async function updateAnalysisCacheCoverage(
+  client: SupabaseClient,
+  cacheId: string,
+  fields: AnalysisCacheCoverageUpdate
+): Promise<void> {
+  const { error } = await client
+    .from('cakegenie_analysis_cache')
+    .update(fields)
+    .eq('id', cacheId);
+
+  if (error) {
+    console.warn('⚠️ Failed to update analysis cache coverage state:', {
+      cacheId,
+      fields,
+      error: error.message,
+    });
+  }
+}
+
+async function triggerOrbFeatureIndexing(
+  client: SupabaseClient,
+  cacheId: string,
+  imageBlob: Blob
+): Promise<void> {
   const indexUrl = getOrbBackendUrl('/api/index');
+  const attemptedAt = new Date().toISOString();
+
   if (!indexUrl) {
     console.warn('⚠️ ORB backend is not configured; skipping feature indexing trigger.');
+    await updateAnalysisCacheCoverage(client, cacheId, {
+      orb_index_status: 'failed',
+      orb_index_error: 'ORB backend is not configured for this environment.',
+      orb_index_attempted_at: attemptedAt,
+    });
     return;
   }
 
   try {
+    await updateAnalysisCacheCoverage(client, cacheId, {
+      orb_index_status: 'indexing',
+      orb_index_error: null,
+      orb_index_attempted_at: attemptedAt,
+    });
+
     const formData = new FormData();
     formData.append('cache_id', cacheId);
     formData.append('skip_if_exists', 'true');
@@ -683,21 +743,44 @@ async function triggerOrbFeatureIndexing(cacheId: string, imageBlob: Blob): Prom
     }
 
     if (!response.ok) {
+      const detail = payload?.detail || payload?.message || 'Unknown error';
       console.warn('⚠️ ORB feature indexing failed:', {
         status: response.status,
-        detail: payload?.detail || payload?.message || 'Unknown error',
+        detail,
+      });
+      await updateAnalysisCacheCoverage(client, cacheId, {
+        orb_index_status: 'failed',
+        orb_index_error: detail,
+        orb_index_attempted_at: attemptedAt,
       });
       return;
     }
 
     if (payload?.already_indexed) {
       console.log('ℹ️ ORB features already existed for cache row:', cacheId);
+      await updateAnalysisCacheCoverage(client, cacheId, {
+        orb_index_status: 'ready',
+        orb_index_error: null,
+        orb_index_attempted_at: attemptedAt,
+        orb_indexed_at: attemptedAt,
+      });
       return;
     }
 
     console.log('✅ ORB features indexed for cache row:', cacheId);
+    await updateAnalysisCacheCoverage(client, cacheId, {
+      orb_index_status: 'ready',
+      orb_index_error: null,
+      orb_index_attempted_at: attemptedAt,
+      orb_indexed_at: attemptedAt,
+    });
   } catch (err) {
     console.warn('⚠️ Failed to trigger ORB feature indexing:', err);
+    await updateAnalysisCacheCoverage(client, cacheId, {
+      orb_index_status: 'failed',
+      orb_index_error: err instanceof Error ? err.message : 'Failed to trigger ORB feature indexing.',
+      orb_index_attempted_at: attemptedAt,
+    });
   }
 }
 
@@ -758,6 +841,7 @@ export async function cacheAnalysisResult(
     const altText = analysisResult.alt_text || `${keywords || 'Custom'} cake design`;
     const seoTitle = analysisResult.seo_title || `${keywords || 'Custom'} Cake | Genie.ph`;
     const seoDescription = analysisResult.seo_description || `Get instant pricing for this ${keywords || 'custom'} cake design. Customize and order at Genie.ph. Starting at ₱${totalPrice.toLocaleString()}.`;
+    const fingerprintedAt = new Date().toISOString();
 
     let finalImageUrl = imageUrl;
     let imageDimensions: { image_width: number | null; image_height: number | null } = {
@@ -834,26 +918,41 @@ export async function cacheAnalysisResult(
 
     // Generate tags
     const tags = generateTagsForAnalysis(analysisResult, keywords, seoTitle, altText);
+    const sourceInfoWasProvided = imageUrl !== undefined || imageBlob !== undefined;
+    const initialOrbCoverage = sourceInfoWasProvided
+      ? {
+        ...getInitialOrbIndexCoverage(finalImageUrl, imageBlob),
+        orb_index_attempted_at: null,
+        orb_indexed_at: null,
+      }
+      : {};
 
+    const upsertPayload: Record<string, unknown> = {
+      p_hash: resolvedPHash,
+      fingerprint_pipeline: fingerprintPipeline,
+      fingerprint_status: 'ready',
+      fingerprint_error: null,
+      fingerprinted_at: fingerprintedAt,
+      analysis_json: analysisResult,
+      price: totalPrice,
+      keywords: keywords,
+      slug: slug,
+      alt_text: altText,
+      seo_title: seoTitle,
+      seo_description: seoDescription,
+      availability: availability,
+      tags: tags,
+      ...initialOrbCoverage,
+      ...imageDimensions,
+    };
+
+    if (finalImageUrl !== undefined) {
+      upsertPayload.original_image_url = finalImageUrl;
+    }
 
     const { data: upsertData, error } = await client
       .from('cakegenie_analysis_cache')
-      .upsert({
-        p_hash: resolvedPHash,
-        fingerprint_pipeline: fingerprintPipeline,
-        analysis_json: analysisResult,
-        original_image_url: finalImageUrl,
-        price: totalPrice,
-        keywords: keywords,
-        slug: slug,
-        alt_text: altText,
-        seo_title: seoTitle,
-        seo_description: seoDescription,
-        availability: availability,
-        tags: tags,
-
-        ...imageDimensions,
-      }, {
+      .upsert(upsertPayload, {
         onConflict: 'p_hash',
         ignoreDuplicates: false // We set to false because we want to update with the new persistent image URL if it was already cached without one
       })
@@ -906,7 +1005,7 @@ export async function cacheAnalysisResult(
     }
 
     if (returnedId && imageBlob) {
-      await triggerOrbFeatureIndexing(returnedId, imageBlob);
+      await triggerOrbFeatureIndexing(client, returnedId, imageBlob);
     }
 
     return {

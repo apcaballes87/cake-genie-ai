@@ -2,8 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HybridAnalysisResult } from '@/types';
 
 const upsertMock = vi.fn();
+const updateMock = vi.fn();
 const selectAfterUpsertMock = vi.fn();
 const singleAfterUpsertMock = vi.fn();
+const selectFromAnalysisCacheMock = vi.fn();
+const eqAfterAnalysisCacheSelectMock = vi.fn();
+const singleAfterAnalysisCacheSelectMock = vi.fn();
+const eqAfterUpdateMock = vi.fn();
 const maybeSingleMock = vi.fn();
 const fromMock = vi.fn();
 const rpcMock = vi.fn();
@@ -33,6 +38,17 @@ const analysisCacheUpsertQuery = {
 
 const analysisCacheQuery = {
   upsert: upsertMock,
+  select: selectFromAnalysisCacheMock,
+  update: updateMock,
+};
+
+const analysisCacheSelectQuery = {
+  eq: eqAfterAnalysisCacheSelectMock,
+  single: singleAfterAnalysisCacheSelectMock,
+};
+
+const analysisCacheUpdateQuery = {
+  eq: eqAfterUpdateMock,
 };
 
 const mockClient = {
@@ -91,6 +107,11 @@ describe('cacheAnalysisResult', () => {
     singleAfterUpsertMock.mockReset().mockResolvedValue({ data: { id: 'cache-row-id' }, error: null });
     selectAfterUpsertMock.mockReset().mockReturnValue(analysisCacheUpsertQuery);
     upsertMock.mockReset().mockReturnValue(analysisCacheUpsertQuery);
+    singleAfterAnalysisCacheSelectMock.mockReset().mockResolvedValue({ data: { id: 'cache-row-id' }, error: null });
+    eqAfterAnalysisCacheSelectMock.mockReset().mockReturnValue(analysisCacheSelectQuery);
+    selectFromAnalysisCacheMock.mockReset().mockReturnValue(analysisCacheSelectQuery);
+    eqAfterUpdateMock.mockReset().mockResolvedValue({ error: null });
+    updateMock.mockReset().mockReturnValue(analysisCacheUpdateQuery);
     maybeSingleMock.mockReset().mockResolvedValue({ data: { price: 999 }, error: null });
     rpcMock.mockReset().mockResolvedValue({ data: [], error: null });
     fromMock.mockReset().mockImplementation((table: string) => {
@@ -130,6 +151,8 @@ describe('cacheAnalysisResult', () => {
       expect.objectContaining({
         p_hash: 'deadc0de1234beef',
         fingerprint_pipeline: 'v1-test-pipeline',
+        fingerprint_status: 'ready',
+        orb_index_status: 'pending',
       }),
       expect.objectContaining({
         onConflict: 'p_hash',

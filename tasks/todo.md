@@ -258,6 +258,33 @@
 - The right desktop sidebar is now wrapped in a sticky, max-height-limited scroll container. That gives the cake-options column an internal scroll surface on desktop without changing the mobile behavior or the sidebar's content structure.
 - A new helper in `src/app/customizing/desktopSidebarScroll.ts` decides when to capture wheel input:
   after the two-column section reaches the sticky zone,
+
+## Track Fingerprint And ORB Coverage
+
+### Plan
+
+- [x] Add cache-table status fields so fingerprint and ORB indexing health are queryable instead of hidden in logs.
+- [x] Tighten active fingerprint generation to use normalized image blobs where the upload flow already has them, reducing avoidable pHash failures.
+- [x] Update cache writes and the existing pHash backfill flow to maintain the new fingerprint/ORB status fields.
+- [x] Add a dedicated ORB backfill script for rows that are pending or failed indexing.
+- [x] Run focused tests plus a full production build and record the verification results.
+
+### Review
+
+- Added `supabase/migrations/20260526112000_add_analysis_cache_coverage_statuses.sql` to track `fingerprint_status`, `fingerprint_error`, `fingerprinted_at`, `orb_index_status`, `orb_index_error`, `orb_index_attempted_at`, and `orb_indexed_at` on `cakegenie_analysis_cache`, with status indexes and a backfill for existing rows.
+- Updated `src/services/supabaseService.ts` so the shared cache writer now records fingerprint readiness on every successful cache write and updates ORB indexing state around `/api/index` attempts instead of leaving that state implicit in console logs.
+- Tightened active fingerprint generation in `src/contexts/ImageContext.tsx`, `src/hooks/useImageManagement.ts`, `src/components/ChatModal.tsx`, `src/app/admin/bulk-analysis/page.tsx`, and `src/app/admin/search-analysis/page.tsx` so these flows fingerprint the normalized/compressed image blob when available instead of always hashing the noisier source file.
+- Updated `src/lib/utils/serverFingerprint.client.ts` to retry the server fingerprint request once and preserve the last error message so callers and logs can distinguish a real hash miss from transport or validation failure.
+- Updated `scripts/backfill-server-phashes.ts` so pHash backfills now maintain `fingerprint_status`/`fingerprint_error`, and added `scripts/backfill-orb-index.ts` to retry ORB indexing for rows marked `pending`, `failed`, or `indexing` that still have a source image URL.
+- Verification:
+  `npx vitest run src/services/supabaseService.cacheAnalysisResult.test.ts --exclude '.claude/**'` passed.
+  `npm run build` passed end to end.
+  Focused `eslint` on the touched non-`supabaseService.ts` files completed with `0` errors and only pre-existing warnings in `ImageContext.tsx`, `useImageManagement.ts`, and `ChatModal.tsx`.
+  Applied the new status schema to the linked Supabase project through MCP, then applied a follow-up reconciliation so existing `cakegenie_image_features` rows marked their parent cache rows `orb_index_status = 'ready'` instead of leaving the full catalog as pending.
+  Post-reconciliation live counts were `10,336` ORB-ready rows, `10` ORB-pending rows, and `1` fingerprint-missing-or-failed row before the repair scripts ran.
+  `npx tsx scripts/backfill-server-phashes.ts --limit=20 --concurrency=1` repaired `2` rows, aliased `4` duplicate/legacy hashes to canonical rows, and marked `8` rows failed because their source images are broken (`HTTP 400` or empty image buffers).
+  `npx tsx scripts/backfill-orb-index.ts --limit=20 --concurrency=2` indexed `2` rows successfully and marked `8` rows failed for the same broken-source-image reasons.
+  Final live counts after the repair passes: fingerprint `ready=10334`, `aliased=4`, `failed=8`; ORB `ready=10338`, `failed=8`, `pending=0`.
   after the left column bottom reaches the viewport bottom,
   while the right column still has scroll remaining,
   and in reverse while unwinding upward scroll inside the same section.

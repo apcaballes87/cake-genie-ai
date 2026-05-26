@@ -455,10 +455,10 @@ export default function SearchAnalysisAdminPage() {
                 const sourceFile = new File([blob], 'search-image-source', { type: blob.type || 'image/jpeg' });
                 const sourceImageData = await fileToBase64(sourceFile);
                 const sourceImageSrc = `data:${sourceImageData.mimeType};base64,${sourceImageData.data}`;
-                const fingerprint = await generateImageFingerprintWithLegacyCandidates(sourceFile, sourceImageSrc, { crossOrigin: 'anonymous' });
+                const fingerprint = await generateImageFingerprintWithLegacyCandidates(normalizedFile, sourceImageSrc, { crossOrigin: 'anonymous' });
                 const pHash = fingerprint.pHash;
                 if (!pHash) {
-                    throw new Error('Failed to generate server image hash.');
+                    throw new Error(fingerprint.error || 'Failed to generate server image hash.');
                 }
 
                 if (seenPHashesRef.current.has(pHash)) {

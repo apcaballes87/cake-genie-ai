@@ -134,11 +134,18 @@ export const useImageManagement = () => {
             // --- STEP 1: CHECK pHash CACHE (FASTEST FALLBACK) ---
             let fingerprint: ClientImageFingerprint | null = null;
             if (!cachedAnalysis) {
-                fingerprint = await generateImageFingerprintWithLegacyCandidates(file, imageSrc);
+                fingerprint = await generateImageFingerprintWithLegacyCandidates(
+                    finalImageBlobToCache ?? file,
+                    imageSrc
+                );
                 pHash = fingerprint.pHash || '';
 
                 if (orbBackendOfflineOrFailed) {
-                    console.log(`🖼️ Server pHash result: ${pHash ?? 'FAILED (null) — new cache writes will be skipped'}`);
+                    console.log(
+                        `🖼️ Server pHash result: ${pHash
+                            ? pHash
+                            : `FAILED (${fingerprint.error || 'unknown error'}) — new cache writes will be skipped`}`
+                    );
 
                     cacheHit = pHash || fingerprint.legacyPHashCandidates.length > 0
                         ? await findSimilarAnalysisByHash(toFingerprintLookup(fingerprint), uploadedImageUrl)

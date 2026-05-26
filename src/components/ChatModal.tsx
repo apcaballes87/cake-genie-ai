@@ -196,7 +196,10 @@ async function analyzeImageWithCache(
 ): Promise<{ analysis: HybridAnalysisResult | null; slug: string | null; title: string | null; price: number | null; imageUrl: string | null; cacheKey: string | null }> {
     const imageSrc = `data:${imageData.mimeType};base64,${imageData.data}`;
     const imageBlob = dataURItoBlob(imageSrc);
-    const fingerprint = await generateImageFingerprintWithLegacyCandidates(imageBlob, imageSrc);
+    const file = new File([imageBlob], 'chat-image.webp', { type: imageData.mimeType });
+    const compressedFile = await compressImage(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1024, fileType: 'image/webp' });
+    const compressedData = await fileToBase64(new File([compressedFile], 'chat-image.webp', { type: 'image/webp' }));
+    const fingerprint = await generateImageFingerprintWithLegacyCandidates(compressedFile, imageSrc);
     const cacheKey = fingerprint.pHash
         ?? fingerprint.legacyPHashCandidates[0]
         ?? await generateStableFallbackHash(imageData.data);
@@ -228,9 +231,6 @@ async function analyzeImageWithCache(
     }
 
     console.log('🔄 Chat: Cache miss, running AI analysis...');
-    const file = new File([imageBlob], 'chat-image.webp', { type: imageData.mimeType });
-    const compressedFile = await compressImage(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1024, fileType: 'image/webp' });
-    const compressedData = await fileToBase64(new File([compressedFile], 'chat-image.webp', { type: 'image/webp' }));
     const fastResult = await analyzeCakeFeaturesOnly(compressedData.data, compressedData.mimeType);
     if (!fastResult) return { analysis: null, slug: null, title: null, price: null, imageUrl: null, cacheKey };
     let finalResult = fastResult;
@@ -243,8 +243,7 @@ async function analyzeImageWithCache(
         }
     }
     if (fingerprint.pHash && finalResult) {
-        const compressedBlob = await compressImage(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1024, fileType: 'image/webp' });
-        const cached = await cacheAnalysisResult(fingerprint.pHash, finalResult, imageUrl, compressedBlob, {
+        const cached = await cacheAnalysisResult(fingerprint.pHash, finalResult, imageUrl, compressedFile, {
             fingerprintPipeline: fingerprint.pipeline,
         });
         if (cached) {
