@@ -195,7 +195,7 @@ const supportMaterialLabelMap: Record<SupportElementType, string> = {
     artificial_flowers: 'Artificial Flowers',
 };
 
-const THEME_COLORS = [
+export const THEME_COLORS = [
     { name: 'red', hex: '#EF4444' },
     { name: 'light red', hex: '#FCA5A5' },
     { name: 'orange', hex: '#F97316' },

@@ -103,11 +103,13 @@ export const useDesignUpdate = ({
 
     // Local cache for color variants (maps colorHex.toLowerCase() -> imageUrl)
     const localCacheRef = useRef<Record<string, string>>({}); // ADDED
+    const [colorVariants, setColorVariants] = useState<Record<string, string>>({}); // ADDED
 
     // Fetch existing color variants on mount or cacheId change
     useEffect(() => {
         if (!cacheId) {
             localCacheRef.current = {};
+            setColorVariants({});
             return;
         }
         const fetchVariants = async () => {
@@ -125,6 +127,7 @@ export const useDesignUpdate = ({
                         cacheMap[item.color_hex.toLowerCase()] = item.image_url;
                     });
                     localCacheRef.current = cacheMap;
+                    setColorVariants(cacheMap);
                     console.log(`🔌 Loaded ${data.length} cached color variants for design ${cacheId}`);
                 }
             } catch (err) {
@@ -246,6 +249,10 @@ export const useDesignUpdate = ({
 
                             // Cache locally for subsequent clicks
                             localCacheRef.current[colorMeta.hex.toLowerCase()] = publicUrl;
+                            setColorVariants(prev => ({
+                                ...prev,
+                                [colorMeta.hex.toLowerCase()]: publicUrl
+                            }));
                             console.log(`✅ Color variant saved successfully: ${publicUrl}`);
                         } catch (cacheErr) {
                             console.warn('Failed to background-cache new color variant:', cacheErr);
@@ -311,5 +318,6 @@ export const useDesignUpdate = ({
         lastGenerationInfoRef,
         handleUpdateDesign,
         setError,
+        colorVariants, // ADDED
     };
 };

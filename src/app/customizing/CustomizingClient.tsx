@@ -531,6 +531,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
 
     // --- Local State ---
+    const [activeTab, setActiveTab] = useState<'original' | 'customized'>('original');
     const [isUploaderOpen, setIsUploaderOpen] = useState(false);
     const [isPreSelectionModalOpen, setIsPreSelectionModalOpen] = useState(false);
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -707,7 +708,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     }, [aiChatPromptSuggestionItems, chatInput]);
 
     const {
-        isLoading: isUpdatingDesign, error: designUpdateError, lastGenerationInfoRef, handleUpdateDesign, setError: setDesignUpdateError, isSafetyFallback
+        isLoading: isUpdatingDesign, error: designUpdateError, lastGenerationInfoRef, handleUpdateDesign, setError: setDesignUpdateError, isSafetyFallback,
+        colorVariants // ADDED
     } = useDesignUpdate({
         originalImageData, editedImage, analysisResult, cakeInfo, mainToppers, supportElements, cakeMessages,
         icingDesign, additionalInstructions, threeTierReferenceImage,
@@ -2142,6 +2144,25 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         handleUpdateDesign(instruction, { colorMeta });
         scrollToHero();
     }, [handleUpdateDesign, scrollToHero]);
+
+    const handleSelectColorVariant = useCallback((hex: string, imageUrl: string) => {
+        if (!icingDesign) return;
+        
+        onIcingDesignChange({
+            ...icingDesign,
+            colors: {
+                ...icingDesign.colors,
+                top: hex,
+                side: hex,
+            },
+        });
+
+        setEditedImage(imageUrl);
+        setActiveTab('customized');
+        scrollToHero();
+        clearDirtyState();
+    }, [icingDesign, onIcingDesignChange, setEditedImage, setActiveTab, scrollToHero, clearDirtyState]);
+
     const onSave = handleSave;
     const isSaving = false;
 
@@ -2456,7 +2477,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const [showMessagesPanel, setShowMessagesPanel] = useState(false); // Messages panel visibility
     const [wasUpdating, setWasUpdating] = useState(false);
     // --- UI State ---
-    const [activeTab, setActiveTab] = useState<'original' | 'customized'>('original');
     const [activeCustomization, setActiveCustomization] = useState<string | null>(null);
     const [activeTopperSection, setActiveTopperSection] = useState<'main' | 'support' | null>(null);
 
@@ -3231,6 +3251,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             onSave={onSave}
                             onClearAll={onClearAll}
                             reviewSummary={reviewSummary}
+                            colorVariants={colorVariants}
+                            onSelectColorVariant={handleSelectColorVariant}
                         />
 
 

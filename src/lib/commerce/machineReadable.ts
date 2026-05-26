@@ -23,6 +23,70 @@ const METRO_CEBU_DELIVERY_CITIES = new Set([
   'Liloan',
 ]);
 
+export const PH_Country_Code: 'PH' = 'PH';
+
+export const CUSTOM_CAKE_LEAD_TIME = {
+  handlingTimeMinDays: 1,
+  handlingTimeMaxDays: 3,
+  transitTimeMinDays: 0,
+  transitTimeMaxDays: 1,
+} as const;
+
+/**
+ * Validates the Lead_Time_Constants object at module load (R2.1, R2.3, R2.9).
+ *
+ * Throws RangeError naming the offending property when:
+ * - any value is non-integer
+ * - any value is negative
+ * - any value exceeds 30
+ * - handlingTimeMinDays > handlingTimeMaxDays
+ * - transitTimeMinDays > transitTimeMaxDays
+ */
+export function validateLeadTimeConstants(
+  c: typeof CUSTOM_CAKE_LEAD_TIME,
+): void {
+  const entries: ReadonlyArray<
+    readonly [keyof typeof CUSTOM_CAKE_LEAD_TIME, number]
+  > = [
+    ['handlingTimeMinDays', c.handlingTimeMinDays],
+    ['handlingTimeMaxDays', c.handlingTimeMaxDays],
+    ['transitTimeMinDays', c.transitTimeMinDays],
+    ['transitTimeMaxDays', c.transitTimeMaxDays],
+  ];
+
+  for (const [name, value] of entries) {
+    if (!Number.isInteger(value)) {
+      throw new RangeError(
+        `CUSTOM_CAKE_LEAD_TIME.${name} must be an integer (received ${value})`,
+      );
+    }
+    if (value < 0) {
+      throw new RangeError(
+        `CUSTOM_CAKE_LEAD_TIME.${name} must be non-negative (received ${value})`,
+      );
+    }
+    if (value > 30) {
+      throw new RangeError(
+        `CUSTOM_CAKE_LEAD_TIME.${name} must be <= 30 (received ${value})`,
+      );
+    }
+  }
+
+  if (c.handlingTimeMinDays > c.handlingTimeMaxDays) {
+    throw new RangeError(
+      `CUSTOM_CAKE_LEAD_TIME.handlingTimeMinDays (${c.handlingTimeMinDays}) must be <= handlingTimeMaxDays (${c.handlingTimeMaxDays})`,
+    );
+  }
+  if (c.transitTimeMinDays > c.transitTimeMaxDays) {
+    throw new RangeError(
+      `CUSTOM_CAKE_LEAD_TIME.transitTimeMinDays (${c.transitTimeMinDays}) must be <= transitTimeMaxDays (${c.transitTimeMaxDays})`,
+    );
+  }
+}
+
+// Module-load invariant guard (R2.9): fail fast if Lead_Time_Constants are misconfigured.
+validateLeadTimeConstants(CUSTOM_CAKE_LEAD_TIME);
+
 export function getCommercePolicyUrls(): CommercePolicyUrls {
   return DEFAULT_POLICY_URLS;
 }

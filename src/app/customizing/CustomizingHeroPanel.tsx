@@ -7,6 +7,7 @@ import { ImageZoomModal } from '@/components/ImageZoomModal';
 import { Heart, ShieldCheck, Wand2 } from 'lucide-react';
 import { ErrorIcon, ImageIcon, ResetIcon, SaveIcon, Loader2, ReportIcon } from '../../components/icons';
 import MagicGlitter from '@/components/MagicGlitter';
+import { THEME_COLORS } from './CustomizingStepSummarySections';
 
 
 type ImageTab = 'original' | 'customized';
@@ -46,6 +47,8 @@ interface CustomizingHeroPanelProps {
     onOpenReportModal: () => void;
     onSave: () => void;
     onClearAll: () => void;
+    colorVariants?: Record<string, string> | null; // ADDED
+    onSelectColorVariant?: (hex: string, imageUrl: string) => void; // ADDED
     reviewSummary?: {
         total: number;
         averageRating: number;
@@ -138,6 +141,8 @@ export const CustomizingHeroPanel = memo(({
     onSave,
     onClearAll,
     reviewSummary,
+    colorVariants = null, // ADDED
+    onSelectColorVariant, // ADDED
 }: CustomizingHeroPanelProps) => {
     const [originalImageDimensions, setOriginalImageDimensions] = useState<{ width: number, height: number } | null>(null);
     const [isHeroImageZoomOpen, setIsHeroImageZoomOpen] = useState(false);
@@ -494,6 +499,70 @@ export const CustomizingHeroPanel = memo(({
                     </div>
                 </div>
             </div>
+
+            {/* Color Variant Thumbnails (only show if there's at least one variant generated) */}
+            {colorVariants && Object.keys(colorVariants).length > 0 ? (
+                <div className="flex flex-col gap-1.5 w-full mt-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">Available Color Variants</p>
+                    <div className="flex items-center justify-center gap-2 overflow-x-auto py-1 px-2 scrollbar-hide">
+                        {/* Original Image Option */}
+                        <button
+                            type="button"
+                            onClick={() => onOriginalTabSelect()}
+                            className={`relative w-12 h-12 rounded-xl overflow-hidden border-2 transition-all active:scale-95 ${
+                                activeTab === 'original'
+                                    ? 'border-purple-600 ring-2 ring-purple-100 scale-105 shadow-sm'
+                                    : 'border-slate-200 hover:border-purple-300 hover:scale-105'
+                            }`}
+                            aria-label="Original cake design"
+                        >
+                            <LazyImage
+                                src={originalImagePreview || preloadedHeroImage || fallbackImageUrl || ''}
+                                alt="Original variant"
+                                fill
+                                sizes="48px"
+                                imageClassName="object-contain bg-slate-50"
+                            />
+                        </button>
+
+                        {/* Theme Color Variants */}
+                        {Object.entries(colorVariants).map(([hex, imageUrl]) => {
+                            const isSelected = activeTab === 'customized' && editedImage === imageUrl;
+                            
+                            // Find color name
+                            const colorName = THEME_COLORS.find(c => c.hex.toLowerCase() === hex.toLowerCase())?.name || 'custom';
+                            
+                            return (
+                                <button
+                                    key={hex}
+                                    type="button"
+                                    onClick={() => onSelectColorVariant?.(hex, imageUrl)}
+                                    className={`relative w-12 h-12 rounded-xl overflow-hidden border-2 transition-all active:scale-95 ${
+                                        isSelected
+                                            ? 'border-purple-600 ring-2 ring-purple-100 scale-105 shadow-sm'
+                                            : 'border-slate-200 hover:border-purple-300 hover:scale-105'
+                                    }`}
+                                    title={`${colorName} variant`}
+                                    aria-label={`${colorName} cake variant`}
+                                >
+                                    <LazyImage
+                                        src={imageUrl}
+                                        alt={`${colorName} variant`}
+                                        fill
+                                        sizes="48px"
+                                        imageClassName="object-contain bg-slate-50"
+                                    />
+                                    {/* Small badge to show the color circle at the bottom right */}
+                                    <div
+                                        className="absolute bottom-1 right-1 w-3 h-3 rounded-full border border-white shadow-xs"
+                                        style={{ backgroundColor: hex }}
+                                    />
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            ) : null}
 
             <Link href="/reviews" className="flex items-center justify-center gap-x-1.5 whitespace-nowrap overflow-x-auto px-2 text-center text-[11px] sm:text-sm text-slate-600 hover:text-purple-600 transition-colors duration-200 scrollbar-hide">
                 <span className="text-sm sm:text-base font-semibold leading-none text-slate-900">
