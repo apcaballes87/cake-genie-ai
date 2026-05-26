@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
             contents: [{ role: 'user', parts }],
             config: {
                 systemInstruction: systemInstruction,
-                responseModalities: ['TEXT', 'IMAGE'],
+                responseModalities: ['IMAGE'],
             },
         });
 

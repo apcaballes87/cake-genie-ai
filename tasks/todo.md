@@ -1,5 +1,25 @@
 # Tasks
 
+## Use Fastest Safe Gemini Image Response Mode
+
+### Plan
+
+- [x] Confirm the lowest-risk doc-backed latency setting for the repo's pure image routes.
+- [x] Update the pure image editing/generation routes to request image-only responses.
+- [x] Adjust focused tests to assert the new Gemini config.
+- [x] Run focused verification and capture the result here.
+
+### Review
+
+- Updated the repo's pure Gemini image routes to explicitly request image-only outputs instead of the default text-plus-image mode.
+- `src/app/api/admin/cake-cache-images/route.ts` now requests `responseModalities: ['IMAGE']` for the background studio-edit pipeline.
+- `src/app/api/ai/edit-image/route.ts` now requests `responseModalities: ['IMAGE']` for interactive cake image edits.
+- `src/app/api/ai/cold-cake-edit/route.ts` now requests `responseModalities: ['IMAGE']` for edible photo compositing.
+- `src/app/api/ai/edit-image/route.test.ts` now asserts the route sends the image-only config to Gemini.
+- Verification:
+  `npx vitest run src/app/api/ai/edit-image/route.test.ts` passed. Vitest also discovered the mirrored test file under `.claude/worktrees/...`, so both copies passed.
+  `npx eslint src/app/api/admin/cake-cache-images/route.ts src/app/api/ai/edit-image/route.ts src/app/api/ai/cold-cake-edit/route.ts src/app/api/ai/edit-image/route.test.ts` still fails because of pre-existing `@typescript-eslint/no-explicit-any` errors and one unused helper warning already present in the touched route files; this latency change did not add new lint errors.
+
 ## Add Reusable Branding Compliance Prompt
 
 ### Plan

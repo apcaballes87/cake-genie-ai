@@ -100,6 +100,7 @@ The result must look like a real professionally-made edible photo cake from a ba
             contents: [{ role: 'user', parts }],
             config: {
                 systemInstruction: SYSTEM_INSTRUCTION,
+                responseModalities: ['IMAGE'],
             },
         });
 

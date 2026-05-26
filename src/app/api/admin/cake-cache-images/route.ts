@@ -438,7 +438,7 @@ export const POST = async (req: NextRequest) => {
           ],
           config: {
             systemInstruction,
-            responseModalities: ['TEXT', 'IMAGE'],
+            responseModalities: ['IMAGE'],
           },
         });
         break; // Success, exit loop
@@ -625,4 +625,3 @@ export const PATCH = async (req: NextRequest) => {
     );
   }
 };
-

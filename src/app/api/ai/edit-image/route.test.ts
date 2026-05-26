@@ -50,6 +50,9 @@ describe('/api/ai/edit-image', () => {
         expect(generateContent).toHaveBeenCalledWith(
             expect.objectContaining({
                 model: 'gemini-3.1-flash-image-preview',
+                config: expect.objectContaining({
+                    responseModalities: ['IMAGE'],
+                }),
             })
         );
     });
