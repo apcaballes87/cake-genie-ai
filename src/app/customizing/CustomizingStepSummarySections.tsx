@@ -493,17 +493,17 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     const combinedDecorItems = getCombinedDecorItems(mainToppers, supportElements);
     const combinedDecorSummary = buildCombinedDecorSummary(mainToppers, supportElements);
     const mainColorOptionsNode = cakeInfo ? (
-        <div className={cardClassName}>
-            <div className="flex items-center gap-3 px-1 pb-1">
-                <div className="flex flex-col items-center gap-1 shrink-0">
+        <div className={`${cardClassName} max-md:py-1 max-md:px-1.5`}>
+            <div className="flex items-center gap-2 px-1 pb-0.5 md:gap-3">
+                <div className="flex flex-col items-center gap-0.5 shrink-0">
                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Main</span>
                     <div
-                        className="w-10 h-10 rounded-full border-2 border-white shadow-md ring-1 ring-slate-100 shrink-0"
+                        className="md:w-10 md:h-10 w-[34px] h-[34px] rounded-full border-2 border-white shadow-md ring-1 ring-slate-100 shrink-0"
                         style={{ backgroundColor: icingDesign?.colors?.side || icingDesign?.colors?.top || '#FFFFFF' }}
                     />
                 </div>
 
-                <div className="w-px h-10 bg-slate-100 shrink-0" />
+                <div className="w-px md:h-10 h-[34px] bg-slate-100 shrink-0" />
 
                 <div className="flex-1 overflow-x-auto scrollbar-hide">
                     <div className="flex gap-2 py-0.5 px-1">
@@ -536,7 +536,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                     title={color.name}
                                 >
                                     <div
-                                        className={`w-8 h-8 rounded-full border shadow-sm transition-all ${
+                                        className={`md:w-8 md:h-8 w-[27px] h-[27px] rounded-full border shadow-sm transition-all ${
                                             currentColorHex.toLowerCase() === color.hex.toLowerCase()
                                                 ? 'border-slate-300 ring-2 ring-slate-300'
                                                 : 'border-slate-100 group-hover:shadow-md group-hover:ring-2 group-hover:ring-purple-200'
