@@ -673,6 +673,30 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             }
         });
 
+        // Belt-and-suspenders fast probe: re-check every 2s for the first ~20s.
+        // Covers two race conditions:
+        //  1) The Realtime subscription is still negotiating when the studio row
+        //     UPDATE lands (tenant cold-start can take 1-3s).
+        //  2) The studio job's UPDATE happened before currentPHash was set on the
+        //     client, so the immediate probe above missed by milliseconds.
+        // Cheap (one tiny SELECT every 2s, capped at 10 attempts) and stops the
+        // moment a URL appears.
+        const fastProbeIntervalId = setInterval(async () => {
+            if (isCancelled) {
+                clearInterval(fastProbeIntervalId);
+                return;
+            }
+            const studioImage = await getStudioImageAvailabilityByHash(studioPollHash);
+            if (isCancelled) return;
+            const studioUrl = firstNonBlankImageUrl(studioImage?.studio_edited_image_url);
+            if (studioUrl) {
+                setLiveStudioEditedImageUrl(studioUrl);
+                clearInterval(fastProbeIntervalId);
+            }
+        }, 2000);
+        // Stop the fast probe after 20 seconds; the Realtime channel handles long-tail updates.
+        const fastProbeStopId = setTimeout(() => clearInterval(fastProbeIntervalId), 20_000);
+
         // Fallback safety net: if Realtime drops or the studio job runs longer than expected,
         // re-probe once after 60s. Replaces the previous 40-tick polling loop.
         fallbackTimeoutId = setTimeout(async () => {
@@ -690,6 +714,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             if (fallbackTimeoutId) {
                 clearTimeout(fallbackTimeoutId);
             }
+            clearInterval(fastProbeIntervalId);
+            clearTimeout(fastProbeStopId);
             void supabase.removeChannel(channel);
         };
     }, [currentPHash, recentSearchDesign?.p_hash, liveStudioEditedImageUrl, supabase]);
