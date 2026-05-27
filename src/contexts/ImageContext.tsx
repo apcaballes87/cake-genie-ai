@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import { usePathname } from 'next/navigation'
 import { v4 as uuidv4 } from 'uuid'
 import { toast as toastHot } from 'react-hot-toast'
-import { fileToBase64, validateCakeImage, analyzeCakeFeaturesOnly, enrichAnalysisWithRoboflow, triggerStudioEditFromUpload } from '@/services/geminiService'
+import { fileToBase64, analyzeCakeFeaturesOnly, enrichAnalysisWithRoboflow, triggerStudioEditFromUpload } from '@/services/geminiService'
 import { createClient } from '@/lib/supabase/client'
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization'
 import { showSuccess, showError, showLoading, showStatus } from '@/lib/utils/toast'
@@ -18,7 +18,9 @@ import {
     toFingerprintLookup,
     type ClientImageFingerprint,
 } from '@/lib/utils/serverFingerprint.client'
+import { generatePerceptualHashCandidates } from '@/lib/utils/perceptualHash.client'
 import { findOrbCacheHit } from '@/services/orbMatchingService'
+import { FEATURE_FLAGS } from '@/config/features'
 
 const USER_UPLOAD_ORB_MATCH_MODE = 'strict'
 
@@ -359,31 +361,18 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 // Convert compressed file to base64 for AI
                 compressedImageData = await fileToBase64(compressedFile);
 
-                // Fallback resizing — guarantees we never send a massive payload to Gemini
+                // Fallback resize — extra-large images (rare with our 0.5MB/1024 target) get a
+                // tighter retry through compressImage. Avoids the previous canvas + JPEG re-encode
+                // path, which decoded the original full-size file a second time.
                 if (compressedImageData.data.length > 2 * 1024 * 1024) { // > ~1.5MB base64
                     try {
-                        const img = new Image();
-                        img.src = imageSrc;
-                        await new Promise((resolve) => { img.onload = resolve; });
-
-                        const canvas = document.createElement('canvas');
-                        const MAX_DIMENSION = 1024;
-                        let width = img.width;
-                        let height = img.height;
-
-                        if (width > height) {
-                            if (width > MAX_DIMENSION) { height *= MAX_DIMENSION / width; width = MAX_DIMENSION; }
-                        } else {
-                            if (height > MAX_DIMENSION) { width *= MAX_DIMENSION / height; height = MAX_DIMENSION; }
-                        }
-
-                        canvas.width = width;
-                        canvas.height = height;
-                        const ctx = canvas.getContext('2d');
-                        ctx?.drawImage(img, 0, 0, width, height);
-
-                        const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                        compressedImageData = { data: resizedDataUrl.split(',')[1], mimeType: 'image/jpeg' };
+                        const tightFile = await compressImage(compressedFile, {
+                            maxSizeMB: 0.4,
+                            maxWidthOrHeight: 1024,
+                            fileType: 'image/webp',
+                        });
+                        finalImageBlobToCache = tightFile;
+                        compressedImageData = await fileToBase64(tightFile);
                     } catch (resizeErr) {
                         // Silently handle resize failure
                     }
@@ -392,62 +381,28 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 // Silently handle compression failure — continue with original imageData
             }
 
-            // --- STEP 2: VALIDATE + ORB/pHash LOOKUPS SEQUENTIALLY ---
-            // Run image validation and crop-resistant matching.
-            // If the FastAPI backend is online, we rely on its authoritative crop-resistant matching.
-            // We fall back to database pHash matching ONLY if the FastAPI backend is offline or errors.
-            let checkToastId = showStatus('Checking your image…', { duration: 30000 });
-            const orbCacheHitPromise = findOrbCacheHit(file, { mode: USER_UPLOAD_ORB_MATCH_MODE });
-            const validationPromise = validateCakeImage(
-                compressedImageData.data,
-                compressedImageData.mimeType
-            ).catch(() => 'valid_single_cake' as const);
+            // --- STEP 2: ORB/pHash LOOKUP ---
+            // Crop-resistant ORB match runs first. The standalone Gemini validate call has been
+            // removed because the analyzer in STEP 3 already returns `rejection.isRejected` with
+            // the same labels and human-readable messages, and cache hits come from rows that
+            // were already validated when they were first analyzed. Saves ~4-8s per upload.
+            // Single in-place updating toast — feels faster than 3 dismiss+show cycles.
+            const uploadToastId = 'upload-progress';
+            const showProgressToast = (message: string, durationMs?: number) => {
+                showStatus(message, { id: uploadToastId, duration: durationMs ?? 30000 });
+            };
+            showProgressToast('Checking your image…');
 
-            let validationClassification = 'valid_single_cake';
             let orbCacheHit = null;
             let orbBackendOfflineOrFailed = false;
 
             try {
-                // Perform validation and ORB lookup in parallel to minimize latency
-                const [valClass, orbResult] = await Promise.all([
-                    validationPromise,
-                    orbCacheHitPromise
-                ]);
-                validationClassification = valClass;
-                orbCacheHit = orbResult;
+                orbCacheHit = await findOrbCacheHit(file, { mode: USER_UPLOAD_ORB_MATCH_MODE });
             } catch (orbError) {
                 console.warn('FastAPI backend offline or error during ORB match, falling back to legacy pHash cache:', orbError);
                 orbBackendOfflineOrFailed = true;
-                
-                toastHot.dismiss(checkToastId);
-                checkToastId = showStatus('Verifying your image…', { duration: 8000 });
 
-                // Make sure we still wait for image validation classification
-                try {
-                    validationClassification = await validationPromise;
-                } catch (_) {
-                    validationClassification = 'valid_single_cake';
-                }
-            }
-
-            // Gate: reject invalid images before honouring cache or running AI
-            const rejectionMessages: Record<string, string> = {
-                edible_photo_reference: "This looks like an edible photo reference, not a cake design. Please upload a cake image for automatic analysis.",
-                payment_receipt: "This looks like a payment screenshot, not a cake design. Please upload a cake image for automatic analysis.",
-                not_a_cake: "This image doesn't appear to be a cake. Please upload a cake image.",
-                non_food: "This image doesn't appear to be a cake. Please upload a cake image.",
-                multiple_cakes: "Please upload a single cake image. This image contains multiple cakes.",
-                only_cupcakes: "We currently don't process cupcake-only images. Please upload a cake design.",
-                complex_sculpture: "This cake design is too complex for online pricing. Please contact us for a custom quote.",
-                large_wedding_cake: "Large wedding cakes require in-store consultation for accurate pricing.",
-            };
-
-            if (validationClassification !== 'valid_single_cake') {
-                toastHot.dismiss(checkToastId);
-                const message = rejectionMessages[validationClassification] ?? "This image is not suitable for processing. Please upload a valid cake image.";
-                console.log(`🚫 Validation rejected image: ${validationClassification}`);
-                onError(new Error(message));
-                return;
+                showProgressToast('Verifying your image…', 8000);
             }
 
             let cacheHit = null;
@@ -456,8 +411,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
 
             if (orbCacheHit) {
                 // Case A: Crop-resistant match found in FastAPI database
-                toastHot.dismiss(checkToastId);
-                showStatus('We found your cake photo! 🎉');
+                showProgressToast('We found your cake photo! 🎉', 3000);
                 cacheHit = {
                     pHash: orbCacheHit.pHash ?? '',
                     analysisResult: orbCacheHit.analysisResult,
@@ -482,46 +436,72 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     `\nLatency: ${orbCacheHit.executionTimeMs?.toFixed(0) ?? 'n/a'}ms`,
                 );
             } else {
-                // Generate pHash only when crop-resistant ORB match was not found
-                fingerprint = await generateImageFingerprintWithLegacyCandidates(
-                    finalImageBlobToCache ?? file,
-                    imageSrc
-                );
-                pHash = fingerprint.pHash;
-                console.log(
-                    `🔍 Server pHash result: ${pHash
-                        ? pHash
-                        : `FAILED (${fingerprint.error || 'unknown error'}) — new cache writes will be skipped`}`
-                );
+                // --- FAST PATH: client-side legacy pHash lookup before paying for server fingerprint ---
+                // generatePerceptualHashCandidates runs entirely on the client (canvas + ahash, ~5-20ms)
+                // and returns hashes in the same legacy pipeline that find_similar_analysis_by_fingerprint
+                // already accepts as `legacy_hashes`. If those bit-collide with an existing row we can
+                // skip the 5-8s server fingerprint round-trip on cache-hit. On miss we fall through to
+                // the canonical server fingerprint so cache writes still get the v1-sharp pipeline hash.
+                if (!knownSeoMetadata) {
+                    try {
+                        const fastClientCandidates = await generatePerceptualHashCandidates(imageSrc);
+                        if (fastClientCandidates.length > 0) {
+                            const cacheHitRaw = await findSimilarAnalysisByHash(
+                                { pHash: null, pipeline: null, legacyPHashes: fastClientCandidates },
+                                options?.imageUrl
+                            );
+                            if (cacheHitRaw) {
+                                showProgressToast('We found your cake photo! 🎉', 3000);
+                                cacheHit = cacheHitRaw;
+                                pHash = cacheHitRaw.pHash || null;
+                                console.log(`✅ Fast pHash Cache HIT (client-side) for hash: ${pHash} — skipped server fingerprint`);
+                            }
+                        }
+                    } catch (fastErr) {
+                        console.warn('Fast client-side pHash lookup failed; falling through to server fingerprint:', fastErr);
+                    }
+                }
 
-                if (orbBackendOfflineOrFailed) {
-                    // Case B: FastAPI is offline/errored. Fallback to standard pHash lookup in Supabase
-                    const shouldUseSimilarCacheLookup = !knownSeoMetadata && (
-                        pHash !== null || fingerprint.legacyPHashCandidates.length > 0
+                if (cacheHit) {
+                    // Cache hit landed on the fast path — skip the server fingerprint entirely.
+                } else {
+                    // Generate canonical server fingerprint when crop-resistant ORB and fast client pHash both missed.
+                    fingerprint = await generateImageFingerprintWithLegacyCandidates(
+                        finalImageBlobToCache ?? file,
+                        imageSrc
+                    );
+                    pHash = fingerprint.pHash;
+                    console.log(
+                        `🔍 Server pHash result: ${pHash
+                            ? pHash
+                            : `FAILED (${fingerprint.error || 'unknown error'}) — new cache writes will be skipped`}`
                     );
 
-                    if (shouldUseSimilarCacheLookup) {
-                        console.log('🔍 Starting legacy pHash cache lookup for offline/failed ORB backend...');
-                        const cacheHitRaw = await findSimilarAnalysisByHash(toFingerprintLookup(fingerprint), options?.imageUrl);
-                        if (cacheHitRaw) {
-                            toastHot.dismiss(checkToastId);
-                            showStatus('We found your cake photo! 🎉');
-                            cacheHit = cacheHitRaw;
-                            console.log(`✅ pHash Cache HIT! Found matching analysis for hash: ${pHash}`);
+                    if (orbBackendOfflineOrFailed) {
+                        // Case B: FastAPI is offline/errored. Fallback to standard pHash lookup in Supabase
+                        const shouldUseSimilarCacheLookup = !knownSeoMetadata && (
+                            pHash !== null || fingerprint.legacyPHashCandidates.length > 0
+                        );
+
+                        if (shouldUseSimilarCacheLookup) {
+                            console.log('🔍 Starting legacy pHash cache lookup for offline/failed ORB backend...');
+                            const cacheHitRaw = await findSimilarAnalysisByHash(toFingerprintLookup(fingerprint), options?.imageUrl);
+                            if (cacheHitRaw) {
+                                showProgressToast('We found your cake photo! 🎉', 3000);
+                                cacheHit = cacheHitRaw;
+                                console.log(`✅ pHash Cache HIT! Found matching analysis for hash: ${pHash}`);
+                            } else {
+                                showProgressToast('Analyzing your design with AI…', 15000);
+                                console.log('⚫️ Cache MISS. No matching pHash found in database.');
+                            }
                         } else {
-                            toastHot.dismiss(checkToastId);
-                            checkToastId = showStatus('Analyzing your design with AI…', { duration: 15000 });
-                            console.log('⚫️ Cache MISS. No matching pHash found in database.');
+                            showProgressToast('Analyzing your design with AI…', 15000);
                         }
                     } else {
-                        toastHot.dismiss(checkToastId);
-                        checkToastId = showStatus('Analyzing your design with AI…', { duration: 15000 });
+                        // Case C: FastAPI online and returned match = false. Authoritative Cache MISS. Skip pHash database lookup entirely!
+                        showProgressToast('Analyzing your design with AI…', 15000);
+                        console.log('%c⚫ CACHE MISS (ORB+RANSAC)', 'color: #94a3b8; font-weight: bold;', '— skipping pHash database lookup');
                     }
-                } else {
-                    // Case C: FastAPI online and returned match = false. Authoritative Cache MISS. Skip pHash database lookup entirely!
-                    toastHot.dismiss(checkToastId);
-                    checkToastId = showStatus('Analyzing your design with AI…', { duration: 15000 });
-                    console.log('%c⚫ CACHE MISS (ORB+RANSAC)', 'color: #94a3b8; font-weight: bold;', '— skipping pHash database lookup');
                 }
             }
 
@@ -542,7 +522,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 // Check if cached result has bbox data
                 const hasBbox = hasBoundingBoxData(cachedAnalysis);
 
-                if (!hasBbox) {
+                if (!hasBbox && FEATURE_FLAGS.USE_ROBOFLOW_COORDINATES) {
 
                     // Run enrichment in background without blocking
                     (async () => {
@@ -605,7 +585,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 );
 
                 // Clean up the active analysis toast
-                toastHot.dismiss(checkToastId);
+                toastHot.dismiss(uploadToastId);
 
                 onSuccess(fastResult); // User can now see features and price immediately!
 
@@ -655,78 +635,82 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 }
 
                 // PHASE 2: Background coordinate enrichment with Roboflow + Florence-2
-                // (Falls back to Gemini if Roboflow fails or is disabled)
-                enrichAnalysisWithRoboflow(
-                    compressedImageData.data,
-                    compressedImageData.mimeType,
-                    fastResult
-                ).then(async enrichedResult => {
-                    // Notify the UI to update with enriched coordinates
-                    if (options?.onCoordinatesEnriched) {
-                        options.onCoordinatesEnriched(enrichedResult);
-                    }
-
-                    if (pHash && fingerprint) {
-                        const initialCacheWrite = fastCacheWritePromise
-                            ? await fastCacheWritePromise.catch(() => null)
-                            : null;
-
-                        const cacheWrite = initialCacheWrite
-                            ? await cacheAnalysisResult(
-                                pHash,
-                                enrichedResult,
-                                initialCacheWrite.original_image_url ?? uploadedImageUrl,
-                                undefined,
-                                {
-                                    fingerprintPipeline: fingerprint.pipeline,
-                                    triggerStudioEdit: false,
-                                    persistSourceAsset: false,
-                                }
-                            )
-                            : await cacheAnalysisResult(pHash, enrichedResult, uploadedImageUrl, finalImageBlobToCache, {
-                                fingerprintPipeline: fingerprint.pipeline,
-                            });
-
-                        if (cacheWrite) {
-                            setCurrentPHash(cacheWrite.storedPHash);
-                            console.log(`✅ Enriched analysis cache update completed with pHash: ${cacheWrite.storedPHash}`);
-                            setIsAnalysisCached(true);
-                        } else {
-                            console.warn('⚠️ Enriched analysis cache update returned null');
+                // Skipped entirely when the feature flag is off — Phase 1's cache write already
+                // contains the final analysis, so re-running enrichAnalysisWithRoboflow (a no-op
+                // in disabled mode) and writing the same payload a second time was pure waste.
+                if (FEATURE_FLAGS.USE_ROBOFLOW_COORDINATES) {
+                    enrichAnalysisWithRoboflow(
+                        compressedImageData.data,
+                        compressedImageData.mimeType,
+                        fastResult
+                    ).then(async enrichedResult => {
+                        // Notify the UI to update with enriched coordinates
+                        if (options?.onCoordinatesEnriched) {
+                            options.onCoordinatesEnriched(enrichedResult);
                         }
-                    } else {
-                        console.warn('⚠️ Skipping enriched cache update — pHash was null or fingerprint was not generated');
-                    }
-                }).catch(async enrichmentError => {
-                    console.warn('⚠️ Roboflow enrichment failed; keeping fast analysis cache profile:', enrichmentError);
 
-                    if (pHash && fingerprint) {
-                        const initialCacheWrite = fastCacheWritePromise
-                            ? await fastCacheWritePromise.catch(() => null)
-                            : null;
+                        if (pHash && fingerprint) {
+                            const initialCacheWrite = fastCacheWritePromise
+                                ? await fastCacheWritePromise.catch(() => null)
+                                : null;
 
-                        if (!initialCacheWrite) {
-                            const cacheWrite = await cacheAnalysisResult(pHash, fastResult, uploadedImageUrl, finalImageBlobToCache, {
-                                fingerprintPipeline: fingerprint.pipeline,
-                            });
+                            const cacheWrite = initialCacheWrite
+                                ? await cacheAnalysisResult(
+                                    pHash,
+                                    enrichedResult,
+                                    initialCacheWrite.original_image_url ?? uploadedImageUrl,
+                                    undefined,
+                                    {
+                                        fingerprintPipeline: fingerprint.pipeline,
+                                        triggerStudioEdit: false,
+                                        persistSourceAsset: false,
+                                    }
+                                )
+                                : await cacheAnalysisResult(pHash, enrichedResult, uploadedImageUrl, finalImageBlobToCache, {
+                                    fingerprintPipeline: fingerprint.pipeline,
+                                });
+
                             if (cacheWrite) {
                                 setCurrentPHash(cacheWrite.storedPHash);
-                                console.log(`✅ Analysis result (fast profile) cached successfully with pHash: ${cacheWrite.storedPHash}`);
+                                console.log(`✅ Enriched analysis cache update completed with pHash: ${cacheWrite.storedPHash}`);
                                 setIsAnalysisCached(true);
                             } else {
-                                console.warn('⚠️ Fast analysis fallback cache write returned null after enrichment failure');
+                                console.warn('⚠️ Enriched analysis cache update returned null');
                             }
                         } else {
-                            setIsAnalysisCached(true);
+                            console.warn('⚠️ Skipping enriched cache update — pHash was null or fingerprint was not generated');
                         }
-                    } else {
-                        console.warn('⚠️ Skipping fallback cache save — pHash was null or fingerprint was not generated');
-                    }
-                });
+                    }).catch(async enrichmentError => {
+                        console.warn('⚠️ Roboflow enrichment failed; keeping fast analysis cache profile:', enrichmentError);
+
+                        if (pHash && fingerprint) {
+                            const initialCacheWrite = fastCacheWritePromise
+                                ? await fastCacheWritePromise.catch(() => null)
+                                : null;
+
+                            if (!initialCacheWrite) {
+                                const cacheWrite = await cacheAnalysisResult(pHash, fastResult, uploadedImageUrl, finalImageBlobToCache, {
+                                    fingerprintPipeline: fingerprint.pipeline,
+                                });
+                                if (cacheWrite) {
+                                    setCurrentPHash(cacheWrite.storedPHash);
+                                    console.log(`✅ Analysis result (fast profile) cached successfully with pHash: ${cacheWrite.storedPHash}`);
+                                    setIsAnalysisCached(true);
+                                } else {
+                                    console.warn('⚠️ Fast analysis fallback cache write returned null after enrichment failure');
+                                }
+                            } else {
+                                setIsAnalysisCached(true);
+                            }
+                        } else {
+                            console.warn('⚠️ Skipping fallback cache save — pHash was null or fingerprint was not generated');
+                        }
+                    });
+                }
 
             } catch (error) {
                 // Clean up the active analysis toast on error
-                toastHot.dismiss(checkToastId);
+                toastHot.dismiss(uploadToastId);
                 onError(error instanceof Error ? error : new Error('Failed to analyze image'));
             }
 

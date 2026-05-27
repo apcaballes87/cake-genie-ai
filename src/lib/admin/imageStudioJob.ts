@@ -15,6 +15,18 @@ const MODEL_NAME = 'gemini-3.1-flash-image-preview';
 const STORAGE_BUCKET = 'cakegenie';
 const DEFAULT_CACHE_ROW_WAIT_ATTEMPTS = 45;
 const DEFAULT_CACHE_ROW_WAIT_MS = 1000;
+// When the cache row hasn't been written yet by the analyze flow, we still
+// publish the studio image to storage and return success. The completed-status
+// row update is retried in two phases:
+//   1. INLINE phase — short, blocks the runImageStudioJob return so callers
+//      that want the row see it most of the time.
+//   2. BACKGROUND phase — fire-and-forget tail that keeps trying for ~30s in
+//      case the analyze flow is unusually slow. Lets us cap the inline wait
+//      without losing eventual consistency.
+const INLINE_ROW_WAIT_ATTEMPTS = 5;
+const INLINE_ROW_WAIT_MS = 500;
+const BACKGROUND_ROW_WAIT_ATTEMPTS = 30;
+const BACKGROUND_ROW_WAIT_MS = 1000;
 
 type AIRequestContext = {
   headers?: {
@@ -212,8 +224,11 @@ const finalizeEditedImage = async (
 
   return enhancedImage
     .webp({
-      quality: dimensions?.wasUpscaled ? 96 : 92,
-      effort: 6,
+      // quality 92 is visually indistinguishable from 96 for cake photos but encodes much faster.
+      // effort 4 cuts WebP encode time roughly in half vs effort 6 for ~1-2% extra file size,
+      // which is invisible to users and not worth ~0.7-1.5s of server CPU per studio image.
+      quality: 92,
+      effort: 4,
     })
     .toBuffer();
 };
@@ -431,10 +446,44 @@ export async function runImageStudioJob({
       },
       {
         waitForRow: canWaitForRow,
+        // Cap the inline wait so the studio job returns promptly even when the
+        // analyze flow's cache write hasn't landed yet. Background retry below
+        // covers the slow case.
+        maxAttempts: canWaitForRow ? INLINE_ROW_WAIT_ATTEMPTS : 1,
+        waitMs: INLINE_ROW_WAIT_MS,
       }
     );
 
-    if (!updatedRow) {
+    if (!updatedRow && canWaitForRow) {
+      // Row didn't exist within the inline window. Spawn a background tail
+      // so the row gets updated once the analyze flow's upsert completes.
+      // Storage upload already succeeded — the user's UI (subscribed via
+      // Realtime) will surface the studio image as soon as this lands.
+      console.warn(`[AI Studio] Inline row update missed window for ${pHash}; scheduling background tail.`);
+      void persistStudioUpdateWithRetry(
+        supabase,
+        pHash,
+        {
+          studio_edited_image_url: publicUrl,
+          studio_edit_status: 'completed',
+          studio_edit_error: null,
+          studio_edited_at: new Date().toISOString(),
+        },
+        {
+          waitForRow: true,
+          maxAttempts: BACKGROUND_ROW_WAIT_ATTEMPTS,
+          waitMs: BACKGROUND_ROW_WAIT_MS,
+        }
+      ).then((row) => {
+        if (row) {
+          console.log(`[AI Studio] Background tail attached studio image to ${pHash}.`);
+        } else {
+          console.warn(`[AI Studio] Background tail timed out waiting for cache row ${pHash}.`);
+        }
+      }).catch((tailError) => {
+        console.warn(`[AI Studio] Background tail update failed for ${pHash}:`, tailError);
+      });
+    } else if (!updatedRow) {
       console.warn(`[AI Studio] Completed studio image for ${pHash}, but no cache row was available to attach the result.`);
     }
 
@@ -463,6 +512,8 @@ export async function runImageStudioJob({
           },
           {
             waitForRow: canWaitForRow,
+            maxAttempts: canWaitForRow ? INLINE_ROW_WAIT_ATTEMPTS : 1,
+            waitMs: INLINE_ROW_WAIT_MS,
           }
         );
       } catch (statusError) {

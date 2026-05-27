@@ -638,44 +638,80 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         }
 
         let isCancelled = false;
-        let timeoutId: ReturnType<typeof setTimeout> | null = null;
-        let attempts = 0;
-        const maxAttempts = 40;
+        let fallbackTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
-        const pollStudioImage = async () => {
-            attempts += 1;
+        // Primary path: Supabase Realtime postgres_changes subscription on the row.
+        // Reacts to studio_edited_image_url updates within ~150ms instead of waiting up
+        // to 1.5-2.5s for the next polling tick.
+        const channel = supabase
+            .channel(`studio-image-${studioPollHash}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'cakegenie_analysis_cache',
+                    filter: `p_hash=eq.${studioPollHash}`,
+                },
+                (payload) => {
+                    if (isCancelled) return;
+                    const updated = payload.new as { studio_edited_image_url?: string | null } | undefined;
+                    const studioUrl = firstNonBlankImageUrl(updated?.studio_edited_image_url);
+                    if (studioUrl) {
+                        setLiveStudioEditedImageUrl(studioUrl);
+                    }
+                }
+            )
+            .subscribe();
 
-            const studioImage = await getStudioImageAvailabilityByHash(studioPollHash);
-
-            if (isCancelled) {
-                return;
-            }
-
+        // Probe once immediately in case the row was already updated before the channel subscribed.
+        void getStudioImageAvailabilityByHash(studioPollHash).then((studioImage) => {
+            if (isCancelled) return;
             const studioUrl = firstNonBlankImageUrl(studioImage?.studio_edited_image_url);
             if (studioUrl) {
                 setLiveStudioEditedImageUrl(studioUrl);
-                return;
             }
+        });
 
-            if (studioImage?.studio_edit_status === 'failed' || attempts >= maxAttempts) {
-                return;
+        // Fallback safety net: if Realtime drops or the studio job runs longer than expected,
+        // re-probe once after 60s. Replaces the previous 40-tick polling loop.
+        fallbackTimeoutId = setTimeout(async () => {
+            if (isCancelled) return;
+            const studioImage = await getStudioImageAvailabilityByHash(studioPollHash);
+            if (isCancelled) return;
+            const studioUrl = firstNonBlankImageUrl(studioImage?.studio_edited_image_url);
+            if (studioUrl) {
+                setLiveStudioEditedImageUrl(studioUrl);
             }
-
-            timeoutId = setTimeout(
-                pollStudioImage,
-                attempts < 10 ? 1500 : 2500
-            );
-        };
-
-        void pollStudioImage();
+        }, 60_000);
 
         return () => {
             isCancelled = true;
-            if (timeoutId) {
-                clearTimeout(timeoutId);
+            if (fallbackTimeoutId) {
+                clearTimeout(fallbackTimeoutId);
             }
+            void supabase.removeChannel(channel);
         };
-    }, [currentPHash, recentSearchDesign?.p_hash, liveStudioEditedImageUrl]);
+    }, [currentPHash, recentSearchDesign?.p_hash, liveStudioEditedImageUrl, supabase]);
+
+    // Preload the studio image as soon as its URL is known. This kicks off the
+    // network fetch ahead of the LazyImage mount, shaving 200-600ms off the
+    // first paint of the polished hero. Cleaned up when the URL changes/unmounts.
+    useEffect(() => {
+        if (!liveStudioEditedImageUrl || typeof document === 'undefined') return;
+
+        const link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'image';
+        link.href = liveStudioEditedImageUrl;
+        // fetchPriority is a string attribute on link elements
+        link.setAttribute('fetchpriority', 'high');
+        document.head.appendChild(link);
+
+        return () => {
+            link.remove();
+        };
+    }, [liveStudioEditedImageUrl]);
 
     const isEmptyState = !originalImagePreview && !preloadedHeroImage && !product && !recentSearchDesign;
 

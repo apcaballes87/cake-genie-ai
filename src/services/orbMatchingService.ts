@@ -4,6 +4,29 @@ import { getOrbBackendUnavailableMessage, getOrbBackendUrl } from '@/services/or
 export type OrbMatchingMode = 'default' | 'strict' | 'loose';
 
 const ORB_MATCH_TIMEOUT_MS = 2000;
+// When the ORB backend is unreachable we short-circuit subsequent calls for this
+// long instead of paying the full timeout each time. Cleared as soon as any call
+// succeeds, so the system self-heals as soon as the backend comes back online.
+const ORB_OFFLINE_MEMOIZE_MS = 60_000;
+
+let orbOfflineUntil: number | null = null;
+
+function isOrbKnownOffline(now: number = Date.now()): boolean {
+  return orbOfflineUntil !== null && orbOfflineUntil > now;
+}
+
+function markOrbOffline(now: number = Date.now()) {
+  orbOfflineUntil = now + ORB_OFFLINE_MEMOIZE_MS;
+}
+
+function markOrbOnline() {
+  orbOfflineUntil = null;
+}
+
+/** Test/admin hook — clears the cached offline state so callers retry immediately. */
+export function resetOrbBackendHealth() {
+  orbOfflineUntil = null;
+}
 
 interface OrbMatchApiResponse {
   match: boolean;
@@ -66,6 +89,13 @@ export async function findOrbCacheHit(
     throw new Error(getOrbBackendUnavailableMessage());
   }
 
+  // Skip the network round-trip and 2s timeout if we recently learned the
+  // backend is unreachable. The caller's catch-block treats this exactly like
+  // a real failure and falls through to the legacy pHash cache lookup.
+  if (isOrbKnownOffline()) {
+    throw new Error('ORB backend recently unavailable; skipping fetch.');
+  }
+
   const formData = new FormData();
   formData.append('file', file);
 
@@ -83,6 +113,7 @@ export async function findOrbCacheHit(
       signal: controller.signal,
     });
   } catch (error) {
+    markOrbOffline();
     if (controller.signal.aborted || (error instanceof Error && error.name === 'AbortError')) {
       throw new Error(`ORB match timed out after ${timeoutMs}ms`);
     }
@@ -93,6 +124,11 @@ export async function findOrbCacheHit(
   }
 
   if (!response.ok) {
+    // 5xx → backend is up but broken; treat as offline.
+    // 4xx → backend is up and responsive (e.g. bad request); don't memoize.
+    if (response.status >= 500) {
+      markOrbOffline();
+    }
     console.error(`❌ ORB backend returned ${response.status}`, {
       endpoint,
       status: response.status,
@@ -100,6 +136,9 @@ export async function findOrbCacheHit(
     });
     throw new Error(`ORB backend returned ${response.status}`);
   }
+
+  // Any successful response confirms the backend is reachable.
+  markOrbOnline();
 
   const matchData = await response.json() as OrbMatchApiResponse;
 

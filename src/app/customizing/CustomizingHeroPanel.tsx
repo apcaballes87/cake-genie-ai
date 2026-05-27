@@ -188,9 +188,22 @@ export const CustomizingHeroPanel = memo(({
     ) ? preferredOriginalImageUrl : null;
     const originalHeroModalSrc = preferredOriginalImageUrl || originalImagePreview || preloadedHeroImage || fallbackImageUrl || '';
     const hasOriginalDisplayImage = Boolean(baseOriginalImageUrl);
+    // When the studio (preferred) image is known and differs from the user's
+    // upload preview, render it directly as the base hero. The previous double
+    // layer (user image + studio overlay) cost an extra HTTP image request and
+    // a paint cycle; the LazyImage's own opacity transition still gives a
+    // smooth load-in, and the modal still uses originalHeroModalSrc which
+    // preserves the original-image option.
+    const preferredBaseHeroUrl = incomingStudioImageUrl || baseOriginalImageUrl;
     const heroDisplaySrc = activeTab === 'customized'
         ? (editedImage || originalHeroModalSrc || '')
-        : (baseOriginalImageUrl || preloadedHeroImage || fallbackImageUrl || '');
+        : (preferredBaseHeroUrl || preloadedHeroImage || fallbackImageUrl || '');
+    // Once the base img IS the studio image, the separate overlay becomes
+    // redundant; keep the overlay only when we cannot promote it (e.g. when
+    // baseOriginalImageUrl is empty — pre-upload product preview).
+    const shouldRenderStudioOverlay = Boolean(
+        incomingStudioImageUrl && preferredBaseHeroUrl !== incomingStudioImageUrl
+    );
     const heroDisplayTitle = heroImageTitle;
     const heroImageRatio = originalImageDimensions ? `${originalImageDimensions.width} / ${originalImageDimensions.height}` : '1 / 1';
     const zoomOriginalImage = originalHeroModalSrc || null;
@@ -425,7 +438,7 @@ export const CustomizingHeroPanel = memo(({
                                                 heroImageAlt,
                                                 heroDisplayTitle,
                                                 undefined,
-                                                incomingStudioImageUrl || undefined,
+                                                shouldRenderStudioOverlay ? (incomingStudioImageUrl || undefined) : undefined,
                                                 originalHeroModalSrc,
                                             )}
                                         </div>
@@ -435,7 +448,7 @@ export const CustomizingHeroPanel = memo(({
                                                 heroImageAlt,
                                                 heroDisplayTitle,
                                                 undefined,
-                                                incomingStudioImageUrl || undefined,
+                                                shouldRenderStudioOverlay ? (incomingStudioImageUrl || undefined) : undefined,
                                                 originalHeroModalSrc,
                                             )}
                                         </div>
@@ -510,7 +523,7 @@ export const CustomizingHeroPanel = memo(({
                                             onLoad={imageOnLoad}
                                         />
 
-                                        {incomingStudioImageUrl ? (
+                                        {shouldRenderStudioOverlay && incomingStudioImageUrl ? (
                                             <div className="absolute inset-0 pointer-events-none">
                                                 <LazyImage
                                                     key={`incoming-${incomingStudioImageUrl}`}
