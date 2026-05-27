@@ -24,10 +24,14 @@ import {
     getMerchantListingActivePrice,
     mapDesignAvailabilityToSchema,
 } from '@/lib/commerce/machineReadable'
+import {
+    optimizeMetaDescription,
+    buildPdpTitle,
+    resolveAggregateRating,
+    resolveSkuMpn,
+    FALLBACK_MIN_PRICE,
+} from './metadataHelpers'
 
-// Minimum base price (1 Tier / 4in / 6" Round = ₱1,099) used as fallback
-// when a design has no valid cakeType or cached price.
-const FALLBACK_MIN_PRICE = 1099;
 const VALID_CAKE_TYPES: CakeType[] = ['1 Tier', '2 Tier', '3 Tier', '1 Tier Fondant', '2 Tier Fondant', '3 Tier Fondant', 'Square', 'Rectangle', 'Bento', 'Square Fondant', 'Rectangle Fondant'];
 const CAKE_TYPE_THICKNESS_MAP: Record<string, CakeThickness> = {
     '1 Tier': '4 in', '2 Tier': '4 in', '3 Tier': '4 in',
@@ -154,64 +158,6 @@ const resolveRichDescription = (design: any, prices?: BasePriceInfo[]): string =
     return `Customize this ${tagsPrefix}${keywords} cake design on Genie.ph. Get instant pricing from local bakers in Cebu and Cavite.`;
 };
 
-/**
- * Truncates a string to a maximum length at a word boundary, appending '...' if truncated.
- */
-function truncateToWordBoundary(text: string, maxLength: number): string {
-    if (text.length <= maxLength) return text;
-    // Find last space before maxLength - 3 (to account for '...')
-    const truncated = text.substring(0, maxLength - 3);
-    const lastSpace = truncated.lastIndexOf(' ');
-    if (lastSpace > 0) {
-        return truncated.substring(0, lastSpace) + '...';
-    }
-    return truncated + '...';
-}
-
-/**
- * Optimizes a long metadata description by:
- * 1. Stripping repetitive boilerplate sentences (like CTAs and Genie.ph brand mentions).
- * 2. Keeping the highly descriptive, unique product details.
- * 3. Truncating to fit ~150-155 characters.
- * 4. Appending a concise price-actionable call-to-action for high CTR in SERPs.
- */
-function optimizeMetaDescription(descriptionText: string, price: number | null): string {
-    if (!descriptionText) return '';
-
-    // Split sentences using dot + optional spaces
-    const sentences = descriptionText.split(/(?<=\.)\s+/);
-    
-    // Filter out standard repetitive boilerplates
-    const filteredSentences = sentences.filter(sentence => {
-        const s = sentence.toLowerCase().trim();
-        if (s.includes('genie.ph') || s.includes('genie\.ph')) return false;
-        if (s.includes('delivery in cebu') || s.includes('delivery in cavite')) return false;
-        if (s.includes('order your') && s.includes('today')) return false;
-        if (s.includes('order custom') && s.includes('today')) return false;
-        if (s.includes('order your dream') && s.includes('today')) return false;
-        if (s.includes('get instant') && s.includes('pricing')) return false;
-        if (s.includes('instant ai pricing')) return false;
-        return true;
-    });
-
-    let uniqueText = filteredSentences.join(' ').trim();
-    
-    // Fallback if the clean process left nothing or too little
-    if (uniqueText.length < 15) {
-        uniqueText = descriptionText.trim();
-    }
-
-    const finalPrice = (price && price > 0) ? Math.round(price) : FALLBACK_MIN_PRICE;
-    const suffix = ` | Price starts at ₱${finalPrice.toLocaleString()}. Customize now!`;
-    
-    // Total max is 155 for high assurance against SERP truncation
-    const maxUniqueLength = 155 - suffix.length;
-    
-    const truncatedUnique = truncateToWordBoundary(uniqueText, maxUniqueLength);
-    
-    return `${truncatedUnique}${suffix}`;
-}
-
 // ISR: Cache pages for 1 hour, then revalidate in the background.
 // Reduces TTFB for 8k+ pages and gives Google a faster crawl experience.
 export const revalidate = 3600;
@@ -315,19 +261,13 @@ export async function generateMetadata(
         }
     }
 
-    const tags = design.tags || [];
-    const tagsPrefix = tags.length > 0 ? tags.slice(0, 2).map((t: string) => t.charAt(0).toUpperCase() + t.slice(1)).join(' ') + ' ' : '';
-    const priceDisplay = design.price ? ` | Php ${Math.round(design.price).toLocaleString()}` : ''
-    // Strip existing "| Genie.ph" suffix — the root layout template already appends it
-    const baseSeoTitle = design.seo_title?.replace(/\s*\|\s*Genie\.ph\s*$/i, '') || ''
-    // Ensure title always contains "Cake Design" for image search matching
-    // Filipino users frequently search "{theme} cake design" or "{theme} cake design with price"
-    const hasCakeDesignKeyword = baseSeoTitle && /cake\s*design/i.test(baseSeoTitle);
-    const endsWithCake = baseSeoTitle && /cake\s*$/i.test(baseSeoTitle);
-    const cakeDesignSuffix = hasCakeDesignKeyword ? '' : endsWithCake ? ' Design' : ' Cake Design';
-    const title = baseSeoTitle
-        ? `${baseSeoTitle}${cakeDesignSuffix}${priceDisplay ? ` with Price${priceDisplay}` : ''}`
-        : `${tagsPrefix}${design.keywords || 'Custom'} Cake Design with Price${priceDisplay}`
+    const title = buildPdpTitle({
+        seoTitle: design.seo_title,
+        keywords: design.keywords,
+        tags: design.tags,
+        price: design.price,
+        slug: design.slug,
+    })
 
     // Description with rich fallback chain:
     // 1. Use seo_description if available (unless it's generic/templated)
@@ -399,9 +339,34 @@ export async function generateMetadata(
 }
 
 // JSON-LD Schema for SEO - Enhanced for Google Image Thumbnails
-function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[] }) {
+export function DesignSchema({
+    design,
+    prices,
+    siteReviewSummary,
+    isSiteReviewSummaryFallback,
+    perDesignReviewStats,
+    linkedMerchantProducts,
+}: {
+    design: any;
+    prices?: BasePriceInfo[];
+    siteReviewSummary: { total: number; averageRating: number };
+    isSiteReviewSummaryFallback: boolean;
+    perDesignReviewStats: { total: number; averageRating: number } | null;
+    linkedMerchantProducts: { product_id: string }[];
+}) {
     // Sanitize string to prevent script injection in JSON-LD (matches SEOSchemas.tsx pattern)
     const sanitize = (str: string | null | undefined) => str ? str.replace(/<\/script/gi, '<\\/script') : '';
+
+    const aggregateRating = resolveAggregateRating({
+        perDesign: perDesignReviewStats,
+        site: siteReviewSummary,
+        isSiteFallback: isSiteReviewSummaryFallback,
+    });
+    const { sku, mpn } = resolveSkuMpn({
+        slug: design.slug,
+        p_hash: design.p_hash,
+        listings: linkedMerchantProducts,
+    });
 
     const tags = design.tags || [];
     const keywords = design.keywords || 'Custom';
@@ -454,7 +419,6 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
 
     // Use end of current year for stable schema (avoids changing on every render)
     const priceValidUntil = `${new Date().getFullYear()}-12-31`;
-    const productMpn = design.p_hash || design.slug;
     const availability = mapDesignAvailabilityToSchema(design.availability);
     const activePrice = getMerchantListingActivePrice(
         prices,
@@ -475,8 +439,8 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
         availability: availability,
         itemCondition: 'https://schema.org/NewCondition',
         priceValidUntil: priceValidUntil,
-        sku: productMpn,
-        mpn: productMpn,
+        sku,
+        mpn,
         seller: {
             '@type': 'Organization',
             name: 'Genie.ph',
@@ -509,8 +473,8 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
         '@id': pageUrl,
         url: pageUrl,
         name: sanitize(title),
-        sku: productMpn,
-        mpn: productMpn,
+        sku,
+        mpn,
         description: sanitizedDesc,
         image: schemaImage,
         brand: {
@@ -518,6 +482,7 @@ function DesignSchema({ design, prices }: { design: any; prices?: BasePriceInfo[
             name: 'Genie.ph'
         },
         offers: offers,
+        ...(aggregateRating !== null ? { aggregateRating } : {}),
         category: 'Custom Cakes',
         additionalProperty: buildCustomCakeAdditionalProperties({
             cakeType: design.analysis_json?.cakeType || null,
@@ -1134,13 +1099,15 @@ export default async function RecentSearchPage({ params }: Props) {
     }
 
     let reviewSummary = { total: 6, averageRating: 4.8 };
+    let isSiteReviewSummaryFallback = true;
     if (ratingRowsResult.status === 'fulfilled' && ratingRowsResult.value.data) {
         const ratingRows = ratingRowsResult.value.data;
         const total = ratingRows.length || 0;
-        const averageRating = total > 0
-            ? ratingRows.reduce((sum: number, r: any) => sum + r.rating, 0) / total
-            : 4.8;
-        reviewSummary = { total, averageRating };
+        if (total > 0) {
+            const averageRating = ratingRows.reduce((sum: number, r: any) => sum + r.rating, 0) / total;
+            reviewSummary = { total, averageRating };
+            isSiteReviewSummaryFallback = false;
+        }
     }
 
     if (themeCollectionResult.status === 'fulfilled' && themeCollectionResult.value.data) {
@@ -1197,7 +1164,14 @@ export default async function RecentSearchPage({ params }: Props) {
 
     return (
         <>
-            <DesignSchema design={design} prices={prices} />
+            <DesignSchema
+                design={design}
+                prices={prices}
+                siteReviewSummary={reviewSummary}
+                isSiteReviewSummaryFallback={isSiteReviewSummaryFallback}
+                perDesignReviewStats={null}
+                linkedMerchantProducts={linkedMerchantProducts}
+            />
 
             {/* Preload hero image for faster LCP */}
             {design.original_image_url && (

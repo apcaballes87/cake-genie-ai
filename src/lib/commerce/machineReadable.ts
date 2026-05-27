@@ -215,6 +215,21 @@ export function buildOfferShippingDetails(
   '@type': 'OfferShippingDetails';
   shippingDestination: { '@type': 'DefinedRegion'; addressCountry: 'PH' };
   doesNotShip: false;
+  deliveryTime: {
+    '@type': 'ShippingDeliveryTime';
+    handlingTime: {
+      '@type': 'QuantitativeValue';
+      unitCode: 'DAY';
+      minValue: number;
+      maxValue: number;
+    };
+    transitTime: {
+      '@type': 'QuantitativeValue';
+      unitCode: 'DAY';
+      minValue: number;
+      maxValue: number;
+    };
+  };
 } {
   void _merchant;
 
@@ -225,16 +240,40 @@ export function buildOfferShippingDetails(
       addressCountry: 'PH',
     },
     doesNotShip: false,
+    deliveryTime: {
+      '@type': 'ShippingDeliveryTime',
+      handlingTime: {
+        '@type': 'QuantitativeValue',
+        unitCode: 'DAY',
+        minValue: CUSTOM_CAKE_LEAD_TIME.handlingTimeMinDays,
+        maxValue: CUSTOM_CAKE_LEAD_TIME.handlingTimeMaxDays,
+      },
+      transitTime: {
+        '@type': 'QuantitativeValue',
+        unitCode: 'DAY',
+        minValue: CUSTOM_CAKE_LEAD_TIME.transitTimeMinDays,
+        maxValue: CUSTOM_CAKE_LEAD_TIME.transitTimeMaxDays,
+      },
+    },
   };
 }
 
-export function buildMerchantReturnPolicy() {
+export function buildMerchantReturnPolicy(): {
+  '@type': 'MerchantReturnPolicy';
+  applicableCountry: 'PH';
+  merchantReturnDays: 0;
+  returnFees: 'https://schema.org/ReturnFeesCustomerResponsibility';
+  returnPolicyCategory: 'https://schema.org/MerchantReturnNotPermitted';
+  returnPolicyCountry: 'PH';
+  url: string;
+} {
   return {
     '@type': 'MerchantReturnPolicy',
-    returnPolicyCategory: 'https://schema.org/MerchantReturnNotPermitted',
+    applicableCountry: PH_Country_Code,
     merchantReturnDays: 0,
     returnFees: 'https://schema.org/ReturnFeesCustomerResponsibility',
-    returnPolicyCountry: 'PH',
+    returnPolicyCategory: 'https://schema.org/MerchantReturnNotPermitted',
+    returnPolicyCountry: PH_Country_Code,
     url: DEFAULT_POLICY_URLS.returnPolicy,
   };
 }

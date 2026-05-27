@@ -1,16 +1,22 @@
 import { describe, expect, it } from 'vitest';
+import * as fc from 'fast-check';
 
 import {
   alignPriceOptionsToStartingPrice,
   buildCommerceOrderSnapshot,
   buildCustomCakeAdditionalProperties,
   buildMerchantCenterCustomLabels,
+  buildMerchantReturnPolicy,
+  buildOfferShippingDetails,
   buildPriceSummary,
+  CUSTOM_CAKE_LEAD_TIME,
   deriveConstraintSnapshot,
   deriveDeliveryZone,
   getMerchantListingActivePrice,
   getCommercePolicyUrls,
   mapDesignAvailabilityToSchema,
+  PH_Country_Code,
+  validateLeadTimeConstants,
 } from './machineReadable';
 
 describe('machine-readable commerce helpers', () => {
@@ -167,5 +173,213 @@ describe('machine-readable commerce helpers', () => {
     });
 
     expect(snapshot.policyUrls.returnPolicy).toBe('https://genie.ph/return-policy');
+  });
+});
+
+describe('CUSTOM_CAKE_LEAD_TIME — R2.1–R2.3, R2.9', () => {
+  it('initializes to {1, 3, 0, 1}', () => {
+    expect(CUSTOM_CAKE_LEAD_TIME.handlingTimeMinDays).toBe(1);
+    expect(CUSTOM_CAKE_LEAD_TIME.handlingTimeMaxDays).toBe(3);
+    expect(CUSTOM_CAKE_LEAD_TIME.transitTimeMinDays).toBe(0);
+    expect(CUSTOM_CAKE_LEAD_TIME.transitTimeMaxDays).toBe(1);
+  });
+
+  it('all four values are integers in [0, 30]', () => {
+    const values = [
+      CUSTOM_CAKE_LEAD_TIME.handlingTimeMinDays,
+      CUSTOM_CAKE_LEAD_TIME.handlingTimeMaxDays,
+      CUSTOM_CAKE_LEAD_TIME.transitTimeMinDays,
+      CUSTOM_CAKE_LEAD_TIME.transitTimeMaxDays,
+    ];
+    for (const value of values) {
+      expect(Number.isInteger(value)).toBe(true);
+      expect(value).toBeGreaterThanOrEqual(0);
+      expect(value).toBeLessThanOrEqual(30);
+    }
+  });
+
+  it('handlingTimeMin ≤ handlingTimeMax and transitTimeMin ≤ transitTimeMax', () => {
+    expect(CUSTOM_CAKE_LEAD_TIME.handlingTimeMinDays).toBeLessThanOrEqual(
+      CUSTOM_CAKE_LEAD_TIME.handlingTimeMaxDays,
+    );
+    expect(CUSTOM_CAKE_LEAD_TIME.transitTimeMinDays).toBeLessThanOrEqual(
+      CUSTOM_CAKE_LEAD_TIME.transitTimeMaxDays,
+    );
+  });
+
+  it('validateLeadTimeConstants throws RangeError naming the offending property when handlingTimeMinDays is negative', () => {
+    expect(() =>
+      validateLeadTimeConstants({
+        handlingTimeMinDays: -1,
+        handlingTimeMaxDays: 3,
+        transitTimeMinDays: 0,
+        transitTimeMaxDays: 1,
+      } as typeof CUSTOM_CAKE_LEAD_TIME),
+    ).toThrow(RangeError);
+    expect(() =>
+      validateLeadTimeConstants({
+        handlingTimeMinDays: -1,
+        handlingTimeMaxDays: 3,
+        transitTimeMinDays: 0,
+        transitTimeMaxDays: 1,
+      } as typeof CUSTOM_CAKE_LEAD_TIME),
+    ).toThrow(/handlingTimeMinDays/);
+  });
+
+  it('validateLeadTimeConstants throws when min > max', () => {
+    expect(() =>
+      validateLeadTimeConstants({
+        handlingTimeMinDays: 5,
+        handlingTimeMaxDays: 2,
+        transitTimeMinDays: 0,
+        transitTimeMaxDays: 1,
+      } as typeof CUSTOM_CAKE_LEAD_TIME),
+    ).toThrow(/handlingTimeMinDays/);
+  });
+
+  it('validateLeadTimeConstants throws when value > 30', () => {
+    expect(() =>
+      validateLeadTimeConstants({
+        handlingTimeMinDays: 1,
+        handlingTimeMaxDays: 31,
+        transitTimeMinDays: 0,
+        transitTimeMaxDays: 1,
+      } as typeof CUSTOM_CAKE_LEAD_TIME),
+    ).toThrow(/handlingTimeMaxDays/);
+  });
+
+  it('validateLeadTimeConstants throws when value is non-integer', () => {
+    expect(() =>
+      validateLeadTimeConstants({
+        handlingTimeMinDays: 1.5,
+        handlingTimeMaxDays: 3,
+        transitTimeMinDays: 0,
+        transitTimeMaxDays: 1,
+      } as unknown as typeof CUSTOM_CAKE_LEAD_TIME),
+    ).toThrow(/handlingTimeMinDays/);
+  });
+});
+
+describe('PH_Country_Code — R3.1', () => {
+  it('exports the literal "PH"', () => {
+    expect(PH_Country_Code).toBe('PH');
+    expect(typeof PH_Country_Code).toBe('string');
+  });
+});
+
+describe('buildOfferShippingDetails — R2 deliveryTime', () => {
+  it('returns ShippingDeliveryTime with handlingTime/transitTime', () => {
+    const result = buildOfferShippingDetails() as any;
+    expect(result).toHaveProperty('deliveryTime');
+    expect(result.deliveryTime['@type']).toBe('ShippingDeliveryTime');
+    expect(result.deliveryTime.handlingTime).toEqual({
+      '@type': 'QuantitativeValue',
+      unitCode: 'DAY',
+      minValue: 1,
+      maxValue: 3,
+    });
+    expect(result.deliveryTime.transitTime).toEqual({
+      '@type': 'QuantitativeValue',
+      unitCode: 'DAY',
+      minValue: 0,
+      maxValue: 1,
+    });
+  });
+
+  it('preserves legacy shippingDestination.addressCountry and doesNotShip', () => {
+    const result = buildOfferShippingDetails() as any;
+    expect(result['@type']).toBe('OfferShippingDetails');
+    expect(result.shippingDestination['@type']).toBe('DefinedRegion');
+    expect(result.shippingDestination.addressCountry).toBe('PH');
+    expect(result.doesNotShip).toBe(false);
+  });
+
+  it('preserves shape when called with explicit null merchant', () => {
+    const result = buildOfferShippingDetails(null) as any;
+    expect(result['@type']).toBe('OfferShippingDetails');
+    expect(result.shippingDestination['@type']).toBe('DefinedRegion');
+    expect(result.shippingDestination.addressCountry).toBe('PH');
+    expect(result.doesNotShip).toBe(false);
+    expect(result.deliveryTime['@type']).toBe('ShippingDeliveryTime');
+    expect(result.deliveryTime.handlingTime.unitCode).toBe('DAY');
+    expect(result.deliveryTime.transitTime.unitCode).toBe('DAY');
+  });
+
+  it('Property 2: OfferShippingDetails shape invariant', () => {
+    // Feature: customizing-pdp-seo-fixes, Property 2: OfferShippingDetails shape invariant
+    // Validates: Requirements 2.4, 2.5, 2.6, 2.7, 2.8
+    fc.assert(
+      fc.property(
+        // any merchant arg, including null/undefined and partial CakeGenieMerchant
+        fc.option(
+          fc.record(
+            {
+              merchant_id: fc.string(),
+              business_name: fc.string(),
+              slug: fc.string(),
+              city: fc.option(fc.string(), { nil: null }),
+            },
+            { requiredKeys: ['merchant_id', 'business_name', 'slug'] },
+          ),
+        ),
+        (merchant) => {
+          const r = buildOfferShippingDetails(merchant as any) as any;
+          expect(r['@type']).toBe('OfferShippingDetails');
+          expect(r.shippingDestination.addressCountry).toBe('PH');
+          expect(r.doesNotShip).toBe(false);
+          expect(r.deliveryTime['@type']).toBe('ShippingDeliveryTime');
+          expect(r.deliveryTime.handlingTime.unitCode).toBe('DAY');
+          expect(r.deliveryTime.transitTime.unitCode).toBe('DAY');
+          expect(r.deliveryTime.handlingTime.minValue).toBeLessThanOrEqual(
+            r.deliveryTime.handlingTime.maxValue,
+          );
+          expect(r.deliveryTime.transitTime.minValue).toBeLessThanOrEqual(
+            r.deliveryTime.transitTime.maxValue,
+          );
+        },
+      ),
+      { numRuns: 100 },
+    );
+  });
+});
+
+describe('buildMerchantReturnPolicy — R3.2–R3.5', () => {
+  it('sets applicableCountry === PH_Country_Code', () => {
+    const result = buildMerchantReturnPolicy() as any;
+    expect(result.applicableCountry).toBe('PH');
+    expect(result.applicableCountry).toBe(PH_Country_Code);
+  });
+
+  it('uses the same reference for returnPolicyCountry and applicableCountry', () => {
+    const result = buildMerchantReturnPolicy() as any;
+    expect(Object.is(result.returnPolicyCountry, result.applicableCountry)).toBe(true);
+    expect(result.returnPolicyCountry).toBe(PH_Country_Code);
+    expect(result.applicableCountry).toBe(PH_Country_Code);
+  });
+
+  it('preserves all pre-existing fields with unchanged values', () => {
+    const result = buildMerchantReturnPolicy() as any;
+    expect(result['@type']).toBe('MerchantReturnPolicy');
+    expect(result.returnPolicyCategory).toBe(
+      'https://schema.org/MerchantReturnNotPermitted',
+    );
+    expect(result.merchantReturnDays).toBe(0);
+    expect(result.returnFees).toBe(
+      'https://schema.org/ReturnFeesCustomerResponsibility',
+    );
+    expect(result.url).toBe('https://genie.ph/return-policy');
+  });
+
+  it('returned object has exactly the expected key set (no new keys beyond applicableCountry, no removed keys)', () => {
+    const result = buildMerchantReturnPolicy();
+    expect(Object.keys(result).sort()).toEqual([
+      '@type',
+      'applicableCountry',
+      'merchantReturnDays',
+      'returnFees',
+      'returnPolicyCategory',
+      'returnPolicyCountry',
+      'url',
+    ]);
   });
 });
