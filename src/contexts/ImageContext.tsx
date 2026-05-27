@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import { usePathname } from 'next/navigation'
 import { v4 as uuidv4 } from 'uuid'
 import { toast as toastHot } from 'react-hot-toast'
-import { fileToBase64, validateCakeImage, analyzeCakeFeaturesOnly, enrichAnalysisWithRoboflow } from '@/services/geminiService'
+import { fileToBase64, validateCakeImage, analyzeCakeFeaturesOnly, enrichAnalysisWithRoboflow, triggerStudioEditFromUpload } from '@/services/geminiService'
 import { createClient } from '@/lib/supabase/client'
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization'
 import { showSuccess, showError, showLoading, showStatus } from '@/lib/utils/toast'
@@ -593,6 +593,11 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
 
 
             try {
+                const parallelStudioTriggerPromise =
+                    pHash
+                        ? triggerStudioEditFromUpload(pHash, compressedImageData)
+                        : null;
+
                 // PHASE 1: Fast feature-only analysis with v3.2 prompt (coordinates all 0,0)
                 const fastResult = await analyzeCakeFeaturesOnly(
                     compressedImageData.data,
@@ -619,10 +624,15 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     setCurrentSlugState(generatedSlug);
                 }
 
+                const studioTriggerStarted = parallelStudioTriggerPromise
+                    ? await parallelStudioTriggerPromise
+                    : false;
+
                 const fastCacheWritePromise: ReturnType<typeof cacheAnalysisResult> | null =
                     pHash && fingerprint
                         ? cacheAnalysisResult(pHash, fastResult, uploadedImageUrl, finalImageBlobToCache, {
                             fingerprintPipeline: fingerprint.pipeline,
+                            triggerStudioEdit: !studioTriggerStarted,
                         })
                         : null;
 

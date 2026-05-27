@@ -1,5 +1,72 @@
 # Tasks
 
+## Unblock Studio Image Reveal From ORB Indexing
+
+### Plan
+
+- [x] Trace the live timing from upload through fast analysis, cache write, studio trigger, and studio-image polling to identify which awaited step is delaying the visible studio image.
+- [x] Make the shared cache writer return as soon as the cache row is written instead of awaiting ORB feature indexing on the interactive upload path.
+- [x] Add a focused regression test that proves `cacheAnalysisResult(...)` resolves even while ORB indexing is still pending.
+- [x] Verify with targeted Vitest coverage and summarize the actual latency cause using observed log timing.
+
+### Review
+
+- Root cause: the studio image job was not the only source of delay. In the live dev log, the studio edit started at `00:04:56.634`, the cache row was written at `00:05:10.602`, and the studio job finished at `00:05:14.694`, but the client-side `fastCacheWritePromise` did not resolve until the offline ORB indexing request finally failed at `00:06:06.631` / `00:06:06.771`.
+- Because `src/services/supabaseService.ts` awaited `triggerOrbFeatureIndexing(...)` before returning from `cacheAnalysisResult(...)`, the customizer delayed `setCurrentPHash(...)` and therefore delayed the polling loop that watches for `studio_edited_image_url`.
+- `src/services/supabaseService.ts` now keeps ORB indexing in the shared cache write flow but runs it fire-and-forget so interactive uploads can continue as soon as the row write is done.
+- Added a focused regression test in `src/services/supabaseService.cacheAnalysisResult.test.ts` that intentionally leaves the ORB index request unresolved and proves the cache write still resolves promptly.
+- Verification:
+  - `npx vitest run src/services/supabaseService.cacheAnalysisResult.test.ts` passed with 6 tests.
+  - `npx eslint src/services/supabaseService.cacheAnalysisResult.test.ts` passed.
+  - `npx eslint src/services/supabaseService.ts` still hits pre-existing repo-wide lint errors unrelated to this specific latency fix, so I did not treat that as a regression from this change.
+
+## Cut ORB Wait To 2000ms Before pHash Fallback
+
+### Plan
+
+- [x] Confirm the live ORB lookup client currently waits on the browser/network timeout rather than an app-level cutoff.
+- [x] Add a 2000ms aborting timeout to the ORB match request so the upload flow falls back to pHash faster when `orb.genie.ph` is slow or offline.
+- [x] Add a focused test for the timeout behavior and verify with targeted test/lint runs.
+
+### Review
+
+- `src/services/orbMatchingService.ts` now wraps the ORB `fetch()` in an `AbortController` and aborts it after `2000ms` by default.
+- A timed-out ORB request now throws `ORB match timed out after 2000ms`, which the existing `ImageContext` fallback path already treats as an ORB failure and routes into the legacy pHash lookup.
+- Added focused coverage in `src/services/orbMatchingService.test.ts` for:
+  - the 2000ms timeout path
+  - a normal successful ORB cache-hit response
+- Verification:
+  - `npx vitest run src/services/orbMatchingService.test.ts` passed.
+  - `npx eslint src/services/orbMatchingService.ts src/services/orbMatchingService.test.ts` passed.
+
+## Start Image Studio At The Same Time As Fast Cake Analysis
+
+### Plan
+
+- [x] Trace the current no-cache-hit upload flow and confirm whether Image Studio starts at the exact same time as the fast `/api/ai/analyze` pass or only afterward.
+- [x] Refactor the studio-edit execution so the no-cache-hit path can trigger Image Studio directly from the uploaded image while the fast cake analysis is still running.
+- [x] Keep the existing row-driven admin/manual path intact, and make the direct-from-upload path attach the finished `studio_edited_image_url` once the analysis cache row exists.
+- [x] Add focused tests around the new trigger behavior and cache-row retry helper.
+- [x] Verify with targeted Vitest coverage plus focused lint on the touched files, and note any pre-existing repo issues separately from this change.
+
+### Review
+
+- Root cause: the previous optimization only moved the first cache write earlier. It still waited for the fast `/api/ai/analyze` response before `cacheAnalysisResult(...)` could trigger Image Studio, so the studio job was parallel with Roboflow enrichment, not with the fast Gemini cake analysis itself.
+- Added `src/lib/admin/imageStudioJob.ts` as the shared Image Studio execution helper so both routes can reuse the same Gemini generation, upload, and cache-row persistence logic.
+- `src/app/api/ai/trigger-studio-edit/route.ts` now supports two modes:
+  - legacy row-driven mode with `{ pHash }`
+  - direct-from-upload mode with `{ pHash, originalImage }`
+- In the direct-from-upload mode, the background job can synthesize the purple studio image immediately from the uploaded bytes and then retry attaching `studio_edited_image_url` to `cakegenie_analysis_cache` after the fast analysis finishes and writes the row.
+- `src/contexts/ImageContext.tsx` now starts the direct studio trigger before awaiting `analyzeCakeFeaturesOnly(...)`, then falls back to the old row-driven trigger only if the parallel trigger request fails.
+- `src/app/api/admin/cake-cache-images/route.ts` was reduced back to the admin responsibilities by delegating the heavy studio job work into the shared helper, while keeping the existing admin/manual behavior row-driven.
+- Added focused tests in:
+  - `src/app/api/ai/trigger-studio-edit/route.test.ts`
+  - `src/lib/admin/imageStudioJob.test.ts`
+- Verification:
+  - `npx vitest run src/app/api/ai/trigger-studio-edit/route.test.ts src/lib/admin/imageStudioJob.test.ts src/services/supabaseService.cacheAnalysisResult.test.ts src/app/customizing/CustomizingHeroPanel.test.tsx src/app/api/ai/edit-image/route.test.ts src/app/api/ai/validate/route.test.ts` passed with 39 tests.
+  - `npx eslint src/contexts/ImageContext.tsx src/app/api/ai/trigger-studio-edit/route.ts src/app/api/ai/trigger-studio-edit/route.test.ts src/app/api/admin/cake-cache-images/route.ts src/lib/admin/imageStudioJob.ts src/lib/admin/imageStudioJob.test.ts` completed with warnings only; those warnings are pre-existing in `ImageContext.tsx`.
+  - `npx eslint src/services/geminiService.ts` still reports pre-existing `@typescript-eslint/no-explicit-any` errors and unused-import warnings unrelated to this parallelization change.
+
 ## Fix Customizer Icing Swatch AI Edit Failures
 
 ### Plan

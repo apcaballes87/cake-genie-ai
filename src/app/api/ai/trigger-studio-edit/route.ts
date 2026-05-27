@@ -1,40 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { after } from 'next/server';
-import { ADMIN_IMAGE_STUDIO_PIN } from '@/lib/admin/imageStudio';
+import { runImageStudioJob } from '@/lib/admin/imageStudioJob';
+
+type TriggerStudioEditRequestBody = {
+  pHash?: string;
+  originalImage?: {
+    data?: string;
+    mimeType?: string;
+  };
+};
 
 export async function POST(request: NextRequest) {
   try {
-    const { pHash } = await request.json();
+    const body = (await request.json()) as TriggerStudioEditRequestBody;
+    const pHash = typeof body?.pHash === 'string' ? body.pHash.trim() : '';
+    const originalImage = body?.originalImage;
+    const hasInlineOriginalImage = Boolean(originalImage?.data && originalImage?.mimeType);
 
     if (!pHash) {
       return NextResponse.json({ error: 'pHash is required' }, { status: 400 });
     }
 
-    // Always call back into the same origin that received the request so local
-    // development and previews do not accidentally post to another deployment.
-    const baseUrl = request.nextUrl.origin;
+    if (originalImage && !hasInlineOriginalImage) {
+      return NextResponse.json(
+        { error: 'originalImage must include both data and mimeType' },
+        { status: 400 }
+      );
+    }
 
     // Use `after` to decouple the image synthesis so we don't block the UI
     after(async () => {
-      console.log(`[Background] Triggering Image Studio for pHash: ${pHash}`);
+      console.log(`[Background] Triggering Image Studio for pHash: ${pHash}`, {
+        mode: hasInlineOriginalImage ? 'inline-original-image' : 'cache-row',
+      });
       try {
-        const adminResponse = await fetch(`${baseUrl}/api/admin/cake-cache-images`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-admin-pin': ADMIN_IMAGE_STUDIO_PIN,
-          },
-          body: JSON.stringify({ pHash }),
+        const result = await runImageStudioJob({
+          pHash,
+          requestContext: request,
+          inlineOriginalImage: hasInlineOriginalImage
+            ? {
+              data: originalImage!.data!,
+              mimeType: originalImage!.mimeType!,
+            }
+            : null,
+          requireExistingRow: !hasInlineOriginalImage,
+          waitForCacheRow: hasInlineOriginalImage,
         });
-        
-        if (!adminResponse.ok) {
-          const body = await adminResponse.text();
-          console.error(`[Background] Error from Image Studio. Status: ${adminResponse.status}. Body: ${body}`);
-        } else {
-          console.log(`[Background] Triggered successfully for ${pHash}.`);
-        }
+
+        console.log(`[Background] Image Studio finished for ${pHash}.`, {
+          persistedToCacheRow: result.persistedToCacheRow,
+          storagePath: result.storagePath,
+        });
       } catch (triggerError) {
-        console.error(`[Background] Fetch failed:`, triggerError);
+        console.error(`[Background] Studio job failed for ${pHash}:`, triggerError);
       }
     });
 

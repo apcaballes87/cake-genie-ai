@@ -1035,7 +1035,9 @@ export async function cacheAnalysisResult(
     }
 
     if (persistSourceAsset && returnedId && imageBlob) {
-      await triggerOrbFeatureIndexing(client, returnedId, imageBlob);
+      // Keep ORB indexing in the shared write path, but don't block the
+      // customizer's cache-write completion on a slow/offline ORB backend.
+      void triggerOrbFeatureIndexing(client, returnedId, imageBlob);
     }
 
     return {

@@ -1,5 +1,6 @@
 # Lessons
 
+- When explaining pipeline timing in the customizer upload flow, distinguish exactly between "starts at the same time as fast `/api/ai/analyze`" and "starts immediately after fast analysis" or "runs in parallel with enrichment." In this repo, those are materially different behaviors and the user will care about the latency distinction.
 - When a user reports a missing side effect in the upload flow, verify the active production path first. In this repo, `ImageContext` is the live customizer upload path, while older hooks may still contain logic that looks correct but is not authoritative.
 - For ORB indexing, keep the trigger in the shared cache write flow instead of only in one UI caller. That prevents fresh AI analyses from being cached without `cakegenie_image_features` when different upload surfaces reuse the same backend write helper.
 - When a server route needs to wrap a Node `Buffer` in a `Blob` for shared helpers, convert it to `Uint8Array.from(buffer)` first. Next 16 / TypeScript can reject `Buffer` as a direct `BlobPart` in production builds even when local edits look fine.

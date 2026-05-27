@@ -1,73 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import sharp from 'sharp';
 
 import {
   ADMIN_IMAGE_STUDIO_PIN,
-  buildImageStudioPrompt,
-  buildImageStudioSystemInstruction,
-  getImageStudioOutputDimensions,
-  getImageStudioStoragePath,
   IMAGE_STUDIO_PAGE_SIZE,
   IMAGE_STUDIO_SMALL_IMAGE_DIMENSION_THRESHOLD,
-  IMAGE_STUDIO_WATERMARK_LOGO_URL,
   normalizeImageStudioStatus,
 } from '@/lib/admin/imageStudio';
-import { getAI } from '@/lib/ai/client';
+import { runImageStudioJob, type ImageStudioCacheRow } from '@/lib/admin/imageStudioJob';
 import { normalizeAiRouteError } from '@/lib/ai/routeError';
 import { createPublicServerSupabaseClient } from '@/lib/supabase/publicServer';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 180;
-
-const MODEL_NAME = 'gemini-3.1-flash-image-preview';
-const STORAGE_BUCKET = 'cakegenie';
-
-let cachedLogoBuffer: Buffer | null = null;
-const getLogoBuffer = async () => {
-  if (cachedLogoBuffer) return cachedLogoBuffer;
-  const res = await fetch(IMAGE_STUDIO_WATERMARK_LOGO_URL, { cache: 'force-cache' });
-  if (!res.ok) throw new Error('Failed to fetch brand logo');
-  const buffer = Buffer.from(await res.arrayBuffer());
-  cachedLogoBuffer = buffer;
-  return buffer;
-};
-
-type AiInlineDataPart = {
-  inlineData?: {
-    data?: string;
-    mimeType?: string;
-  };
-  text?: string;
-};
-
-type AiGenerateContentResponse = {
-  candidates?: Array<{
-    content?: {
-      parts?: AiInlineDataPart[];
-    };
-  }>;
-  data?: string;
-  mimeType?: string;
-  text?: string | (() => string);
-};
-
-type CacheRow = {
-  p_hash: string;
-  slug: string | null;
-  seo_title: string | null;
-  keywords: string | null;
-  price: number | null;
-  availability: string | null;
-  original_image_url: string | null;
-  image_width?: number | null;
-  image_height?: number | null;
-  studio_edited_image_url?: string | null;
-  studio_edit_status?: string | null;
-  studio_edit_error?: string | null;
-  created_at?: string | null;
-  studio_edited_at?: string | null;
-};
 
 const isAuthorized = (req: NextRequest) => {
   return req.headers.get('x-admin-pin') === ADMIN_IMAGE_STUDIO_PIN;
@@ -91,7 +36,7 @@ const parsePositiveInt = (value: string | null, fallback: number, max: number) =
   return Math.min(parsed, max);
 };
 
-const mapCacheRow = (row: CacheRow) => {
+const mapCacheRow = (row: ImageStudioCacheRow) => {
   return {
     ...row,
     studio_edit_status: normalizeImageStudioStatus(row.studio_edit_status),
@@ -101,176 +46,14 @@ const mapCacheRow = (row: CacheRow) => {
   };
 };
 
-const extractGeneratedImage = (response: AiGenerateContentResponse | undefined | null) => {
-  const candidate = response?.candidates?.[0];
-  const partsResponse = candidate?.content?.parts;
-  const imagePart = partsResponse?.find((part) => part.inlineData?.data);
-
-  if (imagePart?.inlineData?.data) {
-    return {
-      imageData: imagePart.inlineData.data,
-      mimeType: imagePart.inlineData.mimeType || 'image/png',
-    };
-  }
-
-  if (typeof response?.data === 'string' && response.data.trim()) {
-    return {
-      imageData: response.data,
-      mimeType: response?.mimeType || 'image/png',
-    };
-  }
-
-  return null;
-};
-
-const extractTextResponse = (response: AiGenerateContentResponse | undefined | null) => {
-  if (typeof response?.text === 'string') {
-    return response.text;
-  }
-
-  if (typeof response?.text === 'function') {
-    try {
-      return response.text();
-    } catch {
-      return '';
-    }
-  }
-
-  const textParts = response?.candidates?.flatMap((candidate) =>
-    candidate?.content?.parts?.filter((part) => typeof part?.text === 'string') ?? []
-  ) ?? [];
-
-  return textParts.map((part) => part.text).join('\n').trim();
-};
-
-const detectMimeType = (url: string, fallback: string | null) => {
-  if (fallback?.startsWith('image/')) {
-    return fallback;
-  }
-
-  const extension = url.split('?')[0]?.split('.').pop()?.toLowerCase();
-
-  switch (extension) {
-    case 'png':
-      return 'image/png';
-    case 'webp':
-      return 'image/webp';
-    case 'gif':
-      return 'image/gif';
-    case 'bmp':
-      return 'image/bmp';
-    case 'svg':
-      return 'image/svg+xml';
-    default:
-      return 'image/jpeg';
-  }
-};
-
-const fetchImageAsInlineData = async (url: string) => {
-  const response = await fetch(url, { cache: 'no-store' });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch original image (${response.status})`);
-  }
-
-  const arrayBuffer = await response.arrayBuffer();
-  const mimeType = detectMimeType(url, response.headers.get('content-type'));
-
-  return {
-    data: Buffer.from(arrayBuffer).toString('base64'),
-    mimeType,
-  };
-};
-
-const finalizeEditedImage = async (
-  buffer: Buffer,
-  dimensions?: { width: number; height: number; wasUpscaled: boolean } | null
-) => {
-  const image = sharp(buffer);
-  const metadata = await image.metadata();
-  const width = dimensions?.width ?? metadata.width ?? 1200;
-  const height = dimensions?.height ?? metadata.height ?? 1200;
-
-  const resizedImage =
-    dimensions?.wasUpscaled && metadata.width && metadata.height
-      ? image.resize(width, height, {
-        fit: 'fill',
-        kernel: sharp.kernel.lanczos3,
-      })
-      : image;
-
-  const enhancedImage = dimensions?.wasUpscaled
-    ? resizedImage.sharpen(0.8, 1, 2)
-    : resizedImage;
-
-  // Add floating background logo (Disabled temporarily)
-  /*
-  try {
-    const actualWidth = dimensions?.wasUpscaled ? width : (metadata.width ?? width);
-    const actualHeight = dimensions?.wasUpscaled ? height : (metadata.height ?? height);
-
-    const logoBuffer = await getLogoBuffer();
-    const logoWidth = Math.round(actualWidth * 0.9);
-    // Convert to PNG before base64 encoding to ensure reliable SVG embedding compatibility
-    const resizedLogoBuffer = await sharp(logoBuffer).resize(logoWidth).png().toBuffer();
-
-    const logoMetadata = await sharp(resizedLogoBuffer).metadata();
-    const logoHeight = Math.max(1, logoMetadata.height ?? 1);
-    const logoBase64 = resizedLogoBuffer.toString('base64');
-
-    // Render it at 60% opacity using SVG so it effectively recedes into the background plane
-    const transparentLogoSvg = Buffer.from(`
-      <svg width="\${logoWidth}" height="\${logoHeight}" xmlns="http://www.w3.org/2000/svg">
-        <g opacity="0.60">
-          <image href="data:image/png;base64,\${logoBase64}" width="\${logoWidth}" height="\${logoHeight}" />
-        </g>
-      </svg>
-    `.trim());
-
-    // Position it slightly above the cake so it appears to be floating in the background
-    const left = Math.round((actualWidth - logoWidth) / 2);
-
-    // Estimate cake top to be ~25% down the canvas, and place logo 20px above that.
-    // If it goes too high, constrain it to at least 20px from the top edge.
-    const estimatedCakeTop = actualHeight * 0.25;
-    let top = Math.round(estimatedCakeTop - logoHeight - 20);
-    if (top < 20) {
-      top = 20;
-    }
-
-    enhancedImage.composite([
-      {
-        input: transparentLogoSvg,
-        top,
-        left,
-        blend: 'over',
-      },
-    ]);
-  } catch (err) {
-    console.error('Failed to overlay brand logo:', err);
-  }
-  */
-
-  return enhancedImage
-    .webp({
-      quality: dimensions?.wasUpscaled ? 96 : 92,
-      effort: 6,
-    })
-    .toBuffer();
-};
-
-
 const getErrorMessage = (error: unknown) => {
   if (error instanceof Error) {
     return error.message;
   }
 
-  return 'Image editing failed.';
+  return 'Image studio request failed.';
 };
 
-const createStatusError = (status: number, message: string) => {
-  return Object.assign(new Error(message), { status });
-};
 
 export const GET = async (req: NextRequest) => {
   if (!isAuthorized(req)) {
@@ -340,7 +123,7 @@ export const GET = async (req: NextRequest) => {
     );
   }
 
-  const items = ((data ?? []) as CacheRow[]).map(mapCacheRow);
+  const items = ((data ?? []) as ImageStudioCacheRow[]).map(mapCacheRow);
 
   return NextResponse.json({
     items,
@@ -356,197 +139,29 @@ export const POST = async (req: NextRequest) => {
     return unauthorizedResponse();
   }
 
-  const startedAt = Date.now();
-  const supabase = createPublicServerSupabaseClient();
-  let requestedPHash = '';
-
   try {
     const body = await req.json();
     const pHash = typeof body?.pHash === 'string' ? body.pHash.trim() : '';
-    requestedPHash = pHash;
 
     if (!pHash) {
       return NextResponse.json({ error: 'Missing required field: pHash' }, { status: 400 });
     }
 
-    const { data: row, error: rowError } = await supabase
-      .from('cakegenie_analysis_cache')
-      .select('*')
-      .eq('p_hash', pHash)
-      .single();
-
-    if (rowError || !row) {
-      return NextResponse.json({ error: 'Image cache row not found.' }, { status: 404 });
-    }
-
-    const cacheRow = row as CacheRow;
-
-    if (!cacheRow.original_image_url) {
-      return NextResponse.json(
-        { error: 'This row does not have an original image URL to edit.' },
-        { status: 400 }
-      );
-    }
-
-    const startedIso = new Date().toISOString();
-    const { error: processingError } = await supabase
-      .from('cakegenie_analysis_cache')
-      .update({
-        studio_edit_status: 'processing',
-        studio_edit_error: null,
-        studio_edit_started_at: startedIso,
-      })
-      .eq('p_hash', pHash);
-
-    if (processingError) {
-      console.error('Failed to set processing state:', processingError);
-      return NextResponse.json(
-        {
-          error:
-            'Unable to update the studio edit status. Please apply the latest Supabase migration first.',
-        },
-        { status: 500 }
-      );
-    }
-
-    const originalImage = await fetchImageAsInlineData(cacheRow.original_image_url);
-    const prompt = buildImageStudioPrompt();
-    const systemInstruction = buildImageStudioSystemInstruction();
-    const aiClient = getAI(req);
-
-    // --- AI Image Editing with Retry Logic ---
-    let aiResponse: any;
-    const MAX_AI_RETRIES = 3;
-    
-    for (let attempt = 0; attempt <= MAX_AI_RETRIES; attempt += 1) {
-      try {
-        aiResponse = await aiClient.models.generateContent({
-          model: MODEL_NAME,
-          contents: [
-            {
-              role: 'user',
-              parts: [
-                {
-                  inlineData: {
-                    mimeType: originalImage.mimeType,
-                    data: originalImage.data,
-                  },
-                },
-                { text: prompt },
-              ],
-            },
-          ],
-          config: {
-            systemInstruction,
-            responseModalities: ['IMAGE'],
-          },
-        });
-        break; // Success, exit loop
-      } catch (error: any) {
-        const rawMessage = error instanceof Error ? error.message : String(error);
-        const isQuotaError = /RESOURCE_EXHAUSTED|quota|rate limit|429/i.test(rawMessage);
-
-        if (isQuotaError && attempt < MAX_AI_RETRIES) {
-          // Exponential backoff: 4s, 8s, 16s + random jitter
-          const backoffMs = Math.pow(2, attempt) * 4000 + Math.random() * 2000;
-          console.warn(`[AI Studio] Quota hit (429). Attempt ${attempt + 1}/${MAX_AI_RETRIES + 1}. Retrying in ${Math.round(backoffMs)}ms...`);
-          await new Promise((resolve) => setTimeout(resolve, backoffMs));
-          continue;
-        }
-
-        // If we reach here, it's either not a quota error or we've exhausted retries
-        throw error;
-      }
-    }
-    // --- End Retry Logic ---
-
-    const generatedImage = extractGeneratedImage(aiResponse);
-
-    if (!generatedImage) {
-      const fallbackText = extractTextResponse(aiResponse);
-      throw createStatusError(
-        fallbackText ? 422 : 502,
-        fallbackText
-          ? `AI returned text instead of an edited image. ${fallbackText}`
-          : 'AI did not return an edited image. Please try again.'
-      );
-    }
-
-    const generatedBuffer = Buffer.from(generatedImage.imageData, 'base64');
-    const generatedMetadata = await sharp(generatedBuffer).metadata();
-    const outputDimensions = getImageStudioOutputDimensions(
-      cacheRow.image_width ?? generatedMetadata.width ?? null,
-      cacheRow.image_height ?? generatedMetadata.height ?? null
-    );
-    const watermarkedBuffer = await finalizeEditedImage(
-      generatedBuffer,
-      outputDimensions
-    );
-    const storagePath = getImageStudioStoragePath({
-      slug: cacheRow.slug,
+    const result = await runImageStudioJob({
       pHash,
+      requestContext: req,
+      requireExistingRow: true,
     });
 
-    const { error: uploadError } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .upload(storagePath, watermarkedBuffer, {
-        contentType: 'image/webp',
-        upsert: true,
-      });
-
-    if (uploadError) {
-      throw new Error(uploadError.message);
-    }
-
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(storagePath);
-
-    const completedAt = new Date().toISOString();
-    const updatePayload = {
-      studio_edited_image_url: publicUrl,
-      studio_edit_status: 'completed',
-      studio_edit_error: null,
-      studio_edited_at: completedAt,
-    };
-
-    const { error: saveError } = await supabase
-      .from('cakegenie_analysis_cache')
-      .update(updatePayload)
-      .eq('p_hash', pHash);
-
-    if (saveError) {
-      throw new Error(saveError.message);
-    }
-
     return NextResponse.json({
-      item: mapCacheRow({
-        ...cacheRow,
-        ...updatePayload,
-      }),
-      durationMs: Date.now() - startedAt,
+      item: result.cacheRow ? mapCacheRow(result.cacheRow) : null,
+      durationMs: result.durationMs,
     });
   } catch (error: unknown) {
     const normalizedError = normalizeAiRouteError(error, {
       defaultMessage: 'Failed to create the studio image.',
       quotaMessage:
         'AI image editing is temporarily unavailable due to quota limits. Please try again later.',
-    });
-
-    if (requestedPHash) {
-      await supabase
-        .from('cakegenie_analysis_cache')
-        .update({
-          studio_edit_status: 'failed',
-          studio_edit_error: normalizedError.message.slice(0, 500),
-        })
-        .eq('p_hash', requestedPHash);
-    }
-
-    console.error('Image studio edit failed:', {
-      status: normalizedError.status,
-      message: normalizedError.message,
-      rawMessage: getErrorMessage(error),
     });
 
     return NextResponse.json(
@@ -582,7 +197,12 @@ export const PATCH = async (req: NextRequest) => {
     }
 
     const supabase = createPublicServerSupabaseClient();
-    const updatePayload: any = {
+    const updatePayload: {
+      studio_edit_status: string;
+      studio_edit_error?: string | null;
+      studio_edited_image_url?: string | null;
+      studio_edited_at?: string | null;
+    } = {
       studio_edit_status: status,
     };
 

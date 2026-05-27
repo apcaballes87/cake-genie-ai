@@ -119,6 +119,32 @@ export async function analyzeCakeFeaturesOnly(
     }
 }
 
+export async function triggerStudioEditFromUpload(
+    pHash: string,
+    originalImage: { data: string; mimeType: string }
+): Promise<boolean> {
+    try {
+        const response = await fetch('/api/ai/trigger-studio-edit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                pHash,
+                originalImage,
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.error || 'Failed to trigger studio edit');
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Error triggering studio edit from upload:', error);
+        return false;
+    }
+}
+
 /**
  * Enriches analysis with coordinates using Roboflow (Phase 2)
  * Orchestrates the calling of Roboflow service and merging results

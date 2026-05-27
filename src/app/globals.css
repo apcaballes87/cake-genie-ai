@@ -230,7 +230,7 @@ body.genie-image-zoom-open [data-sticky-add-to-cart-bar] {
 /* --- Progress Bar Animation --- */
 .progress-bar-fill {
   width: 0%;
-  animation: fillProgressBar 12s linear forwards;
+  animation: fillProgressBar 15s linear forwards;
 }
 
 @keyframes fillProgressBar {

@@ -3,6 +3,8 @@ import { getOrbBackendUnavailableMessage, getOrbBackendUrl } from '@/services/or
 
 export type OrbMatchingMode = 'default' | 'strict' | 'loose';
 
+const ORB_MATCH_TIMEOUT_MS = 2000;
+
 interface OrbMatchApiResponse {
   match: boolean;
   confidence?: number | null;
@@ -50,6 +52,7 @@ export async function findOrbCacheHit(
     endpoint?: string;
     mode?: OrbMatchingMode;
     visualize?: boolean;
+    timeoutMs?: number;
   }
 ): Promise<OrbCacheHitResult | null> {
   const params = new URLSearchParams({
@@ -57,6 +60,7 @@ export async function findOrbCacheHit(
     visualize: String(options?.visualize ?? false),
   });
   const endpoint = options?.endpoint ?? getOrbBackendUrl('/api/match');
+  const timeoutMs = options?.timeoutMs ?? ORB_MATCH_TIMEOUT_MS;
 
   if (!endpoint) {
     throw new Error(getOrbBackendUnavailableMessage());
@@ -65,10 +69,28 @@ export async function findOrbCacheHit(
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await fetch(`${endpoint}?${params.toString()}`, {
-    method: 'POST',
-    body: formData,
-  });
+  const controller = new AbortController();
+  const timeoutId = globalThis.setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
+
+  let response: Response;
+
+  try {
+    response = await fetch(`${endpoint}?${params.toString()}`, {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (controller.signal.aborted || (error instanceof Error && error.name === 'AbortError')) {
+      throw new Error(`ORB match timed out after ${timeoutMs}ms`);
+    }
+
+    throw error;
+  } finally {
+    globalThis.clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     console.error(`❌ ORB backend returned ${response.status}`, {

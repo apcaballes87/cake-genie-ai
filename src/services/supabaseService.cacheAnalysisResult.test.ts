@@ -285,6 +285,8 @@ describe('cacheAnalysisResult', () => {
       });
     }
 
+    await Promise.resolve();
+
     expect(fetchMock).toHaveBeenCalledWith(
       'https://orb.genie.ph/api/index',
       expect.objectContaining({
@@ -292,6 +294,68 @@ describe('cacheAnalysisResult', () => {
         body: expect.any(FormData),
       })
     );
+  });
+
+  it('does not wait for ORB indexing before resolving the cache write', async () => {
+    const { cacheAnalysisResult } = await import('./supabaseService');
+    const originalWindow = globalThis.window;
+    let resolveIndexFetch: ((value: { ok: boolean; json: () => Promise<{ success: boolean }> }) => void) | null = null;
+
+    fetchMock.mockReset().mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveIndexFetch = resolve;
+        })
+    );
+
+    Object.defineProperty(globalThis, 'window', {
+      value: undefined,
+      configurable: true,
+    });
+
+    try {
+      const result = await Promise.race([
+        cacheAnalysisResult(
+          'fedcba9876543210',
+          {
+            cakeType: 'Bento',
+            cakeThickness: '4 in',
+            keyword: 'non-blocking-index',
+            icing_design: {
+              base: 'soft_icing',
+              colors: { top: 'blue', side: 'white' },
+            },
+            main_toppers: [],
+            support_elements: [],
+            cake_messages: [],
+          } as unknown as HybridAnalysisResult,
+          'https://example.com/non-blocking-index.webp',
+          new Blob(['orb-image-bytes'], { type: 'image/webp' }),
+          {
+            fingerprintPipeline: 'v1-test-pipeline',
+            triggerStudioEdit: false,
+          }
+        ),
+        new Promise<'timed_out'>((resolve) => setTimeout(() => resolve('timed_out'), 25)),
+      ]);
+
+      expect(result).not.toBe('timed_out');
+      expect(result).toEqual(
+        expect.objectContaining({
+          storedPHash: 'fedcba9876543210',
+        })
+      );
+    } finally {
+      resolveIndexFetch?.({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
+      await Promise.resolve();
+      Object.defineProperty(globalThis, 'window', {
+        value: originalWindow,
+        configurable: true,
+      });
+    }
   });
 
   it('can refresh analysis fields without resetting stored source asset coverage', async () => {
