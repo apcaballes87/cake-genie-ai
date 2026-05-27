@@ -92,10 +92,69 @@ describe('/api/ai/edit-image', () => {
             expect.objectContaining({
                 model: 'gemini-2.5-flash-image',
                 config: expect.objectContaining({
+                    responseModalities: ['TEXT', 'IMAGE'],
+                }),
+            })
+        );
+    });
+
+    it('retries icing-only requests with Gemini 3.1 when Gemini 2.5 returns no image', async () => {
+        generateContent
+            .mockResolvedValueOnce({
+                candidates: [],
+            })
+            .mockResolvedValueOnce({
+                candidates: [
+                    {
+                        content: {
+                            parts: [
+                                {
+                                    inlineData: {
+                                        data: 'fallback-image',
+                                        mimeType: 'image/png',
+                                    },
+                                },
+                            ],
+                        },
+                    },
+                ],
+            });
+
+        const response = await POST(
+            new Request('http://localhost/api/ai/edit-image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt: 'Change just the icing to mint green',
+                    originalImage: { data: 'abc123', mimeType: 'image/png' },
+                    preferredModel: 'gemini-2.5-flash-image',
+                }),
+            }) as never
+        );
+
+        expect(response.status).toBe(200);
+        expect(generateContent).toHaveBeenNthCalledWith(
+            1,
+            expect.objectContaining({
+                model: 'gemini-2.5-flash-image',
+                config: expect.objectContaining({
+                    responseModalities: ['TEXT', 'IMAGE'],
+                }),
+            })
+        );
+        expect(generateContent).toHaveBeenNthCalledWith(
+            2,
+            expect.objectContaining({
+                model: 'gemini-3.1-flash-image-preview',
+                config: expect.objectContaining({
                     responseModalities: ['IMAGE'],
                 }),
             })
         );
+        await expect(response.json()).resolves.toEqual({
+            imageData: 'fallback-image',
+            mimeType: 'image/png',
+        });
     });
 
     it('returns 429 with a friendly message when Gemini reports quota exhaustion via status', async () => {

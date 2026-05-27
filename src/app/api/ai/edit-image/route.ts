@@ -7,6 +7,12 @@ const DEFAULT_MODEL_NAME = 'gemini-3.1-flash-image-preview';
 const COLOR_ONLY_MODEL_NAME = 'gemini-2.5-flash-image';
 
 type EditImageModelName = typeof DEFAULT_MODEL_NAME | typeof COLOR_ONLY_MODEL_NAME;
+type ResponseModality = 'TEXT' | 'IMAGE';
+type EditImageAttempt = {
+    modelName: EditImageModelName;
+    responseModalities: ResponseModality[];
+    fallbackFrom?: EditImageModelName;
+};
 
 type AiInlineDataPart = {
     inlineData?: {
@@ -47,6 +53,14 @@ function resolveModelName(preferredModel?: string): EditImageModelName {
     }
 
     return DEFAULT_MODEL_NAME;
+}
+
+function getResponseModalities(modelName: EditImageModelName): ResponseModality[] {
+    if (modelName === COLOR_ONLY_MODEL_NAME) {
+        return ['TEXT', 'IMAGE'];
+    }
+
+    return ['IMAGE'];
 }
 
 function extractGeneratedImage(response: AiGenerateContentResponse) {
@@ -157,45 +171,98 @@ export async function POST(req: NextRequest) {
         parts.push({ text: prompt });
 
         const aiClient = getAI(req);
-        // Use Gemini 3.1 Flash Image Preview for image editing experiments.
-        console.log(`[AI TRACE ${traceId}] /api/ai/edit-image:calling-model`, {
-            requestSource,
-            model: modelName,
-        });
-        const response = await aiClient.models.generateContent({
-            model: modelName,
-            contents: [{ role: 'user', parts }],
-            config: {
-                systemInstruction: systemInstruction,
-                responseModalities: ['IMAGE'],
+        const attempts: EditImageAttempt[] = [
+            {
+                modelName,
+                responseModalities: getResponseModalities(modelName),
             },
-        });
+        ];
 
-        const generatedImage = extractGeneratedImage(response);
-
-        if (generatedImage) {
-            console.log(`[AI TRACE ${traceId}] /api/ai/edit-image:success`, {
-                requestSource,
-                mimeType: generatedImage.mimeType,
-                durationMs: Date.now() - startedAt,
-            });
-            return NextResponse.json({
-                imageData: generatedImage.imageData,
-                mimeType: generatedImage.mimeType,
+        if (modelName === COLOR_ONLY_MODEL_NAME) {
+            attempts.push({
+                modelName: DEFAULT_MODEL_NAME,
+                responseModalities: getResponseModalities(DEFAULT_MODEL_NAME),
+                fallbackFrom: COLOR_ONLY_MODEL_NAME,
             });
         }
 
-        const textResponse = extractTextResponse(response);
+        let lastTextResponse = '';
+        let lastSerializedResponse = '';
 
-        if (textResponse) {
-            // Fallback/Warning: received text instead of image
-            console.warn('Received text response instead of image:', textResponse);
+        for (const [attemptIndex, attempt] of attempts.entries()) {
+            console.log(`[AI TRACE ${traceId}] /api/ai/edit-image:calling-model`, {
+                requestSource,
+                model: attempt.modelName,
+                responseModalities: attempt.responseModalities,
+                fallbackFrom: attempt.fallbackFrom,
+            });
+
+            const response = await aiClient.models.generateContent({
+                model: attempt.modelName,
+                contents: [{ role: 'user', parts }],
+                config: {
+                    systemInstruction: systemInstruction,
+                    responseModalities: attempt.responseModalities,
+                },
+            });
+
+            const generatedImage = extractGeneratedImage(response);
+
+            if (generatedImage) {
+                console.log(`[AI TRACE ${traceId}] /api/ai/edit-image:success`, {
+                    requestSource,
+                    mimeType: generatedImage.mimeType,
+                    durationMs: Date.now() - startedAt,
+                    model: attempt.modelName,
+                    fallbackFrom: attempt.fallbackFrom,
+                });
+                return NextResponse.json({
+                    imageData: generatedImage.imageData,
+                    mimeType: generatedImage.mimeType,
+                });
+            }
+
+            const textResponse = extractTextResponse(response);
+            lastTextResponse = textResponse;
+            lastSerializedResponse = JSON.stringify(response).slice(0, 2000);
+
+            const hasRetryAttempt = attemptIndex < attempts.length - 1;
+
+            if (hasRetryAttempt) {
+                console.warn(`[AI TRACE ${traceId}] /api/ai/edit-image:fallback`, {
+                    requestSource,
+                    fromModel: attempt.modelName,
+                    toModel: attempts[attemptIndex + 1]?.modelName,
+                    reason: textResponse ? 'text-response' : 'empty-response',
+                    durationMs: Date.now() - startedAt,
+                    textResponse,
+                });
+                continue;
+            }
+
+            if (textResponse) {
+                console.warn('Received text response instead of image:', textResponse);
+                console.warn(`[AI TRACE ${traceId}] /api/ai/edit-image:text-response`, {
+                    requestSource,
+                    durationMs: Date.now() - startedAt,
+                    model: attempt.modelName,
+                });
+                return NextResponse.json(
+                    { error: `AI returned text instead of an image. ${textResponse}`.trim() },
+                    { status: 400 }
+                );
+            }
+        }
+
+        if (lastTextResponse) {
+            console.warn('Received text response instead of image:', lastTextResponse);
             console.warn(`[AI TRACE ${traceId}] /api/ai/edit-image:text-response`, {
                 requestSource,
                 durationMs: Date.now() - startedAt,
+                model: attempts[attempts.length - 1]?.modelName,
             });
             return NextResponse.json(
-                { error: `AI returned text instead of an image. ${textResponse}`.trim() },
+                { error: `AI returned text instead of an image. ${lastTextResponse}`.trim() },
                 { status: 400 }
             );
         }
@@ -203,7 +270,8 @@ export async function POST(req: NextRequest) {
         console.error(`[AI TRACE ${traceId}] /api/ai/edit-image:empty-response`, {
             requestSource,
             durationMs: Date.now() - startedAt,
-            fullResponse: JSON.stringify(response).slice(0, 2000),
+            model: attempts[attempts.length - 1]?.modelName,
+            fullResponse: lastSerializedResponse,
         });
 
         return NextResponse.json(

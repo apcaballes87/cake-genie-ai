@@ -1,5 +1,26 @@
 # Tasks
 
+## Fix Customizer Icing Swatch AI Edit Failures
+
+### Plan
+
+- [x] Reproduce and trace the customizer icing-color failure path, separating pricing warnings from the `/api/ai/edit-image` non-image response.
+- [x] Harden the image-edit route so the icing-only fast path can recover when Gemini returns no edited image for a swatch recolor request.
+- [x] Add focused tests for the fallback behavior and keep the normal default-model path unchanged.
+- [x] Verify with targeted Vitest coverage plus a live local `/api/ai/edit-image` request that the recolor path now returns an image instead of surfacing the 502.
+
+### Review
+
+- Traced the reported failure to the image-edit route's non-image response handling, not the separate pricing-rule console warning.
+- Kept the icing-color fast path on `gemini-2.5-flash-image`, but changed `src/app/api/ai/edit-image/route.ts` so color-only edits now:
+  - request `TEXT` + `IMAGE` from the fast model,
+  - retry once on `gemini-3.1-flash-image-preview` when the fast model returns text or no image bytes,
+  - only surface the old 400/502 errors after the stable retry also fails.
+- Added a focused regression test in `src/app/api/ai/edit-image/route.test.ts` for the exact empty-response fallback path while preserving the existing default-model expectations.
+- Verification:
+  - `npx vitest run src/app/api/ai/edit-image/route.test.ts src/services/designService.no-op.test.ts` passed.
+  - A live local POST to `http://127.0.0.1:3002/api/ai/edit-image` with `preferredModel: 'gemini-2.5-flash-image'` returned `200 OK` with `image/png` output after the fix.
+
 ## Prototype Instant Icing Recolor Lab
 
 ### Plan
