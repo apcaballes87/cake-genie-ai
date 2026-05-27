@@ -1,5 +1,127 @@
 # Tasks
 
+## Prototype Instant Icing Recolor Lab
+
+### Plan
+
+- [x] Add an isolated test page, likely alongside existing internal tooling such as `/similarity-debugger`, to compare icing-overlay behavior without touching the production customizer flow.
+- [x] Simplify the experiment to a single path: upload one cake image, automatically send it to Gemini for the icing-conversion layer, then recolor only the generated top layer locally.
+- [ ] Reuse the repo's existing customizer signals and helpers:
+  - `useInpaintingStyle` in `src/services/designService.ts` as the future branch point for a non-AI recolor path.
+  - `cakegenie_color_variants` and the local color-variant cache in `src/hooks/useDesignUpdate.ts` for persistence and instant replay.
+  - `SegmentationOverlay`, `segmentation.ts`, and `maskFiltering.ts` as the starting point for mask visualization and alpha-mask decoding.
+- [ ] Build the lab in phases:
+  - [x] Phase 1: upload one cake image, auto-generate a red icing layer with Gemini, key out the black pixels, and locally adjust only that layer with HSL sliders.
+  - Phase 2: tune the black-key transparency thresholds and generation prompt based on visual quality.
+  - Phase 3: automatic mask generation experiments and benchmarking.
+  - Phase 4: integrate the winning fast path back into the customizer only after latency and quality pass.
+- [x] For the instant renderer, test a client-side Canvas pipeline first:
+  - render from a stable base image, not the previously recolored result,
+  - key out pitch-black pixels from the generated Gemini layer,
+  - recolor only the generated top layer using hue, saturation, and lightness controls,
+  - move work to `OffscreenCanvas` or a worker if main-thread jank appears.
+- [x] Keep a strict separation between `preview` and `canonical saved asset`:
+  - preview should be instant and local,
+  - background persistence can save the rendered variant to storage and reuse the existing variant cache.
+- [x] Evaluate three mask-generation options before implementation:
+  - `Transformers.js` + the `transformers.js-examples` `segment-anything-webgpu` example for interactive browser-side segmentation.
+  - `rembg-web` for fast reusable mask sessions and mask-only output experiments.
+  - MediaPipe Image Segmenter only if its category-based segmentation proves useful for coarse cake/body masks; it is less likely to separate icing surfaces cleanly on its own.
+- [ ] Use current detection/analysis data only as guidance, not as the final mask:
+  - existing bounding boxes and `icing_surfaces` / `icing_borders` metadata can refine masks and help exclude toppers, messages, and photos from recolor regions.
+- [x] Decide success criteria before building:
+  - under 100ms local recolor for repeated clicks on desktop,
+  - visually preserves texture, highlights, and shadows,
+  - does not recolor toppers/messages accidentally,
+  - falls back cleanly to AI or cached variants when masks are missing.
+
+### Review
+
+- Added a no-index internal test route at `src/app/admin/icing-recolor-lab/page.tsx` with a simplified lab client in `src/app/admin/icing-recolor-lab/IcingRecolorLabClient.tsx`.
+- Added `src/lib/icingConversionPrompt.ts` as the dedicated source of truth for the user-provided Gemini icing-conversion prompt.
+- Tightened the prompt and lab system instruction so Gemini is explicitly told to preserve the original framing, crop, cake scale, and cake position for better overlay alignment.
+- Added `src/lib/icingLayerComposite.ts` as the overlay math helper for:
+  - keying out pitch-black pixels from the generated Gemini layer,
+  - recoloring only that generated top layer with hue, saturation, and lightness adjustments.
+- The lab page now supports:
+  - uploading one base cake image,
+  - automatically generating the red-icing reference layer with Gemini,
+  - placing that generated image over the original as a keyed top layer,
+  - making pitch-black generated pixels transparent so only the icing layer remains,
+  - adjusting only the generated layer with hue, saturation, and lightness sliders,
+  - preview download and lab reset.
+- Added focused tests in `src/lib/icingLayerComposite.test.ts` for black transparency keying and HSL-only top-layer recolor.
+- Verification:
+  - `npx vitest run src/lib/icingLayerComposite.test.ts --exclude '.claude/**'` passed.
+  - `npx eslint src/lib/icingLayerComposite.ts src/lib/icingLayerComposite.test.ts src/lib/icingConversionPrompt.ts src/app/admin/icing-recolor-lab/IcingRecolorLabClient.tsx src/app/admin/icing-recolor-lab/page.tsx` passed.
+  - `npm run build` passed and included `/admin/icing-recolor-lab` in the route manifest.
+  - Browser verification on the live dev server at `http://127.0.0.1:3002/admin/icing-recolor-lab` confirmed the route renders the simplified upload, generation state, HSL controls, and layered preview flow.
+
+## Make Icing Recolor Lab Prompt Editable
+
+### Plan
+
+- [x] Explain and correct the current lab mismatch where a generation-style prompt is being sent through the image-edit flow.
+- [x] Add an editable prompt field to `src/app/admin/icing-recolor-lab/IcingRecolorLabClient.tsx`, seeded from `src/lib/icingConversionPrompt.ts`.
+- [x] Let the user regenerate the Gemini layer with the current prompt against the already uploaded image without re-uploading.
+- [x] Update the lab copy so it no longer claims the prompt is fixed when it is editable in-page.
+- [x] Run focused verification and record the result here.
+
+### Review
+
+- Root cause: the lab was feeding Gemini a prompt that begins with `Generate a high-contrast studio photograph...` through the normal image-edit route, so Gemini was reasonably re-synthesizing the scene instead of making a tight in-place edit.
+- `src/app/admin/icing-recolor-lab/IcingRecolorLabClient.tsx` now keeps the uploaded image payload in state so the same image can be re-used for repeated prompt experiments without another upload.
+- The lab now exposes the current prompt in an in-page editable textarea, seeded from `src/lib/icingConversionPrompt.ts`.
+- Added a `Generate Layer` action that re-runs Gemini against the already uploaded image using the current prompt text.
+- Added `Reset Prompt` and updated the upload/notes copy so the page accurately describes the prompt as editable instead of fixed.
+- Verification:
+  - `npx eslint src/app/admin/icing-recolor-lab/IcingRecolorLabClient.tsx src/lib/icingConversionPrompt.ts` passed.
+  - `curl -I --max-time 10 http://127.0.0.1:3002/admin/icing-recolor-lab` returned `200 OK`.
+- Browser verification on the live dev server confirmed the page now shows the `Prompt` panel, editable prompt textbox, `Generate Layer` button, and updated explanatory copy.
+
+## Update Icing Recolor Lab Default Prompt
+
+### Plan
+
+- [x] Replace `src/lib/icingConversionPrompt.ts` with the user's latest exact prompt wording.
+- [x] Verify the source file contains the new default prompt text.
+- [x] Confirm the dev lab route still responds after the prompt-source update.
+
+### Review
+
+- Updated `src/lib/icingConversionPrompt.ts` again with the latest user-provided wording, including the stronger masking guidance for glitter toppers, graphic design toppers, background, and base boards.
+- Kept the replacement literal and scoped to the dedicated prompt source file.
+- Verification:
+  - Source check confirmed the new default prompt text in `src/lib/icingConversionPrompt.ts`.
+  - `curl -I --max-time 10 http://127.0.0.1:3002/admin/icing-recolor-lab` returned `200 OK`.
+- A fresh lab page load was started after the update so the next clean page refresh can pick up the new default prompt state.
+
+## Match Lab Color Controls To Customizer Swatches
+
+### Plan
+
+- [x] Move the lab color controls below the preview panel.
+- [x] Replace the HSL sliders with the same circular color-swatch interaction used in the customizer above the cake options.
+- [x] Verify the updated lab route renders with the new control placement and interaction.
+
+### Review
+
+- Moved the layer color controls out of the left column and placed them directly below the preview panel in `src/app/admin/icing-recolor-lab/IcingRecolorLabClient.tsx`.
+- Replaced the freeform HSL slider UI with a customizer-style circle swatch picker driven by the shared `COLORS` list, including a selected color chip and ring treatment that mirrors the existing customizer pattern.
+- The lab now maps the selected swatch onto the generated red overlay by converting the target hex color into relative HSL adjustments before compositing the keyed layer.
+- Updated the surrounding copy so the page consistently talks about color-circle recolor instead of sliders or HSL controls.
+- Verification:
+  - `npx eslint src/app/admin/icing-recolor-lab/IcingRecolorLabClient.tsx` passed.
+  - Browser verification on the live dev server confirmed the preview panel renders before the `Layer Color Controls` section and that the controls now appear as circular swatches below the preview.
+
+### Research Notes
+
+- MediaPipe's Image Segmenter is documented as a browser-capable segmentation task, but its listed models are category-oriented and skew toward people/body-part segmentation, so it looks more suitable for coarse foreground masks than precise cake-surface separation.
+- Transformers.js supports in-browser segmentation models and the official examples repo includes `segment-anything-webgpu`, which makes it the strongest existing browser-native starting point for a lab page.
+- `rembg-web` exposes `Mask Only`, session reuse, and hardware acceleration options including WebGPU/WebNN, which makes it useful for fast repeatable mask experiments even if it may be too coarse for final icing surfaces.
+- MDN documents `OffscreenCanvas` and Canvas compositing modes such as `hue`, `color`, and `luminosity`, which are promising for keeping the click path purely software-driven and off the main thread when needed.
+- The repo already includes dormant segmentation decode/render helpers and an existing instant cached-variant path, so the cheapest path is to experiment with mask-backed local recolor before inventing a new persistence model.
+
 ## Route Icing-Only Edits To Gemini 2.5 Flash Image
 
 ### Plan
@@ -894,3 +1016,75 @@
   `npm run build` passed and prerendered `/best-cake-shops-cebu` with one-day revalidation.
   Local HTML check on `http://127.0.0.1:3002/best-cake-shops-cebu` returned 200 and confirmed 10 contact blocks, 10 website buttons, 10 Google Maps buttons, 10 shop anchors, Tamp present, no Treat Street text, the Genie.ph marketplace pitch present, and 11 rendered image tags.
   After the image swap, a second local HTML check confirmed all 11 requested Supabase image filenames are present and the page renders 12 image tags total.
+
+---
+
+## AI Analysis And Purple Background Trace
+
+### Investigation Plan
+
+- [x] Trace the live upload and AI analysis entrypoints from the customizer UI into the server route.
+- [x] Inspect how analysis results are normalized, cached, and persisted for later hydration.
+- [x] Trace the follow-up AI image edit flow that creates the purple background version, including triggers and storage.
+- [x] Summarize the exact end-to-end behavior, dependencies, and side effects in repo-grounded terms.
+
+### Investigation Review
+
+- Started 2026-05-27 to answer how AI cake analysis and the follow-up purple-background image edit work end to end.
+- The live upload path is `src/contexts/ImageContext.tsx`: it clears stale image state, base64-encodes the file, compresses it, validates it as a single cake, then prefers ORB cache hits before doing fresh AI analysis.
+- Validation runs through `POST /api/ai/validate`; accepted images proceed, while known non-cake or unsupported categories map to user-facing rejection messages before any cached result or analysis is used.
+- Fresh analysis runs through `POST /api/ai/analyze` using `gemini-3-flash-preview` with a strict JSON schema. The first response is intentionally feature-first with coordinates zeroed out, then Roboflow enrichment runs in the background to add positions later.
+- Fresh or enriched results are written into `cakegenie_analysis_cache` with pricing, SEO fields, availability, slug, fingerprint coverage, optional Supabase storage image upload, and ORB indexing metadata via `cacheAnalysisResult(...)`.
+- The purple-background image is not produced by the main analysis route itself. It is a separate background “Image Studio” pipeline triggered after cache write, then fulfilled by `POST /api/admin/cake-cache-images`.
+- Image Studio re-fetches the saved original image, asks Gemini to restage the cake on a seamless light pastel purple studio background, uploads the resulting WebP to Supabase Storage, and stores the URL in `studio_edited_image_url` plus status fields.
+- Downstream UI and search helpers prefer `studio_edited_image_url` over `original_image_url`, so once the background job finishes, cards and known-design hydration naturally start showing the polished purple-background asset.
+- Verification for this trace was code-path inspection plus existing route tests for `src/app/api/ai/validate/route.test.ts` and `src/app/api/ai/edit-image/route.test.ts`. I did not run a live upload or live AI generation in this pass.
+
+---
+
+## Concurrent Analysis And Studio Edit
+
+### Implementation Plan
+
+- [x] Persist the fast no-cache-hit analysis result immediately after Gemini returns so the shared cache row exists earlier.
+- [x] Let that first cache write trigger Image Studio right away, instead of waiting for Roboflow enrichment to finish.
+- [x] Update the later enrichment write so it reuses the same cache row without retriggering the studio-edit pipeline.
+- [x] Run focused verification on the touched flow and record any remaining risks.
+
+### Implementation Review
+
+- Started 2026-05-27 to reduce end-to-end time by overlapping fast AI cake analysis and the purple-background studio edit on fresh uploads.
+- Updated `src/contexts/ImageContext.tsx` so a fresh no-cache-hit upload now starts the first shared `cacheAnalysisResult(...)` call immediately after the fast Gemini analysis returns, instead of waiting for Roboflow enrichment to finish.
+- That first cache write now unlocks the existing Image Studio trigger earlier, so the purple-background job can overlap with background enrichment and any remaining cache persistence work.
+- Adjusted the later enrichment write to reuse the same cache row with `triggerStudioEdit: false` and `persistSourceAsset: false`, so it updates analysis fields without retriggering the studio job, re-uploading the source image, or resetting ORB coverage state.
+- Extended `cacheAnalysisResult(...)` in `src/services/supabaseService.ts` with `persistSourceAsset` to support metadata-only refresh writes safely.
+- Added coverage in `src/services/supabaseService.cacheAnalysisResult.test.ts` to verify that metadata-only refreshes do not reset stored source asset coverage fields.
+- Verification:
+  `npx vitest run src/services/supabaseService.cacheAnalysisResult.test.ts src/app/api/ai/edit-image/route.test.ts src/app/api/ai/validate/route.test.ts` passed with 21 tests.
+  `npx eslint src/contexts/ImageContext.tsx src/services/supabaseService.ts src/services/supabaseService.cacheAnalysisResult.test.ts` still reports pre-existing warnings in `ImageContext.tsx` and pre-existing `no-explicit-any` errors across unrelated parts of `src/services/supabaseService.ts`; no new lint failure was isolated to this change.
+  `npx tsc --noEmit --pretty false` still fails on existing unrelated repo errors in test files and other pre-existing areas; no targeted failure specific to this concurrency change surfaced in the focused Vitest run.
+
+---
+
+## Auto Swap To Studio Image
+
+### Implementation Plan
+
+- [x] Add a lightweight client-side studio-image availability fetch path keyed by `p_hash`.
+- [x] Poll for `studio_edited_image_url` after fast analysis cache creation on fresh uploads and stop once ready or failed.
+- [x] Show the studio image in the hero/floating preview as soon as it is available, with a fade transition instead of a hard swap.
+- [x] Run focused verification and record any repo-wide pre-existing failures separately.
+
+### Implementation Review
+
+- Started 2026-05-27 to show `studio_edited_image_url` immediately after the background Image Studio job completes.
+- Added `getStudioImageAvailabilityByHash(...)` in `src/services/supabaseService.ts` so the client can cheaply check `studio_edit_status` and `studio_edited_image_url` by `p_hash` without reloading the whole page.
+- Updated `src/app/customizing/CustomizingClient.tsx` to keep a `liveStudioEditedImageUrl` in local state, clear it on fresh image selection, seed it from known designs when already available, and poll until Image Studio finishes or reports failure.
+- The customizing client now prefers that live studio URL for the hero and floating preview as soon as it appears, so the polished purple-background asset can replace the original upload without waiting for another page navigation or a later hydration pass.
+- Simplified `src/app/customizing/CustomizingHeroPanel.tsx` into a layered original-image render: the original image remains underneath while the studio image fades in as an overlay on load, avoiding a jarring hard swap and avoiding effect-driven state churn.
+- Added or updated focused coverage in `src/app/customizing/CustomizingHeroPanel.test.tsx` for the preferred-original-image swap path and kept the existing cache-write coverage in `src/services/supabaseService.cacheAnalysisResult.test.ts`.
+- Verification:
+  `npx vitest run src/app/customizing/CustomizingHeroPanel.test.tsx src/services/supabaseService.cacheAnalysisResult.test.ts src/app/api/ai/edit-image/route.test.ts src/app/api/ai/validate/route.test.ts` passed with 33 tests.
+  `npx eslint src/app/customizing/CustomizingClient.tsx src/app/customizing/CustomizingHeroPanel.tsx src/app/customizing/CustomizingHeroPanel.test.tsx` completed with warnings only; the warnings are pre-existing unused imports and hook-dependency warnings in `src/app/customizing/CustomizingClient.tsx`, plus a pre-existing unused `reviewStars` value in `src/app/customizing/CustomizingHeroPanel.tsx`.
+  `curl -I --max-time 10 http://127.0.0.1:3002/customizing` returned `200 OK`.
+  Browser-plugin visual verification was attempted, but the local Playwright browser session was already locked by another process, so I could not complete an in-browser visual pass from this run.

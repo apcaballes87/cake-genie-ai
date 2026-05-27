@@ -50,6 +50,7 @@ const buildProps = (): React.ComponentProps<typeof CustomizingHeroPanel> => ({
     dynamicLoadingMessage: 'Working on your cake...',
     error: null,
     originalImagePreview: null,
+    preferredOriginalImageUrl: null,
     preloadedHeroImage: null,
     fallbackImageUrl: null,
     fallbackImageAlt: 'Fallback Cake',
@@ -155,6 +156,7 @@ describe('CustomizingHeroPanel', () => {
     it('opens a fullscreen image modal when the hero image is clicked', () => {
         const props = buildProps();
         props.originalImagePreview = 'https://example.com/original-cake.jpg';
+        props.preferredOriginalImageUrl = 'https://example.com/original-cake.jpg';
 
         render(<CustomizingHeroPanel {...props} />);
 
@@ -172,6 +174,7 @@ describe('CustomizingHeroPanel', () => {
         const props = buildProps();
         props.enableMobileHeroPan = true;
         props.originalImagePreview = 'https://example.com/original-cake.jpg';
+        props.preferredOriginalImageUrl = 'https://example.com/original-cake.jpg';
 
         render(<CustomizingHeroPanel {...props} />);
 
@@ -184,6 +187,7 @@ describe('CustomizingHeroPanel', () => {
         const props = buildProps();
         props.enableMobileHeroPan = true;
         props.originalImagePreview = 'https://example.com/original-cake.jpg';
+        props.preferredOriginalImageUrl = 'https://example.com/original-cake.jpg';
 
         scrollToMock.mockClear();
 
@@ -194,5 +198,34 @@ describe('CustomizingHeroPanel', () => {
             top: 700,
             behavior: 'auto',
         });
+    });
+
+    it('swaps to the preferred original image after it loads', () => {
+        const props = buildProps();
+        props.activeTab = 'original';
+        props.originalImagePreview = 'https://example.com/original-cake.jpg';
+        props.preferredOriginalImageUrl = 'https://example.com/original-cake.jpg';
+
+        const { rerender } = render(<CustomizingHeroPanel {...props} />);
+
+        expect(screen.getByRole('img', { name: 'Hero cake' })).toHaveAttribute('src', 'https://example.com/original-cake.jpg');
+
+        rerender(
+            <CustomizingHeroPanel
+                {...props}
+                preferredOriginalImageUrl="https://example.com/studio-cake.webp"
+            />
+        );
+
+        const heroImages = screen.getAllByRole('img', { name: 'Hero cake' });
+        expect(heroImages.some((image) => image.getAttribute('src') === 'https://example.com/studio-cake.webp')).toBe(true);
+
+        const studioImage = heroImages.find((image) => image.getAttribute('src') === 'https://example.com/studio-cake.webp');
+        expect(studioImage).toBeTruthy();
+
+        fireEvent.load(studioImage as HTMLImageElement);
+
+        const postLoadImages = screen.getAllByRole('img', { name: 'Hero cake' });
+        expect(postLoadImages.some((image) => image.getAttribute('src') === 'https://example.com/studio-cake.webp')).toBe(true);
     });
 });

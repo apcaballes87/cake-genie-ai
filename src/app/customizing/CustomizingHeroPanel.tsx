@@ -21,6 +21,7 @@ interface CustomizingHeroPanelProps {
     dynamicLoadingMessage: string;
     error: string | null;
     originalImagePreview: string | null;
+    preferredOriginalImageUrl: string | null;
     preloadedHeroImage: string | null;
     fallbackImageUrl: string | null;
     fallbackImageAlt: string;
@@ -54,6 +55,36 @@ interface CustomizingHeroPanelProps {
         averageRating: number;
     } | null;
 }
+
+const NativeFadeOverlayImage = ({
+    src,
+    alt,
+    title,
+    className,
+    onLoad,
+}: {
+    src: string;
+    alt: string;
+    title: string;
+    className: string;
+    onLoad: (event: React.SyntheticEvent<HTMLImageElement>) => void;
+}) => {
+    const [isLoaded, setIsLoaded] = useState(false);
+
+    return (
+        // eslint-disable-next-line @next/next/no-img-element -- The overlay mirrors the natural source aspect ratio while fading in on load.
+        <img
+            src={src}
+            alt={alt}
+            title={title}
+            className={`${className} transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+            onLoad={(event) => {
+                setIsLoaded(true);
+                onLoad(event);
+            }}
+        />
+    );
+};
 
 export interface HeroActionButtonsRowProps {
     editedImage: string | null;
@@ -114,6 +145,7 @@ export const CustomizingHeroPanel = memo(({
     dynamicLoadingMessage,
     error,
     originalImagePreview,
+    preferredOriginalImageUrl,
     preloadedHeroImage,
     fallbackImageUrl,
     fallbackImageAlt,
@@ -147,14 +179,24 @@ export const CustomizingHeroPanel = memo(({
     const [originalImageDimensions, setOriginalImageDimensions] = useState<{ width: number, height: number } | null>(null);
     const [isHeroImageZoomOpen, setIsHeroImageZoomOpen] = useState(false);
     const mobileHeroScrollRef = useRef<HTMLDivElement | null>(null);
+    const baseOriginalImageUrl = originalImagePreview || preferredOriginalImageUrl || null;
+    const incomingStudioImageUrl = (
+        activeTab === 'original'
+        && originalImagePreview
+        && preferredOriginalImageUrl
+        && preferredOriginalImageUrl !== originalImagePreview
+    ) ? preferredOriginalImageUrl : null;
+    const originalHeroModalSrc = preferredOriginalImageUrl || originalImagePreview || preloadedHeroImage || fallbackImageUrl || '';
+    const hasOriginalDisplayImage = Boolean(baseOriginalImageUrl);
     const heroDisplaySrc = activeTab === 'customized'
-        ? (editedImage || originalImagePreview || preloadedHeroImage || fallbackImageUrl || '')
-        : (originalImagePreview || preloadedHeroImage || fallbackImageUrl || '');
+        ? (editedImage || originalHeroModalSrc || '')
+        : (baseOriginalImageUrl || preloadedHeroImage || fallbackImageUrl || '');
     const heroDisplayTitle = heroImageTitle;
     const heroImageRatio = originalImageDimensions ? `${originalImageDimensions.width} / ${originalImageDimensions.height}` : '1 / 1';
-    const zoomOriginalImage = originalImagePreview || preloadedHeroImage || fallbackImageUrl || null;
+    const zoomOriginalImage = originalHeroModalSrc || null;
     const zoomCustomizedImage = editedImage || null;
     const zoomInitialTab: ImageTab = activeTab === 'customized' && zoomCustomizedImage ? 'customized' : 'original';
+
     const openHeroImageModal = (src: string) => {
         if (!src) return;
         setIsHeroImageZoomOpen(true);
@@ -191,8 +233,14 @@ export const CustomizingHeroPanel = memo(({
         }
         centerMobileHeroScrollPosition();
     };
-
-    const renderScrollableImage = (src: string, alt: string, title: string, caption?: string) => (
+    const renderScrollableImage = (
+        src: string,
+        alt: string,
+        title: string,
+        caption?: string,
+        overlaySrc?: string,
+        modalSrc?: string,
+    ) => (
         <div className="absolute inset-0">
             <div className="relative h-full w-full">
                 <div
@@ -201,15 +249,27 @@ export const CustomizingHeroPanel = memo(({
                     style={{ WebkitOverflowScrolling: 'touch' }}
                     data-testid="mobile-hero-scroll-area"
                 >
-                    {/* eslint-disable-next-line @next/next/no-img-element -- Mobile hero uses a native scrolling image so the frame stays static and the image can be panned inside it. */}
-                    <img
-                        src={src}
-                        alt={alt}
-                        title={title}
-                        className="block w-full h-auto align-top cursor-zoom-in"
-                        onClick={() => openHeroImageModal(src)}
-                        onLoad={imageOnLoad}
-                    />
+                    <div className="relative w-full">
+                        {/* eslint-disable-next-line @next/next/no-img-element -- Mobile hero uses a native scrolling image so the frame stays static and the image can be panned inside it. */}
+                        <img
+                            src={src}
+                            alt={alt}
+                            title={title}
+                            className="block w-full h-auto align-top cursor-zoom-in"
+                            onClick={() => openHeroImageModal(modalSrc || overlaySrc || src)}
+                            onLoad={imageOnLoad}
+                        />
+                        {overlaySrc ? (
+                            <NativeFadeOverlayImage
+                                key={`scroll-overlay-${overlaySrc}`}
+                                src={overlaySrc}
+                                alt={alt}
+                                title={title}
+                                className="pointer-events-none absolute inset-x-0 top-0 w-full h-auto align-top"
+                                onLoad={imageOnLoad}
+                            />
+                        ) : null}
+                    </div>
                 </div>
                 <div className="pointer-events-none absolute right-1.5 top-1/2 z-20 -translate-y-1/2 rounded-full bg-black/28 px-1.5 py-2 text-white shadow-md backdrop-blur-sm">
                     <div className="flex flex-col items-center gap-0.5 text-[8px] font-bold uppercase tracking-[0.18em] leading-none opacity-90">
@@ -227,7 +287,14 @@ export const CustomizingHeroPanel = memo(({
         </div>
     );
 
-    const renderStaticImage = (src: string, alt: string, title: string, caption?: string) => (
+    const renderStaticImage = (
+        src: string,
+        alt: string,
+        title: string,
+        caption?: string,
+        overlaySrc?: string,
+        modalSrc?: string,
+    ) => (
         <figure className="relative w-full">
             {/* eslint-disable-next-line @next/next/no-img-element -- Desktop hero should size naturally to the source image aspect ratio. */}
             <img
@@ -235,9 +302,19 @@ export const CustomizingHeroPanel = memo(({
                 alt={alt}
                 title={title}
                 className="block w-full h-auto rounded-3xl cursor-zoom-in"
-                onClick={() => openHeroImageModal(src)}
+                onClick={() => openHeroImageModal(modalSrc || overlaySrc || src)}
                 onLoad={imageOnLoad}
             />
+            {overlaySrc ? (
+                <NativeFadeOverlayImage
+                    key={`static-overlay-${overlaySrc}`}
+                    src={overlaySrc}
+                    alt={alt}
+                    title={title}
+                    className="pointer-events-none absolute inset-x-0 top-0 w-full h-auto rounded-3xl"
+                    onLoad={imageOnLoad}
+                />
+            ) : null}
             {caption ? (
                 <figcaption className="absolute bottom-0 left-0 right-0 text-[10px] text-slate-500 p-2 text-center bg-white/60 backdrop-blur-sm z-10 leading-tight">
                     {caption}
@@ -309,7 +386,7 @@ export const CustomizingHeroPanel = memo(({
                             </div>
                         ) : null}
 
-                        {!originalImagePreview && !isAnalyzing && !fallbackImageUrl ? (
+                        {!hasOriginalDisplayImage && !isAnalyzing && !fallbackImageUrl ? (
                             <div className="absolute inset-0 flex items-center justify-center text-center text-slate-400 py-16">
                                 <ImageIcon />
                                 <p className="mt-2 font-semibold">Your creation will appear here</p>
@@ -318,7 +395,7 @@ export const CustomizingHeroPanel = memo(({
 
                         {enableMobileHeroPan ? (
                             <>
-                                {!originalImagePreview && preloadedHeroImage ? (
+                                {!hasOriginalDisplayImage && preloadedHeroImage ? (
                                     <>
                                         <div className="md:hidden">
                                             {renderScrollableImage(preloadedHeroImage, 'Loading cake design...', 'Loading your cake design', isAnalyzing ? 'Analyzing your design...' : undefined)}
@@ -329,7 +406,7 @@ export const CustomizingHeroPanel = memo(({
                                     </>
                                 ) : null}
 
-                                {!originalImagePreview && fallbackImageUrl ? (
+                                {!hasOriginalDisplayImage && fallbackImageUrl ? (
                                     <>
                                         <div className="md:hidden">
                                             {renderScrollableImage(fallbackImageUrl, fallbackImageAlt, fallbackImageTitle, initialCaption || undefined)}
@@ -340,7 +417,7 @@ export const CustomizingHeroPanel = memo(({
                                     </>
                                 ) : null}
 
-                                {originalImagePreview ? (
+                                {hasOriginalDisplayImage ? (
                                     <>
                                         <div className="md:hidden">
                                             {renderScrollableImage(
@@ -348,6 +425,8 @@ export const CustomizingHeroPanel = memo(({
                                                 heroImageAlt,
                                                 heroDisplayTitle,
                                                 undefined,
+                                                incomingStudioImageUrl || undefined,
+                                                originalHeroModalSrc,
                                             )}
                                         </div>
                                         <div className="hidden md:block">
@@ -356,6 +435,8 @@ export const CustomizingHeroPanel = memo(({
                                                 heroImageAlt,
                                                 heroDisplayTitle,
                                                 undefined,
+                                                incomingStudioImageUrl || undefined,
+                                                originalHeroModalSrc,
                                             )}
                                         </div>
                                     </>
@@ -363,7 +444,7 @@ export const CustomizingHeroPanel = memo(({
                             </>
                         ) : (
                             <>
-                                {!originalImagePreview && preloadedHeroImage && (
+                                {!hasOriginalDisplayImage && preloadedHeroImage && (
                                     <figure className="absolute inset-0 w-full h-full">
                                         <LazyImage
                                             src={preloadedHeroImage}
@@ -387,7 +468,7 @@ export const CustomizingHeroPanel = memo(({
                                     </figure>
                                 )}
 
-                                {!originalImagePreview && fallbackImageUrl && (
+                                {!hasOriginalDisplayImage && fallbackImageUrl && (
                                     <figure className="absolute inset-0 w-full h-full">
                                         <LazyImage
                                             src={fallbackImageUrl}
@@ -411,32 +492,46 @@ export const CustomizingHeroPanel = memo(({
                                     </figure>
                                 )}
 
-                                {originalImagePreview ? (
-                                    <LazyImage
-                                        key={activeTab}
-                                        src={activeTab === 'customized' ? (editedImage || originalImagePreview) : originalImagePreview}
-                                        alt={heroImageAlt}
-                                        title={heroImageTitle}
-                                        fill
-                                        sizes="(max-width: 768px) 100vw, 50vw"
-                                        imageClassName="object-contain rounded-3xl cursor-zoom-in"
-                                        priority
-                                        fetchPriority="high"
-                                        decoding="async"
-                                        unoptimized
-                                        onClick={() => openHeroImageModal(activeTab === 'customized' ? (editedImage || originalImagePreview) : originalImagePreview)}
-                                        onLoad={(event) => {
-                                            const image = event.currentTarget;
-                                            if (!originalImageDimensions || activeTab === 'original') {
-                                                setOriginalImageDimensions({ width: image.naturalWidth, height: image.naturalHeight });
-                                            }
-                                        }}
-                                    />
+                                {hasOriginalDisplayImage ? (
+                                    <>
+                                        <LazyImage
+                                            key={`${activeTab}-${heroDisplaySrc}`}
+                                            src={heroDisplaySrc}
+                                            alt={heroImageAlt}
+                                            title={heroImageTitle}
+                                            fill
+                                            sizes="(max-width: 768px) 100vw, 50vw"
+                                            imageClassName="object-contain rounded-3xl cursor-zoom-in"
+                                            priority
+                                            fetchPriority="high"
+                                            decoding="async"
+                                            unoptimized
+                                            onClick={() => openHeroImageModal(activeTab === 'original' ? originalHeroModalSrc : (editedImage || originalHeroModalSrc))}
+                                            onLoad={imageOnLoad}
+                                        />
+
+                                        {incomingStudioImageUrl ? (
+                                            <div className="absolute inset-0 pointer-events-none">
+                                                <LazyImage
+                                                    key={`incoming-${incomingStudioImageUrl}`}
+                                                    src={incomingStudioImageUrl}
+                                                    alt={heroImageAlt}
+                                                    title={heroImageTitle}
+                                                    fill
+                                                    sizes="(max-width: 768px) 100vw, 50vw"
+                                                    imageClassName="object-contain rounded-3xl"
+                                                    decoding="async"
+                                                    unoptimized
+                                                    onLoad={imageOnLoad}
+                                                />
+                                            </div>
+                                        ) : null}
+                                    </>
                                 ) : null}
                             </>
                         )}
 
-                        {originalImagePreview ? (
+                        {hasOriginalDisplayImage ? (
                             <>
                                 {showPriceGuarantee ? (
                                     <div className="absolute top-3 left-3 z-10 transition-all duration-300">
@@ -516,7 +611,7 @@ export const CustomizingHeroPanel = memo(({
                             aria-label="Original cake design"
                         >
                             <LazyImage
-                                src={originalImagePreview || preloadedHeroImage || fallbackImageUrl || ''}
+                                src={originalHeroModalSrc}
                                 alt="Original variant"
                                 fill
                                 sizes="48px"

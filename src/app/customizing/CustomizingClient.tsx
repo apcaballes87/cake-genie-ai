@@ -37,7 +37,7 @@ import { ColorPalette } from '../../components/ColorPalette';
 import StickyAddToCartBar from '../../components/StickyAddToCartBar';
 import { FloatingImagePreview } from '../../components/FloatingImagePreview';
 import { showSuccess, showError, showInfo } from '../../lib/utils/toast';
-import { reportCustomization, uploadReportImage, getAnalysisByExactHash, getRelatedProductsByKeywords, getCollectionsForDesign } from '../../services/supabaseService';
+import { reportCustomization, uploadReportImage, getAnalysisByExactHash, getRelatedProductsByKeywords, getCollectionsForDesign, getStudioImageAvailabilityByHash } from '../../services/supabaseService';
 import { trackViewItem } from '@/lib/analytics';
 import ReportModal from '../../components/ReportModal';
 import ShareModal from '../../components/ShareModal';
@@ -552,6 +552,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const [isAddingToCart, setIsAddingToCart] = useState(false);
     const [isPreparingSharedDesign, setIsPreparingSharedDesign] = useState(false);
     const [previousUIState, setPreviousUIState] = useState<CustomizationState | null>(null);
+    const [liveStudioEditedImageUrl, setLiveStudioEditedImageUrl] = useState<string | null>(
+        firstNonBlankImageUrl(recentSearchDesign?.studio_edited_image_url)
+    );
 
 
     // Open pre-selection modal when arriving from search with analysis already in progress
@@ -579,6 +582,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         setIsUploaderOpen(false);
         setActiveTab('original');
         setAnalysisError(null);
+        setLiveStudioEditedImageUrl(null);
         setPreloadedHeroImage(null);
         setIsAnalyzing(true);
         // DISABLED: Preselection modal disabled
@@ -621,6 +625,57 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             setPreloadedHeroImage(preloadImageUrl);
         }
     }, [preloadImageUrl]);
+
+    useEffect(() => {
+        setLiveStudioEditedImageUrl(firstNonBlankImageUrl(recentSearchDesign?.studio_edited_image_url));
+    }, [recentSearchDesign?.p_hash, recentSearchDesign?.studio_edited_image_url]);
+
+    useEffect(() => {
+        const studioPollHash = currentPHash || recentSearchDesign?.p_hash || null;
+
+        if (!studioPollHash || liveStudioEditedImageUrl) {
+            return;
+        }
+
+        let isCancelled = false;
+        let timeoutId: ReturnType<typeof setTimeout> | null = null;
+        let attempts = 0;
+        const maxAttempts = 40;
+
+        const pollStudioImage = async () => {
+            attempts += 1;
+
+            const studioImage = await getStudioImageAvailabilityByHash(studioPollHash);
+
+            if (isCancelled) {
+                return;
+            }
+
+            const studioUrl = firstNonBlankImageUrl(studioImage?.studio_edited_image_url);
+            if (studioUrl) {
+                setLiveStudioEditedImageUrl(studioUrl);
+                return;
+            }
+
+            if (studioImage?.studio_edit_status === 'failed' || attempts >= maxAttempts) {
+                return;
+            }
+
+            timeoutId = setTimeout(
+                pollStudioImage,
+                attempts < 10 ? 1500 : 2500
+            );
+        };
+
+        void pollStudioImage();
+
+        return () => {
+            isCancelled = true;
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+        };
+    }, [currentPHash, recentSearchDesign?.p_hash, liveStudioEditedImageUrl]);
 
     const isEmptyState = !originalImagePreview && !preloadedHeroImage && !product && !recentSearchDesign;
 
@@ -3143,12 +3198,17 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     }, []);
 
     const showStickyBar = finalPrice !== null || !!basePriceError || isAnalyzing || hasPendingVisualChanges || isUpdatingDesign;
-    const floatingPreviewOriginalImage = firstNonBlankImageUrl(
+    const preferredHeroOriginalImage = firstNonBlankImageUrl(
+        liveStudioEditedImageUrl,
         originalImagePreview,
         preloadedHeroImage,
         product?.image_url,
         recentSearchDesign?.studio_edited_image_url,
         recentSearchDesign?.original_image_url,
+    );
+    const floatingPreviewOriginalImage = firstNonBlankImageUrl(
+        preferredHeroOriginalImage,
+        originalImagePreview,
     );
 
     const hasVisiblePageHeading = Boolean(product || recentSearchDesign);
@@ -3220,8 +3280,13 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             dynamicLoadingMessage={dynamicLoadingMessage}
                             error={error}
                             originalImagePreview={originalImagePreview}
+                            preferredOriginalImageUrl={firstNonBlankImageUrl(
+                                liveStudioEditedImageUrl,
+                                originalImagePreview,
+                            )}
                             preloadedHeroImage={preloadedHeroImage}
                             fallbackImageUrl={firstNonBlankImageUrl(
+                                liveStudioEditedImageUrl,
                                 product?.image_url,
                                 recentSearchDesign?.studio_edited_image_url,
                                 recentSearchDesign?.original_image_url,

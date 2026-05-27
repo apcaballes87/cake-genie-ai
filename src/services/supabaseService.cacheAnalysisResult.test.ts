@@ -293,4 +293,39 @@ describe('cacheAnalysisResult', () => {
       })
     );
   });
+
+  it('can refresh analysis fields without resetting stored source asset coverage', async () => {
+    const { cacheAnalysisResult } = await import('./supabaseService');
+
+    await cacheAnalysisResult(
+      '1234abcd5678ef90',
+      {
+        cakeType: 'Bento',
+        cakeThickness: '4 in',
+        keyword: 'catalog-refresh',
+        icing_design: {
+          base: 'soft_icing',
+          colors: { top: 'purple', side: 'white' },
+        },
+        main_toppers: [],
+        support_elements: [],
+        cake_messages: [],
+      } as unknown as HybridAnalysisResult,
+      'https://example.com/already-stored.webp',
+      undefined,
+      {
+        fingerprintPipeline: 'v1-test-pipeline',
+        triggerStudioEdit: false,
+        persistSourceAsset: false,
+      }
+    );
+
+    const [payload] = upsertMock.mock.calls[0] ?? [];
+
+    expect(payload).toBeTruthy();
+    expect(payload).not.toHaveProperty('original_image_url');
+    expect(payload).not.toHaveProperty('orb_index_status');
+    expect(payload).not.toHaveProperty('orb_index_error');
+    expect(storageUploadMock).not.toHaveBeenCalled();
+  });
 });

@@ -605,6 +605,34 @@ export async function getAnalysisByExactHash(pHash: string): Promise<HybridAnaly
   }
 }
 
+export interface StudioImageAvailability {
+  original_image_url: string | null;
+  studio_edited_image_url: string | null;
+  studio_edit_status: string | null;
+}
+
+export async function getStudioImageAvailabilityByHash(
+  pHash: string
+): Promise<StudioImageAvailability | null> {
+  try {
+    const { data, error } = await supabase
+      .from('cakegenie_analysis_cache')
+      .select('original_image_url, studio_edited_image_url, studio_edit_status')
+      .eq('p_hash', pHash)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching studio image availability by hash:', error);
+      return null;
+    }
+
+    return data ?? null;
+  } catch (err) {
+    console.error('Exception fetching studio image availability by hash:', err);
+    return null;
+  }
+}
+
 /** Fetch image dimensions from analysis cache by pHash */
 export async function getImageDimensionsByHash(pHash: string): Promise<{ image_width: number | null; image_height: number | null } | null> {
   try {
@@ -802,12 +830,14 @@ export async function cacheAnalysisResult(
     client?: SupabaseClient;
     triggerStudioEdit?: boolean;
     fingerprintPipeline?: string | null;
+    persistSourceAsset?: boolean;
   }
 ): Promise<CacheWriteResult | null> {
   try {
     console.log('💾 Attempting to cache analysis result with pHash:', pHash);
     const client = options?.client || (typeof window === 'undefined' ? publicSupabaseClient : supabase);
     const fingerprintPipeline = options?.fingerprintPipeline || null;
+    const persistSourceAsset = options?.persistSourceAsset !== false;
     const resolvedPHash = await resolveExistingWriteHash(pHash, fingerprintPipeline, client);
 
     if (resolvedPHash !== pHash) {
@@ -874,7 +904,7 @@ export async function cacheAnalysisResult(
     }
 
     // If we have a blob, convert to WebP and upload to Supabase storage
-    if (imageBlob) {
+    if (persistSourceAsset && imageBlob) {
       try {
         console.log('🖼️ Converting image to WebP and uploading to Supabase...');
         const webpBlob = await convertToWebP(imageBlob);
@@ -918,7 +948,7 @@ export async function cacheAnalysisResult(
 
     // Generate tags
     const tags = generateTagsForAnalysis(analysisResult, keywords, seoTitle, altText);
-    const sourceInfoWasProvided = imageUrl !== undefined || imageBlob !== undefined;
+    const sourceInfoWasProvided = persistSourceAsset && (imageUrl !== undefined || imageBlob !== undefined);
     const initialOrbCoverage = sourceInfoWasProvided
       ? {
         ...getInitialOrbIndexCoverage(finalImageUrl, imageBlob),
@@ -946,7 +976,7 @@ export async function cacheAnalysisResult(
       ...imageDimensions,
     };
 
-    if (finalImageUrl !== undefined) {
+    if (persistSourceAsset && finalImageUrl !== undefined) {
       upsertPayload.original_image_url = finalImageUrl;
     }
 
@@ -1004,7 +1034,7 @@ export async function cacheAnalysisResult(
       }
     }
 
-    if (returnedId && imageBlob) {
+    if (persistSourceAsset && returnedId && imageBlob) {
       await triggerOrbFeatureIndexing(client, returnedId, imageBlob);
     }
 

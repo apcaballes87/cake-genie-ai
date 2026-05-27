@@ -619,6 +619,31 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     setCurrentSlugState(generatedSlug);
                 }
 
+                const fastCacheWritePromise: ReturnType<typeof cacheAnalysisResult> | null =
+                    pHash && fingerprint
+                        ? cacheAnalysisResult(pHash, fastResult, uploadedImageUrl, finalImageBlobToCache, {
+                            fingerprintPipeline: fingerprint.pipeline,
+                        })
+                        : null;
+
+                if (fastCacheWritePromise) {
+                    void fastCacheWritePromise
+                        .then(cacheWrite => {
+                            if (cacheWrite) {
+                                setCurrentPHash(cacheWrite.storedPHash);
+                                console.log(`✅ Fast analysis result cached successfully with pHash: ${cacheWrite.storedPHash}`);
+                                setIsAnalysisCached(true);
+                            } else {
+                                console.warn('⚠️ Fast analysis cache write returned null before enrichment update');
+                            }
+                        })
+                        .catch(cacheError => {
+                            console.warn('⚠️ Failed to cache fast analysis result before enrichment:', cacheError);
+                        });
+                } else {
+                    console.warn('⚠️ Skipping fast cache save — pHash was null or fingerprint was not generated');
+                }
+
                 // PHASE 2: Background coordinate enrichment with Roboflow + Florence-2
                 // (Falls back to Gemini if Roboflow fails or is disabled)
                 enrichAnalysisWithRoboflow(
@@ -632,30 +657,60 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     }
 
                     if (pHash && fingerprint) {
-                        const cacheWrite = await cacheAnalysisResult(pHash, enrichedResult, uploadedImageUrl, finalImageBlobToCache, {
-                            fingerprintPipeline: fingerprint.pipeline,
-                        });
+                        const initialCacheWrite = fastCacheWritePromise
+                            ? await fastCacheWritePromise.catch(() => null)
+                            : null;
+
+                        const cacheWrite = initialCacheWrite
+                            ? await cacheAnalysisResult(
+                                pHash,
+                                enrichedResult,
+                                initialCacheWrite.original_image_url ?? uploadedImageUrl,
+                                undefined,
+                                {
+                                    fingerprintPipeline: fingerprint.pipeline,
+                                    triggerStudioEdit: false,
+                                    persistSourceAsset: false,
+                                }
+                            )
+                            : await cacheAnalysisResult(pHash, enrichedResult, uploadedImageUrl, finalImageBlobToCache, {
+                                fingerprintPipeline: fingerprint.pipeline,
+                            });
+
                         if (cacheWrite) {
                             setCurrentPHash(cacheWrite.storedPHash);
+                            console.log(`✅ Enriched analysis cache update completed with pHash: ${cacheWrite.storedPHash}`);
+                            setIsAnalysisCached(true);
+                        } else {
+                            console.warn('⚠️ Enriched analysis cache update returned null');
                         }
-                        console.log(`✅ Analysis result cached successfully with pHash: ${cacheWrite?.storedPHash ?? pHash}`);
-                        setIsAnalysisCached(true);
                     } else {
-                        console.warn('⚠️ Skipping cache save — pHash was null or fingerprint was not generated');
+                        console.warn('⚠️ Skipping enriched cache update — pHash was null or fingerprint was not generated');
                     }
                 }).catch(async enrichmentError => {
-                    // Still cache the fast result even if enrichment fails
+                    console.warn('⚠️ Roboflow enrichment failed; keeping fast analysis cache profile:', enrichmentError);
+
                     if (pHash && fingerprint) {
-                        const cacheWrite = await cacheAnalysisResult(pHash, fastResult, uploadedImageUrl, finalImageBlobToCache, {
-                            fingerprintPipeline: fingerprint.pipeline,
-                        });
-                        if (cacheWrite) {
-                            setCurrentPHash(cacheWrite.storedPHash);
+                        const initialCacheWrite = fastCacheWritePromise
+                            ? await fastCacheWritePromise.catch(() => null)
+                            : null;
+
+                        if (!initialCacheWrite) {
+                            const cacheWrite = await cacheAnalysisResult(pHash, fastResult, uploadedImageUrl, finalImageBlobToCache, {
+                                fingerprintPipeline: fingerprint.pipeline,
+                            });
+                            if (cacheWrite) {
+                                setCurrentPHash(cacheWrite.storedPHash);
+                                console.log(`✅ Analysis result (fast profile) cached successfully with pHash: ${cacheWrite.storedPHash}`);
+                                setIsAnalysisCached(true);
+                            } else {
+                                console.warn('⚠️ Fast analysis fallback cache write returned null after enrichment failure');
+                            }
+                        } else {
+                            setIsAnalysisCached(true);
                         }
-                        console.log(`✅ Analysis result (fast profile) cached successfully with pHash: ${cacheWrite?.storedPHash ?? pHash}`);
-                        setIsAnalysisCached(true);
                     } else {
-                        console.warn('⚠️ Skipping cache save — pHash was null or fingerprint was not generated');
+                        console.warn('⚠️ Skipping fallback cache save — pHash was null or fingerprint was not generated');
                     }
                 });
 
