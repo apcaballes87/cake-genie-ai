@@ -376,7 +376,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     const cakeType = cakeInfo?.type?.toLowerCase() || '';
     const isTieredFlavorLayout = cakeType.includes('2 tier') || cakeType.includes('3 tier');
     const containerClassName = isDesktop
-        ? 'w-full hidden md:flex flex-row md:flex-col overflow-x-auto md:overflow-x-hidden gap-2 pb-6 md:pb-32 scrollbar-hide snap-x md:snap-none relative z-60'
+        ? 'w-full hidden md:flex flex-row md:flex-col overflow-x-auto md:overflow-visible gap-2 pb-6 md:pb-32 scrollbar-hide snap-x md:snap-none relative z-60'
         : 'w-full mt-0 flex flex-col gap-2 pb-4 md:hidden';
     const cardClassName = isDesktop
         ? 'shrink-0 md:shrink w-fit md:w-full min-w-[280px] md:min-w-0 snap-start genie-card p-2 rounded-2xl'
@@ -955,8 +955,8 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                 ref={advancedSectionRef}
                 id="advanced-customization-steps" 
                 aria-hidden={!showAdvanced}
-                className={`flex flex-col gap-2 transition-all duration-500 ease-in-out overflow-hidden ${
-                    showAdvanced ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'
+                className={`flex flex-col gap-2 transition-all duration-500 ease-in-out ${
+                    showAdvanced ? 'max-h-[2000px] opacity-100 overflow-visible' : 'max-h-0 opacity-0 pointer-events-none overflow-hidden'
                 }`}
             >
                 {cakeInfo && !isAnalyzing && !isRejectionError && cakeTypeSelectorNode && (

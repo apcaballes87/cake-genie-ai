@@ -24,11 +24,13 @@ export const canConsumeDesktopSidebarWheel = ({
         return false;
     }
 
+    const tolerance = 1.5;
+
     if (deltaY > 0) {
-        return rightScrollTop < rightScrollMax;
+        return rightScrollTop < rightScrollMax - tolerance;
     }
 
-    return rightScrollTop > 0;
+    return rightScrollTop > tolerance;
 };
 
 export const shouldCaptureDesktopSidebarScroll = ({

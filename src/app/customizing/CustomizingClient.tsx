@@ -3512,7 +3512,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                         <div
                             ref={desktopSidebarScrollRef}
-                            className="hidden md:flex md:w-full md:min-h-0 md:overflow-y-auto md:overscroll-auto md:pr-1 scrollbar-hide"
+                            className="hidden md:flex md:flex-col md:w-full md:min-h-0 md:overflow-y-auto md:overscroll-auto md:pr-1 scrollbar-hide"
                             style={desktopSidebarTopOffset > 0 ? {
                                 maxHeight: `calc(100vh - ${desktopSidebarTopOffset}px)`,
                                 position: 'sticky',
