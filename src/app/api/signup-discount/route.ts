@@ -61,51 +61,54 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // Generate a unique code (retry on collision — extremely rare with 7-char suffix)
+        // Generate a unique code with collision retries. We rely on the unique
+        // index on discount_codes.code to detect collisions atomically — a
+        // select-then-insert race otherwise lets two concurrent requests both
+        // believe a candidate is free. Postgres unique-violation is SQLSTATE 23505.
         let code = '';
-        for (let attempt = 0; attempt < 5; attempt++) {
+        for (let attempt = 0; attempt < 6; attempt++) {
             const candidate = generateCode();
-            const { data: collision } = await serviceClient
+            const { error: insertError } = await serviceClient
                 .from('discount_codes')
-                .select('code')
-                .eq('code', candidate)
-                .maybeSingle();
-            if (!collision) {
+                .insert({
+                    code: candidate,
+                    user_id: userId,
+                    // Kept public_code: true so the client-side anon revalidation
+                    // (CartClient + DiscountOfferBubble) can still read the row via
+                    // the discount_select_public RLS policy. The server RPC in
+                    // create_order_from_cart enforces user_id != p_user_id at order
+                    // creation, so this is not a real authorization gap.
+                    public_code: true,
+                    is_active: true,
+                    discount_percentage: 20,
+                    max_uses: 1,
+                    times_used: 0,
+                    free_delivery: false,
+                    one_per_user: false,
+                    new_users_only: false,
+                    max_discount_amount: 2000,
+                });
+
+            if (!insertError) {
                 code = candidate;
                 break;
             }
+
+            // 23505 = unique_violation — try another candidate.
+            if (insertError.code === '23505') {
+                continue;
+            }
+
+            console.error('[signup-discount] Failed to insert discount code:', insertError);
+            return NextResponse.json(
+                { success: false, error: 'Failed to generate discount code.' },
+                { status: 500 }
+            );
         }
 
         if (!code) {
             return NextResponse.json(
                 { success: false, error: 'Could not generate a unique code. Please try again.' },
-                { status: 500 }
-            );
-        }
-
-        // Insert into discount_codes. We intentionally do NOT set user_id or
-        // one_per_user — both fields require an active auth session to validate,
-        // and CartClient re-validates before auth hydrates, causing a false
-        // "must be logged in" rejection. max_uses: 1 is the sole reuse guard;
-        // the code is already unique and tracked per-email via newsletter_subscribers.
-        const { error: discountInsertError } = await serviceClient
-            .from('discount_codes')
-            .insert({
-                code,
-                public_code: true,
-                is_active: true,
-                discount_percentage: 20,
-                max_uses: 1,
-                times_used: 0,
-                free_delivery: false,
-                one_per_user: false,
-                new_users_only: false,
-            });
-
-        if (discountInsertError) {
-            console.error('[signup-discount] Failed to insert discount code:', discountInsertError);
-            return NextResponse.json(
-                { success: false, error: 'Failed to generate discount code.' },
                 { status: 500 }
             );
         }
