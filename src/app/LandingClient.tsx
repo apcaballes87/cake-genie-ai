@@ -990,7 +990,15 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
     }, []);
 
     // Auto-play demo sequence
+    //
+    // The customizer demo lives well below the fold, so there's no reason for
+    // its timer cascade to fire during initial page load — those timers add
+    // tasks to the main thread queue that can compete with LCP paint scheduling.
+    // Gating on isDemoVisible (set by IntersectionObserver above) ensures the
+    // demo only starts auto-playing once the section is actually in viewport.
     useEffect(() => {
+        if (!isDemoVisible) return;
+
         const scheduleStep = (fn: () => void, delay: number) => {
             autoPlayTimerRef.current = setTimeout(() => {
                 if (!isAutoPlayingRef.current) return;
@@ -1075,7 +1083,7 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
             if (autoPlayTimerRef.current) clearTimeout(autoPlayTimerRef.current);
             if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
         };
-    }, []);
+    }, [isDemoVisible]);
 
     const handleTierClick = (i: number) => { stopAutoPlay(); setSelectedTier(i); };
     const handleFlavorClick = (i: number) => { stopAutoPlay(); setSelectedFlavor(i); };
