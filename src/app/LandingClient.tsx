@@ -4,8 +4,6 @@ import React, { useState, useEffect, useCallback, useRef, Suspense, useMemo } fr
 import toast from 'react-hot-toast';
 import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
-import useEmblaCarousel from 'embla-carousel-react';
-import { WheelGesturesPlugin } from 'embla-carousel-wheel-gestures';
 
 import Link from 'next/link';
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
@@ -52,6 +50,16 @@ import {
 
 const ImageUploader = dynamic(
     () => import('@/components/ImageUploader').then((mod) => mod.ImageUploader),
+    { ssr: false }
+);
+
+// Embla-powered hero carousel is loaded only when useShouldMountCarousel
+// flips true (mobile + first interaction or 1.5s idle). Splitting it out of
+// the main bundle keeps embla-carousel-react and embla-carousel-wheel-gestures
+// off the initial JS critical path. ssr:false because embla measures layout
+// during init, which only makes sense in the browser.
+const HeroProductPeekCarouselEmbla = dynamic(
+    () => import('./HeroProductPeekCarouselEmbla'),
     { ssr: false }
 );
 
@@ -329,6 +337,113 @@ const HeroMasonryGrid: React.FC<{
     );
 };
 
+/**
+ * Returns true once we want to actually mount the Embla carousel:
+ *   1. Viewport is <768px (mobile only — desktop uses HeroMasonryGrid).
+ *   2. AND user has shown engagement (pointerdown, scroll, touchstart) OR
+ *      a 1500ms idle fallback.
+ *
+ * Why: useEmblaCarousel synchronously calls getBoundingClientRect on every
+ * slide during init, causing a ~400ms forced reflow. That used to land in
+ * the LCP critical path, costing render delay even on desktop (where the
+ * carousel is hidden via CSS but still mounted in the React tree).
+ *
+ * After this hook, the embla code path runs only on mobile, and only AFTER
+ * the LCP image has painted, so the cost is shifted out of the critical path.
+ */
+function useShouldMountCarousel(): boolean {
+    const [shouldMount, setShouldMount] = useState(false);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const isMobile = () => window.matchMedia('(max-width: 767px)').matches;
+        if (!isMobile()) {
+            // Desktop: never mount embla. Watch for resize in case of rotation.
+            const onResize = () => {
+                if (isMobile()) setShouldMount(true);
+            };
+            window.addEventListener('resize', onResize, { passive: true });
+            return () => window.removeEventListener('resize', onResize);
+        }
+
+        // Mobile: wait for engagement OR a 1.5s idle fallback so the carousel
+        // is ready by the time the user looks at it, but not before LCP.
+        const activate = () => setShouldMount(true);
+        const events: Array<keyof WindowEventMap> = [
+            'pointerdown',
+            'scroll',
+            'touchstart',
+        ];
+        events.forEach((evt) =>
+            window.addEventListener(evt, activate, { once: true, passive: true })
+        );
+        const idleTimer = window.setTimeout(activate, 1500);
+
+        return () => {
+            events.forEach((evt) => window.removeEventListener(evt, activate));
+            window.clearTimeout(idleTimer);
+        };
+    }, []);
+
+    return shouldMount;
+}
+
+/**
+ * Static placeholder shown in place of HeroProductPeekCarousel until embla
+ * mounts. Renders just the centered card (no scrolling, no slide list, no
+ * dot indicators) so the layout is stable but no layout-measuring JS runs.
+ *
+ * IMPORTANT: this must be visually compatible with the first paint of the
+ * carousel so the LCP element doesn't shift when embla replaces it.
+ */
+function HeroProductPeekCarouselPlaceholder({
+    products,
+    heroProductIndex,
+    cardSpacingClassName = 'mx-1',
+    cardFlexStyle = '0 0 min(calc(50% - 8px), 232px)',
+    aspectClassName = 'aspect-[3/2]',
+}: {
+    products: readonly LandingHeroProduct[];
+    heroProductIndex: number;
+    cardSpacingClassName?: string;
+    cardFlexStyle?: string;
+    aspectClassName?: string;
+}) {
+    return (
+        <div className={`relative w-full overflow-hidden bg-transparent ${aspectClassName}`}>
+            <div className="h-full overflow-hidden">
+                <div className="flex h-full justify-center touch-pan-y">
+                    {products.map((product, productIndex) => {
+                        const isCenter = productIndex === heroProductIndex;
+                        // Skip non-center cards entirely to avoid extra DOM.
+                        // Embla will render the full slide list once mounted.
+                        if (!isCenter) return null;
+                        return (
+                            <div
+                                key={product.title}
+                                className={`relative ${cardSpacingClassName} h-full min-w-0 overflow-hidden rounded-[1.35rem] bg-slate-100 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.75)]`}
+                                style={{ flex: cardFlexStyle }}
+                                aria-label={`${product.title} example`}
+                            >
+                                <HeroProductImage
+                                    src={product.image}
+                                    alt={`${product.title} example`}
+                                    priority={true}
+                                    sizes="(max-width: 767px) 50vw, (max-width: 1279px) 40vw, 380px"
+                                    imageClassName="object-cover scale-[1.1]"
+                                    draggable={false}
+                                />
+                                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/25 to-transparent" />
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function HeroProductPeekCarousel({
     products,
     heroProductIndex,
@@ -346,110 +461,49 @@ function HeroProductPeekCarousel({
     cardFlexStyle?: string;
     aspectClassName?: string;
 }) {
-    const wheelGestures = useMemo(() => [WheelGesturesPlugin()], []);
-    const userTriggeredSelectionRef = useRef(false);
-    const [emblaRef, emblaApi] = useEmblaCarousel(
-        {
-            align: 'center',
-            dragFree: false,
-            duration: 28,
-            loop: true,
-            skipSnaps: false,
-        },
-        wheelGestures
-    );
+    const shouldMount = useShouldMountCarousel();
 
-
-    useEffect(() => {
-        if (!emblaApi || emblaApi.selectedScrollSnap() === heroProductIndex) return;
-        emblaApi.scrollTo(heroProductIndex);
-    }, [emblaApi, heroProductIndex]);
-
-    useEffect(() => {
-        if (!emblaApi) return;
-
-        const syncSelectedProduct = () => {
-            const selectedIndex = emblaApi.selectedScrollSnap();
-            onSelectProduct(selectedIndex);
-
-            if (userTriggeredSelectionRef.current) {
-                onInteraction?.(selectedIndex);
-                userTriggeredSelectionRef.current = false;
-            }
-        };
-
-        syncSelectedProduct();
-        emblaApi.on('select', syncSelectedProduct);
-        emblaApi.on('reInit', syncSelectedProduct);
-
-        const handlePointerDown = () => {
-            userTriggeredSelectionRef.current = true;
-        };
-
-        emblaApi.on('pointerDown', handlePointerDown);
-
-        return () => {
-            emblaApi.off('select', syncSelectedProduct);
-            emblaApi.off('reInit', syncSelectedProduct);
-            emblaApi.off('pointerDown', handlePointerDown);
-        };
-    }, [emblaApi, onSelectProduct, onInteraction]);
-
-    const handleProductClick = (index: number) => {
-        userTriggeredSelectionRef.current = true;
-        onSelectProduct(index);
-        emblaApi?.scrollTo(index);
-    };
+    // Until we decide to mount embla, render a static placeholder. This keeps
+    // useEmblaCarousel's getBoundingClientRect off the LCP critical path on
+    // mobile, and prevents it running at all on desktop where this section is
+    // hidden via CSS (md:hidden) but otherwise still mounted in React.
+    if (!shouldMount) {
+        return (
+            <HeroProductPeekCarouselPlaceholder
+                products={products}
+                heroProductIndex={heroProductIndex}
+                cardSpacingClassName={cardSpacingClassName}
+                cardFlexStyle={cardFlexStyle}
+                aspectClassName={aspectClassName}
+            />
+        );
+    }
 
     return (
-        <div className={`relative w-full overflow-hidden bg-transparent ${aspectClassName}`}>
-            <div ref={emblaRef} className="h-full overflow-hidden cursor-grab active:cursor-grabbing">
-                <div className="flex h-full touch-pan-y">
-                    {products.map((product, productIndex) => {
-                        const isCenter = productIndex === heroProductIndex;
-
-                        return (
-                            <button
-                                key={product.title}
-                                type="button"
-                                onClick={() => handleProductClick(productIndex)}
-                                aria-label={isCenter ? `${product.title} example` : `View ${product.title}`}
-                                className={`relative ${cardSpacingClassName} h-full min-w-0 overflow-hidden rounded-[1.35rem] bg-slate-100 transition-shadow duration-500 ease-out ${isCenter ? 'shadow-[0_18px_45px_-28px_rgba(15,23,42,0.75)]' : ''
-                                    }`}
-                                style={{ flex: cardFlexStyle }}
-                            >
-                                <HeroProductImage
-                                    src={product.image}
-                                    alt={`${product.title} example`}
-                                    priority={productIndex === 0}
-                                    sizes="(max-width: 767px) 50vw, (max-width: 1279px) 40vw, 380px"
-                                    imageClassName={`object-cover transition-transform duration-700 ${isCenter ? 'scale-[1.1]' : 'scale-100'}`}
-                                    aria-hidden={!isCenter}
-                                    draggable={false}
-                                />
-                                {isCenter && (
-                                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/25 to-transparent" />
-                                )}
-                            </button>
-                        );
-                    })}
-                </div>
-            </div>
-            <div className="absolute bottom-3 left-0 right-0 z-30 flex justify-center gap-1.5">
-                {products.map((_, i) => (
-                    <button
-                        key={i}
-                        type="button"
-                        onClick={() => handleProductClick(i)}
-                        aria-label={`View ${products[i].title}`}
-                        className={`h-1.5 rounded-full transition-all duration-300 ${i === heroProductIndex ? 'w-5 bg-white shadow-sm' : 'w-1.5 bg-white/55 hover:bg-white/80'
-                            }`}
-                    />
-                ))}
-            </div>
-        </div>
+        <HeroProductPeekCarouselEmbla
+            products={products}
+            heroProductIndex={heroProductIndex}
+            onSelectProduct={onSelectProduct}
+            onInteraction={onInteraction}
+            cardSpacingClassName={cardSpacingClassName}
+            cardFlexStyle={cardFlexStyle}
+            aspectClassName={aspectClassName}
+        />
     );
 }
+
+/**
+ * Embla-powered carousel implementation. Extracted so we can gate its mount
+ * behind useShouldMountCarousel() — see HeroProductPeekCarousel above.
+ *
+ * useEmblaCarousel calls getBoundingClientRect on each slide during init,
+ * which is a ~400ms forced reflow on mobile. We don't want that running
+ * during initial paint.
+ *
+ * NOTE: This was the original inline implementation. It's been moved to
+ * ./HeroProductPeekCarouselEmbla.tsx and is now loaded via next/dynamic at
+ * the top of this file. Leaving this stub comment to signpost the move.
+ */
 
 function HeroReviewSummary({
     compact = false,
