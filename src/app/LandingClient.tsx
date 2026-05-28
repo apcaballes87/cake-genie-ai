@@ -258,6 +258,7 @@ const HeroMasonryGrid: React.FC<{
                     <HeroProductImage
                         src={products[1]?.image || ''}
                         alt={products[1]?.title || 'Custom cake design'}
+                        priority={true}
                         sizes="(max-width: 767px) 33vw, (max-width: 1279px) 18vw, 220px"
                         imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
@@ -273,6 +274,7 @@ const HeroMasonryGrid: React.FC<{
                     <HeroProductImage
                         src={products[2]?.image || ''}
                         alt={products[2]?.title || 'Custom cake design'}
+                        priority={true}
                         sizes="(max-width: 767px) 33vw, (max-width: 1279px) 18vw, 220px"
                         imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
@@ -286,6 +288,7 @@ const HeroMasonryGrid: React.FC<{
                     <HeroProductImage
                         src={products[3]?.image || ''}
                         alt={products[3]?.title || 'Custom cake design'}
+                        priority={true}
                         sizes="(max-width: 767px) 33vw, (max-width: 1279px) 18vw, 220px"
                         imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
@@ -301,6 +304,7 @@ const HeroMasonryGrid: React.FC<{
                     <HeroProductImage
                         src={products[4]?.image || ''}
                         alt={products[4]?.title || 'Custom cake design'}
+                        priority={true}
                         sizes="(max-width: 767px) 33vw, (max-width: 1279px) 18vw, 220px"
                         imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
@@ -314,6 +318,7 @@ const HeroMasonryGrid: React.FC<{
                     <HeroProductImage
                         src={products[5]?.image || ''}
                         alt={products[5]?.title || 'Custom cake design'}
+                        priority={true}
                         sizes="(max-width: 767px) 33vw, (max-width: 1279px) 18vw, 220px"
                         imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
                     />

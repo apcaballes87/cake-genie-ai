@@ -171,7 +171,16 @@ async function getHomepageReviews() {
     };
 }
 
-async function LandingServerSections() {
+/**
+ * Async server component that fetches data + renders the homepage's
+ * data-dependent below-fold sections (recommended products, AEO/reviews
+ * blocks, blog previews via the parent LandingClient). It also resolves the
+ * review summary used by the hero's "★★★★★ N happy customers" line.
+ *
+ * Wrapped in <Suspense> at the call site so the hero in <LandingClient>
+ * paints immediately while this streams in.
+ */
+async function LandingDataSections() {
     const [recommendedProductsRes, blogsRes, homepageReviews] = await Promise.all([
         getRecommendedProducts(8, 0).catch(err => ({ data: [], error: err })),
         getHomepageBlogPreviews(3).catch(err => ({ data: [], error: err })),
@@ -198,13 +207,9 @@ async function LandingServerSections() {
                 blogPosts={blogPosts}
                 reviewSummary={homepageReviews.reviewSummary}
             >
-                {/* Server-rendered sections for LCP optimization */}
-                {/* <MerchantShowcase merchants={merchants} /> - Hidden for now */}
                 <RecommendedProductsSection products={recommendedProducts} />
                 <IntroContent />
-                <HomepageAeoSections
-                  reviews={homepageReviews.reviews}
-                />
+                <HomepageAeoSections reviews={homepageReviews.reviews} />
             </LandingClient>
             <LandingFooter reviewSummary={homepageReviews.reviewSummary} />
         </>
@@ -215,12 +220,20 @@ export default function Home() {
     return (
         <>
             {/*
-              LCP preload: the hero masonry grid renders the minimalist-cake card
-              first with priority, but it lives inside a client component, so the
-              browser doesn't see the URL until JS hydrates. This <link> gives
-              the browser an immediate fetch hint (highest fetchpriority on the
-              homepage) so the LCP candidate starts downloading in parallel with
-              the JS bundle.
+              LCP preload: the hero masonry grid renders 6 cake-card images
+              that are roughly equal in size, so the LCP element is whichever
+              one happens to win the layout race — it's not deterministic
+              between minimalist/photo/floral/vintage/doodle/bento. Preloading
+              just one was a coin flip, so we preload all six. They're small
+              webp files (~20-40 KB each) and they're all above the fold, so
+              shipping them in parallel is the right call.
+
+              The first <link> uses fetchPriority="high" so the browser still
+              treats the leftmost card (the most likely LCP candidate on
+              wide viewports) as the highest priority. The other five queue
+              right behind at default priority — without these hints they
+              were starting after the LandingClient bundle hydrated, costing
+              ~700 ms of LCP load delay.
             */}
             <link
                 rel="preload"
@@ -228,10 +241,23 @@ export default function Home() {
                 href={HOMEPAGE_ASSETS.heroProducts.minimalist}
                 fetchPriority="high"
             />
+            <link rel="preload" as="image" href={HOMEPAGE_ASSETS.heroProducts.vintage} />
+            <link rel="preload" as="image" href={HOMEPAGE_ASSETS.heroProducts.doodle} />
+            <link rel="preload" as="image" href={HOMEPAGE_ASSETS.heroProducts.photo} />
+            <link rel="preload" as="image" href={HOMEPAGE_ASSETS.heroProducts.floral} />
+            <link rel="preload" as="image" href={HOMEPAGE_ASSETS.heroProducts.bento} />
             <WebSiteSchema />
             <AnimatedBlobs />
+            {/*
+              The hero (LandingClient with empty data) renders immediately so
+              the LCP element is in the static HTML. We don't wait on Supabase
+              for reviews/products/blog before painting — those stream in via
+              the Suspense boundary below. HeroReviewSummary already handles
+              an undefined reviewSummary by showing a "Verified" fallback, so
+              the hero looks complete even before the data lands.
+            */}
             <Suspense fallback={<LandingPageSkeleton />}>
-                <LandingServerSections />
+                <LandingDataSections />
             </Suspense>
             <NewsletterPopup />
         </>

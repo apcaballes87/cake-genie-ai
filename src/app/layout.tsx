@@ -100,6 +100,23 @@ export default function RootLayout({
 
   return (
     <html lang="en-PH" suppressHydrationWarning>
+      <head>
+        {/*
+          Preconnect to the Supabase storage CDN. Almost every image on the
+          site loads from this host, including the homepage hero LCP image.
+          Setting up DNS + TLS in advance saves ~50-150ms on the first image
+          request (especially on cold cellular connections).
+
+          We do NOT preconnect to Google Tag Manager / Clarity / GA — they're
+          loaded with strategy="lazyOnload" so they should never sit on the
+          critical path.
+        */}
+        <link
+          rel="preconnect"
+          href="https://cqmhanqnfybyxezhobkx.supabase.co"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body className={`${inter.className} min-h-screen genie-page-bg`} suppressHydrationWarning>
         <OrganizationSchema />
         <Providers>
