@@ -3277,7 +3277,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
     return (
         <>
-            {!hasVisiblePageHeading && <h1 className="sr-only">{pageDisplayTitle}</h1>}
+            {/* H1 lives in the server-rendered intro section in app/customizing/page.tsx.
+                Surface a visually-hidden H2 here so screen readers still get a section landmark
+                when no product/recent-search context provides its own visible heading. */}
+            {!hasVisiblePageHeading && <h2 className="sr-only">{pageDisplayTitle}</h2>}
             {/* Same-day cutoff countdown — live urgency signal */}
             {!hideBanner && (
                 <div className="w-full bg-purple-400 py-[4.5px] flex justify-center items-center">

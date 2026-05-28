@@ -80,9 +80,9 @@ export const CustomizingPageMetaHeader = React.memo(({
             {(product || recentSearchDesign) && (
                 <div className="w-full">
                     {isMounted ? (
-                        <h1 className="text-xl md:text-2xl font-bold text-slate-800 leading-tight truncate whitespace-nowrap">
+                        <h2 className="text-xl md:text-2xl font-bold text-slate-800 leading-tight truncate whitespace-nowrap">
                             {product ? productTitle : recentSearchTitle}
-                        </h1>
+                        </h2>
                     ) : (
                         <div className="text-xl md:text-2xl font-bold text-slate-800 leading-tight truncate whitespace-nowrap">
                             {product ? productTitle : recentSearchTitle}
