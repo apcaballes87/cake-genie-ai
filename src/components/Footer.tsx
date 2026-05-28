@@ -74,7 +74,11 @@ export const Footer = () => {
             </div>
 
             {/* Middle Section: Ratings & Social */}
-            <div className="border-y border-purple-100 bg-white/45 backdrop-blur-sm">
+            {/* Removed backdrop-blur-sm: it was forcing a compositor blur over
+                the page gradient on a band that's full-width and tall. Solid
+                bg-white/[0.92] gives the same look without the per-frame
+                blur cost. */}
+            <div className="border-y border-purple-100 bg-white/[0.92]">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                         {/* Social Icons */}

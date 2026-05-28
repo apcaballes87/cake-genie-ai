@@ -32,10 +32,18 @@
 }
 
 .genie-card {
-  background: rgba(255, 255, 255, 0.78);
+  /*
+   * Previously used `backdrop-filter: blur(16px)` for a frosted-glass effect.
+   * That forces the compositor to re-blur whatever's behind every card on
+   * every paint, which is ~5-15ms per frame on mid-tier mobile GPUs and
+   * shows up as render delay during LCP. We trade a tiny bit of visual
+   * frost for a much cleaner paint by raising the background opacity from
+   * 0.78 -> 0.92 and dropping the blur. On the homepage's pink/purple
+   * gradient this is visually nearly indistinguishable.
+   */
+  background: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(255, 255, 255, 0.78);
   box-shadow: var(--genie-card-shadow);
-  backdrop-filter: blur(16px);
 }
 
 .genie-card-hover {
@@ -800,11 +808,6 @@ div.gs-image-box div.gs-image {
 }
 .animate-annotation-fade-out {
   animation: annotationFadeOut 0.5s ease-out forwards;
-}
-
-@keyframes annotationFadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes annotationFadeOut {

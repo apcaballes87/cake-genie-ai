@@ -1,2 +1,77 @@
-Nothing should be ignored based on the provided file changes, as only a source code file (`src/app/collections/CollectionsClient.tsx`) was modified and no build artifacts, dependencies, or temporary files were included in the changes.
+# Dependencies
 node_modules
+.pnp
+.pnp.js
+
+# Build output
+.next
+.vercel
+out
+dist
+build
+tsconfig.tsbuildinfo
+next-env.d.ts
+
+# Testing & coverage
+coverage
+.nyc_output
+
+# Local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+*.log
+logs/
+dev_server.log
+next_output.log
+
+# OS / IDE noise
+.DS_Store
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Tooling caches
+.cache/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# AI / agent / IDE workspaces (local only)
+.kiro/specs/image-studio-search-parity/
+.claude/worktrees/
+.opencode/
+.qwen/
+.kilo/
+.playwright-mcp/
+
+# Local artifacts (one-off captures, screenshots, scratch files)
+artifacts/
+scratch/
+scratch.js
+.scratch/
+
+# Committed by mistake — large media + log dumps at repo root
+audit-result.txt
+*.heapsnapshot
+best-cake-shops-cebu-*.png
+base-page-*.png
+slug-page.png
+cinnamoroll-test.webp
+
+# Supabase local
+supabase/.env
+
+# n8n workflow exports (keep intentionally if you want to track these — remove this line to do so)
+*.n8n
+upload-to-shopify-cakesandmemories.n8n
+Untitled-*.n8n
