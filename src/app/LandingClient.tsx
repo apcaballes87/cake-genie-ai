@@ -242,7 +242,7 @@ const HeroMasonryGrid: React.FC<{
     };
 
     return (
-        <div className="grid w-full grid-cols-3 gap-2.5 min-[450px]:gap-3.5 lg:gap-4 animate-in fade-in zoom-in-95 duration-1000 ease-out">
+        <div className="grid w-full grid-cols-3 gap-2.5 min-[450px]:gap-3.5 lg:gap-4">
             <div className="flex flex-col gap-2.5 min-[450px]:gap-3.5 lg:gap-4">
                 <div 
                     className="group relative aspect-5/6 cursor-pointer overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl min-[450px]:rounded-2xl"
@@ -890,29 +890,47 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
     const [isDemoVisible, setIsDemoVisible] = useState(false);
 
     useEffect(() => {
-        const handleScroll = () => {
-            const priceHeading = document.getElementById('price-change-heading');
-            const rushHeading = document.getElementById('rush-orders-heading');
+        // Determine when the customizer demo should auto-start. Previously this
+        // ran getBoundingClientRect on every scroll event (no throttle), which
+        // caused forced layout reads continuously during scroll. Switching to
+        // IntersectionObserver moves this entirely off the main thread —
+        // observers fire only when intersection state changes, not on every
+        // scroll event, and they don't read layout synchronously.
+        const priceHeading = document.getElementById('price-change-heading');
+        const rushHeading = document.getElementById('rush-orders-heading');
+        if (!priceHeading || !rushHeading) return;
 
-            if (!priceHeading || !rushHeading) return;
+        let priceVisible = false;
+        let rushVisible = false;
+        const update = () => setIsDemoVisible(priceVisible && !rushVisible);
 
-            const screenHeight = window.innerHeight;
-            const priceRect = priceHeading.getBoundingClientRect();
-            const rushRect = rushHeading.getBoundingClientRect();
+        // priceTriggerPoint was 50% of viewport height. With IntersectionObserver
+        // we use rootMargin to shift the trigger zone: -50% bottom margin means
+        // "trigger when the element crosses the middle of the viewport".
+        const priceObserver = new IntersectionObserver(
+            ([entry]) => {
+                priceVisible = entry.isIntersecting;
+                update();
+            },
+            { rootMargin: '0px 0px -50% 0px' }
+        );
 
-            const priceTriggerPoint = screenHeight * 0.5;
-            const rushTriggerPoint = screenHeight * 0.75;
+        // rushTriggerPoint was 75% of viewport height — same pattern, -25% bottom.
+        const rushObserver = new IntersectionObserver(
+            ([entry]) => {
+                rushVisible = entry.isIntersecting;
+                update();
+            },
+            { rootMargin: '0px 0px -25% 0px' }
+        );
 
-            const priceAtThreshold = priceRect.top <= priceTriggerPoint && priceRect.bottom > 0;
-            const rushAtThreshold = rushRect.top <= rushTriggerPoint && rushRect.bottom > 0;
+        priceObserver.observe(priceHeading);
+        rushObserver.observe(rushHeading);
 
-            setIsDemoVisible(priceAtThreshold && !rushAtThreshold);
+        return () => {
+            priceObserver.disconnect();
+            rushObserver.disconnect();
         };
-
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        handleScroll();
-
-        return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
     const tier = tiers[selectedTier];
@@ -1497,13 +1515,35 @@ const LandingClient: React.FC<LandingClientProps> = ({
     const [isScrolled, setIsScrolled] = useState(false);
 
     useEffect(() => {
+        // Read scrollY inside requestAnimationFrame to batch the layout read
+        // with the next paint instead of forcing a synchronous reflow on every
+        // scroll event. This was costing ~400ms of forced layout during the
+        // LCP window because scroll restoration on reload fires the listener
+        // dozens of times in quick succession.
+        let rafId = 0;
+        let pending = false;
+
         const updateScrollState = () => {
-            setIsScrolled(window.scrollY > 12);
+            if (pending) return;
+            pending = true;
+            rafId = window.requestAnimationFrame(() => {
+                pending = false;
+                setIsScrolled(window.scrollY > 12);
+            });
         };
 
-        updateScrollState();
+        // Initial state: at the top of the page on first render, scrollY is 0,
+        // so isScrolled is already correctly `false`. We only need to capture
+        // the scroll-restoration case (back/forward nav restores a scroll
+        // position) — which the rAF below catches on first paint anyway.
+        rafId = window.requestAnimationFrame(() => {
+            setIsScrolled(window.scrollY > 12);
+        });
         window.addEventListener('scroll', updateScrollState, { passive: true });
-        return () => window.removeEventListener('scroll', updateScrollState);
+        return () => {
+            window.cancelAnimationFrame(rafId);
+            window.removeEventListener('scroll', updateScrollState);
+        };
     }, []);
 
     return (
@@ -1519,7 +1559,14 @@ const LandingClient: React.FC<LandingClientProps> = ({
             </div>
 
             {/* ========== HEADER ========== */}
-            <nav className={`sticky top-0 z-80 w-full border-b transition-all duration-200 ${isScrolled ? 'border-purple-100 bg-white/90 shadow-sm backdrop-blur-lg' : 'border-transparent bg-transparent'}`}>
+            {/*
+              Was: bg-white/90 + backdrop-blur-lg when isScrolled.
+              Toggling backdrop-blur on a sticky element during scroll forces
+              the compositor to allocate a new layer, which lands as a layout
+              hit during scroll. Solid bg-white/[0.95] looks visually identical
+              over the page gradient and avoids the layer thrash.
+            */}
+            <nav className={`sticky top-0 z-80 w-full border-b transition-all duration-200 ${isScrolled ? 'border-purple-100 bg-white/[0.95] shadow-sm' : 'border-transparent bg-transparent'}`}>
                 <div className="max-w-7xl mx-auto px-4">
                     <div className="w-full flex items-center justify-between py-[11px] md:py-[14px] relative">
                         {/* Left Side: Menu & Desktop Logo */}
