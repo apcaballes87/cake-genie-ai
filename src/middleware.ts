@@ -23,7 +23,15 @@ export async function middleware(request: NextRequest) {
     const segment = match[1]
     if (KNOWN_ROUTES.has(segment.toLowerCase())) return NextResponse.next()
 
-    // Check if this segment is a valid active discount code in Supabase
+    // Check if this segment is a valid active discount code in Supabase.
+    //
+    // We previously used `cache: 'no-store'` which forced every unknown
+    // single-segment URL to make a fresh REST call. For a site that gets
+    // crawler hits on random paths, that's a TTFB tax on every 404. The
+    // `next.revalidate` hint lets Next/Vercel reuse the response for 5
+    // minutes — discount codes change infrequently and a worst-case 5-min
+    // staleness is fine (the redirect just sends them home with a code that
+    // may have just expired, which the cart will validate again anyway).
     try {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
         const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -36,7 +44,7 @@ export async function middleware(request: NextRequest) {
                     'apikey': supabaseKey,
                     'Authorization': `Bearer ${supabaseKey}`,
                 },
-                cache: 'no-store',
+                next: { revalidate: 300 },
             }
         )
 
@@ -56,6 +64,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
 }
 
+// Matcher excludes:
+// - api/*           : route handlers should never run middleware
+// - _next/*         : Next.js internals (static, image optimizer, data)
+// - favicon.ico     : browsers request this on every page
+// - any path with a "." (file extensions like .xml, .txt, .json, images)
+// This means middleware only runs on actual HTML page requests.
 export const config = {
-    matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+    matcher: ['/((?!api|_next|favicon\\.ico|.*\\..*).*)'],
 }

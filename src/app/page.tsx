@@ -1,16 +1,23 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import LandingClient from './LandingClient';
 import { getRecommendedProducts, getHomepageBlogPreviews } from '@/services/supabaseService';
 import { RecommendedProductsSection, IntroContent } from '@/components/landing';
 import { LandingFooter } from '@/components/landing/LandingFooter';
-import NewsletterPopup from '@/components/NewsletterPopup';
 import { LandingPageSkeleton } from '@/components/LoadingSkeletons';
 import { createClient } from '@/lib/supabase/server';
 import { normalizePublicReviews, REVIEW_SELECT } from '@/lib/reviews';
 import HomepageAeoSections from '@/components/seo/HomepageAeoSections';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { genieBusinessProfile, buildGenieLocalBusinessSchema } from '@/lib/seo/genieBusinessProfile';
+import { HOMEPAGE_ASSETS } from '@/constants';
+import AnimatedBlobs from '@/components/UI/AnimatedBlobs';
+
+// The newsletter popup is gated on a 25s timer or 40% scroll, so it never
+// affects the initial render. Lazy-loading it keeps its bundle (and the auth
+// hooks it pulls in) out of the homepage's critical-path JS.
+const NewsletterPopup = dynamic(() => import('@/components/NewsletterPopup'));
 
 // ISR: Revalidate every hour for fresh data while maintaining fast loads
 export const revalidate = 3600;
@@ -207,7 +214,22 @@ async function LandingServerSections() {
 export default function Home() {
     return (
         <>
+            {/*
+              LCP preload: the hero masonry grid renders the minimalist-cake card
+              first with priority, but it lives inside a client component, so the
+              browser doesn't see the URL until JS hydrates. This <link> gives
+              the browser an immediate fetch hint (highest fetchpriority on the
+              homepage) so the LCP candidate starts downloading in parallel with
+              the JS bundle.
+            */}
+            <link
+                rel="preload"
+                as="image"
+                href={HOMEPAGE_ASSETS.heroProducts.minimalist}
+                fetchPriority="high"
+            />
             <WebSiteSchema />
+            <AnimatedBlobs />
             <Suspense fallback={<LandingPageSkeleton />}>
                 <LandingServerSections />
             </Suspense>

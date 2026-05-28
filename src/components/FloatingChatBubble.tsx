@@ -14,7 +14,66 @@ interface Position {
   y: number;
 }
 
+/**
+ * Returns true once the viewport is desktop-width AND the user has shown some
+ * sign of engagement (mouse move, scroll, key press, or touch). We don't want
+ * to mount the chat bubble or fire its Supabase auth lookup on first paint —
+ * it's `hidden md:block` so it's never rendered on mobile, but the JS still
+ * runs and hits Supabase on every page mount. This hook keeps that work out
+ * of the LCP/FCP critical path.
+ */
+function useDesktopAfterEngagement(): boolean {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const isDesktop = () => window.matchMedia('(min-width: 768px)').matches;
+    if (!isDesktop()) {
+      // Listen for resize in case someone rotates a tablet, but skip the
+      // engagement signal so we still don't activate on a phone-sized layout.
+      const onResize = () => {
+        if (isDesktop()) setReady(true);
+      };
+      window.addEventListener('resize', onResize, { passive: true });
+      return () => window.removeEventListener('resize', onResize);
+    }
+
+    const activate = () => setReady(true);
+    const events: Array<keyof WindowEventMap> = [
+      'pointermove',
+      'scroll',
+      'keydown',
+      'touchstart',
+    ];
+    events.forEach((evt) =>
+      window.addEventListener(evt, activate, { once: true, passive: true })
+    );
+
+    // Fallback: activate after 4s of idle so the bubble still appears even
+    // if the user is reading without scrolling.
+    const idleTimer = window.setTimeout(activate, 4000);
+
+    return () => {
+      events.forEach((evt) => window.removeEventListener(evt, activate));
+      window.clearTimeout(idleTimer);
+    };
+  }, []);
+
+  return ready;
+}
+
 export default function FloatingChatBubble() {
+  const isReady = useDesktopAfterEngagement();
+
+  // Render nothing (and import nothing else) until we're past the LCP window
+  // and on a desktop viewport.
+  if (!isReady) return null;
+
+  return <FloatingChatBubbleInner />;
+}
+
+function FloatingChatBubbleInner() {
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState<Position>({ x: 24, y: 24 });
   const [isDragging, setIsDragging] = useState(false);

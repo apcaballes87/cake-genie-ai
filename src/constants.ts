@@ -222,8 +222,9 @@ export const getCachedAssetUrl = (bucket: keyof typeof STORAGE_BUCKETS, path: st
  * Common application assets - use these instead of hardcoding URLs
  */
 export const COMMON_ASSETS = {
-  // Branding
-  logo: getCachedAssetUrl('landingpage', 'genie-logo-header.webp'),
+  // Branding (direct Supabase, not proxied — these load on every page so the
+  // proxy round trip was a sitewide cost)
+  logo: getAssetUrl('landingpage', 'genie-logo-header.webp'),
   logoSquare: getAssetUrl('cakegenie', 'genie%20logo.webp'),
   watermark: getAssetUrl('cakegenie', 'genie%20watermark.png'),
 
@@ -234,17 +235,23 @@ export const COMMON_ASSETS = {
   callForBakeshops: getAssetUrl('cakegenie', 'call%20for%20bakeshops.webp'),
 } as const;
 
+// Hero assets bypass the /api/proxy-image route and load directly from Supabase
+// CDN. Going through the proxy was forcing every first-paint hero LCP image to
+// take a serverless round trip, hurting LCP. The proxy still exists (and is
+// useful for non-Supabase image hosts like Pinterest/Instagram); we just don't
+// need it for assets we already own and host on Supabase storage with
+// long-lived public URLs.
 export const HOMEPAGE_ASSETS = {
   heroProducts: {
-    minimalist: getCachedAssetUrl('landingpage', 'landing-page-model-white-minimalist-cake-small.webp'),
-    vintage: getCachedAssetUrl('landingpage', 'landing-page-model-pink-vintage-cake-small.webp'),
-    doodle: getCachedAssetUrl('landingpage', 'landing-page-model-white-doodle-cake-small.webp'),
-    photo: getCachedAssetUrl('landingpage', 'landing-page-model-edible-photo-cake-small.webp'),
-    floral: getCachedAssetUrl('landingpage', 'landing-page-model-vintage-white-cake-small.webp'),
-    bento: getCachedAssetUrl('landingpage', 'landing-page-model-pink-bento-cake-small.webp'),
+    minimalist: getAssetUrl('landingpage', 'landing-page-model-white-minimalist-cake-small.webp'),
+    vintage: getAssetUrl('landingpage', 'landing-page-model-pink-vintage-cake-small.webp'),
+    doodle: getAssetUrl('landingpage', 'landing-page-model-white-doodle-cake-small.webp'),
+    photo: getAssetUrl('landingpage', 'landing-page-model-edible-photo-cake-small.webp'),
+    floral: getAssetUrl('landingpage', 'landing-page-model-vintage-white-cake-small.webp'),
+    bento: getAssetUrl('landingpage', 'landing-page-model-pink-bento-cake-small.webp'),
   },
-  transition: getCachedAssetUrl('landingpage', 'generic-vs-personal-cake.webp'),
-  delivery: getCachedAssetUrl('landingpage', 'geniephdelivery-small.webp'),
+  transition: getAssetUrl('landingpage', 'generic-vs-personal-cake.webp'),
+  delivery: getAssetUrl('landingpage', 'geniephdelivery-small.webp'),
 } as const;
 
 /**
