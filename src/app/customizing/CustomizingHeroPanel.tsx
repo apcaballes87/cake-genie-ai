@@ -50,6 +50,14 @@ interface CustomizingHeroPanelProps {
     onClearAll: () => void;
     colorVariants?: Record<string, string> | null; // ADDED
     onSelectColorVariant?: (hex: string, imageUrl: string) => void; // ADDED
+    /**
+     * Aspect ratio (width / height) of the hero image from the DB
+     * (`image_width` / `image_height`), e.g. "400 / 534". Used to reserve the
+     * correct hero height BEFORE the image loads so the desktop layout doesn't
+     * shift (the desktop hero is a native `<img h-auto>` with no intrinsic
+     * box). Falls back to the measured ratio once the image's onLoad fires.
+     */
+    initialHeroAspectRatio?: string | null;
     reviewSummary?: {
         total: number;
         averageRating: number;
@@ -175,6 +183,7 @@ export const CustomizingHeroPanel = memo(({
     reviewSummary,
     colorVariants = null, // ADDED
     onSelectColorVariant, // ADDED
+    initialHeroAspectRatio = null,
 }: CustomizingHeroPanelProps) => {
     const [originalImageDimensions, setOriginalImageDimensions] = useState<{ width: number, height: number } | null>(null);
     const [isHeroImageZoomOpen, setIsHeroImageZoomOpen] = useState(false);
@@ -205,7 +214,12 @@ export const CustomizingHeroPanel = memo(({
         incomingStudioImageUrl && preferredBaseHeroUrl !== incomingStudioImageUrl
     );
     const heroDisplayTitle = heroImageTitle;
-    const heroImageRatio = originalImageDimensions ? `${originalImageDimensions.width} / ${originalImageDimensions.height}` : '1 / 1';
+    // Prefer measured dimensions once the image loads; before that, use the
+    // DB-provided ratio so the box is reserved at the correct height and the
+    // desktop layout doesn't shift on image load. Final fallback 1/1.
+    const heroImageRatio = originalImageDimensions
+        ? `${originalImageDimensions.width} / ${originalImageDimensions.height}`
+        : (initialHeroAspectRatio || '1 / 1');
     const zoomOriginalImage = originalHeroModalSrc || null;
     const zoomCustomizedImage = editedImage || null;
     const zoomInitialTab: ImageTab = activeTab === 'customized' && zoomCustomizedImage ? 'customized' : 'original';
@@ -370,11 +384,19 @@ export const CustomizingHeroPanel = memo(({
                 <div className="grow">
                     <div
                         className={enableMobileHeroPan
-                            ? 'relative w-full aspect-[5/4] md:aspect-auto md:min-h-0 rounded-3xl overflow-hidden touch-none md:touch-auto overscroll-auto'
+                            ? 'relative w-full aspect-[5/4] md:min-h-0 rounded-3xl overflow-hidden touch-none md:touch-auto overscroll-auto md:[aspect-ratio:var(--hero-md-ratio)]'
                             : 'relative w-full min-h-[270px] md:min-h-[400px] rounded-3xl overflow-hidden'
                         }
                         onContextMenu={(event) => event.preventDefault()}
-                        style={enableMobileHeroPan ? undefined : { aspectRatio: heroImageRatio }}
+                        // Reserve the hero box height before the image loads to
+                        // avoid CLS. In pan mode the mobile box is fixed by the
+                        // aspect-[5/4] class; desktop (md:aspect-auto) otherwise
+                        // had no reserved height and shifted on load, so the
+                        // md breakpoint reads the ratio from this CSS var.
+                        style={enableMobileHeroPan
+                            ? ({ '--hero-md-ratio': heroImageRatio } as React.CSSProperties)
+                            : { aspectRatio: heroImageRatio }
+                        }
                     >
                         {isCombining ? (
                             <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center z-20">
