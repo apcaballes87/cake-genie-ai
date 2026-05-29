@@ -1,5 +1,25 @@
 # Tasks
 
+## Microsoft Clarity Customizing Page Audit
+
+### Plan
+
+- [x] Pull recent Clarity dashboard data for `https://genie.ph/customizing` and `/customizing/*`, separating broad traffic from friction signals.
+- [x] Review relevant session recordings for customizing visitors, prioritizing dead clicks, rage clicks, quick backs, low scroll depth, JavaScript errors, and mobile sessions.
+- [x] Cross-check the behavioral signals against the live customizer implementation path in the repo.
+- [x] Summarize what is working, red flags, and concrete implementation ideas with a bias toward small, verifiable fixes.
+
+### Review
+
+- Audit window: Microsoft Clarity data from 2026-04-28 through 2026-05-28 UTC for URLs starting with `https://genie.ph/customizing`.
+- Traffic is meaningful: 3,243 sessions and 2,871 distinct users reached the customizer route family. The base `/customizing` URL had 838 page views, and traffic is mostly mobile with 2,382 mobile sessions versus 766 PC and 116 tablet sessions in the device query.
+- What is working: Google is feeding the customizer heavily, with 1,933 sessions from `www.google.com`; users interact with product options and discovery (`Show More Designs` 296 clicks, `Fondant` 163, `Soft Icing` 130, `Vanilla` 114, `Apply All Changes` 110); and there is a proven cart path, with 38 `Buy This Now` clicks and 81 sessions that reached `/cart` after a customizer visit.
+- Measurement red flag: Clarity smart events are under-instrumented. The dashboard showed 13 `Upload`, 0 `AddToCart`, 0 `BeginCheckout`, and 7 `Checkout` smart events even though recordings and click queries show users buying and reaching cart. Current `src/lib/analytics.ts` sends GA4 events only, and the Clarity snippet in `src/app/layout.tsx` is not paired with explicit `window.clarity("event", ...)` calls.
+- UX red flag: 299 customizer sessions had dead clicks. The top dead-click texts were blank text, `Original cake design`, `Pink heart-shaped vintage`, `Apply All Changes`, `Customized Cake Design -`, `+ Add a cake message`, `Fondant`, and `Soft Icing`. The repo cross-check points to image/card taps, active variant thumbnails, disabled editor actions, and option controls as the likely friction clusters.
+- Performance red flag: customizer LCP is high in Clarity. Exact `/customizing` averaged 6,865 ms LCP, slug pages averaged 6,534 ms, category pages averaged 6,302 ms, and mobile sessions averaged about 4,958 ms page load time. `next.config.ts` has global `images.unoptimized: true`, and the customizer hero uses high-priority unoptimized remote images, so image delivery is the main implementation target.
+- Reliability red flag: top JavaScript errors were `Cannot read properties of null (reading 'parentNode')` 25 times, `Script error.` 7 times, React hydration error #418 variants 7 times total, and `Cannot update design: missing original image, icing design, or cake info.` twice. The only local `parentNode` reference found is the Clarity script insertion snippet in `src/app/layout.tsx`.
+- Recommended implementation order: first add explicit Clarity event/tag instrumentation to the existing analytics wrapper; second reduce hero/product image LCP with resized CDN-backed derivatives or image optimization; third remove dead-click clusters by making active thumbnails open zoom or lose pointer affordance, adding disabled reasons to `Apply All Changes`, and improving card/button semantics; fourth audit hydration mismatches and guard the Clarity snippet.
+
 ## Unblock Studio Image Reveal From ORB Indexing
 
 ### Plan

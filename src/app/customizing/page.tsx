@@ -7,6 +7,7 @@ import { LandingFooter } from '@/components/landing/LandingFooter'
 import { createClient } from '@/lib/supabase/server'
 import { genieBusinessProfile } from '@/lib/seo/genieBusinessProfile'
 import { getPopularDesigns } from '@/services/supabaseService'
+import { ProductCard } from '@/components/ProductCard'
 
 // Shopify CSE handoff: image comes from external URL via query param
 // Read searchParams to enable SSR-side preload of the hero image
@@ -92,14 +93,19 @@ export default async function CustomizingPage(props: CustomizingPageProps) {
 
     // Featured designs power the SSR'd grid AND the CollectionPage image array.
     type FeaturedDesign = {
-        slug: string | null;
-        original_image_url: string | null;
+        p_hash: string;
+        slug: string;
+        original_image_url: string;
         alt_text: string | null;
         keywords: string | null;
         price: number | null;
+        availability?: string | null;
+        image_width?: number | null;
+        image_height?: number | null;
+        studio_edited_image_url?: string | null;
     };
     const featuredDesigns: FeaturedDesign[] = (popularDesignsResult.data || [])
-        .filter((d): d is FeaturedDesign => Boolean(d?.slug && d?.original_image_url))
+        .filter((d): d is FeaturedDesign => Boolean(d?.slug && d?.original_image_url && d?.p_hash))
         .slice(0, FEATURED_DESIGN_LIMIT);
 
     // Preload for external sources (Shopify CSE, Chrome Extension) - external images go through proxy
@@ -216,70 +222,6 @@ export default async function CustomizingPage(props: CustomizingPageProps) {
                 />
             )}
 
-            {/* SSR-only intro: visible to Googlebot in the first byte. The
-                client app re-renders over the upload area below it. */}
-            <section
-                aria-labelledby="customizing-intro-heading"
-                className="max-w-7xl mx-auto px-4 pt-6 pb-2"
-            >
-                <p className="text-xs font-bold uppercase tracking-wider text-purple-600 mb-2">
-                    Custom cake designs · Cebu, Philippines
-                </p>
-                <h1
-                    id="customizing-intro-heading"
-                    className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight text-neutral-900"
-                >
-                    Custom Cake Designs with Instant AI Pricing in Cebu
-                </h1>
-                <div className="mt-4 max-w-3xl text-sm md:text-base text-slate-700 leading-relaxed space-y-3">
-                    <p>
-                        Genie.ph is the easiest way to design a custom cake in Cebu. Upload any
-                        reference photo, choose a design from our gallery of more than 1,000 cake
-                        ideas, or browse by occasion below. Our AI matches the design to a
-                        verified Cebu baker, returns an instant price quote, and lets you
-                        personalise the message, colour palette, flavour, and serving size before
-                        you check out.
-                    </p>
-                    <p>
-                        Shoppers come to this page to plan{' '}
-                        <Link href="/customizing/category/birthday-cakes" className="text-purple-700 underline underline-offset-2 hover:text-purple-900">
-                            birthday cakes
-                        </Link>
-                        ,{' '}
-                        <Link href="/customizing/category/wedding-cake" className="text-purple-700 underline underline-offset-2 hover:text-purple-900">
-                            wedding cakes
-                        </Link>
-                        ,{' '}
-                        <Link href="/customizing/category/debut-cake" className="text-purple-700 underline underline-offset-2 hover:text-purple-900">
-                            debut cakes
-                        </Link>
-                        ,{' '}
-                        <Link href="/customizing/category/graduation-cake" className="text-purple-700 underline underline-offset-2 hover:text-purple-900">
-                            graduation cakes
-                        </Link>
-                        , and{' '}
-                        <Link href="/customizing/category/character-cake" className="text-purple-700 underline underline-offset-2 hover:text-purple-900">
-                            character cakes
-                        </Link>{' '}
-                        for last-minute celebrations. Genie partners with bakeries across Cebu City,
-                        Mandaue, Lapu-Lapu, Talisay, and Consolacion. Many designs ship the same
-                        day when you place your order before 4&nbsp;PM.
-                    </p>
-                    <p>
-                        New here? Start with the{' '}
-                        <Link href="/customizing#upload" className="text-purple-700 underline underline-offset-2 hover:text-purple-900">
-                            upload tool below
-                        </Link>{' '}
-                        to get a price in seconds, or jump to a{' '}
-                        <Link href="/collections" className="text-purple-700 underline underline-offset-2 hover:text-purple-900">
-                            curated collection
-                        </Link>{' '}
-                        if you already know the vibe you&rsquo;re going for. Every order is fulfilled by a vetted local baker, with delivery
-                        windows, return policies, and same-day cut-offs shown up front.
-                    </p>
-                </div>
-            </section>
-
             {/* SSR fallback for the hero/uploader so Googlebot and no-JS visitors
                 see a real CTA + link in the source HTML. The client app
                 hydrates over this once JS loads. */}
@@ -353,41 +295,11 @@ export default async function CustomizingPage(props: CustomizingPageProps) {
                         </Link>
                     </div>
                     <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                        {featuredDesigns.map((d) => {
-                            const href = `/customizing/${d.slug}`;
-                            const alt = d.alt_text || d.keywords || 'Custom cake design';
-                            return (
-                                <li key={d.slug}>
-                                    <Link
-                                        href={href}
-                                        className="group block overflow-hidden rounded-xl border border-slate-200 bg-white hover:border-purple-300 transition-colors"
-                                        aria-label={`View ${alt}`}
-                                    >
-                                        <div className="aspect-square overflow-hidden bg-slate-50">
-                                            {/* Plain <img> on purpose: needs to be in SSR HTML for crawlers. */}
-                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                            <img
-                                                src={d.original_image_url || ''}
-                                                alt={alt}
-                                                loading="lazy"
-                                                decoding="async"
-                                                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                            />
-                                        </div>
-                                        <div className="p-2">
-                                            <p className="line-clamp-2 text-xs font-medium text-slate-700">
-                                                {d.keywords || 'Custom Cake Design'}
-                                            </p>
-                                            {typeof d.price === 'number' && d.price > 0 && (
-                                                <p className="mt-0.5 text-xs font-semibold text-purple-700">
-                                                    from ₱{Math.round(d.price).toLocaleString('en-PH')}
-                                                </p>
-                                            )}
-                                        </div>
-                                    </Link>
-                                </li>
-                            );
-                        })}
+                        {featuredDesigns.map((d) => (
+                            <li key={d.slug} className="mb-3">
+                                <ProductCard {...d} listName="featured_designs" />
+                            </li>
+                        ))}
                     </ul>
                 </section>
             )}
@@ -407,6 +319,78 @@ export default async function CustomizingPage(props: CustomizingPageProps) {
                     ))}
                 </div>
             </nav>
+
+            {/* SSR-only editorial intro — lives at the bottom so users land on the tool
+                directly. Google crawls the full page so position here is fine for SEO. */}
+            <section
+                aria-labelledby="customizing-intro-heading"
+                className="max-w-7xl mx-auto px-4 pt-2 pb-8"
+            >
+                <div className="rounded-2xl border border-purple-100 bg-gradient-to-br from-purple-50/70 via-white to-pink-50/40 px-6 py-5 shadow-sm">
+                    {/* Kicker + heading row */}
+                    <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-3 mb-3">
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-purple-400 shrink-0">
+                            Custom cake designs · Cebu, Philippines
+                        </p>
+                        <span className="hidden sm:block h-px flex-1 bg-purple-100 self-center" aria-hidden="true" />
+                    </div>
+                    <h1
+                        id="customizing-intro-heading"
+                        className="text-xl md:text-2xl lg:text-3xl font-black tracking-tight text-neutral-900 mb-4"
+                    >
+                        Custom Cake Designs with Instant AI Pricing in Cebu
+                    </h1>
+
+                    {/* 3-column editorial grid */}
+                    <div className="grid sm:grid-cols-3 gap-x-6 gap-y-3 text-xs text-slate-500 leading-relaxed border-t border-purple-100 pt-4">
+                        <p>
+                            Genie.ph is the easiest way to design a custom cake in Cebu. Upload any
+                            reference photo, choose a design from our gallery of more than 1,000 cake
+                            ideas, or browse by occasion below. Our AI matches the design to a
+                            verified Cebu baker, returns an instant price quote, and lets you
+                            personalise the message, colour palette, flavour, and serving size before
+                            you check out.
+                        </p>
+                        <p>
+                            Shoppers come to this page to plan{' '}
+                            <Link href="/customizing/category/birthday-cakes" className="text-purple-600 underline underline-offset-2 hover:text-purple-800">
+                                birthday cakes
+                            </Link>
+                            ,{' '}
+                            <Link href="/customizing/category/wedding-cake" className="text-purple-600 underline underline-offset-2 hover:text-purple-800">
+                                wedding cakes
+                            </Link>
+                            ,{' '}
+                            <Link href="/customizing/category/debut-cake" className="text-purple-600 underline underline-offset-2 hover:text-purple-800">
+                                debut cakes
+                            </Link>
+                            ,{' '}
+                            <Link href="/customizing/category/graduation-cake" className="text-purple-600 underline underline-offset-2 hover:text-purple-800">
+                                graduation cakes
+                            </Link>
+                            , and{' '}
+                            <Link href="/customizing/category/character-cake" className="text-purple-600 underline underline-offset-2 hover:text-purple-800">
+                                character cakes
+                            </Link>{' '}
+                            for last-minute celebrations. Genie partners with bakeries across Cebu City,
+                            Mandaue, Lapu-Lapu, Talisay, and Consolacion.
+                        </p>
+                        <p>
+                            New here? Start with the{' '}
+                            <Link href="/customizing#upload" className="text-purple-600 underline underline-offset-2 hover:text-purple-800">
+                                upload tool
+                            </Link>{' '}
+                            to get a price in seconds, or jump to a{' '}
+                            <Link href="/collections" className="text-purple-600 underline underline-offset-2 hover:text-purple-800">
+                                curated collection
+                            </Link>{' '}
+                            if you already know the vibe you&rsquo;re going for. Every order is fulfilled by a vetted local baker, with delivery
+                            windows, return policies, and same-day cut-offs shown up front.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
             <LandingFooter reviewSummary={reviewSummary} />
         </>
     )
