@@ -18,6 +18,29 @@ let promptCache: {
     timestamp: number;
 } | null = null;
 
+// Client-side fallback messages for AI rejections, keyed by `reason`. The analyze schema requires
+// the model to return `message`, but if it ever omits it (or returns an unknown reason) we still
+// want a human-readable string instead of "undefined". Mirrors STEP 1 of the analysis prompt.
+const REJECTION_FALLBACK_MESSAGES: Record<string, string> = {
+    not_a_cake: "This image doesn't appear to be a cake. Please upload a cake image.",
+    multiple_cakes: "Please upload a single cake image. This image contains multiple cakes.",
+    cake_slice_only: "We can't price cakes that are 1 slice only. Please upload a whole cake design image.",
+    cupcakes_only: "We currently don't process cupcake-only images. Please upload a cake design.",
+    complex_sculpture: "This cake design is too complex for online pricing. Please contact us for a custom quote.",
+    large_wedding_cake: "Large wedding cakes require in-store consultation for accurate pricing.",
+};
+
+const DEFAULT_REJECTION_MESSAGE =
+    "This image can't be used for cake pricing. Please upload a clear photo of a single cake design.";
+
+function resolveRejectionMessage(rejection: { reason?: string; message?: string } | undefined): string {
+    const message = rejection?.message?.trim();
+    if (message) return message;
+    const reason = rejection?.reason;
+    if (reason && REJECTION_FALLBACK_MESSAGES[reason]) return REJECTION_FALLBACK_MESSAGES[reason];
+    return DEFAULT_REJECTION_MESSAGE;
+}
+
 const PROMPT_CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
 
 // Helper to encode array buffer to base64
@@ -102,7 +125,7 @@ export async function analyzeCakeFeaturesOnly(
 
         // Check for AI rejection
         if (result.rejection && result.rejection.isRejected) {
-            throw new Error(`AI_REJECTION: ${result.rejection.message}`);
+            throw new Error(`AI_REJECTION: ${resolveRejectionMessage(result.rejection)}`);
         }
 
         return result;

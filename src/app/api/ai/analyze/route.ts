@@ -169,7 +169,11 @@ export async function POST(req: NextRequest) {
                         },
                         message: { type: Type.STRING },
                     },
-                    required: ['isRejected'],
+                    // `message` is required so a rejected image always carries a user-facing string.
+                    // `reason` stays optional: its enum only holds rejection labels, so requiring it
+                    // would force accepted images to emit a bogus rejection reason. A short message
+                    // string does not reintroduce the cake-field acceptance bias.
+                    required: ['isRejected', 'message'],
                 },
                 is_tall_proportion: {
                     type: Type.BOOLEAN,

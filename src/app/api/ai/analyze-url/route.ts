@@ -308,7 +308,9 @@ export async function POST(req: NextRequest) {
                         },
                         message: { type: Type.STRING },
                     },
-                    required: ['isRejected'],
+                    // `message` required so rejected images always carry a user-facing string;
+                    // `reason` stays optional (its enum only holds rejection labels).
+                    required: ['isRejected', 'message'],
                 },
                 is_tall_proportion: { type: Type.BOOLEAN },
             },
