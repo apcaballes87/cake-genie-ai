@@ -9,6 +9,7 @@ import { ImagePlus } from 'lucide-react';
 interface RecommendedProduct {
     p_hash: string;
     original_image_url: string;
+    studio_edited_image_url?: string | null;
     price: number;
     keywords?: string;
     slug?: string;
@@ -20,6 +21,8 @@ interface RecommendedProduct {
     };
     image_width?: number | null;
     image_height?: number | null;
+    /** Variant manifest jsonb. ProductCard parses it. */
+    image_variants?: unknown;
 }
 
 interface RecommendedProductsGridProps {
@@ -110,6 +113,7 @@ const RecommendedProductsGridComponent = ({
                                 <ProductCard
                                     p_hash={item.p_hash}
                                     original_image_url={item.original_image_url}
+                                    studio_edited_image_url={item.studio_edited_image_url}
                                     price={item.price}
                                     keywords={item.keywords}
                                     slug={item.slug}
@@ -117,6 +121,7 @@ const RecommendedProductsGridComponent = ({
                                     analysis_json={item.analysis_json}
                                     image_width={item.image_width}
                                     image_height={item.image_height}
+                                    image_variants={item.image_variants}
                                     listName={listName}
                                 />
                             </div>

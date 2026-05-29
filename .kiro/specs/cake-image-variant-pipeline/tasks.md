@@ -280,8 +280,8 @@ Each property maps to one or two acceptance criteria. Tests live next to the mod
 
 Phase 4 and Phase 6 ship in the **same release**: the webhook starts producing manifests and the renderer must consume them. Until both are deployed, manifests exist but PDPs ignore them — which is correct fallback behavior, not a bug. The point is to avoid the mirror failure: renderers that look for srcset before manifests exist, leading to 404s.
 
-- [ ] 6. PDP + listing rendering
-  - [ ] 6.1 Extend `<LazyImage>` with `variants` prop and `<picture>` wrapper
+- [-] 6. PDP + listing rendering
+  - [x] 6.1 Extend `<LazyImage>` with `variants` prop and `<picture>` wrapper
     - **Description:** Add `variants?: VariantManifest | null` and `fallbackSrc?: string` props. When `variants` is non-empty, wrap the rendered `<Image>` in `<picture>` with a `<source type="image/webp" srcSet={buildSrcSet(variants)} sizes={sizes} />`. Compute `src` via `pickFallbackSrc(variants, 1200) ?? fallbackSrc ?? src`. When `variants` is null/empty, render exactly as today.
     - **Files touched:** `src/components/LazyImage.tsx`
     - **Acceptance criteria:**
@@ -291,7 +291,7 @@ Phase 4 and Phase 6 ship in the **same release**: the webhook starts producing m
       - Vitest snapshot or DOM assertion for both branches.
     - **Requirements covered:** Req 6.1, 6.6, 5.2, 10.2
 
-  - [ ] 6.2 Wire `<ProductCard>` to forward `image_variants`
+  - [x] 6.2 Wire `<ProductCard>` to forward `image_variants`
     - **Description:** Add `imageVariants?: VariantManifest | null` to `<ProductCard>` props, pass into `<LazyImage variants={…}>`. Set `sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 256px"` for cards.
     - **Files touched:** `src/components/ProductCard.tsx`
     - **Acceptance criteria:**
@@ -299,7 +299,7 @@ Phase 4 and Phase 6 ship in the **same release**: the webhook starts producing m
       - Cards rendered with null variants render the original URL only.
     - **Requirements covered:** Req 6.7
 
-  - [ ] 6.3 Update `customizing/[slug]/page.tsx` hero rendering and preload
+  - [x] 6.3 Update `customizing/[slug]/page.tsx` hero rendering and preload
     - **Description:** Parse `design.image_variants` via `parseManifest`, compute `heroSrc` via `pickFallbackSrc(manifest, 1200) ?? design.original_image_url`, and emit a `<link rel="preload" as="image" href={heroSrc} imageSrcSet={buildSrcSet(manifest)} imageSizes="(max-width: 640px) 92vw, (max-width: 1024px) 60vw, 800px" />` in the head. Render `<LazyImage src={heroSrc} variants={manifest} priority fetchPriority="high" sizes="..." />`. Extend the existing `<noscript><img>` fallback with `srcset`/`sizes`.
     - **Files touched:** `src/app/customizing/[slug]/page.tsx`
     - **Acceptance criteria:**
@@ -318,7 +318,7 @@ Phase 4 and Phase 6 ship in the **same release**: the webhook starts producing m
       - Listing thumbs render variants when present.
     - **Requirements covered:** Req 6.7
 
-  - [ ] 6.5 Update `shop/[merchantSlug]/[productSlug]/page.tsx`, `collections/[category]/page.tsx`, `search/SearchingClient.tsx`
+  - [x] 6.5 Update `shop/[merchantSlug]/[productSlug]/page.tsx`, `collections/[category]/page.tsx`, `search/SearchingClient.tsx`
     - **Description:** Each page already runs a Supabase select for cake rows. Add `image_variants` to the column list and forward into `<ProductCard>`. No new components; just the column passthrough.
     - **Files touched:** `src/app/shop/[merchantSlug]/[productSlug]/page.tsx`, `src/app/collections/[category]/page.tsx`, `src/app/search/SearchingClient.tsx`, `src/services/supabaseService.ts` (select column lists)
     - **Acceptance criteria:**

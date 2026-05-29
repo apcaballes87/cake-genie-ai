@@ -563,6 +563,7 @@ const SearchingClient: React.FC = () => {
                                                 priority={index < 4}
                                                 image_width={product.image_width}
                                                 image_height={product.image_height}
+                                                image_variants={product.image_variants}
                                                 listName="search_results"
                                             />
                                         </div>

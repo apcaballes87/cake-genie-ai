@@ -71,6 +71,7 @@ export const DesignGridWithLoadMore: React.FC<DesignGridWithLoadMoreProps> = ({ 
                         <ProductCard
                             p_hash={design.p_hash}
                             original_image_url={design.original_image_url}
+                            studio_edited_image_url={design.studio_edited_image_url}
                             price={design.price}
                             keywords={design.keywords}
                             slug={design.slug}
@@ -78,6 +79,7 @@ export const DesignGridWithLoadMore: React.FC<DesignGridWithLoadMoreProps> = ({ 
                             analysis_json={design.analysis_json}
                             image_width={design.image_width}
                             image_height={design.image_height}
+                            image_variants={design.image_variants}
                             collectionContext={collectionTitle}
                             listName="collection_page"
                         />

@@ -15,6 +15,7 @@ import { LandingFooter } from '@/components/landing/LandingFooter'
 import { mapAnalysisToState, mapProductToDefaultState } from '@/utils/customizationMapper'
 import { upgradeLegacySlug, downgradeCakeSlug } from '@/lib/utils/urlHelpers'
 import { generateDesignDetails, generateDynamicFAQ, generateRichAltText } from '@/utils/designContentUtils'
+import { parseManifest, buildSrcSet, pickFallbackSrc } from '@/lib/imageVariants/manifest'
 import {
     buildCustomCakeAdditionalProperties,
     buildMerchantReturnPolicy,
@@ -664,33 +665,52 @@ function SSRCakeDetails({
                 className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 overflow-hidden"
             >
                 {/* Hero Image Section */}
-                {design.original_image_url && (
-                    <figure className="relative w-full aspect-square bg-slate-100">
-                        <LazyImage
-                            src={design.original_image_url}
-                            alt={altText}
-                            title={altText}
-                            fill
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                            className="object-contain"
-                            itemProp="image"
-                        />
-                        <figcaption className="absolute bottom-0 left-0 right-0 text-xs text-slate-500 p-3 text-center bg-white/50 backdrop-blur-sm">
-                            {altText} — {captionText}
-                        </figcaption>
-                        {/* Noscript fallback for non-JS crawlers */}
-                        <noscript>
-                            <img
-                                src={design.original_image_url}
+                {design.original_image_url && (() => {
+                    // Parse the variant manifest once at the hero layer so the
+                    // <link rel="preload">, the visible <picture>, and the
+                    // <noscript> fallback all agree on the same set of URLs.
+                    // When `image_variants` is NULL/malformed, parseManifest
+                    // returns null and the renderer falls back to the original
+                    // URL with no <source srcset> (Req 5.2).
+                    const heroManifest = parseManifest(design.image_variants);
+                    const heroSrc = pickFallbackSrc(heroManifest, 1200) ?? design.original_image_url;
+                    const heroSrcSet = heroManifest ? buildSrcSet(heroManifest) : '';
+                    const heroSizes = '(max-width: 640px) 92vw, (max-width: 1024px) 60vw, 800px';
+
+                    return (
+                        <figure className="relative w-full aspect-square bg-slate-100">
+                            <LazyImage
+                                src={heroSrc}
                                 alt={altText}
-                                width={design.image_width || 1200}
-                                height={design.image_height || 1200}
-                                style={{ width: '100%', height: 'auto' }}
-                                loading="eager"
+                                title={altText}
+                                fill
+                                sizes={heroSizes}
+                                className="object-contain"
+                                itemProp="image"
+                                variants={heroManifest}
+                                priority
+                                fetchPriority="high"
                             />
-                        </noscript>
-                    </figure>
-                )}
+                            <figcaption className="absolute bottom-0 left-0 right-0 text-xs text-slate-500 p-3 text-center bg-white/50 backdrop-blur-sm">
+                                {altText} — {captionText}
+                            </figcaption>
+                            {/* Noscript fallback for non-JS crawlers. Includes
+                                srcset so even crawlers that honor responsive
+                                images get the variants. */}
+                            <noscript>
+                                <img
+                                    src={heroSrc}
+                                    {...(heroSrcSet ? { srcSet: heroSrcSet, sizes: heroSizes } : {})}
+                                    alt={altText}
+                                    width={design.image_width || 1200}
+                                    height={design.image_height || 1200}
+                                    style={{ width: '100%', height: 'auto' }}
+                                    loading="eager"
+                                />
+                            </noscript>
+                        </figure>
+                    );
+                })()}
 
                 {/* Product Details */}
                 <div className="p-4 md:p-6 space-y-4">
@@ -1173,15 +1193,29 @@ export default async function RecentSearchPage({ params }: Props) {
                 linkedMerchantProducts={linkedMerchantProducts}
             />
 
-            {/* Preload hero image for faster LCP */}
-            {design.original_image_url && (
-                <link
-                    rel="preload"
-                    as="image"
-                    href={design.original_image_url}
-                    fetchPriority="high"
-                />
-            )}
+            {/* Preload hero image for faster LCP. When variants exist we
+                also send `imagesrcset` + `imagesizes` so the preload picks
+                the smallest variant the device needs (Req 6.4). */}
+            {design.original_image_url && (() => {
+                const preloadManifest = parseManifest(design.image_variants);
+                const preloadSrc = pickFallbackSrc(preloadManifest, 1200) ?? design.original_image_url;
+                const preloadSrcSet = preloadManifest ? buildSrcSet(preloadManifest) : '';
+                const preloadSizes = '(max-width: 640px) 92vw, (max-width: 1024px) 60vw, 800px';
+                return (
+                    <link
+                        rel="preload"
+                        as="image"
+                        href={preloadSrc}
+                        // React 19 supports the lowercase image* attributes
+                        // directly. Older crawlers ignore unknown attrs so
+                        // this is safe to emit unconditionally.
+                        {...(preloadSrcSet
+                            ? { imageSrcSet: preloadSrcSet, imageSizes: preloadSizes }
+                            : {})}
+                        fetchPriority="high"
+                    />
+                );
+            })()}
 
             <SSRCakeDetails
                 design={design}

@@ -40,7 +40,7 @@ import type { Variant, VariantManifest } from '../types';
  */
 const variantArb: fc.Arbitrary<Variant> = fc.record({
     width: fc.integer({ min: 1, max: 8192 }),
-    url: fc.stringMatching(/^[A-Za-z0-9\-_./:?=&]+$/, { minLength: 5, maxLength: 80 }),
+    url: fc.stringMatching(/^[A-Za-z0-9\-_./:?=&]{5,80}$/),
     bytes: fc.integer({ min: 0, max: 5_000_000 }),
 });
 

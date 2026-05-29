@@ -4,14 +4,20 @@ import { RecommendedProductsGrid } from './RecommendedProductsGrid';
 interface RecommendedProduct {
     p_hash: string;
     original_image_url: string;
+    studio_edited_image_url?: string | null;
     price: number;
     keywords?: string;
     slug?: string;
+    availability?: string;
     analysis_json?: {
         cakeType?: string;
         icing_design?: string;
         [key: string]: unknown;
     };
+    image_width?: number | null;
+    image_height?: number | null;
+    /** Variant manifest jsonb. ProductCard parses it. */
+    image_variants?: unknown;
 }
 
 interface RecommendedProductsSectionProps {

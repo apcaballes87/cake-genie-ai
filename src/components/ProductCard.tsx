@@ -16,6 +16,7 @@ import { formatStartingPrice } from '@/lib/utils/currency';
 import { HybridAnalysisResult } from '@/types';
 import { trackSelectItem } from '@/lib/analytics';
 import { getPreferredProductImageUrl } from '@/lib/utils/imageSelection';
+import { parseManifest } from '@/lib/imageVariants/manifest';
 
 export interface ProductCardProps {
     p_hash: string;
@@ -40,11 +41,21 @@ export interface ProductCardProps {
     collectionContext?: string;
     /** GA4 item_list_name — which section/page the card appears in (e.g. 'search_results', 'popular_designs') */
     listName?: string;
+    /**
+     * Variant manifest from `cakegenie_analysis_cache.image_variants` (jsonb).
+     * Accepts the raw JSONB shape — this component parses it once via
+     * `parseManifest` so each call site doesn't have to. Pass through
+     * directly from your Supabase select; if `image_variants` is NULL or
+     * malformed, the card renders the original URL only (Req 5.2).
+     *
+     * Spec: .kiro/specs/cake-image-variant-pipeline/requirements.md Req 6.7
+     */
+    image_variants?: unknown;
 }
 
 type ProductCardContentProps = Pick<
     ProductCardProps,
-    'original_image_url' | 'studio_edited_image_url' | 'price' | 'availability' | 'priority' | 'image_width' | 'image_height' | 'backgroundOnly'
+    'original_image_url' | 'studio_edited_image_url' | 'price' | 'availability' | 'priority' | 'image_width' | 'image_height' | 'backgroundOnly' | 'image_variants'
 > & {
     title: string;
 };
@@ -118,9 +129,13 @@ const ProductCardContent = ({
     image_height,
     backgroundOnly = false,
     title,
+    image_variants,
 }: ProductCardContentProps) => {
     const avail = availability || 'normal';
     const preferredImageUrl = getPreferredProductImageUrl(studio_edited_image_url, original_image_url);
+    // parseManifest returns null for NULL / malformed JSONB — LazyImage
+    // treats null as "no variants" and renders identically to before.
+    const variants = parseManifest(image_variants);
 
     return (
         <>
@@ -151,6 +166,7 @@ const ProductCardContent = ({
                             loading={priority ? 'eager' : 'lazy'}
                             fetchPriority={priority ? 'high' : 'low'}
                             decoding="async"
+                            variants={variants}
                         />
                     )}
 

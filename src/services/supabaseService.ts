@@ -1088,7 +1088,7 @@ export async function getRecommendedProducts(
   try {
     let query = client
       .from('cakegenie_analysis_cache')
-      .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability, image_width, image_height, studio_edited_image_url')
+      .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability, image_width, image_height, studio_edited_image_url, image_variants')
       .not('original_image_url', 'is', null)
       .not('price', 'is', null)
       .neq('original_image_url', '');
@@ -1147,7 +1147,7 @@ export async function getPopularDesigns(
   try {
     let query = client
       .from('cakegenie_analysis_cache')
-      .select('p_hash, slug, keywords, original_image_url, price, alt_text, availability, image_width, image_height, studio_edited_image_url')
+      .select('p_hash, slug, keywords, original_image_url, price, alt_text, availability, image_width, image_height, studio_edited_image_url, image_variants')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
       .not('price', 'is', null)
@@ -1274,7 +1274,7 @@ export async function getAllRecentDesigns(limit: number = 24, offset: number = 0
   try {
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
-      .select('slug, keywords, original_image_url, price, alt_text, created_at, p_hash, availability, analysis_json, image_width, image_height, studio_edited_image_url')
+      .select('slug, keywords, original_image_url, price, alt_text, created_at, p_hash, availability, analysis_json, image_width, image_height, studio_edited_image_url, image_variants')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
       .not('price', 'is', null)
@@ -1505,7 +1505,7 @@ export async function getDesignsByKeyword(keywordOrSlug: string, limit: number =
       : buildCollectionOrFilter(normalizedKeyword);
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
-      .select('slug, keywords, original_image_url, price, alt_text, usage_count, p_hash, availability, analysis_json, image_width, image_height, studio_edited_image_url')
+      .select('slug, keywords, original_image_url, price, alt_text, usage_count, p_hash, availability, analysis_json, image_width, image_height, studio_edited_image_url, image_variants')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
       .or(orFilters)
@@ -1597,7 +1597,7 @@ export async function getRelatedProductsByKeywords(
     const fetchRelatedProductsWithFilters = async () => {
       const distinctiveTerms = getDistinctiveRelatedSearchTerms(keywords);
       const selectFields =
-        'p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability, image_width, image_height, usage_count, studio_edited_image_url';
+        'p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability, image_width, image_height, usage_count, studio_edited_image_url, image_variants';
 
       const buildBaseQuery = () => {
         let query = client
@@ -1827,7 +1827,7 @@ export async function getAnalysisBySlug(slug: string): Promise<SupabaseServiceRe
   try {
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
-      .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, seo_title, seo_description, created_at, studio_edited_image_url')
+      .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, seo_title, seo_description, created_at, studio_edited_image_url, image_variants')
       .eq('slug', slug)
       .single();
 

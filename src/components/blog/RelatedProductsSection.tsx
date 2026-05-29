@@ -139,11 +139,13 @@ export const RelatedProductsSection: React.FC<RelatedProductsProps> = ({
                             <ProductCard
                                 p_hash={product.p_hash}
                                 original_image_url={product.original_image_url}
+                                studio_edited_image_url={product.studio_edited_image_url}
                                 price={product.price}
                                 keywords={product.keywords}
                                 slug={product.slug}
                                 availability={product.availability}
                                 analysis_json={product.analysis_json}
+                                image_variants={product.image_variants}
                                 listName="blog_related"
                             />
                         </div>

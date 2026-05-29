@@ -26,7 +26,7 @@ const fakeClient = {} as unknown as SupabaseClient;
 // so we constrain the arbitrary to the realistic alphabet — a `?` or `#`
 // in the input would create a URL with an unintended query/fragment, but
 // the worker never feeds those characters to `variantPath`.
-const pHashArb = fc.stringMatching(/^[A-Za-z0-9_-]+$/, { minLength: 1, maxLength: 32 });
+const pHashArb = fc.stringMatching(/^[A-Za-z0-9_-]{1,32}$/);
 const widthArb = fc.integer({ min: 1, max: 8192 });
 
 describe('Property 3: variant URL determinism (Req 12.1, 12.2)', () => {
