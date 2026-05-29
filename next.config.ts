@@ -1,6 +1,18 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
+  // Inline CSS into <head> instead of emitting render-blocking external
+  // <link rel="stylesheet"> requests. Lighthouse flagged ~760ms of render-
+  // blocking CSS on the customizing PDP (two Tailwind chunks). Inlining
+  // removes that initial download from the critical path.
+  //
+  // Trade-off: first-time visitors (the bulk of SEO landing-page traffic from
+  // Google) win because there's no separate CSS round trip. Returning visitors
+  // lose the ability to serve CSS from disk cache, but the inlined CSS is part
+  // of the already-cached/ISR HTML, so the cost is minimal.
+  experimental: {
+    inlineCss: true,
+  },
   // Image optimization: unoptimized=true due to Supabase quota limits (100/month Pro Plan).
   // Images are already .webp so no format conversion needed.
   // For better Core Web Vitals, consider upgrading Supabase or using Cloudinary/Imgix.
