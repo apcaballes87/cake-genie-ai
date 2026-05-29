@@ -229,7 +229,11 @@ export const getCachedAssetUrl = (bucket: keyof typeof STORAGE_BUCKETS, path: st
 export const COMMON_ASSETS = {
   // Branding (direct Supabase, not proxied — these load on every page so the
   // proxy round trip was a sitewide cost)
-  logo: getAssetUrl('landingpage', 'genie-logo-header.webp'),
+  // 360px-wide variant: the header/footer logo never renders wider than ~164
+  // CSS px (≈287px at the test device's DPR), so the original 700x171 asset
+  // was oversized. This trims ~50% of the transfer bytes. The 700x171 original
+  // (genie-logo-header.webp) is kept in storage for any higher-DPI use.
+  logo: getAssetUrl('landingpage', 'genie-logo-header-360.webp'),
   logoSquare: getAssetUrl('cakegenie', 'genie%20logo.webp'),
   watermark: getAssetUrl('cakegenie', 'genie%20watermark.png'),
 

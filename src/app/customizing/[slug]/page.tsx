@@ -167,51 +167,67 @@ export const revalidate = 3600;
 const getDesign = cache(async (slug: string) => {
     const supabase = await createClient()
 
-    // Before exact match: check if a legacy (downgraded) version of this slug exists.
-    // If both "modern" (color-name + cake) and "legacy" (hex, no cake) slugs exist in the DB,
-    // consolidate to the legacy version to resolve Google's "duplicate without user-selected canonical."
+    // These slug-resolution lookups are independent reads. The previous
+    // implementation chained them sequentially — up to 4 Supabase round-trips
+    // (each downgrade candidate, then exact, then upgrade, then shared) before
+    // the page was found, which dominated TTFB. We fire them all in parallel
+    // and then apply the SAME priority order on the results:
+    //   1. downgrade-redirect  2. exact match  3. upgrade-redirect  4. shared
     const downgradedCandidates = downgradeCakeSlug(slug);
-    for (const candidate of downgradedCandidates) {
-        const { data: downgradedData } = await supabase
-            .from('cakegenie_analysis_cache')
-            .select('slug')
-            .eq('slug', candidate)
-            .single();
-
-        if (downgradedData) {
-            permanentRedirect(`/customizing/${candidate}`);
-        }
-    }
-
-    const { data: cacheData } = await supabase
-        .from('cakegenie_analysis_cache')
-        .select('*')
-        .eq('slug', slug)
-        .single()
-
-    if (cacheData) return withPreferredHeroImage(cacheData);
-
-    // Check if it's a legacy slug that needs a 301 redirect to the modern format
     const upgradedSlug = upgradeLegacySlug(slug);
-    if (upgradedSlug !== slug) {
-        const { data: upgradedData } = await supabase
+    const shouldCheckUpgrade = upgradedSlug !== slug;
+
+    const [downgradedResults, exactResult, upgradedResult, sharedResult] = await Promise.all([
+        // Why a legacy (downgraded) version is checked first: if both the
+        // "modern" (color-name + cake) and "legacy" (hex, no cake) slugs exist
+        // in the DB, we consolidate to the legacy version to resolve Google's
+        // "duplicate without user-selected canonical."
+        Promise.all(
+            downgradedCandidates.map((candidate) =>
+                supabase
+                    .from('cakegenie_analysis_cache')
+                    .select('slug')
+                    .eq('slug', candidate)
+                    .single()
+            )
+        ),
+        supabase
             .from('cakegenie_analysis_cache')
             .select('*')
-            .eq('slug', upgradedSlug)
-            .single();
+            .eq('slug', slug)
+            .single(),
+        shouldCheckUpgrade
+            ? supabase
+                .from('cakegenie_analysis_cache')
+                .select('*')
+                .eq('slug', upgradedSlug)
+                .single()
+            : Promise.resolve({ data: null }),
+        supabase
+            .from('cakegenie_shared_designs')
+            .select('*')
+            .eq('url_slug', slug)
+            .single(),
+    ]);
 
-        if (upgradedData) {
-            permanentRedirect(`/customizing/${upgradedSlug}`);
+    // Priority 1: a legacy (downgraded) version exists → consolidate via 301.
+    // Preserve candidate order so the most-likely match wins.
+    for (let i = 0; i < downgradedCandidates.length; i++) {
+        if (downgradedResults[i]?.data) {
+            permanentRedirect(`/customizing/${downgradedCandidates[i]}`);
         }
     }
 
-    // Check shared designs by slug
-    const { data: sharedData } = await supabase
-        .from('cakegenie_shared_designs')
-        .select('*')
-        .eq('url_slug', slug)
-        .single()
+    // Priority 2: exact slug match.
+    if (exactResult.data) return withPreferredHeroImage(exactResult.data);
 
+    // Priority 3: legacy slug that needs a 301 redirect to the modern format.
+    if (shouldCheckUpgrade && upgradedResult.data) {
+        permanentRedirect(`/customizing/${upgradedSlug}`);
+    }
+
+    // Priority 4: shared designs by slug.
+    const sharedData = sharedResult.data;
     if (sharedData) {
         // Parse customization_details if it's a string
         let details = sharedData.customization_details;
@@ -1224,6 +1240,22 @@ export default async function RecentSearchPage({ params }: Props) {
                 captionText={captionText}
                 linkedMerchantProducts={linkedMerchantProducts}
                 themeCollection={themeCollection}
+            />
+
+            {/*
+              CLS fix: hide the SSR-only block synchronously during HTML parse,
+              before first paint, instead of waiting for the client useEffect
+              (which fires after hydration and yanks the whole client UI up by
+              the SSR block's height — a ~0.9 CLS shift).
+              SEO-neutral: the content is still present in the HTML source for
+              crawlers, and JS-rendering bots end up with display:none either
+              way. No-JS users keep seeing it (script never runs).
+              CustomizingClient's useEffect still runs as a redundant fallback.
+            */}
+            <script
+                dangerouslySetInnerHTML={{
+                    __html: "(function(){var e=document.getElementById('ssr-content');if(e){e.style.display='none';}})();",
+                }}
             />
 
             <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>
