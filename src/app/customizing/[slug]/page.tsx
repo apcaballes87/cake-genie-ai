@@ -1180,29 +1180,28 @@ export default async function RecentSearchPage({ params }: Props) {
                 linkedMerchantProducts={linkedMerchantProducts}
             />
 
-            {/* Preload hero image for faster LCP. When variants exist we
-                also send `imagesrcset` + `imagesizes` so the preload picks
-                the smallest variant the device needs (Req 6.4). */}
-            {design.original_image_url && (() => {
-                const preloadManifest = parseManifest(design.image_variants);
-                const preloadSrc = pickFallbackSrc(preloadManifest, 1200) ?? design.original_image_url;
-                const preloadSrcSet = preloadManifest ? buildSrcSet(preloadManifest) : '';
-                const preloadSizes = '(max-width: 640px) 92vw, (max-width: 1024px) 60vw, 800px';
-                return (
-                    <link
-                        rel="preload"
-                        as="image"
-                        href={preloadSrc}
-                        // React 19 supports the lowercase image* attributes
-                        // directly. Older crawlers ignore unknown attrs so
-                        // this is safe to emit unconditionally.
-                        {...(preloadSrcSet
-                            ? { imageSrcSet: preloadSrcSet, imageSizes: preloadSizes }
-                            : {})}
-                        fetchPriority="high"
-                    />
-                );
-            })()}
+            {/* Preload the hero image for faster LCP.
+
+                IMPORTANT: this must point at the EXACT URL the visible LCP
+                element renders. On JS clients the visible hero is the native
+                <img> inside CustomizingHeroPanel, which renders
+                `design.original_image_url` with NO srcset. The SSR <picture>
+                (which uses the variant srcset) is hidden via display:none
+                before paint by our CLS fix, so it is no longer the LCP.
+
+                Previously this preload used the 1200px variant + imagesrcset,
+                which never matched the visible <img> — the browser preloaded a
+                variant the LCP never requested, then fetched the original late
+                and unprioritized (~2.3s load delay). Pointing the preload at
+                original_image_url makes it actually feed the LCP image. */}
+            {design.original_image_url && (
+                <link
+                    rel="preload"
+                    as="image"
+                    href={design.original_image_url}
+                    fetchPriority="high"
+                />
+            )}
 
             <SSRCakeDetails
                 design={design}

@@ -268,6 +268,13 @@ export const CustomizingHeroPanel = memo(({
                             src={src}
                             alt={alt}
                             title={title}
+                            // LCP hint: this native <img> is the largest paint
+                            // on the customizing PDP. Mark it high priority and
+                            // eager so the browser fetches it the instant it's
+                            // discovered (and reuses the matching <link rel=preload>).
+                            fetchPriority="high"
+                            loading="eager"
+                            decoding="async"
                             className="block w-full h-auto align-top cursor-zoom-in"
                             onClick={() => openHeroImageModal(modalSrc || overlaySrc || src)}
                             onLoad={imageOnLoad}
@@ -314,6 +321,11 @@ export const CustomizingHeroPanel = memo(({
                 src={src}
                 alt={alt}
                 title={title}
+                // LCP hint: see renderScrollableImage. High priority + eager so
+                // the desktop hero paints without waiting on hydration.
+                fetchPriority="high"
+                loading="eager"
+                decoding="async"
                 className="block w-full h-auto rounded-3xl cursor-zoom-in"
                 onClick={() => openHeroImageModal(modalSrc || overlaySrc || src)}
                 onLoad={imageOnLoad}
