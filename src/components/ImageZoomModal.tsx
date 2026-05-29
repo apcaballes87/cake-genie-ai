@@ -21,7 +21,10 @@ const ImageZoomModalContent = React.memo<ImageZoomModalContentProps>(({
   customizedImage,
   initialTab = 'original',
 }) => {
-  const [activeTab, setActiveTab] = useState<ImageTab>(initialTab);
+  const hasCustomized = Boolean(customizedImage && customizedImage.trim());
+  const [activeTab, setActiveTab] = useState<ImageTab>(
+    hasCustomized ? initialTab : 'original',
+  );
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -62,28 +65,29 @@ const ImageZoomModalContent = React.memo<ImageZoomModalContentProps>(({
         onClick={(e) => e.stopPropagation()}
         onContextMenu={(e) => e.preventDefault()}
       >
-        <div className="w-full flex items-center justify-between gap-3">
-          <div className="bg-black/40 p-1.5 rounded-full flex gap-2 backdrop-blur-sm">
-            <button
-              onClick={() => setActiveTab('original')}
-              className={`px-4 sm:px-6 py-2 text-sm font-semibold rounded-full transition-colors ${activeTab === 'original'
-                  ? 'bg-white text-black'
-                  : 'text-white hover:bg-white/20'
-                }`}
-            >
-              Original
-            </button>
-            <button
-              onClick={() => setActiveTab('customized')}
-              disabled={!customizedImage}
-              className={`px-4 sm:px-6 py-2 text-sm font-semibold rounded-full transition-colors ${activeTab === 'customized'
-                  ? 'bg-white text-black'
-                  : 'text-white hover:bg-white/20 disabled:text-gray-400 disabled:hover:bg-transparent'
-                }`}
-            >
-              Customized
-            </button>
-          </div>
+        <div className={`w-full flex items-center gap-3 ${hasCustomized ? 'justify-between' : 'justify-end'}`}>
+          {hasCustomized && (
+            <div className="bg-black/40 p-1.5 rounded-full flex gap-2 backdrop-blur-sm">
+              <button
+                onClick={() => setActiveTab('original')}
+                className={`px-4 sm:px-6 py-2 text-sm font-semibold rounded-full transition-colors ${activeTab === 'original'
+                    ? 'bg-white text-black'
+                    : 'text-white hover:bg-white/20'
+                  }`}
+              >
+                Original
+              </button>
+              <button
+                onClick={() => setActiveTab('customized')}
+                className={`px-4 sm:px-6 py-2 text-sm font-semibold rounded-full transition-colors ${activeTab === 'customized'
+                    ? 'bg-white text-black'
+                    : 'text-white hover:bg-white/20'
+                  }`}
+              >
+                Customized
+              </button>
+            </div>
+          )}
 
           <button
             onClick={(event) => {
