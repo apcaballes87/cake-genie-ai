@@ -308,6 +308,8 @@ interface RecentSearchDesignProp {
     created_at: string;
     availability?: string | null;
     tags?: string[] | null;
+    image_width?: number | null;
+    image_height?: number | null;
 }
 
 const firstNonBlankImageUrl = (...urls: unknown[]) => {
@@ -3383,6 +3385,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             reviewSummary={reviewSummary}
                             colorVariants={colorVariants}
                             onSelectColorVariant={handleSelectColorVariant}
+                            initialHeroAspectRatio={
+                                recentSearchDesign?.image_width && recentSearchDesign?.image_height
+                                    ? `${recentSearchDesign.image_width} / ${recentSearchDesign.image_height}`
+                                    : null
+                            }
                         />
 
 
