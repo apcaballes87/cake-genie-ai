@@ -38,14 +38,26 @@ export const PROJECT_SUPABASE_HOST: string = (() => {
 })();
 
 /**
- * Cache-Control header applied to every uploaded variant. Variants are
- * content-addressed by `(p_hash, width)`, so we mark them immutable for one
- * year — browsers and edge caches can hold onto them without revalidation
- * (Req 2.2, 9.3). When the underlying source changes, the worker overwrites
- * the same path via `upsert: true` (Req 9.2) and the cache key (URL) stays
- * the same; freshness is propagated via a fresh `last-modified` header.
+ * Cache-Control max-age value applied to every uploaded variant. Variants
+ * are content-addressed by `(p_hash, width)`, so we mark them immutable
+ * for one year — browsers and edge caches can hold onto them without
+ * revalidation (Req 2.2, 9.3).
+ *
+ * IMPORTANT: Supabase's `cacheControl` upload option only accepts the
+ * **numeric max-age value** as a string; Supabase auto-prepends
+ * `max-age=` itself when serving the object. Passing the full directive
+ * (e.g. `'public, max-age=31536000, immutable'`) results in the broken
+ * header `max-age=public, max-age=...` which CDNs reject and fall back
+ * to `no-cache`. We pass `'31536000'` here and rely on Supabase's
+ * default emission of `max-age=31536000`. The full `public, immutable`
+ * directives are configured at the bucket level in the Supabase
+ * dashboard if needed.
+ *
+ * When the underlying source changes, the worker overwrites the same
+ * path via `upsert: true` (Req 9.2) and the cache key (URL) stays the
+ * same; freshness is propagated via a fresh `last-modified` header.
  */
-const VARIANT_CACHE_CONTROL = 'public, max-age=31536000, immutable';
+const VARIANT_CACHE_CONTROL_MAX_AGE_SECONDS = '31536000';
 
 /** WebP MIME type used on every upload (Req 2.3, 10.1). */
 const VARIANT_CONTENT_TYPE = 'image/webp';
@@ -105,7 +117,7 @@ export async function uploadVariant(
         .from(VARIANT_BUCKET)
         .upload(path, buf, {
             contentType: VARIANT_CONTENT_TYPE,
-            cacheControl: VARIANT_CACHE_CONTROL,
+            cacheControl: VARIANT_CACHE_CONTROL_MAX_AGE_SECONDS,
             upsert: true,
         });
 
