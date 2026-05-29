@@ -156,17 +156,31 @@ export async function POST(req: NextRequest) {
                     type: Type.OBJECT,
                     properties: {
                         isRejected: { type: Type.BOOLEAN },
-                        reason: { type: Type.STRING },
+                        reason: {
+                            type: Type.STRING,
+                            enum: [
+                                'not_a_cake',
+                                'multiple_cakes',
+                                'cake_slice_only',
+                                'cupcakes_only',
+                                'complex_sculpture',
+                                'large_wedding_cake',
+                            ],
+                        },
                         message: { type: Type.STRING },
                     },
-                    required: ['isRejected', 'reason', 'message'],
+                    required: ['isRejected'],
                 },
                 is_tall_proportion: {
                     type: Type.BOOLEAN,
                     description: "Set to true ONLY if the cake in the image is notably tall, meaning its physical width is clearly less than its physical height."
                 },
             },
-            required: ['cakeType', 'cakeThickness', 'alt_text', 'seo_title', 'seo_description', 'rejection'],
+            // Only `rejection` is required so the model can "output ONLY rejection" per the prompt.
+            // Marking cake fields (cakeType, seo_*, etc.) as required forces constrained decoding to
+            // emit them even for non-cakes/selfies, which biases the model into accepting the image
+            // (isRejected:false). Accepted cakes still get all fields via the prompt's STEP 2 rules.
+            required: ['rejection'],
         };
 
         const aiClient = getAI(req);

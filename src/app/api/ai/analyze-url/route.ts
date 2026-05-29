@@ -295,14 +295,27 @@ export async function POST(req: NextRequest) {
                     type: Type.OBJECT,
                     properties: {
                         isRejected: { type: Type.BOOLEAN },
-                        reason: { type: Type.STRING },
+                        reason: {
+                            type: Type.STRING,
+                            enum: [
+                                'not_a_cake',
+                                'multiple_cakes',
+                                'cake_slice_only',
+                                'cupcakes_only',
+                                'complex_sculpture',
+                                'large_wedding_cake',
+                            ],
+                        },
                         message: { type: Type.STRING },
                     },
-                    required: ['isRejected', 'reason', 'message'],
+                    required: ['isRejected'],
                 },
                 is_tall_proportion: { type: Type.BOOLEAN },
             },
-            required: ['cakeType', 'cakeThickness', 'alt_text', 'seo_title', 'seo_description', 'rejection'],
+            // Only `rejection` is required so the model can "output ONLY rejection" per the prompt.
+            // Requiring cake fields forces them to be emitted even for non-cakes, biasing the model
+            // toward acceptance (isRejected:false). Accepted cakes still get all fields via the prompt.
+            required: ['rejection'],
         };
 
         const base64Image = webpBuffer.toString('base64');
