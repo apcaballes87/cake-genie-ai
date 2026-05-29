@@ -33,8 +33,8 @@ export async function middleware(request: NextRequest) {
     // staleness is fine (the redirect just sends them home with a code that
     // may have just expired, which the cart will validate again anyway).
     try {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()
         if (!supabaseUrl || !supabaseKey) return NextResponse.next()
 
         const res = await fetch(

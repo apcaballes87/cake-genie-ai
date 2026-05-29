@@ -2,6 +2,7 @@
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { CakeType, BasePriceInfo, CakeThickness, ReportPayload, CartItemDetails, HybridAnalysisResult, AiPrompt, PricingRule, PricingFeedback, AvailabilitySettings, CartItem, CacheSEOMetadata } from '@/types';
 import { createClient } from '@supabase/supabase-js';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase/env';
 import { notifyIndexNow } from './indexNowService';
 import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
@@ -16,6 +17,7 @@ import { getDesignAvailability } from '@/lib/utils/availability';
 import { MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI } from '@/types';
 import { generateCakeAnalysisSlug } from '@/lib/utils/urlHelpers';
 import { generateTagsForAnalysis } from '@/utils/tagUtils';
+import { buildCakeTitle, extractTitleInputFromAnalysis } from '@/lib/seo/cakeTitle';
 import {
   getDistinctiveRelatedSearchTerms,
   normalizeRelatedSearchPhrase,
@@ -29,8 +31,8 @@ const supabase: SupabaseClient = getSupabaseClient();
 // A completely public, cookie-less client for concurrent SSR queries
 // This prevents Next.js 15's cookies() Map.set / WeakRef.deref stack overflows.
 export const publicSupabaseClient = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY,
   {
     auth: {
       autoRefreshToken: false,
@@ -869,7 +871,10 @@ export async function cacheAnalysisResult(
 
     // Generate fallback SEO fields if AI didn't provide them
     const altText = analysisResult.alt_text || `${keywords || 'Custom'} cake design`;
-    const seoTitle = analysisResult.seo_title || `${keywords || 'Custom'} Cake | Genie.ph`;
+    // Legacy AI/keyword title — retained ONLY as a token source for tag extraction
+    // (preserves historical tag behaviour). The customer-facing seo_title is built
+    // deterministically below via buildCakeTitle (R10), NOT from this value.
+    const tagSourceTitle = analysisResult.seo_title || `${keywords || 'Custom'} Cake | Genie.ph`;
     const seoDescription = analysisResult.seo_description || `Get instant pricing for this ${keywords || 'custom'} cake design. Customize and order at Genie.ph. Starting at ₱${totalPrice.toLocaleString()}.`;
     const fingerprintedAt = new Date().toISOString();
 
@@ -946,8 +951,14 @@ export async function cacheAnalysisResult(
       supportElements,
     });
 
-    // Generate tags
-    const tags = generateTagsForAnalysis(analysisResult, keywords, seoTitle, altText);
+    // Generate tags (uses the legacy title string only as a token source)
+    const tags = generateTagsForAnalysis(analysisResult, keywords, tagSourceTitle, altText);
+
+    // Build the customer-facing SEO title deterministically from structured
+    // attributes (R10). Never derived from the AI seo_title or cake_messages (PII).
+    const seoTitle = buildCakeTitle(
+      extractTitleInputFromAnalysis(analysisResult, keywords, tags),
+    );
     const sourceInfoWasProvided = persistSourceAsset && (imageUrl !== undefined || imageBlob !== undefined);
     const initialOrbCoverage = sourceInfoWasProvided
       ? {

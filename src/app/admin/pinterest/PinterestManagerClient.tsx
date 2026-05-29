@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react';
 import { getDesignCategories, getDesignsByKeyword } from '@/services/supabaseService';
 import { createClient } from '@supabase/supabase-js';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase/env';
 import { slugToTitle } from '@/lib/utils/pinterest';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
 );
 
 export default function PinterestManagerClient() {

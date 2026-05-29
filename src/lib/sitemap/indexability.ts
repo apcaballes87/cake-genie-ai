@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { upgradeLegacySlug } from '@/lib/utils/urlHelpers'
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase/env'
 
 export const SITEMAP_CHUNK_SIZE = 1000
 export const CUSTOMIZING_SITEMAP_MIN_AGE_DAYS = 7
@@ -66,8 +67,8 @@ export type SitemapChunkHints = {
 
 function getSupabaseClient() {
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY,
   )
 }
 
