@@ -341,7 +341,7 @@ Phase 4 and Phase 6 ship in the **same release**: the webhook starts producing m
 ### Phase 7 — Backfill CLI and production run
 
 - [ ] 7. Backfill
-  - [ ] 7.1 Implement `scripts/backfill-image-variants.ts` CLI
+  - [x] 7.1 Implement `scripts/backfill-image-variants.ts` CLI
     - **Description:** Node CLI run via `tsx`. Args: `--limit=<n>`, `--dry-run`, `--batch-size=<n>` (default 25), `--from-id=<uuid>`. Selects rows where effective source is non-empty AND `image_variants IS NULL`, ORDER BY created_at DESC, LIMIT batch OFFSET. For each row, calls `runVariantPipelineForRow` with the service-role client. Logs progress every batch. Sleeps 1000 ms between batches. Per-row failures append to `./logs/variant-backfill-failures-<isoDate>.ndjson`. Exit code 0 regardless of per-row failures. Reuses the same `selectEffectiveSource` and rehost helpers as the webhook.
     - **Files touched:** `scripts/backfill-image-variants.ts`
     - **Acceptance criteria:**
@@ -354,7 +354,7 @@ Phase 4 and Phase 6 ship in the **same release**: the webhook starts producing m
       - Re-running skips rows where `image_variants` is already non-NULL (verified by SELECT count before and after).
     - **Requirements covered:** Req 7.1, 7.2, 7.4, 7.5, 7.6, 7.7, 7.8, 7.9, 7.10, 7.11
 
-  - [ ]* 7.2 Backfill dry-run smoke test on prod (limit 10)
+  - [x] 7.2 Backfill dry-run smoke test on prod (limit 10)
     - **Description:** Run `tsx scripts/backfill-image-variants.ts --dry-run --limit=10` against the production Supabase project (read-only because of `--dry-run`).
     - **Acceptance criteria:**
       - Run completes without error.
