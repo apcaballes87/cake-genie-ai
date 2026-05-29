@@ -180,7 +180,12 @@ export const ANALYSIS_PHRASES = [
   'Almost there, just adding the finishing touches',
 ];
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const rawSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+// Defensive: env vars pasted into Vercel / .env files sometimes pick up
+// trailing newlines or surrounding whitespace. We strip both ends so the
+// resulting URLs concatenated downstream stay valid. (Webhook smoke test
+// caught a `\n` between host and `/storage/v1/...` once.)
+const supabaseUrl = typeof rawSupabaseUrl === 'string' ? rawSupabaseUrl.trim() : rawSupabaseUrl;
 
 if (!supabaseUrl || supabaseUrl.includes('YOUR_SUPABASE_URL')) {
   throw new Error("Supabase URL is required for asset paths. Please update it in the `.env.local` file.");

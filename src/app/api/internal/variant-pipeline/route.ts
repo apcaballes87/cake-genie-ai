@@ -106,8 +106,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     // ---- 3. Build admin client + resolve effective source ------------------
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    // Trim env vars defensively — pasting into Vercel sometimes picks up
+    // trailing newlines that would propagate into every constructed URL.
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
     if (!supabaseUrl || !supabaseServiceKey) {
         return NextResponse.json(
             { error: 'server_misconfigured' },
