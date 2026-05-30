@@ -902,22 +902,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         onFallback: handleIcingMaskFallback,
     });
 
-    // Auto-apply the current icing color when a mask becomes ready (prefetch complete).
-    // This makes the toggle start in the ON state with the design's default color.
-    const autoAppliedRef = useRef<string | null>(null); // tracks which cacheId was auto-applied
-    useEffect(() => {
-        if (icingMaskStatus !== 'ready') return;
-        const cacheId = recentSearchDesign?.id || null;
-        if (!cacheId) return;
-        // Only auto-apply once per design (not on every re-render)
-        if (autoAppliedRef.current === cacheId) return;
-        autoAppliedRef.current = cacheId;
-
-        const hex = icingDesign?.colors?.top || icingDesign?.colors?.side || '#FFFFFF';
-        const name = COLORS.find(c => c.hex.toLowerCase() === hex.toLowerCase())?.name ?? hex;
-        void recolorIcing(hex, name);
-    }, [icingMaskStatus, recentSearchDesign?.id, icingDesign?.colors?.top, icingDesign?.colors?.side, recolorIcing]);
-
     // "Fix Mask" handler: clears the cached mask and immediately regenerates it
     // with the current icing color, showing the hero loading animation during generation.
     const handleRegenerateMask = useCallback(async () => {
