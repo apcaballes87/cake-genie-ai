@@ -1,5 +1,17 @@
 # Requirements Document
 
+> **REVISION (slug-key for SEO).** As of the customizing-pdp-seo-fixes work,
+> the Variant_Path storage key changed from the Cache_Row `p_hash` to the
+> design **slug** — `variants/{slug}/{width}.webp` — so the rendered hero image
+> URL carries keyword signal for Google Images. When a row has no usable slug,
+> the pipeline falls back to `p_hash` (preserving the original behaviour for
+> those rows). All "`{p_hash}`" references in Req 2.1, Req 9, and Req 12 below
+> should be read as "the design slug, or `p_hash` when the slug is absent."
+> Determinism (Req 12) still holds: the key is a pure function of
+> `(slug-or-p_hash, width)`. Existing rows were migrated to slug paths via
+> `scripts/repath-variants-to-slug.ts`; the old `p_hash` objects are orphaned
+> and removed by `scripts/cleanup-orphan-variant-objects.ts`.
+
 ## Introduction
 
 The Genie.ph Next.js cake marketplace renders user-uploaded cake images at their full original resolution (typically 2-4 MB at 2000+px wide) on customizing PDPs, search, collections, and merchant product pages. Because `next.config.ts` sets `images: { unoptimized: true }`, these full-size files are downloaded by every device — including phones that display the image at ~400px wide. Field LCP averages 6.5s on `/customizing/[slug]` and 6.9s on `/customizing`, well above the Core Web Vitals "poor" threshold of 4000 ms.
@@ -20,7 +32,7 @@ This feature introduces an image variant pipeline that generates multiple pre-si
 - **Variant_Manifest**: The JSON value stored on `Cache_Row` describing the Variant_Set (widths, URLs, byte sizes, format, source).
 - **LCP**: Largest Contentful Paint, measured against Web Vitals thresholds (good: ≤2500 ms, poor: >4000 ms).
 - **Storage_Bucket**: The `cakegenie` public Supabase storage bucket at `cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/...`.
-- **Variant_Path**: The storage object key for a Variant within Storage_Bucket, derived deterministically from the Cache_Row identity and target width.
+- **Variant_Path**: The storage object key for a Variant within Storage_Bucket, derived deterministically from the Cache_Row identity and target width. Per the slug-key revision, the identity component is the design **slug** (`variants/{slug}/{width}.webp`), falling back to `p_hash` when the slug is absent.
 - **Pretty_Printer**: The function that produces the `srcset` string from a Variant_Manifest.
 - **Variant_Parser**: The function that reads a Variant_Manifest from a Cache_Row and returns a typed structure for rendering.
 - **Foreign_Original_Url**: A value of `original_image_url` whose URL host is not `cqmhanqnfybyxezhobkx.supabase.co` (e.g. `i.pinimg.com`, Instagram CDNs, manual import URLs).
@@ -48,7 +60,7 @@ This feature introduces an image variant pipeline that generates multiple pre-si
 
 #### Acceptance Criteria
 
-1. THE Variant_Pipeline SHALL store every Variant in the `cakegenie` Storage_Bucket under the path `variants/{p_hash}/{width}.webp`, where `{p_hash}` is the Cache_Row `p_hash` value and `{width}` is the integer target width.
+1. THE Variant_Pipeline SHALL store every Variant in the `cakegenie` Storage_Bucket under the path `variants/{key}/{width}.webp`, where `{key}` is the Cache_Row design `slug` (or the `p_hash` when the slug is null/empty) and `{width}` is the integer target width.
 2. THE Variant_Pipeline SHALL upload Variants with `cacheControl: "public, max-age=31536000, immutable"`.
 3. THE Variant_Pipeline SHALL upload Variants with `contentType: "image/webp"`.
 4. WHEN a Variant already exists at the target Variant_Path, THE Variant_Pipeline SHALL overwrite the existing object (`upsert: true`).
@@ -140,7 +152,7 @@ This feature introduces an image variant pipeline that generates multiple pre-si
 
 #### Acceptance Criteria
 
-1. THE Variant_Path SHALL be a deterministic function of the Cache_Row `p_hash` and the target width only.
+1. THE Variant_Path SHALL be a deterministic function of the Cache_Row storage key (design `slug`, or `p_hash` when the slug is absent) and the target width only.
 2. WHEN the Original_Image for a Cache_Row is replaced, THE Variant_Pipeline SHALL overwrite the existing Variant objects at the same Variant_Path values.
 3. WHEN the Effective_Source_Url for a Cache_Row changes — including when `studio_edited_image_url` is set or updated for a row whose variants were previously generated from `original_image_url` — THE Variant_Pipeline SHALL re-run and overwrite all Variants at the same Variant_Path values.
 4. THE Variant_Pipeline SHALL set `cacheControl: "public, max-age=31536000, immutable"` on every uploaded Variant.
@@ -172,7 +184,7 @@ This feature introduces an image variant pipeline that generates multiple pre-si
 
 #### Acceptance Criteria
 
-1. FOR ALL Cache_Rows with the same `p_hash` and the same target width, THE Variant_Pipeline SHALL produce the same Variant URL string on every invocation.
+1. FOR ALL Cache_Rows with the same storage key (design `slug`, or `p_hash` when absent) and the same target width, THE Variant_Pipeline SHALL produce the same Variant URL string on every invocation.
 2. THE Variant_Pipeline SHALL NOT include timestamps, random tokens, or run identifiers in the Variant URL.
 
 ### Requirement 13: Acceptance criteria for LCP improvement

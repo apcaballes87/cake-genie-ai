@@ -1,5 +1,20 @@
 # Design Document: Cake Image Variant Pipeline
 
+> **REVISION (slug-key for SEO) — supersedes `{p_hash}` paths below.**
+> The variant storage key changed from `p_hash` to the design **slug**:
+> `variants/{slug}/{width}.webp` (falling back to `p_hash` only when a row has
+> no slug). This makes the rendered hero image URL keyword-rich for Google
+> Images, and the PDP JSON-LD `ImageObject` + image sitemap were updated to
+> point at the same rendered variant URL (embedded image == structured data ==
+> sitemap). `slug` is threaded through `RunForRowInput` → `runForRow.ts` →
+> `storage.ts` (`variantPath(key, width)` / `uploadVariant(client, key, …)` /
+> `publicVariantUrl(client, key, …)`). Determinism is preserved: the key is a
+> pure function of `(slug-or-p_hash, width)`. Throughout this document, read
+> every "`variants/{p_hash}/{w}.webp`" as "`variants/{slug-or-p_hash}/{w}.webp`".
+> Migration of existing rows: `scripts/repath-variants-to-slug.ts` (copy +
+> manifest rewrite); orphan cleanup of old `p_hash` objects:
+> `scripts/cleanup-orphan-variant-objects.ts`. See `.kiro/specs/customizing-pdp-seo-fixes`.
+
 ## Overview
 
 The variant pipeline adds a server-side `sharp`-based image resizing stage to the existing cake-image upload flow and a one-time backfill for the ~8,000 historical rows in `cakegenie_analysis_cache`. For every cake design, the pipeline produces up to three WebP renditions (400 / 800 / 1200 px wide), uploads them to deterministic paths in the existing public `cakegenie` Supabase Storage bucket, and writes a JSON manifest to a new `image_variants jsonb` column on the cache row. The pipeline keys off the *displayed* image — `studio_edited_image_url` when present, otherwise `original_image_url` — so the variants always match what the user actually sees on the PDP. PDPs, product cards, and listing pages render those URLs through `next/image` with a properly-tuned `sizes` attribute, letting browsers pick the smallest variant that fits the viewport.
@@ -232,6 +247,11 @@ export interface SelectedSource {
 export interface RunForRowInput {
   pHash: string;
   /**
+   * Design slug — the variant storage key (`variants/{slug}/{w}.webp`) per the
+   * slug-key revision. Falls back to `pHash` when null/blank.
+   */
+  slug?: string | null;
+  /**
    * The two source URL columns from the Cache_Row. The pipeline calls
    * selectEffectiveSource() to pick one (studio-edited preferred when present
    * and non-empty after trimming, otherwise original) per Req 14.1, and
@@ -267,11 +287,11 @@ export async function generateVariants(
   opts?: { targetWidths?: number[]; quality?: number; effort?: number }
 ): Promise<GenerateResult>;
 
-// storage.ts
-export function variantPath(pHash: string, width: number): string;            // "variants/<pHash>/<width>.webp"
-export function publicVariantUrl(client: SupabaseClient, pHash: string, width: number): string;
+// storage.ts — `key` is the design slug (slug-key revision), or p_hash when absent.
+export function variantPath(key: string, width: number): string;            // "variants/<key>/<width>.webp"
+export function publicVariantUrl(client: SupabaseClient, key: string, width: number): string;
 export async function uploadVariant(
-  client: SupabaseClient, pHash: string, width: number, buf: Buffer
+  client: SupabaseClient, key: string, width: number, buf: Buffer
 ): Promise<{ url: string }>;
 
 // manifest.ts
@@ -374,8 +394,8 @@ The accompanying `.runbook.md` covers: (a) the column is additive and backward-c
 | Aspect | Value |
 | --- | --- |
 | Bucket | `cakegenie` (existing, public) |
-| Variant path template | `variants/{p_hash}/{width}.webp` (Req 2.1) |
-| Public URL | `https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/variants/{p_hash}/{width}.webp` |
+| Variant path template | `variants/{slug}/{width}.webp` (slug-key revision; `p_hash` when slug absent. Orig. Req 2.1) |
+| Public URL | `https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/variants/{slug}/{width}.webp` |
 | `Cache-Control` | `public, max-age=31536000, immutable` (Req 2.2, 9.3) |
 | `Content-Type` | `image/webp` (Req 2.3) |
 | Upsert | `true` (Req 2.4, 9.2) |

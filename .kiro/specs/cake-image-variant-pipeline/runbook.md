@@ -6,6 +6,20 @@ Spec: `.kiro/specs/cake-image-variant-pipeline/{requirements,design,tasks}.md`.
 This file is updated as tasks complete. Each section maps to a task ID in
 `tasks.md`.
 
+> **REVISION (slug-key for SEO).** Variant storage keys changed from `p_hash`
+> to the design slug — `variants/{slug}/{width}.webp` — for Google Images
+> keyword signal. New designs get slug paths automatically (slug threaded
+> through the webhook + backfill). Existing rows were migrated and the PDP
+> JSON-LD + image sitemap now reference the rendered variant URL. Operator
+> scripts (in `scripts/`, not this pipeline's CLI):
+> - `repath-variants-to-slug.ts` — one-time copy of existing variant objects
+>   from `p_hash` paths to slug paths + manifest rewrite (preview default,
+>   `--confirm` to apply, resumable). **Done in production.**
+> - `cleanup-orphan-variant-objects.ts` — deletes the old orphaned `p_hash`
+>   variant folders no longer referenced by any manifest (preview default,
+>   `--confirm` to apply, aborts if referenced-key set looks incomplete).
+>   **Run only after the slug-key deploy is live and stable.**
+
 ---
 
 ## Phase 1 — Foundation
