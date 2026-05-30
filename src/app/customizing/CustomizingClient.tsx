@@ -3839,9 +3839,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         onSelectItem={setSelectedItem}
                         onIcingDesignChange={onIcingDesignChange}
                         onIcingColorRecolor={handleIcingColorToggle}
-                                    onRegenerateMask={handleRegenerateMask}
-                                    onDisableMask={disableMask}
-                                    isMaskActive={isMaskOverlayActive}
                         isGeneratingMask={icingMaskStatus === 'generating'}
                         onRevert={() => {
                             if (analysisResult?.icing_design && icingDesign) {

@@ -4,7 +4,7 @@ import { normalizeAiRouteError } from '@/lib/ai/routeError';
 
 export const maxDuration = 180;
 const DEFAULT_MODEL_NAME = 'gemini-3.1-flash-image-preview';
-const COLOR_ONLY_MODEL_NAME = 'gemini-2.5-flash-image';
+const COLOR_ONLY_MODEL_NAME = 'gemini-3.1-flash-image-preview';
 
 type EditImageModelName = typeof DEFAULT_MODEL_NAME | typeof COLOR_ONLY_MODEL_NAME;
 type ResponseModality = 'TEXT' | 'IMAGE';

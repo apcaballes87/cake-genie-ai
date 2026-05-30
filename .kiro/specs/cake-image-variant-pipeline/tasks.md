@@ -340,7 +340,7 @@ Phase 4 and Phase 6 ship in the **same release**: the webhook starts producing m
 
 ### Phase 7 — Backfill CLI and production run
 
-- [ ] 7. Backfill
+- [x] 7. Backfill
   - [x] 7.1 Implement `scripts/backfill-image-variants.ts` CLI
     - **Description:** Node CLI run via `tsx`. Args: `--limit=<n>`, `--dry-run`, `--batch-size=<n>` (default 25), `--from-id=<uuid>`. Selects rows where effective source is non-empty AND `image_variants IS NULL`, ORDER BY created_at DESC, LIMIT batch OFFSET. For each row, calls `runVariantPipelineForRow` with the service-role client. Logs progress every batch. Sleeps 1000 ms between batches. Per-row failures append to `./logs/variant-backfill-failures-<isoDate>.ndjson`. Exit code 0 regardless of per-row failures. Reuses the same `selectEffectiveSource` and rehost helpers as the webhook.
     - **Files touched:** `scripts/backfill-image-variants.ts`
@@ -362,7 +362,7 @@ Phase 4 and Phase 6 ship in the **same release**: the webhook starts producing m
       - At least one of the 10 rows has a non-Supabase host (Pinterest / Instagram) in the dry-run log to exercise the rehost code path; if none do, manually craft a query to find one and re-run with `--from-id=<that-row>`.
       - _Requirements: Req 7.10, 15.1_
 
-  - [ ]* 7.3 Backfill validation run (limit 100, real writes)
+  - [x]* 7.3 Backfill validation run (limit 100, real writes)
     - **Description:** Run `tsx scripts/backfill-image-variants.ts --limit=100` against prod with the service-role key.
     - **Acceptance criteria:**
       - 100 rows processed with ≥ 95 successes.
@@ -373,7 +373,7 @@ Phase 4 and Phase 6 ship in the **same release**: the webhook starts producing m
       - **⚠ Requires user approval:** Production data write. Pause for explicit operator confirmation.
       - _Requirements: Req 7.1, 7.3, 5.6, 15.2, 16.1, 16.2_
 
-  - [ ]* 7.4 Backfill full production run
+  - [x]* 7.4 Backfill full production run
     - **Description:** Run `tsx scripts/backfill-image-variants.ts` with no `--limit` (or in chunks of 1000/day per the rollout plan) against prod.
     - **Acceptance criteria:**
       - All eligible rows have non-NULL `image_variants` or `image_variants_status='failed'`.
@@ -382,7 +382,7 @@ Phase 4 and Phase 6 ship in the **same release**: the webhook starts producing m
       - **⚠ Requires user approval:** Long-running production write. Pause for explicit operator confirmation. Estimated ~2.5 h.
       - _Requirements: Req 7.1, 7.2, 7.6, 7.8, 13.1_
 
-  - [ ] 7.5 Checkpoint — Ensure all tests pass before production rollout
+  - [x] 7.5 Checkpoint — Ensure all tests pass before production rollout
     - Ensure all unit and property tests pass: `npm test -- --run`.
     - Ensure the webhook smoke test (4.6), the dry-run (7.2), and the validation run (7.3) all completed cleanly.
     - Ask the user before proceeding to 7.4 (full production run) and Phase 8 monitoring.
