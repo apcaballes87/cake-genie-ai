@@ -113,6 +113,11 @@ export async function runVariantPipelineForRow(
     const errors: RunForRowResult['errors'] = [];
     const fetchSource = opts.fetchSource ?? defaultFetchSource;
 
+    // Storage key for variant object paths. Prefer the descriptive design
+    // slug so rendered image URLs carry keyword signal (Google Images);
+    // fall back to p_hash for rows without a usable slug.
+    const storageKey = normalizeStorageKey(input.slug) ?? input.pHash;
+
     // ---- Stage 1: selection ------------------------------------------------
     const selected = selectEffectiveSource({
         studio_edited_image_url: input.studioEditedImageUrl ?? null,
@@ -208,7 +213,7 @@ export async function runVariantPipelineForRow(
     // without writing to storage or the DB. We still produce a synthetic
     // manifest so the caller can log what would have happened.
     if (input.dryRun) {
-        const manifest = buildManifest(input.pHash, input.client, generated.encoded, selected);
+        const manifest = buildManifest(storageKey, input.client, generated.encoded, selected);
         // Dry-run: synthesize Variant entries to feed the rehost helper so
         // the result is identical to a real run with all uploads succeeding.
         const syntheticUploads: Variant[] = manifest.variants.map((v) => ({
@@ -229,7 +234,7 @@ export async function runVariantPipelineForRow(
     const uploadedVariants: Variant[] = [];
     for (const enc of generated.encoded) {
         try {
-            const { url } = await uploadVariant(input.client, input.pHash, enc.width, enc.buffer);
+            const { url } = await uploadVariant(input.client, storageKey, enc.width, enc.buffer);
             uploadedVariants.push({
                 width: enc.width,
                 url,
@@ -364,7 +369,7 @@ function maybeRehostFlag(
  * `publicVariantUrl` so the URLs match what production would write.
  */
 function buildManifest(
-    pHash: string,
+    storageKey: string,
     client: SupabaseClient,
     encoded: Array<{ width: number; buffer: Buffer; bytes: number }>,
     selected: SelectedSource,
@@ -376,10 +381,22 @@ function buildManifest(
             .sort((a, b) => a.width - b.width)
             .map((e) => ({
                 width: e.width,
-                url: publicVariantUrl(client, pHash, e.width),
+                url: publicVariantUrl(client, storageKey, e.width),
                 bytes: e.bytes,
             })),
     };
+}
+
+/**
+ * Normalizes a candidate storage key (the design slug). Trims whitespace and
+ * returns null for empty/whitespace-only values so the caller falls back to
+ * p_hash. Slugs are already URL-safe (lowercase, hyphenated) so no further
+ * sanitization is applied.
+ */
+function normalizeStorageKey(slug: string | null | undefined): string | null {
+    if (typeof slug !== 'string') return null;
+    const trimmed = slug.trim();
+    return trimmed.length > 0 ? trimmed : null;
 }
 
 /** Hostname extraction that doesn't throw on malformed URLs. */

@@ -14,21 +14,13 @@
  */
 export const FALLBACK_MIN_PRICE = 1099;
 
-/**
- * Title_Budget is `60 - len(' | Genie.ph') = 60 - 11 = 49` (R6.1).
- * The root layout `metadata.title` template appends ` | Genie.ph`, so the
- * in-route title must stay under this budget to keep the rendered `<title>`
- * within Google's ~60 cp SERP cap.
- */
-export const TITLE_BUDGET = 49;
-
-/** Allowed Price_Segment numeric upper bound (R6.4). */
+/** Upper bound for a sane price value used in the meta-description suffix. */
 const PRICE_MAX = 9_999_999;
 
 /**
  * Truncates `text` to a maximum length at a word boundary.
  *
- * Contract (R5.1, R6.7):
+ * Contract (R5.1):
  * - `result.length <= maxLength` always.
  * - NEVER appends `'...'` or `'…'`. Callers must handle their own ellipsis
  *   policy (see `optimizeMetaDescription` for the trailing-punct strip).
@@ -150,119 +142,6 @@ export function optimizeMetaDescription(
     }
 
     return truncated + suffix;
-}
-
-/**
- * Builds the in-route PDP `<title>` body (the root layout template appends ` | Genie.ph`).
- *
- * Algorithm (R6.1–R6.9):
- * 1. Trim `seoTitle` and strip any trailing ` | Genie.ph` (case-insensitive).
- * 2. If empty, build from up-to-2 capitalized tags + (keywords || 'Custom') + ' Cake Design'.
- * 3. Ensure the result contains 'Cake Design' (case-insensitive); append if missing.
- * 4. Append ' | Php X,XXX' iff price is finite, > 0, ≤ 9_999_999.
- * 5. Fast-path return if `[...combined].length <= TITLE_BUDGET`.
- * 6. Otherwise, truncate the leading product-name segment at the last word boundary
- *    that brings the total at or below `TITLE_BUDGET`.
- * 7. If still over budget, emit one `console.warn` (with slug); hard-truncate to
- *    `TITLE_BUDGET + 4 = 53` cp at a word boundary.
- *
- * Postconditions:
- * - Result NEVER contains ` with Price` (R6.2, R6.3).
- * - Result ALWAYS contains 'Cake Design' (R6.6).
- * - `[...result].length <= TITLE_BUDGET + 4 = 53` (R6.8).
- */
-export function buildPdpTitle(input: {
-    seoTitle: string | null | undefined;
-    keywords: string | null | undefined;
-    tags: string[] | null | undefined;
-    price: number | null | undefined;
-    slug: string;
-}): string {
-    const { seoTitle, keywords, tags, price, slug } = input;
-
-    // Step 1: assemble base title.
-    let base = (seoTitle ?? '').trim().replace(/\s*\|\s*Genie\.ph\s*$/i, '').trim();
-    // R6.2 / R6.3: never include ' with Price' (case-insensitive). Strip if upstream
-    // data slipped it in (e.g., legacy seo_title rows).
-    base = base.replace(/\s+with\s+price\b/gi, '').trim();
-
-    // Step 2: fallback assembly from tags + keywords.
-    if (base.length === 0) {
-        const tagList = Array.isArray(tags) ? tags.slice(0, 2) : [];
-        const tagsPrefix = tagList
-            .map((t) => (typeof t === 'string' && t.length > 0 ? t.charAt(0).toUpperCase() + t.slice(1) : ''))
-            .filter(Boolean)
-            .join(' ');
-        const kw = (typeof keywords === 'string' && keywords.trim().length > 0) ? keywords : 'Custom';
-        base = (tagsPrefix ? `${tagsPrefix} ` : '') + `${kw} Cake Design`;
-    }
-
-    // Step 3: ensure 'Cake Design' presence (R6.6).
-    if (!/cake\s*design/i.test(base)) {
-        base = /cake\s*$/i.test(base) ? `${base} Design` : `${base} Cake Design`;
-    }
-
-    // Step 4: Price_Segment iff valid (R6.4, R6.5).
-    let priceSegment = '';
-    if (
-        typeof price === 'number' &&
-        Number.isFinite(price) &&
-        price > 0 &&
-        price <= PRICE_MAX
-    ) {
-        priceSegment = ` | Php ${Math.round(price).toLocaleString('en-US')}`;
-    }
-
-    let combined = base + priceSegment;
-
-    // Step 5: fits-as-is fast path.
-    if ([...combined].length <= TITLE_BUDGET) return combined;
-
-    // Step 6: word-boundary truncation of leading product-name (R6.7).
-    // Strategy: cut leading at the first space at or after `targetLeadingLength`.
-    // This removes minimum chars while preserving word boundaries; result may
-    // overshoot TITLE_BUDGET by the gap to that space, which step 7 handles.
-    const lower = combined.toLowerCase();
-    const cakeDesignIdx = lower.indexOf(' cake design');
-    if (cakeDesignIdx > 0) {
-        const overflow = [...combined].length - TITLE_BUDGET;
-        const leading = combined.slice(0, cakeDesignIdx);
-        const rest = combined.slice(cakeDesignIdx);
-        const targetLeadingLength = leading.length - overflow;
-        if (targetLeadingLength > 0) {
-            let firstSpace = -1;
-            const start = Math.max(0, targetLeadingLength);
-            for (let i = start; i < leading.length; i += 1) {
-                if (leading[i] === ' ') {
-                    firstSpace = i;
-                    break;
-                }
-            }
-            if (firstSpace > 0) {
-                combined = leading.slice(0, firstSpace) + rest;
-            } else {
-                // No space at/after target — fall back to last space in leading
-                // so we still gain some truncation while preserving a word boundary.
-                const lastSpace = leading.lastIndexOf(' ');
-                if (lastSpace > 0) {
-                    combined = leading.slice(0, lastSpace) + rest;
-                }
-            }
-        }
-    }
-
-    if ([...combined].length <= TITLE_BUDGET) return combined;
-
-    // Step 7: still over budget — emit one console.warn and hard-truncate to ≤ 53 cp.
-    console.warn(`[PDP title overflow] slug=${slug} length=${[...combined].length}`);
-    if ([...combined].length > TITLE_BUDGET + 4) {
-        const cap = TITLE_BUDGET + 4;
-        const cut = [...combined].slice(0, cap).join('');
-        const lastSpace = cut.lastIndexOf(' ');
-        combined = lastSpace > TITLE_BUDGET ? cut.slice(0, lastSpace) : cut;
-    }
-
-    return combined;
 }
 
 /**

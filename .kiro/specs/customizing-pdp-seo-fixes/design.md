@@ -2,13 +2,15 @@
 
 ## Overview
 
-This feature delivers seven point-fixes to the `/customizing/[slug]` route so that every rendered PDP emits Google-compliant Product JSON-LD, a clean meta title under the 60 cp browser/SERP cap, and a meta description free of mid-sentence ellipsis-pipe artifacts. The fixes touch three locations:
+This feature improves the `/customizing/[slug]` route so every rendered PDP emits Google-compliant Product JSON-LD, a meta description free of mid-sentence ellipsis-pipe artifacts, and — the major change versus the original plan — a **deterministically reconstructed, customer-facing `<title>`** built from the design's own structured attributes (theme, colour, key detail, type, occasion) rather than the AI-emitted `seo_title`. The fixes touch:
 
+- `src/lib/seo/cakeTitle.ts` — NEW pure module `buildCakeTitle` + `extractTitleInputFromAnalysis` + IP/occasion/detail vocabularies (R6, R7, R10 surface; single source of truth).
 - `src/lib/commerce/machineReadable.ts` — Schema_Builder pure functions (R2, R3 surfaces).
 - `src/app/customizing/[slug]/page.tsx` — Metadata_Builder helpers and `DesignSchema` (R1, R4, R5, R6 surfaces).
-- A one-time SQL migration `supabase/migrations/<timestamp>_strip_id_leak_from_seo_title.sql` (R7 surface).
+- `src/services/supabaseService.ts` — write path persists a `buildCakeTitle` result for new designs (R10 surface).
+- An out-of-band Node/TS backfill `scripts/backfill-cake-titles.ts` that reconstructs `seo_title` for all ~10,591 rows, plus a thin SQL migration creating the backup table (R7 surface).
 
-The migration runs out-of-band (operator-invoked, not on every deploy) and depends on no application code. The application changes are pure additions to existing pure functions and pure components — no new abstractions, no architectural shifts.
+The backfill runs out-of-band (operator-invoked, not on every deploy). The application changes are additive to existing pure functions and components, plus the one write-path line and the new title module — no architectural shifts.
 
 ### Request Flow
 
@@ -18,7 +20,7 @@ flowchart TD
     GenMeta --> ResRich[resolveRichDescription]
     GenMeta --> OptDesc[optimizeMetaDescription<br/>R5]
     OptDesc --> TruncWB[truncateToWordBoundary<br/>R5/R6 contract change]
-    GenMeta --> TitleB[buildTitle<br/>R6]
+    GenMeta --> TitleB[stored Reconstructed_Title<br/>buildCakeTitle, R6 — no price segment]
 
     Req --> Page[Customizing PDP server component]
     Page --> FetchDesign[getDesign cache]
@@ -37,9 +39,14 @@ flowchart TD
     DS --> JSONLD[<script type=application/ld+json><br/>Product / ItemPage / Breadcrumb / DefinedTermSet]
 
     subgraph OOB[Out-of-band]
-        Mig[Migration: strip_id_leak_from_seo_title<br/>preview / apply / restore]
+        Mig[backfill-cake-titles.ts<br/>preview / --confirm apply / --restore<br/>uses buildCakeTitle]
         Mig --> Cache[(cakegenie_analysis_cache.seo_title)]
         Mig --> Backup[(cakegenie_analysis_cache_seo_title_backup)]
+    end
+
+    subgraph WritePath[Write path — new designs]
+        WP[supabaseService upsert] --> BCT[buildCakeTitle<br/>extractTitleInputFromAnalysis, R10]
+        BCT --> Cache
     end
 
     Cache -. read .-> FetchDesign
@@ -47,13 +54,13 @@ flowchart TD
 
 The new constants `PH_Country_Code` and `CUSTOM_CAKE_LEAD_TIME` are introduced in `machineReadable.ts` and imported by the existing `buildMerchantReturnPolicy` and `buildOfferShippingDetails` helpers respectively. No call site changes are required for those helpers; their return shapes are extended in a strictly additive way (pre-existing keys preserved per R2.8 / R3.4).
 
-The migration is fully decoupled: it operates on stored data, not on code paths. After apply, the existing `revalidate = 3600` ISR window naturally republishes affected slugs; operators may optionally `revalidatePath('/customizing/<slug>')` for any slug requiring immediate refresh.
+The backfill is decoupled from request handling: it operates on stored data via the shared `buildCakeTitle`. After apply, the existing `revalidate = 3600` ISR window naturally republishes affected slugs; operators may optionally `revalidatePath('/customizing/<slug>')` for any slug requiring immediate refresh. New designs created after the backfill get a correct title at write time (R10), so the two paths stay consistent.
 
 ---
 
 ## Architecture
 
-The feature is layered as three concentric, decoupled rings — application code (helpers + component), schema-builder pure functions, and an out-of-band SQL migration:
+The feature is layered as decoupled rings — application code (helpers + component), the shared SEO title module, schema-builder pure functions, the write path, and an out-of-band backfill script:
 
 ```mermaid
 flowchart LR
@@ -62,8 +69,16 @@ flowchart LR
         Helpers[metadataHelpers.ts<br/>NEW pure module]
     end
 
+    subgraph SEO[SEO lib — src/lib/seo/]
+        Title[cakeTitle.ts<br/>NEW: buildCakeTitle<br/>+ extractTitleInputFromAnalysis]
+    end
+
     subgraph SB[Schema_Builder — src/lib/commerce/]
         MR[machineReadable.ts<br/>+ PH_Country_Code<br/>+ CUSTOM_CAKE_LEAD_TIME]
+    end
+
+    subgraph Svc[Write path — src/services/]
+        SS[supabaseService.ts<br/>upsert seo_title = buildCakeTitle, R10]
     end
 
     subgraph DB[Persistence — Supabase Postgres]
@@ -73,23 +88,26 @@ flowchart LR
         Backup[(cakegenie_analysis_cache_seo_title_backup)]
     end
 
-    subgraph OOB[Out-of-band Migration]
-        SQL[strip_id_leak_from_seo_title.sql<br/>preview / apply / restore]
+    subgraph OOB[Out-of-band backfill]
+        Script[scripts/backfill-cake-titles.ts<br/>preview / --confirm / --restore]
     end
 
     Page --> Helpers
     Page --> MR
     Helpers --> MR
+    SS --> Title
+    Script --> Title
     Page -. read .-> Cache
     Page -. read .-> Listings
     Page -. read .-> Reviews
-    SQL -. one-time write .-> Cache
-    SQL -. one-time write .-> Backup
+    SS -. write .-> Cache
+    Script -. one-time write .-> Cache
+    Script -. one-time write .-> Backup
 ```
 
-Module-level dependency direction is one-way (`page.tsx → metadataHelpers.ts → machineReadable.ts`); helper modules have no React imports and no I/O. The migration ring is fully decoupled from the running application — no code path in the app imports or invokes it.
+Module-level dependency direction is one-way (`page.tsx → metadataHelpers.ts → machineReadable.ts`; `supabaseService.ts → cakeTitle.ts`; `backfill script → cakeTitle.ts`); the helper and title modules have no React imports and no I/O. The backfill ring is decoupled from request handling.
 
-The pre-existing layering (Schema_Builder under `src/lib/commerce/`, route under `src/app/customizing/[slug]/`) is preserved verbatim. The only architectural addition is the new sibling helper file `metadataHelpers.ts`, which exists solely to extract previously-inline functions out of the route component so they become independently unit-testable.
+The pre-existing layering is preserved. The architectural additions are: (1) the new SEO title module `src/lib/seo/cakeTitle.ts` — the single source of truth for title construction, imported by both the write path and the backfill so they cannot drift; and (2) the sibling helper file `metadataHelpers.ts`, which extracts previously-inline meta-description functions so they become independently unit-testable.
 
 ## Components and Interfaces
 
@@ -220,21 +238,36 @@ Signature unchanged: `function optimizeMetaDescription(descriptionText: string, 
 
 The boilerplate-filter step is preserved verbatim. The post-truncation step is rewritten — see *Algorithms* below.
 
-#### New: title builder helper (R6)
+#### New: deterministic title builder (R6, R7, R10)
 
-The inline title construction inside `generateMetadata` is extracted into a pure helper for testability:
+Title construction is **no longer** sourced from the AI-emitted `seo_title`. A new pure module `src/lib/seo/cakeTitle.ts` reconstructs the customer-facing title from the design's own structured attributes:
 
 ```ts
-export function buildPdpTitle(input: {
-  seoTitle: string | null | undefined;
-  keywords: string | null | undefined;
-  tags: string[] | null | undefined;
-  price: number | null | undefined;
-  slug: string;
-}): string;
+export const CAKE_TITLE_BUDGET = 49;
+
+export interface CakeTitleInput {
+  keyword?: string | null;        // theme, e.g. "Kuromi"
+  cakeType?: string | null;       // analysis_json.cakeType
+  colorTop?: string | null;       // icing_design.colors.top (hex or name)
+  colorSide?: string | null;      // icing_design.colors.side
+  colorType?: string | null;      // icing_design.color_type
+  tags?: (string | null | undefined)[] | null;
+  heroToppers?: (string | null | undefined)[] | null; // main_toppers[classification=hero].description
+}
+
+export function buildCakeTitle(input: CakeTitleInput, budget?: number): string;
 ```
 
-The helper is exported from a new sibling module `src/app/customizing/[slug]/metadataHelpers.ts` so it is unit-testable without mounting the route. `optimizeMetaDescription` and `truncateToWordBoundary` are also moved into that module.
+Output follows Title_Structure `[Theme] [Color] [Detail] [Type] [Occasion] Cake` (see *Algorithms* below). Key design properties:
+
+- **Franchise_List + `-Inspired`**: a curated token list (Sanrio, Disney/Pixar, Marvel/DC, anime, KPop, kids' shows, games, toys) drives the legal `-Inspired` qualifier. Real-company brands (McDonald's, Jollibee, Red Horse, Shopee) are intentionally excluded.
+- **No PII**: the builder never reads `cake_messages[].text` or the old `seo_title`. Occasion/detail come from `tags`/`keyword`/hero-topper descriptions only.
+- **Colour reuse**: hex→name uses the existing `hexToName` palette exported from `src/lib/utils/urlHelpers.ts` (now `export`ed), so titles share the slug colour vocabulary. `multicolor` designs omit colour.
+- **Budget-safe**: segments are dropped Detail → Color → Type → Occasion, then the theme is word-truncated, so output is always ≤ `budget` (49) code points and the rendered `<title>` (`output + ' | Genie.ph'`) is ≤ 60.
+
+The same `buildCakeTitle` export is consumed by (a) `generateMetadata` indirectly via the stored Reconstructed_Title, (b) the write path in `supabaseService.ts` (R10), and (c) the backfill script (R7) — one source of truth.
+
+`generateMetadata` no longer appends a price segment to the title (Price_Segment removed); price remains in the meta description and Product JSON-LD. The title body is the stored `design.seo_title` (now a Reconstructed_Title); `truncateToWordBoundary` and `optimizeMetaDescription` remain in `metadataHelpers.ts` for the meta-description path only.
 
 #### Modified: `DesignSchema` props (R1, R4)
 
@@ -288,9 +321,9 @@ None.
 
 ---
 
-### 3. SQL migration `supabase/migrations/<timestamp>_strip_id_leak_from_seo_title.sql` (out-of-band component)
+### 3. Title reconstruction backfill `scripts/backfill-cake-titles.ts` (out-of-band component, R7)
 
-A single SQL file ships both preview, apply, and restore as named functions, plus a single guarded statement that exits with a NOTICE if no `--apply` arg is detected. Because Supabase migrations are applied via `supabase db push`, the apply mode is gated by a session-local setting that the operator must `SET` explicitly (R7.8).
+Because the new title is computed by the TypeScript `buildCakeTitle` (not expressible in pure SQL), the backfill is a Node/TS script run out-of-band by an operator. It reuses the exact same `buildCakeTitle` export as the write path, guaranteeing parity (R7.2, R10.5).
 
 #### Backup table (R7.5)
 
@@ -299,80 +332,83 @@ CREATE TABLE IF NOT EXISTS cakegenie_analysis_cache_seo_title_backup (
   slug TEXT NOT NULL,
   seo_title_before TEXT NOT NULL,
   backed_up_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  migration_id TEXT NOT NULL DEFAULT 'strip_id_leak_v1',
+  migration_id TEXT NOT NULL DEFAULT 'title_reconstruct_v1',
   PRIMARY KEY (slug, migration_id, backed_up_at)
 );
 ```
 
-Retention is policy, not enforced by schema — see *Risks*.
+This table is created by a thin SQL migration `supabase/migrations/<timestamp>_create_seo_title_backup.sql`. Retention is policy (≥ 30 days), not schema-enforced — see *Risks*.
 
-#### Functions
+#### Script modes
 
-```sql
--- Preview (R7.1): returns count + per-row before/after, no writes.
-CREATE OR REPLACE FUNCTION strip_id_leak_preview()
-RETURNS TABLE (slug TEXT, seo_title_before TEXT, seo_title_after TEXT)
-LANGUAGE sql STABLE AS $$
-  SELECT
-    slug,
-    seo_title,
-    regexp_replace(seo_title, '\s-\s\d{2,}\s*$', '') AS seo_title_after
-  FROM cakegenie_analysis_cache
-  WHERE seo_title ~ '\s-\s\d{2,}\s*$';
-$$;
+The script defaults to **preview** and requires `--confirm` to apply (R7.8):
 
--- Apply (R7.2, R7.4): transactional UPDATE+backup.
-CREATE OR REPLACE FUNCTION strip_id_leak_apply()
-RETURNS INTEGER
-LANGUAGE plpgsql AS $$
-DECLARE
-  affected INTEGER;
-BEGIN
-  -- Single transaction: backup then update.
-  WITH targets AS (
-    SELECT slug, seo_title
-    FROM cakegenie_analysis_cache
-    WHERE seo_title ~ '\s-\s\d{2,}\s*$'
-  ),
-  inserted AS (
-    INSERT INTO cakegenie_analysis_cache_seo_title_backup (slug, seo_title_before)
-    SELECT slug, seo_title FROM targets
-    RETURNING slug
-  )
-  UPDATE cakegenie_analysis_cache c
-  SET seo_title = regexp_replace(c.seo_title, '\s-\s\d{2,}\s*$', '')
-  FROM inserted i
-  WHERE c.slug = i.slug;
-  GET DIAGNOSTICS affected = ROW_COUNT;
-  RETURN affected;
-END;
-$$;
+```text
+# Preview — writes nothing, emits artifacts/seo-ecommerce/title-backfill-preview.csv
+npx tsx scripts/backfill-cake-titles.ts
 
--- Restore (R7.9).
-CREATE OR REPLACE FUNCTION strip_id_leak_restore(p_slug TEXT DEFAULT NULL,
-                                                  p_migration_id TEXT DEFAULT 'strip_id_leak_v1')
-RETURNS INTEGER
-LANGUAGE plpgsql AS $$
-DECLARE
-  affected INTEGER;
-BEGIN
-  UPDATE cakegenie_analysis_cache c
-  SET seo_title = b.seo_title_before
-  FROM cakegenie_analysis_cache_seo_title_backup b
-  WHERE c.slug = b.slug
-    AND b.migration_id = p_migration_id
-    AND (p_slug IS NULL OR b.slug = p_slug);
-  GET DIAGNOSTICS affected = ROW_COUNT;
-  RETURN affected;
-END;
-$$;
+# Apply — transactional update + backup
+npx tsx scripts/backfill-cake-titles.ts --confirm
+
+# Restore (all rows, or one slug)
+npx tsx scripts/backfill-cake-titles.ts --restore [--slug <slug>]
 ```
 
-The migration file body executes only the `CREATE TABLE` and `CREATE OR REPLACE FUNCTION` statements; it does NOT call `strip_id_leak_apply()`. Operators run `SELECT strip_id_leak_preview();` first, eyeball the diff, then explicitly run `SELECT strip_id_leak_apply();` (R7.8 — confirmation flag analog).
+#### Algorithm
 
-The regex `\s-\s\d{2,}\s*$` uses a standard end-of-string anchor (`$`). The pattern matches only true end-of-string occurrences (the `$` anchor requires the digits to be the last non-whitespace token in the string). Mid-string occurrences are preserved per R7.2 worked example #4.
+```text
+backfill(confirm):
+  rows = SELECT slug, seo_title, keywords, tags, analysis_json
+         FROM cakegenie_analysis_cache            # paginated, 1000/page
+  changes = []
+  for row in rows:
+    input = extractTitleInput(row)                # same mapping as write path
+    next  = buildCakeTitle(input)
+    if next != row.seo_title:
+      changes.push({ slug, before: row.seo_title, after: next })
+  writeCsv('artifacts/seo-ecommerce/title-backfill-preview.csv', changes)
+  if not confirm:
+    print(`${changes.length} rows would change`); return     # preview only (R7.1)
+  # Apply in batches, each batch in one transaction (R7.4):
+  for batch in chunk(changes, 500):
+    BEGIN
+      INSERT INTO ..._seo_title_backup (slug, seo_title_before, migration_id)
+        VALUES ... (batch befores)                # backup first (R7.5)
+      UPDATE cakegenie_analysis_cache
+        SET seo_title = :after WHERE slug = :slug # per-row (R7.3, R7.6)
+    COMMIT
+  optionally revalidatePath('/customizing/<slug>') for changed slugs (R7.7 immediate refresh)
+```
 
-Idempotence (R7.3) follows from the regex itself: applying it twice yields the same string, and the second-run preview returns zero rows.
+`extractTitleInput(row)` maps DB columns to `CakeTitleInput`:
+- `keyword` ← `row.keywords`
+- `cakeType` ← `row.analysis_json.cakeType`
+- `colorTop` / `colorSide` ← `row.analysis_json.icing_design.colors.top|side`
+- `colorType` ← `row.analysis_json.icing_design.color_type`
+- `tags` ← `row.tags`
+- `heroToppers` ← `row.analysis_json.main_toppers[] where classification === 'hero'`, mapped to `.description`
+
+This is the SAME mapping the write path uses (R10.2), extracted into a shared helper `extractTitleInputFromAnalysis(analysisResult, keywords, tags)` in `src/lib/seo/cakeTitle.ts` so both call sites stay in lockstep.
+
+Idempotence (R7.10): a second run computes identical titles, finds zero differing rows, and applies nothing.
+
+### 4. Write-path change `src/services/supabaseService.ts` (R10)
+
+The cache-write currently does:
+
+```ts
+const seoTitle = analysisResult.seo_title || `${keywords || 'Custom'} Cake | Genie.ph`;
+```
+
+It is changed to compute the title deterministically, ignoring `analysisResult.seo_title`:
+
+```ts
+const seoTitle = buildCakeTitle(
+  extractTitleInputFromAnalysis(analysisResult, keywords, tags),
+);
+```
+
+`tags` is already computed earlier in the same function (`generateTagsForAnalysis`). No other write-path field (`slug`, `alt_text`, `seo_description`, `price`, `availability`) changes (R10.6).
 
 ---
 
@@ -572,68 +608,46 @@ function optimizeMetaDescription(descriptionText, price):
 - The forbidden substrings `'... |'`, `'… |'`, `'.. |'` therefore cannot appear immediately before the suffix's leading ` | ` (R5.2).
 - Total length ≤ 155 cp (step 3 budget + suffix) (R5.4).
 
-### Title builder word-boundary truncation with overflow + `console.warn` (R6.7, R6.8)
+### Deterministic title builder `buildCakeTitle` (R6, R7, R10)
 
 ```text
-function buildPdpTitle({seoTitle, keywords, tags, price, slug}):
-  TITLE_BUDGET = 49
-  CAKE_DESIGN = ' Cake Design'  # 12 cp
+function buildCakeTitle({keyword, cakeType, colorTop, colorSide, colorType, tags, heroToppers}, budget=49):
+  # THEME (R6.3, R6.4) — never reads cake_messages or old seo_title (R6.5)
+  theme = titleCase(keyword?.trim() || '')
+  theme = theme.replace(/\s*cake\s*$/i, '') || 'Custom'   # strip trailing 'Cake'
+  if isFranchise(keyword):            # token-boundary match against Franchise_List
+    theme = theme + '-Inspired'       # legal qualifier (R6.4)
 
-  # Step 1 — assemble base title (R6.2, R6.3 — never include 'with Price')
-  base = seoTitle?.trim() || ''
-  base = base.replace(/\s*\|\s*Genie\.ph\s*$/i, '')
+  # SEGMENTS
+  color    = (colorType == 'multicolor') ? '' : titleCase(hexToName(colorTop || colorSide))   # (R6.6)
+  detail   = firstMatch(DETAIL_RULES, tags + heroToppers)        # Bow/Drip/Floral/Heart/...
+  type     = mapType(cakeType)        # Bento | 2-Tier | 3-Tier | Rectangle | '' (1-tier omitted)
+  occasion = firstMatch(OCCASION_TOKENS, keyword + tags)         # Birthday/Wedding/Debut/...
 
-  if base.length == 0:
-    tagsPrefix = (tags?.[0..2] || []).map(capitalize).join(' ')
-    base = (tagsPrefix ? tagsPrefix + ' ' : '') + (keywords || 'Custom') + CAKE_DESIGN
+  # ASSEMBLE with de-dup (R6.7): drop any segment whose words already appear
+  assemble(parts):
+    kept = []; running = theme.lower()
+    for p in parts:
+      if p and not allWordsIn(p, running):
+        kept.push(p); running += ' ' + p.lower()
+    return dedupCake([theme, ...kept].join(' ') + ' Cake')   # never 'Cake Cake' (R6.2)
 
-  # Step 2 — ensure 'Cake Design' present (R6.6)
-  if NOT /cake\s*design/i.test(base):
-    base = /cake\s*$/i.test(base) ? base + ' Design' : base + CAKE_DESIGN
+  # BUDGET REDUCTION (R6.8): drop Detail → Color → Type → Occasion
+  for parts in [[color,detail,type,occasion],[color,type,occasion],[type,occasion],[occasion],[]]:
+    title = assemble(parts)
+    if codePointLen(title) <= budget: return title
 
-  # Step 3 — append Price_Segment iff valid (R6.4, R6.5)
-  priceSegment = ''
-  if price is finite AND price > 0 AND price <= 9_999_999:
-    priceSegment = ' | Php ' + Math.round(price).toLocaleString('en-US')
-
-  combined = base + priceSegment
-
-  # Step 4 — fits-as-is fast path
-  if combined.length <= TITLE_BUDGET:
-    return combined
-
-  # Step 5 — word-boundary truncation of leading product-name segment (R6.7)
-  cakeDesignIdx = combined.toLowerCase().indexOf(' cake design')
-  if cakeDesignIdx > 0:
-    overflow = combined.length - TITLE_BUDGET
-    leading = combined.slice(0, cakeDesignIdx)
-    rest = combined.slice(cakeDesignIdx)   # ' Cake Design...'
-    targetLeadingLength = leading.length - overflow
-    if targetLeadingLength > 0:
-      cut = leading.slice(0, targetLeadingLength)
-      lastSpace = cut.lastIndexOf(' ')
-      truncatedLeading = lastSpace > 0 ? cut.slice(0, lastSpace) : cut
-      combined = truncatedLeading + rest
-
-  if combined.length <= TITLE_BUDGET:
-    return combined
-
-  # Step 6 — overflow up to TITLE_BUDGET + 4 (R6.8)
-  console.warn(`[PDP title overflow] slug=${slug} length=${combined.length}`)
-  if combined.length > TITLE_BUDGET + 4:
-    # Last-resort hard truncation at word boundary, accepting up to 53 cp
-    cut = combined.slice(0, TITLE_BUDGET + 4)
-    lastSpace = cut.lastIndexOf(' ')
-    combined = lastSpace > TITLE_BUDGET ? cut.slice(0, lastSpace) : cut
-
-  return combined
+  # Still over budget: word-truncate theme, keep ' Cake'
+  return truncateThemeToFit(theme, budget)
 ```
 
 **Invariants:**
-- Never contains ` with Price` (case-insensitive) — the substring is simply never produced (R6.2, R6.3).
-- Always contains `Cake Design` (R6.6).
-- Length ≤ `TITLE_BUDGET + 4 = 53` (so total with ` | Genie.ph` suffix from layout ≤ 64; SERP-safe target is 60 with room for over-budget warnings) (R6.8).
-- `console.warn` is invoked exactly once per over-budget render (R6.8).
+- Always ends in the literal word `Cake`; never contains `Cake Cake` (R6.2).
+- Never contains a numeric design code, ` with Price`, or a price (R6.9).
+- `-Inspired` appended iff `keyword` ∈ Franchise_List, exactly once (R6.4).
+- No title text is ever sourced from PII_Source_Fields (R6.5).
+- Output length ≤ `budget` (49) code points, so `output + ' | Genie.ph'` ≤ 60 (R6.8, R6.10).
+- Deterministic for identical input (R6.11).
 
 ### `aggregateRating` priority resolver (R1.1–R1.4, R1.9)
 
@@ -737,16 +751,22 @@ The wiring contract `Product.sku === Product.offers.sku` and `Product.mpn === Pr
 
 **Validates: Requirements 5.1, 5.2, 5.3, 5.4, 5.5, 5.6**
 
-### Property 5: PDP title builder output contract
+### Property 5: Deterministic title builder output contract
 
-*For any* `(seoTitle, keywords, tags, price, slug)` input to `buildPdpTitle`, the returned title:
-- contains the substring `'Cake Design'` (case-insensitive);
-- does not contain the substring `' with Price'` (case-insensitive);
-- contains the substring `' | Php '` followed by an `en-US`-locale-formatted integer iff `price` is a finite number in `(0, 9_999_999]`;
-- has Unicode code-point length ≤ `Title_Budget + 4 = 53`;
-- causes exactly one `console.warn` invocation per call when its length exceeds `Title_Budget = 49`, and zero otherwise.
+*For any* `CakeTitleInput`, the string returned by `buildCakeTitle(input, budget)`:
+- ends with the literal word `'Cake'` and never contains `'Cake Cake'` (case-insensitive);
+- never contains a digit-only internal code token, the substring `' with Price'`, or a `'₱'`/`'Php'` price;
+- has Unicode code-point length ≤ `budget` (default 49);
+- ends Theme_Segment with `'-Inspired'` iff `input.keyword` matches Franchise_List, exactly once;
+- is byte-identical across repeated calls with the same `(input, budget)` (determinism, R6.11).
 
-**Validates: Requirements 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9**
+**Validates: Requirements 6.2, 6.3, 6.4, 6.6, 6.7, 6.8, 6.9, 6.10, 6.11**
+
+### Property 7: Backfill ↔ write-path parity (R7.2, R10.5)
+
+*For any* DB row, `extractTitleInputFromAnalysis(row.analysis_json, row.keywords, row.tags)` fed to `buildCakeTitle` yields the SAME string whether called from the backfill script or the `supabaseService` write path. (Discharged by both call sites importing the same functions; covered by a shared example fixture set.)
+
+**Validates: Requirements 7.2, 10.1, 10.2, 10.5**
 
 ### Property 6: JSON-LD safety
 
@@ -779,11 +799,11 @@ The wiring contract `Product.sku === Product.offers.sku` and `Product.mpn === Pr
 
 ### Test framework
 
-Vitest 4.x with `--run` mode. Component tests use `@testing-library/react`. Property-based tests use `fast-check`. **`fast-check` is not currently a project dependency** — the design adds it to `devDependencies` so Property 1–5 below can be expressed as PBT. If the dependency cannot be added (e.g. policy restriction), every property below maps to a tighter bank of example tests; that fallback is documented per-property.
+Vitest 4.x with `--run` mode. Component tests use `@testing-library/react`. Property-based tests use `fast-check`. **`fast-check` is not currently a project dependency** — the design adds it to `devDependencies` so Properties 1–7 below can be expressed as PBT. If the dependency cannot be added (e.g. policy restriction), every property below maps to a tighter bank of example tests; that fallback is documented per-property.
 
 ### Why PBT applies here
 
-The Schema_Builder helpers, `optimizeMetaDescription`, `buildPdpTitle`, `resolveAggregateRating`, and `resolveSkuMpn` are **pure functions** with universal output contracts and large input spaces (strings, numbers, arrays). They are exactly the case PBT is best at. The SQL migration (R7) is integration-only and cannot be PBT'd; the audit pipeline (R8) is external integration.
+The Schema_Builder helpers, `optimizeMetaDescription`, `buildCakeTitle`, `resolveAggregateRating`, and `resolveSkuMpn` are **pure functions** with universal output contracts and large input spaces (strings, numbers, arrays). They are exactly the case PBT is best at. The title backfill script (R7) is integration-only (DB I/O) and cannot be PBT'd, though its pure core (`buildCakeTitle`) is; the audit pipeline (R8) is external integration.
 
 ### File-by-file test plan
 
@@ -817,13 +837,13 @@ describe('CUSTOM_CAKE_LEAD_TIME — R2.1–R2.3, R2.9', () => {
 });
 ```
 
-#### `src/app/customizing/[slug]/metadataHelpers.test.ts` (NEW, R5 + R6)
+#### `src/app/customizing/[slug]/metadataHelpers.test.ts` (NEW, R5)
 
-Tests the extracted module containing `truncateToWordBoundary`, `optimizeMetaDescription`, `buildPdpTitle`.
+Tests the extracted module containing `truncateToWordBoundary` and `optimizeMetaDescription` (meta-description path only; the title is now built by `buildCakeTitle` in `src/lib/seo/cakeTitle.ts`).
 
 ```ts
 describe('truncateToWordBoundary', () => {
-  it('does not append "..." or "…"', /* R5.1, R6.7 contract change */);
+  it('does not append "..." or "…"', /* R5.1 contract */);
 });
 
 describe('optimizeMetaDescription — R5', () => {
@@ -843,19 +863,31 @@ describe('optimizeMetaDescription — R5', () => {
   // PBT: Property 4
   it.runIf(hasFastCheck)('output contract holds for arbitrary (desc, price)', /* fast-check */);
 });
+```
 
-describe('buildPdpTitle — R6', () => {
-  it('Title_Budget constant === 49', /* R6.1 */);
-  it('never contains " with Price" (case-insensitive)', /* R6.2, R6.3 */);
-  it('appends " | Php X,XXX" iff price is finite in (0, 9_999_999]', /* R6.4, R6.5 */);
-  it('omits Price_Segment for null/undefined/NaN/Infinity/0/negative/>9999999', /* R6.5 */);
-  it('always contains "Cake Design" (case-insensitive)', /* R6.6 */);
-  it('truncates leading product-name segment at word boundary when over budget', /* R6.7 */);
-  it('emits exactly one console.warn for slugs whose length exceeds Title_Budget', /* R6.8 */);
-  it('final length ≤ 53 cp', /* R6.8 */);
-  it('short seo_title yields total title (with layout suffix) ≤ 60 cp', /* R6.9 */);
+#### `src/lib/seo/cakeTitle.test.ts` (NEW, R6 + R7 + R10)
+
+Tests `buildCakeTitle` and `extractTitleInputFromAnalysis` against the canonical real-row fixtures (Kuromi, Corset Heart, Little Mermaid, Daisy Garden, 18th Birthday, Barista Coffee, Katseye, Graduation, Suertres, Sugar Skull, Red Horse, One Piece, Wedding, Gender Reveal, Mom Bento).
+
+```ts
+describe('buildCakeTitle — R6', () => {
+  it('always ends in "Cake" and never contains "Cake Cake"', /* R6.2 */);
+  it('appends "-Inspired" for Franchise_List themes (Kuromi, Little Mermaid, Katseye, One Piece)', /* R6.4 */);
+  it('does NOT append "-Inspired" for brand themes (Red Horse, McDonald, Jollibee, Shopee)', /* R6.4 */);
+  it('omits color when colorType === "multicolor"', /* R6.6 */);
+  it('maps hex color via hexToName palette (e.g. #C4B5FD → Lavender)', /* R6.6 */);
+  it('never emits a numeric internal code, " with Price", or a price', /* R6.9 */);
+  it('output length ≤ 49 cp; output + " | Genie.ph" ≤ 60 cp', /* R6.8, R6.10 */);
+  it('drops segments Detail→Color→Type→Occasion under budget pressure', /* R6.8 */);
+  it('deterministic for identical input', /* R6.11 */);
+  it('uses "Custom" theme when keyword empty/whitespace', /* R6.3 */);
+  it('never reads cake_messages (PII): titles exclude customer names', /* R6.5 */);
   // PBT: Property 5
   it.runIf(hasFastCheck)('output contract holds for arbitrary inputs', /* fast-check */);
+});
+
+describe('extractTitleInputFromAnalysis — R7.2/R10.2 parity', () => {
+  it('maps keyword/cakeType/colors/color_type/tags/hero-toppers identically for backfill and write path', /* Property 7 */);
 });
 ```
 
@@ -876,6 +908,7 @@ describe('DesignSchema — R1 aggregateRating', () => {
   // PBT: Property 1
   it.runIf(hasFastCheck)('priority resolver invariants', /* fast-check */);
 });
+
 
 describe('DesignSchema — R4 SKU/MPN resolution', () => {
   it('Case A: empty linkedMerchantProducts → sku = slug, mpn = p_hash', /* R4.2, R4.4 */);
@@ -938,12 +971,13 @@ For R8.4, the kuromi URL is re-checked **after** the migration apply has run AND
 | Risk | Mitigation |
 |---|---|
 | **Schema validator drift between baseline and post-merge** — new validator rules introduced in `schema_ecommerce_validate.py` between baseline capture and merge could cause R9.7 to flag spurious regressions. | Capture `Pre_Feature_Baseline` per-URL `{ok, findings[].rule}` in a JSON artifact in the same commit as this design (or one commit prior). Compare rule-id sets, not exact-finding counts. |
-| **ISR cache stale post-migration** — affected slugs render the old `seo_title` for up to 3600 s after `strip_id_leak_apply`. | After apply, run `revalidatePath('/customizing/<slug>')` for any slug requiring an immediate refresh (operator script provided), or wait for the next ISR window. R7.6 explicitly accepts the wait. Document both options in the migration runbook. |
+| **ISR cache stale post-backfill** — affected slugs render the old `seo_title` for up to 3600 s after the title backfill applies. | After apply, run `revalidatePath('/customizing/<slug>')` for any slug requiring an immediate refresh (operator script provided), or wait for the next ISR window. R7.7 explicitly accepts the wait. Document both options in the runbook. |
 | **Minimum-review-count guidance vs requirement floor** — R1 allows `aggregateRating` whenever `total ≥ 1`, but Google has soft-deprecated star ratings for product listings with very low review counts; SERP-quality stars typically need ≥ 3. | Implement R1 exactly as stated (floor = 1) since the requirement is binding. Note in code: a future tightening to `total ≥ 3` is a one-line constant change in `resolveAggregateRating`. |
 | **Lex-min Merchant_Listing ordering is arbitrary** — R4.3 picks the listing with the lex-smallest `product_id`, which has no business meaning (it's not "best", "newest", or "cheapest"). It is, however, deterministic. | Documented limitation. Future work: rank by merchant rating, listing freshness, or price. The current rule unblocks the SKU≠MPN constraint and is stable across renders (R4.6). |
-| **Migration rollback path** — if applied broadly and a regression is observed (e.g. seo_title cleanup over-trimmed), restoration must be possible without data loss. | The `cakegenie_analysis_cache_seo_title_backup` table retains pre-image rows; `strip_id_leak_restore(p_slug, p_migration_id)` writes them back. Retention policy: ≥ 30 days post-apply (R7.5), enforced by operator runbook (no automatic cleanup migration in this feature). |
+| **Title backfill rollback path** — if applied broadly and a regression is observed (e.g. a reconstructed title reads worse than the original for some niche), restoration must be possible without data loss. | The `cakegenie_analysis_cache_seo_title_backup` table retains pre-image rows; the backfill `--restore` mode (per-slug or per-`migration_id`) writes them back (R7.9). Retention policy: ≥ 30 days post-apply (R7.5), enforced by operator runbook (no automatic cleanup in this feature). Preview CSV is reviewed before apply (R7.1). |
+| **Reconstructed title loses a nuance the AI title captured** — e.g. an occasion stored only in `cake_messages` (PII, excluded) or a multicolor design left with a bare theme. | Accepted tradeoff: accuracy + no PII + no ID leak outweighs occasional terseness. Vocabularies (Franchise_List, OCCASION_TOKENS, DETAIL_RULES) are centralized in `cakeTitle.ts` and easily extended. Preview CSV surfaces weak titles before apply. |
 | **`fast-check` not being a project dependency today** — adding it for this feature alone may require sign-off. | Tests are written so PBT cases are conditionally skipped (`it.runIf(hasFastCheck)`). The corresponding example-test fallbacks cover the same equivalence classes. Properties remain in the design as the formal contract regardless. |
-| **`buildPdpTitle` extraction** — moving inline title logic into a new module changes the page.tsx import graph. | Confined to a single new file `metadataHelpers.ts` colocated under `src/app/customizing/[slug]/`. Imports from `page.tsx` only. No external consumer impact. |
+| **New `cakeTitle.ts` module** — introduces a new SEO lib module imported by `page.tsx`, `supabaseService.ts`, and the backfill script. | Pure module, no I/O, no React. Single source of truth for `buildCakeTitle` + `extractTitleInputFromAnalysis`, so write path (R10) and backfill (R7) cannot drift. Reuses the existing `hexToName` palette (now exported) rather than reinventing colour mapping. |
 
 ---
 
@@ -964,13 +998,18 @@ For R8.4, the kuromi URL is re-checked **after** the migration apply has run AND
 
 | File | Change | Reason |
 |---|---|---|
+| `src/lib/seo/cakeTitle.ts` | **Create** | `buildCakeTitle` (R6 deterministic title builder), `extractTitleInputFromAnalysis` (shared DB→input mapper), Franchise_List / OCCASION_TOKENS / DETAIL_RULES vocabularies, `CAKE_TITLE_BUDGET`. Single source of truth for R6/R7/R10. |
+| `src/lib/seo/cakeTitle.test.ts` | **Create** | Vitest suite covering `buildCakeTitle` (R6) against canonical real-row fixtures + `extractTitleInputFromAnalysis` parity (Property 7). |
+| `src/lib/utils/urlHelpers.ts` | Modify | `export` the existing `hexToName` so `cakeTitle.ts` reuses the slug colour palette (no new hex mapping). |
+| `src/services/supabaseService.ts` | Modify | Write path persists `seo_title = buildCakeTitle(extractTitleInputFromAnalysis(...))` instead of `analysisResult.seo_title` (R10). No other field changed. |
+| `scripts/backfill-cake-titles.ts` | **Create** | Out-of-band Node/TS backfill: preview (CSV) / `--confirm` apply (transactional + backup) / `--restore`, reconstructing all ~10,591 rows via the shared builder (R7). |
+| `supabase/migrations/<timestamp>_create_seo_title_backup.sql` | **Create** | Creates `cakegenie_analysis_cache_seo_title_backup` (R7.5). |
+| `src/app/customizing/[slug]/page.tsx` | Modify | Wire `isSiteReviewSummaryFallback` flag and `linkedMerchantProducts` into `<DesignSchema>`; use stored Reconstructed_Title as title body with NO price segment; replace inline desc helpers with imports from `metadataHelpers.ts`; emit `aggregateRating` + new SKU/MPN + extended shipping/return schemas (R1, R4, R5, R6 wiring). |
+| `src/app/customizing/[slug]/metadataHelpers.ts` | **Create** | Extract `truncateToWordBoundary` (contract change — no `'...'`), `optimizeMetaDescription` (R5 algorithm), `resolveAggregateRating` (R1), `resolveSkuMpn` (R4) as pure exports for unit testability. (Title building lives in `cakeTitle.ts`.) |
+| `src/app/customizing/[slug]/metadataHelpers.test.ts` | **Create** | Vitest suite covering R5 (`optimizeMetaDescription`) edge cases per the test plan above. |
+| `src/app/customizing/[slug]/designSchema.test.tsx` | **Create** | Vitest + `@testing-library/react` suite covering R1 priority resolution, R4 SKU/MPN resolution, R9 JSON-LD safety. |
 | `src/lib/commerce/machineReadable.ts` | Modify | Add `PH_Country_Code` and `CUSTOM_CAKE_LEAD_TIME` constants + `validateLeadTimeConstants` (R2.1–R2.3, R2.9, R3.1); extend `buildOfferShippingDetails` return type with `deliveryTime` (R2.4–R2.8); extend `buildMerchantReturnPolicy` return with `applicableCountry` (R3.2–R3.5). |
 | `src/lib/commerce/machineReadable.test.ts` | Modify (append-only) | New `describe` blocks for shipping deliveryTime, PH_Country_Code, return-policy applicableCountry, lead-time invariants. Existing assertions untouched (R9.5). |
-| `src/app/customizing/[slug]/page.tsx` | Modify | Wire `isSiteReviewSummaryFallback` flag and `linkedMerchantProducts` into `<DesignSchema>`; replace inline title/desc helpers with imports from `metadataHelpers.ts`; extend `DesignSchema` props and emit `aggregateRating` + new SKU/MPN values + extended shipping/return schemas (R1, R4, R5, R6 wiring). |
-| `src/app/customizing/[slug]/metadataHelpers.ts` | **Create** | Extract `truncateToWordBoundary` (contract change — no `'...'`), `optimizeMetaDescription` (R5 algorithm), `buildPdpTitle` (R6 algorithm), `resolveAggregateRating` (R1), `resolveSkuMpn` (R4) as pure exports for unit testability. |
-| `src/app/customizing/[slug]/metadataHelpers.test.ts` | **Create** | Vitest suite covering R5 (`optimizeMetaDescription`) and R6 (`buildPdpTitle`) edge cases per the test plan above. |
-| `src/app/customizing/[slug]/designSchema.test.tsx` | **Create** | Vitest + `@testing-library/react` suite covering R1 priority resolution, R4 SKU/MPN resolution, R9 JSON-LD safety. |
-| `supabase/migrations/<timestamp>_strip_id_leak_from_seo_title.sql` | **Create** | One-time migration: backup table + `strip_id_leak_preview` / `strip_id_leak_apply` / `strip_id_leak_restore` functions per R7. |
 | `package.json` | Modify (conditional) | Add `fast-check` to `devDependencies` for property-based tests. If declined, PBT cases are skipped via `it.runIf(hasFastCheck)` and the example fallbacks carry the test plan. |
 
 No files are deleted. No existing function signatures are removed; all changes to `buildOfferShippingDetails` and `buildMerchantReturnPolicy` are strictly additive on the return type, satisfying R9.5.

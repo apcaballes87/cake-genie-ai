@@ -259,6 +259,58 @@ describe('runVariantPipelineForRow', () => {
             expect(result.errors).toEqual([]);
         });
 
+        it('keys variant storage paths by the descriptive slug when provided', async () => {
+            const { client, uploads } = makeFakeClient();
+            const buf = await makeJpeg(2000);
+            const fetchSource = makeFetchSource(buf);
+
+            const result = await runVariantPipelineForRow(
+                {
+                    pHash: 'phash123',
+                    slug: 'kuromi-light-purple-1-tier-cake-e3c3',
+                    studioEditedImageUrl: SUPABASE_URL,
+                    originalImageUrl: null,
+                    client,
+                },
+                { fetchSource },
+            );
+
+            expect(result.status).toBe('ok');
+            // Paths use the slug, not the p_hash → keyword-rich image URLs.
+            expect(uploads.map((u) => u.path)).toEqual([
+                'variants/kuromi-light-purple-1-tier-cake-e3c3/400.webp',
+                'variants/kuromi-light-purple-1-tier-cake-e3c3/800.webp',
+                'variants/kuromi-light-purple-1-tier-cake-e3c3/1200.webp',
+            ]);
+            expect(result.manifest?.variants.every((v) =>
+                v.url.includes('/variants/kuromi-light-purple-1-tier-cake-e3c3/'),
+            )).toBe(true);
+        });
+
+        it('falls back to p_hash for storage key when slug is blank/whitespace', async () => {
+            const { client, uploads } = makeFakeClient();
+            const buf = await makeJpeg(2000);
+            const fetchSource = makeFetchSource(buf);
+
+            const result = await runVariantPipelineForRow(
+                {
+                    pHash: 'phash123',
+                    slug: '   ',
+                    studioEditedImageUrl: SUPABASE_URL,
+                    originalImageUrl: null,
+                    client,
+                },
+                { fetchSource },
+            );
+
+            expect(result.status).toBe('ok');
+            expect(uploads.map((u) => u.path)).toEqual([
+                'variants/phash123/400.webp',
+                'variants/phash123/800.webp',
+                'variants/phash123/1200.webp',
+            ]);
+        });
+
         it('manifest is sorted ascending by width even if encoded order varied (Req 3.4)', async () => {
             const { client } = makeFakeClient();
             const buf = await makeJpeg(2000);

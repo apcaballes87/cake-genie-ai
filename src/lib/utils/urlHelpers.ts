@@ -80,7 +80,7 @@ function getColorDistance(hex1: string, hex2: string) {
  * Converts a hex color code to the nearest human-readable color name.
  * If the value is not a hex string, it returns the original value.
  */
-function hexToName(hex: string): string {
+export function hexToName(hex: string): string {
   if (!hex) return '';
 
   // Clean the input, remove '#' if it exists

@@ -52,6 +52,7 @@ interface SupabaseWebhookPayload {
     table: string;
     record?: {
         p_hash?: string;
+        slug?: string | null;
         studio_edited_image_url?: string | null;
         original_image_url?: string | null;
         [k: string]: unknown;
@@ -98,6 +99,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const record = payload.record ?? {};
     const pHash = typeof record.p_hash === 'string' ? record.p_hash : null;
+    const recordSlug = typeof record.slug === 'string' ? record.slug : null;
     if (!pHash) {
         return NextResponse.json(
             { error: 'missing_p_hash' },
@@ -163,6 +165,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // ---- 5. Run pipeline ---------------------------------------------------
     const result = await runVariantPipelineForRow({
         pHash,
+        slug: recordSlug,
         studioEditedImageUrl: studioUrl,
         originalImageUrl: originalUrl,
         client: admin,

@@ -2,14 +2,19 @@
 
 ## Overview
 
-This plan delivers seven point-fixes to `/customizing/[slug]` PDPs (R1–R7), gated by an audit-pipeline validation contract (R8) and a backwards-compatibility quality gate (R9). The work is decomposed into six independent waves so a wave-based scheduler can parallelize safely:
+This plan delivers the PDP SEO fixes (R1–R10), gated by an audit-pipeline validation contract (R8) and a backwards-compatibility quality gate (R9).
+
+> **REVISION NOTE (title reconstruction).** R6 and R7 were re-scoped after a GSC CTR investigation: instead of merely stripping the ` - NNNN` ID leak, the title is now **deterministically reconstructed** from the design's own structured attributes via a new `src/lib/seo/cakeTitle.ts` module, applied to **all ~10,591 rows** (not just the 6,327 ID-leaked ones), and wired into the write path (R10) so new designs ship correct titles. The superseded items below are: **Task 2.4** (`buildPdpTitle` — replaced by `buildCakeTitle`, see Wave 7) and **all of Wave 5** (SQL strip migration — replaced by the TS backfill in Wave 7). Treat those as obsolete; the authoritative title work is **Wave 7** at the end of this document. The price-in-title behavior (old R6.4) is removed: the `<title>` carries no price.
+
+The original work is decomposed into six waves:
 
 - **Wave 1** — Schema_Builder constants and pure builders in `src/lib/commerce/machineReadable.ts` (R2, R3). No dependencies on app code.
-- **Wave 2** — Extracted pure helpers in `src/app/customizing/[slug]/metadataHelpers.ts` (R4, R5, R6, R1 priority resolver). Depends only on Wave 1.
+- **Wave 2** — Extracted pure helpers in `src/app/customizing/[slug]/metadataHelpers.ts` (R4, R5, R1 priority resolver, R4 SKU resolver). Depends only on Wave 1. *(Task 2.4 `buildPdpTitle` is superseded by Wave 7.)*
 - **Wave 3** — `DesignSchema` props extension and component-level integration tests (R1, R4, R9.1–R9.2). Depends on Wave 2.
-- **Wave 4** — `page.tsx` wiring (R1, R4, R5, R6, R9.3). Depends on Waves 2 and 3.
-- **Wave 5** — SQL migration for the `seo_title` ID-leak strip (R7). Independent of all app code.
-- **Wave 6** — Post-merge audit pipeline run + R9.7 baseline diff (R8, R9.4, R9.7, R9.8). Depends on Waves 1–5.
+- **Wave 4** — `page.tsx` wiring (R1, R4, R5, R6, R9.3). Depends on Waves 2, 3, and 7.
+- **Wave 5** — ~~SQL migration for the `seo_title` ID-leak strip~~ **SUPERSEDED by Wave 7.**
+- **Wave 6** — Post-merge audit pipeline run + R9.7 baseline diff (R8, R9.4, R9.7, R9.8). Depends on all other waves.
+- **Wave 7** — *(NEW)* Title reconstruction: `cakeTitle.ts` builder + write-path change + full backfill (R6, R7, R10). See the dedicated section at the end.
 
 A baseline-capture task (Task 1.0) **must run before any code change** because R9.7 cannot be discharged retroactively. `fast-check` is added as a devDependency in Task 1.1; if blocked, PBT sub-tasks fall back to hand-rolled examples per the design's testing strategy.
 
@@ -188,6 +193,7 @@ flowchart TD
     - _Properties: 4_
 
   - [x] 2.4 Implement and export `buildPdpTitle` in `src/app/customizing/[slug]/metadataHelpers.ts`
+    - **⚠️ SUPERSEDED by Wave 7 (Task 7.x `buildCakeTitle`).** This `buildPdpTitle` (which reshaped the AI `seo_title` and appended a price segment) is replaced by the deterministic `buildCakeTitle` in `src/lib/seo/cakeTitle.ts`. Do not invest further here; if already implemented, it will be removed from the `generateMetadata` path in Task 7.4. Left checked for history.
     - Follow the 6-step algorithm in design.md § Algorithms § buildPdpTitle.
     - Use `Title_Budget = 49` (not a magic number — declare `const TITLE_BUDGET = 49` near the top of the function or as a module constant).
     - Strip any pre-existing `' | Genie.ph'` suffix from `seoTitle` before processing (the layout re-appends it via `metadata.title.template`).
@@ -262,11 +268,12 @@ flowchart TD
     - _Requirements: R1.2, R1.9_
 
   - [x] 4.2 Replace inline `truncateToWordBoundary`, `optimizeMetaDescription`, and inline title construction with imports from `./metadataHelpers`
+    - **⚠️ PARTIALLY SUPERSEDED by Task 7.4.** The `optimizeMetaDescription`/`truncateToWordBoundary` import is correct and stays. The title line below changes: instead of `buildPdpTitle`, `generateMetadata` uses the stored Reconstructed_Title (`design.seo_title`) directly as the title body with NO price segment (see Task 7.4). Left checked for history.
     - Delete the inline definitions at the top of `page.tsx`.
-    - Import `truncateToWordBoundary`, `optimizeMetaDescription`, `buildPdpTitle`, and `FALLBACK_MIN_PRICE` from `./metadataHelpers`.
-    - Inside `generateMetadata`, replace the inline title construction with `const title = buildPdpTitle({ seoTitle: design.seo_title, keywords: design.keywords, tags: design.tags, price: design.price, slug: design.slug });`.
+    - Import `truncateToWordBoundary`, `optimizeMetaDescription`, and `FALLBACK_MIN_PRICE` from `./metadataHelpers`.
+    - ~~Inside `generateMetadata`, replace the inline title construction with `buildPdpTitle({...})`.~~ → Superseded: title body = `design.seo_title` (the Reconstructed_Title), no price segment (Task 7.4, R6.12).
     - Run `next build` (or at minimum `tsc --noEmit`) and confirm zero new errors in `page.tsx` (R9.4).
-    - _Requirements: R5.1, R5.2, R5.3, R5.4, R5.5, R5.6, R6.1, R6.2, R6.3, R6.4, R6.5, R6.6, R6.7, R6.8, R6.9_
+    - _Requirements: R5.1, R5.2, R5.3, R5.4, R5.5, R5.6, R6.12_
 
   - [x] 4.3 Pass `linkedMerchantProducts` and `perDesignReviewStats` props from `page.tsx` into `<DesignSchema>`
     - `linkedMerchantProducts` is already produced by the existing `getLinkedMerchantProductsByHash(design.p_hash)` call — pipe it directly into the component.
@@ -279,6 +286,8 @@ flowchart TD
     - _Requirements: R9.3_
 
 - [x] 5. SQL migration for `seo_title` ID-leak strip (independent of app code)
+
+  > **⚠️ WAVE 5 SUPERSEDED by Wave 7.** The strip-only SQL migration (`strip_id_leak_*` functions) is replaced by the TypeScript title-reconstruction backfill (`scripts/backfill-cake-titles.ts`) which rewrites ALL rows, not just ID-leaked ones, and cannot be expressed in pure SQL (it calls `buildCakeTitle`). The completed Wave 5 artifacts may be deleted or left dormant; they MUST NOT be applied to production. Tasks retained below for history only.
 
   - [x] 5.1 Create `supabase/migrations/<timestamp>_strip_id_leak_from_seo_title.sql`
     - Body: `CREATE TABLE IF NOT EXISTS cakegenie_analysis_cache_seo_title_backup (...)` plus three `CREATE OR REPLACE FUNCTION` statements (`strip_id_leak_preview`, `strip_id_leak_apply`, `strip_id_leak_restore`) per design.md § Components § SQL migration.
@@ -326,6 +335,62 @@ flowchart TD
   - [ ] 6.4 Final checkpoint — Ensure all tests pass
     - Confirm Tasks 1.0–6.3 are all green. Ensure all tests pass, ask the user if questions arise.
     - _Requirements: R8, R9_
+
+- [ ] 7. Title reconstruction — `cakeTitle.ts` builder + write-path + full backfill (R6, R7, R10)
+
+  > This wave replaces Task 2.4 (`buildPdpTitle`) and all of Wave 5 (SQL strip migration). The deterministic builder is the single source of truth shared by the write path (R10) and the backfill (R7).
+
+  - [x] 7.1 Export `hexToName` from `src/lib/utils/urlHelpers.ts`
+    - Change `function hexToName` to `export function hexToName` so the title builder reuses the existing slug colour palette instead of duplicating hex→name logic. (Already done.)
+    - _Requirements: R6.6_
+
+  - [x] 7.2 Create `src/lib/seo/cakeTitle.ts` with `buildCakeTitle` + vocabularies
+    - Implement `buildCakeTitle(input, budget = CAKE_TITLE_BUDGET=49)` per design.md § Algorithms § buildCakeTitle: Theme (+`-Inspired` via Franchise_List) → Color (skip multicolor, via `hexToName`) → Detail (DETAIL_RULES) → Type (mapType) → Occasion (OCCASION_TOKENS) → `Cake`, with de-dup and budget reduction Detail→Color→Type→Occasion then theme word-truncation.
+    - Export `CAKE_TITLE_BUDGET`, `CakeTitleInput`, the Franchise/Occasion/Detail vocabularies.
+    - MUST NOT read `cake_messages` or any PII_Source_Field (R6.5).
+    - (Initial implementation already created; reconcile with final R6 criteria.)
+    - _Requirements: R6.1, R6.2, R6.3, R6.4, R6.5, R6.6, R6.7, R6.8, R6.9, R6.10, R6.11_
+
+  - [x] 7.3 Add `extractTitleInputFromAnalysis(analysisResult, keywords, tags)` to `src/lib/seo/cakeTitle.ts`
+    - Pure mapper from a cache row / analysis result to `CakeTitleInput`: `keyword←keywords`, `cakeType←analysisResult.cakeType`, `colorTop/Side←analysisResult.icing_design.colors.top/side`, `colorType←analysisResult.icing_design.color_type`, `tags←tags`, `heroToppers←analysisResult.main_toppers[classification==='hero'].description`.
+    - This is the SINGLE mapper used by BOTH the write path (7.5) and the backfill (7.6) to guarantee parity (Property 7).
+    - _Requirements: R7.2, R10.2, R10.5_
+
+  - [x]* 7.4 Create `src/lib/seo/cakeTitle.test.ts`
+    - Cover R6 against the 16 canonical real-row fixtures from design.md § Testing Strategy (Kuromi, Corset Heart, Little Mermaid, Daisy Garden, 18th Birthday, Barista Coffee, Katseye, Graduation, Suertres, Sugar Skull, Red Horse, One Piece, Wedding, Gender Reveal, Mom Bento).
+    - Assert: always ends `Cake`/never `Cake Cake`; `-Inspired` only for Franchise_List; brand themes (Red Horse/McDonald/Jollibee/Shopee) get no `-Inspired`; multicolor omits colour; `#C4B5FD`→`Lavender`; no numeric code / no price / no ` with Price`; length ≤ 49 and `+ ' | Genie.ph'` ≤ 60; determinism; `Custom` fallback; never emits a customer name (PII).
+    - Add `extractTitleInputFromAnalysis` parity test (Property 7). PBT Property 5 via `it.runIf(hasFastCheck)` or hand-rolled fallback.
+    - _Requirements: R6.*, R7.2, R10.5; Properties 5, 7_
+    - _Properties: 5, 7_
+
+  - [x] 7.5 Wire the write path in `src/services/supabaseService.ts` (R10)
+    - Replace `const seoTitle = analysisResult.seo_title || \`${keywords||'Custom'} Cake | Genie.ph\`;` with `const seoTitle = buildCakeTitle(extractTitleInputFromAnalysis(analysisResult, keywords, tags));`.
+    - `tags` is already computed above via `generateTagsForAnalysis`; ensure ordering (compute tags before seoTitle, or pass the same array). Do NOT change `slug`, `alt_text`, `seo_description`, `price`, `availability` (R10.6).
+    - Run `next build` / `tsc --noEmit`: zero new errors (R9.4).
+    - _Requirements: R10.1, R10.2, R10.3, R10.4, R10.5, R10.6_
+
+  - [x] 7.6 Create backup table migration `supabase/migrations/<timestamp>_create_seo_title_backup.sql`
+    - **Done:** applied to live DB as Supabase migration `create_seo_title_backup_and_apply_rpc`; SQL also saved to `scripts/sql/title_reconstruct_backfill.sql`. Adds the backup table PLUS atomic `apply_title_reconstruct_batch` and `restore_title_reconstruct` RPCs (server-side transaction per batch for weak-internet resilience).
+    - `CREATE TABLE IF NOT EXISTS cakegenie_analysis_cache_seo_title_backup (slug TEXT NOT NULL, seo_title_before TEXT NOT NULL, backed_up_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), migration_id TEXT NOT NULL DEFAULT 'title_reconstruct_v1', PRIMARY KEY (slug, migration_id, backed_up_at))`.
+    - File body creates the table only; performs no UPDATEs (R7.8 spirit).
+    - _Requirements: R7.5_
+
+  - [x] 7.7 Create the backfill script `scripts/backfill-cake-titles.ts`
+    - **Done:** preview (CSV) / `--confirm` (resumable, checkpointed, atomic-per-batch via RPC, retry+backoff) / `--restore [--slug]`. Preview verified against all 10,592 rows: 0 over-budget, 0 empty, 0 "Cake Cake", 10,541 changed, 2,610 `-Inspired`.
+    - Modes: default **preview** (writes `artifacts/seo-ecommerce/title-backfill-preview.csv`, no DB writes, R7.1); `--confirm` **apply** (batched, each batch one transaction: backup-insert then UPDATE, R7.4/R7.5); `--restore [--slug <slug>]` (R7.9).
+    - Paginate `cakegenie_analysis_cache` (1000/page), compute `buildCakeTitle(extractTitleInputFromAnalysis(...))`, update only rows whose computed title differs (R7.3), update only `seo_title` (R7.6).
+    - Apply mode requires explicit `--confirm`; never apply from env alone (R7.8). Idempotent on re-run (R7.10).
+    - Optionally `revalidatePath('/customizing/<slug>')` for changed slugs (R7.7).
+    - _Requirements: R7.1, R7.2, R7.3, R7.4, R7.5, R7.6, R7.8, R7.9, R7.10_
+
+  - [x] 7.8 Update `generateMetadata` title body in `page.tsx` (supersedes the title part of Task 4.2)
+    - **Done:** title body = stored `design.seo_title` (Reconstructed_Title) with a `buildCakeTitle(extractTitleInputFromAnalysis(...))` fallback when blank; no price segment. Removed `buildPdpTitle` from `page.tsx`, `metadataHelpers.ts`, and its test block.
+
+  - [x] 7.9 Operator runbook + preview review gate
+    - **Done:** `scripts/backfill-cake-titles.runbook.md`. Apply step is gated on user review of the preview CSV.
+
+  - [x] 7.10 Post-backfill verification
+    - **Done:** applied 10,559 rows. DB verification: 0 remaining ID-leak titles, 0 old `| Genie.ph` suffixes, 0 empty titles, 2,610 `-Inspired`, 10,559 backup rows. Spot-checked canonical slugs (kuromi → "Kuromi-Inspired Lavender Floral Birthday Cake", etc.).
 
 ## Notes
 

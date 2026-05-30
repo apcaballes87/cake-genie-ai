@@ -659,7 +659,7 @@ export const CustomizingHeroPanel = memo(({
                         >
                             <LazyImage
                                 src={originalHeroModalSrc}
-                                alt="Original variant"
+                                alt=""
                                 fill
                                 sizes="48px"
                                 imageClassName="object-contain bg-slate-50"
@@ -688,7 +688,7 @@ export const CustomizingHeroPanel = memo(({
                                 >
                                     <LazyImage
                                         src={imageUrl}
-                                        alt={`${colorName} variant`}
+                                        alt=""
                                         fill
                                         sizes="48px"
                                         imageClassName="object-contain bg-slate-50"

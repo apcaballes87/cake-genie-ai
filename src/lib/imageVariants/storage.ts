@@ -64,21 +64,27 @@ const VARIANT_CONTENT_TYPE = 'image/webp';
 
 /**
  * Returns the storage object key for a variant within the cakegenie bucket.
- * Per Req 2.1: `variants/{p_hash}/{width}.webp`.
+ * Per Req 2.1 (revised): `variants/{key}/{width}.webp`.
+ *
+ * `key` is the descriptive design slug (e.g. `kuromi-light-purple-1-tier-cake-e3c3`)
+ * so the rendered image URL carries keyword signal for Google Images. Callers
+ * fall back to `p_hash` only when a row has no slug. The key is used verbatim
+ * (no slugification) because design slugs are already URL-safe; `p_hash`
+ * fallbacks are alphanumeric.
  *
  * Width is coerced through `Math.trunc` so a malformed (non-integer) input
  * produces a deterministic, predictable key rather than a NaN that would
  * silently corrupt later lookups. Callers should always pass an integer
  * width from the manifest.
  */
-export function variantPath(pHash: string, width: number): string {
+export function variantPath(key: string, width: number): string {
     const intWidth = Math.trunc(width);
-    return `${VARIANT_PREFIX}/${pHash}/${intWidth}.webp`;
+    return `${VARIANT_PREFIX}/${key}/${intWidth}.webp`;
 }
 
 /**
  * Returns the public Supabase URL for a variant. Deterministic — built
- * entirely from `(pHash, width)` and the static storage host. The
+ * entirely from `(key, width)` and the static storage host. The
  * SupabaseClient parameter is accepted (rather than required) so the helper
  * can be called without any network or DB context.
  *
@@ -87,8 +93,8 @@ export function variantPath(pHash: string, width: number): string {
  * query strings. Building the URL by string concatenation guarantees the
  * "no query string" rule from Req 9.4.
  */
-export function publicVariantUrl(_client: SupabaseClient, pHash: string, width: number): string {
-    return `${STORAGE_BASE_URL}/${VARIANT_BUCKET}/${variantPath(pHash, width)}`;
+export function publicVariantUrl(_client: SupabaseClient, key: string, width: number): string {
+    return `${STORAGE_BASE_URL}/${VARIANT_BUCKET}/${variantPath(key, width)}`;
 }
 
 /**
@@ -97,7 +103,7 @@ export function publicVariantUrl(_client: SupabaseClient, pHash: string, width: 
  * overwrites the same path in place.
  *
  * Returns the deterministic public URL on success — same value as
- * `publicVariantUrl(client, pHash, width)`. We re-derive it locally rather
+ * `publicVariantUrl(client, key, width)`. We re-derive it locally rather
  * than trusting whatever the storage SDK returns, so callers can't end up
  * with run-scoped or signed URLs by accident (Req 12.2).
  *
@@ -107,11 +113,11 @@ export function publicVariantUrl(_client: SupabaseClient, pHash: string, width: 
  */
 export async function uploadVariant(
     client: SupabaseClient,
-    pHash: string,
+    key: string,
     width: number,
     buf: Buffer
 ): Promise<{ url: string }> {
-    const path = variantPath(pHash, width);
+    const path = variantPath(key, width);
 
     const { error } = await client.storage
         .from(VARIANT_BUCKET)
@@ -125,8 +131,8 @@ export async function uploadVariant(
         // Wrap with stage info so the caller's structured logging picks it
         // up cleanly. The error.message from supabase-js is already
         // human-readable; we just prefix the operation.
-        throw new Error(`uploadVariant(${pHash}, ${width}): ${error.message}`);
+        throw new Error(`uploadVariant(${key}, ${width}): ${error.message}`);
     }
 
-    return { url: publicVariantUrl(client, pHash, width) };
+    return { url: publicVariantUrl(client, key, width) };
 }

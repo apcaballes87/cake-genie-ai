@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { upgradeLegacySlug } from '@/lib/utils/urlHelpers'
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase/env'
+import { parseManifest, pickFallbackSrc } from '@/lib/imageVariants/manifest'
 
 export const SITEMAP_CHUNK_SIZE = 1000
 export const CUSTOMIZING_SITEMAP_MIN_AGE_DAYS = 7
@@ -22,6 +23,7 @@ type ImageLikeRow = {
   original_image_url?: string | null
   studio_edited_image_url?: string | null
   customized_image_url?: string | null
+  image_variants?: unknown
 }
 
 type RawCustomizedCakeRow = {
@@ -32,6 +34,7 @@ type RawCustomizedCakeRow = {
   keywords: string | null
   original_image_url: string | null
   studio_edited_image_url: string | null
+  image_variants?: unknown
   image_width?: number | null
   image_height?: number | null
 }
@@ -159,6 +162,17 @@ export function isPastSitemapCutoff(createdAt: string, now = new Date()): boolea
 }
 
 export function getPreferredSitemapImage(row: ImageLikeRow): string | null {
+  // Prefer the actually-rendered hero image (largest variant ≤ 1200) so the
+  // image embedded on the PDP, the JSON-LD ImageObject, and this sitemap entry
+  // all reference the SAME URL. After the slug-based variant re-path that URL
+  // is keyword-rich. Falls back to the descriptive source URLs when a row has
+  // no usable variant manifest yet (parity preserved either way).
+  const manifest = parseManifest(row.image_variants)
+  const variantUrl = pickFallbackSrc(manifest, 1200)
+  if (variantUrl) {
+    return variantUrl
+  }
+
   const candidates = [
     row.studio_edited_image_url,
     row.original_image_url,
@@ -328,7 +342,7 @@ async function fetchAllCustomizedCakeRows(): Promise<RawCustomizedCakeRow[]> {
   while (true) {
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
-      .select('slug, created_at, seo_title, alt_text, keywords, original_image_url, studio_edited_image_url, image_width, image_height')
+      .select('slug, created_at, seo_title, alt_text, keywords, original_image_url, studio_edited_image_url, image_variants, image_width, image_height')
       .not('slug', 'is', null)
       .lte('created_at', cutoffDate)
       .order('created_at', { ascending: false })

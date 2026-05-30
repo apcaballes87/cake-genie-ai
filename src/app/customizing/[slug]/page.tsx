@@ -27,11 +27,11 @@ import {
 } from '@/lib/commerce/machineReadable'
 import {
     optimizeMetaDescription,
-    buildPdpTitle,
     resolveAggregateRating,
     resolveSkuMpn,
     FALLBACK_MIN_PRICE,
 } from './metadataHelpers'
+import { buildCakeTitle, extractTitleInputFromAnalysis } from '@/lib/seo/cakeTitle'
 
 const VALID_CAKE_TYPES: CakeType[] = ['1 Tier', '2 Tier', '3 Tier', '1 Tier Fondant', '2 Tier Fondant', '3 Tier Fondant', 'Square', 'Rectangle', 'Bento', 'Square Fondant', 'Rectangle Fondant'];
 const CAKE_TYPE_THICKNESS_MAP: Record<string, CakeThickness> = {
@@ -278,13 +278,20 @@ export async function generateMetadata(
         }
     }
 
-    const title = buildPdpTitle({
-        seoTitle: design.seo_title,
-        keywords: design.keywords,
-        tags: design.tags,
-        price: design.price,
-        slug: design.slug,
-    })
+    // Title body is the stored, deterministically-reconstructed seo_title (R6/R7).
+    // The root layout template appends ' | Genie.ph'. No price segment in the title.
+    // Fallback: if seo_title is somehow blank, rebuild from the design's own
+    // structured attributes (same builder the write path and backfill use).
+    const storedTitle = typeof design.seo_title === 'string' ? design.seo_title.trim() : ''
+    const title = storedTitle.length > 0
+        ? storedTitle
+        : buildCakeTitle(
+            extractTitleInputFromAnalysis(
+                (design.analysis_json ?? {}) as Parameters<typeof extractTitleInputFromAnalysis>[0],
+                design.keywords,
+                design.tags,
+            ),
+        )
 
     // Description with rich fallback chain:
     // 1. Use seo_description if available (unless it's generic/templated)
@@ -388,7 +395,26 @@ export function DesignSchema({
     const tags = design.tags || [];
     const keywords = design.keywords || 'Custom';
     const title = design.seo_title || `${tags.length > 0 ? tags[0] + ' ' : ''}${keywords} Cake`;
-    const imageUrl = design.original_image_url;
+    // Image URL for structured data + sitemap parity. Point at the SAME image the
+    // page actually renders as its hero (the largest slug-based variant ≤ 1200,
+    // falling back to the original). After the slug-based variant re-path this URL
+    // is keyword-rich, so the embedded image, JSON-LD, and sitemap all agree on one
+    // descriptive URL — the key signal for Google Images.
+    const heroVariantManifest = parseManifest(design.image_variants);
+    const heroVariant = heroVariantManifest
+        ? [...heroVariantManifest.variants].sort((a, b) => a.width - b.width).filter((v) => v.width <= 1200).pop()
+            ?? [...heroVariantManifest.variants].sort((a, b) => a.width - b.width)[0]
+        : null;
+    const imageUrl = heroVariant?.url ?? design.original_image_url;
+    // Dimensions that match `imageUrl`: when it's a variant, derive proportional
+    // height from the source aspect ratio; otherwise use the measured source dims.
+    const imageDims = (() => {
+        if (heroVariant && design.image_width && design.image_height) {
+            const h = Math.round(heroVariant.width * (design.image_height / design.image_width));
+            return { width: heroVariant.width, height: h };
+        }
+        return { width: design.image_width ?? null, height: design.image_height ?? null };
+    })();
     const pageUrl = `https://genie.ph/customizing/${design.slug || ''}`;
     const policyUrls = getCommercePolicyUrls();
 
@@ -409,8 +435,8 @@ export function DesignSchema({
         '@type': 'ImageObject',
         url: imageUrl,
         contentUrl: imageUrl,
-        ...(design.image_width && { width: design.image_width }),
-        ...(design.image_height && { height: design.image_height }),
+        ...(imageDims.width && { width: imageDims.width }),
+        ...(imageDims.height && { height: imageDims.height }),
         encodingFormat: detectMimeType(imageUrl),
         name: sanitize(generateRichAltText(design)),
         caption: sanitizedDesc,

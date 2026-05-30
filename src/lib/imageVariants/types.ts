@@ -146,6 +146,12 @@ export interface SelectedSource {
 export interface RunForRowInput {
     pHash: string;
     /**
+     * Descriptive design slug used as the variant storage key
+     * (`variants/{slug}/{width}.webp`) so rendered image URLs carry keyword
+     * signal for Google Images. Falls back to `pHash` when absent/blank.
+     */
+    slug?: string | null;
+    /**
      * Studio-edited URL from the cache row, if any. Whitespace-only values
      * are treated as empty per Req 14.1.
      */

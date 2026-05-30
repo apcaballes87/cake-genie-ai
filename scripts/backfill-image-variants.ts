@@ -153,7 +153,7 @@ const main = async (): Promise<void> => {
 
         let query = supabase
             .from('cakegenie_analysis_cache')
-            .select('p_hash, created_at, studio_edited_image_url, original_image_url, image_variants_status')
+            .select('p_hash, slug, created_at, studio_edited_image_url, original_image_url, image_variants_status')
             .order('created_at', { ascending: false });
 
         // Apply filters based on status selection.
@@ -238,6 +238,7 @@ const main = async (): Promise<void> => {
             try {
                 result = await runVariantPipelineForRow({
                     pHash: row.p_hash,
+                    slug: row.slug ?? null,
                     studioEditedImageUrl: studioUrl,
                     originalImageUrl: originalUrl,
                     client: supabase,
