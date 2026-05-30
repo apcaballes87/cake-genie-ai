@@ -1,4 +1,4 @@
-import { hslToRgb, rgbToHsl } from '@/lib/instantIcingRecolor';
+import { hexToRgb, hslToRgb, rgbToHsl } from '@/lib/instantIcingRecolor';
 
 export interface IcingLayerAdjustments {
   hueShift: number;
@@ -10,6 +10,36 @@ export interface IcingLayerAdjustments {
 
 const DEFAULT_BLACK_THRESHOLD = 14;
 const DEFAULT_BLACK_SOFTNESS = 28;
+
+/**
+ * The fixed red base color the Gemini icing mask paints the icing body in.
+ * All HSL recolor shifts are computed relative to this color.
+ */
+export const MASK_LAYER_BASE_COLOR = '#FF0000';
+
+/**
+ * Computes the HSL delta from the mask base color (#FF0000) to a target color.
+ * Shared by the icing recolor lab and the customizer so both use one implementation.
+ *
+ * Reuses `hexToRgb` from `@/lib/instantIcingRecolor` (which throws on invalid hex).
+ * Callers pass known-valid palette hexes (and #FF0000), so this is safe.
+ */
+export function getLayerColorAdjustments(targetHex: string): {
+  hueShift: number;
+  saturationShift: number;
+  lightnessShift: number;
+} {
+  const baseRgb = hexToRgb(MASK_LAYER_BASE_COLOR);
+  const targetRgb = hexToRgb(targetHex);
+  const baseHsl = rgbToHsl(baseRgb.r, baseRgb.g, baseRgb.b);
+  const targetHsl = rgbToHsl(targetRgb.r, targetRgb.g, targetRgb.b);
+
+  return {
+    hueShift: targetHsl.h - baseHsl.h,
+    saturationShift: Math.round((targetHsl.s - baseHsl.s) * 100),
+    lightnessShift: Math.round((targetHsl.l - baseHsl.l) * 100),
+  };
+}
 
 export function getNonBlackAlpha(
   r: number,

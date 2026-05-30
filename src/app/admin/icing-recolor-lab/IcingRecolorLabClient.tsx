@@ -7,8 +7,12 @@ import { Download, Loader2, RotateCcw, SlidersHorizontal, Sparkles, Upload } fro
 
 import { COLORS } from '@/constants';
 import { ICING_CONVERSION_PROMPT } from '@/lib/icingConversionPrompt';
-import { buildAdjustedIcingLayer } from '@/lib/icingLayerComposite';
-import { constrainDimensions, rgbToHsl } from '@/lib/instantIcingRecolor';
+import {
+  buildAdjustedIcingLayer,
+  getLayerColorAdjustments,
+  MASK_LAYER_BASE_COLOR,
+} from '@/lib/icingLayerComposite';
+import { constrainDimensions } from '@/lib/instantIcingRecolor';
 import { editCakeImage, fileToBase64 } from '@/services/geminiService';
 
 type RenderStats = {
@@ -20,7 +24,7 @@ type RenderStats = {
 };
 
 const PREVIEW_MAX_DIMENSION = 1200;
-const DEFAULT_LAYER_COLOR = '#FF0000';
+const DEFAULT_LAYER_COLOR = MASK_LAYER_BASE_COLOR;
 const ICING_LAYER_SYSTEM_INSTRUCTION = [
   'You are a precise cake image editor.',
   'Follow the user prompt exactly and return only one edited image.',
@@ -28,34 +32,6 @@ const ICING_LAYER_SYSTEM_INSTRUCTION = [
   'Do not re-center, zoom, rotate, extend, or restage the cake composition.',
   'The output should work as a clean icing-only overlay layer when black pixels are keyed out.',
 ].join(' ');
-
-function hexToRgb(hex: string) {
-  const normalized = hex.replace('#', '');
-  const value = normalized.length === 3
-    ? normalized.split('').map((char) => char + char).join('')
-    : normalized;
-
-  const parsed = Number.parseInt(value, 16);
-
-  return {
-    r: (parsed >> 16) & 255,
-    g: (parsed >> 8) & 255,
-    b: parsed & 255,
-  };
-}
-
-function getLayerColorAdjustments(targetHex: string) {
-  const baseRgb = hexToRgb(DEFAULT_LAYER_COLOR);
-  const targetRgb = hexToRgb(targetHex);
-  const baseHsl = rgbToHsl(baseRgb.r, baseRgb.g, baseRgb.b);
-  const targetHsl = rgbToHsl(targetRgb.r, targetRgb.g, targetRgb.b);
-
-  return {
-    hueShift: targetHsl.h - baseHsl.h,
-    saturationShift: Math.round((targetHsl.s - baseHsl.s) * 100),
-    lightnessShift: Math.round((targetHsl.l - baseHsl.l) * 100),
-  };
-}
 
 async function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {

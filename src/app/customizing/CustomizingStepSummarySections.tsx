@@ -57,6 +57,17 @@ interface CustomizingStepSummarySectionsProps {
     isUpdatingDesign?: boolean;
     dirtyFields?: Set<string>;
     originalCakeType?: string | null;
+    /** When provided, the main color swatch row uses the mask-based instant recolor
+     *  instead of calling onUpdateDesign (Gemini) for icing body color changes. */
+    onIcingColorRecolor?: (hex: string, name: string) => void;
+    /** When provided, a "Fix Mask" button is shown at the end of the color swatch row
+     *  to let users regenerate the icing mask for better quality. */
+    onRegenerateMask?: () => void;
+    /** Disables the mask overlay, reverting to the original un-recolored image.
+     *  Called when the user clicks the same color again (toggle), the main circle, or the default color. */
+    onDisableMask?: () => void;
+    /** Whether the mask recolor overlay is currently active (showing a recolored image). */
+    isMaskActive?: boolean;
 }
 
 const findScrollableParent = (element: HTMLElement | null): HTMLElement | null => {
@@ -283,6 +294,10 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     isUpdatingDesign,
     dirtyFields,
     originalCakeType,
+    onIcingColorRecolor,
+    onRegenerateMask,
+    onDisableMask,
+    isMaskActive = false,
 }: CustomizingStepSummarySectionsProps) {
     // Default position when "+ Add" is clicked: Bento → front (side), all others → base_board
     const defaultMessagePosition = cakeInfo?.type === 'Bento' ? 'side' : 'base_board';
@@ -495,13 +510,47 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     const mainColorOptionsNode = cakeInfo ? (
         <div className={`${cardClassName} max-md:py-1 max-md:px-1.5`}>
             <div className="flex items-center gap-2 px-1 pb-0.5 md:gap-3">
-                <div className="flex flex-col items-center gap-0.5 shrink-0">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Main</span>
-                    <div
-                        className="md:w-10 md:h-10 w-[34px] h-[34px] rounded-full border-2 border-white shadow-md ring-1 ring-slate-100 shrink-0"
-                        style={{ backgroundColor: icingDesign?.colors?.side || icingDesign?.colors?.top || '#FFFFFF' }}
-                    />
-                </div>
+                {/* Color toggle switch — ON shows chosen color, OFF shows gray */}
+                {onIcingColorRecolor || onDisableMask ? (() => {
+                    const activeColor = icingDesign?.colors?.side || icingDesign?.colors?.top || '#FFFFFF';
+                    const handleToggle = () => {
+                        if (isMaskActive) {
+                            onDisableMask?.();
+                        } else {
+                            const colorName = hexToColorNameProse(activeColor);
+                            onIcingColorRecolor?.(activeColor, colorName);
+                        }
+                    };
+                    return (
+                        <div className="flex flex-col items-center gap-0.5 shrink-0">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                                Icing
+                            </span>
+                            <button
+                                type="button"
+                                onClick={handleToggle}
+                                aria-label={isMaskActive ? 'Turn off icing recolor' : 'Turn on icing recolor'}
+                                title={isMaskActive ? 'Turn off icing recolor' : 'Turn on icing recolor'}
+                                className="relative w-[52px] h-[28px] md:w-[60px] md:h-[32px] rounded-full shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-purple-300"
+                                style={{ backgroundColor: isMaskActive ? activeColor : '#cbd5e1' }}
+                            >
+                                {/* Knob */}
+                                <span
+                                    className="absolute top-[3px] md:top-[4px] w-[22px] h-[22px] md:w-[24px] md:h-[24px] rounded-full bg-white shadow transition-all duration-300"
+                                    style={{ left: isMaskActive ? 'calc(100% - 25px)' : '3px' }}
+                                />
+                            </button>
+                        </div>
+                    );
+                })() : (
+                    <div className="flex flex-col items-center gap-0.5 shrink-0">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Main</span>
+                        <div
+                            className="md:w-10 md:h-10 w-[34px] h-[34px] rounded-full border-2 border-white shadow-md ring-1 ring-slate-100 shrink-0"
+                            style={{ backgroundColor: icingDesign?.colors?.side || icingDesign?.colors?.top || '#FFFFFF' }}
+                        />
+                    </div>
+                )}
 
                 <div className="w-px md:h-10 h-[34px] bg-slate-100 shrink-0" />
 
@@ -526,10 +575,15 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                                 },
                                             });
                                         }
-                                        const instruction = currentColorName
-                                            ? `Change the dominant color of the cake from ${currentColorName} to ${color.name}.`
-                                            : `Change the dominant color theme of the cake to ${color.name}.`;
-                                        onUpdateDesign?.(instruction, { hex: color.hex, name: color.name });
+                                        if (onIcingColorRecolor) {
+                                            // Mask-based instant recolor — no Gemini call needed.
+                                            onIcingColorRecolor(color.hex, color.name);
+                                        } else {
+                                            const instruction = currentColorName
+                                                ? `Change the dominant color of the cake from ${currentColorName} to ${color.name}.`
+                                                : `Change the dominant color theme of the cake to ${color.name}.`;
+                                            onUpdateDesign?.(instruction, { hex: color.hex, name: color.name });
+                                        }
                                     }}
                                     disabled={isUpdatingDesign}
                                     className={`group relative flex flex-col items-center gap-1 shrink-0 transition-transform active:scale-95 ${isUpdatingDesign ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -549,6 +603,24 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                 </button>
                             );
                         })}
+                        {onRegenerateMask && (
+                            <button
+                                type="button"
+                                onClick={onRegenerateMask}
+                                disabled={isUpdatingDesign}
+                                className="group relative flex flex-col items-center gap-1 shrink-0 transition-transform active:scale-95"
+                                title="Regenerate icing mask for better quality"
+                            >
+                                <div className="md:w-8 md:h-8 w-[27px] h-[27px] rounded-full border border-dashed border-slate-300 shadow-sm flex items-center justify-center bg-slate-50 group-hover:border-purple-300 group-hover:bg-purple-50 transition-all">
+                                    <svg className="w-3.5 h-3.5 text-slate-400 group-hover:text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </div>
+                                <span className="text-[7px] font-medium text-slate-500 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+                                    Fix
+                                </span>
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

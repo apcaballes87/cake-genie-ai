@@ -408,3 +408,20 @@ export interface CakeGenieColorVariant {
   created_at: string; // ISO 8601 timestamp
 }
 
+/**
+ * Represents a persisted icing mask for a design from cakegenie_analysis_cache.
+ * The mask is the Gemini-generated red-icing / black-everything-else reference image,
+ * generated once per design and reused for all client-side HSL recolors.
+ */
+export interface CakeGenieIcingMask {
+  id: string; // UUID
+  cache_id: string; // UUID -> cakegenie_analysis_cache.id
+  mask_url: string; // Supabase Storage public URL
+  source_image_url: string | null;
+  mask_version: number; // default 1
+  width: number | null;
+  height: number | null;
+  status: 'ready' | 'failed';
+  created_at: string; // ISO 8601 timestamp
+}
+

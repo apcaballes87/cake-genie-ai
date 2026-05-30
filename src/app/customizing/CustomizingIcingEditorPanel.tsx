@@ -1,12 +1,32 @@
 'use client';
 
 import React, { memo, useMemo } from 'react';
-import { X } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 import LazyImage from '@/components/LazyImage';
 import { ColorPalette } from '@/components/ColorPalette';
 import { ResetIcon } from '@/components/icons';
+import { COLORS } from '@/constants';
 import { findClosestColor } from '@/utils/colorUtils';
 import type { CakeType, ClusteredMarker, IcingColorDetails, IcingDesignUI, MainTopperUI } from '@/types';
+
+// Resolve a palette color name from a hex value (case-insensitive), falling back to
+// the raw hex when the color is not part of the known palette. Used to forward a
+// human-readable color name to the mask-based recolor action.
+const getColorName = (hex: string): string =>
+    COLORS.find((color) => color.hex.toLowerCase() === hex.toLowerCase())?.name ?? hex;
+
+// One-time mask generation indicator rendered over the affected icing color group.
+// Uses lucide-react's Loader2 with animate-spin, consistent with the icing recolor lab.
+const MaskGeneratingOverlay = memo(function MaskGeneratingOverlay() {
+    return (
+        <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/70 backdrop-blur-sm">
+            <div className="inline-flex items-center gap-2 rounded-full bg-slate-900/90 px-3 py-1.5 text-xs font-medium text-white">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                Generating preview...
+            </div>
+        </div>
+    );
+});
 
 type IcingImageType = 'top' | 'side' | 'drip' | 'borderTop' | 'borderBase' | 'gumpasteBaseBoard';
 
@@ -20,6 +40,19 @@ interface CustomizingIcingEditorPanelProps {
     onSelectItem: (item: ClusteredMarker | null) => void;
     onIcingDesignChange: (nextDesign: IcingDesignUI) => void;
     onRevert: () => void;
+    /**
+     * Optional mask-based instant recolor action. When provided, the Body/Top/Side
+     * icing color circles call this (in addition to updating icing design state) so
+     * the displayed image is recolored client-side without a Gemini round trip.
+     * The icing design state still updates via onIcingDesignChange to keep the data
+     * model (icingDesign.colors.top/side) in sync — this only changes the image.
+     */
+    onIcingColorRecolor?: (hex: string, name: string) => void;
+    /**
+     * When true, a loading spinner is shown over the affected icing color group while
+     * the one-time mask is generated. All other controls stay enabled and responsive.
+     */
+    isGeneratingMask?: boolean;
 }
 
 const defaultIcingDesign: IcingDesignUI = {
@@ -161,6 +194,8 @@ export const CustomizingIcingEditorPanel = memo(function CustomizingIcingEditorP
     onSelectItem,
     onIcingDesignChange,
     onRevert,
+    onIcingColorRecolor,
+    isGeneratingMask = false,
 }: CustomizingIcingEditorPanelProps) {
     const selectedIcingItem = isIcingSelection(selectedItem) ? selectedItem : null;
     const isBento = cakeType === 'Bento';
@@ -237,7 +272,8 @@ export const CustomizingIcingEditorPanel = memo(function CustomizingIcingEditorP
                         {selectedIcingItem.description === 'Bottom' && renderToggleAndColor('border_base', 'borderBase', 'Base Border')}
                         {selectedIcingItem.description === 'Board' && renderToggleAndColor('gumpasteBaseBoard', 'gumpasteBaseBoardColor', 'Covered Board')}
                         {selectedIcingItem.description === 'Body Icing' && icingDesign && (
-                            <div className="pb-2">
+                            <div className="relative pb-2">
+                                {isGeneratingMask && <MaskGeneratingOverlay />}
                                 <ColorPalette
                                     selectedColor={icingDesign.colors.top || icingDesign.colors.side || '#FFFFFF'}
                                     onColorChange={(newHex) => {
@@ -245,23 +281,32 @@ export const CustomizingIcingEditorPanel = memo(function CustomizingIcingEditorP
                                             ...icingDesign,
                                             colors: { ...icingDesign.colors, top: newHex, side: newHex },
                                         });
+                                        onIcingColorRecolor?.(newHex, getColorName(newHex));
                                     }}
                                 />
                             </div>
                         )}
                         {selectedIcingItem.description === 'Top Icing' && icingDesign && (
-                            <div className="pb-2">
+                            <div className="relative pb-2">
+                                {isGeneratingMask && <MaskGeneratingOverlay />}
                                 <ColorPalette
                                     selectedColor={icingDesign.colors.top || ''}
-                                    onColorChange={(newHex) => onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, top: newHex } })}
+                                    onColorChange={(newHex) => {
+                                        onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, top: newHex } });
+                                        onIcingColorRecolor?.(newHex, getColorName(newHex));
+                                    }}
                                 />
                             </div>
                         )}
                         {selectedIcingItem.description === 'Side Icing' && icingDesign && (
-                            <div className="pb-2">
+                            <div className="relative pb-2">
+                                {isGeneratingMask && <MaskGeneratingOverlay />}
                                 <ColorPalette
                                     selectedColor={icingDesign.colors.side || ''}
-                                    onColorChange={(newHex) => onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, side: newHex } })}
+                                    onColorChange={(newHex) => {
+                                        onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, side: newHex } });
+                                        onIcingColorRecolor?.(newHex, getColorName(newHex));
+                                    }}
                                 />
                             </div>
                         )}
