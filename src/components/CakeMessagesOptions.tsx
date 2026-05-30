@@ -168,7 +168,7 @@ export const CakeMessagesOptions: React.FC<CakeMessagesOptionsProps> = ({
                                 <div className="relative w-full aspect-square overflow-hidden rounded-lg border border-slate-100 bg-slate-50">
                                     <LazyImage
                                         src={option.thumbnail}
-                                        alt={option.label}
+                                        alt=""
                                         fill
                                         sizes="80px"
                                         imageClassName="object-cover"

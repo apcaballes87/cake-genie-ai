@@ -101,7 +101,7 @@ export const CakeFlavorBottomSheet: React.FC<CakeFlavorBottomSheetProps> = ({
                                                 <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${isSelected ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
                                                     <LazyImage
                                                         src={FLAVOR_THUMBNAILS[flavor]}
-                                                        alt={flavor}
+                                                        alt=""
                                                         fill
                                                         sizes="64px"
                                                         imageClassName={`object-cover transition-all ${isFlavorDisabled ? 'filter grayscale' : ''}`}

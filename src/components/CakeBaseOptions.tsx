@@ -169,7 +169,7 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                 <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.type === type ? 'genie-control-selected' : 'border-purple-100 bg-white group-hover:border-purple-400'}`}>
                                     <LazyImage
                                         src={CAKE_TYPE_THUMBNAILS[type]}
-                                        alt={cakeTypeDisplayMap[type]}
+                                        alt=""
                                         fill
                                         sizes={thumbSizes}
                                         imageClassName="object-cover"
@@ -208,7 +208,7 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                         <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.size === option.size ? 'genie-control-selected' : 'border-purple-100 bg-white group-hover:border-purple-400'}`}>
                                             <LazyImage
                                                 src={CAKE_SIZE_THUMBNAILS[option.size] || CAKE_TYPE_THUMBNAILS[cakeInfo.type]}
-                                                alt={option.size}
+                                                alt=""
                                                 fill
                                                 sizes={thumbSizes}
                                                 imageClassName="object-cover"
@@ -276,7 +276,7 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                 <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.thickness === thickness ? 'genie-control-selected' : 'border-purple-100 bg-white group-hover:border-purple-400'}`}>
                                     <LazyImage
                                         src={CAKE_THICKNESS_THUMBNAILS[thickness]}
-                                        alt={`${thickness} height`}
+                                        alt=""
                                         fill
                                         sizes={thumbSizes}
                                         imageClassName="object-cover"

@@ -297,7 +297,7 @@ export const CustomizingHeroPanel = memo(({
                             <NativeFadeOverlayImage
                                 key={`scroll-overlay-${overlaySrc}`}
                                 src={overlaySrc}
-                                alt={alt}
+                                alt=""
                                 title={title}
                                 className="pointer-events-none absolute inset-x-0 top-0 w-full h-auto align-top"
                                 onLoad={imageOnLoad}
@@ -348,7 +348,7 @@ export const CustomizingHeroPanel = memo(({
                 <NativeFadeOverlayImage
                     key={`static-overlay-${overlaySrc}`}
                     src={overlaySrc}
-                    alt={alt}
+                    alt=""
                     title={title}
                     className="pointer-events-none absolute inset-x-0 top-0 w-full h-auto rounded-3xl"
                     onLoad={imageOnLoad}
