@@ -35,6 +35,7 @@ interface ImageContextType {
     error: string | null;
     currentSlug: string | null;
     currentPHash: string | null;
+    currentCacheId: string | null;
     setEditedImage: (image: string | null) => void;
     setError: (error: string | null) => void;
     setIsLoading: (isLoading: boolean) => void;
@@ -99,6 +100,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
     const [error, setError] = useState<string | null>(null);
     const [currentSlug, setCurrentSlugState] = useState<string | null>(null);
     const [currentPHash, setCurrentPHash] = useState<string | null>(null);
+    const [currentCacheId, setCurrentCacheId] = useState<string | null>(null);
     const [seoMetadata, setSeoMetadata] = useState<CacheSEOMetadata | null>(null);
     const [isAnalysisCached, setIsAnalysisCached] = useState<boolean>(false);
     const persistedImageStateRef = React.useRef<{
@@ -145,6 +147,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
         setCurrentSlugState(null);
         setCurrentPHash(null);
+        setCurrentCacheId(null);
         setSeoMetadata(null);
         setIsAnalysisCached(false);
         persistedImageStateRef.current = {
@@ -170,6 +173,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 setSourceImageData(null);
                 setPreviousImageData(null);
                 setEditedImage(null);
+                setCurrentCacheId(null);
                 persistedImageStateRef.current = {
                     original: null,
                     source: null,
@@ -310,6 +314,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         // so the share button won't show an old link
         setCurrentSlugState(null);
         setCurrentPHash(null);
+        setCurrentCacheId(null);
         setSeoMetadata(null);
         setIsAnalysisCached(false);
         try {
@@ -413,6 +418,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 // Case A: Crop-resistant match found in FastAPI database
                 showProgressToast('We found your cake photo! 🎉', 3000);
                 cacheHit = {
+                    id: orbCacheHit.matchedImageId ?? null,
                     pHash: orbCacheHit.pHash ?? '',
                     analysisResult: orbCacheHit.analysisResult,
                     seoMetadata: orbCacheHit.seoMetadata ?? {
@@ -508,6 +514,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             // --- PROCESS CACHE HIT (IF ANY) ---
             if (cacheHit) {
                 const cachedAnalysis = cacheHit.analysisResult;
+                setCurrentCacheId(cacheHit.id ?? null);
                 setCurrentPHash(cacheHit.pHash || null);
                 setSeoMetadata(cacheHit.seoMetadata ?? null);
 
@@ -620,6 +627,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     void fastCacheWritePromise
                         .then(cacheWrite => {
                             if (cacheWrite) {
+                                setCurrentCacheId(cacheWrite.id ?? null);
                                 setCurrentPHash(cacheWrite.storedPHash);
                                 console.log(`✅ Fast analysis result cached successfully with pHash: ${cacheWrite.storedPHash}`);
                                 setIsAnalysisCached(true);
@@ -671,6 +679,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                                 });
 
                             if (cacheWrite) {
+                                setCurrentCacheId(cacheWrite.id ?? null);
                                 setCurrentPHash(cacheWrite.storedPHash);
                                 console.log(`✅ Enriched analysis cache update completed with pHash: ${cacheWrite.storedPHash}`);
                                 setIsAnalysisCached(true);
@@ -693,6 +702,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                                     fingerprintPipeline: fingerprint.pipeline,
                                 });
                                 if (cacheWrite) {
+                                    setCurrentCacheId(cacheWrite.id ?? null);
                                     setCurrentPHash(cacheWrite.storedPHash);
                                     console.log(`✅ Analysis result (fast profile) cached successfully with pHash: ${cacheWrite.storedPHash}`);
                                     setIsAnalysisCached(true);
@@ -732,6 +742,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         setSeoMetadata(null);
         setCurrentSlugState(null);
         setCurrentPHash(null);
+        setCurrentCacheId(null);
         try {
             const fetchWithTimeout = async (targetUrl: string, timeoutMs: number) => {
                 const controller = new AbortController();
@@ -959,6 +970,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         error,
         currentSlug,
         currentPHash,
+        currentCacheId,
         setEditedImage,
         setError,
         setIsLoading,
@@ -983,6 +995,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         error,
         currentSlug,
         currentPHash,
+        currentCacheId,
         setCurrentSlug,
         handleImageUpload,
         loadImageWithoutAnalysis,

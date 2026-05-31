@@ -3,6 +3,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { updateDesign } from '@/services/designService';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
+import { fileToBase64 } from '@/services/geminiService';
 import type {
     HybridAnalysisResult,
     MainTopperUI,
@@ -48,6 +49,7 @@ export interface HandleDesignUpdateOptions {
 interface UseDesignUpdateProps {
     originalImageData: { data: string; mimeType: string } | null;
     editedImage: string | null;
+    studioEditedImageUrl?: string | null;
     analysisResult: HybridAnalysisResult | null;
     cakeInfo: CakeInfoUI | null;
     mainToppers: MainTopperUI[];
@@ -78,9 +80,28 @@ function parseDataUriImage(imageUri: string | null): { data: string; mimeType: s
     };
 }
 
+async function fetchUrlAsBase64(url: string): Promise<{ data: string; mimeType: string }> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10_000);
+
+    try {
+        const response = await fetch(url, { signal: controller.signal });
+        if (!response.ok) {
+            throw new Error(`Failed to fetch image (status ${response.status}).`);
+        }
+
+        const blob = await response.blob();
+        const file = new File([blob], 'studio-edited.webp', { type: blob.type || 'image/webp' });
+        return await fileToBase64(file);
+    } finally {
+        clearTimeout(timeoutId);
+    }
+}
+
 export const useDesignUpdate = ({
     originalImageData,
     editedImage,
+    studioEditedImageUrl = null,
     analysisResult,
     cakeInfo,
     mainToppers,
@@ -151,18 +172,7 @@ export const useDesignUpdate = ({
         const resolvedIcingDesign = options?.stateOverrides?.icingDesign ?? icingDesign;
         const resolvedAdditionalInstructions = options?.stateOverrides?.additionalInstructions ?? additionalInstructions;
         const resolvedPromptGenerator = options?.promptGenerator ?? promptGenerator;
-        const currentBaseImageData = parseDataUriImage(editedImage) ?? originalImageData;
-
-        // Synchronous cache hit check (completely avoids blocking or setting in-flight promises)
         const colorMeta = options?.colorMeta;
-        if (colorMeta && cacheId && currentBaseImageData) {
-            const cachedUrl = localCacheRef.current[colorMeta.hex.toLowerCase()];
-            if (cachedUrl) {
-                console.log(`🎯 Color Variant Cache Hit! Instantly loading ${colorMeta.name} (${colorMeta.hex})`);
-                onSuccess(cachedUrl, currentBaseImageData);
-                return Promise.resolve(cachedUrl);
-            }
-        }
 
         if (inFlightPromiseRef.current) {
             return inFlightPromiseRef.current;
@@ -177,7 +187,11 @@ export const useDesignUpdate = ({
         }
 
         // Guard against missing critical data which is checked in the service, but good to have here too.
-        if (!currentBaseImageData || !resolvedIcingDesign || !resolvedCakeInfo) {
+        const syncEditedImageData = parseDataUriImage(editedImage);
+        const canResolveStudioFallbackBase =
+            requestSource === 'icing-mask-fallback' && !!studioEditedImageUrl && !syncEditedImageData;
+
+        if ((!syncEditedImageData && !originalImageData && !canResolveStudioFallbackBase) || !resolvedIcingDesign || !resolvedCakeInfo) {
             const missingDataError = "Cannot update design: missing original image, icing design, or cake info.";
             // setError(missingDataError); // Removed per instruction
             throw new Error(missingDataError);
@@ -189,6 +203,32 @@ export const useDesignUpdate = ({
             setIsSafetyFallback(false);
 
             try {
+                let currentBaseImageData = parseDataUriImage(editedImage);
+
+                if (!currentBaseImageData && requestSource === 'icing-mask-fallback' && studioEditedImageUrl) {
+                    try {
+                        currentBaseImageData = await fetchUrlAsBase64(studioEditedImageUrl);
+                    } catch (studioImageError) {
+                        console.warn('Failed to resolve studio-edited image for icing fallback; using original upload instead.', studioImageError);
+                        currentBaseImageData = originalImageData;
+                    }
+                } else if (!currentBaseImageData) {
+                    currentBaseImageData = originalImageData;
+                }
+
+                if (colorMeta && cacheId && currentBaseImageData) {
+                    const cachedUrl = localCacheRef.current[colorMeta.hex.toLowerCase()];
+                    if (cachedUrl) {
+                        console.log(`🎯 Color Variant Cache Hit! Instantly loading ${colorMeta.name} (${colorMeta.hex})`);
+                        onSuccess(cachedUrl, currentBaseImageData);
+                        return cachedUrl;
+                    }
+                }
+
+                if (!currentBaseImageData) {
+                    throw new Error("Cannot update design: missing original image, icing design, or cake info.");
+                }
+
                 const combinedInstructions = overrideInstruction
                     ? (resolvedAdditionalInstructions ? `${resolvedAdditionalInstructions}. ${overrideInstruction}` : overrideInstruction)
                     : resolvedAdditionalInstructions;
@@ -299,6 +339,7 @@ export const useDesignUpdate = ({
     }, [
         originalImageData,
         editedImage,
+        studioEditedImageUrl,
         analysisResult,
         cakeInfo,
         mainToppers,
@@ -307,8 +348,10 @@ export const useDesignUpdate = ({
         icingDesign,
         additionalInstructions,
         threeTierReferenceImage,
+        cacheId,
         onSuccess,
         promptGenerator,
+        supabase,
     ]);
 
     return {

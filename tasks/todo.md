@@ -1,5 +1,27 @@
 # Tasks
 
+## Fix `/customizing` Studio-Image Icing Recolor Source
+
+### Plan
+
+- [x] Expose the live `cakegenie_analysis_cache` row id from the upload state so fresh `/customizing` uploads can behave like persisted designs before a slug route exists.
+- [x] Pass the effective cache row id through the base customizer route so both `useIcingMask` and `useDesignUpdate` attach to the uploaded design row instead of `null`.
+- [x] Make the `icing-mask-fallback` design-update path prefer `studio_edited_image_url` bytes over the original upload when the purple studio image is the displayed base.
+- [x] Add focused regression coverage for the live cache id exposure and the studio-image fallback source, then verify with targeted tests.
+
+### Review
+
+- `src/contexts/ImageContext.tsx` now tracks a live `currentCacheId` alongside `currentPHash`, clears it on resets/new uploads, populates it from both cache hits and fresh `cacheAnalysisResult(...)` writes, and exposes it through `useImageManagement()`.
+- `src/services/supabaseService.ts` now carries cache row ids through `findSimilarAnalysisByHash(...)`, with a follow-up `cakegenie_analysis_cache` lookup when the RPC payload omits `id`, so upload-state cache hits can still attach to the persisted design row.
+- `src/app/customizing/CustomizingClient.tsx` now computes `effectiveCacheId = recentSearchDesign?.id || currentCacheId || null` and passes that same id into both `useDesignUpdate` and `useIcingMask`, which unblocks proactive studio-mask regeneration on base `/customizing`.
+- `src/hooks/useDesignUpdate.ts` now accepts `studioEditedImageUrl` and, for `source: 'icing-mask-fallback'` only, prefers fetching the studio-edited image bytes when there is no in-memory edited data URI yet. If that fetch fails, it falls back to the original upload bytes.
+- Added focused regression coverage in `src/contexts/ImageContext.test.tsx`, `src/hooks/useDesignUpdate.test.ts`, and `src/services/supabaseService.findSimilarAnalysisByHash.test.ts`.
+- Verification:
+  `npx vitest run src/contexts/ImageContext.test.tsx src/hooks/useDesignUpdate.test.ts src/services/supabaseService.findSimilarAnalysisByHash.test.ts src/hooks/useIcingMask.test.ts src/hooks/useIcingMask.integration.test.ts` passed with 28 tests.
+  `npx eslint src/contexts/ImageContext.tsx src/contexts/ImageContext.test.tsx src/hooks/useDesignUpdate.ts src/hooks/useDesignUpdate.test.ts src/services/supabaseService.findSimilarAnalysisByHash.test.ts src/app/customizing/CustomizingClient.tsx` completed with warnings only, all pre-existing.
+  `curl -I --max-time 10 http://127.0.0.1:3002/customizing` returned `200 OK`.
+- I did not complete a live browser-driven recolor click-through in this run, so the remaining acceptance check is still one manual `/customizing` pass after the purple studio image appears: click an icing swatch and verify the recolor request stays on `studio_edited_image_url`, then hit `Fix Mask` and confirm regeneration still uses the studio image.
+
 ## Microsoft Clarity Customizing Page Audit
 
 ### Plan
@@ -1239,3 +1261,22 @@
   `npx eslint src/hooks/useIcingMask.ts src/hooks/useIcingMask.test.ts src/hooks/useIcingMask.integration.test.ts src/services/icingMaskService.ts src/services/icingMaskService.test.ts` passed.
   `curl -I --max-time 10 http://127.0.0.1:3002/customizing` returned `200 OK`.
   I did not complete a browser-driven manual recolor pass in this run, so the remaining recommended follow-up is one live customizer check with a studio-edited image plus `Fix Mask`.
+
+---
+
+## Remove Customizer Color Variant Thumbnails
+
+### Plan
+
+- [x] Find where the generated color-variant thumbnails are still rendered in the customizer UI.
+- [x] Remove the thumbnail strip and its now-unused hero-panel/client wiring without disturbing the underlying fallback cache.
+- [x] Run focused verification on the touched customizer files and record the result.
+
+### Review
+
+- Removed the hero-level color-variant thumbnail strip from `src/app/customizing/CustomizingHeroPanel.tsx`, including the now-unused `colorVariants` and `onSelectColorVariant` props.
+- Removed the corresponding client wiring in `src/app/customizing/CustomizingClient.tsx`, including the thumbnail-selection callback and the now-unused destructured `colorVariants` return value from `useDesignUpdate`.
+- Kept the underlying color-variant cache logic in `src/hooks/useDesignUpdate.ts` intact, since it still supports the non-mask fallback path and instant cache hits when that older path is used.
+- Verification:
+  `npx vitest run src/app/customizing/CustomizingHeroPanel.test.tsx` passed with 12 tests total across the matching hero-panel test files in this workspace.
+  `npx eslint src/app/customizing/CustomizingClient.tsx src/app/customizing/CustomizingHeroPanel.tsx` completed with warnings only; the warnings are pre-existing unused imports/hook-dependency warnings in `CustomizingClient.tsx` plus the pre-existing unused `reviewStars` warning in `CustomizingHeroPanel.tsx`.

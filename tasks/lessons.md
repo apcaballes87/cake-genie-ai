@@ -18,3 +18,4 @@
 - For internal AI experiment pages, do not hide the active prompt only in source files when the prompt itself is the main tuning surface. Expose it in the UI and let the user rerun against the same input without another upload.
 - When the user asks an internal lab or customizer surface to match an existing product control, inspect and reuse that real UI pattern instead of leaving behind generic controls like sliders.
 - For internal experiment pages, start with the minimum click path that directly tests the hypothesis. Avoid adding multi-step manual tooling when the user is really trying to validate one simple end-to-end interaction.
+- When debugging `/customizing` versus `/customizing/[slug]`, do not assume `recentSearchDesign` exists on the base route. Fresh uploads rely on `ImageContext` state like `currentCacheId`, so route-specific bugs can hide behind correct slug-route behavior.

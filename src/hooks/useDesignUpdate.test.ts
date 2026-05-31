@@ -1,10 +1,18 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { updateDesign } from '@/services/designService';
 import { useDesignUpdate } from './useDesignUpdate';
 
 vi.mock('@/services/designService', () => ({
     updateDesign: vi.fn(),
+}));
+
+const { fileToBase64Mock } = vi.hoisted(() => ({
+    fileToBase64Mock: vi.fn(),
+}));
+
+vi.mock('@/services/geminiService', () => ({
+    fileToBase64: fileToBase64Mock,
 }));
 
 describe('useDesignUpdate', () => {
@@ -23,6 +31,11 @@ describe('useDesignUpdate', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        fileToBase64Mock.mockReset();
+    });
+
+    afterEach(() => {
+        vi.unstubAllGlobals();
     });
 
     it('reuses the in-flight promise instead of stacking concurrent updates', async () => {
@@ -147,6 +160,49 @@ describe('useDesignUpdate', () => {
         }));
         expect(onSuccess).toHaveBeenCalledWith('next-image', {
             data: 'edited-base64-data',
+            mimeType: 'image/webp',
+        });
+    });
+
+    it('uses the studio-edited image bytes for icing-mask fallback requests', async () => {
+        const fetchMock = vi.fn().mockResolvedValue({
+            ok: true,
+            blob: vi.fn().mockResolvedValue(new Blob(['studio-image'], { type: 'image/webp' })),
+        });
+        vi.stubGlobal('fetch', fetchMock);
+        fileToBase64Mock.mockResolvedValue({
+            data: 'studio-base64-data',
+            mimeType: 'image/webp',
+        });
+        vi.mocked(updateDesign).mockResolvedValueOnce({
+            image: 'fallback-image',
+            prompt: 'fallback-prompt',
+            systemInstruction: 'fallback-system',
+        });
+        const onSuccess = vi.fn();
+
+        const { result } = renderHook(() => useDesignUpdate({
+            ...baseProps,
+            studioEditedImageUrl: 'https://example.com/studio.webp',
+            onSuccess,
+        }));
+
+        await act(async () => {
+            await result.current.handleUpdateDesign('Recolor the icing to purple', {
+                source: 'icing-mask-fallback',
+            });
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith('https://example.com/studio.webp', expect.any(Object));
+        expect(updateDesign).toHaveBeenCalledWith(expect.objectContaining({
+            requestSource: 'icing-mask-fallback',
+            originalImageData: {
+                data: 'studio-base64-data',
+                mimeType: 'image/webp',
+            },
+        }));
+        expect(onSuccess).toHaveBeenCalledWith('fallback-image', {
+            data: 'studio-base64-data',
             mimeType: 'image/webp',
         });
     });

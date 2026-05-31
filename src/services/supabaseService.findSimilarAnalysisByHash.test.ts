@@ -32,6 +32,7 @@ describe('findSimilarAnalysisByHash', () => {
     rpcMock.mockResolvedValue({
       data: [
         {
+          id: 'cache-row-1',
           p_hash: 'abc123def4567890',
           analysis_json: { cakeType: 'Bento', keyword: 'lavender' },
           seo_title: 'Lavender Cake',
@@ -51,6 +52,7 @@ describe('findSimilarAnalysisByHash', () => {
     const result = await findSimilarAnalysisByHash('abc123def4567890');
 
     expect(result?.seoMetadata.slug).toBe('lavender-cake-abc123de');
+    expect(result?.id).toBe('cache-row-1');
     expect(rpcMock).toHaveBeenCalledWith('find_similar_analysis_by_fingerprint', {
       new_hash: null,
       new_pipeline: null,
@@ -65,6 +67,7 @@ describe('findSimilarAnalysisByHash', () => {
     rpcMock.mockResolvedValue({
       data: [
         {
+          id: 'cache-row-2',
           p_hash: 'deadbeef1234abcd',
           analysis_json: { cakeType: 'Bento', keyword: 'server' },
           seo_title: 'Server Cake',
@@ -88,6 +91,7 @@ describe('findSimilarAnalysisByHash', () => {
     });
 
     expect(rpcMock).toHaveBeenCalledTimes(1);
+    expect(result?.id).toBe('cache-row-2');
     expect(rpcMock).toHaveBeenCalledWith('find_similar_analysis_by_fingerprint', {
       new_hash: 'deadbeef1234abcd',
       new_pipeline: 'v1-test',
@@ -109,6 +113,7 @@ describe('findSimilarAnalysisByHash', () => {
       .mockResolvedValueOnce({
         data: [
           {
+            id: 'cache-row-3',
             p_hash: 'facefeed9876abcd',
             analysis_json: { cakeType: 'Bento', keyword: 'compat' },
             seo_title: 'Compat Cake',
@@ -135,6 +140,7 @@ describe('findSimilarAnalysisByHash', () => {
     expect(rpcMock).toHaveBeenNthCalledWith(2, 'find_similar_analysis', { new_hash: '1234567890abcdef' });
     expect(rpcMock).toHaveBeenNthCalledWith(3, 'find_similar_analysis', { new_hash: 'facefeed9876abcd' });
     expect(result?.seoMetadata.slug).toBe('compat-cake-facefeed');
+    expect(result?.id).toBe('cache-row-3');
   });
 
   it('drops malformed non-hex hashes before calling the RPCs', async () => {

@@ -326,6 +326,7 @@ export async function backfillCacheFields(pHash: string, analysisResult: HybridA
  * @returns The cached analysis JSON if a similar one is found, otherwise null.
  */
 export interface CacheHitResult {
+  id: string | null;
   pHash: string;
   analysisResult: HybridAnalysisResult;
   seoMetadata: CacheSEOMetadata;
@@ -446,6 +447,7 @@ async function resolveExistingWriteHash(
 }
 
 interface AnalysisCacheLookupRow {
+  id?: string | null;
   p_hash: string;
   analysis_json: HybridAnalysisResult;
   seo_title?: string | null;
@@ -458,7 +460,30 @@ interface AnalysisCacheLookupRow {
   availability?: CacheSEOMetadata['availability'] | null;
 }
 
-function mapCacheHitResult(result: AnalysisCacheLookupRow): CacheHitResult {
+async function resolveCacheHitId(result: AnalysisCacheLookupRow): Promise<string | null> {
+  if (typeof result.id === 'string' && result.id.trim()) {
+    return result.id;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('cakegenie_analysis_cache')
+      .select('id')
+      .eq('p_hash', result.p_hash)
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    return typeof data?.id === 'string' ? data.id : null;
+  } catch (error) {
+    console.warn('⚠️ Failed to resolve cache row id for analysis hit:', error);
+    return null;
+  }
+}
+
+function mapCacheHitResult(result: AnalysisCacheLookupRow, id: string | null): CacheHitResult {
   const analysisResult: HybridAnalysisResult = result.analysis_json;
   const seoMetadata: CacheSEOMetadata = {
     seo_title: result.seo_title || null,
@@ -471,7 +496,7 @@ function mapCacheHitResult(result: AnalysisCacheLookupRow): CacheHitResult {
     availability: result.availability || null,
   };
 
-  return { pHash: result.p_hash, analysisResult, seoMetadata };
+  return { id, pHash: result.p_hash, analysisResult, seoMetadata };
 }
 
 async function findSimilarAnalysisByLegacyHashes(
@@ -513,7 +538,8 @@ async function findSimilarAnalysisByLegacyHashes(
       backfillCacheFields(result.p_hash, result.analysis_json, imageUrl);
     }
 
-    return mapCacheHitResult(result);
+    const cacheId = await resolveCacheHitId(result);
+    return mapCacheHitResult(result, cacheId);
   }
 
   return null;
@@ -565,7 +591,8 @@ export async function findSimilarAnalysisByHash(pHash: string | string[] | Finge
           backfillCacheFields(result.p_hash, result.analysis_json, imageUrl);
         }
 
-        return mapCacheHitResult(result);
+        const cacheId = await resolveCacheHitId(result);
+        return mapCacheHitResult(result, cacheId);
       }
     }
 

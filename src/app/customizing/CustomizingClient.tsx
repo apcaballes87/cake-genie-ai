@@ -529,7 +529,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         setEditedImage, setError: setImageManagementError, setOriginalImageData, setPreviousImageData,
         handleImageUpload: hookImageUpload, handleSave, uploadCartImages, clearImages,
         loadImageWithoutAnalysis, setCurrentSlug, currentSlug: persistedSlug,
-        currentPHash, seoMetadata, isAnalysisCached,
+        currentPHash, currentCacheId, seoMetadata, isAnalysisCached,
     } = useImageManagement();
 
 
@@ -827,13 +827,15 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         });
     }, [aiChatPromptSuggestionItems, chatInput]);
 
+    const effectiveCacheId = recentSearchDesign?.id || currentCacheId || null;
+
     const {
         isLoading: isUpdatingDesign, error: designUpdateError, lastGenerationInfoRef, handleUpdateDesign, setError: setDesignUpdateError, isSafetyFallback,
-        colorVariants // ADDED
     } = useDesignUpdate({
         originalImageData, editedImage, analysisResult, cakeInfo, mainToppers, supportElements, cakeMessages,
         icingDesign, additionalInstructions, threeTierReferenceImage,
-        cacheId: recentSearchDesign?.id || null, // ADDED
+        studioEditedImageUrl: liveStudioEditedImageUrl,
+        cacheId: effectiveCacheId,
         slug: recentSearchDesign?.slug || null, // ADDED
         onSuccess: (editedImageResult: string, baseImageData) => {
             // Save the committed state (matches the previous image) for undo.
@@ -890,7 +892,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         regenerateMask,
         disableMask,
     } = useIcingMask({
-        cacheId: recentSearchDesign?.id || null,
+        cacheId: effectiveCacheId,
         baseImage: originalImageData,
         baseImageUrl: liveStudioEditedImageUrl || originalImagePreview,
         studioEditedImageUrl: liveStudioEditedImageUrl,
@@ -2344,24 +2346,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         scrollToHero();
     }, [handleUpdateDesign, scrollToHero]);
 
-    const handleSelectColorVariant = useCallback((hex: string, imageUrl: string) => {
-        if (!icingDesign) return;
-        
-        onIcingDesignChange({
-            ...icingDesign,
-            colors: {
-                ...icingDesign.colors,
-                top: hex,
-                side: hex,
-            },
-        });
-
-        setEditedImage(imageUrl);
-        setActiveTab('customized');
-        scrollToHero();
-        clearDirtyState();
-    }, [icingDesign, onIcingDesignChange, setEditedImage, setActiveTab, scrollToHero, clearDirtyState]);
-
     const onSave = handleSave;
     const isSaving = false;
 
@@ -3463,8 +3447,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             onSave={onSave}
                             onClearAll={onClearAll}
                             reviewSummary={reviewSummary}
-                            colorVariants={colorVariants}
-                            onSelectColorVariant={handleSelectColorVariant}
                             initialHeroAspectRatio={
                                 recentSearchDesign?.image_width && recentSearchDesign?.image_height
                                     ? `${recentSearchDesign.image_width} / ${recentSearchDesign.image_height}`
