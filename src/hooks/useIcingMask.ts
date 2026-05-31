@@ -28,6 +28,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CakeGenieIcingMask } from '@/lib/database.types';
 import { recolorWithMask } from '@/lib/icingMaskComposite';
 import { generateAndPersistIcingMask, getIcingMask } from '@/services/icingMaskService';
+import { fileToBase64 } from '@/services/geminiService';
 
 /** The mask lifecycle states surfaced to the UI (Requirement 4). */
 export type IcingMaskStatus = 'idle' | 'generating' | 'ready' | 'error';
@@ -39,6 +40,10 @@ export interface UseIcingMaskParams {
   baseImage: { data: string; mimeType: string } | null;
   /** The current working cake image URL, used for canvas draw + provenance. */
   baseImageUrl: string | null;
+  /** Studio-edited image URL (e.g. background change). When non-null, the hook
+   *  auto-generates a mask from this image and clears any prior mask from the
+   *  original, so the mask matches the displayed image. */
+  studioEditedImageUrl: string | null;
   /** Human-readable icing color name for prompt accuracy (e.g. "white", "pink"). */
   icingColorName?: string;
   /** Called with the instantly composited recolored image on success. */
@@ -138,6 +143,38 @@ function decodeImageUrlToImageData(
 }
 
 /**
+ * Fetches an image URL and converts it to the `{ data, mimeType }` format expected by
+ * `generateAndPersistIcingMask` / `editCakeImage`. Uses the client-side `fileToBase64`
+ * utility from `geminiService`. Aborts after 10 seconds.
+ */
+async function fetchUrlAsBase64(url: string): Promise<{ data: string; mimeType: string }> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10_000);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch studio-edited image (status ${response.status}).`);
+    }
+    const blob = await response.blob();
+    const file = new File([blob], 'studio-edited.webp', { type: blob.type || 'image/webp' });
+    return await fileToBase64(file);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+function maskMatchesStudioSource(
+  mask: Pick<CakeGenieIcingMask, 'source_image_url'> | null,
+  studioEditedImageUrl: string | null
+): boolean {
+  if (!mask || !studioEditedImageUrl) {
+    return false;
+  }
+
+  return mask.source_image_url === studioEditedImageUrl;
+}
+
+/**
  * Loads an image URL into a fully-decoded `HTMLImageElement`.
  *
  * `recolorWithMask` needs an actual `HTMLImageElement` for its `baseImage` param (it
@@ -208,7 +245,7 @@ function loadImageElement(url: string): Promise<HTMLImageElement> {
  * still the latest (last-click-wins).
  */
 export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
-  const { cacheId } = params;
+  const { cacheId, studioEditedImageUrl } = params;
 
   // Keep the latest params reachable from async callbacks without re-subscribing
   // effects. `recolorIcing` reads baseImage / baseImageUrl / onRecolored / onFallback
@@ -217,6 +254,7 @@ export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
   // from user interactions (clicks), which occur after commit, so the effect has
   // always run by then and the ref holds the current params.
   const paramsRef = useRef(params);
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     paramsRef.current = params;
   });
@@ -229,6 +267,11 @@ export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
   // Cache the decoded base-image element so warm-path recolors don't re-decode the
   // base on every click. Keyed by URL so a base-image change re-decodes lazily.
   const baseImageElementRef = useRef<{ url: string; element: HTMLImageElement } | null>(null);
+
+  // Cached base64 data of the studio-edited image, fetched+converted by the
+  // auto-generation effect. `recolorIcing` uses this instead of `baseImage` (the
+  // original upload) when available, so mask generation always targets the displayed image.
+  const studioBaseImageRef = useRef<{ data: string; mimeType: string } | null>(null);
 
   // Monotonic request id mirroring `generationRequestIdRef` in the lab. Incremented at
   // the start of each `recolorIcing` call; after each await we compare against it so a
@@ -248,7 +291,6 @@ export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
   // mirrors the cacheId-keyed reset in `useDesignUpdate`. The react-hooks
   // set-state-in-effect advisory is disabled for just these reset lines because the
   // reset is correctness-required, not a cascading-render smell.
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     // No design key → no persisted mask. Clear any decoded mask and reset to idle.
     if (!cacheId) {
@@ -261,6 +303,7 @@ export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
     // Reset while we (re)prefetch this design; clears any mask decoded for a
     // previously selected design so it can never be composited onto the new one.
     decodedMaskRef.current = null;
+    studioBaseImageRef.current = null;
     setHasMask(false);
     setStatus('idle');
 
@@ -275,6 +318,19 @@ export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
         // No mask yet for this design: stay idle (NOT an error). The mask is
         // generated lazily on the first recolor (task 7.2).
         if (!record) {
+          if (!cancelled) {
+            decodedMaskRef.current = null;
+            setHasMask(false);
+            setStatus('idle');
+          }
+          return;
+        }
+
+        const activeStudioEditedImageUrl = paramsRef.current.studioEditedImageUrl;
+        if (
+          activeStudioEditedImageUrl &&
+          !maskMatchesStudioSource(record, activeStudioEditedImageUrl)
+        ) {
           if (!cancelled) {
             decodedMaskRef.current = null;
             setHasMask(false);
@@ -329,6 +385,97 @@ export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
     []
   );
 
+  const resolveStudioBaseImage = useCallback(
+    async (url: string): Promise<{ data: string; mimeType: string }> => {
+      const cached = studioBaseImageRef.current;
+      if (cached) {
+        return cached;
+      }
+
+      const baseImage = await fetchUrlAsBase64(url);
+      studioBaseImageRef.current = baseImage;
+      return baseImage;
+    },
+    []
+  );
+
+  // Auto-generate or hydrate a mask from the studio-edited image when it becomes available.
+  //
+  // When `studioEditedImageUrl` transitions from null to a valid URL and a `cacheId`
+  // exists, this effect:
+  //   1. Reuses the persisted studio-derived mask when one already exists.
+  //   2. Otherwise clears any stale original-derived mask from memory.
+  //   3. Fetches the studio image and converts it to base64 for Gemini.
+  //   4. Generates a fresh mask via `generateAndPersistIcingMask` using the studio image.
+  //   5. Decodes + caches the mask so subsequent color clicks take the warm path.
+  useEffect(() => {
+    if (!studioEditedImageUrl || !cacheId) return;
+
+    const currentDecodedMask = decodedMaskRef.current;
+    if (maskMatchesStudioSource(currentDecodedMask?.record ?? null, studioEditedImageUrl)) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const syncMaskFromStudio = async () => {
+      setStatus('generating');
+
+      try {
+        const persistedMask = await getIcingMask(cacheId);
+
+        if (cancelled) return;
+
+        if (persistedMask && maskMatchesStudioSource(persistedMask, studioEditedImageUrl)) {
+          const { imageData, width, height } = await decodeImageUrlToImageData(persistedMask.mask_url);
+
+          if (cancelled) return;
+
+          decodedMaskRef.current = { record: persistedMask, imageData, width, height };
+          setHasMask(true);
+          setStatus('ready');
+          return;
+        }
+
+        decodedMaskRef.current = null;
+        setHasMask(false);
+
+        const baseImage = await resolveStudioBaseImage(studioEditedImageUrl);
+
+        if (cancelled) return;
+
+        const record = await generateAndPersistIcingMask({
+          cacheId,
+          baseImage,
+          sourceImageUrl: studioEditedImageUrl,
+          icingColorName: paramsRef.current.icingColorName,
+        });
+
+        if (cancelled) return;
+
+        const { imageData, width, height } = await decodeImageUrlToImageData(record.mask_url);
+
+        if (cancelled) return;
+
+        decodedMaskRef.current = { record, imageData, width, height };
+        setHasMask(true);
+        setStatus('ready');
+      } catch {
+        if (!cancelled) {
+          decodedMaskRef.current = null;
+          setHasMask(false);
+          setStatus('error');
+        }
+      }
+    };
+
+    void syncMaskFromStudio();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [studioEditedImageUrl, cacheId, resolveStudioBaseImage]);
+
   const recolorIcing = useCallback(async (hex: string, name: string): Promise<void> => {
     // Last-click-wins guard: claim a fresh request id up front. After every await we
     // compare `recolorRequestIdRef.current` against this `requestId`; if a newer click
@@ -339,7 +486,12 @@ export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
     recolorRequestIdRef.current = requestId;
     const isCurrent = () => recolorRequestIdRef.current === requestId;
 
-    const { cacheId: currentCacheId, baseImage, baseImageUrl } = paramsRef.current;
+    const {
+      cacheId: currentCacheId,
+      baseImage,
+      baseImageUrl,
+      studioEditedImageUrl: currentStudioEditedImageUrl,
+    } = paramsRef.current;
 
     // Guarantees `onFallback` is invoked at most once per `recolorIcing` call. Every
     // fallback site routes through here, and the boolean short-circuits any second
@@ -384,10 +536,20 @@ export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
     let decoded = decodedMaskRef.current;
 
     if (!decoded) {
+      let effectiveBaseImage = studioBaseImageRef.current ?? baseImage;
+
+      if (currentStudioEditedImageUrl && !studioBaseImageRef.current) {
+        try {
+          effectiveBaseImage = await resolveStudioBaseImage(currentStudioEditedImageUrl);
+        } catch {
+          effectiveBaseImage = null;
+        }
+      }
+
       // Generating a mask requires the base image payload. If it is missing we cannot
       // produce an in-memory mask, so fall back exactly once (Requirements 5.1, 7.4;
       // covers the no-`cacheId` "mask cannot be produced" case too).
-      if (!baseImage) {
+      if (!effectiveBaseImage) {
         if (isCurrent()) {
           invokeFallback();
           setStatus('error');
@@ -404,8 +566,8 @@ export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
       try {
         record = await generateAndPersistIcingMask({
           cacheId: currentCacheId,
-          baseImage,
-          sourceImageUrl: baseImageUrl,
+          baseImage: effectiveBaseImage,
+          sourceImageUrl: currentStudioEditedImageUrl ?? baseImageUrl,
           icingColorName: paramsRef.current.icingColorName,
         });
       } catch {
@@ -487,7 +649,7 @@ export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
     }
 
     paramsRef.current.onRecolored(recoloredDataUrl, hex);
-  }, [resolveBaseImageElement]);
+  }, [resolveBaseImageElement, resolveStudioBaseImage]);
 
   // Force-regenerates the mask: clears the in-memory decoded mask, then the next
   // recolorIcing call (or an explicit recolor triggered here) will re-invoke

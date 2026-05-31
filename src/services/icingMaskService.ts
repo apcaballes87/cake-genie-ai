@@ -174,6 +174,11 @@ function buildMaskStoragePath(cacheId: string, maskVersion: number): string {
   return `icing-masks/${cacheId}/v${maskVersion}.png`;
 }
 
+function buildCacheBustedMaskUrl(publicUrl: string): string {
+  const separator = publicUrl.includes('?') ? '&' : '?';
+  return `${publicUrl}${separator}t=${Date.now()}`;
+}
+
 /**
  * Records a best-effort `status='failed'` marker for `(cacheId, maskVersion)`
  * without clobbering a pre-existing ready row.
@@ -223,10 +228,10 @@ async function recordFailedMaskMarker(
  * - Uploads the PNG to `cakegenie/icing-masks/{cacheId}/v{maskVersion}.png` with
  *   `{ contentType: 'image/png', upsert: true }`, so regeneration overwrites the
  *   single object in place (Requirements 6.3, 6.4, 3.5, 3.6).
- * - Inserts the row idempotently via `upsert(..., onConflict 'cache_id,mask_version',
- *   ignoreDuplicates: true)` (the Supabase equivalent of `ON CONFLICT DO NOTHING`),
- *   then re-selects the winning `status='ready'` row via {@link getIcingMask} so
- *   concurrent first-clicks converge on one canonical record (Requirements 6.1, 6.2, 6.6).
+ * - Upserts the row on `(cache_id, mask_version)` so regeneration refreshes
+ *   `mask_url`, `source_image_url`, and dimensions in place while still keeping one
+ *   canonical row per design/version. The stored `mask_url` is cache-busted so
+ *   clients immediately observe an overwritten Storage object.
  *
  * No-`cacheId` path (Requirement 7.1): when `cacheId` is null the function skips ALL
  * Storage and database writes and returns a synthetic, in-memory-only Mask Record
@@ -322,22 +327,24 @@ export async function generateAndPersistIcingMask(
       throw new Error('Failed to get public URL for the icing mask.');
     }
 
-    // Idempotent insert: ON CONFLICT (cache_id, mask_version) DO NOTHING.
-    // Concurrent first-clicks converge to a single row; the loser's insert is
-    // silently discarded (Requirements 6.1, 6.2, 6.6).
+    const cacheBustedPublicUrl = buildCacheBustedMaskUrl(publicUrl);
+
+    // Upsert the canonical row in place. This preserves one logical row per
+    // design/version while letting later regenerations replace the stored source URL,
+    // dimensions, and cache-busted public mask URL.
     const { error: insertError } = await supabase
       .from('cakegenie_icing_masks')
       .upsert(
         {
           cache_id: cacheId,
-          mask_url: publicUrl,
+          mask_url: cacheBustedPublicUrl,
           source_image_url: sourceImageUrl,
           mask_version: maskVersion,
           width,
           height,
           status: 'ready',
         },
-        { onConflict: 'cache_id,mask_version', ignoreDuplicates: true }
+        { onConflict: 'cache_id,mask_version' }
       );
 
     if (insertError) throw insertError;
@@ -352,13 +359,13 @@ export async function generateAndPersistIcingMask(
     // Extremely unlikely: the upload + insert succeeded but the row isn't readable
     // as 'ready'. Fall back to a synthesized record from what we just wrote so the
     // caller can still composite immediately.
-    return {
-      id: '',
-      cache_id: cacheId,
-      mask_url: publicUrl,
-      source_image_url: sourceImageUrl,
-      mask_version: maskVersion,
-      width,
+      return {
+        id: '',
+        cache_id: cacheId,
+        mask_url: cacheBustedPublicUrl,
+        source_image_url: sourceImageUrl,
+        mask_version: maskVersion,
+        width,
       height,
       status: 'ready',
       created_at: new Date().toISOString(),

@@ -52,7 +52,6 @@ import {
   generateAndPersistIcingMask,
   getIcingMask,
 } from './icingMaskService';
-import type { CakeGenieIcingMask } from '@/lib/database.types';
 
 // -----------------------------------------------------------------------------
 // In-memory Supabase double
@@ -298,9 +297,36 @@ describe('generateAndPersistIcingMask', () => {
     expect(store.uploads[0].path).toBe(expectedPath);
     // The stored PNG must be uploaded with the lossless image/png content type.
     expect(store.uploads[0].opts).toMatchObject({ contentType: 'image/png', upsert: true });
-    // The persisted record points at the public URL for that exact path.
-    expect(record.mask_url).toBe(`https://example.test/${expectedPath}`);
+    // The persisted record points at the public URL for that exact path with a
+    // cache-busting query string so regenerated masks cannot be mistaken for an older
+    // object cached at the same storage path.
+    expect(record.mask_url).toMatch(
+      new RegExp(`^https://example\\.test/${expectedPath.replace(/\//g, '\\/')}\\?t=\\d+$`)
+    );
     expect(record.status).toBe('ready');
+  });
+
+  it('refreshes the existing ready row in place when regenerating from a new source image', async () => {
+    const store = createInMemorySupabase();
+    supabaseRef.current = store.client;
+    const cacheId = 'seeded-cache';
+    seedReadyRow(store, { cache_id: cacheId, source_image_url: 'https://example.test/original.webp' });
+
+    const record = await generateAndPersistIcingMask({
+      cacheId,
+      baseImage,
+      sourceImageUrl: 'https://example.test/studio.webp',
+    });
+
+    expect(store.rows).toHaveLength(1);
+    expect(store.rows[0].source_image_url).toBe('https://example.test/studio.webp');
+    expect(store.rows[0].mask_url).toMatch(
+      /^https:\/\/example\.test\/icing-masks\/seeded-cache\/v1\.png\?t=\d+$/
+    );
+    expect(record.source_image_url).toBe('https://example.test/studio.webp');
+    expect(record.mask_url).toMatch(
+      /^https:\/\/example\.test\/icing-masks\/seeded-cache\/v1\.png\?t=\d+$/
+    );
   });
 
   it('records a status="failed" row and rethrows when editCakeImage throws', async () => {

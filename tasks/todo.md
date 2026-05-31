@@ -1196,3 +1196,46 @@
   `npx eslint src/app/customizing/CustomizingClient.tsx src/app/customizing/CustomizingHeroPanel.tsx src/app/customizing/CustomizingHeroPanel.test.tsx` completed with warnings only; the warnings are pre-existing unused imports and hook-dependency warnings in `src/app/customizing/CustomizingClient.tsx`, plus a pre-existing unused `reviewStars` value in `src/app/customizing/CustomizingHeroPanel.tsx`.
   `curl -I --max-time 10 http://127.0.0.1:3002/customizing` returned `200 OK`.
   Browser-plugin visual verification was attempted, but the local Playwright browser session was already locked by another process, so I could not complete an in-browser visual pass from this run.
+
+---
+
+## Review Studio-Triggered Icing Mask Generation
+
+### Review Plan
+
+- [x] Inspect the live diff in `useIcingMask`, `CustomizingClient`, and the related tests.
+- [x] Trace the real lifecycle for mount-time hydration, studio-image arrival, recolor clicks, and Fix Mask.
+- [x] Re-run the focused Vitest coverage and check whether the new studio-image path is actually covered.
+- [x] Record concrete correctness risks and any verification gaps.
+
+### Review
+
+- `src/app/customizing/CustomizingClient.tsx` is directionally correct: wiring `baseImageUrl` to `liveStudioEditedImageUrl || originalImagePreview` is the right base-layer change for compositing.
+- The main blocker is in `src/hooks/useIcingMask.ts`: the auto-regeneration effect exits whenever `decodedMaskRef.current` is still null, but that ref is null on initial mount and for designs that never had a mask yet. If `studioEditedImageUrl` is already present at mount, or arrives before the original-mask prefetch settles, the effect returns and never re-runs for that studio URL. On the next color click, the cold path still falls back to `baseImage` (the original upload), so the mask is generated from the wrong image.
+- A second correctness risk is persistence/caching: `src/services/icingMaskService.ts` overwrites the same storage object path `icing-masks/{cacheId}/v{maskVersion}.png` and then returns the same public URL. The row upsert is `ON CONFLICT DO NOTHING`, so neither the row key nor the URL changes when a studio-derived mask replaces an original-derived mask. Any browser/CDN cache that keeps the old `v1.png` can continue serving the stale mask immediately after regeneration.
+- The hook comments say the studio effect clears the old decoded mask before regenerating, but the implementation only sets `status='generating'`; it does not null `decodedMaskRef.current` up front. That leaves the original decoded mask live in memory during the async regeneration window.
+- Focused verification passed with `npx vitest run src/hooks/useIcingMask.test.ts src/hooks/useIcingMask.integration.test.ts`, but those tests do not exercise the new studio-image behavior. The only test updates were adding `studioEditedImageUrl: null` to shared param builders, so the new effect, studio-image fetch path, and stable-URL overwrite path remain untested.
+
+### Fix Plan
+
+- [x] Make the hook treat `studioEditedImageUrl` as the canonical mask source even on mount and first click.
+- [x] Prevent stale original-derived masks from being prefetched or reused once a studio image is active.
+- [x] Update persisted mask writes so regenerations refresh the row and emit a cache-busted URL.
+- [x] Add focused coverage for mount-time studio URLs, cold-click studio generation, and regenerated mask URLs.
+- [x] Re-run focused verification and note any remaining manual follow-up.
+
+### Fix Review
+
+- Updated `src/hooks/useIcingMask.ts` so the studio-image effect no longer depends on an already-decoded mask being present. It now checks the persisted row, reuses it only when `source_image_url` already matches the active studio URL, otherwise clears any stale in-memory mask and regenerates from the studio image.
+- Hardened the prefetch path so a stale original-derived persisted mask is not decoded into memory once `studioEditedImageUrl` is active.
+- Hardened the cold recolor path so if a studio image is displayed but its base64 payload has not been cached yet, the hook fetches and converts the studio image on demand before mask generation. If that studio fetch fails, it no longer silently falls back to generating from the original upload.
+- Updated `src/services/icingMaskService.ts` so persisted regenerations upsert the canonical row in place and store a cache-busted `mask_url` query string, preventing stale browser/CDN reuse of the old mask object after the same storage path is overwritten.
+- Added focused coverage in:
+  - `src/hooks/useIcingMask.test.ts` for mount-time studio auto-generation and cold-click studio-source generation
+  - `src/services/icingMaskService.test.ts` for in-place row refresh plus cache-busted regenerated URLs
+  - `src/hooks/useIcingMask.integration.test.ts` to align persisted/decode expectations with the new cache-busted URL semantics
+- Verification:
+  `npx vitest run src/hooks/useIcingMask.test.ts src/hooks/useIcingMask.integration.test.ts src/services/icingMaskService.test.ts` passed with 21 tests.
+  `npx eslint src/hooks/useIcingMask.ts src/hooks/useIcingMask.test.ts src/hooks/useIcingMask.integration.test.ts src/services/icingMaskService.ts src/services/icingMaskService.test.ts` passed.
+  `curl -I --max-time 10 http://127.0.0.1:3002/customizing` returned `200 OK`.
+  I did not complete a browser-driven manual recolor pass in this run, so the remaining recommended follow-up is one live customizer check with a studio-edited image plus `Fix Mask`.

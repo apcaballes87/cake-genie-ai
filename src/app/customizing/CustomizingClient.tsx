@@ -892,7 +892,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     } = useIcingMask({
         cacheId: recentSearchDesign?.id || null,
         baseImage: originalImageData,
-        baseImageUrl: originalImagePreview,
+        baseImageUrl: liveStudioEditedImageUrl || originalImagePreview,
+        studioEditedImageUrl: liveStudioEditedImageUrl,
         icingColorName: (() => {
             const hex = icingDesign?.colors?.top || icingDesign?.colors?.side;
             if (!hex) return 'white';

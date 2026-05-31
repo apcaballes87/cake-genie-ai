@@ -342,6 +342,7 @@ function buildParams(overrides: Partial<UseIcingMaskParams> = {}): UseIcingMaskP
     cacheId: 'cache-1',
     baseImage: BASE_IMAGE,
     baseImageUrl: BASE_IMAGE_URL,
+    studioEditedImageUrl: null,
     onRecolored: vi.fn(),
     onFallback: vi.fn(),
     ...overrides,
@@ -421,7 +422,9 @@ describe('useIcingMask integration (real service + real hook)', () => {
     expect(store.uploads).toHaveLength(1);
     expect(store.uploads[0].path).toBe(expectedPath);
     expect(store.uploads[0].opts).toMatchObject({ contentType: 'image/png', upsert: true });
-    expect(readyRows[0].mask_url).toBe(`https://example.test/${expectedPath}`);
+    expect(readyRows[0].mask_url).toMatch(
+      new RegExp(`^https://example\\.test/${expectedPath.replace(/\//g, '\\/')}\\?t=\\d+$`)
+    );
 
     // (Req 1.3) The triggering color is applied: the compositor ran and the recolored
     // hero is surfaced via onRecolored (the seam CustomizingClient wires to
@@ -433,7 +436,11 @@ describe('useIcingMask integration (real service + real hook)', () => {
     expect(result.current.hasMask).toBe(true);
 
     // The persisted mask_url was the one decoded for compositing (wiring proof).
-    expect(loadedImageSrcs).toContain(`https://example.test/${expectedPath}`);
+    expect(
+      loadedImageSrcs.some((src) =>
+        new RegExp(`^https://example\\.test/${expectedPath.replace(/\//g, '\\/')}\\?t=\\d+$`).test(src)
+      )
+    ).toBe(true);
   });
 
   // ---------------------------------------------------------------------------------

@@ -20,6 +20,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 
 import type { CakeGenieIcingMask } from '@/lib/database.types';
 import { recolorWithMask } from '@/lib/icingMaskComposite';
+import { fileToBase64 } from '@/services/geminiService';
 import { generateAndPersistIcingMask, getIcingMask } from '@/services/icingMaskService';
 import { useIcingMask, type UseIcingMaskParams } from './useIcingMask';
 
@@ -32,9 +33,14 @@ vi.mock('@/lib/icingMaskComposite', () => ({
   recolorWithMask: vi.fn(),
 }));
 
+vi.mock('@/services/geminiService', () => ({
+  fileToBase64: vi.fn(),
+}));
+
 const mockGetIcingMask = vi.mocked(getIcingMask);
 const mockGenerateAndPersistIcingMask = vi.mocked(generateAndPersistIcingMask);
 const mockRecolorWithMask = vi.mocked(recolorWithMask);
+const mockFileToBase64 = vi.mocked(fileToBase64);
 
 // ---- jsdom DOM stubs ---------------------------------------------------------------
 
@@ -115,7 +121,9 @@ const fakeCanvasContext = {
 let originalImage: typeof globalThis.Image | undefined;
 let originalImageData: typeof globalThis.ImageData | undefined;
 let originalGetContext: typeof HTMLCanvasElement.prototype.getContext | undefined;
+let originalFetch: typeof globalThis.fetch | undefined;
 let polyfilledImageData = false;
+const fetchMock = vi.fn();
 
 beforeAll(() => {
   originalImage = globalThis.Image;
@@ -132,6 +140,9 @@ beforeAll(() => {
   HTMLCanvasElement.prototype.getContext = vi.fn(
     () => fakeCanvasContext
   ) as unknown as typeof HTMLCanvasElement.prototype.getContext;
+
+  originalFetch = globalThis.fetch;
+  (globalThis as unknown as { fetch: typeof fetchMock }).fetch = fetchMock;
 });
 
 afterAll(() => {
@@ -145,6 +156,9 @@ afterAll(() => {
   }
   if (originalGetContext) {
     HTMLCanvasElement.prototype.getContext = originalGetContext;
+  }
+  if (originalFetch) {
+    (globalThis as unknown as { fetch: typeof globalThis.fetch }).fetch = originalFetch;
   }
 });
 
@@ -185,6 +199,7 @@ function buildParams(overrides: Partial<UseIcingMaskParams> = {}): UseIcingMaskP
     cacheId: 'cache-1',
     baseImage: BASE_IMAGE,
     baseImageUrl: BASE_IMAGE_URL,
+    studioEditedImageUrl: null,
     onRecolored: vi.fn(),
     onFallback: vi.fn(),
     ...overrides,
@@ -204,6 +219,10 @@ describe('useIcingMask', () => {
     vi.resetAllMocks();
     fakeCanvasContext.getImageData.mockImplementation(
       (_x: number, _y: number, w: number, h: number) => new ImageData(w, h)
+    );
+    mockFileToBase64.mockResolvedValue({ mimeType: 'image/webp', data: 'studio-base64' });
+    fetchMock.mockResolvedValue(
+      new Response(new Blob(['studio-bytes'], { type: 'image/webp' }), { status: 200 })
     );
   });
 
@@ -309,6 +328,62 @@ describe('useIcingMask', () => {
     expect(mockRecolorWithMask).toHaveBeenCalledTimes(1);
     expect(onRecolored).toHaveBeenCalledTimes(1);
     expect(onRecolored).toHaveBeenCalledWith(FAKE_RECOLORED_DATA_URL, '#90EE90');
+  });
+
+  it('auto-generates a studio-derived mask when the studio image is already available on mount', async () => {
+    mockGetIcingMask.mockResolvedValue(null);
+    mockGenerateAndPersistIcingMask.mockResolvedValue(makeMaskRecord(OK_MASK_URL));
+
+    const { result } = renderHook(() =>
+      useIcingMask(
+        buildParams({
+          studioEditedImageUrl: 'https://example.com/studio.webp',
+        })
+      )
+    );
+
+    await waitFor(() => expect(mockGenerateAndPersistIcingMask).toHaveBeenCalledTimes(1));
+
+    expect(fetchMock).toHaveBeenCalledWith('https://example.com/studio.webp', expect.any(Object));
+    expect(mockGenerateAndPersistIcingMask).toHaveBeenCalledWith({
+      cacheId: 'cache-1',
+      baseImage: { mimeType: 'image/webp', data: 'studio-base64' },
+      sourceImageUrl: 'https://example.com/studio.webp',
+      icingColorName: undefined,
+    });
+    expect(result.current.status).toBe('ready');
+    expect(result.current.hasMask).toBe(true);
+  });
+
+  it('uses the displayed studio image on a cold click even when the studio payload was not preloaded', async () => {
+    mockGetIcingMask.mockResolvedValue(null);
+    mockGenerateAndPersistIcingMask.mockResolvedValue(makeMaskRecord(OK_MASK_URL));
+    mockRecolorWithMask.mockReturnValue(FAKE_RECOLORED_DATA_URL);
+
+    const onRecolored = vi.fn();
+    const { result } = renderHook(() =>
+      useIcingMask(
+        buildParams({
+          cacheId: null,
+          baseImageUrl: 'https://example.com/studio.webp',
+          studioEditedImageUrl: 'https://example.com/studio.webp',
+          onRecolored,
+        })
+      )
+    );
+
+    await act(async () => {
+      await result.current.recolorIcing('#FFC0CB', 'Pink');
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith('https://example.com/studio.webp', expect.any(Object));
+    expect(mockGenerateAndPersistIcingMask).toHaveBeenCalledWith({
+      cacheId: null,
+      baseImage: { mimeType: 'image/webp', data: 'studio-base64' },
+      sourceImageUrl: 'https://example.com/studio.webp',
+      icingColorName: undefined,
+    });
+    expect(onRecolored).toHaveBeenCalledWith(FAKE_RECOLORED_DATA_URL, '#FFC0CB');
   });
 
   it('keeps only the latest click result when two recolors race (Req 2.4, 2.5)', async () => {
