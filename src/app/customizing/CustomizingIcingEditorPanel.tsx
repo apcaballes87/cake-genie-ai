@@ -121,7 +121,8 @@ const IcingToolbar = memo(function IcingToolbar({
     isVisible,
     selectedItem,
     mainToppers,
-}: Pick<CustomizingIcingEditorPanelProps, 'icingDesign' | 'cakeType' | 'selectedItem' | 'mainToppers' | 'onSelectItem'> & { isVisible: boolean }) {
+    isGeneratingMask = false,
+}: Pick<CustomizingIcingEditorPanelProps, 'icingDesign' | 'cakeType' | 'selectedItem' | 'mainToppers' | 'onSelectItem' | 'isGeneratingMask'> & { isVisible: boolean }) {
     const isBento = cakeType === 'Bento';
     const hasEdiblePhotoOnTop = mainToppers.some((topper) => topper.isEnabled && topper.type === 'edible_photo_top');
     const effectiveIcingDesign = icingDesign || defaultIcingDesign;
@@ -146,7 +147,8 @@ const IcingToolbar = memo(function IcingToolbar({
     ]).filter((tool) => !(tool.id === 'top' && hasEdiblePhotoOnTop)), [effectiveIcingDesign, hasEdiblePhotoOnTop, icingColorsSame, isBento]);
 
     return (
-        <div className={`flex flex-row flex-wrap gap-3 justify-center transition-opacity ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <div className={`flex flex-col items-center gap-2 transition-opacity ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+            <div className="flex flex-row flex-wrap gap-3 justify-center">
             {tools.map((tool) => {
                 const isSelected = selectedItem?.id === `icing-edit-${tool.id}`;
                 const buttonSizeClasses = tools.length === 6
@@ -180,6 +182,17 @@ const IcingToolbar = memo(function IcingToolbar({
                     </div>
                 );
             })}
+            </div>
+            {/* Pulsing label shown while the AI icing mask is being generated */}
+            <p
+                className={`text-[10px] font-medium text-purple-600 tracking-wide text-center transition-opacity duration-700 ${
+                    isGeneratingMask ? 'animate-pulse opacity-100' : 'opacity-0 pointer-events-none'
+                }`}
+                aria-live="polite"
+                aria-label="Loading different icing colors"
+            >
+                Loading Different Icing Colors
+            </p>
         </div>
     );
 });
@@ -264,6 +277,7 @@ export const CustomizingIcingEditorPanel = memo(function CustomizingIcingEditorP
                     isVisible={isVisible}
                     selectedItem={selectedItem}
                     mainToppers={mainToppers}
+                    isGeneratingMask={isGeneratingMask}
                 />
                 {selectedIcingItem && (
                     <div className="mt-2 pt-2 border-t border-slate-100 animate-fade-in">
