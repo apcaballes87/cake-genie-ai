@@ -962,7 +962,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     }, [product?.title, recentSearchDesign, seoMetadata?.seo_title]);
 
     // --- Derived State ---
-    const isLoading = useMemo(() => isImageManagementLoading || isUpdatingDesign || icingMaskStatus === 'generating', [isImageManagementLoading, isUpdatingDesign, icingMaskStatus]);
+    const isLoading = useMemo(() => isImageManagementLoading || isUpdatingDesign, [isImageManagementLoading, isUpdatingDesign]);
     const itemCount = useMemo(() => supabaseItemCount + pendingCartItems.length, [supabaseItemCount, pendingCartItems]);
 
     const calculatedAvailability = useMemo(() => {
@@ -3412,7 +3412,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             editedImage={editedImage}
                             activeTab={activeTab}
                             isAnalyzing={isAnalyzing}
-                            isUpdatingDesign={isUpdatingDesign || icingMaskStatus === 'generating'}
+                            isUpdatingDesign={isUpdatingDesign}
                             isStudioBackgroundEditingPending={isStudioBackgroundEditingPending}
                             dynamicLoadingMessage={dynamicLoadingMessage}
                             error={error}
@@ -3632,6 +3632,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     onRegenerateMask={handleRegenerateMask}
                                     onDisableMask={disableMask}
                                     isMaskActive={isMaskOverlayActive}
+                                    isGeneratingMask={icingMaskStatus === 'generating'}
                                 />
                             )}
                             

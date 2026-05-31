@@ -68,6 +68,9 @@ interface CustomizingStepSummarySectionsProps {
     onDisableMask?: () => void;
     /** Whether the mask recolor overlay is currently active (showing a recolored image). */
     isMaskActive?: boolean;
+    /** When true, shows a pulsing 'Loading Different Icing Colors' hint below the color swatches
+     *  while the AI icing mask is being generated silently in the background. */
+    isGeneratingMask?: boolean;
 }
 
 const findScrollableParent = (element: HTMLElement | null): HTMLElement | null => {
@@ -298,6 +301,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     onRegenerateMask,
     onDisableMask,
     isMaskActive = false,
+    isGeneratingMask = false,
 }: CustomizingStepSummarySectionsProps) {
     // Default position when "+ Add" is clicked: Bento → front (side), all others → base_board
     const defaultMessagePosition = cakeInfo?.type === 'Bento' ? 'side' : 'base_board';
@@ -742,6 +746,18 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     return (
         <div className={containerClassName}>
             {cakeInfo && !isAnalyzing && !isRejectionError && mainColorOptionsNode}
+
+            {/* Pulsing hint shown while AI icing mask generates silently in background */}
+            {cakeInfo && !isAnalyzing && !isRejectionError && (
+                <p
+                    className={`text-center text-[10px] font-medium text-purple-600 tracking-wide transition-opacity duration-700 ${
+                        isGeneratingMask ? 'animate-pulse opacity-100' : 'opacity-0 pointer-events-none h-0 overflow-hidden'
+                    }`}
+                    aria-live="polite"
+                >
+                    ✨ Loading Different Icing Colors
+                </p>
+            )}
 
             {cakeInfo && !isAnalyzing && !isRejectionError && !hideStepOne && (
                 <div 

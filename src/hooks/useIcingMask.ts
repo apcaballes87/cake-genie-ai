@@ -273,6 +273,11 @@ export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
   // original upload) when available, so mask generation always targets the displayed image.
   const studioBaseImageRef = useRef<{ data: string; mimeType: string } | null>(null);
 
+  // Cached base64 data of the plain baseImageUrl (originalImagePreview URL), fetched
+  // lazily on the first recolor call when originalImageData is not yet populated.
+  // Keyed by URL so a base-image URL change re-fetches lazily.
+  const baseImageUrlDataRef = useRef<{ url: string; data: { data: string; mimeType: string } } | null>(null);
+
   // Monotonic request id mirroring `generationRequestIdRef` in the lab. Incremented at
   // the start of each `recolorIcing` call; after each await we compare against it so a
   // superseded click neither calls `onRecolored` nor mutates lifecycle state.
@@ -304,6 +309,7 @@ export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
     // previously selected design so it can never be composited onto the new one.
     decodedMaskRef.current = null;
     studioBaseImageRef.current = null;
+    baseImageUrlDataRef.current = null;
     setHasMask(false);
     setStatus('idle');
 
@@ -395,6 +401,26 @@ export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
       const baseImage = await fetchUrlAsBase64(url);
       studioBaseImageRef.current = baseImage;
       return baseImage;
+    },
+    []
+  );
+
+  /**
+   * Resolves (and caches) the base image URL as base64 for mask generation.
+   * Used as a fallback when `originalImageData` is not yet populated (e.g. the
+   * async image load from the product URL is still in flight when the user first
+   * clicks a color swatch). Keyed by URL so a URL change re-fetches.
+   */
+  const resolveBaseImageUrlData = useCallback(
+    async (url: string): Promise<{ data: string; mimeType: string }> => {
+      const cached = baseImageUrlDataRef.current;
+      if (cached && cached.url === url) {
+        return cached.data;
+      }
+
+      const imageData = await fetchUrlAsBase64(url);
+      baseImageUrlDataRef.current = { url, data: imageData };
+      return imageData;
     },
     []
   );
@@ -546,6 +572,20 @@ export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
         }
       }
 
+      // If we still don't have a base image payload (e.g. originalImageData is not
+      // yet populated because the async product-image load is still in flight), try
+      // fetching baseImageUrl directly. This avoids the expensive Gemini fallback
+      // in the common case where the user clicks a color swatch before the image
+      // context has finished loading from the product URL.
+      if (!effectiveBaseImage && baseImageUrl) {
+        if (!isCurrent()) return;
+        try {
+          effectiveBaseImage = await resolveBaseImageUrlData(baseImageUrl);
+        } catch {
+          effectiveBaseImage = null;
+        }
+      }
+
       // Generating a mask requires the base image payload. If it is missing we cannot
       // produce an in-memory mask, so fall back exactly once (Requirements 5.1, 7.4;
       // covers the no-`cacheId` "mask cannot be produced" case too).
@@ -649,7 +689,7 @@ export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
     }
 
     paramsRef.current.onRecolored(recoloredDataUrl, hex);
-  }, [resolveBaseImageElement, resolveStudioBaseImage]);
+  }, [resolveBaseImageElement, resolveStudioBaseImage, resolveBaseImageUrlData]);
 
   // Force-regenerates the mask: clears the in-memory decoded mask, then the next
   // recolorIcing call (or an explicit recolor triggered here) will re-invoke
