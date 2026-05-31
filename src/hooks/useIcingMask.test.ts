@@ -388,11 +388,8 @@ describe('useIcingMask', () => {
 
   it('keeps only the latest click result when two recolors race (Req 2.4, 2.5)', async () => {
     mockGetIcingMask.mockResolvedValue(null);
-    const firstGeneration = makeDeferred<CakeGenieIcingMask>();
-    const secondGeneration = makeDeferred<CakeGenieIcingMask>();
-    mockGenerateAndPersistIcingMask
-      .mockReturnValueOnce(firstGeneration.promise)
-      .mockReturnValueOnce(secondGeneration.promise);
+    const generation = makeDeferred<CakeGenieIcingMask>();
+    mockGenerateAndPersistIcingMask.mockReturnValue(generation.promise);
     mockRecolorWithMask.mockReturnValue(FAKE_RECOLORED_DATA_URL);
 
     const onRecolored = vi.fn();
@@ -413,18 +410,14 @@ describe('useIcingMask', () => {
       secondPromise = result.current.recolorIcing('#BBBBBB', 'Second');
     });
 
-    // Resolve the latest click first — it should win.
+    // Resolve the single in-flight generation promise.
     await act(async () => {
-      secondGeneration.resolve(makeMaskRecord(OK_MASK_URL));
-      await secondPromise;
+      generation.resolve(makeMaskRecord(OK_MASK_URL));
+      await Promise.all([firstPromise, secondPromise]);
     });
 
-    // Now resolve the superseded first click — its result must be discarded.
-    await act(async () => {
-      firstGeneration.resolve(makeMaskRecord(OK_MASK_URL));
-      await firstPromise;
-    });
-
+    // Expect exactly one generate call (synchronization) and only the latest click's color to win
+    expect(mockGenerateAndPersistIcingMask).toHaveBeenCalledTimes(1);
     expect(onRecolored).toHaveBeenCalledTimes(1);
     expect(onRecolored).toHaveBeenCalledWith(FAKE_RECOLORED_DATA_URL, '#BBBBBB');
   });
