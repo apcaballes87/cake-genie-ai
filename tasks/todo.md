@@ -1,5 +1,24 @@
 # Tasks
 
+## Add Customizer Hero Loader While Studio Background Edit Is Pending
+
+### Plan
+
+- [x] Document the hero-level pending state off the existing studio-image polling flow instead of reusing the full-screen design-update overlay.
+- [x] Pass a dedicated background-edit-pending flag from `src/app/customizing/CustomizingClient.tsx` into `src/app/customizing/CustomizingHeroPanel.tsx`.
+- [x] Render a lower-left circular loader on the hero while the AI background-edited studio image is still pending, without blocking hero interactions.
+- [x] Add focused regression coverage for the loader visibility and run targeted verification.
+
+### Review
+
+- `src/app/customizing/CustomizingClient.tsx` now derives `isStudioBackgroundEditingPending` from the live upload/studio-image polling state: it only turns on when the current session already has an uploaded preview plus a cache hash, but the studio background-edited image URL has not arrived yet.
+- `src/app/customizing/CustomizingHeroPanel.tsx` now accepts that dedicated pending flag and renders a small circular spinner badge at the lower-left of the hero image without replacing the existing full-screen analysis or design-update overlays.
+- The loader is pointer-events-free, so it does not block zooming, save actions, or the existing mobile motif button area.
+- Added focused regression coverage in `src/app/customizing/CustomizingHeroPanel.test.tsx` to confirm the pending spinner appears when the studio background-edit state is active.
+- Verification:
+  `npx vitest run src/app/customizing/CustomizingHeroPanel.test.tsx` passed.
+  `npx eslint src/app/customizing/CustomizingClient.tsx src/app/customizing/CustomizingHeroPanel.tsx src/app/customizing/CustomizingHeroPanel.test.tsx` completed with warnings only, all pre-existing in these files.
+
 ## Fix `/customizing` Studio-Image Icing Recolor Source
 
 ### Plan
@@ -198,6 +217,26 @@
 - [x] Run focused verification and record the result here.
 
 ### Review
+
+## Confirm Automated Icing Mask Generation After Studio Background Edit
+
+### Plan
+
+- [x] Recheck the `/customizing` and `/customizing/[slug]` mask-generation wiring around `studio_edited_image_url`, effective cache ids, and fallback paths so the runtime verification is anchored to the current code.
+- [x] Capture live local evidence from the running customizer flow after the studio background edit completes, focusing on whether mask generation is triggered before the first icing click and whether the source image is the studio-edited URL.
+- [x] Summarize whether automated studio-triggered mask generation is confirmed, what proof exists, and any remaining uncertainty or failure path that still needs follow-up.
+
+### Review
+
+- Reconfirmed the active wiring in `src/app/customizing/CustomizingClient.tsx`, `src/hooks/useIcingMask.ts`, `src/hooks/useDesignUpdate.ts`, and `src/contexts/ImageContext.tsx`: `/customizing` now passes `effectiveCacheId = recentSearchDesign?.id || currentCacheId || null`, the proactive `useIcingMask` studio effect runs when `studioEditedImageUrl` and that cache id exist, and the `icing-mask-fallback` edit path only uses the Studio URL when the mask path fails.
+- Captured a live base-route run at `http://127.0.0.1:3002/customizing?ref=https%3A%2F%2Fcqmhanqnfybyxezhobkx.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fcakegenie%2Fvariants%2Fwednesday-addams-purple-2-tier-fondant-cake-e783%2F800.webp` with no icing click before verification:
+  - `/private/tmp/dev-server.log` showed `POST /api/ai/trigger-studio-edit 200`, then `[Background] Image Studio finished for ff8303c7c7e7e7ff`, then an automatic `/api/ai/edit-image:start` with `requestSource: 'customizing-icing-mask'`, followed by `/api/ai/edit-image:success`.
+  - The same log segment did not show an `icing-mask-fallback` request between the Studio completion and that mask-generation request.
+- Queried the live persisted rows for `p_hash = 'ff8303c7c7e7e7ff'` and confirmed:
+  - `cakegenie_analysis_cache.id = e33d1ff9-e8c0-4bf8-a4ff-7ce4ac04d5bb`
+  - `cakegenie_analysis_cache.studio_edited_image_url = https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/admin/image-studio/ff8303c7c7e7e7ff.webp`
+  - `cakegenie_icing_masks.source_image_url` for that `cache_id` matches the exact same Studio URL, with `status = 'ready'` and a fresh cache-busted `mask_url`.
+- Conclusion: automated mask generation is working after the AI background generation, and the generated mask is being persisted against the `studio_edited_image_url`, not the original upload.
 
 - Root cause: the lab was feeding Gemini a prompt that begins with `Generate a high-contrast studio photograph...` through the normal image-edit route, so Gemini was reasonably re-synthesizing the scene instead of making a tight in-place edit.
 - `src/app/admin/icing-recolor-lab/IcingRecolorLabClient.tsx` now keeps the uploaded image payload in state so the same image can be re-used for repeated prompt experiments without another upload.

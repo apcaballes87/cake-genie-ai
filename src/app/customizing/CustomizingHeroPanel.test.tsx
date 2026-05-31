@@ -47,6 +47,7 @@ const buildProps = (): React.ComponentProps<typeof CustomizingHeroPanel> => ({
     activeTab: 'customized',
     isAnalyzing: false,
     isUpdatingDesign: false,
+    isStudioBackgroundEditingPending: false,
     dynamicLoadingMessage: 'Working on your cake...',
     error: null,
     originalImagePreview: null,
@@ -151,6 +152,17 @@ describe('CustomizingHeroPanel', () => {
         expect(props.onClearAll).toHaveBeenCalledTimes(1);
         expect(screen.getByRole('button', { name: 'Save this design' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Save customized image' })).toBeInTheDocument();
+    });
+
+    it('shows a lower-left loader while the studio background edit is still pending', () => {
+        const props = buildProps();
+        props.originalImagePreview = 'https://example.com/original-cake.jpg';
+        props.preferredOriginalImageUrl = 'https://example.com/original-cake.jpg';
+        props.isStudioBackgroundEditingPending = true;
+
+        render(<CustomizingHeroPanel {...props} />);
+
+        expect(screen.getByLabelText('AI background editing in progress')).toBeInTheDocument();
     });
 
     it('opens a fullscreen image modal when the hero image is clicked', () => {

@@ -13,7 +13,7 @@ import {
 
 const ADMIN_PIN = '231323';
 const CSE_CONTAINER_ID = 'admin-search-container';
-const CSE_CX = 'c2a4e68c125c04ab3';
+const CSE_CX = '825ca1503c1bd4d00';
 const SEARCH_ANALYSIS_VALIDATION_TO_ANALYZE_DELAY_MS = 1200;
 const SEARCH_ANALYSIS_BETWEEN_AI_ITEMS_DELAY_MS = 5000;
 

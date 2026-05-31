@@ -3326,6 +3326,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     }, []);
 
     const showStickyBar = finalPrice !== null || !!basePriceError || isAnalyzing || hasPendingVisualChanges || isUpdatingDesign;
+    const isStudioBackgroundEditingPending = Boolean(
+        originalImagePreview
+        && (currentPHash || recentSearchDesign?.p_hash)
+        && !liveStudioEditedImageUrl
+    );
     const preferredHeroOriginalImage = firstNonBlankImageUrl(
         liveStudioEditedImageUrl,
         originalImagePreview,
@@ -3408,6 +3413,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             activeTab={activeTab}
                             isAnalyzing={isAnalyzing}
                             isUpdatingDesign={isUpdatingDesign || icingMaskStatus === 'generating'}
+                            isStudioBackgroundEditingPending={isStudioBackgroundEditingPending}
                             dynamicLoadingMessage={dynamicLoadingMessage}
                             error={error}
                             originalImagePreview={originalImagePreview}
