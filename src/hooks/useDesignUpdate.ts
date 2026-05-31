@@ -202,9 +202,10 @@ export const useDesignUpdate = ({
             setError(null);
             setIsSafetyFallback(false);
 
-            try {
-                let currentBaseImageData = parseDataUriImage(editedImage);
+            // Hoist outside try so the catch block can reference it in the safety fallback
+            let currentBaseImageData: { data: string; mimeType: string } | null = parseDataUriImage(editedImage);
 
+            try {
                 if (!currentBaseImageData && requestSource === 'icing-mask-fallback' && studioEditedImageUrl) {
                     try {
                         currentBaseImageData = await fetchUrlAsBase64(studioEditedImageUrl);
@@ -314,15 +315,16 @@ export const useDesignUpdate = ({
                 if (isSafetyError) {
                     setIsSafetyFallback(true);
 
-                    // Fallback: Use the original image data
-                    // We need to reconstruct the data URI for the current working base image
-                    const originalImageSrc = `data:${currentBaseImageData.mimeType};base64,${currentBaseImageData.data}`;
-
-                    // Call onSuccess with the original image so the flow continues
-                    onSuccess(originalImageSrc, currentBaseImageData);
-
-                    // Return the original image so the caller (handleAddToCart) can proceed
-                    return originalImageSrc;
+                    // Fallback: Use the current working base image, falling back to the
+                    // original upload if nothing was resolved during the try block.
+                    const safeBaseImageData = currentBaseImageData ?? originalImageData;
+                    if (safeBaseImageData) {
+                        const originalImageSrc = `data:${safeBaseImageData.mimeType};base64,${safeBaseImageData.data}`;
+                        // Call onSuccess with the original image so the flow continues
+                        onSuccess(originalImageSrc, safeBaseImageData);
+                        // Return the original image so the caller (handleAddToCart) can proceed
+                        return originalImageSrc;
+                    }
                 }
 
                 setError(errorMessage);
