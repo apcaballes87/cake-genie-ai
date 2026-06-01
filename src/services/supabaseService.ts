@@ -1690,15 +1690,55 @@ export async function getRelatedProductsByKeywords(
       return fetchRelatedProductsWithFilters();
     }
 
-    const { data: ftsResults, error: ftsError } = await client.rpc('search_products', {
+    const { data: initialFtsResults, error: ftsError } = await client.rpc('search_products', {
       p_query: normalizedPhrase,
       p_limit: candidateLimit,
       p_offset: 0,
     });
+    let ftsResults: any[] | null = initialFtsResults;
 
     if (ftsError) {
       console.error('Error in FTS related search:', ftsError);
       return fetchRelatedProductsWithFilters();
+    }
+
+    // The search_products RPC may omit studio_edited_image_url. Hydrate it from
+    // the base table so applyImageFallback can prefer the studio image. Mirrors
+    // the same logic in searchProductsFTS.
+    const needsStudioHydration = (ftsResults || []).some(
+      (item: any) => item.studio_edited_image_url === undefined,
+    );
+
+    if (needsStudioHydration) {
+      const pHashes = (ftsResults || [])
+        .map((item: any) => item.p_hash)
+        .filter((pHash: any): pHash is string =>
+          typeof pHash === 'string' && pHash.trim().length > 0,
+        );
+
+      if (pHashes.length > 0) {
+        const { data: studioRows, error: studioError } = await client
+          .from('cakegenie_analysis_cache')
+          .select('p_hash, original_image_url, studio_edited_image_url')
+          .in('p_hash', pHashes);
+
+        if (!studioError && studioRows) {
+          const studioByHash = new Map(
+            studioRows.map((row) => [row.p_hash, row]),
+          );
+
+          ftsResults = (ftsResults || []).map((item: any) => {
+            const studioRow = studioByHash.get(item.p_hash);
+            return applyImageFallback({
+              ...item,
+              original_image_url:
+                item.original_image_url ?? studioRow?.original_image_url ?? null,
+              studio_edited_image_url:
+                item.studio_edited_image_url ?? studioRow?.studio_edited_image_url ?? null,
+            });
+          });
+        }
+      }
     }
 
     // Filter out the excluded slug
