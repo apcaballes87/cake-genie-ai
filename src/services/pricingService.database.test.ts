@@ -34,6 +34,22 @@ const pricingRows: PricingRule[] = [
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
   },
+  {
+    rule_id: 3,
+    item_key: 'edible_photo_top',
+    item_type: 'edible_photo_top',
+    classification: 'non-gumpaste',
+    size: null,
+    description: 'Edible photo top',
+    price: 200,
+    category: 'main_topper',
+    quantity_rule: null,
+    multiplier_rule: null,
+    special_conditions: null,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+  },
 ];
 
 vi.mock('@/lib/supabase/client', () => ({
@@ -76,5 +92,48 @@ describe('calculatePriceFromDatabase', () => {
     expect(itemPrices.get('message-1')).toBe(50);
     expect(addOnPricing.addOnPrice).toBe(50);
     expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining('icing_text'));
+  });
+
+  it('prices edible_photo_top based on cake size (Bento: 0, 6" Round: 100, others: 200)', async () => {
+    const { calculatePriceFromDatabase } = await import('./pricingService.database');
+
+    const topper = {
+      id: 'topper-1',
+      type: 'edible_photo_top',
+      description: 'Edible photo top',
+      quantity: 1,
+      isEnabled: true,
+      size: 'medium',
+    } as any;
+
+    // Test Bento
+    const resBento = await calculatePriceFromDatabase({
+      mainToppers: [topper],
+      supportElements: [],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: 'Bento', size: '4" Round' } as CakeInfoUI,
+    });
+    expect(resBento.itemPrices.get('topper-1')).toBe(0);
+
+    // Test 6" Round
+    const res6in = await calculatePriceFromDatabase({
+      mainToppers: [topper],
+      supportElements: [],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
+    });
+    expect(res6in.itemPrices.get('topper-1')).toBe(100);
+
+    // Test 8" Round
+    const res8in = await calculatePriceFromDatabase({
+      mainToppers: [topper],
+      supportElements: [],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: '1 Tier', size: '8" Round' } as CakeInfoUI,
+    });
+    expect(res8in.itemPrices.get('topper-1')).toBe(200);
   });
 });

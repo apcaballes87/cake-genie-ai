@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ThinkingLevel, Type } from "@google/genai";
 import { getAI } from '@/lib/ai/client';
-import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
 import { createClient } from '@/lib/supabase/client';
 import { normalizeAiRouteError } from '@/lib/ai/routeError';
+import { buildSearchAnalysisGenerationConfig, postProcessSearchAnalysisResult } from '@/lib/admin/searchAnalysisContract';
 
 export const maxDuration = 60; // Allow up to 60 seconds for AI processing
 
 // Helper to get active prompt from Supabase (server-side)
 // Note: We're not using the complex caching logic from the client service here 
 // to keep the API route stateless and simple. If performance is an issue, we can add simple memory cache.
-async function getActivePrompt(supabase: any): Promise<string> {
+async function getActivePrompt(supabase: ReturnType<typeof createClient>): Promise<string> {
     const { data, error } = await supabase
         .from('ai_prompts')
         .select('prompt_text')
@@ -57,136 +56,6 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Construct schema dynamically
-        const hybridAnalysisResponseSchema = {
-            type: Type.OBJECT,
-            properties: {
-                cakeType: { type: Type.STRING },
-                cakeThickness: { type: Type.STRING },
-                main_toppers: {
-                    type: Type.ARRAY,
-                    items: {
-                        type: Type.OBJECT,
-                        properties: {
-                            x: { type: Type.NUMBER },
-                            y: { type: Type.NUMBER },
-                            type: {
-                                type: Type.STRING,
-                                enum: typeEnums.mainTopperTypes,
-                            },
-                            material: { type: Type.STRING },
-                            group_id: { type: Type.STRING },
-                            classification: { type: Type.STRING, enum: ['hero', 'support'] },
-                            size: { type: Type.STRING, enum: ['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge'] },
-                            quantity: { type: Type.INTEGER },
-                            digits: { type: Type.INTEGER },
-                            description: { type: Type.STRING },
-                        },
-                        required: ['x', 'y', 'type', 'material', 'group_id', 'classification', 'size', 'quantity', 'description'],
-                    },
-                },
-                support_elements: {
-                    type: Type.ARRAY,
-                    items: {
-                        type: Type.OBJECT,
-                        properties: {
-                            x: { type: Type.NUMBER },
-                            y: { type: Type.NUMBER },
-                            type: {
-                                type: Type.STRING,
-                                enum: typeEnums.supportElementTypes,
-                            },
-                            material: { type: Type.STRING },
-                            group_id: { type: Type.STRING },
-                            color: { type: Type.STRING },
-                            colors: { type: Type.ARRAY, items: { type: Type.STRING } },
-                            size: { type: Type.STRING, enum: ['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge'] },
-                            quantity: { type: Type.INTEGER },
-                            description: { type: Type.STRING },
-                        },
-                        required: ['x', 'y', 'type', 'material', 'group_id', 'color', 'size', 'quantity', 'description'],
-                    },
-                },
-                cake_messages: {
-                    type: Type.ARRAY,
-                    items: {
-                        type: Type.OBJECT,
-                        properties: {
-                            x: { type: Type.NUMBER },
-                            y: { type: Type.NUMBER },
-                            text: { type: Type.STRING },
-                            type: { type: Type.STRING },
-                            color: { type: Type.STRING },
-                            position: { type: Type.STRING },
-                        },
-                        required: ['x', 'y', 'text', 'type', 'color', 'position'],
-                    },
-                },
-                icing_design: {
-                    type: Type.OBJECT,
-                    properties: {
-                        base: { type: Type.STRING },
-                        color_type: { type: Type.STRING },
-                        colors: {
-                            type: Type.OBJECT,
-                            properties: {
-                                top: { type: Type.STRING },
-                                side: { type: Type.STRING },
-                                gumpasteBaseBoardColor: { type: Type.STRING },
-                            },
-                        },
-                        drip: { type: Type.BOOLEAN },
-                        border_top: { type: Type.BOOLEAN },
-                        border_base: { type: Type.BOOLEAN },
-                        gumpasteBaseBoard: { type: Type.BOOLEAN },
-                    },
-                    required: ['base', 'color_type', 'colors'],
-                },
-                keyword: { type: Type.STRING },
-                alt_text: { type: Type.STRING },
-                seo_title: {
-                    type: Type.STRING,
-                    description: "SEO optimized title for the cake product."
-                },
-                seo_description: {
-                    type: Type.STRING,
-                    description: "Meta description for search engines, exactly 5 to 6 sentences. Requirements: 1) Start with the cake type and occasion. 2) Include descriptive features (tiers, decorations, color, toppers). 3) Include icing or design techniques. 4) Include the message on the cake. 5) Include potential outcome or who it is for (what makes this specific design special). 6) End with action phrase mentioning Genie.ph and a natural mention of the location Cebu City, Mandaue, Lapu-lapu City, or Talisay Cebu."
-                },
-                rejection: {
-                    type: Type.OBJECT,
-                    properties: {
-                        isRejected: { type: Type.BOOLEAN },
-                        reason: {
-                            type: Type.STRING,
-                            enum: [
-                                'not_a_cake',
-                                'multiple_cakes',
-                                'cake_slice_only',
-                                'cupcakes_only',
-                                'complex_sculpture',
-                                'large_wedding_cake',
-                            ],
-                        },
-                        message: { type: Type.STRING },
-                    },
-                    // `message` is required so a rejected image always carries a user-facing string.
-                    // `reason` stays optional: its enum only holds rejection labels, so requiring it
-                    // would force accepted images to emit a bogus rejection reason. A short message
-                    // string does not reintroduce the cake-field acceptance bias.
-                    required: ['isRejected', 'message'],
-                },
-                is_tall_proportion: {
-                    type: Type.BOOLEAN,
-                    description: "Set to true ONLY if the cake in the image is notably tall, meaning its physical width is clearly less than its physical height."
-                },
-            },
-            // Only `rejection` is required so the model can "output ONLY rejection" per the prompt.
-            // Marking cake fields (cakeType, seo_*, etc.) as required forces constrained decoding to
-            // emit them even for non-cakes/selfies, which biases the model into accepting the image
-            // (isRejected:false). Accepted cakes still get all fields via the prompt's STEP 2 rules.
-            required: ['rejection'],
-        };
-
         const aiClient = getAI(req);
         const response = await aiClient.models.generateContent({
             model: "gemini-3-flash-preview",
@@ -198,13 +67,7 @@ export async function POST(req: NextRequest) {
                 ],
             }],
             config: {
-                systemInstruction: SYSTEM_INSTRUCTION,
-                responseMimeType: 'application/json',
-                responseSchema: hybridAnalysisResponseSchema,
-                temperature: 0,
-                thinkingConfig: {
-                    thinkingLevel: ThinkingLevel.LOW, // Low thinking for faster feature detection
-                },
+                ...buildSearchAnalysisGenerationConfig(typeEnums),
             },
         });
 
@@ -213,37 +76,9 @@ export async function POST(req: NextRequest) {
         try {
             result = JSON.parse(jsonText);
 
-            // Adjust cake thickness based on custom business logic
-            if (result.is_tall_proportion) {
-                result.cakeThickness = '6 in';
-            } else {
-                switch(result.cakeThickness) {
-                    case '6 in':
-                        result.cakeThickness = '5 in';
-                        break;
-                    case '5 in':
-                        result.cakeThickness = '4 in';
-                        break;
-                    case '4 in':
-                        result.cakeThickness = '3 in';
-                        break;
-                }
-            }
-            delete result.is_tall_proportion;
+            result = postProcessSearchAnalysisResult(result);
 
-            // Post-process result to fulfill feature-only promise
-            // Set all coordinates to 0,0 for now
-            if (result.main_toppers) {
-                result.main_toppers.forEach((t: any) => { t.x = 0; t.y = 0; });
-            }
-            if (result.support_elements) {
-                result.support_elements.forEach((t: any) => { t.x = 0; t.y = 0; });
-            }
-            if (result.cake_messages) {
-                result.cake_messages.forEach((t: any) => { t.x = 0; t.y = 0; });
-            }
-
-        } catch (e) {
+        } catch {
             console.error("Failed to parse AI response:", jsonText);
             return NextResponse.json(
                 { error: 'Invalid response format from AI' },

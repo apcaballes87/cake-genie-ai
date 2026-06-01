@@ -213,3 +213,14 @@ export async function getLatestImageStudioBatch() {
   if (error) throw error;
   return data;
 }
+
+export async function getImageStudioBatchHistory(limit = 20) {
+  const admin = createAdminServerSupabaseClient();
+  const { data, error } = await admin
+    .from('cakegenie_image_studio_batch_jobs')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(Math.min(Math.max(limit, 1), 50));
+  if (error) throw error;
+  return data ?? [];
+}

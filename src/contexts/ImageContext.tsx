@@ -24,6 +24,21 @@ import { FEATURE_FLAGS } from '@/config/features'
 
 const USER_UPLOAD_ORB_MATCH_MODE = 'strict'
 
+const fetchImageAsBase64 = async (url: string): Promise<{ data: string; mimeType: string }> => {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const mimeType = blob.type || 'image/webp';
+    const arrayBuffer = await blob.arrayBuffer();
+    
+    let binary = '';
+    const bytes = new Uint8Array(arrayBuffer);
+    for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    const base64Data = window.btoa(binary);
+    return { data: base64Data, mimeType };
+};
+
 interface ImageContextType {
     originalImageData: { data: string; mimeType: string } | null;
     sourceImageData: { data: string; mimeType: string } | null;
@@ -590,6 +605,87 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     compressedImageData.data,
                     compressedImageData.mimeType
                 );
+
+                if (fastResult.rejection && fastResult.rejection.isRejected && fastResult.rejection.reason === 'selfie') {
+                    showStatus('Selfie detected! Designing your personalized edible photo cake... 🎂', { id: uploadToastId, duration: 15000 });
+                    try {
+                        const baseCakeUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cold-caking/6in-1layer-cake.webp';
+                        const baseCakeImage = await fetchImageAsBase64(baseCakeUrl);
+                        
+                        const compositeResponse = await fetch('/api/ai/cold-cake-edit', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                baseImage: baseCakeImage,
+                                overlayImage: compressedImageData,
+                            }),
+                        });
+                        
+                        if (!compositeResponse.ok) {
+                            throw new Error('Failed to composite selfie onto the cake');
+                        }
+                        
+                        const compositeResult = await compositeResponse.json();
+                        
+                        // Set the composite image as the edited image and overwrite originalImageData
+                        const compositeSrc = `data:${compositeResult.mimeType};base64,${compositeResult.imageData}`;
+                        setEditedImage(compositeSrc);
+                        setOriginalImageData({
+                            data: compositeResult.imageData,
+                            mimeType: compositeResult.mimeType
+                        });
+                        
+                        // Dynamically synthesize a valid HybridAnalysisResult for edible photo cake
+                        const synthesizedResult: HybridAnalysisResult = {
+                            cakeType: '1 Tier',
+                            cakeThickness: '4 in',
+                            main_toppers: [
+                                {
+                                    x: 0,
+                                    y: 0,
+                                    type: 'edible_photo_top',
+                                    material: 'waferpaper',
+                                    group_id: 'selfie_photo_print',
+                                    classification: 'hero',
+                                    size: 'medium',
+                                    quantity: 1,
+                                    description: 'Edible photo of human portrait'
+                                }
+                            ],
+                            support_elements: [],
+                            cake_messages: [],
+                            icing_design: {
+                                base: 'soft_icing',
+                                color_type: 'single',
+                                colors: {
+                                    top: '#FFFFFF',
+                                    side: '#FFFFFF'
+                                },
+                                drip: false,
+                                border_top: true,
+                                border_base: true,
+                                gumpasteBaseBoard: false
+                            },
+                            keyword: 'Edible Photo',
+                            alt_text: 'Personalized edible photo cake featuring custom portrait print',
+                            seo_title: 'Custom Edible Photo Birthday Cake Cebu | Genie.ph',
+                            seo_description: 'A beautiful custom edible photo cake featuring a personalized printed portrait top. Made with premium soft icing in Cebu.',
+                            rejection: {
+                                isRejected: false,
+                                message: ''
+                            }
+                        };
+                        
+                        toastHot.dismiss(uploadToastId);
+                        showSuccess("Your personalized edible photo cake is ready!");
+                        
+                        onSuccess(synthesizedResult);
+                        return;
+                    } catch (compositeErr) {
+                        console.error('Composite failed, falling back to standard rejection:', compositeErr);
+                        throw new Error('This image doesn\'t appear to be a cake. Please upload a cake image.');
+                    }
+                }
 
                 // Clean up the active analysis toast
                 toastHot.dismiss(uploadToastId);

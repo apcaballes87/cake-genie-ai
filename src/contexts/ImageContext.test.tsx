@@ -171,4 +171,77 @@ describe('ImageContext', () => {
     }));
     expect(onError).not.toHaveBeenCalled();
   });
+
+  it('intercepts selfie rejection and converts it into a composite edible photo cake', async () => {
+    const onSuccess = vi.fn();
+    const onError = vi.fn();
+    const { result } = renderHook(() => useImageManagement(), { wrapper });
+
+    // Mock analyzeCakeFeaturesOnly to return a selfie rejection
+    analyzeCakeFeaturesOnlyMock.mockResolvedValue({
+      cakeType: '',
+      cakeThickness: '',
+      keyword: '',
+      icing_design: { base: 'soft_icing', colors: { top: '', side: '' } },
+      main_toppers: [],
+      support_elements: [],
+      cake_messages: [],
+      rejection: {
+        isRejected: true,
+        reason: 'selfie',
+        message: 'This is a selfie or portrait photo of humans. Let\'s make an edible photo cake!'
+      }
+    });
+
+    // Mock fetch for image download and cold-cake-edit composite endpoint
+    const fetchSpy = vi.spyOn(global, 'fetch').mockImplementation((url: any, init?: any) => {
+      if (typeof url === 'string' && url.includes('6in-1layer-cake.webp')) {
+        const dummyBlob = {
+          type: 'image/webp',
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
+        };
+        return Promise.resolve({
+          ok: true,
+          blob: () => Promise.resolve(dummyBlob),
+        } as any);
+      }
+      if (typeof url === 'string' && url.includes('/api/ai/cold-cake-edit')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            mimeType: 'image/webp',
+            imageData: 'composite-image-base64-data',
+          }),
+        } as any);
+      }
+      return Promise.resolve({ ok: false } as any);
+    });
+
+    await act(async () => {
+      await result.current.handleImageUpload(
+        new File(['selfie-bytes'], 'my_selfie.png', { type: 'image/png' }),
+        onSuccess,
+        onError
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.editedImage).toBe('data:image/webp;base64,composite-image-base64-data');
+      expect(result.current.originalImagePreview).toBe('data:image/webp;base64,composite-image-base64-data');
+      expect(result.current.sourceImageData?.data).toBe('uploaded-base64');
+    });
+
+    expect(onSuccess).toHaveBeenCalledWith(expect.objectContaining({
+      keyword: 'Edible Photo',
+      main_toppers: expect.arrayContaining([
+        expect.objectContaining({
+          type: 'edible_photo_top',
+          group_id: 'selfie_photo_print',
+        })
+      ]),
+    }));
+    expect(onError).not.toHaveBeenCalled();
+
+    fetchSpy.mockRestore();
+  });
 });

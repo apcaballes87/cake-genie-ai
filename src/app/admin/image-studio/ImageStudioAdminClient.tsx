@@ -49,6 +49,7 @@ type OfflineBatchRun = {
   completed_requests: number;
   failed_requests: number;
   created_at: string;
+  updated_at: string;
 };
 
 const SESSION_KEY = 'genie-admin-image-studio-auth';
@@ -139,6 +140,7 @@ export default function ImageStudioAdminClient() {
   const [selectedHashes, setSelectedHashes] = useState<Set<string>>(new Set());
   const [isBulkUpdating, setIsBulkUpdating] = useState(false);
   const [offlineBatch, setOfflineBatch] = useState<OfflineBatchRun | null>(null);
+  const [offlineBatchHistory, setOfflineBatchHistory] = useState<OfflineBatchRun[]>([]);
   const [offlineBatchBusy, setOfflineBatchBusy] = useState(false);
 
   const stopBatchRef = useRef(false);
@@ -251,9 +253,10 @@ export default function ImageStudioAdminClient() {
     const response = await fetch('/api/admin/image-studio-batch', {
       headers: { 'x-admin-pin': ADMIN_IMAGE_STUDIO_PIN },
     });
-    const payload = (await response.json()) as { run?: OfflineBatchRun | null; error?: string };
+    const payload = (await response.json()) as { run?: OfflineBatchRun | null; history?: OfflineBatchRun[]; error?: string };
     if (!response.ok) throw new Error(payload.error || 'Failed to load offline batch.');
     setOfflineBatch(payload.run ?? null);
+    setOfflineBatchHistory(payload.history ?? []);
   }, []);
 
   useEffect(() => {
@@ -272,6 +275,7 @@ export default function ImageStudioAdminClient() {
       const payload = (await response.json()) as { run?: OfflineBatchRun; error?: string };
       if (!response.ok || !payload.run) throw new Error(payload.error || 'Failed to submit offline batch.');
       setOfflineBatch(payload.run);
+      await loadOfflineBatch();
       toast.success(`Submitted ${payload.run.total_requests} images for offline batch processing.`);
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -292,6 +296,7 @@ export default function ImageStudioAdminClient() {
       const payload = (await response.json()) as { run?: OfflineBatchRun; error?: string };
       if (!response.ok || !payload.run) throw new Error(payload.error || 'Failed to refresh offline batch.');
       setOfflineBatch(payload.run);
+      await loadOfflineBatch();
       refreshRecords();
       toast.success(`Batch status refreshed: ${payload.run.stage} / ${payload.run.status}`);
     } catch (error) {
@@ -820,6 +825,37 @@ export default function ImageStudioAdminClient() {
                 {' · '}{offlineBatch.failed_requests} failed
                 {' · '}{offlineBatch.total_requests} submitted
               </p>
+            ) : null}
+
+            {offlineBatchHistory.length > 0 ? (
+              <div className="mt-5 overflow-x-auto rounded-2xl border border-fuchsia-100 bg-white">
+                <table className="min-w-full text-left text-xs">
+                  <thead className="border-b border-fuchsia-100 bg-fuchsia-50 text-fuchsia-900">
+                    <tr>
+                      <th className="px-3 py-3 font-semibold">Submitted</th>
+                      <th className="px-3 py-3 font-semibold">Updated</th>
+                      <th className="px-3 py-3 font-semibold">Stage</th>
+                      <th className="px-3 py-3 font-semibold">Status</th>
+                      <th className="px-3 py-3 font-semibold">Completed</th>
+                      <th className="px-3 py-3 font-semibold">Failed</th>
+                      <th className="px-3 py-3 font-semibold">Submitted items</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                    {offlineBatchHistory.map((run) => (
+                      <tr key={run.id}>
+                        <td className="whitespace-nowrap px-3 py-3">{formatDate(run.created_at)}</td>
+                        <td className="whitespace-nowrap px-3 py-3">{formatDate(run.updated_at)}</td>
+                        <td className="px-3 py-3 font-medium">{run.stage}</td>
+                        <td className="px-3 py-3 font-medium">{run.status}</td>
+                        <td className="px-3 py-3">{run.completed_requests}</td>
+                        <td className="px-3 py-3">{run.failed_requests}</td>
+                        <td className="px-3 py-3">{run.total_requests}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : null}
           </div>
 

@@ -202,6 +202,17 @@ export async function calculatePriceFromDatabase(
     if (rule) {
       price = rule.price;
 
+      if (topper.type === 'edible_photo_top') {
+        const sizeLabel = cakeInfo.size || '6" Round';
+        if (sizeLabel.includes('4"') || sizeLabel.toLowerCase().includes('bento') || cakeInfo.type === 'Bento') {
+          price = 0;
+        } else if (sizeLabel.includes('6"')) {
+          price = 100;
+        } else {
+          price = 200;
+        }
+      }
+
       if (rule.quantity_rule === 'per_piece') {
         price *= topper.quantity;
       } else if (rule.quantity_rule === 'per_3_pieces') {

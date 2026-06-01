@@ -16,6 +16,15 @@ const CSE_CONTAINER_ID = 'admin-search-container';
 const CSE_CX = '825ca1503c1bd4d00';
 const SEARCH_ANALYSIS_VALIDATION_TO_ANALYZE_DELAY_MS = 1200;
 const SEARCH_ANALYSIS_BETWEEN_AI_ITEMS_DELAY_MS = 5000;
+type SearchAnalysisBatchRun = {
+    id: string;
+    status: string;
+    is_compatibility_probe: boolean;
+    submitted_count: number;
+    completed_count: number;
+    failed_count: number;
+    retryable_count: number;
+};
 
 // Global window type extension for Google CSE
 declare global {
@@ -93,9 +102,12 @@ export default function SearchAnalysisAdminPage() {
     const [progress, setProgress] = useState({ current: 0, total: 0 });
     const [logs, setLogs] = useState<string[]>([]);
     const [studioQueueReadyItems, setStudioQueueReadyItems] = useState<Array<{ slug: string; seoTitle: string }>>([]);
+    const [latestBatchRun, setLatestBatchRun] = useState<SearchAnalysisBatchRun | null>(null);
+    const [isBatchActionPending, setIsBatchActionPending] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const currentPageRef = useRef(1);
     const isAutoModeRef = useRef(false);
+    const isOfflineCollectRef = useRef(false);
 
     // Refs for process control
     const isPausedRef = useRef(false);
@@ -181,8 +193,9 @@ export default function SearchAnalysisAdminPage() {
     }, []);
 
     // Process images function
-    const processImages = async (autoMode = false) => {
+    const processImages = async (autoMode = false, offlineCollect = false) => {
         isAutoModeRef.current = autoMode;
+        isOfflineCollectRef.current = offlineCollect;
         setStatus('processing');
         isPausedRef.current = false;
         isStoppedRef.current = false;
@@ -488,6 +501,23 @@ export default function SearchAnalysisAdminPage() {
                     addLog(`[${i + 1}/${currentQueueLength}] Already in cache — skipped.`);
                     skipped++;
                 } else {
+                    if (isOfflineCollectRef.current) {
+                        const queuedResponse = await fetch('/api/admin/search-analysis-batch', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json', 'x-admin-pin': ADMIN_PIN },
+                            body: JSON.stringify({
+                                pHash,
+                                fingerprintPipeline: fingerprint.pipeline,
+                                sourceImageUrl: targetImageUrl,
+                                imageData: imageData.data,
+                                mimeType: imageData.mimeType,
+                            }),
+                        });
+                        if (!queuedResponse.ok) throw new Error(`Queue error: ${queuedResponse.status} ${(await queuedResponse.text()).trim()}`);
+                        addLog(`[${i + 1}/${currentQueueLength}] Cache miss uploaded and queued for offline analysis.`);
+                        done++;
+                        continue;
+                    }
                     // --- GATE 2: FAST VALIDATION ---
                     addLog(`[${i + 1}/${currentQueueLength}] Running validation gate...`);
                     let validationResult: { classification?: string } | null = null;
@@ -630,7 +660,7 @@ export default function SearchAnalysisAdminPage() {
                 // Extra short delay to allow images to actually paint into the DOM after page state changed
                 await delay(1000);
 
-                processImages(true);
+                processImages(true, isOfflineCollectRef.current);
                 return;
             } else {
                 addLog(`⚠️ Page ${nextP} button not found in CSE UI. Stopping auto-mode.`);
@@ -649,6 +679,48 @@ export default function SearchAnalysisAdminPage() {
             toast.success('Analysis complete!');
         } else {
             toast.error(`Completed with ${errors} errors.`);
+        }
+    };
+
+    const refreshBatchStatus = async () => {
+        setIsBatchActionPending(true);
+        try {
+            let response = await fetch('/api/admin/search-analysis-batch', { headers: { 'x-admin-pin': ADMIN_PIN } });
+            let payload = await response.json();
+            if (!response.ok) throw new Error(payload.error || 'Failed to load batch status.');
+            if (payload.run?.status === 'submitted') {
+                response = await fetch('/api/admin/search-analysis-batch', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'x-admin-pin': ADMIN_PIN },
+                    body: JSON.stringify({ runId: payload.run.id }),
+                });
+                payload = await response.json();
+                if (!response.ok) throw new Error(payload.error || 'Failed to reconcile batch.');
+            }
+            setLatestBatchRun(payload.run ?? null);
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Failed to refresh batch.');
+        } finally {
+            setIsBatchActionPending(false);
+        }
+    };
+
+    const submitOfflineBatch = async () => {
+        setIsBatchActionPending(true);
+        try {
+            const response = await fetch('/api/admin/search-analysis-batch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-admin-pin': ADMIN_PIN },
+                body: JSON.stringify({ limit: 1000 }),
+            });
+            const payload = await response.json();
+            if (!response.ok) throw new Error(payload.error || 'Failed to submit batch.');
+            setLatestBatchRun(payload.run);
+            toast.success(payload.run.is_compatibility_probe ? 'Compatibility test submitted.' : 'Offline batch submitted.');
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Failed to submit batch.');
+        } finally {
+            setIsBatchActionPending(false);
         }
     };
 
@@ -797,6 +869,13 @@ export default function SearchAnalysisAdminPage() {
                                     <Search className="w-5 h-5" />
                                 </button>
                             </div>
+                            <button
+                                onClick={() => processImages(true, true)}
+                                disabled={status !== 'idle' || !isCSELoaded}
+                                className="mt-3 w-full flex items-center justify-center px-4 py-3 bg-sky-700 text-white rounded-lg font-medium hover:bg-sky-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {status === 'processing' && isOfflineCollectRef.current ? 'Collecting cache misses...' : 'Collect misses for offline batch (1-10 Pages)'}
+                            </button>
                             {isCSELoaded ? (
                                 <p className="text-sm text-green-600 mt-2 flex items-center">
                                     <CheckCircle2 className="w-4 h-4 mr-1" />
@@ -871,6 +950,36 @@ export default function SearchAnalysisAdminPage() {
                                     </button>
                                 </>
                             )}
+                        </div>
+
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <h2 className="text-lg font-semibold text-gray-800 mb-2">3. Offline Gemini Batch</h2>
+                            <p className="text-sm text-gray-500 mb-4">
+                                Submit queued cache misses asynchronously. The first submission is automatically limited to a small compatibility test.
+                            </p>
+                            <div className="space-y-2">
+                                <button
+                                    onClick={submitOfflineBatch}
+                                    disabled={isBatchActionPending}
+                                    className="w-full px-4 py-3 bg-emerald-700 text-white rounded-lg font-medium hover:bg-emerald-800 disabled:opacity-50"
+                                >
+                                    Batch analyze next 1000
+                                </button>
+                                <button
+                                    onClick={refreshBatchStatus}
+                                    disabled={isBatchActionPending}
+                                    className="w-full px-4 py-3 bg-gray-700 text-white rounded-lg font-medium hover:bg-gray-800 disabled:opacity-50"
+                                >
+                                    Refresh batch status
+                                </button>
+                            </div>
+                            <div className="mt-4 text-sm text-gray-700 space-y-1">
+                                <p>Latest stage: {latestBatchRun?.status ?? 'No run yet'}</p>
+                                <p>Submitted: {latestBatchRun?.submitted_count ?? 0}</p>
+                                <p>Completed: {latestBatchRun?.completed_count ?? 0}</p>
+                                <p>Failed: {latestBatchRun?.failed_count ?? 0}</p>
+                                <p>Retryable: {latestBatchRun?.retryable_count ?? 0}</p>
+                            </div>
                         </div>
 
                         {/* Progress */}

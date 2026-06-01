@@ -185,9 +185,20 @@ export const calculatePrice = (
                 price = 0;
                 break;
             case 'edible_photo_top':
-                price = 50; // Flat price for top edible photo
-                nonGumpasteTotal += price;
-                break;
+                {
+                    // Dynamic edible photo pricing based on cake size (matches standard edible photo addon pricing)
+                    // Sizes: Bento (no addon), 6" Round (+100), 8" Round (+200), etc.
+                    const sizeLabel = cakeInfo.size || '6" Round';
+                    if (sizeLabel.includes('4"') || sizeLabel.toLowerCase().includes('bento')) {
+                        price = 0;
+                    } else if (sizeLabel.includes('6"')) {
+                        price = 100;
+                    } else {
+                        price = 200; // 8" Round, 8x8, 8x12, 10", etc.
+                    }
+                    nonGumpasteTotal += price;
+                    break;
+                }
             case 'cardstock':
                 // Cardstock pricing based on size
                 if (topper.size === 'xlarge') price = 150;

@@ -1,5 +1,35 @@
 # Tasks
 
+## Add Offline Gemini Batch Analysis To Search-Based Intake
+
+### Plan
+
+- [x] Preserve `/admin/search-analysis` as the browser-side collector: scrape Google CSE results, resolve the best source URL, fetch and normalize each image, generate the current server fingerprint, and skip existing cache hits before any offline submission.
+- [x] Extract the shared `/api/ai/analyze` contract into server-reusable helpers so interactive analysis and offline analysis use the same active `ai_prompts` row, dynamic pricing-rule enums, `SYSTEM_INSTRUCTION`, response schema, temperature, low-thinking configuration, JSON parsing, cake-thickness adjustment, coordinate reset, rejection handling, and `cacheAnalysisResult(...)` persistence path.
+- [x] Add dedicated durable search-analysis batch tables rather than attaching pre-analysis rows to `cakegenie_analysis_cache`: one run table for collection/submission/import state and one item table for normalized Supabase source URL, fingerprint, source URL, deterministic queue metadata, provider correlation ordinal, status, retry count, errors, and optional completed cache row id.
+- [x] Add an idempotent server intake route that uploads normalized cache misses to Supabase Storage and queues them with a unique fingerprint key. Existing completed cache hits remain ignored, already-queued fingerprints return the existing queue item, and valid completed analyses are never overwritten unless an explicit future force option is added.
+- [x] Add a server-side submit route that selects at most 1000 eligible queued/retryable items predictably, writes JSONL under the existing `VERTEX_AI_BATCH_GCS_URI` prefix, stores a stable per-item submission ordinal, and submits `gemini-3.1-flash-image-preview` only after a small live compatibility probe has succeeded.
+- [x] Add a server-side reconcile route that refreshes provider state, correlates each JSONL output to its durable item, applies the shared analysis post-processing and rejection rules, persists accepted output through `cacheAnalysisResult(...)`, and marks completed, failed, or retryable items without duplicating writes.
+- [x] Make the offline run browser-independent after collection: tab closure may interrupt scraping/intake, but it must not interrupt submitted Vertex processing or later server-side reconciliation.
+- [x] Add `/admin/search-analysis` controls for `Batch analyze next 1000` and `Refresh batch status`, plus latest run stage, submitted, completed, failed, and retryable counts. Keep `Single Page` and `Auto (1-10 Pages)` available as the existing sequential lane.
+- [x] Add focused tests for eligibility filtering, deterministic ordering, JSONL request construction, output correlation, Supabase persistence options, retry behavior, and duplicate prevention.
+- [ ] Run the first small live provider compatibility submission after collecting real cache misses; the submit guard automatically caps the first run at 3 items before permitting a 1000-item run.
+- [x] Apply the new migration to live Supabase, verify RLS intentionally, run targeted Vitest, targeted ESLint, and `npm run build`.
+
+### Review
+
+- Added `src/lib/admin/searchAnalysisContract.ts` as the single shared analysis contract for both `/api/ai/analyze` and offline imports. It owns the dynamic response schema, system instruction, temperature, low-thinking config, cake-thickness adjustment, and coordinate reset.
+- Added `src/lib/admin/searchAnalysisBatch.ts` and `/api/admin/search-analysis-batch` for idempotent intake, deterministic submit, browser-independent Vertex reconciliation, retryable output handling, and completed cache persistence through the existing `cacheAnalysisResult(...)` helper.
+- Added dedicated live Supabase tables `cakegenie_search_analysis_batch_runs` and `cakegenie_search_analysis_batch_items`. Both have RLS enabled and revoke direct `anon` / `authenticated` access; the admin API uses the service-role client.
+- Updated `/admin/search-analysis` with `Collect misses for offline batch (1-10 Pages)`, `Batch analyze next 1000`, and `Refresh batch status`. Existing `Single Page` and `Auto (1-10 Pages)` sequential paths remain available.
+- The first offline submit is deliberately capped at 3 queued items until a compatibility run completes, because official Vertex documentation does not list `gemini-3.1-flash-image-preview` as a confirmed batch model.
+- Verification:
+  - `npx vitest run src/lib/admin/searchAnalysisBatch.test.ts src/lib/admin/imageStudioBatch.test.ts src/app/api/ai/validate/route.test.ts` passed with 11 tests after the final helper coverage expansion.
+  - Targeted ESLint passed for the new batch helper, tests, API route, shared contract, analysis route, and admin page.
+  - `npm run build` passed and includes `/api/admin/search-analysis-batch`.
+  - Live Supabase verification confirmed both queue tables, expected columns, RLS enabled, and a successful insert/delete smoke test.
+  - The live Vertex compatibility submission remains pending until the admin collector queues real cache-miss images.
+
 ## Add One-Button Offline AI Batch Processing For 1000 Cake Cache Rows
 
 ### Plan

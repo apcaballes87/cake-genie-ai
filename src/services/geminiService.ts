@@ -123,8 +123,8 @@ export async function analyzeCakeFeaturesOnly(
 
         const result = await response.json();
 
-        // Check for AI rejection
-        if (result.rejection && result.rejection.isRejected) {
+        // Check for AI rejection (except selfie, which we handle downstream in the context)
+        if (result.rejection && result.rejection.isRejected && result.rejection.reason !== 'selfie') {
             throw new Error(`AI_REJECTION: ${resolveRejectionMessage(result.rejection)}`);
         }
 
