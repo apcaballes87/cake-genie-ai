@@ -477,6 +477,7 @@ export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
 
     const syncMaskFromStudio = async () => {
       setStatus('generating');
+      console.log(`🤖 [AI MASK GENERATION] Started auto-generating icing mask from studio image: "${studioEditedImageUrl}"...`);
 
       try {
         const persistedMask = await getIcingMask(cacheId);
@@ -606,6 +607,7 @@ export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
     if (!decoded) {
       if (isCurrent()) {
         setStatus('generating');
+        console.log(`🤖 [AI MASK GENERATION] Started generating icing mask for color "${name}" (${hex}) via Gemini...`);
       }
 
       const targetSourceUrl = currentStudioEditedImageUrl ?? baseImageUrl;

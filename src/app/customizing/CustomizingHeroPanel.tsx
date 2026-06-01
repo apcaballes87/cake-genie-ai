@@ -582,11 +582,14 @@ export const CustomizingHeroPanel = memo(({
                                 {(isStudioBackgroundEditingPending || isGeneratingMask) ? (
                                     <div className="absolute bottom-3 left-3 z-10 pointer-events-none">
                                         <div
-                                            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/88 text-purple-600 shadow-md ring-1 ring-slate-200/80 backdrop-blur-sm"
+                                            className="flex h-9 px-3.5 items-center gap-2.5 rounded-full bg-white/95 text-purple-600 shadow-lg ring-1 ring-purple-100 backdrop-blur-md transition-all duration-300 animate-pulse"
                                             aria-label={isStudioBackgroundEditingPending ? "AI background editing in progress" : "Icing mask generation in progress"}
                                             title={isStudioBackgroundEditingPending ? "AI background editing in progress" : "Icing mask generation in progress"}
                                         >
-                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0 text-purple-500" />
+                                            <span className="text-[10px] font-bold text-slate-800 tracking-wider uppercase select-none whitespace-nowrap">
+                                                {isStudioBackgroundEditingPending ? "AI background editing in progress..." : "Icing mask generation in progress..."}
+                                            </span>
                                         </div>
                                     </div>
                                 ) : null}

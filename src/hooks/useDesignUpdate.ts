@@ -202,6 +202,8 @@ export const useDesignUpdate = ({
             setError(null);
             setIsSafetyFallback(false);
 
+            console.log(`🤖 [AI DESIGN UPDATE] Started automated AI image edit: overrideInstruction="${overrideInstruction || 'none'}", requestSource="${requestSource}", traceId="${traceId}"`);
+
             // Hoist outside try so the catch block can reference it in the safety fallback
             let currentBaseImageData: { data: string; mimeType: string } | null = parseDataUriImage(editedImage);
 
