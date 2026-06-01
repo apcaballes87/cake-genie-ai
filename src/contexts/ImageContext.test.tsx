@@ -16,6 +16,8 @@ const {
   generateImageFingerprintWithLegacyCandidatesMock,
   generatePerceptualHashCandidatesMock,
   findOrbCacheHitMock,
+  showErrorMock,
+  showStatusMock,
 } = vi.hoisted(() => ({
   dismissToastMock: vi.fn(),
   fileToBase64Mock: vi.fn(),
@@ -27,6 +29,8 @@ const {
   generateImageFingerprintWithLegacyCandidatesMock: vi.fn(),
   generatePerceptualHashCandidatesMock: vi.fn(),
   findOrbCacheHitMock: vi.fn(),
+  showErrorMock: vi.fn(),
+  showStatusMock: vi.fn(),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -60,9 +64,9 @@ vi.mock('@/lib/utils/imageOptimization', () => ({
 
 vi.mock('@/lib/utils/toast', () => ({
   showSuccess: vi.fn(),
-  showError: vi.fn(),
+  showError: showErrorMock,
   showLoading: vi.fn(),
-  showStatus: vi.fn(),
+  showStatus: showStatusMock,
 }));
 
 vi.mock('@/services/supabaseService', () => ({
@@ -229,6 +233,7 @@ describe('ImageContext', () => {
       expect(result.current.editedImage).toBe('data:image/webp;base64,composite-image-base64-data');
       expect(result.current.originalImagePreview).toBe('data:image/webp;base64,composite-image-base64-data');
       expect(result.current.sourceImageData?.data).toBe('uploaded-base64');
+      expect(result.current.isComposingSelfie).toBe(false);
     });
 
     expect(onSuccess).toHaveBeenCalledWith(expect.objectContaining({
@@ -241,6 +246,271 @@ describe('ImageContext', () => {
       ]),
     }));
     expect(onError).not.toHaveBeenCalled();
+
+    fetchSpy.mockRestore();
+  });
+
+  it('shows the base cake placeholder immediately and flips isComposingSelfie while the composite is in flight', async () => {
+    const onSuccess = vi.fn();
+    const onError = vi.fn();
+    const { result } = renderHook(() => useImageManagement(), { wrapper });
+
+    analyzeCakeFeaturesOnlyMock.mockResolvedValue({
+      cakeType: '',
+      cakeThickness: '',
+      keyword: '',
+      icing_design: { base: 'soft_icing', colors: { top: '', side: '' } },
+      main_toppers: [],
+      support_elements: [],
+      cake_messages: [],
+      rejection: {
+        isRejected: true,
+        reason: 'selfie',
+        message: 'This is a selfie or portrait photo of humans. Let\'s make an edible photo cake!'
+      }
+    });
+
+    let resolveComposite: (value: Response) => void = () => { /* replaced in mock */ };
+    const fetchSpy = vi.spyOn(global, 'fetch').mockImplementation((url: any, init?: any) => {
+      if (typeof url === 'string' && url.includes('6in-1layer-cake.webp')) {
+        const dummyBlob = {
+          type: 'image/webp',
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
+        };
+        return Promise.resolve({
+          ok: true,
+          blob: () => Promise.resolve(dummyBlob),
+        } as any);
+      }
+      if (typeof url === 'string' && url.includes('/api/ai/cold-cake-edit')) {
+        return new Promise<Response>((resolve) => {
+          resolveComposite = resolve;
+        }) as unknown as Promise<Response>;
+      }
+      return Promise.resolve({ ok: false } as any);
+    });
+
+    await act(async () => {
+      await result.current.handleImageUpload(
+        new File(['selfie-bytes'], 'my_selfie.png', { type: 'image/png' }),
+        onSuccess,
+        onError
+      );
+    });
+
+    // While the background composite is still pending, the placeholder cake should
+    // be visible in the hero, onSuccess should already have fired, and the
+    // isComposingSelfie flag should be true.
+    await waitFor(() => {
+      expect(result.current.editedImage?.startsWith('data:image/webp;base64,')).toBe(true);
+      expect(result.current.isComposingSelfie).toBe(true);
+    });
+
+    expect(result.current.sourceImageData?.data).toBe('uploaded-base64');
+    expect(onSuccess).toHaveBeenCalledWith(expect.objectContaining({
+      keyword: 'Edible Photo',
+    }));
+    expect(onError).not.toHaveBeenCalled();
+
+    // Now resolve the composite and verify the placeholder is silently swapped
+    // for the composite image, and the spinner flag clears.
+    await act(async () => {
+      resolveComposite({
+        ok: true,
+        json: () => Promise.resolve({
+          mimeType: 'image/webp',
+          imageData: 'composite-image-base64-data',
+        }),
+      } as unknown as Response);
+    });
+
+    await waitFor(() => {
+      expect(result.current.editedImage).toBe('data:image/webp;base64,composite-image-base64-data');
+      expect(result.current.isComposingSelfie).toBe(false);
+    });
+
+    fetchSpy.mockRestore();
+  });
+
+  it('shows a friendly quota toast (and skips the generic cake rejection) when the background composite returns 429', async () => {
+    const onSuccess = vi.fn();
+    const onError = vi.fn();
+    const { result } = renderHook(() => useImageManagement(), { wrapper });
+
+    analyzeCakeFeaturesOnlyMock.mockResolvedValue({
+      cakeType: '',
+      cakeThickness: '',
+      keyword: '',
+      icing_design: { base: 'soft_icing', colors: { top: '', side: '' } },
+      main_toppers: [],
+      support_elements: [],
+      cake_messages: [],
+      rejection: {
+        isRejected: true,
+        reason: 'selfie',
+        message: 'This is a selfie or portrait photo of humans. Let\'s make an edible photo cake!'
+      }
+    });
+
+    const fetchSpy = vi.spyOn(global, 'fetch').mockImplementation((url: any, init?: any) => {
+      if (typeof url === 'string' && url.includes('6in-1layer-cake.webp')) {
+        const dummyBlob = {
+          type: 'image/webp',
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
+        };
+        return Promise.resolve({
+          ok: true,
+          blob: () => Promise.resolve(dummyBlob),
+        } as any);
+      }
+      if (typeof url === 'string' && url.includes('/api/ai/cold-cake-edit')) {
+        return Promise.resolve({
+          ok: false,
+          status: 429,
+          json: () => Promise.resolve({
+            error: 'AI image editing is temporarily unavailable due to quota limits. Please try again later.'
+          }),
+        } as any);
+      }
+      return Promise.resolve({ ok: false } as any);
+    });
+
+    await act(async () => {
+      await result.current.handleImageUpload(
+        new File(['selfie-bytes'], 'my_selfie.png', { type: 'image/png' }),
+        onSuccess,
+        onError
+      );
+    });
+
+    // The user should already be in the customizing workspace with the placeholder
+    // cake visible. The 429 from the background composite is surfaced as a toast
+    // (NOT onError) since the user has already moved past the upload phase.
+    await waitFor(() => {
+      expect(result.current.isComposingSelfie).toBe(false);
+      expect(showErrorMock).toHaveBeenCalled();
+    });
+
+    expect(onSuccess).toHaveBeenCalledWith(expect.objectContaining({
+      keyword: 'Edible Photo',
+    }));
+    expect(onError).not.toHaveBeenCalled();
+    expect(showErrorMock).toHaveBeenCalledTimes(1);
+    expect(showErrorMock.mock.calls[0][0]).toMatch(/getting a lot of cake designs/i);
+    expect(dismissToastMock).toHaveBeenCalled();
+
+    fetchSpy.mockRestore();
+  });
+
+  it('shows a soft retry toast (and skips the generic cake rejection) when the background composite returns a non-429 error', async () => {
+    const onSuccess = vi.fn();
+    const onError = vi.fn();
+    const { result } = renderHook(() => useImageManagement(), { wrapper });
+
+    analyzeCakeFeaturesOnlyMock.mockResolvedValue({
+      cakeType: '',
+      cakeThickness: '',
+      keyword: '',
+      icing_design: { base: 'soft_icing', colors: { top: '', side: '' } },
+      main_toppers: [],
+      support_elements: [],
+      cake_messages: [],
+      rejection: {
+        isRejected: true,
+        reason: 'selfie',
+        message: 'This is a selfie or portrait photo of humans. Let\'s make an edible photo cake!'
+      }
+    });
+
+    const fetchSpy = vi.spyOn(global, 'fetch').mockImplementation((url: any, init?: any) => {
+      if (typeof url === 'string' && url.includes('6in-1layer-cake.webp')) {
+        const dummyBlob = {
+          type: 'image/webp',
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
+        };
+        return Promise.resolve({
+          ok: true,
+          blob: () => Promise.resolve(dummyBlob),
+        } as any);
+      }
+      if (typeof url === 'string' && url.includes('/api/ai/cold-cake-edit')) {
+        return Promise.resolve({
+          ok: false,
+          status: 500,
+          json: () => Promise.resolve({ error: 'internal error' }),
+        } as any);
+      }
+      return Promise.resolve({ ok: false } as any);
+    });
+
+    await act(async () => {
+      await result.current.handleImageUpload(
+        new File(['selfie-bytes'], 'my_selfie.png', { type: 'image/png' }),
+        onSuccess,
+        onError
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.isComposingSelfie).toBe(false);
+      expect(showErrorMock).toHaveBeenCalled();
+    });
+
+    expect(onSuccess).toHaveBeenCalledWith(expect.objectContaining({
+      keyword: 'Edible Photo',
+    }));
+    expect(onError).not.toHaveBeenCalled();
+    expect(showErrorMock).toHaveBeenCalledTimes(1);
+    expect(showErrorMock.mock.calls[0][0]).toMatch(/Couldn't add your photo/i);
+    expect(showErrorMock.mock.calls[0][0]).not.toMatch(/getting a lot of cake designs/i);
+
+    fetchSpy.mockRestore();
+  });
+
+  it('falls back to the standard cake rejection when the placeholder cake itself cannot be fetched', async () => {
+    const onSuccess = vi.fn();
+    const onError = vi.fn();
+    const { result } = renderHook(() => useImageManagement(), { wrapper });
+
+    analyzeCakeFeaturesOnlyMock.mockResolvedValue({
+      cakeType: '',
+      cakeThickness: '',
+      keyword: '',
+      icing_design: { base: 'soft_icing', colors: { top: '', side: '' } },
+      main_toppers: [],
+      support_elements: [],
+      cake_messages: [],
+      rejection: {
+        isRejected: true,
+        reason: 'selfie',
+        message: 'This is a selfie or portrait photo of humans. Let\'s make an edible photo cake!'
+      }
+    });
+
+    const fetchSpy = vi.spyOn(global, 'fetch').mockImplementation((url: any, init?: any) => {
+      if (typeof url === 'string' && url.includes('6in-1layer-cake.webp')) {
+        return Promise.reject(new Error('Network down'));
+      }
+      return Promise.resolve({ ok: false } as any);
+    });
+
+    await act(async () => {
+      await result.current.handleImageUpload(
+        new File(['selfie-bytes'], 'my_selfie.png', { type: 'image/png' }),
+        onSuccess,
+        onError
+      );
+    });
+
+    await waitFor(() => {
+      expect(onError).toHaveBeenCalled();
+    });
+
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError.mock.calls[0][0]).toBeInstanceOf(Error);
+    expect(onError.mock.calls[0][0].message).toMatch(/doesn't appear to be a cake/);
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(showErrorMock).not.toHaveBeenCalled();
 
     fetchSpy.mockRestore();
   });

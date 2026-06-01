@@ -474,4 +474,133 @@ describe('useIcingMask', () => {
     expect(result.current.status).toBe('ready');
     expect(result.current.hasMask).toBe(true);
   });
+
+  describe('staticMaskUrl (edible photo cake flow)', () => {
+    const EDIBLE_PHOTO_MASK_URL = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cold-caking/6in-mask.webp';
+
+    it('pre-loads the static mask and becomes ready without any Gemini call when cacheId is null', async () => {
+      const params = buildParams({
+        cacheId: null,
+        baseImage: BASE_IMAGE,
+        baseImageUrl: BASE_IMAGE_URL,
+        staticMaskUrl: EDIBLE_PHOTO_MASK_URL,
+      });
+
+      const { result } = renderHook(() => useIcingMask(params));
+
+      await waitFor(() => expect(result.current.status).toBe('ready'));
+      expect(result.current.hasMask).toBe(true);
+      expect(mockGetIcingMask).not.toHaveBeenCalled();
+      expect(mockGenerateAndPersistIcingMask).not.toHaveBeenCalled();
+    });
+
+    it('recolors instantly on the first click with no Gemini call when the static mask is pre-loaded', async () => {
+      mockRecolorWithMask.mockReturnValue(FAKE_RECOLORED_DATA_URL);
+
+      const onRecolored = vi.fn();
+      const params = buildParams({
+        cacheId: null,
+        baseImage: BASE_IMAGE,
+        baseImageUrl: BASE_IMAGE_URL,
+        staticMaskUrl: EDIBLE_PHOTO_MASK_URL,
+        onRecolored,
+      });
+
+      const { result } = renderHook(() => useIcingMask(params));
+
+      await waitFor(() => expect(result.current.status).toBe('ready'));
+
+      await act(async () => {
+        await result.current.recolorIcing('#FFC0CB', 'Pink');
+      });
+
+      expect(mockGenerateAndPersistIcingMask).not.toHaveBeenCalled();
+      expect(mockRecolorWithMask).toHaveBeenCalledTimes(1);
+      expect(onRecolored).toHaveBeenCalledWith(FAKE_RECOLORED_DATA_URL, '#FFC0CB');
+    });
+
+    it('does not load the static mask when cacheId is set (DB mask wins)', async () => {
+      mockGetIcingMask.mockResolvedValue(makeMaskRecord(OK_MASK_URL));
+
+      const { result } = renderHook(() =>
+        useIcingMask(
+          buildParams({
+            cacheId: 'cache-1',
+            staticMaskUrl: EDIBLE_PHOTO_MASK_URL,
+          })
+        )
+      );
+
+      await waitFor(() => expect(result.current.status).toBe('ready'));
+      expect(mockGetIcingMask).toHaveBeenCalledWith('cache-1');
+      // The DB-loaded mask fires onload via the OK_MASK_URL, not the static one.
+      // We can't assert on image.src directly, but the static URL contains "edible"
+      // and the DB URL is OK_MASK_URL — the "no static load" path is the absence
+      // of console.warn and the success of the DB path.
+    });
+
+    it('clears the static mask when staticMaskUrl transitions from set to null', async () => {
+      let currentParams = buildParams({
+        cacheId: null,
+        baseImage: BASE_IMAGE,
+        baseImageUrl: BASE_IMAGE_URL,
+        staticMaskUrl: EDIBLE_PHOTO_MASK_URL,
+      });
+      const { result, rerender } = renderHook(() => useIcingMask(currentParams));
+
+      await waitFor(() => expect(result.current.status).toBe('ready'));
+      expect(result.current.hasMask).toBe(true);
+
+      // User switches away from the edible-photo flow — clear the static mask.
+      currentParams = buildParams({
+        cacheId: null,
+        baseImage: BASE_IMAGE,
+        baseImageUrl: BASE_IMAGE_URL,
+        staticMaskUrl: null,
+      });
+      rerender();
+
+      await waitFor(() => expect(result.current.hasMask).toBe(false));
+      expect(result.current.status).toBe('idle');
+    });
+
+    it('falls back to Gemini generation when the static mask fails to decode', async () => {
+      const FAIL_EDIBLE_MASK = 'https://example.com/edible-fail.png';
+      // The MockImage class fires onerror for any URL containing "fail".
+      mockGetIcingMask.mockResolvedValue(null);
+      mockGenerateAndPersistIcingMask.mockResolvedValue(makeMaskRecord(OK_MASK_URL));
+      mockRecolorWithMask.mockReturnValue(FAKE_RECOLORED_DATA_URL);
+
+      const onRecolored = vi.fn();
+      const params = buildParams({
+        cacheId: null,
+        baseImage: BASE_IMAGE,
+        baseImageUrl: BASE_IMAGE_URL,
+        staticMaskUrl: FAIL_EDIBLE_MASK,
+        onRecolored,
+      });
+
+      const { result } = renderHook(() => useIcingMask(params));
+
+      // Static decode fails → status returns to idle (no error state, so the
+      // user is not blocked from using colors).
+      await waitFor(() => expect(result.current.status).toBe('idle'));
+      expect(result.current.hasMask).toBe(false);
+
+      // First color click should now go through the existing Gemini generation
+      // path (the static-mask effect's failure must not poison the cold path).
+      await act(async () => {
+        await result.current.recolorIcing('#FFC0CB', 'Pink');
+      });
+
+      expect(mockGenerateAndPersistIcingMask).toHaveBeenCalledTimes(1);
+      expect(mockGenerateAndPersistIcingMask).toHaveBeenCalledWith({
+        cacheId: null,
+        baseImage: BASE_IMAGE,
+        sourceImageUrl: BASE_IMAGE_URL,
+        icingColorName: undefined,
+      });
+      expect(onRecolored).toHaveBeenCalledWith(FAKE_RECOLORED_DATA_URL, '#FFC0CB');
+    });
+  });
 });

@@ -32,6 +32,7 @@ import {
     getEquivalentCakeSizeForIcingBase,
     getEquivalentCakeTypeForIcingBase,
     inferIcingBaseFromCakeType,
+    EDIBLE_PHOTO_MASK_URL,
 } from '@/constants';
 import { ColorPalette } from '../../components/ColorPalette';
 import StickyAddToCartBar from '../../components/StickyAddToCartBar';
@@ -530,6 +531,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         handleImageUpload: hookImageUpload, handleSave, uploadCartImages, clearImages,
         loadImageWithoutAnalysis, setCurrentSlug, currentSlug: persistedSlug,
         currentPHash, currentCacheId, seoMetadata, isAnalysisCached,
+        isComposingSelfie,
     } = useImageManagement();
 
 
@@ -829,6 +831,16 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
     const effectiveCacheId = recentSearchDesign?.id || currentCacheId || null;
 
+    const hasEnabledEdiblePhotoTopper = useMemo(
+        () => mainToppers?.some(t => t.isEnabled && t.type === 'edible_photo_top') ?? false,
+        [mainToppers]
+    );
+
+    const staticIcingMaskUrl = useMemo(
+        () => (effectiveCacheId === null && hasEnabledEdiblePhotoTopper ? EDIBLE_PHOTO_MASK_URL : null),
+        [effectiveCacheId, hasEnabledEdiblePhotoTopper]
+    );
+
     const {
         isLoading: isUpdatingDesign, error: designUpdateError, lastGenerationInfoRef, handleUpdateDesign, setError: setDesignUpdateError, isSafetyFallback,
     } = useDesignUpdate({
@@ -900,6 +912,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             const hex = icingDesign?.colors?.top || icingDesign?.colors?.side;
             return getIcingBucketName(hex || '');
         })(),
+        staticMaskUrl: staticIcingMaskUrl,
         onRecolored: handleIcingMaskRecolored,
         onFallback: handleIcingMaskFallback,
     });
@@ -2624,8 +2637,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             return;
         }
 
-        scrollToHero();
-
         const nextCakeInfoUpdates: Partial<CakeInfoUI> = {
             type: nextType,
         };
@@ -2653,8 +2664,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             ? { ...icingDesign, base: newBase }
             : { ...DEFAULT_ICING_DESIGN, base: newBase };
 
-        onIcingDesignChange(nextIcingDesign);
-    }, [cakeInfo, icingDesign, handleCakeInfoChange, onIcingDesignChange, scrollToHero]);
+        baseOnIcingDesignChange(nextIcingDesign);
+    }, [cakeInfo, icingDesign, handleCakeInfoChange, baseOnIcingDesignChange]);
 
     const availability = AVAILABILITY_MAP[availabilityType];
     // Temporary state backups for modals (to discard changes on cancel)
@@ -3421,6 +3432,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             isUpdatingDesign={isUpdatingDesign}
                             isStudioBackgroundEditingPending={isStudioBackgroundEditingPending}
                             isGeneratingMask={icingMaskStatus === 'generating'}
+                            isComposingSelfie={isComposingSelfie}
                             dynamicLoadingMessage={dynamicLoadingMessage}
                             error={error}
                             originalImagePreview={originalImagePreview}

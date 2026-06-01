@@ -224,6 +224,19 @@ export const getCachedAssetUrl = (bucket: keyof typeof STORAGE_BUCKETS, path: st
   getProxiedImageUrl(getAssetUrl(bucket, path));
 
 /**
+ * Static icing mask for the 6-inch edible photo cake (the default cake shape used
+ * for selfie→edible-photo composites in `ImageContext`). Pre-generated once and
+ * reused for every icing color change, so selfie flows get instant client-side
+ * recolors without paying for a Gemini mask-generation call.
+ *
+ * The mask follows the standard icing-mask convention (icing rendered red,
+ * everything else pitch-black) consumed by `recolorWithMask` in
+ * `@/lib/icingMaskComposite`. Dimensions don't have to match the source image —
+ * the compositor rescales the mask as needed.
+ */
+export const EDIBLE_PHOTO_MASK_URL = getAssetUrl('cakegenie', 'cold-caking/6in-mask.webp');
+
+/**
  * Common application assets - use these instead of hardcoding URLs
  */
 export const COMMON_ASSETS = {

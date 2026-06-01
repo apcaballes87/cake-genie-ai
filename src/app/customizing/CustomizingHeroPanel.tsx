@@ -19,6 +19,7 @@ interface CustomizingHeroPanelProps {
     isUpdatingDesign: boolean;
     isStudioBackgroundEditingPending?: boolean;
     isGeneratingMask?: boolean;
+    isComposingSelfie?: boolean;
     dynamicLoadingMessage: string;
     error: string | null;
     originalImagePreview: string | null;
@@ -151,6 +152,7 @@ export const CustomizingHeroPanel = memo(({
     isUpdatingDesign,
     isStudioBackgroundEditingPending = false,
     isGeneratingMask = false,
+    isComposingSelfie = false,
     dynamicLoadingMessage,
     error,
     originalImagePreview,
@@ -560,16 +562,16 @@ export const CustomizingHeroPanel = memo(({
 
                         {hasOriginalDisplayImage ? (
                             <>
-                                {(isStudioBackgroundEditingPending || isGeneratingMask) ? (
+                                {(isStudioBackgroundEditingPending || isGeneratingMask || isComposingSelfie) ? (
                                     <div className="absolute bottom-3 left-3 z-10 pointer-events-none">
                                         <div
                                             className="flex h-9 px-3.5 items-center gap-2.5 rounded-full bg-white/95 text-purple-600 shadow-lg ring-1 ring-purple-100 backdrop-blur-md transition-all duration-300 animate-pulse"
-                                            aria-label={isStudioBackgroundEditingPending ? "ai is editing your background" : "ai is editing your icing"}
-                                            title={isStudioBackgroundEditingPending ? "ai is editing your background" : "ai is editing your icing"}
+                                            aria-label={isComposingSelfie ? "ai is adding your image to the cake" : isStudioBackgroundEditingPending ? "ai is editing your background" : "ai is editing your icing"}
+                                            title={isComposingSelfie ? "ai is adding your image to the cake" : isStudioBackgroundEditingPending ? "ai is editing your background" : "ai is editing your icing"}
                                         >
                                             <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0 text-purple-500" />
                                             <span className="text-[8px] font-bold text-slate-800 tracking-wider select-none whitespace-nowrap">
-                                                {isStudioBackgroundEditingPending ? "ai is editing your background..." : "ai is editing your icing..."}
+                                                {isComposingSelfie ? "ai adding your image on this cake..." : isStudioBackgroundEditingPending ? "ai is editing your background..." : "ai is editing your icing..."}
                                             </span>
                                         </div>
                                     </div>

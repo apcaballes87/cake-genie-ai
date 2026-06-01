@@ -69,6 +69,7 @@ interface ImageContextType {
     clearImages: () => void;
     seoMetadata: CacheSEOMetadata | null;
     isAnalysisCached: boolean;
+    isComposingSelfie: boolean;
 }
 
 interface HandleImageUploadOptions {
@@ -100,6 +101,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
     const [sourceImageData, setSourceImageData] = useState<{ data: string; mimeType: string } | null>(null); // True original, never overwritten
     const [previousImageData, setPreviousImageData] = useState<{ data: string; mimeType: string } | null>(null); // For undo functionality
     const [originalImagePreview, setOriginalImagePreview] = useState<string | null>(null);
+    const [isComposingSelfie, setIsComposingSelfie] = useState<boolean>(false);
 
     // Wrap setOriginalImageData to keep originalImagePreview in sync
     const setOriginalImageData = useCallback((update: SetStateAction<{ data: string; mimeType: string } | null>) => {
@@ -165,6 +167,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         setCurrentCacheId(null);
         setSeoMetadata(null);
         setIsAnalysisCached(false);
+        setIsComposingSelfie(false);
         persistedImageStateRef.current = {
             original: null,
             source: null,
@@ -332,6 +335,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         setCurrentCacheId(null);
         setSeoMetadata(null);
         setIsAnalysisCached(false);
+        setIsComposingSelfie(false);
         try {
             const imageData = await fileToBase64(file);
             const imageSrc = `data:${imageData.mimeType};base64,${imageData.data}`;
@@ -607,35 +611,23 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 );
 
                 if (fastResult.rejection && fastResult.rejection.isRejected && fastResult.rejection.reason === 'selfie') {
-                    showStatus('Selfie detected! Designing your personalized edible photo cake... 🎂', { id: uploadToastId, duration: 15000 });
+                    showStatus('Selfie detected! Loading your edible photo cake... 🎂', { id: uploadToastId, duration: 15000 });
                     try {
                         const baseCakeUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cold-caking/6in-1layer-cake.webp';
                         const baseCakeImage = await fetchImageAsBase64(baseCakeUrl);
-                        
-                        const compositeResponse = await fetch('/api/ai/cold-cake-edit', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                baseImage: baseCakeImage,
-                                overlayImage: compressedImageData,
-                            }),
-                        });
-                        
-                        if (!compositeResponse.ok) {
-                            throw new Error('Failed to composite selfie onto the cake');
-                        }
-                        
-                        const compositeResult = await compositeResponse.json();
-                        
-                        // Set the composite image as the edited image and overwrite originalImageData
-                        const compositeSrc = `data:${compositeResult.mimeType};base64,${compositeResult.imageData}`;
-                        setEditedImage(compositeSrc);
-                        setOriginalImageData({
-                            data: compositeResult.imageData,
-                            mimeType: compositeResult.mimeType
-                        });
-                        
-                        // Dynamically synthesize a valid HybridAnalysisResult for edible photo cake
+
+                        // Show the placeholder cake immediately so the user is not staring
+                        // at a loading bar while the AI composite runs (which can take 30-60s).
+                        // The composite is kicked off in the background; on success we silently
+                        // swap editedImage/originalImageData to the result.
+                        const placeholderSrc = `data:${baseCakeImage.mimeType};base64,${baseCakeImage.data}`;
+                        setIsComposingSelfie(true);
+                        setEditedImage(placeholderSrc);
+                        setOriginalImageData(baseCakeImage);
+
+                        // Synthesize a valid HybridAnalysisResult for the edible photo cake.
+                        // We call onSuccess NOW (with the placeholder) so the user transitions
+                        // to the customizing workspace without waiting for the composite.
                         const synthesizedResult: HybridAnalysisResult = {
                             cakeType: '1 Tier',
                             cakeThickness: '4 in',
@@ -676,14 +668,56 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                                 message: ''
                             }
                         };
-                        
+
                         toastHot.dismiss(uploadToastId);
-                        showSuccess("Your personalized edible photo cake is ready!");
-                        
                         onSuccess(synthesizedResult);
+
+                        // Fire-and-forget background composite. The user is already in the
+                        // customizing workspace — on completion we silently swap the
+                        // placeholder for the composite; on failure we surface a soft
+                        // toast and let them re-upload if they want a fresh composite.
+                        void (async () => {
+                            try {
+                                const compositeResponse = await fetch('/api/ai/cold-cake-edit', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        baseImage: baseCakeImage,
+                                        overlayImage: compressedImageData,
+                                    }),
+                                });
+
+                                if (!compositeResponse.ok) {
+                                    if (compositeResponse.status === 429) {
+                                        showError("We're getting a lot of cake designs right now 🍰 — please try uploading your selfie again in a moment.");
+                                    } else {
+                                        showError("Couldn't add your photo to the cake. Please try uploading your selfie again.");
+                                    }
+                                    return;
+                                }
+
+                                const compositeResult = await compositeResponse.json();
+                                const compositeSrc = `data:${compositeResult.mimeType};base64,${compositeResult.imageData}`;
+                                setEditedImage(compositeSrc);
+                                setOriginalImageData({
+                                    data: compositeResult.imageData,
+                                    mimeType: compositeResult.mimeType,
+                                });
+                            } catch (err) {
+                                console.error('Background selfie composite failed:', err);
+                                showError("Couldn't add your photo to the cake. Please try uploading your selfie again.");
+                            } finally {
+                                setIsComposingSelfie(false);
+                            }
+                        })();
+
                         return;
-                    } catch (compositeErr) {
-                        console.error('Composite failed, falling back to standard rejection:', compositeErr);
+                    } catch (setupErr) {
+                        // Failed to even fetch the placeholder cake (network/storage issue).
+                        // Fall back to the standard rejection so the user is not left
+                        // without feedback.
+                        console.error('Selfie placeholder setup failed:', setupErr);
+                        toastHot.dismiss(uploadToastId);
                         throw new Error('This image doesn\'t appear to be a cake. Please upload a cake image.');
                     }
                 }
@@ -1081,6 +1115,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         clearImages,
         seoMetadata,
         isAnalysisCached,
+        isComposingSelfie,
     }), [
         originalImageData,
         sourceImageData,
@@ -1101,6 +1136,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         clearImages,
         seoMetadata,
         isAnalysisCached,
+        isComposingSelfie,
     ]);
 
     return (

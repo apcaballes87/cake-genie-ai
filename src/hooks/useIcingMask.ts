@@ -46,6 +46,11 @@ export interface UseIcingMaskParams {
   studioEditedImageUrl: string | null;
   /** Human-readable icing color name for prompt accuracy (e.g. "white", "pink"). */
   icingColorName?: string;
+  /** When set (and `cacheId` is null), the hook pre-decodes this mask URL and
+   *  uses it for warm-path recolors instead of issuing a Gemini mask-generation
+   *  call. Used by the selfie→edible-photo flow, which has a fixed 6-inch cake
+   *  shape and reuses a single static mask across all such designs. */
+  staticMaskUrl?: string | null;
   /** Called with the instantly composited recolored image on success. */
   onRecolored: (recoloredDataUrl: string, hex: string) => void;
   /** Delegates to the existing Gemini color-variant path when the mask path is unavailable. */
@@ -69,12 +74,16 @@ export interface UseIcingMaskResult {
  * An icing mask decoded into memory and ready for client-side compositing.
  * `record` is the canonical Mask Record; `imageData` is the decoded mask pixels
  * (icing rendered red, everything else pitch-black) at its native `width`/`height`.
+ * `__static` flags masks loaded from a static URL override (the selfie→edible-
+ * photo flow); the cleanup branch in the static-mask effect keys off it so we
+ * never clobber a DB-loaded mask from this effect.
  */
 interface DecodedMask {
   record: CakeGenieIcingMask;
   imageData: ImageData;
   width: number;
   height: number;
+  __static?: boolean;
 }
 
 /**
@@ -253,7 +262,7 @@ function loadImageElement(url: string): Promise<HTMLImageElement> {
  * still the latest (last-click-wins).
  */
 export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
-  const { cacheId, studioEditedImageUrl } = params;
+  const { cacheId, studioEditedImageUrl, staticMaskUrl = null } = params;
 
   // Keep the latest params reachable from async callbacks without re-subscribing
   // effects. `recolorIcing` reads baseImage / baseImageUrl / onRecolored / onFallback
@@ -384,6 +393,91 @@ export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
       cancelled = true;
     };
   }, [cacheId]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  // Pre-load a static icing mask URL when one is provided and there is no
+  // `cacheId` (i.e. the in-memory / selfie flow). The selfie→edible-photo
+  // composite always uses the same 6-inch cake shape, so a single pre-generated
+  // mask works for every such design — no Gemini call required on the first
+  // color click. The decoded mask is stored in `decodedMaskRef` so `recolorIcing`
+  // takes the warm path immediately.
+  //
+  // Behaviour matrix:
+  //   - `staticMaskUrl` set + `cacheId` null → pre-decode the URL, cache the
+  //     pixels, transition to `ready`. Replaces whatever the main prefetch
+  //     effect cleared at mount (since it bails out on `!cacheId`).
+  //   - `staticMaskUrl` set + `cacheId` set → no-op; the persisted DB mask wins.
+  //   - `staticMaskUrl` cleared (e.g. user switches away from the edible-photo
+  //     flow) → clear the previously-decoded static mask so the next click
+  //     falls back to the existing in-memory Gemini generation path.
+  //
+  // A decode failure is non-fatal: we log a warning, leave the mask ref null,
+  // and let the existing `recolorIcing` cold path generate one via Gemini. This
+  // keeps the user's first color click working even if the static asset is
+  // temporarily unreachable.
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (!staticMaskUrl || cacheId) {
+      // Clear any static mask we previously loaded (if the current decoded mask
+      // matches the static URL we last set). We don't touch the DB-loaded mask —
+      // the main prefetch effect above owns that lifecycle.
+      const current = decodedMaskRef.current;
+      if (current && current.__static) {
+        decodedMaskRef.current = null;
+        setHasMask(false);
+        setStatus('idle');
+      }
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadStaticMask = async () => {
+      setStatus('generating');
+      try {
+        const { imageData, width, height } = await decodeImageUrlToImageData(staticMaskUrl);
+        if (cancelled) {
+          return;
+        }
+
+        decodedMaskRef.current = {
+          record: {
+            id: '',
+            cache_id: '',
+            mask_url: staticMaskUrl,
+            source_image_url: null,
+            mask_version: 0,
+            width,
+            height,
+            status: 'ready',
+            created_at: new Date().toISOString(),
+          },
+          imageData,
+          width,
+          height,
+          __static: true,
+        };
+        setHasMask(true);
+        setStatus('ready');
+      } catch (err) {
+        if (!cancelled) {
+          console.warn(
+            'Failed to pre-load static edible photo icing mask; first color click will fall back to Gemini mask generation.',
+            err
+          );
+          decodedMaskRef.current = null;
+          setHasMask(false);
+          setStatus('idle');
+        }
+      }
+    };
+
+    void loadStaticMask();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [staticMaskUrl, cacheId]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // Resolves (and memoizes) the decoded base-image element for `baseImageUrl`. Reuses

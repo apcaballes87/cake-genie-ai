@@ -172,6 +172,20 @@ describe('CustomizingHeroPanel', () => {
         expect(screen.getByLabelText('ai is editing your icing')).toBeInTheDocument();
     });
 
+    it('shows a lower-left loader while the selfie composite is being generated', () => {
+        const props = buildProps();
+        props.editedImage = 'data:image/webp;base64,placeholder-cake';
+        props.originalImagePreview = 'https://example.com/original-cake.jpg';
+        props.preferredOriginalImageUrl = 'https://example.com/original-cake.jpg';
+        props.isComposingSelfie = true;
+
+        render(<CustomizingHeroPanel {...props} />);
+
+        const loader = screen.getByLabelText('ai is adding your image to the cake');
+        expect(loader).toBeInTheDocument();
+        expect(loader.textContent).toMatch(/ai adding your image on this cake/i);
+    });
+
     it('opens a fullscreen image modal when the hero image is clicked', () => {
         const props = buildProps();
         props.originalImagePreview = 'https://example.com/original-cake.jpg';
