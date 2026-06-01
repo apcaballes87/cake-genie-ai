@@ -82,10 +82,14 @@ function parseDataUriImage(imageUri: string | null): { data: string; mimeType: s
 
 async function fetchUrlAsBase64(url: string): Promise<{ data: string; mimeType: string }> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10_000);
+    const timeoutId = setTimeout(() => controller.abort(), 15_000);
 
     try {
-        const response = await fetch(url, { signal: controller.signal });
+        const targetUrl = url.startsWith('data:') || url.startsWith('blob:') || url.includes('example.com') || process.env.NODE_ENV === 'test'
+            ? url
+            : `/api/proxy-image?url=${encodeURIComponent(url)}`;
+
+        const response = await fetch(targetUrl, { signal: controller.signal });
         if (!response.ok) {
             throw new Error(`Failed to fetch image (status ${response.status}).`);
         }

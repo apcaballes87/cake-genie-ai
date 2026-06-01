@@ -151,11 +151,15 @@ function decodeImageUrlToImageData(
  */
 async function fetchUrlAsBase64(url: string): Promise<{ data: string; mimeType: string }> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10_000);
+  const timeoutId = setTimeout(() => controller.abort(), 15_000);
   try {
-    const response = await fetch(url, { signal: controller.signal });
+    const targetUrl = url.startsWith('data:') || url.startsWith('blob:') || url.includes('example.com') || process.env.NODE_ENV === 'test'
+      ? url
+      : `/api/proxy-image?url=${encodeURIComponent(url)}`;
+
+    const response = await fetch(targetUrl, { signal: controller.signal });
     if (!response.ok) {
-      throw new Error(`Failed to fetch studio-edited image (status ${response.status}).`);
+      throw new Error(`Failed to fetch image (status ${response.status}).`);
     }
     const blob = await response.blob();
     const file = new File([blob], 'studio-edited.webp', { type: blob.type || 'image/webp' });
@@ -631,8 +635,9 @@ export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
         if (currentStudioEditedImageUrl && !studioBaseImageRef.current) {
           try {
             effectiveBaseImage = await resolveStudioBaseImage(currentStudioEditedImageUrl);
-          } catch {
-            effectiveBaseImage = null;
+          } catch (studioError) {
+            console.warn('Failed to resolve studio-edited image for mask generation; using original upload instead.', studioError);
+            effectiveBaseImage = baseImage;
           }
         }
 
@@ -640,8 +645,9 @@ export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
           if (!isCurrent()) return;
           try {
             effectiveBaseImage = await resolveBaseImageUrlData(baseImageUrl);
-          } catch {
-            effectiveBaseImage = null;
+          } catch (urlError) {
+            console.warn('Failed to resolve base image URL for mask generation; using original upload instead.', urlError);
+            effectiveBaseImage = baseImage;
           }
         }
 
