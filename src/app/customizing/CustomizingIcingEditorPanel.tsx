@@ -208,12 +208,12 @@ const VisibleStatusMessage = memo(function VisibleStatusMessage({
     if (!isStudioBackgroundEditingPending && !isGeneratingMask) return null;
 
     const message = isStudioBackgroundEditingPending
-        ? 'AI background editing in progress...'
-        : 'Icing mask generation in progress...';
+        ? 'ai is editing your background...'
+        : 'ai is editing your icing...';
 
     return (
-        <div className="mt-2.5 flex items-center justify-center gap-2 text-[11px] font-semibold text-purple-600 animate-pulse bg-purple-50/50 py-1.5 px-3 rounded-lg border border-purple-100/60 transition-all duration-300">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        <div className="mt-2.5 flex items-center justify-center gap-2 text-[9px] font-bold text-purple-600 animate-pulse bg-purple-50/50 py-1.5 px-3 rounded-lg border border-purple-100/60 transition-all duration-300">
+            <Loader2 className="h-3 w-3 animate-spin" />
             <span>{message}</span>
         </div>
     );

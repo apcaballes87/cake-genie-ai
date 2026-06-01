@@ -33,6 +33,7 @@ export interface MainTopper {
   id?: string;
   isEnabled?: boolean;
   type: MainTopperType;
+  material?: string;
   description: string;
   size: Size;
   quantity: number;
@@ -53,6 +54,7 @@ export interface SupportElement {
   id?: string;
   isEnabled?: boolean;
   type: SupportElementType;
+  material?: string;
   description: string;
   size: Size;
   group_id: string;

@@ -110,7 +110,7 @@ describe('CustomizingIcingEditorPanel', () => {
 
         render(<CustomizingIcingEditorPanel {...props} />);
 
-        expect(screen.getByText('Icing mask generation in progress...')).toBeInTheDocument();
+        expect(screen.getByText('ai is editing your icing...')).toBeInTheDocument();
     });
 
     it('shows a pulsing background edit status below the body icing color palette while background editing is pending', () => {
@@ -125,6 +125,6 @@ describe('CustomizingIcingEditorPanel', () => {
 
         render(<CustomizingIcingEditorPanel {...props} />);
 
-        expect(screen.getByText('AI background editing in progress...')).toBeInTheDocument();
+        expect(screen.getByText('ai is editing your background...')).toBeInTheDocument();
     });
 });

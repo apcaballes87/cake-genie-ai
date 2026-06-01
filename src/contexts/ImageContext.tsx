@@ -672,6 +672,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                             seo_description: 'A beautiful custom edible photo cake featuring a personalized printed portrait top. Made with premium soft icing in Cebu.',
                             rejection: {
                                 isRejected: false,
+                                reason: '',
                                 message: ''
                             }
                         };

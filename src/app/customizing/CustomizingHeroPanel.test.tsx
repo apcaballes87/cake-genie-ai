@@ -158,7 +158,7 @@ describe('CustomizingHeroPanel', () => {
 
         render(<CustomizingHeroPanel {...props} />);
 
-        expect(screen.getByLabelText('AI background editing in progress')).toBeInTheDocument();
+        expect(screen.getByLabelText('ai is editing your background')).toBeInTheDocument();
     });
 
     it('shows a lower-left loader while the icing mask is being generated', () => {
@@ -169,7 +169,7 @@ describe('CustomizingHeroPanel', () => {
 
         render(<CustomizingHeroPanel {...props} />);
 
-        expect(screen.getByLabelText('Icing mask generation in progress')).toBeInTheDocument();
+        expect(screen.getByLabelText('ai is editing your icing')).toBeInTheDocument();
     });
 
     it('opens a fullscreen image modal when the hero image is clicked', () => {
