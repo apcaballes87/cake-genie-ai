@@ -312,65 +312,84 @@ export async function generateAndPersistIcingMask(
     // Re-encode to a lossless PNG and capture decoded dimensions (Requirement 10).
     const { blob: pngBlob, width, height } = await decodeMaskToPngBlob(maskDataUrl);
 
-    // Upload to Storage; upsert overwrites the single object in place so exactly
-    // one object exists per path even on regeneration (Requirements 6.3, 6.4, 3.5).
-    const objectPath = buildMaskStoragePath(cacheId, maskVersion);
-    const { error: uploadError } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .upload(objectPath, pngBlob, { contentType: 'image/png', upsert: true });
+    let cacheBustedPublicUrl = maskDataUrl;
+    let isPersisted = false;
 
-    if (uploadError) throw uploadError;
+    try {
+      // Upload to Storage; upsert overwrites the single object in place so exactly
+      // one object exists per path even on regeneration (Requirements 6.3, 6.4, 3.5).
+      const objectPath = buildMaskStoragePath(cacheId, maskVersion);
+      const { error: uploadError } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .upload(objectPath, pngBlob, { contentType: 'image/png', upsert: true });
 
-    const { data: urlData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(objectPath);
-    const publicUrl = urlData?.publicUrl;
-    if (!publicUrl) {
-      throw new Error('Failed to get public URL for the icing mask.');
-    }
+      if (uploadError) throw uploadError;
 
-    const cacheBustedPublicUrl = buildCacheBustedMaskUrl(publicUrl);
+      const { data: urlData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(objectPath);
+      const publicUrl = urlData?.publicUrl;
+      if (!publicUrl) {
+        throw new Error('Failed to get public URL for the icing mask.');
+      }
 
-    // Upsert the canonical row in place. This preserves one logical row per
-    // design/version while letting later regenerations replace the stored source URL,
-    // dimensions, and cache-busted public mask URL.
-    const { error: insertError } = await supabase
-      .from('cakegenie_icing_masks')
-      .upsert(
-        {
-          cache_id: cacheId,
-          mask_url: cacheBustedPublicUrl,
-          source_image_url: sourceImageUrl,
-          mask_version: maskVersion,
-          width,
-          height,
-          status: 'ready',
-        },
-        { onConflict: 'cache_id,mask_version' }
+      const cacheBustedUrl = buildCacheBustedMaskUrl(publicUrl);
+
+      // Upsert the canonical row in place. This preserves one logical row per
+      // design/version while letting later regenerations replace the stored source URL,
+      // dimensions, and cache-busted public mask URL.
+      const { error: insertError } = await supabase
+        .from('cakegenie_icing_masks')
+        .upsert(
+          {
+            cache_id: cacheId,
+            mask_url: cacheBustedUrl,
+            source_image_url: sourceImageUrl,
+            mask_version: maskVersion,
+            width,
+            height,
+            status: 'ready',
+          },
+          { onConflict: 'cache_id,mask_version' }
+        );
+
+      if (insertError) throw insertError;
+
+      cacheBustedPublicUrl = cacheBustedUrl;
+      isPersisted = true;
+    } catch (persistError) {
+      // Gracefully catch database or storage write failures (e.g. 403 Forbidden due to RLS).
+      // Since Gemini generated the mask successfully, we fall back to using it in-memory
+      // for the current session instead of failing the entire customizer interaction.
+      console.warn(
+        'Failed to persist generated icing mask to Supabase storage/database (e.g., due to permissions/RLS). ' +
+        'Falling back to in-memory mask for the current session:',
+        persistError
       );
-
-    if (insertError) throw insertError;
-
-    // Re-select the winning canonical row so all callers see the same record
-    // regardless of who actually won the insert race.
-    const winningRow = await getIcingMask(cacheId);
-    if (winningRow) {
-      return winningRow;
     }
 
-    // Extremely unlikely: the upload + insert succeeded but the row isn't readable
-    // as 'ready'. Fall back to a synthesized record from what we just wrote so the
-    // caller can still composite immediately.
-      return {
-        id: '',
-        cache_id: cacheId,
-        mask_url: cacheBustedPublicUrl,
-        source_image_url: sourceImageUrl,
-        mask_version: maskVersion,
-        width,
+    if (isPersisted) {
+      // Re-select the winning canonical row so all callers see the same record
+      // regardless of who actually won the insert race.
+      const winningRow = await getIcingMask(cacheId);
+      if (winningRow) {
+        return winningRow;
+      }
+    }
+
+    // Return the generated mask with raw maskDataUrl or cache-busted public url so
+    // the caller can still decode and composite immediately.
+    return {
+      id: '',
+      cache_id: cacheId,
+      mask_url: cacheBustedPublicUrl,
+      source_image_url: sourceImageUrl,
+      mask_version: maskVersion,
+      width,
       height,
       status: 'ready',
       created_at: new Date().toISOString(),
     };
   } catch (error) {
+    // Gemini or decoding failed completely (the mask itself couldn't be generated).
     // Record a failed marker (without clobbering a prior ready row) and rethrow so
     // the hook falls back to the Gemini color-variant path (Requirement 5.4).
     await recordFailedMaskMarker(cacheId, maskVersion, sourceImageUrl);

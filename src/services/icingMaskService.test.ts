@@ -352,6 +352,26 @@ describe('generateAndPersistIcingMask', () => {
     // No mask was uploaded because generation failed before storage.
     expect(store.uploads).toHaveLength(0);
   });
+
+  it('falls back to in-memory mask and does not throw when Supabase database or storage upsert fails (e.g. 403 Forbidden)', async () => {
+    const store = createInMemorySupabase();
+    // Stub upload to return an error
+    store.client.storage.from = () => ({
+      upload: async () => ({ data: null, error: new Error('403 Forbidden storage write') }),
+      getPublicUrl: () => ({ data: { publicUrl: '' } }),
+    });
+    supabaseRef.current = store.client;
+    const cacheId = 'cache-403-forbidden';
+
+    const record = await generateAndPersistIcingMask({ cacheId, baseImage });
+
+    // Should return a ready record with the raw data URL!
+    expect(record.mask_url).toBe(FAKE_MASK_DATA_URL);
+    expect(record.status).toBe('ready');
+    expect(record.cache_id).toBe(cacheId);
+    // No upload should succeed, and no row should be written to the database double
+    expect(store.rows).toHaveLength(0);
+  });
 });
 
 // -----------------------------------------------------------------------------
