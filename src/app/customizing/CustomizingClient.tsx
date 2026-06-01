@@ -856,8 +856,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     // mask once per design, then recolors client-side with no Gemini round trip.
     // Wired alongside useDesignUpdate and shares the same cacheId source.
     // Tracks whether the mask-recolored image is currently displayed (for toggle logic).
-    const maskOverlayActiveRef = useRef(false);
-    const [isMaskOverlayActive, setIsMaskOverlayActive] = useState(false);
+    const maskOverlayActiveRef = useRef(true);
+    const [isMaskOverlayActive, setIsMaskOverlayActive] = useState(true);
 
     const handleIcingMaskRecolored = useCallback((recoloredDataUrl: string, _hex: string) => {
         // Special signal from disableMask — revert to original image
@@ -915,20 +915,23 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     }, [regenerateMask, recolorIcing, icingDesign?.colors?.top, icingDesign?.colors?.side]);
 
     // Toggle wrapper for color swatch clicks:
-    // - If mask overlay is active AND user clicks the same color → toggle OFF (disable)
-    // - Otherwise → recolor with the clicked color (toggle ON / switch color)
+    // - If the clicked color is the default icing color analyzed from the original image,
+    //   we disable the mask (using the original image) but keep the toggle switch ON.
+    // - Otherwise, we apply the recolored mask and show the customized image.
     const handleIcingColorToggle = useCallback((hex: string, name: string) => {
-        const currentColor = icingDesign?.colors?.top || icingDesign?.colors?.side || '#FFFFFF';
-        const isSameColor = currentColor.toLowerCase() === hex.toLowerCase();
+        const defaultColorHex = (analysisResult?.icing_design?.colors?.top || analysisResult?.icing_design?.colors?.side || '#FFFFFF').toLowerCase();
+        const isDefaultColor = hex.toLowerCase() === defaultColorHex;
 
-        if (maskOverlayActiveRef.current && isSameColor) {
-            // Toggle OFF — revert to original
-            disableMask();
+        if (isDefaultColor) {
+            maskOverlayActiveRef.current = true;
+            setIsMaskOverlayActive(true);
+            setEditedImage(null);
+            setActiveTab('original');
+            scrollToHero();
         } else {
-            // Toggle ON / switch to new color
             void recolorIcing(hex, name);
         }
-    }, [icingDesign?.colors?.top, icingDesign?.colors?.side, disableMask, recolorIcing]);
+    }, [analysisResult, recolorIcing, setEditedImage, setActiveTab, scrollToHero]);
 
 
     const { isShareModalOpen, shareData, isSavingDesign, handleShare, createShareLink, closeShareModal } = useDesignSharing({
