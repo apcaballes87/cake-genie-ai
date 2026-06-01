@@ -600,6 +600,10 @@ export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
     let decoded = decodedMaskRef.current;
 
     if (!decoded) {
+      if (isCurrent()) {
+        setStatus('generating');
+      }
+
       const targetSourceUrl = currentStudioEditedImageUrl ?? baseImageUrl;
 
       // Check if there is an in-flight generation for this exact source URL
@@ -642,8 +646,6 @@ export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
           }
           return;
         }
-
-        setStatus('generating');
 
         const promise = generateMaskInternal(currentCacheId, effectiveBaseImage, targetSourceUrl)
           .catch(err => {
