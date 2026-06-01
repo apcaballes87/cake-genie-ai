@@ -3831,6 +3831,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         onIcingDesignChange={onIcingDesignChange}
                         onIcingColorRecolor={handleIcingColorToggle}
                         isGeneratingMask={icingMaskStatus === 'generating'}
+                        isStudioBackgroundEditingPending={isStudioBackgroundEditingPending}
                         onRevert={() => {
                             if (analysisResult?.icing_design && icingDesign) {
                                 onIcingDesignChange({

@@ -97,4 +97,34 @@ describe('CustomizingIcingEditorPanel', () => {
         expect(screen.queryByRole('button', { name: 'Top Icing' })).not.toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Body Icing' })).toBeInTheDocument();
     });
+
+    it('shows a pulsing text status below the body icing color palette while the AI mask is generating', () => {
+        const props = buildProps();
+        props.selectedItem = {
+            id: 'icing-edit-icing',
+            itemCategory: 'icing',
+            description: 'Body Icing',
+            cakeType: '2 Tier',
+        } satisfies ClusteredMarker;
+        props.isGeneratingMask = true;
+
+        render(<CustomizingIcingEditorPanel {...props} />);
+
+        expect(screen.getByText('Icing mask generation in progress...')).toBeInTheDocument();
+    });
+
+    it('shows a pulsing background edit status below the body icing color palette while background editing is pending', () => {
+        const props = buildProps();
+        props.selectedItem = {
+            id: 'icing-edit-icing',
+            itemCategory: 'icing',
+            description: 'Body Icing',
+            cakeType: '2 Tier',
+        } satisfies ClusteredMarker;
+        props.isStudioBackgroundEditingPending = true;
+
+        render(<CustomizingIcingEditorPanel {...props} />);
+
+        expect(screen.getByText('AI background editing in progress...')).toBeInTheDocument();
+    });
 });

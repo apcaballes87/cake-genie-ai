@@ -53,6 +53,7 @@ interface CustomizingIcingEditorPanelProps {
      * the one-time mask is generated. All other controls stay enabled and responsive.
      */
     isGeneratingMask?: boolean;
+    isStudioBackgroundEditingPending?: boolean;
 }
 
 const defaultIcingDesign: IcingDesignUI = {
@@ -197,6 +198,27 @@ const IcingToolbar = memo(function IcingToolbar({
     );
 });
 
+const VisibleStatusMessage = memo(function VisibleStatusMessage({
+    isStudioBackgroundEditingPending,
+    isGeneratingMask,
+}: {
+    isStudioBackgroundEditingPending: boolean;
+    isGeneratingMask: boolean;
+}) {
+    if (!isStudioBackgroundEditingPending && !isGeneratingMask) return null;
+
+    const message = isStudioBackgroundEditingPending
+        ? 'AI background editing in progress...'
+        : 'Icing mask generation in progress...';
+
+    return (
+        <div className="mt-2.5 flex items-center justify-center gap-2 text-[11px] font-semibold text-purple-600 animate-pulse bg-purple-50/50 py-1.5 px-3 rounded-lg border border-purple-100/60 transition-all duration-300">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <span>{message}</span>
+        </div>
+    );
+});
+
 export const CustomizingIcingEditorPanel = memo(function CustomizingIcingEditorPanel({
     isVisible,
     hasIcingChanges,
@@ -209,6 +231,7 @@ export const CustomizingIcingEditorPanel = memo(function CustomizingIcingEditorP
     onRevert,
     onIcingColorRecolor,
     isGeneratingMask = false,
+    isStudioBackgroundEditingPending = false,
 }: CustomizingIcingEditorPanelProps) {
     const selectedIcingItem = isIcingSelection(selectedItem) ? selectedItem : null;
     const isBento = cakeType === 'Bento';
@@ -286,41 +309,59 @@ export const CustomizingIcingEditorPanel = memo(function CustomizingIcingEditorP
                         {selectedIcingItem.description === 'Bottom' && renderToggleAndColor('border_base', 'borderBase', 'Base Border')}
                         {selectedIcingItem.description === 'Board' && renderToggleAndColor('gumpasteBaseBoard', 'gumpasteBaseBoardColor', 'Covered Board')}
                         {selectedIcingItem.description === 'Body Icing' && icingDesign && (
-                            <div className="relative pb-2">
-                                {isGeneratingMask && <MaskGeneratingOverlay />}
-                                <ColorPalette
-                                    selectedColor={icingDesign.colors.top || icingDesign.colors.side || '#FFFFFF'}
-                                    onColorChange={(newHex) => {
-                                        onIcingDesignChange({
-                                            ...icingDesign,
-                                            colors: { ...icingDesign.colors, top: newHex, side: newHex },
-                                        });
-                                        onIcingColorRecolor?.(newHex, getColorName(newHex));
-                                    }}
+                            <div className="pb-2">
+                                <div className="relative">
+                                    {isGeneratingMask && <MaskGeneratingOverlay />}
+                                    <ColorPalette
+                                        selectedColor={icingDesign.colors.top || icingDesign.colors.side || '#FFFFFF'}
+                                        onColorChange={(newHex) => {
+                                            onIcingDesignChange({
+                                                ...icingDesign,
+                                                colors: { ...icingDesign.colors, top: newHex, side: newHex },
+                                            });
+                                            onIcingColorRecolor?.(newHex, getColorName(newHex));
+                                        }}
+                                    />
+                                </div>
+                                <VisibleStatusMessage 
+                                    isStudioBackgroundEditingPending={isStudioBackgroundEditingPending}
+                                    isGeneratingMask={isGeneratingMask}
                                 />
                             </div>
                         )}
                         {selectedIcingItem.description === 'Top Icing' && icingDesign && (
-                            <div className="relative pb-2">
-                                {isGeneratingMask && <MaskGeneratingOverlay />}
-                                <ColorPalette
-                                    selectedColor={icingDesign.colors.top || ''}
-                                    onColorChange={(newHex) => {
-                                        onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, top: newHex } });
-                                        onIcingColorRecolor?.(newHex, getColorName(newHex));
-                                    }}
+                            <div className="pb-2">
+                                <div className="relative">
+                                    {isGeneratingMask && <MaskGeneratingOverlay />}
+                                    <ColorPalette
+                                        selectedColor={icingDesign.colors.top || ''}
+                                        onColorChange={(newHex) => {
+                                            onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, top: newHex } });
+                                            onIcingColorRecolor?.(newHex, getColorName(newHex));
+                                        }}
+                                    />
+                                </div>
+                                <VisibleStatusMessage 
+                                    isStudioBackgroundEditingPending={isStudioBackgroundEditingPending}
+                                    isGeneratingMask={isGeneratingMask}
                                 />
                             </div>
                         )}
                         {selectedIcingItem.description === 'Side Icing' && icingDesign && (
-                            <div className="relative pb-2">
-                                {isGeneratingMask && <MaskGeneratingOverlay />}
-                                <ColorPalette
-                                    selectedColor={icingDesign.colors.side || ''}
-                                    onColorChange={(newHex) => {
-                                        onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, side: newHex } });
-                                        onIcingColorRecolor?.(newHex, getColorName(newHex));
-                                    }}
+                            <div className="pb-2">
+                                <div className="relative">
+                                    {isGeneratingMask && <MaskGeneratingOverlay />}
+                                    <ColorPalette
+                                        selectedColor={icingDesign.colors.side || ''}
+                                        onColorChange={(newHex) => {
+                                            onIcingDesignChange({ ...icingDesign, colors: { ...icingDesign.colors, side: newHex } });
+                                            onIcingColorRecolor?.(newHex, getColorName(newHex));
+                                        }}
+                                    />
+                                </div>
+                                <VisibleStatusMessage 
+                                    isStudioBackgroundEditingPending={isStudioBackgroundEditingPending}
+                                    isGeneratingMask={isGeneratingMask}
                                 />
                             </div>
                         )}
