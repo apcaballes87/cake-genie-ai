@@ -444,4 +444,34 @@ describe('useIcingMask', () => {
     expect(onRecolored).not.toHaveBeenCalled();
     expect(result.current.status).toBe('error');
   });
+
+  it('auto-generates a studio-derived mask when the studio image becomes available dynamically after mount', async () => {
+    mockGetIcingMask.mockResolvedValue(null);
+    mockGenerateAndPersistIcingMask.mockResolvedValue(makeMaskRecord(OK_MASK_URL));
+
+    let currentParams = buildParams({ studioEditedImageUrl: null });
+    const { result, rerender } = renderHook(() => useIcingMask(currentParams));
+
+    // Initially mounted with null, should not call generate
+    await waitFor(() => expect(mockGetIcingMask).toHaveBeenCalled());
+    await flushMicrotasks();
+    expect(mockGenerateAndPersistIcingMask).not.toHaveBeenCalled();
+
+    // Dynamically update the studio Edited Image URL (simulating completion of background editing)
+    currentParams = buildParams({ studioEditedImageUrl: 'https://example.com/studio.webp' });
+    rerender();
+
+    // Should automatically kick off mask generation for the new studio background
+    await waitFor(() => expect(mockGenerateAndPersistIcingMask).toHaveBeenCalledTimes(1));
+
+    expect(fetchMock).toHaveBeenCalledWith('https://example.com/studio.webp', expect.any(Object));
+    expect(mockGenerateAndPersistIcingMask).toHaveBeenCalledWith({
+      cacheId: 'cache-1',
+      baseImage: { mimeType: 'image/webp', data: 'studio-base64' },
+      sourceImageUrl: 'https://example.com/studio.webp',
+      icingColorName: undefined,
+    });
+    expect(result.current.status).toBe('ready');
+    expect(result.current.hasMask).toBe(true);
+  });
 });
