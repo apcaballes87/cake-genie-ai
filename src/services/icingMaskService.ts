@@ -126,7 +126,9 @@ function decodeMaskToPngBlob(
 
     const image = new Image();
     image.decoding = 'async';
-    image.crossOrigin = 'anonymous';
+    if (!maskDataUrl.startsWith('data:')) {
+      image.crossOrigin = 'anonymous';
+    }
 
     image.onload = () => {
       const width = image.naturalWidth || image.width;

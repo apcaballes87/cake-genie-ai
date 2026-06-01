@@ -99,7 +99,9 @@ function decodeImageUrlToImageData(
 
     const image = new Image();
     image.decoding = 'async';
-    image.crossOrigin = 'anonymous';
+    if (!url.startsWith('data:')) {
+      image.crossOrigin = 'anonymous';
+    }
 
     image.onload = () => {
       const width = image.naturalWidth || image.width;
@@ -194,7 +196,9 @@ function loadImageElement(url: string): Promise<HTMLImageElement> {
 
     const image = new Image();
     image.decoding = 'async';
-    image.crossOrigin = 'anonymous';
+    if (!url.startsWith('data:')) {
+      image.crossOrigin = 'anonymous';
+    }
 
     image.onload = () => {
       resolve(image);
