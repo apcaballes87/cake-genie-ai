@@ -11,14 +11,15 @@ import {
     THICKNESS_OPTIONS_MAP,
     FLAVOR_OPTIONS
 } from '@/constants';
-import { findClosestColor, hexToColorNameProse } from '@/utils/colorUtils';
+import { getIcingBucketName } from '@/utils/colorUtils';
+import { getIcingImage, type IcingImageType } from '@/utils/icingImage';
 import { TrashIcon, MagicSparkleIcon } from '@/components/icons';
 import { roundDownToNearest99 } from '@/lib/utils/pricing';
-import type { BasePriceInfo, CakeInfoUI, CakeMessageUI, ClusteredMarker, IcingDesignUI, MainTopperType, MainTopperUI, SupportElementType, SupportElementUI } from '@/types';
+import type { BasePriceInfo, CakeInfoUI, CakeMessageUI, ClusteredMarker, IcingDesignUI, IcingGroup, MainTopperType, MainTopperUI, SupportElementType, SupportElementUI } from '@/types';
 
 type LayoutMode = 'mobile' | 'desktop';
-type IcingImageType = 'top' | 'side' | 'drip' | 'borderTop' | 'borderBase' | 'gumpasteBaseBoard';
 type StepOneItemKind = 'type' | 'size' | 'height' | 'flavor' | 'icing';
+type MaskStatus = 'idle' | 'generating' | 'ready' | 'error';
 
 interface CustomizingStepSummarySectionsProps {
     layout: LayoutMode;
@@ -71,6 +72,11 @@ interface CustomizingStepSummarySectionsProps {
     /** When true, shows a pulsing 'Loading Different Icing Colors' hint below the color swatches
      *  while the AI icing mask is being generated silently in the background. */
     isGeneratingMask?: boolean;
+    /** Disables swatch clicks while the studio background edit is in flight (avoids stale
+     *  recolors on top of a pre-existing studio edit). */
+    isStudioBackgroundEditingPending?: boolean;
+    /** Status of the mask overlay; used to render a hint (pulse / error) and gate swatch clicks. */
+    maskStatus?: MaskStatus;
 }
 
 const findScrollableParent = (element: HTMLElement | null): HTMLElement | null => {
@@ -92,49 +98,6 @@ const findScrollableParent = (element: HTMLElement | null): HTMLElement | null =
     }
 
     return document.scrollingElement instanceof HTMLElement ? document.scrollingElement : null;
-};
-
-const getIcingImage = (icingDesign: IcingDesignUI, type: IcingImageType, isTopSpecific = false): string => {
-    const baseUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/icing_toolbar_colors/';
-    let color: string | undefined;
-    let prefix = 'icing';
-    let defaultFile = 'icing_white.webp';
-
-    switch (type) {
-        case 'top':
-            color = icingDesign.colors?.top;
-            if (isTopSpecific) {
-                prefix = 'topicing';
-                defaultFile = 'topicing_white.webp';
-            }
-            break;
-        case 'side':
-            color = icingDesign.colors?.side;
-            break;
-        case 'drip':
-            color = icingDesign.colors?.drip;
-            prefix = 'drip';
-            defaultFile = 'drip_white.webp';
-            break;
-        case 'borderTop':
-            color = icingDesign.colors?.borderTop;
-            prefix = 'top';
-            defaultFile = 'top_white.webp';
-            break;
-        case 'borderBase':
-            color = icingDesign.colors?.borderBase;
-            prefix = 'baseborder';
-            defaultFile = 'baseborder_white.webp';
-            break;
-        case 'gumpasteBaseBoard':
-            color = icingDesign.colors?.gumpasteBaseBoardColor;
-            prefix = 'baseboard';
-            defaultFile = 'baseboardwhite.webp';
-            break;
-    }
-
-    if (!color) return baseUrl + defaultFile;
-    return `${baseUrl}${prefix}${prefix === 'baseboard' ? '' : '_'}${findClosestColor(color)}.webp`;
 };
 
 const getMessagePositionLabel = (position: CakeMessageUI['position']) => (
@@ -302,6 +265,8 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     onDisableMask,
     isMaskActive = false,
     isGeneratingMask = false,
+    isStudioBackgroundEditingPending = false,
+    maskStatus = 'idle',
 }: CustomizingStepSummarySectionsProps) {
     // Default position when "+ Add" is clicked: Bento → front (side), all others → base_board
     const defaultMessagePosition = cakeInfo?.type === 'Bento' ? 'side' : 'base_board';
@@ -521,10 +486,11 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                         if (isMaskActive) {
                             onDisableMask?.();
                         } else {
-                            const colorName = hexToColorNameProse(activeColor);
+                            const colorName = getIcingBucketName(activeColor);
                             onIcingColorRecolor?.(activeColor, colorName);
                         }
                     };
+                    const isToggleDisabled = isUpdatingDesign || isStudioBackgroundEditingPending || maskStatus === 'generating';
                     return (
                         <div className="flex flex-col items-center gap-0.5 shrink-0">
                             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
@@ -533,9 +499,10 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                             <button
                                 type="button"
                                 onClick={handleToggle}
+                                disabled={isToggleDisabled}
                                 aria-label={isMaskActive ? 'Turn off icing recolor' : 'Turn on icing recolor'}
                                 title={isMaskActive ? 'Turn off icing recolor' : 'Turn on icing recolor'}
-                                className="relative w-[52px] h-[28px] md:w-[60px] md:h-[32px] rounded-full shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-purple-300"
+                                className={`relative w-[52px] h-[28px] md:w-[60px] md:h-[32px] rounded-full shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-purple-300 ${isToggleDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 style={{ backgroundColor: isMaskActive ? activeColor : '#cbd5e1' }}
                             >
                                 {/* Knob */}
@@ -562,13 +529,14 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                     <div className="flex gap-1 py-0.5 px-1">
                         {THEME_COLORS.map((color) => {
                             const currentColorHex = icingDesign?.colors?.side || icingDesign?.colors?.top || '#FFFFFF';
-                            const currentColorName = hexToColorNameProse(currentColorHex);
+                            const currentColorName = getIcingBucketName(currentColorHex);
+                            const isSwatchDisabled = isUpdatingDesign || isStudioBackgroundEditingPending || maskStatus === 'generating';
 
                             return (
                                 <button
                                     key={color.name}
                                     onClick={() => {
-                                        if (isUpdatingDesign) return;
+                                        if (isSwatchDisabled) return;
                                         if (icingDesign && onIcingDesignChange) {
                                             onIcingDesignChange({
                                                 ...icingDesign,
@@ -589,8 +557,8 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                             onUpdateDesign?.(instruction, { hex: color.hex, name: color.name });
                                         }
                                     }}
-                                    disabled={isUpdatingDesign}
-                                    className={`group relative flex flex-col items-center gap-1 shrink-0 transition-transform active:scale-95 ${isUpdatingDesign ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    disabled={isSwatchDisabled}
+                                    className={`group relative flex flex-col items-center gap-1 shrink-0 transition-transform active:scale-95 ${isSwatchDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     title={color.name}
                                 >
                                     <div
@@ -611,8 +579,8 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                             <button
                                 type="button"
                                 onClick={onRegenerateMask}
-                                disabled={isUpdatingDesign}
-                                className="group relative flex flex-col items-center gap-1 shrink-0 transition-transform active:scale-95"
+                                disabled={isUpdatingDesign || isStudioBackgroundEditingPending || maskStatus === 'generating'}
+                                className={`group relative flex flex-col items-center gap-1 shrink-0 transition-transform active:scale-95 ${isUpdatingDesign || isStudioBackgroundEditingPending || maskStatus === 'generating' ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 title="Regenerate icing mask for better quality"
                             >
                                 <div className="md:w-8 md:h-8 w-[27px] h-[27px] rounded-full border border-dashed border-slate-300 shadow-sm flex items-center justify-center bg-slate-50 group-hover:border-purple-300 group-hover:bg-purple-50 transition-all">
@@ -709,12 +677,12 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
         );
     })() : null;
     const icingSummaryItems = icingDesign && cakeInfo ? [
-        { id: 'icing-edit-drip', description: 'Drip', label: 'Drip', alt: 'Drip', imageType: 'drip' as const, enabled: icingDesign.drip },
-        { id: 'icing-edit-borderTop', description: 'Top', label: 'Top Border', alt: 'Top Border', imageType: 'borderTop' as const, enabled: icingDesign.border_top },
-        { id: 'icing-edit-borderBase', description: 'Bottom', label: 'Base Border', alt: 'Base Border', imageType: 'borderBase' as const, enabled: icingDesign.border_base },
-        { id: 'icing-edit-top', description: 'Top Icing', label: 'Top Icing', alt: 'Top Icing', imageType: 'top' as const, enabled: true, isTopSpecific: true },
-        { id: 'icing-edit-side', description: 'Side Icing', label: 'Body Icing', alt: 'Body Icing', imageType: 'side' as const, enabled: true },
-        { id: 'icing-edit-gumpasteBaseBoard', description: 'Board', label: 'Board', alt: 'Base Board', imageType: 'gumpasteBaseBoard' as const, enabled: icingDesign.gumpasteBaseBoard },
+        { id: 'icing-edit-drip', description: 'Drip', label: 'Drip', alt: 'Drip', imageType: 'drip' as const, group: 'drip' as IcingGroup, enabled: icingDesign.drip },
+        { id: 'icing-edit-borderTop', description: 'Top Border', label: 'Top Border', alt: 'Top Border', imageType: 'borderTop' as const, group: 'border_top' as IcingGroup, enabled: icingDesign.border_top },
+        { id: 'icing-edit-borderBase', description: 'Base Border', label: 'Base Border', alt: 'Base Border', imageType: 'borderBase' as const, group: 'border_base' as IcingGroup, enabled: icingDesign.border_base },
+        { id: 'icing-edit-top', description: 'Top Icing', label: 'Top Icing', alt: 'Top Icing', imageType: 'top' as const, group: 'top' as IcingGroup, enabled: true, isTopSpecific: true },
+        { id: 'icing-edit-side', description: 'Side Icing', label: 'Body Icing', alt: 'Body Icing', imageType: 'side' as const, group: 'side' as IcingGroup, enabled: true },
+        { id: 'icing-edit-gumpasteBaseBoard', description: 'Base Board', label: 'Board', alt: 'Base Board', imageType: 'gumpasteBaseBoard' as const, group: 'gumpasteBaseBoard' as IcingGroup, enabled: icingDesign.gumpasteBaseBoard },
     ].filter(item => item.enabled || (activeCustomization === 'icing' && selectedItemId === item.id)).map((item) => {
         const isSelected = activeCustomization === 'icing' && selectedItemId === item.id;
         const isEnabled = item.enabled || isSelected;
@@ -724,7 +692,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                 key={item.id}
                 onClick={() => {
                     setActiveCustomization('icing');
-                    setSelectedItem({ id: item.id, itemCategory: 'icing', description: item.description, cakeType: cakeInfo.type });
+                    setSelectedItem({ id: item.id, itemCategory: 'icing', description: item.group, cakeType: cakeInfo.type });
                 }}
                 className="group flex flex-col items-center gap-1 min-w-[60px]"
             >
@@ -747,17 +715,29 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
         <div className={containerClassName}>
             {cakeInfo && !isAnalyzing && !isRejectionError && mainColorOptionsNode}
 
-            {/* Pulsing hint shown while AI icing mask generates silently in background */}
-            {cakeInfo && !isAnalyzing && !isRejectionError && (
-                <p
-                    className={`text-center text-[10px] font-medium text-purple-600 tracking-wide transition-opacity duration-700 ${
-                        isGeneratingMask ? 'animate-pulse opacity-100' : 'opacity-0 pointer-events-none h-0 overflow-hidden'
-                    }`}
-                    aria-live="polite"
-                >
-                    ✨ Loading Different Icing Colors
-                </p>
-            )}
+            {/* Pulsing hint shown while AI icing mask generates silently in background,
+                or a red error banner when the mask generation fails. */}
+            {cakeInfo && !isAnalyzing && !isRejectionError && (() => {
+                const showPulse = isGeneratingMask || maskStatus === 'generating';
+                const showError = maskStatus === 'error';
+                const isVisible = showPulse || showError;
+                if (!isVisible) return null;
+                return (
+                    <p
+                        className={`text-center text-[10px] font-medium tracking-wide transition-opacity duration-700 ${
+                            showError
+                                ? 'text-red-600'
+                                : 'text-purple-600 animate-pulse'
+                        } ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none h-0 overflow-hidden'}`}
+                        aria-live={showError ? 'assertive' : 'polite'}
+                        role={showError ? 'alert' : undefined}
+                    >
+                        {showError
+                            ? '⚠️ Couldn\'t load different icing colors. Tap the Fix button to retry.'
+                            : '✨ Loading Different Icing Colors'}
+                    </p>
+                );
+            })()}
 
             {cakeInfo && !isAnalyzing && !isRejectionError && !hideStepOne && (
                 <div 

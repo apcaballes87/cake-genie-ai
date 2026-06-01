@@ -454,12 +454,25 @@ export interface SegmentationResult {
   }[];
   [key: string]: any;
 }
+/**
+ * The set of editable icing color groups. Used as the discriminator on icing
+ * `ClusteredMarker` items so the editor panel can switch on it without
+ * pattern-matching on free-form description strings.
+ */
+export type IcingGroup =
+  | 'drip'
+  | 'top'
+  | 'side'
+  | 'borderTop'
+  | 'borderBase'
+  | 'gumpasteBaseBoard';
+
 // Types moved from CustomizingPage
 export type AnalysisItem =
   (MainTopperUI & { itemCategory: 'topper' }) |
   (SupportElementUI & { itemCategory: 'element' }) |
   (CakeMessageUI & { itemCategory: 'message' }) |
-  ({ id: string; description: string; x?: number; y?: number; cakeType?: CakeType } & { itemCategory: 'icing' }) |
+  ({ id: string; description: IcingGroup; x?: number; y?: number; cakeType?: CakeType } & { itemCategory: 'icing' }) |
   ({ id: string; description: string; x?: number; y?: number; } & { itemCategory: 'action' });
 
 export type ClusteredMarker = {

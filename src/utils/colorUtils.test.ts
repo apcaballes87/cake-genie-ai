@@ -1,6 +1,6 @@
 
 import { describe, it, expect } from 'vitest';
-import { findClosestColor } from './colorUtils';
+import { findClosestColor, getIcingBucketName } from './colorUtils';
 
 describe('findClosestColor', () => {
     // Original Bug Case
@@ -59,5 +59,28 @@ describe('findClosestColor', () => {
     it('should default to white for invalid inputs', () => {
         expect(findClosestColor('')).toBe('white');
         expect(findClosestColor('invalid-color-string')).toBe('white');
+    });
+});
+
+describe('getIcingBucketName', () => {
+    // Direct hex lookups via ICING_BUCKET_BY_HEX
+    it('returns the bucket name for direct map hits', () => {
+        expect(getIcingBucketName('#EF4444')).toBe('red');
+        expect(getIcingBucketName('#22C55E')).toBe('green');
+        expect(getIcingBucketName('#1A1A1A')).toBe('black');
+    });
+
+    // OKLab fallback (hot pink / FF69B4 was the famous "pink" miss case in M5)
+    it('returns "pink" for hot pink via OKLab fallback', () => {
+        expect(getIcingBucketName('#FF69B4')).toBe('pink');
+    });
+
+    it('is case-insensitive and trims whitespace for direct lookups', () => {
+        expect(getIcingBucketName(' #ef4444 ')).toBe('red');
+    });
+
+    it('falls back to white for empty / invalid hex inputs', () => {
+        expect(getIcingBucketName('')).toBe('white');
+        expect(getIcingBucketName('not-a-hex')).toBe('white');
     });
 });

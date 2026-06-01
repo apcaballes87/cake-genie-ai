@@ -392,10 +392,10 @@ export const CITIES_AND_BARANGAYS: Record<string, string[]> = {
 
 
 
-export const DEFAULT_ICING_DESIGN = {
-  base: 'soft_icing' as const,
-  color_type: 'single' as const,
-  colors: { side: '#FFFFFF' },
+export const DEFAULT_ICING_DESIGN: import('@/types').IcingDesignUI = {
+  base: 'soft_icing',
+  color_type: 'single',
+  colors: { top: '#FFFFFF', side: '#FFFFFF' },
   border_top: false,
   border_base: false,
   drip: false,

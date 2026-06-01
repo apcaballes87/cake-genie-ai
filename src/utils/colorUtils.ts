@@ -29,8 +29,17 @@ export const AVAILABLE_ICING_COLORS = [
 ];
 
 /**
+ * O(1) direct lookup for the 10 icing bucket representatives, built once at
+ * module load. Used by `getIcingBucketName` to avoid re-scanning the keyword
+ * arrays for the swatch UI's most common colors.
+ */
+const ICING_BUCKET_BY_HEX: Map<string, string> = new Map(
+    AVAILABLE_ICING_COLORS.map((c) => [c.hex.toLowerCase(), c.name])
+);
+
+/**
  * Maps any input color (name or hex) to one of the 10 available icing color buckets.
- * Uses exact mapping, keyword matching, and RGB distance fallback.
+ * Uses exact mapping, keyword matching, and OKLab distance fallback.
  */
 export const findClosestColor = (color: string, availableColors = AVAILABLE_ICING_COLORS): string => {
     if (!color) return 'white';
@@ -98,16 +107,14 @@ export const findClosestColor = (color: string, availableColors = AVAILABLE_ICIN
     if (colorLower.startsWith('#')) {
         const inputRgb = hexToRgb(colorLower);
         if (inputRgb) {
+            const inputLab = rgbToOklab(inputRgb);
             let closestColor = availableColors[0].name;
             let minDistance = Infinity;
             for (const colorOption of availableColors) {
                 const optionRgb = hexToRgb(colorOption.hex);
                 if (optionRgb) {
-                    const distance = Math.sqrt(
-                        Math.pow(inputRgb.r - optionRgb.r, 2) +
-                        Math.pow(inputRgb.g - optionRgb.g, 2) +
-                        Math.pow(inputRgb.b - optionRgb.b, 2)
-                    );
+                    const optionLab = rgbToOklab(optionRgb);
+                    const distance = oklabDistance(inputLab, optionLab);
                     if (distance < minDistance) {
                         minDistance = distance;
                         closestColor = colorOption.name;
@@ -118,6 +125,66 @@ export const findClosestColor = (color: string, availableColors = AVAILABLE_ICIN
         }
     }
     return 'white';
+};
+
+/**
+ * Returns the canonical icing bucket name for a hex (e.g. `#FF69B4` → `pink`).
+ * Used by the icing-recolor flow (prompts, console logs, fallback, swatch
+ * name lookups) so the same vocabulary is used everywhere.
+ *
+ * Resolution order:
+ *   1. Direct hit on one of the 10 `AVAILABLE_ICING_COLORS` bucket
+ *      representatives (O(1) Map lookup).
+ *   2. `findClosestColor(hex)` — direct-map → keyword → OKLab distance.
+ *   3. `'white'` as a last-resort fallback for malformed input.
+ */
+export const getIcingBucketName = (hex: string): string => {
+    if (!hex) return 'white';
+    const direct = ICING_BUCKET_BY_HEX.get(hex.toLowerCase());
+    if (direct) return direct;
+    return findClosestColor(hex);
+};
+
+/**
+ * sRGB → linear-RGB gamma decode (per-channel, IEC 61966-2-1).
+ */
+const srgbChannelToLinear = (c: number): number => {
+    const cs = c / 255;
+    return cs <= 0.04045 ? cs / 12.92 : Math.pow((cs + 0.055) / 1.055, 2.4);
+};
+
+/**
+ * sRGB 0-255 → OKLab (Björn Ottosson, 2020). Inline, dependency-free.
+ * Reference: https://bottosson.github.io/posts/oklab/
+ */
+const rgbToOklab = (rgb: { r: number; g: number; b: number }): { L: number; a: number; b: number } => {
+    const lr = srgbChannelToLinear(rgb.r);
+    const lg = srgbChannelToLinear(rgb.g);
+    const lb = srgbChannelToLinear(rgb.b);
+
+    const l = 0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb;
+    const m = 0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb;
+    const s = 0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb;
+
+    const l_ = Math.cbrt(l);
+    const m_ = Math.cbrt(m);
+    const s_ = Math.cbrt(s);
+
+    return {
+        L: 0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
+        a: 1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
+        b: 0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_,
+    };
+};
+
+const oklabDistance = (
+    a: { L: number; a: number; b: number },
+    b: { L: number; a: number; b: number }
+): number => {
+    const dL = a.L - b.L;
+    const da = a.a - b.a;
+    const db = a.b - b.b;
+    return Math.sqrt(dL * dL + da * da + db * db);
 };
 
 /**

@@ -9,6 +9,10 @@ vi.mock('@/components/LazyImage', () => ({
     default: ({ alt }: { alt: string }) => <span>{alt}</span>,
 }));
 
+vi.mock('@/components/MagicGlitter', () => ({
+    default: () => <div data-testid="magic-glitter" />,
+}));
+
 const baseIcingDesign: IcingDesignUI = {
     base: 'soft_icing',
     color_type: 'single',
@@ -54,12 +58,43 @@ describe('CustomizingIcingEditorPanel', () => {
         expect(props.onRevert).toHaveBeenCalledTimes(1);
     });
 
-    it('updates combined body icing colors through the extracted editor', () => {
+    it('always shows Top Icing and Body Icing (Side) tools regardless of border/board features', () => {
+        // M1: Top + Side tools are no longer gated on a feature flag.
+        const props = buildProps();
+        props.icingDesign = { ...baseIcingDesign, drip: false, border_top: false, border_base: false, gumpasteBaseBoard: false };
+
+        render(<CustomizingIcingEditorPanel {...props} />);
+
+        expect(screen.getByRole('button', { name: 'Top Icing' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Body Icing' })).toBeInTheDocument();
+    });
+
+    it('updates side icing color only (top icing is now its own group)', () => {
         const props = buildProps();
         props.selectedItem = {
-            id: 'icing-edit-icing',
+            id: 'icing-edit-side',
             itemCategory: 'icing',
-            description: 'Body Icing',
+            description: 'side',
+            cakeType: '2 Tier',
+        } satisfies ClusteredMarker;
+
+        render(<CustomizingIcingEditorPanel {...props} />);
+
+        fireEvent.click(screen.getAllByRole('button', { name: /Select .* color/i })[0]);
+
+        expect(props.onIcingDesignChange).toHaveBeenCalledWith(expect.objectContaining({
+            colors: expect.objectContaining({
+                side: COLORS[0].hex,
+            }),
+        }));
+    });
+
+    it('updates top icing color only (side icing is preserved)', () => {
+        const props = buildProps();
+        props.selectedItem = {
+            id: 'icing-edit-top',
+            itemCategory: 'icing',
+            description: 'top',
             cakeType: '2 Tier',
         } satisfies ClusteredMarker;
 
@@ -70,7 +105,6 @@ describe('CustomizingIcingEditorPanel', () => {
         expect(props.onIcingDesignChange).toHaveBeenCalledWith(expect.objectContaining({
             colors: expect.objectContaining({
                 top: COLORS[0].hex,
-                side: COLORS[0].hex,
             }),
         }));
     });
@@ -101,9 +135,9 @@ describe('CustomizingIcingEditorPanel', () => {
     it('shows a pulsing text status below the body icing color palette while the AI mask is generating', () => {
         const props = buildProps();
         props.selectedItem = {
-            id: 'icing-edit-icing',
+            id: 'icing-edit-side',
             itemCategory: 'icing',
-            description: 'Body Icing',
+            description: 'side',
             cakeType: '2 Tier',
         } satisfies ClusteredMarker;
         props.isGeneratingMask = true;
@@ -113,12 +147,41 @@ describe('CustomizingIcingEditorPanel', () => {
         expect(screen.getByText('ai is editing your icing...')).toBeInTheDocument();
     });
 
+    it('shows the magic glitter animation over the body icing swatches while the AI mask is generating', () => {
+        const props = buildProps();
+        props.selectedItem = {
+            id: 'icing-edit-side',
+            itemCategory: 'icing',
+            description: 'side',
+            cakeType: '2 Tier',
+        } satisfies ClusteredMarker;
+        props.isGeneratingMask = true;
+
+        render(<CustomizingIcingEditorPanel {...props} />);
+
+        expect(screen.getByTestId('magic-glitter')).toBeInTheDocument();
+    });
+
+    it('does not show the magic glitter animation when no icing is generating', () => {
+        const props = buildProps();
+        props.selectedItem = {
+            id: 'icing-edit-side',
+            itemCategory: 'icing',
+            description: 'side',
+            cakeType: '2 Tier',
+        } satisfies ClusteredMarker;
+
+        render(<CustomizingIcingEditorPanel {...props} />);
+
+        expect(screen.queryByTestId('magic-glitter')).not.toBeInTheDocument();
+    });
+
     it('shows a pulsing background edit status below the body icing color palette while background editing is pending', () => {
         const props = buildProps();
         props.selectedItem = {
-            id: 'icing-edit-icing',
+            id: 'icing-edit-side',
             itemCategory: 'icing',
-            description: 'Body Icing',
+            description: 'side',
             cakeType: '2 Tier',
         } satisfies ClusteredMarker;
         props.isStudioBackgroundEditingPending = true;
@@ -126,5 +189,49 @@ describe('CustomizingIcingEditorPanel', () => {
         render(<CustomizingIcingEditorPanel {...props} />);
 
         expect(screen.getByText('ai is editing your background...')).toBeInTheDocument();
+    });
+
+    it('disables body icing swatches while the mask is generating (M2)', () => {
+        const props = buildProps();
+        props.selectedItem = {
+            id: 'icing-edit-side',
+            itemCategory: 'icing',
+            description: 'side',
+            cakeType: '2 Tier',
+        } satisfies ClusteredMarker;
+        props.maskStatus = 'generating';
+
+        render(<CustomizingIcingEditorPanel {...props} />);
+
+        // The first color button should be disabled because maskStatus === 'generating'
+        // makes the swatch row busy.
+        const firstSwatch = screen.getAllByRole('button', { name: /Select .* color/i })[0];
+        expect(firstSwatch).toBeDisabled();
+    });
+
+    it('shows a red error banner when the mask lifecycle is in error state (M3)', () => {
+        const props = buildProps();
+        props.selectedItem = {
+            id: 'icing-edit-side',
+            itemCategory: 'icing',
+            description: 'side',
+            cakeType: '2 Tier',
+        } satisfies ClusteredMarker;
+        props.maskStatus = 'error';
+
+        render(<CustomizingIcingEditorPanel {...props} />);
+
+        expect(screen.getByText(/Recolor unavailable/i)).toBeInTheDocument();
+    });
+
+    it('routes the mask toggle through the provided handler (m9)', () => {
+        const props = buildProps();
+        props.onToggleMask = vi.fn();
+
+        render(<CustomizingIcingEditorPanel {...props} />);
+
+        fireEvent.click(screen.getByRole('button', { name: /Turn (on|off) icing recolor/i }));
+
+        expect(props.onToggleMask).toHaveBeenCalledTimes(1);
     });
 });

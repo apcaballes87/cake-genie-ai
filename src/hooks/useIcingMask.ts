@@ -460,6 +460,44 @@ export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
     []
   );
 
+  /**
+   * Alignment helper: returns the base-image `{ data, mimeType }` that corresponds
+   * to `targetSourceUrl`. This is the single source of truth for "which image do
+   * we generate a mask from?" — it guarantees the answer matches what the warm-path
+   * compositor later draws onto (i.e. `currentStudioEditedImageUrl ?? baseImageUrl`).
+   *
+   * The two source images are the studio-edited image (when a background change
+   * has been applied) and the original upload (otherwise). The mask must always be
+   * generated from the same image the compositor will draw on, otherwise the
+   * recolor will look misaligned (the mask shape won't match the displayed cake).
+   *
+   * Resolution rules:
+   *   - If `targetSourceUrl` is the studio URL: prefer the cached studio base64,
+   *     then fetch the studio URL on miss.
+   *   - Otherwise: prefer the in-memory `baseImage` (the original upload), then
+   *     fetch `targetSourceUrl` on miss.
+   *   - Rejects when neither is available; the caller treats rejection as "no
+   *     usable base image" and falls back to the Gemini color-variant path
+   *     (Requirements 5.1, 5.6).
+   */
+  const resolveBaseImageForSource = useCallback(
+    async (targetSourceUrl: string): Promise<{ data: string; mimeType: string }> => {
+      const { studioEditedImageUrl: currentStudioUrl, baseImage } = paramsRef.current;
+
+      if (currentStudioUrl && currentStudioUrl === targetSourceUrl) {
+        const cached = studioBaseImageRef.current;
+        if (cached) return cached;
+        return await resolveStudioBaseImage(targetSourceUrl);
+      }
+
+      if (baseImage) return baseImage;
+      if (targetSourceUrl) return await resolveBaseImageUrlData(targetSourceUrl);
+
+      throw new Error('No base image available for icing mask generation.');
+    },
+    [resolveStudioBaseImage, resolveBaseImageUrlData]
+  );
+
   // Auto-generate or hydrate a mask from the studio-edited image when it becomes available.
   //
   // When `studioEditedImageUrl` transitions from null to a valid URL and a `cacheId`
@@ -629,26 +667,19 @@ export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
           return;
         }
       } else {
-        // Start a new in-flight generation
-        let effectiveBaseImage = studioBaseImageRef.current ?? baseImage;
-
-        if (currentStudioEditedImageUrl && !studioBaseImageRef.current) {
-          try {
-            effectiveBaseImage = await resolveStudioBaseImage(currentStudioEditedImageUrl);
-          } catch (studioError) {
-            console.warn('Failed to resolve studio-edited image for mask generation; using original upload instead.', studioError);
-            effectiveBaseImage = baseImage;
-          }
+        // Start a new in-flight generation. `resolveBaseImageForSource` is the
+        // single source of truth for "which image do we generate the mask from?"
+        // and guarantees alignment with the warm-path compositing base.
+        let effectiveBaseImage: { data: string; mimeType: string } | null = null;
+        try {
+          effectiveBaseImage = await resolveBaseImageForSource(targetSourceUrl);
+        } catch (resolveError) {
+          console.warn('Failed to resolve base image for icing mask generation.', resolveError);
+          effectiveBaseImage = null;
         }
 
-        if (!effectiveBaseImage && baseImageUrl) {
-          if (!isCurrent()) return;
-          try {
-            effectiveBaseImage = await resolveBaseImageUrlData(baseImageUrl);
-          } catch (urlError) {
-            console.warn('Failed to resolve base image URL for mask generation; using original upload instead.', urlError);
-            effectiveBaseImage = baseImage;
-          }
+        if (!isCurrent()) {
+          return;
         }
 
         if (!effectiveBaseImage) {
@@ -735,7 +766,7 @@ export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
     }
 
     paramsRef.current.onRecolored(recoloredDataUrl, hex);
-  }, [resolveBaseImageElement, resolveStudioBaseImage, resolveBaseImageUrlData, generateMaskInternal]);
+  }, [resolveBaseImageElement, resolveBaseImageForSource, generateMaskInternal]);
 
   // Force-regenerates the mask: clears the in-memory decoded mask, then the next
   // recolorIcing call (or an explicit recolor triggered here) will re-invoke

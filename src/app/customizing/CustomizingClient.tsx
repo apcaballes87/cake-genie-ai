@@ -6,7 +6,7 @@ import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import { useSmartBack } from '@/hooks/useSmartBack';
 import { useNavigation } from '@/contexts/NavigationContext';
 import { v4 as uuidv4 } from 'uuid';
-import { findClosestColor, hexToColorNameProse } from '@/utils/colorUtils';
+import { findClosestColor, getIcingBucketName, hexToColorNameProse } from '@/utils/colorUtils';
 import { generateDesignDetails, generateRichAltText } from '@/utils/designContentUtils';
 import { X, Wand2, Palette, MessageSquare, PartyPopper, Image as ImageIconLucide, Cake, Zap, Clock, CalendarDays, ChevronRight } from 'lucide-react';
 
@@ -58,7 +58,7 @@ import {
 } from './CustomizingPageMetaSections';
 import { CustomizingEditorSheet } from './CustomizingEditorSheet';
 import { CustomizingHeroPanel, HeroActionButtonsRow } from './CustomizingHeroPanel';
-import { CustomizingIcingEditorPanel } from './CustomizingIcingEditorPanel';
+import { CustomizingIcingEditorPanel, areIcingDesignsEqual } from './CustomizingIcingEditorPanel';
 import { CustomizingInstructionsPanel } from './CustomizingInstructionsPanel';
 import { CustomizingMessagesPanel } from './CustomizingMessagesPanel';
 import { CustomizingOptionsPanel } from './CustomizingOptionsPanel';
@@ -898,8 +898,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         studioEditedImageUrl: liveStudioEditedImageUrl,
         icingColorName: (() => {
             const hex = icingDesign?.colors?.top || icingDesign?.colors?.side;
-            if (!hex) return 'white';
-            return COLORS.find(c => c.hex.toLowerCase() === hex.toLowerCase())?.name ?? 'white';
+            return getIcingBucketName(hex || '');
         })(),
         onRecolored: handleIcingMaskRecolored,
         onFallback: handleIcingMaskFallback,
@@ -910,28 +909,38 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const handleRegenerateMask = useCallback(async () => {
         await regenerateMask();
         const currentColor = icingDesign?.colors?.top || icingDesign?.colors?.side || '#FFFFFF';
-        const colorName = COLORS.find(c => c.hex.toLowerCase() === currentColor.toLowerCase())?.name ?? currentColor;
+        const colorName = getIcingBucketName(currentColor) || currentColor;
         void recolorIcing(currentColor, colorName);
     }, [regenerateMask, recolorIcing, icingDesign?.colors?.top, icingDesign?.colors?.side]);
 
     // Toggle wrapper for color swatch clicks:
     // - If the clicked color is the default icing color analyzed from the original image,
-    //   we disable the mask (using the original image) but keep the toggle switch ON.
+    //   we toggle the mask OFF and revert to the original image (the toggle switch goes OFF).
     // - Otherwise, we apply the recolored mask and show the customized image.
     const handleIcingColorToggle = useCallback((hex: string, name: string) => {
         const defaultColorHex = (analysisResult?.icing_design?.colors?.top || analysisResult?.icing_design?.colors?.side || '#FFFFFF').toLowerCase();
         const isDefaultColor = hex.toLowerCase() === defaultColorHex;
 
         if (isDefaultColor) {
-            maskOverlayActiveRef.current = true;
-            setIsMaskOverlayActive(true);
-            setEditedImage(null);
-            setActiveTab('original');
-            scrollToHero();
+            disableMask();
         } else {
             void recolorIcing(hex, name);
         }
-    }, [analysisResult, recolorIcing, setEditedImage, setActiveTab, scrollToHero]);
+    }, [analysisResult, recolorIcing, disableMask]);
+
+    // Editor panel mask toggle: mirror the sidebar "Icing" toggle behavior — if the
+    // mask is currently active, turning it off reverts to the original image; if
+    // the mask is off, turning it on recolors using the current icing color. When
+    // the current color is the analyzed default, `handleIcingColorToggle` itself
+    // routes through `disableMask` to keep the toggle and the displayed image in sync.
+    const handleToggleMask = useCallback(() => {
+        if (isMaskOverlayActive) {
+            disableMask();
+            return;
+        }
+        const currentHex = icingDesign?.colors?.top || icingDesign?.colors?.side || '#FFFFFF';
+        handleIcingColorToggle(currentHex, getIcingBucketName(currentHex));
+    }, [isMaskOverlayActive, disableMask, icingDesign?.colors?.top, icingDesign?.colors?.side, handleIcingColorToggle]);
 
 
     const { isShareModalOpen, shareData, isSavingDesign, handleShare, createShareLink, closeShareModal } = useDesignSharing({
@@ -1489,8 +1498,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const handleAiPromptTemplateColorChange = useCallback(async (colorHex: string) => {
         if (!selectedAiPromptTemplate) return;
 
-        const selectedColorName = COLORS.find(color => color.hex.toLowerCase() === colorHex.toLowerCase())?.name
-            ?? hexToColorNameProse(colorHex);
+        const selectedColorName = getIcingBucketName(colorHex);
         const nextPrompt = fillAiChatPromptTemplate(selectedAiPromptTemplate, selectedColorName);
 
         setSelectedAiPromptColor(colorHex);
@@ -2706,18 +2714,15 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         return cakeInfo.type !== analysisResult.cakeType;
     }, [cakeInfo?.type, analysisResult?.cakeType]);
 
-    // Calculate icing changes at the top level to avoid hook errors
+    // Calculate icing changes at the top level to avoid hook errors.
+    // Compares against the last *committed* icing design (state that matches the
+    // currently displayed image) and falls back to the analysis baseline on first paint.
     const hasIcingChanges = useMemo(() => {
         if (!icingDesign) return false;
         // No prior analysis (e.g. coldcaking before a pitch upload) — any icing is pending if image is loaded
         if (!analysisResult?.icing_design) return !!originalImageData;
-        return (
-            JSON.stringify(icingDesign.colors) !== JSON.stringify(analysisResult.icing_design.colors) ||
-            icingDesign.drip !== analysisResult.icing_design.drip ||
-            icingDesign.border_top !== analysisResult.icing_design.border_top ||
-            icingDesign.border_base !== analysisResult.icing_design.border_base ||
-            icingDesign.gumpasteBaseBoard !== analysisResult.icing_design.gumpasteBaseBoard
-        );
+        const baseline = committedStateRef.current?.icingDesign ?? analysisResult.icing_design;
+        return !areIcingDesignsEqual(icingDesign, baseline);
     }, [icingDesign, analysisResult, originalImageData]);
 
     // Check if cake messages have changed
@@ -2934,27 +2939,25 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         let type: IcingImageType | null = null;
         let isTopSpecific = false;
 
-        // Map tool description to IcingImageType
+        // Map tool description (an IcingGroup key) to IcingImageType
         switch (description) {
-            case 'Drip':
+            case 'drip':
                 type = 'drip';
                 break;
-            case 'Top': // Top Border
+            case 'borderTop':
                 type = 'borderTop';
                 break;
-            case 'Bottom': // Base Border
+            case 'borderBase':
                 type = 'borderBase';
                 break;
-            case 'Board':
+            case 'gumpasteBaseBoard':
                 type = 'gumpasteBaseBoard';
                 break;
-            case 'Top Icing':
+            case 'top':
                 type = 'top';
                 isTopSpecific = true;
                 break;
-            case 'Body Icing':
-            case 'Side Icing':
-                // Both use standard 'icing' prefix
+            case 'side':
                 type = 'side';
                 break;
         }
@@ -3637,6 +3640,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     onDisableMask={disableMask}
                                     isMaskActive={isMaskOverlayActive}
                                     isGeneratingMask={icingMaskStatus === 'generating'}
+                                    isStudioBackgroundEditingPending={isStudioBackgroundEditingPending}
+                                    maskStatus={icingMaskStatus}
                                 />
                             )}
                             
@@ -3743,6 +3748,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                         onRegenerateMask: handleRegenerateMask,
                                         onDisableMask: disableMask,
                                         isMaskActive: isMaskOverlayActive,
+                                        isGeneratingMask: icingMaskStatus === 'generating',
+                                        isStudioBackgroundEditingPending: isStudioBackgroundEditingPending,
+                                        maskStatus: icingMaskStatus,
                                 }}
                             />
                         </div>
@@ -3835,13 +3843,21 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         onIcingColorRecolor={handleIcingColorToggle}
                         isGeneratingMask={icingMaskStatus === 'generating'}
                         isStudioBackgroundEditingPending={isStudioBackgroundEditingPending}
+                        maskStatus={icingMaskStatus}
+                        onToggleMask={handleToggleMask}
+                        isMaskActive={isMaskOverlayActive}
                         onRevert={() => {
-                            if (analysisResult?.icing_design && icingDesign) {
-                                onIcingDesignChange({
-                                    ...analysisResult.icing_design,
+                            const revertTo = committedStateRef.current?.icingDesign ?? analysisResult?.icing_design;
+                            if (revertTo && icingDesign) {
+                                // The committed snapshot is already an IcingDesignUI; the
+                                // analysis baseline is IcingDesign — preserve the user's
+                                // current prices (which come from the price calculator)
+                                // when falling back to the analysis baseline.
+                                const priceFields: Pick<IcingDesignUI, 'dripPrice' | 'gumpasteBaseBoardPrice'> = {
                                     dripPrice: icingDesign.dripPrice,
                                     gumpasteBaseBoardPrice: icingDesign.gumpasteBaseBoardPrice,
-                                });
+                                };
+                                onIcingDesignChange({ ...revertTo, ...priceFields } as IcingDesignUI);
                                 setSelectedItem(null);
                             }
                         }}

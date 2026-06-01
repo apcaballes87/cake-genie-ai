@@ -116,7 +116,7 @@ export function mapAnalysisToState(rawData: HybridAnalysisResult): Customization
             colors: { ...analysisIcing.colors } // Clone colors
         };
     } else {
-        state.icingDesign = { ...DEFAULT_ICING_DESIGN, dripPrice: 100, gumpasteBaseBoardPrice: 100 };
+        state.icingDesign = { ...DEFAULT_ICING_DESIGN };
     }
 
     // 6. Additional Instructions
@@ -158,8 +158,6 @@ export function mapProductToDefaultState(
         cakeMessages: [],
         icingDesign: {
             ...DEFAULT_ICING_DESIGN,
-            dripPrice: 100,
-            gumpasteBaseBoardPrice: 100
         },
         additionalInstructions: '',
         analysisResult: null,
