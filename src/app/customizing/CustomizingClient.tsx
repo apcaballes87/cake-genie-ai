@@ -3414,6 +3414,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             isAnalyzing={isAnalyzing}
                             isUpdatingDesign={isUpdatingDesign}
                             isStudioBackgroundEditingPending={isStudioBackgroundEditingPending}
+                            isGeneratingMask={icingMaskStatus === 'generating'}
                             dynamicLoadingMessage={dynamicLoadingMessage}
                             error={error}
                             originalImagePreview={originalImagePreview}

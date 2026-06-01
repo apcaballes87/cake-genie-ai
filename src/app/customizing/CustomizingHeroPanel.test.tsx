@@ -165,6 +165,17 @@ describe('CustomizingHeroPanel', () => {
         expect(screen.getByLabelText('AI background editing in progress')).toBeInTheDocument();
     });
 
+    it('shows a lower-left loader while the icing mask is being generated', () => {
+        const props = buildProps();
+        props.originalImagePreview = 'https://example.com/original-cake.jpg';
+        props.preferredOriginalImageUrl = 'https://example.com/original-cake.jpg';
+        props.isGeneratingMask = true;
+
+        render(<CustomizingHeroPanel {...props} />);
+
+        expect(screen.getByLabelText('Icing mask generation in progress')).toBeInTheDocument();
+    });
+
     it('opens a fullscreen image modal when the hero image is clicked', () => {
         const props = buildProps();
         props.originalImagePreview = 'https://example.com/original-cake.jpg';

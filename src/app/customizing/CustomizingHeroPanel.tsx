@@ -18,6 +18,7 @@ interface CustomizingHeroPanelProps {
     isAnalyzing: boolean;
     isUpdatingDesign: boolean;
     isStudioBackgroundEditingPending?: boolean;
+    isGeneratingMask?: boolean;
     dynamicLoadingMessage: string;
     error: string | null;
     originalImagePreview: string | null;
@@ -149,6 +150,7 @@ export const CustomizingHeroPanel = memo(({
     isAnalyzing,
     isUpdatingDesign,
     isStudioBackgroundEditingPending = false,
+    isGeneratingMask = false,
     dynamicLoadingMessage,
     error,
     originalImagePreview,
@@ -577,12 +579,12 @@ export const CustomizingHeroPanel = memo(({
 
                         {hasOriginalDisplayImage ? (
                             <>
-                                {isStudioBackgroundEditingPending ? (
+                                {(isStudioBackgroundEditingPending || isGeneratingMask) ? (
                                     <div className="absolute bottom-3 left-3 z-10 pointer-events-none">
                                         <div
                                             className="flex h-10 w-10 items-center justify-center rounded-full bg-white/88 text-purple-600 shadow-md ring-1 ring-slate-200/80 backdrop-blur-sm"
-                                            aria-label="AI background editing in progress"
-                                            title="AI background editing in progress"
+                                            aria-label={isStudioBackgroundEditingPending ? "AI background editing in progress" : "Icing mask generation in progress"}
+                                            title={isStudioBackgroundEditingPending ? "AI background editing in progress" : "Icing mask generation in progress"}
                                         >
                                             <Loader2 className="h-4 w-4 animate-spin" />
                                         </div>
