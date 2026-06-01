@@ -128,14 +128,11 @@ describe('CustomizingHeroPanel', () => {
         props.showSaveDesignButton = true;
         props.canUndo = true;
         props.showFooterActions = true;
-        props.showMotifButton = true;
-
         render(<CustomizingHeroPanel {...props} />);
 
         fireEvent.click(screen.getByRole('button', { name: 'Original' }));
         fireEvent.click(screen.getByRole('button', { name: 'Customized' }));
         fireEvent.load(screen.getByRole('img', { name: 'Hero cake' }));
-        fireEvent.click(screen.getByRole('button', { name: 'Change Motif Color' }));
         fireEvent.click(screen.getByRole('button', { name: 'Save this design' }));
         fireEvent.click(screen.getByRole('button', { name: 'Undo last change' }));
         fireEvent.click(screen.getByRole('button', { name: 'Report an issue' }));
@@ -144,7 +141,6 @@ describe('CustomizingHeroPanel', () => {
 
         expect(props.onOriginalTabSelect).toHaveBeenCalledTimes(1);
         expect(props.onCustomizedTabSelect).toHaveBeenCalledTimes(1);
-        expect(props.onOpenMotifPanel).toHaveBeenCalledTimes(1);
         expect(props.onToggleSaveDesign).toHaveBeenCalledTimes(1);
         expect(props.onUndo).toHaveBeenCalledTimes(1);
         expect(props.onOpenReportModal).toHaveBeenCalledTimes(1);

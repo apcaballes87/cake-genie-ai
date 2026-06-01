@@ -363,25 +363,6 @@ export const CustomizingHeroPanel = memo(({
 
     return (
         <div className="w-full flex flex-col gap-1">
-            {/* Tabs above the image container */}
-            {editedImage ? (
-                <div className="flex w-full gap-2 animate-in fade-in slide-in-from-top-2 duration-500">
-                    <button
-                        onClick={onOriginalTabSelect}
-                        className={`flex-1 py-2 text-xs font-bold rounded-full border transition-all shadow-sm ${activeTab === 'original' ? 'bg-purple-600 text-white border-purple-600 shadow-lg shadow-purple-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
-                    >
-                        Original
-                    </button>
-                    <button
-                        onClick={onCustomizedTabSelect}
-                        disabled={!editedImage}
-                        className={`flex-1 py-2 text-xs font-bold rounded-full border transition-all shadow-sm ${activeTab === 'customized' ? 'bg-purple-600 text-white border-purple-600 shadow-lg shadow-purple-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 disabled:opacity-50'}`}
-                    >
-                        Customized
-                    </button>
-                </div>
-            ) : null}
-
             <div ref={mainImageContainerRef} className="w-full flex flex-col overflow-hidden rounded-3xl scroll-mt-28 md:scroll-mt-32">
                 {isAnalyzing ? (
                     <div className="p-3 w-full text-center animate-fade-in mb-1">
@@ -594,6 +575,34 @@ export const CustomizingHeroPanel = memo(({
                                     </div>
                                 ) : null}
 
+                                {editedImage ? (
+                                    <div className="absolute bottom-4 right-4 z-10 flex items-center gap-1 p-1 bg-white/85 backdrop-blur-md rounded-full shadow-lg border border-slate-100/60 ring-1 ring-black/5 select-none pointer-events-auto transition-all duration-300 hover:bg-white/95">
+                                        <button
+                                            type="button"
+                                            onClick={onOriginalTabSelect}
+                                            className={`px-3.5 py-1 text-[10px] font-extrabold uppercase tracking-wider rounded-full transition-all duration-300 ${
+                                                activeTab === 'original'
+                                                    ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
+                                                    : 'text-slate-600 hover:bg-slate-100/60'
+                                            }`}
+                                        >
+                                            Original
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={onCustomizedTabSelect}
+                                            disabled={!editedImage}
+                                            className={`px-3.5 py-1 text-[10px] font-extrabold uppercase tracking-wider rounded-full transition-all duration-300 ${
+                                                activeTab === 'customized'
+                                                    ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
+                                                    : 'text-slate-600 hover:bg-slate-100/60 disabled:opacity-40'
+                                            }`}
+                                        >
+                                            Customized
+                                        </button>
+                                    </div>
+                                ) : null}
+
                                 {showPriceGuarantee ? (
                                     <div className="absolute top-3 left-3 z-10 transition-all duration-300">
                                         <div className="bg-green-600/90 backdrop-blur-sm text-white rounded-full px-3 py-1 shadow-md text-center whitespace-nowrap">
@@ -605,20 +614,7 @@ export const CustomizingHeroPanel = memo(({
                                     </div>
                                 ) : null}
 
-                                {showMotifButton ? (
-                                    <button
-                                        type="button"
-                                        onClick={(event) => {
-                                            event.stopPropagation();
-                                            onOpenMotifPanel?.();
-                                        }}
-                                        className="absolute bottom-3 left-3 z-10 md:hidden bg-black/40 backdrop-blur-sm text-white rounded-full text-xs font-semibold hover:bg-black/60 transition-all shadow-md px-3 py-1.5 flex items-center gap-1.5"
-                                        aria-label="Change Motif Color"
-                                    >
-                                        <Wand2 className="w-4 h-4" />
-                                        Motif
-                                    </button>
-                                ) : null}
+
 
                                 <div className="absolute top-3 right-3 z-10 flex gap-2">
                                     {showSaveDesignButton ? (
