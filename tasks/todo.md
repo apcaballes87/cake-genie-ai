@@ -1,5 +1,33 @@
 # Tasks
 
+## Add One-Button Offline AI Batch Processing For 1000 Cake Cache Rows
+
+### Plan
+
+- [x] Confirm the provider path against current official Google docs: use Gemini Batch API for asynchronous catalog work at the documented 50% batch rate, with JSONL file input for large image-generation batches.
+- [x] Add durable batch-run and batch-item schema so a 1000-row submission is resumable, auditable, and safe to retry without duplicating completed purple studio edits or ready icing masks.
+- [x] Add a server-side batch submit route that selects up to 1000 eligible `cakegenie_analysis_cache` rows, creates the purple-background requests first, and stores the provider batch job id plus item correlation keys.
+- [x] Add a server-side batch reconcile route that imports completed purple-background outputs, runs the existing Sharp/WebP and Supabase persistence logic, then submits icing-mask requests against the completed studio images.
+- [x] Move the reusable icing-mask persistence conversion into a server-capable helper so imported mask outputs are losslessly encoded as PNG and written to `cakegenie_icing_masks` without relying on browser Canvas.
+- [x] Add admin UI controls on `/admin/image-studio` for one-click submit, progress/status refresh, and retrying failed items while preserving the existing interactive single-item path.
+- [x] Add focused tests for the generated JSONL contract and run targeted tests, lint, and a production build.
+
+### Review
+
+- Added `src/lib/admin/imageStudioBatch.ts` as the offline two-stage orchestrator. It submits up to 1000 eligible cache rows to Vertex Gemini batch inference, imports purple studio results into the existing Supabase paths, submits a second mask batch from completed studio images, then imports lossless PNG masks into `cakegenie_icing_masks`.
+- Per user direction, both offline stages use `gemini-3.1-flash-image-preview` to match the existing real-time image lane. Google Vertex batch docs do not explicitly list this preview model, so the first small live batch submission is the required provider-compatibility check before running 1000 rows.
+- Added `/api/admin/image-studio-batch` with submit, latest-status, and reconcile actions protected by the existing Image Studio admin PIN.
+- Extended the existing `cakegenie_image_studio_batch_jobs` model with stage and completion counters, added RLS-enabled `cakegenie_image_studio_batch_items`, and applied the migration to the linked live Supabase project.
+- Added the low-cost batch panel to `/admin/image-studio` with `Batch process next 1000` and `Refresh batch status` actions while leaving the existing sequential real-time tool intact.
+- Created `gs://cakegenie-ai-batch-project-d823a677/cakegenie-image-studio`, granted the Vertex AI Platform service agent object access, configured `.env.local`, and documented `VERTEX_AI_BATCH_GCS_URI` in `.env.example`.
+- Production rollout blocker: the local Vercel CLI has no credentials, so `VERTEX_AI_BATCH_GCS_URI=gs://cakegenie-ai-batch-project-d823a677/cakegenie-image-studio` still needs to be added to the linked Vercel project before deployment.
+- Verification:
+  - `npx vitest run src/lib/admin/imageStudioBatch.test.ts` passed with 3 tests.
+  - `npx eslint src/lib/admin/imageStudioBatch.ts src/lib/admin/imageStudioBatch.test.ts src/lib/supabase/adminServer.ts src/app/api/admin/image-studio-batch/route.ts src/app/admin/image-studio/ImageStudioAdminClient.tsx` passed.
+  - `npm run build` passed and included `/api/admin/image-studio-batch`.
+  - Live Supabase verification confirmed the extended job columns, the new items table, and RLS enabled on the items table.
+  - A real write/delete smoke test passed against the new GCS prefix.
+
 ## Add Customizer Hero Loader While Studio Background Edit Is Pending
 
 ### Plan

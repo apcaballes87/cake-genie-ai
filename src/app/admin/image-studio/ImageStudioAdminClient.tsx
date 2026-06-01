@@ -41,6 +41,16 @@ type ImageListResponse = {
   totalPages: number;
 };
 
+type OfflineBatchRun = {
+  id: string;
+  stage: 'studio' | 'mask' | 'complete';
+  status: string;
+  total_requests: number;
+  completed_requests: number;
+  failed_requests: number;
+  created_at: string;
+};
+
 const SESSION_KEY = 'genie-admin-image-studio-auth';
 // Wait longer between auto-edit submissions so the background AI/image pipeline
 // has time to breathe and we avoid piling into shared rate limits.
@@ -128,6 +138,8 @@ export default function ImageStudioAdminClient() {
   const [isAutoContinuing, setIsAutoContinuing] = useState(false);
   const [selectedHashes, setSelectedHashes] = useState<Set<string>>(new Set());
   const [isBulkUpdating, setIsBulkUpdating] = useState(false);
+  const [offlineBatch, setOfflineBatch] = useState<OfflineBatchRun | null>(null);
+  const [offlineBatchBusy, setOfflineBatchBusy] = useState(false);
 
   const stopBatchRef = useRef(false);
 
@@ -233,6 +245,60 @@ export default function ImageStudioAdminClient() {
 
   const refreshRecords = () => {
     setRefreshTick((value) => value + 1);
+  };
+
+  const loadOfflineBatch = useCallback(async () => {
+    const response = await fetch('/api/admin/image-studio-batch', {
+      headers: { 'x-admin-pin': ADMIN_IMAGE_STUDIO_PIN },
+    });
+    const payload = (await response.json()) as { run?: OfflineBatchRun | null; error?: string };
+    if (!response.ok) throw new Error(payload.error || 'Failed to load offline batch.');
+    setOfflineBatch(payload.run ?? null);
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    void loadOfflineBatch().catch((error) => toast.error(getErrorMessage(error)));
+  }, [isAuthenticated, loadOfflineBatch]);
+
+  const submitOfflineBatch = async () => {
+    setOfflineBatchBusy(true);
+    try {
+      const response = await fetch('/api/admin/image-studio-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-pin': ADMIN_IMAGE_STUDIO_PIN },
+        body: JSON.stringify({ limit: 1000 }),
+      });
+      const payload = (await response.json()) as { run?: OfflineBatchRun; error?: string };
+      if (!response.ok || !payload.run) throw new Error(payload.error || 'Failed to submit offline batch.');
+      setOfflineBatch(payload.run);
+      toast.success(`Submitted ${payload.run.total_requests} images for offline batch processing.`);
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setOfflineBatchBusy(false);
+    }
+  };
+
+  const reconcileOfflineBatch = async () => {
+    if (!offlineBatch) return;
+    setOfflineBatchBusy(true);
+    try {
+      const response = await fetch('/api/admin/image-studio-batch', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-admin-pin': ADMIN_IMAGE_STUDIO_PIN },
+        body: JSON.stringify({ runId: offlineBatch.id }),
+      });
+      const payload = (await response.json()) as { run?: OfflineBatchRun; error?: string };
+      if (!response.ok || !payload.run) throw new Error(payload.error || 'Failed to refresh offline batch.');
+      setOfflineBatch(payload.run);
+      refreshRecords();
+      toast.success(`Batch status refreshed: ${payload.run.stage} / ${payload.run.status}`);
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setOfflineBatchBusy(false);
+    }
   };
 
   const applyFilters = () => {
@@ -710,6 +776,51 @@ export default function ImageStudioAdminClient() {
                 Includes rows that are not started yet or need a retry.
               </p>
             </div>
+          </div>
+
+          <div className="mt-6 rounded-[26px] border border-fuchsia-100 bg-fuchsia-50/60 p-5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-fuchsia-700">
+                  Low-cost offline batch
+                </p>
+                <h2 className="mt-2 text-lg font-semibold text-slate-900">
+                  Purple studio image + reusable icing mask
+                </h2>
+                <p className="mt-1 text-sm leading-6 text-slate-600">
+                  Submit up to 1,000 waiting cache rows to Gemini Batch API. Refresh after the
+                  studio stage completes to import results and automatically submit the mask stage.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={submitOfflineBatch}
+                  disabled={offlineBatchBusy}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-fuchsia-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-fuchsia-600 disabled:cursor-not-allowed disabled:bg-fuchsia-300"
+                >
+                  {offlineBatchBusy ? <LoaderCircle className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+                  Batch process next 1000
+                </button>
+                <button
+                  type="button"
+                  onClick={reconcileOfflineBatch}
+                  disabled={!offlineBatch || offlineBatchBusy}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-fuchsia-200 bg-white px-4 py-3 text-sm font-semibold text-fuchsia-800 transition hover:bg-fuchsia-50 disabled:cursor-not-allowed disabled:text-slate-300"
+                >
+                  <RefreshCw className={`size-4 ${offlineBatchBusy ? 'animate-spin' : ''}`} />
+                  Refresh batch status
+                </button>
+              </div>
+            </div>
+            {offlineBatch ? (
+              <p className="mt-4 text-sm text-fuchsia-900">
+                Latest run: <strong>{offlineBatch.stage}</strong> / <strong>{offlineBatch.status}</strong>
+                {' · '}{offlineBatch.completed_requests} completed
+                {' · '}{offlineBatch.failed_requests} failed
+                {' · '}{offlineBatch.total_requests} submitted
+              </p>
+            ) : null}
           </div>
 
           <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4">
