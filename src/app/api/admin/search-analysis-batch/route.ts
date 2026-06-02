@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import {
   getLatestSearchAnalysisBatch,
+  getSearchAnalysisBatchHistory,
   queueSearchAnalysisItem,
   reconcileSearchAnalysisBatch,
   submitNextSearchAnalysisBatch,
@@ -15,7 +16,13 @@ const authorized = (req: NextRequest) => req.headers.get('x-admin-pin') === '231
 
 export async function GET(req: NextRequest) {
   if (!authorized(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  try { return NextResponse.json({ run: await getLatestSearchAnalysisBatch() }); }
+  try {
+    const [run, history] = await Promise.all([
+      getLatestSearchAnalysisBatch(),
+      getSearchAnalysisBatchHistory(),
+    ]);
+    return NextResponse.json({ run, history });
+  }
   catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to load batch.' }, { status: 500 }); }
 }
 

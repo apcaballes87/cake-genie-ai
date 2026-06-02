@@ -23,6 +23,7 @@ type SearchAnalysisBatchRun = {
     completed_count: number;
     failed_count: number;
     retryable_count: number;
+    created_at: string;
 };
 
 // Global window type extension for Google CSE
@@ -102,6 +103,7 @@ export default function SearchAnalysisAdminPage() {
     const [logs, setLogs] = useState<string[]>([]);
     const [studioQueueReadyItems, setStudioQueueReadyItems] = useState<Array<{ slug: string; seoTitle: string }>>([]);
     const [latestBatchRun, setLatestBatchRun] = useState<SearchAnalysisBatchRun | null>(null);
+    const [batchHistory, setBatchHistory] = useState<SearchAnalysisBatchRun[]>([]);
     const [isBatchActionPending, setIsBatchActionPending] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const currentPageRef = useRef(1);
@@ -115,6 +117,7 @@ export default function SearchAnalysisAdminPage() {
     const imageQueueRef = useRef<string[]>([]);
     const processedUrlsRef = useRef<Set<string>>(new Set());
     const seenPHashesRef = useRef<Set<string>>(new Set());
+    const batchRefreshInFlightRef = useRef(false);
 
     const addLog = useCallback((msg: string) => {
         setLogs((prev) => [...prev, `${new Date().toLocaleTimeString()} - ${msg}`]);
@@ -643,13 +646,16 @@ export default function SearchAnalysisAdminPage() {
         }
     };
 
-    const refreshBatchStatus = async () => {
+    const refreshBatchStatus = useCallback(async (silent = false) => {
+        if (batchRefreshInFlightRef.current) return;
+        batchRefreshInFlightRef.current = true;
         setIsBatchActionPending(true);
         try {
             let response = await fetch('/api/admin/search-analysis-batch', { headers: { 'x-admin-pin': ADMIN_PIN } });
             let payload = await response.json();
             if (!response.ok) throw new Error(payload.error || 'Failed to load batch status.');
-            if (payload.run?.status === 'submitted') {
+            setBatchHistory(payload.history ?? []);
+            if (payload.run?.status === 'submitted' || payload.run?.status === 'importing') {
                 response = await fetch('/api/admin/search-analysis-batch', {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json', 'x-admin-pin': ADMIN_PIN },
@@ -660,11 +666,19 @@ export default function SearchAnalysisAdminPage() {
             }
             setLatestBatchRun(payload.run ?? null);
         } catch (error) {
-            toast.error(error instanceof Error ? error.message : 'Failed to refresh batch.');
+            if (!silent) toast.error(error instanceof Error ? error.message : 'Failed to refresh batch.');
         } finally {
+            batchRefreshInFlightRef.current = false;
             setIsBatchActionPending(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        if (!isAuthenticated) return;
+        const delayMs = latestBatchRun?.status === 'importing' ? 1500 : 30000;
+        const timer = window.setInterval(() => void refreshBatchStatus(true), delayMs);
+        return () => window.clearInterval(timer);
+    }, [isAuthenticated, latestBatchRun?.status, latestBatchRun?.completed_count, refreshBatchStatus]);
 
     const submitOfflineBatch = async () => {
         setIsBatchActionPending(true);
@@ -927,7 +941,7 @@ export default function SearchAnalysisAdminPage() {
                                     Batch analyze next 1000
                                 </button>
                                 <button
-                                    onClick={refreshBatchStatus}
+                                    onClick={() => void refreshBatchStatus()}
                                     disabled={isBatchActionPending}
                                     className="w-full px-4 py-3 bg-gray-700 text-white rounded-lg font-medium hover:bg-gray-800 disabled:opacity-50"
                                 >
@@ -940,7 +954,27 @@ export default function SearchAnalysisAdminPage() {
                                 <p>Completed: {latestBatchRun?.completed_count ?? 0}</p>
                                 <p>Failed: {latestBatchRun?.failed_count ?? 0}</p>
                                 <p>Retryable: {latestBatchRun?.retryable_count ?? 0}</p>
+                                {latestBatchRun?.status === 'importing' && (
+                                    <p className="text-emerald-700">Import continues automatically while this page is open.</p>
+                                )}
                             </div>
+                            {batchHistory.length > 0 && (
+                                <div className="mt-4 overflow-x-auto text-xs text-gray-600">
+                                    <table className="min-w-full">
+                                        <thead><tr><th className="pr-3 text-left">Submitted</th><th className="pr-3 text-left">Status</th><th className="pr-3 text-right">Done</th><th className="text-right">Failed</th></tr></thead>
+                                        <tbody>
+                                            {batchHistory.map((run) => (
+                                                <tr key={run.id}>
+                                                    <td className="pr-3">{new Date(run.created_at).toLocaleString()}</td>
+                                                    <td className="pr-3">{run.status}</td>
+                                                    <td className="pr-3 text-right">{run.completed_count}</td>
+                                                    <td className="text-right">{run.failed_count}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
                         </div>
 
                         {/* Progress */}
