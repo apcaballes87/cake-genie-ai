@@ -1,4 +1,5 @@
 import { Storage } from '@google-cloud/storage';
+import readline from 'node:readline';
 import sharp from 'sharp';
 
 import { getAI } from '@/lib/ai/client';
@@ -25,6 +26,8 @@ type BatchItem = {
   slug: string | null;
   original_image_url: string;
   studio_edited_image_url: string | null;
+  studio_status?: string;
+  mask_status?: string;
 };
 
 type JsonlResponse = {
@@ -130,7 +133,7 @@ export async function submitNextImageStudioBatch(limit = 1000, requestContext?: 
   return run;
 }
 
-async function importStage(run: BatchRun, items: BatchItem[], stage: Stage) {
+async function importStage(run: BatchRun, items: BatchItem[], stage: Stage, maxImports = 10) {
   const admin = createAdminServerSupabaseClient();
   const storage = new Storage();
   const gcs = parseGcsPrefix();
@@ -138,15 +141,27 @@ async function importStage(run: BatchRun, items: BatchItem[], stage: Stage) {
   const [files] = await storage.bucket(gcs.bucket).getFiles({ prefix: outputPrefix });
   const outputFile = files.find((file) => file.name.endsWith('.jsonl'));
   if (!outputFile) throw new Error(`No JSONL output found under ${run.output_file_uri}.`);
-  const [contents] = await outputFile.download();
-  const lines = contents.toString('utf8').trim().split('\n').map((line) => JSON.parse(line) as JsonlResponse);
+  const lines = readline.createInterface({ input: outputFile.createReadStream() });
   let completed = 0;
   let failed = 0;
-  for (const [index, item] of items.entries()) {
-    const image = extractImage(lines[index] ?? {});
+  let imported = 0;
+  let index = 0;
+  for await (const rawLine of lines) {
+    const item = items[index];
+    index += 1;
+    if (!item) break;
+    const currentStatus = stage === 'studio' ? item.studio_status : item.mask_status;
+    if (currentStatus === 'completed') {
+      completed += 1;
+      continue;
+    }
+    if (imported >= maxImports) break;
+    const line = JSON.parse(rawLine) as JsonlResponse;
+    const image = extractImage(line);
     if (!image) {
       failed += 1;
-      await admin.from('cakegenie_image_studio_batch_items').update({ [`${stage}_status`]: 'failed', error: lines[index]?.error?.message ?? 'No image returned.' }).eq('id', item.id);
+      imported += 1;
+      await admin.from('cakegenie_image_studio_batch_items').update({ [`${stage}_status`]: 'failed', error: line.error?.message ?? 'No image returned.' }).eq('id', item.id);
       continue;
     }
     if (stage === 'studio') {
@@ -170,8 +185,28 @@ async function importStage(run: BatchRun, items: BatchItem[], stage: Stage) {
       await admin.from('cakegenie_image_studio_batch_items').update({ mask_status: 'completed' }).eq('id', item.id);
     }
     completed += 1;
+    imported += 1;
   }
-  return { completed, failed };
+  const statusColumn = stage === 'studio' ? 'studio_status' : 'mask_status';
+  const { count: remaining, error: countError } = await admin
+    .from('cakegenie_image_studio_batch_items')
+    .select('id', { count: 'exact', head: true })
+    .eq('batch_job_id', run.id)
+    .in(statusColumn, ['pending', 'submitted']);
+  if (countError) throw countError;
+  const { count: completedCount, error: completedCountError } = await admin
+    .from('cakegenie_image_studio_batch_items')
+    .select('id', { count: 'exact', head: true })
+    .eq('batch_job_id', run.id)
+    .eq(statusColumn, 'completed');
+  if (completedCountError) throw completedCountError;
+  const { count: failedCount, error: failedCountError } = await admin
+    .from('cakegenie_image_studio_batch_items')
+    .select('id', { count: 'exact', head: true })
+    .eq('batch_job_id', run.id)
+    .eq(statusColumn, 'failed');
+  if (failedCountError) throw failedCountError;
+  return { completed: completedCount ?? completed, failed: failedCount ?? failed, imported, remaining: remaining ?? 0 };
 }
 
 export async function reconcileImageStudioBatch(runId: string, requestContext?: AIRequestContext) {
@@ -179,12 +214,26 @@ export async function reconcileImageStudioBatch(runId: string, requestContext?: 
   const { data: run, error } = await admin.from('cakegenie_image_studio_batch_jobs').select('*').eq('id', runId).single();
   if (error) throw error;
   const aiClient = getAI(requestContext);
-  const providerJob = await aiClient.batches.get({ name: run.gemini_job_name });
-  await admin.from('cakegenie_image_studio_batch_jobs').update({ status: providerJob.state ?? 'unknown', updated_at: new Date().toISOString() }).eq('id', runId);
-  if (providerJob.state !== 'JOB_STATE_SUCCEEDED') return { run: { ...run, status: providerJob.state }, providerJob };
-  const { data: items, error: itemsError } = await admin.from('cakegenie_image_studio_batch_items').select('*').eq('batch_job_id', runId).order('created_at');
+  let providerJob: Awaited<ReturnType<typeof aiClient.batches.get>> | null = null;
+  if (run.status !== 'JOB_STATE_SUCCEEDED' && run.status !== 'importing') {
+    providerJob = await aiClient.batches.get({ name: run.gemini_job_name });
+    await admin.from('cakegenie_image_studio_batch_jobs').update({ status: providerJob.state ?? 'unknown', updated_at: new Date().toISOString() }).eq('id', runId);
+    if (providerJob.state !== 'JOB_STATE_SUCCEEDED') return { run: { ...run, status: providerJob.state }, providerJob };
+  }
+  let itemsQuery = admin.from('cakegenie_image_studio_batch_items').select('*').eq('batch_job_id', runId);
+  if (run.stage === 'mask') itemsQuery = itemsQuery.eq('studio_status', 'completed');
+  const { data: items, error: itemsError } = await itemsQuery.order('created_at');
   if (itemsError) throw itemsError;
   const result = await importStage(run, items as BatchItem[], run.stage);
+  if (result.remaining > 0) {
+    await admin.from('cakegenie_image_studio_batch_jobs').update({
+      status: 'importing',
+      completed_requests: result.completed,
+      failed_requests: result.failed,
+      updated_at: new Date().toISOString(),
+    }).eq('id', runId);
+    return { run: { ...run, status: 'importing', completed_requests: result.completed, failed_requests: result.failed }, result };
+  }
   if (run.stage === 'mask') {
     const status = result.failed ? 'completed_with_errors' : 'completed';
     await admin.from('cakegenie_image_studio_batch_jobs').update({ status, stage: 'complete', completed_requests: result.completed, failed_requests: result.failed, updated_at: new Date().toISOString() }).eq('id', runId);
