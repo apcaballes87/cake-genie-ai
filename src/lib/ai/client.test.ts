@@ -96,6 +96,33 @@ describe('getAI', () => {
         );
     });
 
+    it('provides WIF credentials for Google Cloud Storage with the runtime OIDC header', async () => {
+        const credentials = {
+            type: 'external_account',
+            credential_source: {
+                file: '/tmp/vercel-oidc-token.txt',
+            },
+        };
+        const requestContext = {
+            headers: {
+                get(name: string) {
+                    return name === 'x-vercel-oidc-token' ? 'runtime-storage-token' : null;
+                },
+            },
+        };
+
+        vi.stubEnv('GOOGLE_CREDENTIALS_JSON', JSON.stringify(credentials));
+        vi.stubEnv('VERTEX_AI_PROJECT', 'genieph-prod');
+
+        const { getGoogleCloudAuthOptions } = await import('./client');
+
+        expect(getGoogleCloudAuthOptions(requestContext)).toEqual({
+            projectId: 'genieph-prod',
+            credentials,
+        });
+        expect(writeFileSync).toHaveBeenCalledWith('/tmp/vercel-oidc-token.txt', 'runtime-storage-token');
+    });
+
     it('defaults preview traffic to the global Vertex location', async () => {
         GoogleGenAI.mockImplementation(function GoogleGenAIMock() {
             return { models: {} } as never;

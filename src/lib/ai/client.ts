@@ -173,6 +173,25 @@ export const getAI = (requestContext?: AIRequestContext) => {
     return ai;
 }
 
+export function getGoogleCloudAuthOptions(requestContext?: AIRequestContext) {
+    const state = getAIClientConfigState(requestContext);
+    writeVercelOidcToken(state.runtimeOidcToken, state.oidcTokenPath);
+
+    const credentials = state.parsedCredentials ?? (
+        state.hasLegacyServiceAccount
+            ? {
+                client_email: process.env.GOOGLE_CLIENT_EMAIL,
+                private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+            }
+            : undefined
+    );
+
+    return {
+        projectId: state.project,
+        ...(credentials ? { credentials } : {}),
+    };
+}
+
 export function getAIClientMode() {
     return aiClientMode;
 }

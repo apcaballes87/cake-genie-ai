@@ -2,7 +2,7 @@ import { Storage } from '@google-cloud/storage';
 import readline from 'node:readline';
 import sharp from 'sharp';
 
-import { getAI } from '@/lib/ai/client';
+import { getAI, getGoogleCloudAuthOptions } from '@/lib/ai/client';
 import { buildImageStudioPrompt, buildImageStudioSystemInstruction, getImageStudioStoragePath } from '@/lib/admin/imageStudio';
 import { buildIcingConversionPrompt } from '@/lib/icingConversionPrompt';
 import { ICING_LAYER_SYSTEM_INSTRUCTION, CURRENT_MASK_VERSION } from '@/services/icingMaskService';
@@ -72,6 +72,10 @@ function objectName(prefix: string, path: string) {
   return [prefix, path].filter(Boolean).join('/');
 }
 
+function createBatchStorage(requestContext?: AIRequestContext) {
+  return new Storage(getGoogleCloudAuthOptions(requestContext));
+}
+
 export function inferBatchImageMimeType(url: string) {
   const extension = url.split('?')[0]?.split('.').pop()?.toLowerCase();
   if (extension === 'png') return 'image/png';
@@ -122,7 +126,7 @@ export async function submitNextImageStudioBatch(limit = 1000, requestContext?: 
 
   const adminClient = getAI(requestContext);
   const gcs = parseGcsPrefix();
-  const storage = new Storage();
+  const storage = createBatchStorage(requestContext);
   const runId = crypto.randomUUID();
   const inputUri = `gs://${gcs.bucket}/${objectName(gcs.prefix, `${runId}/studio-input.jsonl`)}`;
   const outputUri = `gs://${gcs.bucket}/${objectName(gcs.prefix, `${runId}/studio-output`)}`;
@@ -150,9 +154,9 @@ export async function submitNextImageStudioBatch(limit = 1000, requestContext?: 
   return run;
 }
 
-async function importStage(run: BatchRun, items: BatchItem[], stage: Stage, maxImports = 10) {
+async function importStage(run: BatchRun, items: BatchItem[], stage: Stage, maxImports = 10, requestContext?: AIRequestContext) {
   const admin = createAdminServerSupabaseClient();
-  const storage = new Storage();
+  const storage = createBatchStorage(requestContext);
   const { bucket, path: outputPrefix } = parseGcsUri(run.output_file_uri);
   const [files] = await storage.bucket(bucket).getFiles({ prefix: outputPrefix });
   const outputFile = files.find((file) => file.name.endsWith('.jsonl'));
@@ -240,7 +244,7 @@ export async function reconcileImageStudioBatch(runId: string, requestContext?: 
   if (run.stage === 'mask') itemsQuery = itemsQuery.eq('studio_status', 'completed');
   const { data: items, error: itemsError } = await itemsQuery.order('created_at');
   if (itemsError) throw itemsError;
-  const result = await importStage(run, items as BatchItem[], run.stage);
+  const result = await importStage(run, items as BatchItem[], run.stage, 10, requestContext);
   if (result.remaining > 0) {
     await admin.from('cakegenie_image_studio_batch_jobs').update({
       status: 'importing',
@@ -257,7 +261,7 @@ export async function reconcileImageStudioBatch(runId: string, requestContext?: 
     return { run: { ...run, status, stage: 'complete' }, result };
   }
   const gcs = getRunGcsPrefix(run);
-  const storage = new Storage();
+  const storage = createBatchStorage(requestContext);
   const inputUri = `gs://${gcs.bucket}/${objectName(gcs.prefix, `${runId}/mask-input.jsonl`)}`;
   const outputUri = `gs://${gcs.bucket}/${objectName(gcs.prefix, `${runId}/mask-output`)}`;
   const refreshed = await admin.from('cakegenie_image_studio_batch_items').select('*').eq('batch_job_id', runId).eq('studio_status', 'completed').order('created_at');

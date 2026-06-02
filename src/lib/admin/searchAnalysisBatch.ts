@@ -1,6 +1,6 @@
 import { Storage } from '@google-cloud/storage';
 
-import { getAI } from '@/lib/ai/client';
+import { getAI, getGoogleCloudAuthOptions } from '@/lib/ai/client';
 import { getDynamicTypeEnums } from '@/lib/ai/utils';
 import { buildSearchAnalysisGenerationConfig, postProcessSearchAnalysisResult } from '@/lib/admin/searchAnalysisContract';
 import { createAdminServerSupabaseClient } from '@/lib/supabase/adminServer';
@@ -11,6 +11,11 @@ const MODEL = 'gemini-3.1-flash-image-preview';
 const STORAGE_BUCKET = 'cakegenie';
 const MAX_BATCH_SIZE = 1000;
 const PROBE_SIZE = 3;
+type AIRequestContext = {
+  headers?: {
+    get(name: string): string | null | undefined;
+  };
+} | null | undefined;
 
 export type QueueItem = {
   id: string;
@@ -39,6 +44,10 @@ function parseGcsPrefix() {
 
 function objectName(prefix: string, path: string) {
   return [prefix, 'search-analysis', path].filter(Boolean).join('/');
+}
+
+function createBatchStorage(requestContext?: AIRequestContext) {
+  return new Storage(getGoogleCloudAuthOptions(requestContext));
 }
 
 export function selectEligibleSearchAnalysisItems(items: QueueItem[], limit = MAX_BATCH_SIZE) {
@@ -128,7 +137,7 @@ export async function queueSearchAnalysisItem(input: {
   return data;
 }
 
-export async function submitNextSearchAnalysisBatch(requestedLimit = MAX_BATCH_SIZE) {
+export async function submitNextSearchAnalysisBatch(requestedLimit = MAX_BATCH_SIZE, requestContext?: AIRequestContext) {
   const admin = createAdminServerSupabaseClient();
   const { data: active } = await admin.from('cakegenie_search_analysis_batch_runs').select('id').eq('status', 'submitted').limit(1).maybeSingle();
   if (active) throw new Error('A search-analysis batch is already submitted. Refresh its status first.');
@@ -148,11 +157,11 @@ export async function submitNextSearchAnalysisBatch(requestedLimit = MAX_BATCH_S
   const outputPath = objectName(gcs.prefix, `${runId}/output`);
   const inputUri = `gs://${gcs.bucket}/${inputPath}`;
   const outputUri = `gs://${gcs.bucket}/${outputPath}`;
-  await new Storage().bucket(gcs.bucket).file(inputPath).save(
+  await createBatchStorage(requestContext).bucket(gcs.bucket).file(inputPath).save(
     items.map((item) => buildSearchAnalysisBatchInputLine(item, activePrompt, generationConfig)).join('\n'),
     { contentType: 'application/jsonl' },
   );
-  const providerJob = await getAI().batches.create({
+  const providerJob = await getAI(requestContext).batches.create({
     model: MODEL,
     src: { gcsUri: [inputUri], format: 'jsonl' },
     config: { displayName: `cakegenie-search-analysis-${runId}`, dest: { gcsUri: outputUri, format: 'jsonl' } },
@@ -175,17 +184,17 @@ function extractText(line: JsonlResponse | null) {
   return line?.response?.candidates?.[0]?.content?.parts?.map((part) => part.text ?? '').join('').trim() || null;
 }
 
-export async function reconcileSearchAnalysisBatch(runId: string) {
+export async function reconcileSearchAnalysisBatch(runId: string, requestContext?: AIRequestContext) {
   const admin = createAdminServerSupabaseClient();
   const { data: run, error } = await admin.from('cakegenie_search_analysis_batch_runs').select('*').eq('id', runId).single();
   if (error) throw error;
   if (run.status !== 'submitted') return { run };
-  const providerJob = await getAI().batches.get({ name: run.gemini_job_name });
+  const providerJob = await getAI(requestContext).batches.get({ name: run.gemini_job_name });
   if (providerJob.state !== 'JOB_STATE_SUCCEEDED') return { run: { ...run, provider_state: providerJob.state } };
 
   const gcs = parseGcsPrefix();
   const outputPrefix = run.output_file_uri.replace(`gs://${gcs.bucket}/`, '');
-  const [files] = await new Storage().bucket(gcs.bucket).getFiles({ prefix: outputPrefix });
+  const [files] = await createBatchStorage(requestContext).bucket(gcs.bucket).getFiles({ prefix: outputPrefix });
   const outputFile = files.find((file) => file.name.endsWith('.jsonl'));
   if (!outputFile) throw new Error(`No JSONL output found under ${run.output_file_uri}.`);
   const [contents] = await outputFile.download();
