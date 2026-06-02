@@ -6,8 +6,9 @@ import { buildSearchAnalysisGenerationConfig, postProcessSearchAnalysisResult } 
 
 export const maxDuration = 300; // Allow up to 300 seconds (Vercel Pro) for AI processing
 
-// Abort ~5s before Vercel kills the function so we can return a clean 504.
-const AI_REQUEST_TIMEOUT_MS = Math.max(1000, (maxDuration - 5) * 1000);
+// Fail fast on slow AI calls so we can return a clean 504 well before Vercel kills the function.
+// The analyze prompt is heavy; most successful calls complete in <90s.
+const AI_REQUEST_TIMEOUT_MS = 120_000;
 
 // Helper to get active prompt from Supabase (server-side)
 // Note: We're not using the complex caching logic from the client service here 

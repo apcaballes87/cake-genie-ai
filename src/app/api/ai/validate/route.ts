@@ -6,11 +6,9 @@ import { normalizeAiRouteError } from '@/lib/ai/routeError';
 
 export const maxDuration = 300; // Allow up to 300 seconds (Vercel Pro) for AI processing
 
-// Abort ~5s before Vercel kills the function so we can return a clean 504.
-const AI_REQUEST_TIMEOUT_MS = (() => {
-    const cap = typeof maxDuration === 'number' ? maxDuration : 60;
-    return Math.max(1000, (cap - 5) * 1000);
-})();
+// Fail fast on slow AI calls so we can return a clean 504 well before Vercel kills the function.
+// The validation prompt is light; most successful calls complete in <60s.
+const AI_REQUEST_TIMEOUT_MS = 90_000;
 
 async function classifyImageWithModel(
     req: NextRequest,

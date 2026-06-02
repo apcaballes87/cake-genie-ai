@@ -102,4 +102,25 @@ describe('/api/ai/validate', () => {
             expect.objectContaining({ model: 'gemini-3-flash-preview' })
         );
     });
+
+    it('returns 504 when the AI request is aborted by the timeout signal', async () => {
+        const abortError = new Error('This operation was aborted');
+        abortError.name = 'AbortError';
+        generateContent.mockRejectedValueOnce(abortError);
+
+        const response = await POST(
+            new Request('http://localhost/api/ai/validate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    imageData: 'abc123',
+                    mimeType: 'image/png',
+                }),
+            }) as never
+        );
+
+        expect(response.status).toBe(504);
+        const body = await response.json();
+        expect(body.error).toMatch(/timed out/i);
+    });
 });

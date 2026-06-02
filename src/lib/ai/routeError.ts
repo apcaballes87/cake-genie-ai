@@ -51,6 +51,13 @@ function isAuthorizationErrorMessage(message: string): boolean {
     return /PERMISSION_DENIED|UNAUTHENTICATED|denied access|forbidden|unauthorized|invalid api key|api key not valid|"code"\s*:\s*(401|403)/i.test(message);
 }
 
+function isAbortError(error: unknown): boolean {
+    if (!error || typeof error !== 'object') return false;
+    if (error instanceof Error && error.name === 'AbortError') return true;
+    const code = (error as { code?: unknown }).code;
+    return code === 'ABORT_ERR' || code === 'ERR_ABORTED';
+}
+
 export function normalizeAiRouteError(
     error: unknown,
     { defaultMessage, quotaMessage, authorizationMessage }: NormalizeAiRouteErrorOptions,
@@ -64,12 +71,19 @@ export function normalizeAiRouteError(
 
     logAiRouteDiagnostics({
         rawStatus: status,
-        normalizedHint: quotaLike ? 'quota' : authLike ? 'auth' : 'other',
+        normalizedHint: quotaLike ? 'quota' : authLike ? 'auth' : isAbortError(error) ? 'timeout' : 'other',
         providerCode: providerError?.code,
         providerStatus: providerError?.status,
         providerMessage: providerError?.message,
         rawMessage: safeMessage,
     });
+
+    if (isAbortError(error)) {
+        return {
+            status: 504,
+            message: 'AI request timed out before the model finished responding. Please retry with a smaller or different image.',
+        };
+    }
 
     if (quotaLike) {
         return {
