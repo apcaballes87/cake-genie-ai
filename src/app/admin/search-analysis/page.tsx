@@ -204,7 +204,7 @@ export default function SearchAnalysisAdminPage() {
         isStoppedRef.current = false;
 
         // Sync our tracking with the ACTUAL current page in Google CSE DOM right before starting
-        const activePageDoms = document.querySelectorAll('.gsc-cursor-currentpage');
+        const activePageDoms = document.querySelectorAll('.gsc-cursor-current-page');
         if (activePageDoms && activePageDoms.length > 0) {
             let maxPageInfo = 1;
             activePageDoms.forEach(dom => {
@@ -615,7 +615,7 @@ export default function SearchAnalysisAdminPage() {
                 let poller = 0;
                 while (poller < 20) { // Max 10 seconds (500ms * 20)
                     await delay(500);
-                    const activeP = document.querySelector('.gsc-cursor-currentpage');
+                    const activeP = document.querySelector('.gsc-cursor-current-page');
                     if (activeP && activeP.textContent?.trim() === nextP.toString()) {
                         break;
                     }
