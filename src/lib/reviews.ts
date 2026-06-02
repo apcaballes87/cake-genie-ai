@@ -34,6 +34,12 @@ export const REVIEW_SELECT_WITH_ORDER_NUMBER = `
 `;
 
 type MaybeArray<T> = T | T[] | null | undefined;
+type RatingOnlyReview = { rating: number };
+
+export type ReviewSummary = {
+  total: number;
+  averageRating: number;
+};
 
 type ReviewNameSource = Pick<CakeGenieReview, 'reviewer_name' | 'user'>;
 
@@ -63,6 +69,19 @@ export function normalizePublicReviewRecord(review: RawReviewRecord): CakeGenieR
 
 export function normalizePublicReviews(reviews: RawReviewRecord[] | null | undefined): CakeGenieReview[] {
   return (reviews || []).map(normalizePublicReviewRecord);
+}
+
+export function buildReviewSummary(ratingRows: RatingOnlyReview[] | null | undefined): ReviewSummary {
+  const total = ratingRows?.length || 0;
+  const averageRating = total > 0
+    ? ratingRows!.reduce((sum, review) => sum + review.rating, 0) / total
+    : 0;
+
+  return { total, averageRating };
+}
+
+export function hasReviewSummary(reviewSummary: ReviewSummary | null | undefined): reviewSummary is ReviewSummary {
+  return Boolean(reviewSummary && reviewSummary.total > 0 && reviewSummary.averageRating > 0);
 }
 
 function cleanNamePart(value: string | null | undefined): string {

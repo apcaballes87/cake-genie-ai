@@ -16,6 +16,7 @@ import { mapAnalysisToState, mapProductToDefaultState } from '@/utils/customizat
 import { upgradeLegacySlug, downgradeCakeSlug } from '@/lib/utils/urlHelpers'
 import { generateDesignDetails, generateDynamicFAQ, generateRichAltText } from '@/utils/designContentUtils'
 import { parseManifest, buildSrcSet, pickFallbackSrc } from '@/lib/imageVariants/manifest'
+import { buildReviewSummary } from '@/lib/reviews'
 import {
     buildCustomCakeAdditionalProperties,
     buildMerchantReturnPolicy,
@@ -1128,24 +1129,38 @@ export default async function RecentSearchPage({ params }: Props) {
     // offer price and SSR price display. Everything else (related designs,
     // linked merchant products, reviews, theme collection) is either:
     //   • fetched client-side by hooks (usePricing, dynamic reviews)
-    //   • has a hardcoded fallback (reviewSummary)
+    //   • used for non-critical discovery UI / schema support (reviewSummary)
     //   • only used for non-critical discovery UI
     // Removing them from the critical path cuts ~400-600ms from TTFB (was
     // bound by the slowest of 5 parallel queries — typically the 2-query
     // linkedProducts or the full-table reviews scan).
     let prices: BasePriceInfo[] = [];
-    let relatedDesigns: any[] = [];
-    let linkedMerchantProducts: LinkedMerchantProduct[] = [];
-    let themeCollection: { slug: string; name: string; item_count: number } | null = null;
+    const relatedDesigns: any[] = [];
+    const linkedMerchantProducts: LinkedMerchantProduct[] = [];
+    const themeCollection: { slug: string; name: string; item_count: number } | null = null;
     try {
         prices = await getCakeBasePriceOptions(seoCakeType, CAKE_TYPE_THICKNESS_MAP[seoCakeType] || '4 in');
     } catch (e) {
         console.error('Error fetching SEO prices:', e);
     }
 
-    // Use the hardcoded fallback for reviews (client refetches dynamically via useEffect)
-    let reviewSummary = { total: 6, averageRating: 4.8 };
-    let isSiteReviewSummaryFallback = true;
+    const reviewSummary = await (async () => {
+        try {
+            const supabase = await createClient();
+            const { data: siteReviewRatingRows, error: siteReviewSummaryError } = await supabase
+                .from('cakegenie_reviews')
+                .select('rating')
+                .eq('is_visible', true)
+                .eq('is_approved', true);
+
+            if (siteReviewSummaryError) throw siteReviewSummaryError;
+            return buildReviewSummary(siteReviewRatingRows);
+        } catch (error) {
+            console.error('Error fetching site review summary for customizing slug page:', error);
+            return { total: 0, averageRating: 0 };
+        }
+    })();
+    const isSiteReviewSummaryFallback = false;
 
     // Generate unique caption for image SEO from the first 1-2 sentences of design details
     const detailsText = generateDesignDetails(design, prices);
