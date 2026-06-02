@@ -51,6 +51,23 @@ function parseGcsPrefix() {
   return { bucket: match[1], prefix: match[2].replace(/\/+$/, '') };
 }
 
+function parseGcsUri(value: string) {
+  const match = value.match(/^gs:\/\/([^/]+)\/?(.*)$/);
+  if (!match) throw new Error(`Invalid GCS URI: ${value}`);
+  return { bucket: match[1], path: match[2].replace(/\/+$/, '') };
+}
+
+function getRunGcsPrefix(run: BatchRun) {
+  const { bucket, path } = parseGcsUri(run.output_file_uri);
+  const segments = path.split('/').filter(Boolean);
+  if (segments.length < 3) {
+    throw new Error(`Could not derive the batch GCS prefix from ${run.output_file_uri}.`);
+  }
+  segments.pop();
+  segments.pop();
+  return { bucket, prefix: segments.join('/') };
+}
+
 function objectName(prefix: string, path: string) {
   return [prefix, path].filter(Boolean).join('/');
 }
@@ -136,9 +153,8 @@ export async function submitNextImageStudioBatch(limit = 1000, requestContext?: 
 async function importStage(run: BatchRun, items: BatchItem[], stage: Stage, maxImports = 10) {
   const admin = createAdminServerSupabaseClient();
   const storage = new Storage();
-  const gcs = parseGcsPrefix();
-  const outputPrefix = run.output_file_uri.replace(`gs://${gcs.bucket}/`, '');
-  const [files] = await storage.bucket(gcs.bucket).getFiles({ prefix: outputPrefix });
+  const { bucket, path: outputPrefix } = parseGcsUri(run.output_file_uri);
+  const [files] = await storage.bucket(bucket).getFiles({ prefix: outputPrefix });
   const outputFile = files.find((file) => file.name.endsWith('.jsonl'));
   if (!outputFile) throw new Error(`No JSONL output found under ${run.output_file_uri}.`);
   const lines = readline.createInterface({ input: outputFile.createReadStream() });
@@ -240,7 +256,7 @@ export async function reconcileImageStudioBatch(runId: string, requestContext?: 
     await admin.from('cakegenie_analysis_cache').update({ batch_job_id: null }).eq('batch_job_id', runId);
     return { run: { ...run, status, stage: 'complete' }, result };
   }
-  const gcs = parseGcsPrefix();
+  const gcs = getRunGcsPrefix(run);
   const storage = new Storage();
   const inputUri = `gs://${gcs.bucket}/${objectName(gcs.prefix, `${runId}/mask-input.jsonl`)}`;
   const outputUri = `gs://${gcs.bucket}/${objectName(gcs.prefix, `${runId}/mask-output`)}`;
