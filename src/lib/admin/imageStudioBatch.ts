@@ -12,6 +12,12 @@ const MASK_MODEL = 'gemini-3.1-flash-image-preview';
 const STORAGE_BUCKET = 'cakegenie';
 
 type Stage = 'studio' | 'mask';
+type AIRequestContext = {
+  headers?: {
+    get(name: string): string | null | undefined;
+  };
+} | null | undefined;
+
 type BatchItem = {
   id: string;
   cache_id: string;
@@ -73,7 +79,7 @@ function extractImage(line: JsonlResponse) {
   return image?.data ? Buffer.from(image.data, 'base64') : null;
 }
 
-export async function submitNextImageStudioBatch(limit = 1000) {
+export async function submitNextImageStudioBatch(limit = 1000, requestContext?: AIRequestContext) {
   const admin = createAdminServerSupabaseClient();
   const { data: activeRun, error: activeRunError } = await admin
     .from('cakegenie_image_studio_batch_jobs')
@@ -94,7 +100,7 @@ export async function submitNextImageStudioBatch(limit = 1000) {
   if (error) throw error;
   if (!rows?.length) throw new Error('No eligible cache rows are waiting for batch processing.');
 
-  const adminClient = getAI();
+  const adminClient = getAI(requestContext);
   const gcs = parseGcsPrefix();
   const storage = new Storage();
   const runId = crypto.randomUUID();
@@ -168,11 +174,12 @@ async function importStage(run: BatchRun, items: BatchItem[], stage: Stage) {
   return { completed, failed };
 }
 
-export async function reconcileImageStudioBatch(runId: string) {
+export async function reconcileImageStudioBatch(runId: string, requestContext?: AIRequestContext) {
   const admin = createAdminServerSupabaseClient();
   const { data: run, error } = await admin.from('cakegenie_image_studio_batch_jobs').select('*').eq('id', runId).single();
   if (error) throw error;
-  const providerJob = await getAI().batches.get({ name: run.gemini_job_name });
+  const aiClient = getAI(requestContext);
+  const providerJob = await aiClient.batches.get({ name: run.gemini_job_name });
   await admin.from('cakegenie_image_studio_batch_jobs').update({ status: providerJob.state ?? 'unknown', updated_at: new Date().toISOString() }).eq('id', runId);
   if (providerJob.state !== 'JOB_STATE_SUCCEEDED') return { run: { ...run, status: providerJob.state }, providerJob };
   const { data: items, error: itemsError } = await admin.from('cakegenie_image_studio_batch_items').select('*').eq('batch_job_id', runId).order('created_at');
@@ -201,7 +208,7 @@ export async function reconcileImageStudioBatch(runId: string) {
     return { run: { ...run, stage: 'complete', status: 'completed_with_errors' }, result };
   }
   await storage.bucket(gcs.bucket).file(objectName(gcs.prefix, `${runId}/mask-input.jsonl`)).save(ready.map((item) => buildImageStudioBatchInputLine(item, 'mask')).join('\n'), { contentType: 'application/jsonl' });
-  const maskJob = await getAI().batches.create({ model: MASK_MODEL, src: { gcsUri: [inputUri], format: 'jsonl' }, config: { displayName: `cakegenie-mask-${runId}`, dest: { gcsUri: outputUri, format: 'jsonl' } } });
+  const maskJob = await aiClient.batches.create({ model: MASK_MODEL, src: { gcsUri: [inputUri], format: 'jsonl' }, config: { displayName: `cakegenie-mask-${runId}`, dest: { gcsUri: outputUri, format: 'jsonl' } } });
   await admin.from('cakegenie_image_studio_batch_jobs').update({ gemini_job_name: maskJob.name, status: 'submitted', stage: 'mask', input_file_uri: inputUri, output_file_uri: outputUri, completed_requests: result.completed, failed_requests: result.failed, updated_at: new Date().toISOString() }).eq('id', runId);
   await admin.from('cakegenie_image_studio_batch_items').update({ mask_status: 'submitted' }).eq('batch_job_id', runId).eq('studio_status', 'completed');
   return { run: { ...run, stage: 'mask', status: 'submitted' }, result };

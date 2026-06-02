@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   if (!authorized(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const body = await req.json().catch(() => ({}));
-    return NextResponse.json({ run: await submitNextImageStudioBatch(body.limit ?? 1000) });
+    return NextResponse.json({ run: await submitNextImageStudioBatch(body.limit ?? 1000, req) });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to submit batch.' }, { status: 500 });
   }
@@ -35,7 +35,7 @@ export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json();
     if (!body.runId) return NextResponse.json({ error: 'Missing runId.' }, { status: 400 });
-    return NextResponse.json(await reconcileImageStudioBatch(body.runId));
+    return NextResponse.json(await reconcileImageStudioBatch(body.runId, req));
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to reconcile batch.' }, { status: 500 });
   }
