@@ -118,6 +118,7 @@ export default function SearchAnalysisAdminPage() {
     const processedUrlsRef = useRef<Set<string>>(new Set());
     const seenPHashesRef = useRef<Set<string>>(new Set());
     const batchRefreshInFlightRef = useRef(false);
+    const offlineBatchSubmittedRef = useRef(false);
 
     const addLog = useCallback((msg: string) => {
         setLogs((prev) => [...prev, `${new Date().toLocaleTimeString()} - ${msg}`]);
@@ -637,6 +638,11 @@ export default function SearchAnalysisAdminPage() {
             processedUrlsRef.current = new Set();
             setProgress({ current: 0, total: 0 });
             isAutoModeRef.current = false;
+            if (isOfflineCollectRef.current && !isStoppedRef.current && !offlineBatchSubmittedRef.current) {
+                offlineBatchSubmittedRef.current = true;
+                addLog('Submitting queued cache misses to the offline Gemini batch...');
+                await submitOfflineBatch();
+            }
         }
 
         if (errors === 0) {
@@ -680,7 +686,7 @@ export default function SearchAnalysisAdminPage() {
         return () => window.clearInterval(timer);
     }, [isAuthenticated, latestBatchRun?.status, latestBatchRun?.completed_count, refreshBatchStatus]);
 
-    const submitOfflineBatch = async () => {
+    async function submitOfflineBatch() {
         setIsBatchActionPending(true);
         try {
             const response = await fetch('/api/admin/search-analysis-batch', {
@@ -697,6 +703,11 @@ export default function SearchAnalysisAdminPage() {
         } finally {
             setIsBatchActionPending(false);
         }
+    }
+
+    const collectMissesForOfflineBatch = () => {
+        offlineBatchSubmittedRef.current = false;
+        void processImages(true, true);
     };
 
     // Load Google CSE script on mount
@@ -845,7 +856,7 @@ export default function SearchAnalysisAdminPage() {
                                 </button>
                             </div>
                             <button
-                                onClick={() => processImages(true, true)}
+                                onClick={collectMissesForOfflineBatch}
                                 disabled={status !== 'idle' || !isCSELoaded}
                                 className="mt-3 w-full flex items-center justify-center px-4 py-3 bg-sky-700 text-white rounded-lg font-medium hover:bg-sky-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
