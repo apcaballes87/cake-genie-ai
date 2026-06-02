@@ -14,7 +14,6 @@ import {
 const ADMIN_PIN = '231323';
 const CSE_CONTAINER_ID = 'admin-search-container';
 const CSE_CX = '825ca1503c1bd4d00';
-const SEARCH_ANALYSIS_VALIDATION_TO_ANALYZE_DELAY_MS = 1200;
 const SEARCH_ANALYSIS_BETWEEN_AI_ITEMS_DELAY_MS = 5000;
 type SearchAnalysisBatchRun = {
     id: string;
@@ -483,17 +482,14 @@ export default function SearchAnalysisAdminPage() {
                 seenPHashesRef.current.add(pHash);
 
                 const rejectionMessages: Record<string, string> = {
-                    edible_photo_reference: "Edible photo reference",
-                    payment_receipt: "Payment receipt",
                     not_a_cake: "Not a cake",
-                    non_food: "Non-food item",
                     multiple_cakes: "Multiple cakes",
-                    only_cupcakes: "Cupcakes only",
+                    cake_slice_only: "Cake slice only",
+                    cupcakes_only: "Cupcakes only",
                     complex_sculpture: "Too complex",
                     large_wedding_cake: "Large wedding cake",
+                    selfie: "Selfie",
                 };
-
-                let usedAiForCurrentItem = false;
 
                 // --- GATE 1: CACHE CHECK ---
                 const cached = await findSimilarAnalysisByHash(toFingerprintLookup(fingerprint), targetImageUrl);
@@ -518,49 +514,12 @@ export default function SearchAnalysisAdminPage() {
                         done++;
                         continue;
                     }
-                    // --- GATE 2: FAST VALIDATION ---
-                    addLog(`[${i + 1}/${currentQueueLength}] Running validation gate...`);
-                    let validationResult: { classification?: string } | null = null;
-
-                    try {
-                        const validationResponse = await fetch('/api/ai/validate', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ imageData: imageData.data, mimeType: imageData.mimeType })
-                        });
-
-                        if (!validationResponse.ok) {
-                            const validationErrorText = (await validationResponse.text()).trim();
-                            addLog(
-                                `[${i + 1}/${currentQueueLength}] Validation unavailable (${validationResponse.status}). Continuing with analysis fallback.${validationErrorText ? ` ${validationErrorText}` : ''}`
-                            );
-                        } else {
-                            validationResult = await validationResponse.json();
-                            usedAiForCurrentItem = true;
-                        }
-                    } catch (validationError) {
-                        const message = validationError instanceof Error ? validationError.message : 'Unknown validation error';
-                        addLog(`[${i + 1}/${currentQueueLength}] Validation skipped due to error: ${message}`);
-                    }
-
-                    if (validationResult?.classification && validationResult.classification !== 'valid_single_cake') {
-                        const reason = rejectionMessages[validationResult.classification] || validationResult.classification;
-                        addLog(`[${i + 1}/${currentQueueLength}] 🚫 REJECTED (Validation): ${reason}`);
-                        skipped++;
-                        done++;
-                        continue;
-                    }
-
-                    // 4. AI Analysis
-                    if (usedAiForCurrentItem) {
-                        await delay(SEARCH_ANALYSIS_VALIDATION_TO_ANALYZE_DELAY_MS);
-                    }
+                    // --- AI ANALYSIS (rejection handled by analyze response) ---
                     const aiResponse = await fetch('/api/ai/analyze', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ imageData: imageData.data, mimeType: imageData.mimeType })
                     });
-                    usedAiForCurrentItem = true;
 
                     if (!aiResponse.ok) {
                         const aiErrorText = (await aiResponse.text()).trim();
@@ -572,7 +531,9 @@ export default function SearchAnalysisAdminPage() {
 
                     // Check for rejection (e.g., if it's not a cake)
                     if (analysisResult.rejection?.isRejected) {
-                        addLog(`[${i + 1}/${currentQueueLength}] 🚫 REJECTED: ${analysisResult.rejection.reason || 'Not a cake'}`);
+                        const reason = analysisResult.rejection.reason;
+                        const reasonLabel = (reason && rejectionMessages[reason]) || reason || 'Not a cake';
+                        addLog(`[${i + 1}/${currentQueueLength}] 🚫 REJECTED: ${reasonLabel}`);
                         skipped++;
                         done++;
                         continue;
