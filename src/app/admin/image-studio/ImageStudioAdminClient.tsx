@@ -142,6 +142,7 @@ export default function ImageStudioAdminClient() {
   const [offlineBatch, setOfflineBatch] = useState<OfflineBatchRun | null>(null);
   const [offlineBatchHistory, setOfflineBatchHistory] = useState<OfflineBatchRun[]>([]);
   const [offlineBatchBusy, setOfflineBatchBusy] = useState(false);
+  const [offlineBatchAutoRefresh, setOfflineBatchAutoRefresh] = useState(false);
 
   const stopBatchRef = useRef(false);
 
@@ -245,9 +246,9 @@ export default function ImageStudioAdminClient() {
     stopBatchRef.current = false;
   };
 
-  const refreshRecords = () => {
+  const refreshRecords = useCallback(() => {
     setRefreshTick((value) => value + 1);
-  };
+  }, []);
 
   const loadOfflineBatch = useCallback(async () => {
     const response = await fetch('/api/admin/image-studio-batch', {
@@ -284,9 +285,9 @@ export default function ImageStudioAdminClient() {
     }
   };
 
-  const reconcileOfflineBatch = async () => {
+  const reconcileOfflineBatch = useCallback(async (options?: { silent?: boolean }) => {
     if (!offlineBatch) return;
-    setOfflineBatchBusy(true);
+    if (!options?.silent) setOfflineBatchBusy(true);
     try {
       const response = await fetch('/api/admin/image-studio-batch', {
         method: 'PATCH',
@@ -297,14 +298,33 @@ export default function ImageStudioAdminClient() {
       if (!response.ok || !payload.run) throw new Error(payload.error || 'Failed to refresh offline batch.');
       setOfflineBatch(payload.run);
       await loadOfflineBatch();
+      setOfflineBatchAutoRefresh(payload.run.stage !== 'complete');
       refreshRecords();
-      toast.success(`Batch status refreshed: ${payload.run.stage} / ${payload.run.status}`);
+      if (!options?.silent) toast.success(`Batch continuation started: ${payload.run.stage} / ${payload.run.status}`);
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      if (!options?.silent) toast.error(getErrorMessage(error));
     } finally {
-      setOfflineBatchBusy(false);
+      if (!options?.silent) setOfflineBatchBusy(false);
     }
-  };
+  }, [loadOfflineBatch, offlineBatch, refreshRecords]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !offlineBatchAutoRefresh) return;
+    const timer = window.setInterval(() => {
+      if (offlineBatch?.status === 'submitted' || offlineBatch?.status === 'importing' || offlineBatch?.status === 'JOB_STATE_SUCCEEDED') {
+        void reconcileOfflineBatch({ silent: true });
+        return;
+      }
+      void loadOfflineBatch().then(() => refreshRecords());
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [isAuthenticated, loadOfflineBatch, offlineBatch, offlineBatchAutoRefresh, reconcileOfflineBatch, refreshRecords]);
+
+  useEffect(() => {
+    if (!offlineBatch || offlineBatch.stage === 'complete') {
+      setOfflineBatchAutoRefresh(false);
+    }
+  }, [offlineBatch]);
 
   const applyFilters = () => {
     setPage(1);
@@ -793,8 +813,8 @@ export default function ImageStudioAdminClient() {
                   Purple studio image + reusable icing mask
                 </h2>
                 <p className="mt-1 text-sm leading-6 text-slate-600">
-                  Submit up to 1,000 waiting cache rows to Gemini Batch API. Refresh after the
-                  studio stage completes to import results and automatically submit the mask stage.
+                  Submit up to 1,000 waiting cache rows to Gemini Batch API. Press refresh once after
+                  a stage finishes; the server will continue importing in safe chunks and submit the next stage.
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
@@ -809,12 +829,12 @@ export default function ImageStudioAdminClient() {
                 </button>
                 <button
                   type="button"
-                  onClick={reconcileOfflineBatch}
+                  onClick={() => void reconcileOfflineBatch()}
                   disabled={!offlineBatch || offlineBatchBusy}
                   className="inline-flex items-center gap-2 rounded-2xl border border-fuchsia-200 bg-white px-4 py-3 text-sm font-semibold text-fuchsia-800 transition hover:bg-fuchsia-50 disabled:cursor-not-allowed disabled:text-slate-300"
                 >
                   <RefreshCw className={`size-4 ${offlineBatchBusy ? 'animate-spin' : ''}`} />
-                  Refresh batch status
+                  Start / refresh continuation
                 </button>
               </div>
             </div>
@@ -824,6 +844,7 @@ export default function ImageStudioAdminClient() {
                 {' · '}{offlineBatch.completed_requests} completed
                 {' · '}{offlineBatch.failed_requests} failed
                 {' · '}{offlineBatch.total_requests} submitted
+                {offlineBatchAutoRefresh ? ' · watching progress' : ''}
               </p>
             ) : null}
 

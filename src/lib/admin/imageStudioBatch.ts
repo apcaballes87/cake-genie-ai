@@ -45,6 +45,16 @@ type BatchRun = {
   stage: Stage;
 };
 
+type ContinuationStep = {
+  runId: string;
+  stage: string;
+  status: string;
+  completed?: number;
+  failed?: number;
+  imported?: number;
+  remaining?: number;
+};
+
 function parseGcsPrefix() {
   const value = process.env.VERTEX_AI_BATCH_GCS_URI?.trim();
   const match = value?.match(/^gs:\/\/([^/]+)\/?(.*)$/);
@@ -285,6 +295,59 @@ export async function reconcileImageStudioBatch(runId: string, requestContext?: 
   await admin.from('cakegenie_image_studio_batch_jobs').update({ gemini_job_name: maskJob.name, status: 'submitted', stage: 'mask', input_file_uri: inputUri, output_file_uri: outputUri, completed_requests: result.completed, failed_requests: result.failed, updated_at: new Date().toISOString() }).eq('id', runId);
   await admin.from('cakegenie_image_studio_batch_items').update({ mask_status: 'submitted' }).eq('batch_job_id', runId).eq('studio_status', 'completed');
   return { run: { ...run, stage: 'mask', status: 'submitted' }, result };
+}
+
+export async function getActiveImageStudioBatch() {
+  const admin = createAdminServerSupabaseClient();
+  const { data, error } = await admin
+    .from('cakegenie_image_studio_batch_jobs')
+    .select('*')
+    .neq('stage', 'complete')
+    .order('created_at')
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function continueImageStudioBatch(requestContext?: AIRequestContext, options: { maxSteps?: number } = {}) {
+  const maxSteps = Math.min(Math.max(options.maxSteps ?? 8, 1), 20);
+  const steps: ContinuationStep[] = [];
+
+  for (let index = 0; index < maxSteps; index += 1) {
+    const activeRun = await getActiveImageStudioBatch();
+    if (!activeRun?.id) {
+      return { active: false, steps };
+    }
+
+    const response = await reconcileImageStudioBatch(activeRun.id, requestContext);
+    const run = response.run as { id: string; stage?: string; status?: string; completed_requests?: number; failed_requests?: number };
+    const result = response.result as { imported?: number; remaining?: number } | undefined;
+
+    steps.push({
+      runId: run.id,
+      stage: run.stage ?? activeRun.stage,
+      status: run.status ?? activeRun.status,
+      completed: run.completed_requests,
+      failed: run.failed_requests,
+      imported: result?.imported,
+      remaining: result?.remaining,
+    });
+
+    if (run.stage === 'complete') {
+      return { active: false, steps };
+    }
+
+    if (run.status !== 'importing' && run.status !== 'JOB_STATE_SUCCEEDED') {
+      return { active: true, waitingForProvider: true, steps };
+    }
+
+    if (!result || result.remaining === 0) {
+      continue;
+    }
+  }
+
+  return { active: true, steps };
 }
 
 export async function getLatestImageStudioBatch() {
