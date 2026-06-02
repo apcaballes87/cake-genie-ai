@@ -42,6 +42,8 @@ At the infrastructure level, the setup includes:
 - A service account bound to the Vercel identity
 - `roles/aiplatform.user` granted to that service account
 
+If a deployed route also touches Cloud Storage directly through `@google-cloud/storage` instead of only calling Vertex AI, that same Vercel-bound service account also needs bucket-level storage IAM. In this repo's offline batch helpers, the server runtime uploads JSONL inputs and lists/downloads batch outputs, so missing roles such as `roles/storage.objectCreator` or `roles/storage.objectViewer` on `VERTEX_AI_BATCH_GCS_URI` will fail even if the Vertex AI Platform service agent already has object access.
+
 ### Credentials Moved into an Environment Variable
 
 To avoid Vercel bundling issues, the WIF client configuration was moved into `GOOGLE_CREDENTIALS_JSON` instead of relying on a checked-in or side-loaded JSON file. This keeps the configuration deployable without requiring a loose runtime file in the serverless bundle.

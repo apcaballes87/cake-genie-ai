@@ -1,5 +1,25 @@
 # Tasks
 
+## Clarify Missing GCS IAM For Vertex Batch Runtime
+
+### Plan
+
+- [x] Trace which deployed principal touches the batch bucket in the live server code, separating Vertex's own service agent from the Vercel runtime identity.
+- [x] Add a shared Google Cloud Storage error helper that rewrites raw permission denials into actionable batch-runtime guidance with the bucket, principal, permission, and likely IAM role.
+- [x] Apply that helper to both offline batch lanes anywhere the app uploads, lists, or downloads GCS batch artifacts.
+- [x] Add focused unit coverage for the new error translation so future regressions keep the actionable wording.
+- [x] Document the extra bucket IAM requirement in the WIF migration notes and verify the targeted tests still pass.
+
+### Review
+
+- Confirmed the failing principal is the deployed Vercel WIF service account, not only the Vertex AI Platform service agent. Both `src/lib/admin/imageStudioBatch.ts` and `src/lib/admin/searchAnalysisBatch.ts` instantiate `@google-cloud/storage` directly through the shared WIF auth path and call `getFiles({ prefix })` during reconciliation, which requires `storage.objects.list`.
+- Added `src/lib/ai/googleCloudErrors.ts` to translate raw Cloud Storage permission denials into actionable runtime guidance that names the bucket, principal, missing permission, and the likely bucket-level IAM role to grant.
+- Wrapped the batch JSONL upload, output listing, and output download/list flows in both offline batch helpers so production errors now explain that the Vercel runtime identity needs bucket access in addition to Vertex's own service agent.
+- Added focused tests for list, create, and non-GCS error handling in `src/lib/ai/googleCloudErrors.test.ts`.
+- Updated `docs/vertex-ai-wif-migration.md` with the deployment-time storage IAM requirement for direct GCS access from the server runtime.
+- Verification:
+  - `npx vitest run src/lib/ai/googleCloudErrors.test.ts src/lib/admin/imageStudioBatch.test.ts src/lib/admin/searchAnalysisBatch.test.ts` passed.
+
 ## Add Offline Gemini Batch Analysis To Search-Based Intake
 
 ### Plan
@@ -1400,3 +1420,65 @@
   `npx eslint src/lib/reviews.ts src/lib/reviews.test.ts src/app/page.tsx src/app/customizing/page.tsx src/app/customizing/CustomizingClient.tsx src/app/customizing/CustomizingHeroPanel.tsx src/app/customizing/CustomizingHeroPanel.test.tsx src/app/customizing/CustomizingEmptyLandingState.tsx` completed with warnings only, all pre-existing in the customizer files.
   `npx eslint 'src/app/customizing/[slug]/page.tsx'` still reports pre-existing `@typescript-eslint/no-explicit-any` errors in that file; the review-summary change did not add new lint errors there.
   `git diff --check -- src/lib/reviews.ts src/lib/reviews.test.ts src/app/page.tsx src/app/customizing/page.tsx 'src/app/customizing/[slug]/page.tsx' src/app/customizing/CustomizingClient.tsx src/app/customizing/CustomizingHeroPanel.tsx src/app/customizing/CustomizingHeroPanel.test.tsx src/app/customizing/CustomizingEmptyLandingState.tsx tasks/todo.md tasks/lessons.md` passed.
+# Custom Cake Collection SEO Blueprint
+
+### Plan
+
+- [x] Inspect the current collection schema, collection-page metadata, and studio-image synchronization behavior.
+- [x] Audit existing collection slugs so the launch set adds missing intent pages instead of duplicating active collections.
+- [x] Research current Philippines keyword signals and Cebu-facing SERP evidence for color, aesthetic, milestone, and recipient cake searches.
+- [x] Draft collection-page SEO blueprints with metadata, FAQs, image-matching tags, and an execution playbook.
+- [x] Add an idempotent SQL migration for the proposed collection rows.
+
+### Review
+
+- Added `docs/seo/2026-06-02-custom-cake-collection-blueprints.md` with 10 recommended collection pages, copy, meta tags, FAQ content, image synchronization guidance, and deployment steps.
+- Added `supabase/migrations/20260602090000_add_custom_cake_merchandising_collections.sql` using `ON CONFLICT (slug) DO UPDATE` so the script is safe to re-run.
+- Kept existing `vintage-cake`, `minimalist-cake`, `drip-cake`, `debut-cake`, `anniversary-cake`, `gender-reveal-cake`, `money-cake`, `floral-cake`, `ribbon-cake`, and `lambeth-cake` rows out of the insert set to avoid cannibalizing duplicate collection pages.
+- Confirmed the collection route renders visible FAQ blocks and should keep commercial `FAQPage` structured data disabled.
+
+# Programmatic Collection Trend Pipeline
+
+### Plan
+
+- [x] Replace location-cloned collection expansion with visually distinct Cebu-wide storefronts.
+- [x] Add publication metadata and strict indexability gates to `cakegenie_collections`.
+- [x] Add curated visual-combination collection seeds while preserving existing trend-theme collections.
+- [x] Add a protected weekly DataForSEO trend-discovery cron route with a stocking queue.
+- [x] Keep thin or draft rows out of `/collections`, storefront rendering, and the sitemap.
+- [x] Update the studio-image synchronizer to promote stocked collections after cache verification.
+- [x] Add focused tests and document verification limits.
+
+### Review
+
+- Added `supabase/migrations/20260602103000_add_collection_quality_metadata.sql` with `candidate`, `stocking`, `published`, and `retired` lifecycle states plus trend and inventory metadata.
+- Revised the uncommitted merchandising migration to add five curated visual combinations: black minimalist, pink vintage, red candy, sage green minimalist, and black-and-gold cakes.
+- Added `/api/collections/trends/cron`, protected by `CRON_SECRET`, and scheduled it weekly in `vercel.json`. It uses DataForSEO credentials, rejects generic or duplicate slugs, queues under-stocked topics, and publishes only topics with at least eight priced cache matches and a sample image.
+- Updated collection directory queries, storefront behavior, sitemap generation, and `scripts/update-collections-studio-images.ts` so thin stocking rows remain non-indexable until inventory is ready.
+- Corrected `docs/seo/2026-06-02-custom-cake-collection-blueprints.md`: visible FAQs remain useful, but commercial collection pages should not add `FAQPage` JSON-LD.
+- Verification:
+  `npx vitest run src/lib/collections/quality.test.ts src/app/api/collections/trends/cron/route.test.ts src/app/collections/'[category]'/page.test.tsx src/app/sitemap.test.ts` passed with 9 tests.
+  `git diff --check` passed before the final documentation update.
+  Focused ESLint still reports pre-existing `react-hooks/set-state-in-effect` errors in `src/app/collections/CollectionsClient.tsx`.
+  `npx tsc --noEmit` still reports pre-existing repository test-type failures outside this change.
+
+# Initial Trend Collection Research Run
+
+### Plan
+
+- [x] Audit the existing 399 collection slugs to avoid duplicating recent themes.
+- [x] Research current entertainment, K-pop, and collectible-toy signals.
+- [x] Seed a focused non-indexable stocking queue for missing themes.
+- [x] Write a manual `/admin/search-analysis` intake runbook with exact query suggestions.
+
+### Review
+
+- Added `supabase/migrations/20260602113000_seed_initial_trend_collection_stocking_queue.sql` with nine `stocking` rows: KATSEYE, Stray Kids, TWICE, ENHYPEN, aespa, Jellycat, Baby Three, Crybaby, and Twinkle Twinkle.
+- Kept all rows non-indexable until manual search-analysis intake and the eight-design synchronizer gate promote them.
+- Added `docs/seo/2026-06-02-initial-trend-search-analysis-runbook.md` with exact search queries, execution order, existing-theme refresh suggestions, and research links.
+- Removed broad image-matching tags such as `kpop cake`, `blind box cake`, and `pop mart cake` from the seed rows so unrelated cache designs cannot inflate collection coverage.
+- Verification:
+  `git diff --check` passed.
+  The seed migration contains nine unique slugs, all new across the existing migration history.
+  `npx vitest run src/lib/collections/quality.test.ts src/app/api/collections/trends/cron/route.test.ts src/app/collections/'[category]'/page.test.tsx src/app/sitemap.test.ts` passed with 9 tests.
+  Focused ESLint passed with only the repository's stale Browserslist database notice.

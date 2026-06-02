@@ -86,6 +86,8 @@ type CollectionSitemapRow = {
     created_at: string | null;
     sample_image: string | null;
     item_count: number | null;
+    publication_status: string | null;
+    is_indexable: boolean | null;
 };
 
 function getMerchantSlug(value: MerchantProductSitemapRow['cakegenie_merchants']): string | null {
@@ -220,8 +222,10 @@ export default async function sitemap({ id }: { id: SitemapParam }): Promise<Met
 
         const { data: collections, error: collectionsError } = await supabase
             .from('cakegenie_collections')
-            .select('slug, created_at, sample_image, item_count')
-            .gt('item_count', 0)
+            .select('slug, created_at, sample_image, item_count, publication_status, is_indexable')
+            .eq('publication_status', 'published')
+            .eq('is_indexable', true)
+            .gte('item_count', 8)
             .returns<CollectionSitemapRow[]>()
 
         if (collectionsError) {

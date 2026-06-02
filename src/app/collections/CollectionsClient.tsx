@@ -21,6 +21,8 @@ interface Category {
     description?: string;
     sample_image: string;
     count: number;
+    collection_type?: string;
+    trend_score?: number | null;
 }
 
 interface CollectionsClientProps {
@@ -87,6 +89,10 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
     const totalPages = Math.ceil(categories.length / ITEMS_PER_PAGE);
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const paginatedCategories = categories.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    const trendingCategories = categories
+        .filter((category) => category.collection_type === 'entertainment' && (category.trend_score || 0) > 0)
+        .sort((a, b) => (b.trend_score || 0) - (a.trend_score || 0))
+        .slice(0, 6);
 
     const handlePageChange = useCallback((page: number) => {
         if (page < 1 || page > totalPages) return;
@@ -248,6 +254,24 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
                             </p>
                         </div>
                     </div>
+
+                    {trendingCategories.length > 0 && (
+                        <section className="mb-10">
+                            <h2 className="text-lg font-bold text-slate-800 mb-1">Trending Cake Themes</h2>
+                            <p className="text-sm text-slate-500 mb-4">Fresh themes with enough real cake designs to browse and customize.</p>
+                            <div className="flex flex-wrap gap-2">
+                                {trendingCategories.map((cat) => (
+                                    <Link
+                                        key={`trending-${cat.slug}`}
+                                        href={`/collections/${cat.slug}`}
+                                        className="rounded-full border border-purple-200 bg-purple-50 px-4 py-2 text-sm font-semibold text-purple-700 transition-colors hover:bg-purple-100"
+                                    >
+                                        {cat.keyword || cat.name}
+                                    </Link>
+                                ))}
+                            </div>
+                        </section>
+                    )}
 
                     {/* Categories Grid */}
                     {categories.length > 0 && (

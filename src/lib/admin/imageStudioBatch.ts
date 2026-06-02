@@ -3,6 +3,7 @@ import readline from 'node:readline';
 import sharp from 'sharp';
 
 import { getAI, getGoogleCloudAuthOptions } from '@/lib/ai/client';
+import { toActionableGoogleCloudStorageError } from '@/lib/ai/googleCloudErrors';
 import { buildImageStudioPrompt, buildImageStudioSystemInstruction, getImageStudioStoragePath } from '@/lib/admin/imageStudio';
 import { buildIcingConversionPrompt } from '@/lib/icingConversionPrompt';
 import { ICING_LAYER_SYSTEM_INSTRUCTION, CURRENT_MASK_VERSION } from '@/services/icingMaskService';
@@ -131,7 +132,8 @@ export async function submitNextImageStudioBatch(limit = 1000, requestContext?: 
   const inputUri = `gs://${gcs.bucket}/${objectName(gcs.prefix, `${runId}/studio-input.jsonl`)}`;
   const outputUri = `gs://${gcs.bucket}/${objectName(gcs.prefix, `${runId}/studio-output`)}`;
   await storage.bucket(gcs.bucket).file(objectName(gcs.prefix, `${runId}/studio-input.jsonl`))
-    .save(rows.map((row) => buildImageStudioBatchInputLine(row as BatchItem, 'studio')).join('\n'), { contentType: 'application/jsonl' });
+    .save(rows.map((row) => buildImageStudioBatchInputLine(row as BatchItem, 'studio')).join('\n'), { contentType: 'application/jsonl' })
+    .catch((error: unknown) => { throw toActionableGoogleCloudStorageError(error, 'create'); });
   const providerJob = await adminClient.batches.create({
     model: STUDIO_MODEL,
     src: { gcsUri: [inputUri], format: 'jsonl' },
@@ -158,7 +160,8 @@ async function importStage(run: BatchRun, items: BatchItem[], stage: Stage, maxI
   const admin = createAdminServerSupabaseClient();
   const storage = createBatchStorage(requestContext);
   const { bucket, path: outputPrefix } = parseGcsUri(run.output_file_uri);
-  const [files] = await storage.bucket(bucket).getFiles({ prefix: outputPrefix });
+  const [files] = await storage.bucket(bucket).getFiles({ prefix: outputPrefix })
+    .catch((error: unknown) => { throw toActionableGoogleCloudStorageError(error, 'list'); });
   const outputFile = files.find((file) => file.name.endsWith('.jsonl'));
   if (!outputFile) throw new Error(`No JSONL output found under ${run.output_file_uri}.`);
   const lines = readline.createInterface({ input: outputFile.createReadStream() });
@@ -276,7 +279,8 @@ export async function reconcileImageStudioBatch(runId: string, requestContext?: 
     await admin.from('cakegenie_analysis_cache').update({ batch_job_id: null }).eq('batch_job_id', runId);
     return { run: { ...run, stage: 'complete', status: 'completed_with_errors' }, result };
   }
-  await storage.bucket(gcs.bucket).file(objectName(gcs.prefix, `${runId}/mask-input.jsonl`)).save(ready.map((item) => buildImageStudioBatchInputLine(item, 'mask')).join('\n'), { contentType: 'application/jsonl' });
+  await storage.bucket(gcs.bucket).file(objectName(gcs.prefix, `${runId}/mask-input.jsonl`)).save(ready.map((item) => buildImageStudioBatchInputLine(item, 'mask')).join('\n'), { contentType: 'application/jsonl' })
+    .catch((error: unknown) => { throw toActionableGoogleCloudStorageError(error, 'create'); });
   const maskJob = await aiClient.batches.create({ model: MASK_MODEL, src: { gcsUri: [inputUri], format: 'jsonl' }, config: { displayName: `cakegenie-mask-${runId}`, dest: { gcsUri: outputUri, format: 'jsonl' } } });
   await admin.from('cakegenie_image_studio_batch_jobs').update({ gemini_job_name: maskJob.name, status: 'submitted', stage: 'mask', input_file_uri: inputUri, output_file_uri: outputUri, completed_requests: result.completed, failed_requests: result.failed, updated_at: new Date().toISOString() }).eq('id', runId);
   await admin.from('cakegenie_image_studio_batch_items').update({ mask_status: 'submitted' }).eq('batch_job_id', runId).eq('studio_status', 'completed');

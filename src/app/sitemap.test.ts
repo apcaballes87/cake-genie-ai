@@ -5,7 +5,9 @@ const mockCollections = [
     slug: 'surprise-collection',
     created_at: '2026-05-19T10:00:00.000Z',
     sample_image: 'https://example.com/surprise.webp',
-    item_count: 4,
+    item_count: 8,
+    publication_status: 'published',
+    is_indexable: true,
   },
 ];
 
@@ -22,11 +24,15 @@ const mockFrom = vi.fn((table: string) => {
   if (table === 'cakegenie_collections') {
     return {
       select: vi.fn(() => ({
-        gt: vi.fn(() => ({
-          returns: vi.fn().mockResolvedValue({
-            data: mockCollections,
-            error: null,
-          }),
+        eq: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            gte: vi.fn(() => ({
+              returns: vi.fn().mockResolvedValue({
+                data: mockCollections,
+                error: null,
+              }),
+            })),
+          })),
         })),
       })),
     };

@@ -33,7 +33,15 @@ type CollectionRecord = {
     tags?: string[] | null;
     sample_image?: string | null;
     item_count?: number | null;
+    publication_status?: string | null;
+    is_indexable?: boolean | null;
 };
+
+function isPublishedCollection(collection: CollectionRecord | null): boolean {
+    return collection?.publication_status === 'published'
+        && collection?.is_indexable === true
+        && (collection?.item_count || 0) >= 8;
+}
 
 function humanizeSlug(slug: string): string {
     return slug
@@ -160,6 +168,12 @@ export async function generateMetadata(
 ): Promise<Metadata> {
     const { category } = await params
     const { data: collection } = await getCollectionBySlug(category);
+    if (collection && !isPublishedCollection(collection)) {
+        return {
+            title: { absolute: 'Cake Collection | Genie.ph' },
+            robots: { index: false, follow: false },
+        };
+    }
     const canonicalCategory = collection?.slug || category;
     const title = collection?.name || humanizeSlug(category);
     const description = buildCollectionMetaDescription(collection, title, category);
@@ -230,6 +244,10 @@ export async function generateStaticParams() {
 export default async function CategoryPage({ params }: Props) {
     const { category } = await params
     const { data: collection } = await getCollectionBySlug(category);
+
+    if (collection && !isPublishedCollection(collection)) {
+        return notFound();
+    }
 
     if (collection?.slug && collection.slug !== category) {
         permanentRedirect(`/collections/${collection.slug}`);

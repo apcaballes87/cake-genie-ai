@@ -39,6 +39,8 @@ describe('collections category metadata', () => {
         tags: ['korean cake', 'pastel', 'elegant'],
         sample_image: 'https://example.com/minimalist-og.webp',
         item_count: 718,
+        publication_status: 'published',
+        is_indexable: true,
       },
       error: null,
     });

@@ -1267,12 +1267,15 @@ const buildCollectionOrFilter = (collectionName: string, collectionTags: string[
 /**
  * Fetches design categories from the cakegenie_collections table.
  */
-export async function getDesignCategories(customClient?: SupabaseClient): Promise<SupabaseServiceResponse<{ keyword: string; slug: string; count: number; sample_image: string, description?: string }[]>> {
+export async function getDesignCategories(customClient?: SupabaseClient): Promise<SupabaseServiceResponse<{ keyword: string; slug: string; count: number; sample_image: string, description?: string; collection_type?: string; trend_score?: number | null }[]>> {
   const client = customClient || (typeof window === 'undefined' ? publicSupabaseClient : supabase);
   try {
     const { data: collections, error: collectionsError } = await client
       .from('cakegenie_collections')
-      .select('name, slug, tags, sample_image, description, item_count')
+      .select('name, slug, tags, sample_image, description, item_count, collection_type, trend_score')
+      .eq('publication_status', 'published')
+      .eq('is_indexable', true)
+      .gte('item_count', 8)
       .order('name', { ascending: true });
 
     if (collectionsError) {
@@ -1291,7 +1294,9 @@ export async function getDesignCategories(customClient?: SupabaseClient): Promis
       slug: collection.slug,
       count: collection.item_count || 0,
       sample_image: collection.sample_image || 'https://images.unsplash.com/photo-1542826438-bd32f43d626f?q=80&w=600&auto=format&fit=crop',
-      description: collection.description || undefined
+      description: collection.description || undefined,
+      collection_type: collection.collection_type || undefined,
+      trend_score: collection.trend_score ?? null,
     }));
 
     // Optionally sort them alphabetically since we don't have real counts

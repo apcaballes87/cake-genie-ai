@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 import { resolve } from 'path';
+import { COLLECTION_MIN_MATCHED_DESIGNS } from '../src/lib/collections/quality';
 
 // Load .env.local
 dotenv.config({ path: resolve(process.cwd(), '.env.local') });
@@ -64,7 +65,7 @@ async function main() {
     // 1. Fetch all collections
     const { data: collections, error: fetchError } = await supabase
         .from('cakegenie_collections')
-        .select('id, name, slug, tags, sample_image');
+        .select('id, name, slug, tags, sample_image, publication_status, collection_type');
 
     if (fetchError) {
         console.error("❌ Error fetching collections:", fetchError);
@@ -104,6 +105,20 @@ async function main() {
 
         if (countError) {
             console.error(`❌ Error counting designs for "${collection.name}":`, countError);
+            continue;
+        }
+
+        const { count: studioImageCount, error: studioCountError } = await supabase
+            .from('cakegenie_analysis_cache')
+            .select('id', { count: 'exact', head: true })
+            .not('studio_edited_image_url', 'is', null)
+            .neq('studio_edited_image_url', '')
+            .not('slug', 'is', null)
+            .not('price', 'is', null)
+            .or(orFilters);
+
+        if (studioCountError) {
+            console.error(`❌ Error counting studio designs for "${collection.name}":`, studioCountError);
             continue;
         }
 
@@ -158,7 +173,14 @@ async function main() {
                     .from('cakegenie_collections')
                     .update({
                         item_count: count || 0,
-                        sample_image: sampleImage
+                        matched_design_count: count || 0,
+                        studio_image_count: studioImageCount || 0,
+                        sample_image: sampleImage,
+                        ...(collection.publication_status === 'stocking' ? {
+                            publication_status: (count || 0) >= COLLECTION_MIN_MATCHED_DESIGNS ? 'published' : 'stocking',
+                            is_indexable: (count || 0) >= COLLECTION_MIN_MATCHED_DESIGNS,
+                            published_at: (count || 0) >= COLLECTION_MIN_MATCHED_DESIGNS ? new Date().toISOString() : null,
+                        } : {}),
                     })
                     .eq('id', collection.id);
 

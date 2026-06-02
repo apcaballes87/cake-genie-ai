@@ -1,6 +1,7 @@
 import { Storage } from '@google-cloud/storage';
 
 import { getAI, getGoogleCloudAuthOptions } from '@/lib/ai/client';
+import { toActionableGoogleCloudStorageError } from '@/lib/ai/googleCloudErrors';
 import { getDynamicTypeEnums } from '@/lib/ai/utils';
 import { buildSearchAnalysisGenerationConfig, postProcessSearchAnalysisResult } from '@/lib/admin/searchAnalysisContract';
 import { createAdminServerSupabaseClient } from '@/lib/supabase/adminServer';
@@ -160,7 +161,7 @@ export async function submitNextSearchAnalysisBatch(requestedLimit = MAX_BATCH_S
   await createBatchStorage(requestContext).bucket(gcs.bucket).file(inputPath).save(
     items.map((item) => buildSearchAnalysisBatchInputLine(item, activePrompt, generationConfig)).join('\n'),
     { contentType: 'application/jsonl' },
-  );
+  ).catch((error: unknown) => { throw toActionableGoogleCloudStorageError(error, 'create'); });
   const providerJob = await getAI(requestContext).batches.create({
     model: MODEL,
     src: { gcsUri: [inputUri], format: 'jsonl' },
@@ -194,10 +195,12 @@ export async function reconcileSearchAnalysisBatch(runId: string, requestContext
 
   const gcs = parseGcsPrefix();
   const outputPrefix = run.output_file_uri.replace(`gs://${gcs.bucket}/`, '');
-  const [files] = await createBatchStorage(requestContext).bucket(gcs.bucket).getFiles({ prefix: outputPrefix });
+  const [files] = await createBatchStorage(requestContext).bucket(gcs.bucket).getFiles({ prefix: outputPrefix })
+    .catch((error: unknown) => { throw toActionableGoogleCloudStorageError(error, 'list'); });
   const outputFile = files.find((file) => file.name.endsWith('.jsonl'));
   if (!outputFile) throw new Error(`No JSONL output found under ${run.output_file_uri}.`);
-  const [contents] = await outputFile.download();
+  const [contents] = await outputFile.download()
+    .catch((error: unknown) => { throw toActionableGoogleCloudStorageError(error, 'read'); });
   const lines = contents.toString('utf8').trim().split('\n').filter(Boolean).map((line) => JSON.parse(line) as JsonlResponse);
   const { data: rows, error: itemsError } = await admin.from('cakegenie_search_analysis_batch_items').select('*').eq('run_id', runId).order('submission_ordinal');
   if (itemsError) throw itemsError;
