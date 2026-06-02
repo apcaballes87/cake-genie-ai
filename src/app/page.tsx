@@ -7,7 +7,7 @@ import { RecommendedProductsSection, IntroContent } from '@/components/landing';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import { LandingPageSkeleton } from '@/components/LoadingSkeletons';
 import { createClient } from '@/lib/supabase/server';
-import { normalizePublicReviews, REVIEW_SELECT } from '@/lib/reviews';
+import { buildReviewSummary, normalizePublicReviews, REVIEW_SELECT } from '@/lib/reviews';
 import HomepageAeoSections from '@/components/seo/HomepageAeoSections';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { genieBusinessProfile, buildGenieLocalBusinessSchema } from '@/lib/seo/genieBusinessProfile';
@@ -156,18 +156,10 @@ async function getHomepageReviews() {
     ]);
 
     const normalizedReviews = normalizePublicReviews(reviewRows);
-    const total = ratingRows?.length || 0;
-    const averageRating = total > 0
-        ? ratingRows!.reduce((sum, review) => sum + review.rating, 0) / total
-        : 0;
-
     return {
         reviews: normalizedReviews,
         error,
-        reviewSummary: {
-            total,
-            averageRating,
-        },
+        reviewSummary: buildReviewSummary(ratingRows),
     };
 }
 

@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { getDesignCategories } from '@/services/supabaseService'
 import CollectionsClient from './CollectionsClient'
 import { buildMarketingPageMetadata } from '@/lib/utils/metadata'
@@ -54,7 +55,13 @@ export default async function CollectionsPage() {
     return (
         <>
             <CollectionPageSchema categories={categories} />
-            <CollectionsClient categories={categories} />
+            <Suspense fallback={
+                <div className="min-h-screen flex items-center justify-center">
+                    <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+            }>
+                <CollectionsClient categories={categories} />
+            </Suspense>
         </>
     );
 }

@@ -4,14 +4,6 @@
     "sequential-thinking": {
       "type": "local",
       "command": ["npx", "-y", "@modelcontextprotocol/server-sequential-thinking"]
-    },
-    "supabase": {
-      "type": "local",
-      "command": ["npx", "-y", "@supabase/mcp-server-supabase@latest", "--project-ref=cqmhanqnfybyxezhobkx"],
-      "environment": {
-        "SUPABASE_ACCESS_TOKEN": "sbp_7b1ab8b311077bb2ec388adf9d20a53a5479132a"
-      },
-      "enabled": true
     }
   }
 }

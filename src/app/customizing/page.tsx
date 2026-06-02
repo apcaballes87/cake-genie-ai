@@ -6,6 +6,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { LandingFooter } from '@/components/landing/LandingFooter'
 import { createClient } from '@/lib/supabase/server'
 import { genieBusinessProfile } from '@/lib/seo/genieBusinessProfile'
+import { buildReviewSummary } from '@/lib/reviews'
 import { getPopularDesigns } from '@/services/supabaseService'
 import { ProductCard } from '@/components/ProductCard'
 
@@ -85,11 +86,7 @@ export default async function CustomizingPage(props: CustomizingPageProps) {
         getPopularDesigns(FEATURED_DESIGN_LIMIT),
     ]);
 
-    const total = ratingRows?.length || 0;
-    const averageRating = total > 0
-        ? ratingRows!.reduce((sum, r) => sum + r.rating, 0) / total
-        : 4.8;
-    const reviewSummary = { total, averageRating };
+    const reviewSummary = buildReviewSummary(ratingRows);
 
     // Featured designs power the SSR'd grid AND the CollectionPage image array.
     type FeaturedDesign = {

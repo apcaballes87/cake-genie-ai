@@ -1377,3 +1377,26 @@
 - Verification:
   `npx vitest run src/app/customizing/CustomizingHeroPanel.test.tsx` passed with 12 tests total across the matching hero-panel test files in this workspace.
   `npx eslint src/app/customizing/CustomizingClient.tsx src/app/customizing/CustomizingHeroPanel.tsx` completed with warnings only; the warnings are pre-existing unused imports/hook-dependency warnings in `CustomizingClient.tsx` plus the pre-existing unused `reviewStars` warning in `CustomizingHeroPanel.tsx`.
+
+---
+
+## Fix Customizer Review Summary Drift
+
+### Plan
+
+- [x] Trace the landing-page and `/customizing` review-summary sources, including the hero fallback text and any client refresh guards.
+- [x] Replace any hardcoded customizer review summary with the live public reviews aggregate so base and slug customizer routes share the same trust source as the homepage.
+- [x] Make the customizer treat server review summary as initial data, not the final truth, so new approved reviews can refresh without waiting for the page's ISR snapshot forever.
+- [x] Run focused verification and record the result.
+
+### Review
+
+- The homepage and both customizer entry routes now share the same aggregate builder in `src/lib/reviews.ts`, so there is one source of truth for public review count and average rating math.
+- `src/app/customizing/[slug]/page.tsx` no longer ships the frozen `{ total: 6, averageRating: 4.8 }` fallback into the hero/footer/schema path; it fetches the live visible+approved review ratings and falls back only to `{ total: 0, averageRating: 0 }` on fetch failure.
+- `src/app/customizing/CustomizingClient.tsx` still accepts the server-provided summary for first paint, but it now always refreshes review stats on mount instead of bailing when an initial summary exists. That means new approved reviews can show up on the customizer without waiting forever on the ISR snapshot that first rendered the page.
+- `src/app/customizing/CustomizingHeroPanel.tsx` and `src/app/customizing/CustomizingEmptyLandingState.tsx` no longer display fake `4.8` / `6 Happy Customers` copy when no live summary is available. They now fall back to a generic verified-trust message until real review stats are present.
+- Verification:
+  `npx vitest run src/lib/reviews.test.ts src/app/customizing/CustomizingHeroPanel.test.tsx` passed with 17 tests.
+  `npx eslint src/lib/reviews.ts src/lib/reviews.test.ts src/app/page.tsx src/app/customizing/page.tsx src/app/customizing/CustomizingClient.tsx src/app/customizing/CustomizingHeroPanel.tsx src/app/customizing/CustomizingHeroPanel.test.tsx src/app/customizing/CustomizingEmptyLandingState.tsx` completed with warnings only, all pre-existing in the customizer files.
+  `npx eslint 'src/app/customizing/[slug]/page.tsx'` still reports pre-existing `@typescript-eslint/no-explicit-any` errors in that file; the review-summary change did not add new lint errors there.
+  `git diff --check -- src/lib/reviews.ts src/lib/reviews.test.ts src/app/page.tsx src/app/customizing/page.tsx 'src/app/customizing/[slug]/page.tsx' src/app/customizing/CustomizingClient.tsx src/app/customizing/CustomizingHeroPanel.tsx src/app/customizing/CustomizingHeroPanel.test.tsx src/app/customizing/CustomizingEmptyLandingState.tsx tasks/todo.md tasks/lessons.md` passed.

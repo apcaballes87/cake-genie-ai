@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, ShoppingBag, Search, User } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Search, User, ChevronLeft, ChevronRight } from 'lucide-react';
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import MobileBottomNav from '@/components/MobileBottomNav';
@@ -27,6 +27,23 @@ interface CollectionsClientProps {
     categories: Category[];
 }
 
+const ITEMS_PER_PAGE = 30;
+
+const getPageNumbers = (current: number, total: number): (number | string)[] => {
+    const pages: (number | string)[] = [];
+    const range = 2; // How many pages to show around current page
+    
+    for (let i = 1; i <= total; i++) {
+        if (i === 1 || i === total || (i >= current - range && i <= current + range)) {
+            pages.push(i);
+        } else if (pages[pages.length - 1] !== '...') {
+            pages.push('...');
+        }
+    }
+    
+    return pages;
+};
+
 const CollectionsClient: React.FC<CollectionsClientProps> = ({
     categories
 }) => {
@@ -47,10 +64,43 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
         clearCustomization
     } = useCakeCustomization();
 
+    const searchParams = useSearchParams();
+    const pageParam = searchParams.get('page');
+
+    const [currentPage, setCurrentPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState('');
     const [isFetchingWebImage, setIsFetchingWebImage] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
+
+    useEffect(() => {
+        if (pageParam) {
+            const p = parseInt(pageParam, 10);
+            if (!isNaN(p) && p > 0) {
+                setCurrentPage(p);
+            }
+        } else {
+            setCurrentPage(1);
+        }
+    }, [pageParam]);
+
+    const totalPages = Math.ceil(categories.length / ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const paginatedCategories = categories.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+    const handlePageChange = useCallback((page: number) => {
+        if (page < 1 || page > totalPages) return;
+        setCurrentPage(page);
+        router.push(`/collections?page=${page}`, { scroll: false });
+        
+        // Scroll to popular categories grid
+        const gridElement = document.getElementById('categories-section');
+        if (gridElement) {
+            gridElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }, [router, totalPages]);
 
     useEffect(() => { setIsMounted(true); }, []);
 
@@ -201,10 +251,10 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
 
                     {/* Categories Grid */}
                     {categories.length > 0 && (
-                        <section className="mb-10">
+                        <section id="categories-section" className="mb-10 scroll-mt-24">
                             <h2 className="text-lg font-bold text-slate-800 mb-4">Popular Categories</h2>
                             <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                                {categories.map((cat) => (
+                                {paginatedCategories.map((cat) => (
                                     <Link
                                         key={cat.slug}
                                         href={`/collections/${cat.slug}`}
@@ -233,6 +283,63 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
                                     </Link>
                                 ))}
                             </div>
+
+                            {/* Pagination controls */}
+                            {totalPages > 1 && (
+                                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-6 border-t border-slate-100">
+                                    <p className="text-xs sm:text-sm text-slate-500 font-medium">
+                                        Showing <span className="font-bold text-slate-800">{startIndex + 1}</span> to{' '}
+                                        <span className="font-bold text-slate-800">
+                                            {Math.min(startIndex + ITEMS_PER_PAGE, categories.length)}
+                                        </span>{' '}
+                                        of <span className="font-bold text-slate-800">{categories.length}</span> categories
+                                    </p>
+                                    <nav className="flex items-center gap-1" aria-label="Pagination Navigation">
+                                        {/* Prev Button */}
+                                        <button
+                                            onClick={() => handlePageChange(currentPage - 1)}
+                                            disabled={currentPage === 1}
+                                            className="p-2 border border-slate-200 rounded-full text-slate-600 hover:bg-purple-50 hover:border-purple-200 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:border-slate-200 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                                            aria-label="Previous Page"
+                                        >
+                                            <ChevronLeft size={18} />
+                                        </button>
+                                        
+                                        {/* Page Numbers */}
+                                        {getPageNumbers(currentPage, totalPages).map((p, idx) => (
+                                            p === '...' ? (
+                                                <span key={`ellipsis-${idx}`} className="px-2 text-slate-400 text-sm select-none">
+                                                    ...
+                                                </span>
+                                            ) : (
+                                                <button
+                                                    key={`page-${p}`}
+                                                    onClick={() => handlePageChange(Number(p))}
+                                                    className={`min-w-[36px] h-[36px] flex items-center justify-center text-sm font-semibold rounded-full border transition-all cursor-pointer ${
+                                                        currentPage === p
+                                                            ? 'bg-purple-600 border-purple-600 text-white shadow-md hover:bg-purple-700'
+                                                            : 'bg-white border-slate-200 text-slate-700 hover:bg-purple-50 hover:border-purple-200'
+                                                    }`}
+                                                    aria-label={`Page ${p}`}
+                                                    aria-current={currentPage === p ? 'page' : undefined}
+                                                >
+                                                    {p}
+                                                </button>
+                                            )
+                                        ))}
+
+                                        {/* Next Button */}
+                                        <button
+                                            onClick={() => handlePageChange(currentPage + 1)}
+                                            disabled={currentPage === totalPages}
+                                            className="p-2 border border-slate-200 rounded-full text-slate-600 hover:bg-purple-50 hover:border-purple-200 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:border-slate-200 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                                            aria-label="Next Page"
+                                        >
+                                            <ChevronRight size={18} />
+                                        </button>
+                                    </nav>
+                                </div>
+                            )}
                         </section>
                     )}
 

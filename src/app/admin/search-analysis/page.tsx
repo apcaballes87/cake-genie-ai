@@ -616,7 +616,7 @@ export default function SearchAnalysisAdminPage() {
 
         setStatus('idle');
 
-        if (!isStoppedRef.current && isAutoModeRef.current && currentPageRef.current < 10) {
+        if (!isStoppedRef.current && isAutoModeRef.current && currentPageRef.current < 30) {
             const nextP = currentPageRef.current + 1;
             addLog(`✅ Page ${currentPageRef.current} complete. Advancing to page ${nextP}...`);
 
@@ -874,7 +874,7 @@ export default function SearchAnalysisAdminPage() {
                                 disabled={status !== 'idle' || !isCSELoaded}
                                 className="mt-3 w-full flex items-center justify-center px-4 py-3 bg-sky-700 text-white rounded-lg font-medium hover:bg-sky-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                {status === 'processing' && isOfflineCollectRef.current ? 'Collecting cache misses...' : 'Collect misses for offline batch (1-10 Pages)'}
+                                {status === 'processing' && isOfflineCollectRef.current ? 'Collecting cache misses...' : 'Collect misses for offline batch (1-30 Pages)'}
                             </button>
                             {isCSELoaded ? (
                                 <p className="text-sm text-green-600 mt-2 flex items-center">
@@ -926,7 +926,7 @@ export default function SearchAnalysisAdminPage() {
                                     ) : (
                                         <>
                                             <Play className="w-5 h-5 mr-2" />
-                                            Auto (1-10 Pages)
+                                            Auto (1-30 Pages)
                                         </>
                                     )}
                                 </button>
