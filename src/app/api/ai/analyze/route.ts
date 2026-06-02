@@ -4,7 +4,10 @@ import { createClient } from '@/lib/supabase/client';
 import { normalizeAiRouteError } from '@/lib/ai/routeError';
 import { buildSearchAnalysisGenerationConfig, postProcessSearchAnalysisResult } from '@/lib/admin/searchAnalysisContract';
 
-export const maxDuration = 60; // Allow up to 60 seconds for AI processing
+export const maxDuration = 300; // Allow up to 300 seconds (Vercel Pro) for AI processing
+
+// Abort ~5s before Vercel kills the function so we can return a clean 504.
+const AI_REQUEST_TIMEOUT_MS = Math.max(1000, (maxDuration - 5) * 1000);
 
 // Helper to get active prompt from Supabase (server-side)
 // Note: We're not using the complex caching logic from the client service here 
@@ -68,6 +71,7 @@ export async function POST(req: NextRequest) {
             }],
             config: {
                 ...buildSearchAnalysisGenerationConfig(typeEnums),
+                abortSignal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
             },
         });
 
