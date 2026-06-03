@@ -1,5 +1,23 @@
 # Tasks
 
+## Keep Image Studio Offline Continuation Advancing While Page Is Open
+
+### Plan
+
+- [x] Confirm why the image-studio offline batch can appear to stop even while the page is open.
+- [x] Update the client auto-refresh loop so it keeps calling the reconcile/continuation path instead of only reloading the latest batch snapshot.
+- [x] Guard against overlapping silent continuation requests.
+- [x] Run focused verification on the touched image-studio admin files.
+
+### Review
+
+- Confirmed the stop condition: while the page showed “watching progress,” the auto-refresh loop in `ImageStudioAdminClient` was only calling `loadOfflineBatch()` every 5 seconds, which reloaded status but did not advance the continuation pipeline.
+- Updated the auto-refresh loop in `src/app/admin/image-studio/ImageStudioAdminClient.tsx` so an open page now keeps calling the `PATCH /api/admin/image-studio-batch` reconcile path silently, which is the path that actually imports the next chunk and triggers the server-side continuation chain.
+- Added an in-flight ref guard so silent continuation calls cannot overlap and stampede the batch API.
+- Verification:
+  - `npx vitest run src/app/admin/image-studio/offlineBatchExecutionLog.test.ts src/app/api/admin/image-studio-batch/route.test.ts` passed.
+  - `npx eslint src/app/admin/image-studio/ImageStudioAdminClient.tsx src/app/admin/image-studio/offlineBatchExecutionLog.ts src/app/admin/image-studio/offlineBatchExecutionLog.test.ts` passed with only the repo's stale Browserslist notice.
+
 ## Add Execution Log To Image Studio Offline Batch Panel
 
 ### Plan

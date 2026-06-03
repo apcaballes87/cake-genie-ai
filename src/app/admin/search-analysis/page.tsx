@@ -92,6 +92,28 @@ function delay(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function getBatchRunLabel(run: SearchAnalysisBatchRun | null) {
+    if (!run) return 'No run yet';
+    return run.is_compatibility_probe ? 'Compatibility probe (first batch is capped at 3 items)' : 'Full batch (up to 1000 items)';
+}
+
+function getBatchRunStatusHint(run: SearchAnalysisBatchRun | null) {
+    if (!run) return null;
+    if (run.status === 'submitted') {
+        return 'Submitted means the items were sent to Vertex. Results are not in Genie.ph yet until refresh/import runs.';
+    }
+    if (run.status === 'importing') {
+        return 'Importing means Genie.ph is reading Vertex output and writing accepted results into the database.';
+    }
+    if (run.status === 'completed') {
+        return 'Completed means this batch finished importing into Genie.ph without import errors.';
+    }
+    if (run.status === 'completed_with_errors') {
+        return 'Completed with errors means the import finished, but some items failed or need retry.';
+    }
+    return null;
+}
+
 export default function SearchAnalysisAdminPage() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [pin, setPin] = useState('');
@@ -960,11 +982,15 @@ export default function SearchAnalysisAdminPage() {
                                 </button>
                             </div>
                             <div className="mt-4 text-sm text-gray-700 space-y-1">
+                                <p>Run type: {getBatchRunLabel(latestBatchRun)}</p>
                                 <p>Latest stage: {latestBatchRun?.status ?? 'No run yet'}</p>
-                                <p>Submitted: {latestBatchRun?.submitted_count ?? 0}</p>
-                                <p>Completed: {latestBatchRun?.completed_count ?? 0}</p>
+                                <p>Sent to Vertex: {latestBatchRun?.submitted_count ?? 0}</p>
+                                <p>Imported into Genie.ph: {latestBatchRun?.completed_count ?? 0}</p>
                                 <p>Failed: {latestBatchRun?.failed_count ?? 0}</p>
                                 <p>Retryable: {latestBatchRun?.retryable_count ?? 0}</p>
+                                {getBatchRunStatusHint(latestBatchRun) && (
+                                    <p className="text-gray-500">{getBatchRunStatusHint(latestBatchRun)}</p>
+                                )}
                                 {latestBatchRun?.status === 'importing' && (
                                     <p className="text-emerald-700">Import continues automatically while this page is open.</p>
                                 )}
@@ -972,12 +998,14 @@ export default function SearchAnalysisAdminPage() {
                             {batchHistory.length > 0 && (
                                 <div className="mt-4 overflow-x-auto text-xs text-gray-600">
                                     <table className="min-w-full">
-                                        <thead><tr><th className="pr-3 text-left">Submitted</th><th className="pr-3 text-left">Status</th><th className="pr-3 text-right">Done</th><th className="text-right">Failed</th></tr></thead>
+                                        <thead><tr><th className="pr-3 text-left">Submitted</th><th className="pr-3 text-left">Type</th><th className="pr-3 text-left">Status</th><th className="pr-3 text-right">Sent</th><th className="pr-3 text-right">Imported</th><th className="text-right">Failed</th></tr></thead>
                                         <tbody>
                                             {batchHistory.map((run) => (
                                                 <tr key={run.id}>
                                                     <td className="pr-3">{new Date(run.created_at).toLocaleString()}</td>
+                                                    <td className="pr-3">{run.is_compatibility_probe ? 'Probe (3)' : 'Full (1000)'}</td>
                                                     <td className="pr-3">{run.status}</td>
+                                                    <td className="pr-3 text-right">{run.submitted_count}</td>
                                                     <td className="pr-3 text-right">{run.completed_count}</td>
                                                     <td className="text-right">{run.failed_count}</td>
                                                 </tr>

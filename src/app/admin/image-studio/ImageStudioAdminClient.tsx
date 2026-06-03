@@ -155,6 +155,7 @@ export default function ImageStudioAdminClient() {
 
   const stopBatchRef = useRef(false);
   const offlineBatchRef = useRef<OfflineBatchRun | null>(null);
+  const offlineBatchContinuationInFlightRef = useRef(false);
 
   const pageSummary = useMemo(() => {
     const completed = records.filter(
@@ -343,13 +344,16 @@ export default function ImageStudioAdminClient() {
   };
 
   const reconcileOfflineBatch = useCallback(async (options?: { silent?: boolean }) => {
-    if (!offlineBatch) return;
+    const activeRun = offlineBatchRef.current;
+    if (!activeRun) return;
+    if (offlineBatchContinuationInFlightRef.current) return;
+    offlineBatchContinuationInFlightRef.current = true;
     if (!options?.silent) setOfflineBatchBusy(true);
     try {
       const response = await fetch('/api/admin/image-studio-batch', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'x-admin-pin': ADMIN_IMAGE_STUDIO_PIN },
-        body: JSON.stringify({ runId: offlineBatch.id }),
+        body: JSON.stringify({ runId: activeRun.id }),
       });
       const payload = (await response.json()) as { run?: OfflineBatchRun; result?: OfflineBatchContinuationResult; error?: string };
       if (!response.ok || !payload.run) throw new Error(payload.error || 'Failed to refresh offline batch.');
@@ -371,21 +375,22 @@ export default function ImageStudioAdminClient() {
       setOfflineBatchAutoRefresh(false);
       setOfflineBatchContinuationError(message);
       appendOfflineBatchLogEntries([
-        createOfflineBatchLogEntry(offlineBatchRef.current?.id ?? offlineBatch.id, 'error', `Continuation paused: ${message}`),
+        createOfflineBatchLogEntry(offlineBatchRef.current?.id ?? activeRun.id, 'error', `Continuation paused: ${message}`),
       ]);
       if (!options?.silent) toast.error(message);
     } finally {
+      offlineBatchContinuationInFlightRef.current = false;
       if (!options?.silent) setOfflineBatchBusy(false);
     }
-  }, [appendOfflineBatchLogEntries, loadOfflineBatch, offlineBatch, refreshRecords]);
+  }, [appendOfflineBatchLogEntries, loadOfflineBatch, refreshRecords]);
 
   useEffect(() => {
     if (!isAuthenticated || !offlineBatchAutoRefresh) return;
     const timer = window.setInterval(() => {
-      void loadOfflineBatch().then(() => refreshRecords());
+      void reconcileOfflineBatch({ silent: true });
     }, 5000);
     return () => window.clearInterval(timer);
-  }, [isAuthenticated, loadOfflineBatch, offlineBatch, offlineBatchAutoRefresh, reconcileOfflineBatch, refreshRecords]);
+  }, [isAuthenticated, offlineBatchAutoRefresh, reconcileOfflineBatch]);
 
   useEffect(() => {
     if (!offlineBatch || offlineBatch.stage === 'complete') {
