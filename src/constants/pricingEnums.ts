@@ -77,6 +77,7 @@ export const SUPPORT_ELEMENT_TYPES = [
     'icing_decorations',
     'edible_3d_ordinary',
     'printout',
+    'satin_ribbon',
 ] as const;
 export type SupportElementTypeEnum = typeof SUPPORT_ELEMENT_TYPES[number];
 

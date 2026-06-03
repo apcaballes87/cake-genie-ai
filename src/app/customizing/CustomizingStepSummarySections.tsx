@@ -170,6 +170,7 @@ const supportMaterialLabelMap: Record<SupportElementType, string> = {
     edible_3d_ordinary: 'Gumpaste (3D Ordinary)',
     fresh_flowers: 'Fresh Flowers',
     artificial_flowers: 'Artificial Flowers',
+    satin_ribbon: 'Satin/Organza Ribbon',
 };
 
 export const THEME_COLORS = [

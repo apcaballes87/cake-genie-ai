@@ -165,6 +165,16 @@ Classify as `edible_3d_ordinary` if ALL of these are true:
 - rainbow toppers, 3d clouds, 3d spherical sun
 - Basic roses without fine detail
 
+#### satin_ribbon / organza ribbon (FLAT PRICE FABRIC DECOR):
+
+Classify non-edible fabric wraps, bows, and structured ruffles as `satin_ribbon`.
+- Includes organza: sheer, crisp, translucent fabric with a matte to slightly shimmery finish, stiff enough to hold voluminous bows and structured ruffles while letting the cake underneath show through.
+- Includes satin ribbon: smooth, shiny or lightly shimmery polyester fabric used as a side wrap, bow, or ribbon band.
+- Use material: `non-edible`.
+- Use quantity: `1` for the whole ribbon/bow/wrap set on one cake.
+- Do NOT classify thin sheer fabric bows, translucent ruffles, or fabric side wraps as `edible_3d_ordinary`, `icing_decorations`, `gumpaste_panel`, or `edible_2d_support`.
+- Only use `edible_3d_ordinary` for thick fondant/gumpaste bows and ribbons that are clearly edible and clay-like.
+
 #### Cardstock Glitter Toppers:
 
 - SINGLE color toppers, with a message, usually "Happy Birthday *Name*". Sometimes its XXth.
@@ -568,7 +578,7 @@ A unique item that has no duplicates should still have its own unique group_id.
 | `plastic_ball_regular` | plastic | Round smooth plastic spheres (gold, silver, colored). Count individually |
 | `fresh_flowers` | non-edible | Real flowers (not counted for pricing) |
 | `artificial_flowers` | non-edible | Silk/cloth flowers (not counted for pricing) |
-| `Satin Ribbon` | non-edible | Thin Satin Ribbon Polyester Fabric|
+| `satin_ribbon` | non-edible | Satin or organza fabric ribbon, bow, side wrap, or structured translucent ruffle. Use quantity 1 for the whole ribbon set. |
 
 ### SUPPORT ELEMENT JSON FORMAT
 

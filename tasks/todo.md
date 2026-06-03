@@ -1,5 +1,57 @@
 # Tasks
 
+## Review AI Cake Analysis Prompt, Schema, And Pricing Rules
+
+### Plan
+
+- [x] Review project lessons for AI prompt editing and exact-user-wording constraints.
+- [x] Trace the live `/api/ai/analyze` path from upload request through prompt fetch, schema config, post-processing, and frontend consumption.
+- [x] Identify where the shared analysis schema is defined and which offline/admin analysis flows reuse it.
+- [x] Trace how an accepted analysis is mapped into pricing state and how `pricing_rules` are applied.
+- [x] Compare the user's provided image, current prompt, and AI output against the real schema and pricing behavior.
+- [x] Propose and implement scoped prompt, schema, and pricing-rule changes.
+- [x] Verify with focused tests or a rerun using the supplied case, then document results here.
+
+### Review
+
+- Supplied design: `/customizing/blue-butterfly-white-1-tier-cake-ff3f`.
+- Live cache already classified the sheer blue fabric ruffle/bow as `support_elements[0].type = "satin_ribbon"`, but the live pricing rule for `satin_ribbon` was `0`, and local TypeScript/UI enums were missing the support type in several canonical places.
+- Added `satin_ribbon` as a first-class support element in local types, pricing enums, customizer display labels, the v3.8 prompt file, and the fallback prompt.
+- Updated the active Supabase prompt by adding organza/satin recognition text to the existing prompt row only. No existing prompt text was deleted or replaced from a local file.
+- Updated live `pricing_rules.rule_id = 179` for `satin_ribbon` to a flat `100` price, with no size, quantity, tier, cake type, or cake-size multiplier.
+- Added migration `supabase/migrations/20260603120000_add_satin_ribbon_pricing.sql` using update-then-insert logic because `pricing_rules.item_key` is not unique on the live table.
+- Recalculated the supplied design: base price `1199`, ribbon add-on `100`, total `1299`; updated the cache row price to `1299`.
+- Verification:
+  - `npx vitest run src/services/pricingService.database.test.ts` passed.
+  - `npx eslint src/constants/pricingEnums.ts src/components/TopperCard.tsx src/app/customizing/CustomizingStepSummarySections.tsx src/services/pricingService.database.test.ts` passed with pre-existing warnings only in `CustomizingStepSummarySections.tsx`.
+  - Full `npx tsc --noEmit --pretty false` still fails on unrelated pre-existing test typing errors across blog/customizer/robots/image utility tests.
+
+## Research Cebu Long-Tail Cake Keywords
+
+### Plan
+
+- [x] Confirm the available DataForSEO keyword/location tooling and use the closest Cebu-relevant targeting available.
+- [x] Generate seed keywords across rush, customization, delivery-app replacement, location, cake type, recipient, occasion, budget, and local-language intent buckets.
+- [x] Validate and expand the shortlist with DataForSEO metrics where available, keeping Cebu/local modifiers in the keyword text even if volume is Philippines-level.
+- [x] Prioritize high-intent terms for Genie.ph based on urgency, customization, delivery intent, and likely ability to displace GrabFood/Foodpanda/Facebook sellers/traditional cake shops.
+- [x] Document the keyword findings, recommended buckets, exclusions, and caveats in this task review.
+
+### Review
+
+- DataForSEO Labs keyword suggestions and Google Ads search-volume calls both returned HTTP 402, so this run could not produce DataForSEO-validated metrics.
+- The DataForSEO Labs tools exposed country-only targeting for keyword expansion, while the DataForSEO Google Ads volume tool accepts hierarchical locations like `Cebu City,Central Visayas,Philippines`; the latter was attempted but also hit HTTP 402.
+- A fallback Keyword Planner call using `languageConstants/1000` returned seed validation:
+  - `money cake cebu`: 110 average monthly searches, LOW competition.
+  - `cake delivery cebu`: 70 average monthly searches, HIGH competition.
+  - `bento cake cebu`: 50 average monthly searches, LOW competition.
+  - `minimalist cake cebu`: 10 average monthly searches.
+  - `birthday cake delivery cebu`: 10 average monthly searches, LOW competition.
+  - `order cake online cebu`: 10 average monthly searches, HIGH competition.
+  - `fondant cake cebu`: 10 average monthly searches.
+  - `money cake in cebu city`: 10 average monthly searches, LOW competition.
+- Most ultra-long-tail rush, location, recipient, occasion, budget, and Cebuano/Taglish phrases returned zero measured volume in the fallback planner, but they remain useful for high-intent capture in ad groups, internal search-analysis prompts, FAQ/body copy, and conversion-focused page sections.
+- SEO caution from prior collection strategy still applies: do not auto-create thin city/neighborhood collection pages from these modifiers. Use local modifiers in copy, internal search, paid search, and only publish indexable pages when they have enough distinct stocked designs and real demand.
+
 ## Keep Image Studio Offline Continuation Advancing While Page Is Open
 
 ### Plan

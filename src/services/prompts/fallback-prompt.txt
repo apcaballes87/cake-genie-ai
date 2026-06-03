@@ -287,7 +287,8 @@ A unique item that has no duplicates should still have its own unique group_id.
 | `icing_decorations`| icing | simple icing decorations that are made by piping and icing with a star tip on the cake. ALL SWIRLS and dollops on the cake, are icing_decorations|
 | `printout` | photopaper| Glossy paper, inkjet quality, thin cutout, multi-color, photos, logos, clipart, fonts, branding, 3D-rendered graphics on flat surface  |
 | `edible_2d_support` | `edible_fondant` | Flat fondant shapes: stars/hearts; depth <2mm, usually tiny and small size, gumpaste at the top, sides and at the base of the cake |
-| `edible_3d_ordinary`| `edible_fondant` | tiny and small 3d edible items|
+| `edible_3d_ordinary`| `edible_fondant` | tiny and small 3d edible items. Use only for thick fondant/gumpaste bows or ribbons, not fabric ribbon. |
+| `satin_ribbon`| non-edible | Satin or organza fabric ribbon, bow, side wrap, or structured translucent ruffle. Organza is sheer, crisp, translucent, matte to slightly shimmery, and stiff enough to hold voluminous bows while the cake underneath shows through. Use quantity 1 for the whole ribbon set. |
 
 ---
 

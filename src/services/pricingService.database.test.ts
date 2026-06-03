@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CakeInfoUI, CakeMessageUI, IcingDesignUI, PricingRule } from '@/types';
+import type { CakeInfoUI, CakeMessageUI, IcingDesignUI, MainTopperUI, PricingRule, SupportElementUI } from '@/types';
 
 const pricingRows: PricingRule[] = [
   {
@@ -50,6 +50,22 @@ const pricingRows: PricingRule[] = [
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
   },
+  {
+    rule_id: 4,
+    item_key: 'satin_ribbon',
+    item_type: 'satin_ribbon',
+    classification: 'support',
+    size: null,
+    description: 'Satin or organza fabric ribbon',
+    price: 100,
+    category: 'support_element',
+    quantity_rule: null,
+    multiplier_rule: null,
+    special_conditions: null,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+  },
 ];
 
 vi.mock('@/lib/supabase/client', () => ({
@@ -75,7 +91,7 @@ describe('calculatePriceFromDatabase', () => {
 
     const message: CakeMessageUI = {
       id: 'message-1',
-      type: 'icing_text',
+      type: 'icing_text' as CakeMessageUI['type'],
       text: 'Happy Birthday',
       quantity: 1,
       isEnabled: true,
@@ -104,7 +120,7 @@ describe('calculatePriceFromDatabase', () => {
       quantity: 1,
       isEnabled: true,
       size: 'medium',
-    } as any;
+    } as MainTopperUI;
 
     // Test Bento
     const resBento = await calculatePriceFromDatabase({
@@ -135,5 +151,30 @@ describe('calculatePriceFromDatabase', () => {
       cakeInfo: { type: '1 Tier', size: '8" Round' } as CakeInfoUI,
     });
     expect(res8in.itemPrices.get('topper-1')).toBe(200);
+  });
+
+  it('prices satin or organza ribbon as a flat support element regardless of cake size', async () => {
+    const { calculatePriceFromDatabase } = await import('./pricingService.database');
+
+    const ribbon = {
+      id: 'ribbon-1',
+      type: 'satin_ribbon',
+      material: 'non-edible',
+      description: 'light blue organza fabric ruffle and bow wrap',
+      quantity: 1,
+      isEnabled: true,
+      size: 'large',
+    } as SupportElementUI;
+
+    const { addOnPricing, itemPrices } = await calculatePriceFromDatabase({
+      mainToppers: [],
+      supportElements: [ribbon],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: '3 Tier', size: '10" Round' } as CakeInfoUI,
+    });
+
+    expect(itemPrices.get('ribbon-1')).toBe(100);
+    expect(addOnPricing.addOnPrice).toBe(100);
   });
 });
