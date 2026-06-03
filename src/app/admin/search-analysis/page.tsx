@@ -13,7 +13,10 @@ import {
 
 const ADMIN_PIN = '231323';
 const CSE_CONTAINER_ID = 'admin-search-container';
-const CSE_CX = '825ca1503c1bd4d00';
+const CSE_OPTIONS = [
+    { id: 'primary', cx: '825ca1503c1bd4d00', label: 'Account 1' },
+    { id: 'secondary', cx: 'c2a4e68c125c04ab3', label: 'Account 2' },
+];
 const SEARCH_ANALYSIS_BETWEEN_AI_ITEMS_DELAY_MS = 5000;
 type SearchAnalysisBatchRun = {
     id: string;
@@ -120,6 +123,7 @@ export default function SearchAnalysisAdminPage() {
     const [searchInput, setSearchInput] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [isCSELoaded, setIsCSELoaded] = useState(false);
+    const [isLoadingCSE, setIsLoadingCSE] = useState(false);
     const [status, setStatus] = useState<'idle' | 'processing' | 'paused'>('idle');
     const [progress, setProgress] = useState({ current: 0, total: 0 });
     const [logs, setLogs] = useState<string[]>([]);
@@ -128,6 +132,7 @@ export default function SearchAnalysisAdminPage() {
     const [batchHistory, setBatchHistory] = useState<SearchAnalysisBatchRun[]>([]);
     const [isBatchActionPending, setIsBatchActionPending] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
+    const [selectedCseIndex, setSelectedCseIndex] = useState(0);
     const currentPageRef = useRef(1);
     const isAutoModeRef = useRef(false);
     const isOfflineCollectRef = useRef(false);
@@ -732,61 +737,76 @@ export default function SearchAnalysisAdminPage() {
         void processImages(true, true);
     };
 
-    // Load Google CSE script on mount
+    // Load Google CSE script on mount or when selected CSE changes
     useEffect(() => {
         if (!isAuthenticated) return;
+        setIsCSELoaded(false);
+        setIsLoadingCSE(true);
+        cseElementRef.current = null;
 
+        // Clear the container
+        const container = document.getElementById(CSE_CONTAINER_ID);
+        if (container) container.innerHTML = '';
+
+        // Remove old CSE remnants from window
         if (window.google?.search?.cse) {
-            setIsCSELoaded(true);
-            return;
+            (window.google.search as any).cse = undefined;
         }
+        window.__gcse = undefined;
 
-        if (window.__gcse || document.getElementById('admin-search-cse-script')) {
-            const checkInterval = setInterval(() => {
-                if (window.google?.search?.cse) {
-                    setIsCSELoaded(true);
-                    clearInterval(checkInterval);
-                }
-            }, 100);
+        // Remove old CSE script if present
+        const oldScript = document.getElementById('admin-search-cse-script');
+        if (oldScript) oldScript.remove();
 
-            const timeout = setTimeout(() => clearInterval(checkInterval), 10000);
-            return () => {
-                clearInterval(checkInterval);
-                clearTimeout(timeout);
-            };
-        }
+        // Remove old CSE stylesheets added by Google
+        document.querySelectorAll('link[href*="cse.google"]').forEach(el => el.remove());
+
+        const cx = CSE_OPTIONS[selectedCseIndex].cx;
 
         window.__gcse = {
             parsetags: 'explicit',
             callback: () => {
                 if (window.google?.search?.cse) {
                     setIsCSELoaded(true);
+                    setIsLoadingCSE(false);
                 }
             }
         };
 
         const script = document.createElement('script');
-        script.src = `https://cse.google.com/cse.js?cx=${CSE_CX}`;
+        script.src = `https://cse.google.com/cse.js?cx=${cx}`;
         script.async = true;
         script.id = 'admin-search-cse-script';
         document.head.appendChild(script);
 
+        // Reset search state
+        setSearchQuery('');
+        setSearchInput('');
+        setCurrentPage(1);
+        currentPageRef.current = 1;
+        imageQueueRef.current = [];
+        processedUrlsRef.current = new Set();
+        seenPHashesRef.current = new Set();
+        setStudioQueueReadyItems([]);
+
         return () => {
-            // Don't remove script to preserve state
+            // Don't remove script to preserve state across re-renders within same CSE
         };
-    }, [isAuthenticated]);
+    }, [isAuthenticated, selectedCseIndex]);
 
     // Execute search when searchQuery changes
     useEffect(() => {
         if (!searchQuery || !isCSELoaded || !isAuthenticated) return;
+
+        const gname = `admin-image-search-${CSE_OPTIONS[selectedCseIndex].id}`;
 
         const render = () => {
             if (!cseElementRef.current && window.google?.search?.cse?.element) {
                 cseElementRef.current = window.google.search.cse.element.render({
                     div: CSE_CONTAINER_ID,
                     tag: 'searchresults-only',
-                    gname: 'admin-image-search',
-                    attributes: { searchType: 'image', disableWebSearch: true, imageSearchLayout: 'popup' }
+                    gname,
+                    attributes: { searchType: 'image', disableWebSearch: true, imageSearchLayout: 'popup' },
                 });
             }
 
@@ -795,14 +815,14 @@ export default function SearchAnalysisAdminPage() {
                 imageQueueRef.current = [];
                 processedUrlsRef.current = new Set();
                 setProgress({ current: 0, total: 0 });
-                addLog(`Executing search for: "${searchQuery}"`);
+                addLog(`Executing search for: "${searchQuery}" [${CSE_OPTIONS[selectedCseIndex].label}]`);
             } else {
                 setTimeout(render, 100);
             }
         };
 
         render();
-    }, [searchQuery, isCSELoaded, isAuthenticated, addLog]);
+    }, [searchQuery, isCSELoaded, isAuthenticated, selectedCseIndex, addLog]);
 
     // No background mutation observer. Images are collected strictly on-demand when processing starts.
 
@@ -860,6 +880,22 @@ export default function SearchAnalysisAdminPage() {
                         {/* Search Section */}
                         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                             <h2 className="text-lg font-semibold text-gray-800 mb-4">1. Search Images</h2>
+                            {/* CSE Toggle */}
+                            <div className="flex mb-4 bg-gray-100 rounded-lg p-1">
+                                {CSE_OPTIONS.map((opt, idx) => (
+                                    <button
+                                        key={opt.id}
+                                        onClick={() => setSelectedCseIndex(idx)}
+                                        disabled={status === 'processing'}
+                                        className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${selectedCseIndex === idx
+                                                ? 'bg-white text-gray-900 shadow-sm'
+                                                : 'text-gray-500 hover:text-gray-700'
+                                            } disabled:opacity-50`}
+                                    >
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
                             <div className="flex space-x-2">
                                 <input
                                     type="text"
@@ -871,7 +907,7 @@ export default function SearchAnalysisAdminPage() {
                                 />
                                 <button
                                     onClick={handleSearch}
-                                    disabled={!isCSELoaded || status === 'processing'}
+                                    disabled={!isCSELoaded || status === 'processing' || isLoadingCSE}
                                     className="flex items-center px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary-dark transition-colors disabled:opacity-50"
                                 >
                                     <Search className="w-5 h-5" />
@@ -887,8 +923,10 @@ export default function SearchAnalysisAdminPage() {
                             {isCSELoaded ? (
                                 <p className="text-sm text-green-600 mt-2 flex items-center">
                                     <CheckCircle2 className="w-4 h-4 mr-1" />
-                                    Search engine ready
+                                    {CSE_OPTIONS[selectedCseIndex].label} ready
                                 </p>
+                            ) : isLoadingCSE ? (
+                                <p className="text-sm text-yellow-600 mt-2">Loading {CSE_OPTIONS[selectedCseIndex].label}...</p>
                             ) : (
                                 <p className="text-sm text-yellow-600 mt-2">Loading search engine...</p>
                             )}
