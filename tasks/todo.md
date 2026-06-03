@@ -1,5 +1,25 @@
 # Tasks
 
+## Add Execution Log To Image Studio Offline Batch Panel
+
+### Plan
+
+- [x] Inspect the existing `/admin/image-studio` offline batch UI, continuation flow, and API payloads to find the strongest real progress signals.
+- [x] Add a small helper that turns batch state transitions and continuation responses into readable execution-log entries.
+- [x] Render an execution log inside the Low-cost offline batch card, including submit, waiting, import progress, stage transition, completion, and error entries.
+- [x] Persist the log in session storage so a page refresh does not erase the current run narrative.
+- [x] Add focused tests for the new log helper and run targeted verification.
+
+### Review
+
+- Added `src/app/admin/image-studio/offlineBatchExecutionLog.ts` so the UI can convert real offline-batch state transitions into readable execution entries like submit, import start, import progress, mask-stage submission, completion, and paused/error states.
+- Updated `src/app/admin/image-studio/ImageStudioAdminClient.tsx` so the Low-cost offline batch card now shows a dedicated Execution log panel, records entries from submit/load/refresh/poll events, and persists the current session log in `sessionStorage`.
+- The log uses actual run transitions and reconcile results from the batch APIs rather than static text, so it reflects what the server is really doing as the offline continuation advances.
+- Added focused tests in `src/app/admin/image-studio/offlineBatchExecutionLog.test.ts`.
+- Verification:
+  - `npx vitest run src/app/admin/image-studio/offlineBatchExecutionLog.test.ts src/app/api/admin/image-studio-batch/route.test.ts` passed.
+  - `npx eslint src/app/admin/image-studio/ImageStudioAdminClient.tsx src/app/admin/image-studio/offlineBatchExecutionLog.ts src/app/admin/image-studio/offlineBatchExecutionLog.test.ts` passed with only the repo's stale Browserslist notice.
+
 ## Clarify Missing GCS IAM For Vertex Batch Runtime
 
 ### Plan

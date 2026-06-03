@@ -29,6 +29,12 @@ import {
   isImageStudioSmallImage,
   normalizeImageStudioStatus,
 } from '@/lib/admin/imageStudio';
+import {
+  buildOfflineBatchTransitionLogEntries,
+  createOfflineBatchLogEntry,
+  type OfflineBatchContinuationResult,
+  type OfflineBatchExecutionLogEntry,
+} from './offlineBatchExecutionLog';
 
 type StatusFilter = 'all' | ImageStudioStatus;
 type SizeFilter = 'all' | 'small';
@@ -53,6 +59,7 @@ type OfflineBatchRun = {
 };
 
 const SESSION_KEY = 'genie-admin-image-studio-auth';
+const OFFLINE_BATCH_LOGS_KEY = 'genie-admin-image-studio-offline-batch-logs';
 // Wait longer between auto-edit submissions so the background AI/image pipeline
 // has time to breathe and we avoid piling into shared rate limits.
 const AUTO_EDIT_DELAY_MS = 30000;
@@ -144,8 +151,10 @@ export default function ImageStudioAdminClient() {
   const [offlineBatchBusy, setOfflineBatchBusy] = useState(false);
   const [offlineBatchAutoRefresh, setOfflineBatchAutoRefresh] = useState(false);
   const [offlineBatchContinuationError, setOfflineBatchContinuationError] = useState<string | null>(null);
+  const [offlineBatchExecutionLog, setOfflineBatchExecutionLog] = useState<OfflineBatchExecutionLogEntry[]>([]);
 
   const stopBatchRef = useRef(false);
+  const offlineBatchRef = useRef<OfflineBatchRun | null>(null);
 
   const pageSummary = useMemo(() => {
     const completed = records.filter(
@@ -213,8 +222,27 @@ export default function ImageStudioAdminClient() {
     const storedAuth =
       typeof window !== 'undefined' ? sessionStorage.getItem(SESSION_KEY) === '1' : false;
     setIsAuthenticated(storedAuth);
+    if (typeof window !== 'undefined') {
+      try {
+        const storedLog = sessionStorage.getItem(OFFLINE_BATCH_LOGS_KEY);
+        if (storedLog) {
+          setOfflineBatchExecutionLog(JSON.parse(storedLog) as OfflineBatchExecutionLogEntry[]);
+        }
+      } catch {
+        sessionStorage.removeItem(OFFLINE_BATCH_LOGS_KEY);
+      }
+    }
     setIsBooting(false);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    sessionStorage.setItem(OFFLINE_BATCH_LOGS_KEY, JSON.stringify(offlineBatchExecutionLog.slice(0, 80)));
+  }, [offlineBatchExecutionLog]);
+
+  useEffect(() => {
+    offlineBatchRef.current = offlineBatch;
+  }, [offlineBatch]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -251,15 +279,34 @@ export default function ImageStudioAdminClient() {
     setRefreshTick((value) => value + 1);
   }, []);
 
+  const appendOfflineBatchLogEntries = useCallback((entries: OfflineBatchExecutionLogEntry[]) => {
+    if (!entries.length) return;
+    setOfflineBatchExecutionLog((current) => {
+      const seen = new Set(current.map((entry) => entry.id));
+      const next = [...entries.filter((entry) => !seen.has(entry.id)), ...current];
+      return next.slice(0, 80);
+    });
+  }, []);
+
   const loadOfflineBatch = useCallback(async () => {
     const response = await fetch('/api/admin/image-studio-batch', {
       headers: { 'x-admin-pin': ADMIN_IMAGE_STUDIO_PIN },
     });
     const payload = (await response.json()) as { run?: OfflineBatchRun | null; history?: OfflineBatchRun[]; error?: string };
     if (!response.ok) throw new Error(payload.error || 'Failed to load offline batch.');
+    const timestamp = new Date().toISOString();
+    const nextRun = payload.run ?? null;
+    if (nextRun) {
+      appendOfflineBatchLogEntries(buildOfflineBatchTransitionLogEntries({
+        prevRun: offlineBatchRef.current,
+        nextRun,
+        timestamp,
+        source: 'load',
+      }));
+    }
     setOfflineBatch(payload.run ?? null);
     setOfflineBatchHistory(payload.history ?? []);
-  }, []);
+  }, [appendOfflineBatchLogEntries]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -276,10 +323,19 @@ export default function ImageStudioAdminClient() {
       });
       const payload = (await response.json()) as { run?: OfflineBatchRun; error?: string };
       if (!response.ok || !payload.run) throw new Error(payload.error || 'Failed to submit offline batch.');
+      appendOfflineBatchLogEntries(buildOfflineBatchTransitionLogEntries({
+        prevRun: offlineBatchRef.current,
+        nextRun: payload.run,
+        timestamp: new Date().toISOString(),
+        source: 'submit',
+      }));
       setOfflineBatch(payload.run);
       await loadOfflineBatch();
       toast.success(`Submitted ${payload.run.total_requests} images for offline batch processing.`);
     } catch (error) {
+      appendOfflineBatchLogEntries([
+        createOfflineBatchLogEntry(offlineBatchRef.current?.id ?? 'image-studio-offline-batch', 'error', getErrorMessage(error)),
+      ]);
       toast.error(getErrorMessage(error));
     } finally {
       setOfflineBatchBusy(false);
@@ -295,8 +351,15 @@ export default function ImageStudioAdminClient() {
         headers: { 'Content-Type': 'application/json', 'x-admin-pin': ADMIN_IMAGE_STUDIO_PIN },
         body: JSON.stringify({ runId: offlineBatch.id }),
       });
-      const payload = (await response.json()) as { run?: OfflineBatchRun; error?: string };
+      const payload = (await response.json()) as { run?: OfflineBatchRun; result?: OfflineBatchContinuationResult; error?: string };
       if (!response.ok || !payload.run) throw new Error(payload.error || 'Failed to refresh offline batch.');
+      appendOfflineBatchLogEntries(buildOfflineBatchTransitionLogEntries({
+        prevRun: offlineBatchRef.current,
+        nextRun: payload.run,
+        result: payload.result,
+        timestamp: new Date().toISOString(),
+        source: options?.silent ? 'poll' : 'refresh',
+      }));
       setOfflineBatch(payload.run);
       await loadOfflineBatch();
       setOfflineBatchAutoRefresh(payload.run.stage !== 'complete');
@@ -307,11 +370,14 @@ export default function ImageStudioAdminClient() {
       const message = getErrorMessage(error);
       setOfflineBatchAutoRefresh(false);
       setOfflineBatchContinuationError(message);
+      appendOfflineBatchLogEntries([
+        createOfflineBatchLogEntry(offlineBatchRef.current?.id ?? offlineBatch.id, 'error', `Continuation paused: ${message}`),
+      ]);
       if (!options?.silent) toast.error(message);
     } finally {
       if (!options?.silent) setOfflineBatchBusy(false);
     }
-  }, [loadOfflineBatch, offlineBatch, refreshRecords]);
+  }, [appendOfflineBatchLogEntries, loadOfflineBatch, offlineBatch, refreshRecords]);
 
   useEffect(() => {
     if (!isAuthenticated || !offlineBatchAutoRefresh) return;
@@ -853,6 +919,50 @@ export default function ImageStudioAdminClient() {
                 Continuation paused: {offlineBatchContinuationError}
               </p>
             ) : null}
+            <div className="mt-5 rounded-2xl border border-fuchsia-100 bg-white">
+              <div className="flex items-center justify-between border-b border-fuchsia-100 px-4 py-3">
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">Execution log</p>
+                  <p className="text-xs text-slate-500">Live run notes for submit, import, stage changes, and pauses.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setOfflineBatchExecutionLog([])}
+                  className="text-xs font-semibold text-fuchsia-700 transition hover:text-fuchsia-900"
+                >
+                  Clear
+                </button>
+              </div>
+              {offlineBatchExecutionLog.length > 0 ? (
+                <div className="max-h-72 overflow-y-auto px-4 py-2">
+                  <ul className="space-y-2">
+                    {offlineBatchExecutionLog.map((entry) => (
+                      <li key={entry.id} className="rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2 text-sm">
+                        <div className="flex items-start gap-3">
+                          <span
+                            className={`mt-1 inline-block size-2 rounded-full ${
+                              entry.level === 'success'
+                                ? 'bg-emerald-500'
+                                : entry.level === 'error'
+                                  ? 'bg-rose-500'
+                                  : 'bg-fuchsia-500'
+                            }`}
+                          />
+                          <div className="min-w-0">
+                            <p className="text-slate-800">{entry.message}</p>
+                            <p className="mt-1 text-xs text-slate-500">{formatDate(entry.timestamp)}</p>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <p className="px-4 py-4 text-sm text-slate-500">
+                  No execution log yet. Submit a batch or press refresh continuation to start recording steps.
+                </p>
+              )}
+            </div>
 
             {offlineBatchHistory.length > 0 ? (
               <div className="mt-5 overflow-x-auto rounded-2xl border border-fuchsia-100 bg-white">
