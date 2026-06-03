@@ -13,7 +13,7 @@ type AIClientConfigState = {
     project: string;
     location: string;
     apiKey?: string;
-    parsedCredentials: Record<string, any> | null;
+    parsedCredentials: Record<string, unknown> | null;
     hasLegacyServiceAccount: boolean;
     oidcTokenPath: string | null;
     runtimeOidcToken: string | null;
@@ -34,7 +34,10 @@ function logAIClientInitialization(details: Record<string, unknown>) {
 }
 
 function getRuntimeOidcToken(requestContext?: AIRequestContext) {
-    return requestContext?.headers?.get('x-vercel-oidc-token') ?? null;
+    const rawToken = requestContext?.headers?.get('x-vercel-oidc-token') ?? process.env.VERCEL_OIDC_TOKEN ?? null;
+    const token = rawToken?.trim();
+    if (!token) return null;
+    return token.startsWith('Bearer ') ? token.slice('Bearer '.length).trim() : token;
 }
 
 function writeVercelOidcToken(token: string | null, oidcTokenPath: string | null) {
@@ -49,6 +52,15 @@ function writeVercelOidcToken(token: string | null, oidcTokenPath: string | null
     }
 }
 
+function getCredentialSourceFile(credentials: Record<string, unknown> | null) {
+    const credentialSource = credentials?.credential_source;
+    if (!credentialSource || typeof credentialSource !== 'object') {
+        return null;
+    }
+    const file = (credentialSource as { file?: unknown }).file;
+    return typeof file === 'string' ? file : null;
+}
+
 function getAIClientConfigState(requestContext?: AIRequestContext): AIClientConfigState {
     const project = process.env.VERTEX_AI_PROJECT || 'project-d823a677-2d5f-4826-aaf';
     const location = process.env.VERTEX_AI_LOCATION || 'global';
@@ -58,8 +70,8 @@ function getAIClientConfigState(requestContext?: AIRequestContext): AIClientConf
     const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
     const hasLegacyServiceAccount = Boolean(clientEmail && privateKey);
     const isDevelopment = process.env.NODE_ENV !== 'production';
-    const runtimeOidcToken = getRuntimeOidcToken(requestContext) || process.env.VERCEL_OIDC_TOKEN || null;
-    let parsedCredentials: Record<string, any> | null = null;
+    const runtimeOidcToken = getRuntimeOidcToken(requestContext);
+    let parsedCredentials: Record<string, unknown> | null = null;
 
     if (credentialsJson) {
         try {
@@ -69,10 +81,7 @@ function getAIClientConfigState(requestContext?: AIRequestContext): AIClientConf
         }
     }
 
-    const oidcTokenPath =
-        typeof parsedCredentials?.credential_source?.file === 'string'
-            ? parsedCredentials.credential_source.file
-            : null;
+    const oidcTokenPath = getCredentialSourceFile(parsedCredentials);
     const needsOidcTokenFile =
         parsedCredentials?.type === 'external_account' && Boolean(oidcTokenPath);
     const hasOidcTokenSource =
@@ -115,7 +124,7 @@ export const getAI = (requestContext?: AIRequestContext) => {
     if (!ai) {
         aiClientMode = state.mode;
 
-        const options: any = state.useApiKeyFallback
+        const options: ConstructorParameters<typeof GoogleGenAI>[0] = state.useApiKeyFallback
             ? { apiKey: state.apiKey }
             : {
                 vertexai: true,

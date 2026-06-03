@@ -143,6 +143,7 @@ export default function ImageStudioAdminClient() {
   const [offlineBatchHistory, setOfflineBatchHistory] = useState<OfflineBatchRun[]>([]);
   const [offlineBatchBusy, setOfflineBatchBusy] = useState(false);
   const [offlineBatchAutoRefresh, setOfflineBatchAutoRefresh] = useState(false);
+  const [offlineBatchContinuationError, setOfflineBatchContinuationError] = useState<string | null>(null);
 
   const stopBatchRef = useRef(false);
 
@@ -299,10 +300,14 @@ export default function ImageStudioAdminClient() {
       setOfflineBatch(payload.run);
       await loadOfflineBatch();
       setOfflineBatchAutoRefresh(payload.run.stage !== 'complete');
+      setOfflineBatchContinuationError(null);
       refreshRecords();
       if (!options?.silent) toast.success(`Batch continuation started: ${payload.run.stage} / ${payload.run.status}`);
     } catch (error) {
-      if (!options?.silent) toast.error(getErrorMessage(error));
+      const message = getErrorMessage(error);
+      setOfflineBatchAutoRefresh(false);
+      setOfflineBatchContinuationError(message);
+      if (!options?.silent) toast.error(message);
     } finally {
       if (!options?.silent) setOfflineBatchBusy(false);
     }
@@ -311,10 +316,6 @@ export default function ImageStudioAdminClient() {
   useEffect(() => {
     if (!isAuthenticated || !offlineBatchAutoRefresh) return;
     const timer = window.setInterval(() => {
-      if (offlineBatch?.status === 'submitted' || offlineBatch?.status === 'importing' || offlineBatch?.status === 'JOB_STATE_SUCCEEDED') {
-        void reconcileOfflineBatch({ silent: true });
-        return;
-      }
       void loadOfflineBatch().then(() => refreshRecords());
     }, 5000);
     return () => window.clearInterval(timer);
@@ -845,6 +846,11 @@ export default function ImageStudioAdminClient() {
                 {' · '}{offlineBatch.failed_requests} failed
                 {' · '}{offlineBatch.total_requests} submitted
                 {offlineBatchAutoRefresh ? ' · watching progress' : ''}
+              </p>
+            ) : null}
+            {offlineBatchContinuationError ? (
+              <p className="mt-2 text-sm text-red-700">
+                Continuation paused: {offlineBatchContinuationError}
               </p>
             ) : null}
 
