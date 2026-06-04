@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse, after } from 'next/server';
 import { ThinkingLevel, Type } from "@google/genai";
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { getAI } from '@/lib/ai/client';
 import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
 import { cacheAnalysisResult } from '@/services/supabaseService';
 import { computeImageFingerprint } from '@/lib/server/imageFingerprint';
 import { convertToWebPBuffer } from '@/lib/utils/imageHash';
+import { getAnalysisPromptWithFallback } from '@/services/prompts/promptLoader';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -84,25 +86,15 @@ function isPrivateIP(hostname: string): boolean {
     return PRIVATE_IP_PATTERNS.some(pattern => pattern.test(hostname));
 }
 
-async function getActivePrompt(supabase: any): Promise<string> {
-    const { data, error } = await supabase
-        .from('ai_prompts')
-        .select('prompt_text')
-        .eq('is_active', true)
-        .limit(1)
-        .single();
-
-    if (error || !data) {
-        throw new Error('Could not retrieve active prompt configuration');
-    }
-
-    return data.prompt_text;
-}
-
 import { getDynamicTypeEnums } from '@/lib/ai/utils';
 
+type PositionedAnalysisItem = {
+    x?: number;
+    y?: number;
+};
+
 export async function POST(req: NextRequest) {
-    let supabase: any;
+    let supabase: SupabaseClient;
 
     try {
         const body = await req.json();
@@ -149,7 +141,6 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
         const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
 
         if (imageBuffer.length > 10 * 1024 * 1024) {
@@ -184,6 +175,10 @@ export async function POST(req: NextRequest) {
                     upsert: true,
                 });
 
+            if (uploadError) {
+                console.error('Failed to upload cached URL analysis image:', uploadError);
+            }
+
             const { data: urlData } = supabase.storage
                 .from('cakegenie')
                 .getPublicUrl(filePath);
@@ -198,7 +193,7 @@ export async function POST(req: NextRequest) {
         console.log('🔄 Cache MISS for pHash:', pHash);
 
         const [activePrompt, typeEnums] = await Promise.all([
-            getActivePrompt(supabase).catch(() => null),
+            getAnalysisPromptWithFallback(supabase).catch(() => null),
             getDynamicTypeEnums(supabase)
         ]);
 
@@ -360,16 +355,16 @@ export async function POST(req: NextRequest) {
             delete result.is_tall_proportion;
 
             if (result.main_toppers) {
-                result.main_toppers.forEach((t: any) => { t.x = 0; t.y = 0; });
+                result.main_toppers.forEach((t: PositionedAnalysisItem) => { t.x = 0; t.y = 0; });
             }
             if (result.support_elements) {
-                result.support_elements.forEach((t: any) => { t.x = 0; t.y = 0; });
+                result.support_elements.forEach((t: PositionedAnalysisItem) => { t.x = 0; t.y = 0; });
             }
             if (result.cake_messages) {
-                result.cake_messages.forEach((t: any) => { t.x = 0; t.y = 0; });
+                result.cake_messages.forEach((t: PositionedAnalysisItem) => { t.x = 0; t.y = 0; });
             }
 
-        } catch (e) {
+        } catch {
             console.error("Failed to parse AI response:", jsonText);
             return NextResponse.json(
                 { error: 'Invalid response format from AI' },

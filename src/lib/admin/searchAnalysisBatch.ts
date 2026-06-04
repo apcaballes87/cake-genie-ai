@@ -6,6 +6,7 @@ import { toActionableGoogleCloudStorageError } from '@/lib/ai/googleCloudErrors'
 import { getDynamicTypeEnums } from '@/lib/ai/utils';
 import { buildSearchAnalysisGenerationConfig, postProcessSearchAnalysisResult } from '@/lib/admin/searchAnalysisContract';
 import { createAdminServerSupabaseClient } from '@/lib/supabase/adminServer';
+import { getAnalysisPromptWithFallback } from '@/services/prompts/promptLoader';
 import { cacheAnalysisResult } from '@/services/supabaseService';
 import type { HybridAnalysisResult } from '@/types';
 
@@ -100,12 +101,6 @@ export function buildSearchAnalysisPersistenceOptions(item: QueueItem, admin: Re
   };
 }
 
-async function getActivePrompt(admin: ReturnType<typeof createAdminServerSupabaseClient>) {
-  const { data, error } = await admin.from('ai_prompts').select('prompt_text').eq('is_active', true).limit(1).single();
-  if (error || !data?.prompt_text) throw new Error('Could not retrieve active prompt configuration.');
-  return data.prompt_text as string;
-}
-
 export async function queueSearchAnalysisItem(input: {
   pHash: string;
   fingerprintPipeline?: string | null;
@@ -158,7 +153,8 @@ export async function submitNextSearchAnalysisBatch(requestedLimit = MAX_BATCH_S
   const items = rows as QueueItem[];
   if (!items.length) throw new Error('No queued search-analysis items are waiting for batch processing.');
 
-  const [activePrompt, typeEnums] = await Promise.all([getActivePrompt(admin), getDynamicTypeEnums(admin)]);
+  const activePrompt = await getAnalysisPromptWithFallback(admin as unknown as Parameters<typeof getAnalysisPromptWithFallback>[0]);
+  const typeEnums = await getDynamicTypeEnums(admin as unknown);
   const generationConfig = buildSearchAnalysisGenerationConfig(typeEnums);
   const runId = crypto.randomUUID();
   const gcs = parseGcsPrefix();

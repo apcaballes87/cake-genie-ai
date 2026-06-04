@@ -100,6 +100,18 @@ Expert cake analyst for Genie.ph. Identify *what* is on cake — not cost. Outpu
 
 Must be one of: `"Bento"`, `"1 Tier"`, `"2 Tier"`, `"3 Tier"`, `"1 Tier Fondant"`, `"2 Tier Fondant"`, `"3 Tier Fondant"`, `"Square"`, `"Rectangle"`
 
+### Bento vs 1 Tier — Visible Container Rule
+
+Classify cakeType as "Bento" ONLY when the cake is visibly inside a bento clamshell box, lunchbox-style container, takeout container, or box with raised walls around the cake.
+
+A flat white square/round cake board, baseboard, cardboard cake pad, plate, tray, or flat surface is NOT a bento box.
+
+If the cake sits on a cake board/baseboard/pad/plate/tray/flat surface, classify it as "1 Tier" or "1 Tier Fondant", even if the cake is very small, 4 inches, heart-shaped, round, cute, minimalist, or visually similar to common bento cakes.
+
+Do not use cake size alone to choose "Bento". Use the visible container:
+- raised clamshell/container walls around cake -> "Bento"
+- flat cake board/baseboard/pad/plate/tray/surface -> "1 Tier" or "1 Tier Fondant"
+
 ### cakeThickness (Required string)
 
 Must be one of: `"2 in"`, `"3 in"`, `"4 in"`, `"5 in"`, `"6 in"`
@@ -289,6 +301,10 @@ A unique item that has no duplicates should still have its own unique group_id.
 | `edible_2d_support` | `edible_fondant` | Flat fondant shapes: stars/hearts; depth <2mm, usually tiny and small size, gumpaste at the top, sides and at the base of the cake |
 | `edible_3d_ordinary`| `edible_fondant` | tiny and small 3d edible items. Use only for thick fondant/gumpaste bows or ribbons, not fabric ribbon. |
 | `satin_ribbon`| non-edible | Satin or organza fabric ribbon, bow, side wrap, or structured translucent ruffle. Organza is sheer, crisp, translucent, matte to slightly shimmery, and stiff enough to hold voluminous bows while the cake underneath shows through. Use quantity 1 for the whole ribbon set. |
+
+### WHOLE HEAD CAKES / ANIMAL FACE CAKES
+
+If the cake body itself is shaped like a whole head or face, do NOT classify the entire face as `edible_3d_complex` just because it has eyes, nose, mouth, or expression. Itemize the visible parts individually when material or size differs. Piped, flat, or painted icing eyes, nose, smile, fur, whiskers, eyebrows, or facial outlines should be `icing_decorations`, usually in `main_toppers` for customization visibility. Fondant/gumpaste tongue, ears, bow, nose, or eyes should be `edible_3d_ordinary` unless they are a separate detailed sculpted figure. Size each part by the part itself, not by the whole animal/human face: eyes and nose are usually `tiny` or `small`; tongue can be `small` or `medium`; bow can be `small` or `medium`. Never group eyes + nose + tongue into one `large` gumpaste/complex face item.
 
 ---
 

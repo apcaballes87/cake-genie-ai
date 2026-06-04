@@ -3,33 +3,13 @@ import { getAI } from '@/lib/ai/client';
 import { createClient } from '@/lib/supabase/client';
 import { normalizeAiRouteError } from '@/lib/ai/routeError';
 import { buildSearchAnalysisGenerationConfig, postProcessSearchAnalysisResult } from '@/lib/admin/searchAnalysisContract';
+import { getAnalysisPromptWithFallback } from '@/services/prompts/promptLoader';
 
 export const maxDuration = 300; // Allow up to 300 seconds (Vercel Pro) for AI processing
 
 // Fail fast on slow AI calls so we can return a clean 504 well before Vercel kills the function.
 // The analyze prompt is heavy; most successful calls complete in <90s.
 const AI_REQUEST_TIMEOUT_MS = 120_000;
-
-// Helper to get active prompt from Supabase (server-side)
-// Note: We're not using the complex caching logic from the client service here 
-// to keep the API route stateless and simple. If performance is an issue, we can add simple memory cache.
-async function getActivePrompt(supabase: ReturnType<typeof createClient>): Promise<string> {
-    const { data, error } = await supabase
-        .from('ai_prompts')
-        .select('prompt_text')
-        .eq('is_active', true)
-        .limit(1)
-        .single();
-
-    // In a real serverless environment, we might fallback if DB fails
-    if (error || !data) {
-        console.warn('Failed to fetch prompt from database in API route');
-        // We'll rely on the default fallback prompt logic or throw
-        throw new Error('Could not retrieve active prompt configuration');
-    }
-
-    return data.prompt_text;
-}
 
 import { getDynamicTypeEnums } from '@/lib/ai/utils';
 
@@ -49,7 +29,7 @@ export async function POST(req: NextRequest) {
 
         // Fetch inputs required for prompt construction
         const [activePrompt, typeEnums] = await Promise.all([
-            getActivePrompt(supabase).catch(() => null), // Fallback handled later if null
+            getAnalysisPromptWithFallback(supabase).catch(() => null),
             getDynamicTypeEnums(supabase)
         ]);
 
