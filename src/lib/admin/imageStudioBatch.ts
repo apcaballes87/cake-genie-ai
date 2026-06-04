@@ -277,8 +277,47 @@ export async function reconcileImageStudioBatch(runId: string, requestContext?: 
   const aiClient = getAI(requestContext);
   let providerJob: Awaited<ReturnType<typeof aiClient.batches.get>> | null = null;
   if (run.status !== 'JOB_STATE_SUCCEEDED' && run.status !== 'importing') {
-    providerJob = await aiClient.batches.get({ name: run.gemini_job_name });
-    await admin.from('cakegenie_image_studio_batch_jobs').update({ status: providerJob.state ?? 'unknown', updated_at: new Date().toISOString() }).eq('id', runId);
+    try {
+      providerJob = await aiClient.batches.get({ name: run.gemini_job_name });
+      await admin.from('cakegenie_image_studio_batch_jobs').update({ status: providerJob.state ?? 'unknown', updated_at: new Date().toISOString() }).eq('id', runId);
+    } catch (providerError) {
+      const stageStatusColumn = run.stage === 'studio' ? 'studio_status' : 'mask_status';
+      const errorMessage = providerError instanceof Error ? providerError.message : String(providerError);
+      await admin.from('cakegenie_image_studio_batch_items').update({
+        [stageStatusColumn]: 'failed',
+        error: `Batch provider check failed: ${errorMessage}`,
+      }).eq('batch_job_id', runId).eq(stageStatusColumn, 'submitted');
+      await admin.from('cakegenie_analysis_cache').update({ batch_job_id: null }).eq('batch_job_id', runId);
+      
+      const { count: completedCount, error: completedCountError } = await admin.from('cakegenie_image_studio_batch_items')
+        .select('id', { count: 'exact', head: true }).eq('batch_job_id', runId).eq(stageStatusColumn, 'completed');
+      if (completedCountError) throw completedCountError;
+      const { count: failedCount, error: failedCountError } = await admin.from('cakegenie_image_studio_batch_items')
+        .select('id', { count: 'exact', head: true }).eq('batch_job_id', runId).eq(stageStatusColumn, 'failed');
+      if (failedCountError) throw failedCountError;
+      
+      const status = completedCount ? 'completed_with_errors' : 'failed';
+      await admin.from('cakegenie_image_studio_batch_jobs').update({
+        status,
+        stage: 'complete',
+        completed_requests: completedCount ?? 0,
+        failed_requests: failedCount ?? 0,
+        error: `Batch provider check failed: ${errorMessage}`,
+        updated_at: new Date().toISOString(),
+      }).eq('id', runId);
+      
+      return {
+        run: {
+          ...run,
+          status,
+          stage: 'complete',
+          completed_requests: completedCount ?? 0,
+          failed_requests: failedCount ?? 0,
+          error: `Batch provider check failed: ${errorMessage}`,
+        }
+      };
+    }
+
     if (providerJob.state !== 'JOB_STATE_SUCCEEDED') {
       if (isTerminalProviderFailure(providerJob.state)) {
         const stageStatusColumn = run.stage === 'studio' ? 'studio_status' : 'mask_status';

@@ -45,6 +45,7 @@ const analysisCacheQuery = {
 const analysisCacheSelectQuery = {
   eq: eqAfterAnalysisCacheSelectMock,
   single: singleAfterAnalysisCacheSelectMock,
+  maybeSingle: maybeSingleMock,
 };
 
 const analysisCacheUpdateQuery = {
@@ -299,7 +300,7 @@ describe('cacheAnalysisResult', () => {
   it('does not wait for ORB indexing before resolving the cache write', async () => {
     const { cacheAnalysisResult } = await import('./supabaseService');
     const originalWindow = globalThis.window;
-    let resolveIndexFetch: ((value: { ok: boolean; json: () => Promise<{ success: boolean }> }) => void) | null = null;
+    let resolveIndexFetch: ((value: any) => void) | null = null;
 
     fetchMock.mockReset().mockImplementation(
       () =>
@@ -391,5 +392,71 @@ describe('cacheAnalysisResult', () => {
     expect(payload).not.toHaveProperty('orb_index_status');
     expect(payload).not.toHaveProperty('orb_index_error');
     expect(storageUploadMock).not.toHaveBeenCalled();
+  });
+
+  it("writes original_image_url if persistSourceAsset is 'if_missing' and the record doesn't have an image", async () => {
+    const { cacheAnalysisResult } = await import('./supabaseService');
+    maybeSingleMock.mockResolvedValue({ data: null, error: null });
+
+    await cacheAnalysisResult(
+      '1234abcd5678ef90',
+      {
+        cakeType: 'Bento',
+        cakeThickness: '4 in',
+        keyword: 'catalog-refresh',
+        icing_design: {
+          base: 'soft_icing',
+          colors: { top: 'purple', side: 'white' },
+        },
+        main_toppers: [],
+        support_elements: [],
+        cake_messages: [],
+      } as unknown as HybridAnalysisResult,
+      'https://example.com/source.webp',
+      undefined,
+      {
+        fingerprintPipeline: 'v1-test-pipeline',
+        triggerStudioEdit: false,
+        persistSourceAsset: 'if_missing',
+      }
+    );
+
+    const [payload] = upsertMock.mock.calls[0] ?? [];
+    expect(payload).toBeTruthy();
+    expect(payload.original_image_url).toBe('https://example.com/source.webp');
+    expect(payload.orb_index_status).toBe('pending');
+  });
+
+  it("does not write original_image_url if persistSourceAsset is 'if_missing' and the record already has an image", async () => {
+    const { cacheAnalysisResult } = await import('./supabaseService');
+    maybeSingleMock.mockResolvedValue({ data: { original_image_url: 'https://example.com/existing.webp' }, error: null });
+
+    await cacheAnalysisResult(
+      '1234abcd5678ef90',
+      {
+        cakeType: 'Bento',
+        cakeThickness: '4 in',
+        keyword: 'catalog-refresh',
+        icing_design: {
+          base: 'soft_icing',
+          colors: { top: 'purple', side: 'white' },
+        },
+        main_toppers: [],
+        support_elements: [],
+        cake_messages: [],
+      } as unknown as HybridAnalysisResult,
+      'https://example.com/source.webp',
+      undefined,
+      {
+        fingerprintPipeline: 'v1-test-pipeline',
+        triggerStudioEdit: false,
+        persistSourceAsset: 'if_missing',
+      }
+    );
+
+    const [payload] = upsertMock.mock.calls[0] ?? [];
+    expect(payload).toBeTruthy();
+    expect(payload).not.toHaveProperty('original_image_url');
+    expect(payload).not.toHaveProperty('orb_index_status');
   });
 });

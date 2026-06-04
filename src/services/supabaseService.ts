@@ -859,14 +859,14 @@ export async function cacheAnalysisResult(
     client?: SupabaseClient;
     triggerStudioEdit?: boolean;
     fingerprintPipeline?: string | null;
-    persistSourceAsset?: boolean;
+    persistSourceAsset?: boolean | 'if_missing';
   }
 ): Promise<CacheWriteResult | null> {
   try {
     console.log('💾 Attempting to cache analysis result with pHash:', pHash);
     const client = options?.client || (typeof window === 'undefined' ? publicSupabaseClient : supabase);
     const fingerprintPipeline = options?.fingerprintPipeline || null;
-    const persistSourceAsset = options?.persistSourceAsset !== false;
+    const persistSourceAsset = options?.persistSourceAsset ?? true;
     const resolvedPHash = await resolveExistingWriteHash(pHash, fingerprintPipeline, client);
 
     if (resolvedPHash !== pHash) {
@@ -936,7 +936,7 @@ export async function cacheAnalysisResult(
     }
 
     // If we have a blob, convert to WebP and upload to Supabase storage
-    if (persistSourceAsset && imageBlob) {
+    if (persistSourceAsset !== false && imageBlob) {
       try {
         console.log('🖼️ Converting image to WebP and uploading to Supabase...');
         const webpBlob = await convertToWebP(imageBlob);
@@ -986,7 +986,25 @@ export async function cacheAnalysisResult(
     const seoTitle = buildCakeTitle(
       extractTitleInputFromAnalysis(analysisResult, keywords, tags),
     );
-    const sourceInfoWasProvided = persistSourceAsset && (imageUrl !== undefined || imageBlob !== undefined);
+
+    // Determine whether to write the original_image_url
+    let shouldWriteImageUrl = false;
+    if (finalImageUrl !== undefined) {
+      if (persistSourceAsset === true) {
+        shouldWriteImageUrl = true;
+      } else if (persistSourceAsset === 'if_missing') {
+        const { data: existingRecord } = await client
+          .from('cakegenie_analysis_cache')
+          .select('original_image_url')
+          .eq('p_hash', resolvedPHash)
+          .maybeSingle();
+        if (!existingRecord || !existingRecord.original_image_url) {
+          shouldWriteImageUrl = true;
+        }
+      }
+    }
+
+    const sourceInfoWasProvided = (persistSourceAsset === true || (persistSourceAsset === 'if_missing' && shouldWriteImageUrl)) && (imageUrl !== undefined || imageBlob !== undefined);
     const initialOrbCoverage = sourceInfoWasProvided
       ? {
         ...getInitialOrbIndexCoverage(finalImageUrl, imageBlob),
@@ -1014,7 +1032,7 @@ export async function cacheAnalysisResult(
       ...imageDimensions,
     };
 
-    if (persistSourceAsset && finalImageUrl !== undefined) {
+    if (shouldWriteImageUrl && finalImageUrl !== undefined) {
       upsertPayload.original_image_url = finalImageUrl;
     }
 

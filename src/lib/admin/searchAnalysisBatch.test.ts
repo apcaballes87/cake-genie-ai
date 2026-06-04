@@ -120,7 +120,7 @@ The image has one cake.
       client: admin,
       triggerStudioEdit: false,
       fingerprintPipeline: 'server-v1',
-      persistSourceAsset: false,
+      persistSourceAsset: 'if_missing',
     });
   });
 });
