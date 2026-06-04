@@ -189,6 +189,15 @@ function extractText(line: JsonlResponse | null) {
   return line?.response?.candidates?.[0]?.content?.parts?.map((part) => part.text ?? '').join('').trim() || null;
 }
 
+function isTerminalProviderFailure(state?: string | null) {
+  return Boolean(state && (
+    state.includes('FAILED') ||
+    state.includes('CANCELLED') ||
+    state.includes('CANCELED') ||
+    state.includes('EXPIRED')
+  ));
+}
+
 export async function reconcileSearchAnalysisBatch(runId: string, requestContext?: AIRequestContext) {
   const admin = createAdminServerSupabaseClient();
   const { data: run, error } = await admin.from('cakegenie_search_analysis_batch_runs').select('*').eq('id', runId).single();
@@ -196,7 +205,34 @@ export async function reconcileSearchAnalysisBatch(runId: string, requestContext
   if (run.status !== 'submitted' && run.status !== 'importing') return { run };
   if (run.status === 'submitted') {
     const providerJob = await getAI(requestContext).batches.get({ name: run.gemini_job_name });
-    if (providerJob.state !== 'JOB_STATE_SUCCEEDED') return { run: { ...run, provider_state: providerJob.state } };
+    if (providerJob.state !== 'JOB_STATE_SUCCEEDED') {
+      if (isTerminalProviderFailure(providerJob.state)) {
+        const errorMessage = `Search-analysis batch provider job ended as ${providerJob.state}.`;
+        await admin.from('cakegenie_search_analysis_batch_items').update({
+          status: 'retryable',
+          run_id: null,
+          error: errorMessage,
+          updated_at: new Date().toISOString(),
+        }).eq('run_id', runId).eq('status', 'submitted');
+        await admin.from('cakegenie_search_analysis_batch_runs').update({
+          status: 'failed',
+          retryable_count: run.submitted_count ?? 0,
+          error: errorMessage,
+          updated_at: new Date().toISOString(),
+        }).eq('id', runId);
+        return {
+          run: {
+            ...run,
+            status: 'failed',
+            retryable_count: run.submitted_count ?? 0,
+            error: errorMessage,
+            provider_state: providerJob.state,
+          },
+          providerJob,
+        };
+      }
+      return { run: { ...run, provider_state: providerJob.state } };
+    }
     await admin.from('cakegenie_search_analysis_batch_runs').update({
       status: 'importing',
       updated_at: new Date().toISOString(),
