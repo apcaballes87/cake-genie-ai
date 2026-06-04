@@ -43,7 +43,7 @@ describe('search analysis batch helpers', () => {
     expect(line).toEqual({
       request: {
         contents: [{ role: 'user', parts: [{ fileData: { fileUri: 'https://cdn.example/cake.jpg', mimeType: 'image/jpeg' } }, { text: 'analyze exactly' }] }],
-        systemInstruction: 'be exact',
+        systemInstruction: { parts: [{ text: 'be exact' }] },
         generationConfig: {
           responseMimeType: 'application/json',
           temperature: 0,
@@ -67,14 +67,17 @@ describe('search analysis batch helpers', () => {
     });
   });
 
-  it('correlates output lines using the durable submission ordinal', () => {
+  it('correlates output lines by echoed request file URI even when Vertex shuffles output order', () => {
     const correlated = correlateSearchAnalysisOutputs([
-      item({ id: 'second', submission_ordinal: 1 }),
-      item({ id: 'first', submission_ordinal: 0 }),
-    ] as QueueItem[], [{ response: {} }, { error: { message: 'bad' } }]);
+      item({ id: 'second', normalized_image_url: 'https://cdn.example/second.jpg', submission_ordinal: 1 }),
+      item({ id: 'first', normalized_image_url: 'https://cdn.example/first.jpg', submission_ordinal: 0 }),
+    ] as QueueItem[], [
+      { request: { contents: [{ parts: [{ fileData: { fileUri: 'https://cdn.example/second.jpg' } }] }] }, response: {} },
+      { request: { contents: [{ parts: [{ fileData: { fileUri: 'https://cdn.example/first.jpg' } }] }] }, error: { message: 'bad' } },
+    ]);
     expect(correlated.map(({ item: row, output }) => [row.id, output])).toEqual([
-      ['first', { response: {} }],
-      ['second', { error: { message: 'bad' } }],
+      ['second', { request: { contents: [{ parts: [{ fileData: { fileUri: 'https://cdn.example/second.jpg' } }] }] }, response: {} }],
+      ['first', { request: { contents: [{ parts: [{ fileData: { fileUri: 'https://cdn.example/first.jpg' } }] }] }, error: { message: 'bad' } }],
     ]);
   });
 

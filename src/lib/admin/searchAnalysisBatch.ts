@@ -35,9 +35,13 @@ export type QueueItem = {
 };
 
 type JsonlResponse = {
+  request?: { contents?: Array<{ parts?: Array<{ fileData?: { fileUri?: string } | null }> }> };
+  status?: string;
   response?: { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
   error?: { message?: string };
 };
+
+type BatchStorage = ReturnType<typeof createBatchStorage>;
 
 function parseGcsPrefix() {
   const value = process.env.VERTEX_AI_BATCH_GCS_URI?.trim();
@@ -58,6 +62,13 @@ function parseGcsUri(value: string) {
 
 function createBatchStorage(requestContext?: AIRequestContext) {
   return new Storage(getGoogleCloudAuthOptions(requestContext));
+}
+
+async function findSearchAnalysisOutputFile(storage: BatchStorage, outputFileUri: string) {
+  const { bucket, path: outputPrefix } = parseGcsUri(outputFileUri);
+  const [files] = await storage.bucket(bucket).getFiles({ prefix: outputPrefix })
+    .catch((error: unknown) => { throw toActionableGoogleCloudStorageError(error, 'list'); });
+  return files.find((file) => file.name.endsWith('.jsonl')) ?? null;
 }
 
 export function selectEligibleSearchAnalysisItems(items: QueueItem[], limit = MAX_BATCH_SIZE) {
@@ -85,17 +96,19 @@ export function buildSearchAnalysisBatchInputLine(item: QueueItem, activePrompt:
   return JSON.stringify({
     request: {
       contents: [{ role: 'user', parts: [{ fileData: { fileUri: item.normalized_image_url, mimeType: 'image/jpeg' } }, { text: activePrompt }] }],
-      ...(systemInstruction ? { systemInstruction } : {}),
+      ...(typeof systemInstruction === 'string' ? { systemInstruction: { parts: [{ text: systemInstruction }] } } : {}),
       generationConfig: buildSearchAnalysisBatchGenerationConfig(requestConfig),
     },
   });
 }
 
 export function correlateSearchAnalysisOutputs(items: QueueItem[], lines: JsonlResponse[]) {
-  return items
-    .slice()
-    .sort((left, right) => (left.submission_ordinal ?? 0) - (right.submission_ordinal ?? 0))
-    .map((item, index) => ({ item, output: lines[index] ?? null }));
+  const byUri = new Map(items.map((item) => [item.normalized_image_url, item]));
+  const fallbackItems = items.slice().sort((left, right) => (left.submission_ordinal ?? 0) - (right.submission_ordinal ?? 0));
+  return lines.map((output, index) => ({
+    item: byUri.get(extractOutputRequestFileUri(output) ?? '') ?? fallbackItems[index],
+    output,
+  })).filter((entry): entry is { item: QueueItem; output: JsonlResponse } => Boolean(entry.item));
 }
 
 export function resolveSearchAnalysisIntake(existingCacheId?: string | null, existingItem?: QueueItem | null) {
@@ -157,7 +170,7 @@ export async function submitNextSearchAnalysisBatch(requestedLimit = MAX_BATCH_S
   const admin = createAdminServerSupabaseClient();
   const { data: active } = await admin.from('cakegenie_search_analysis_batch_runs').select('id').in('status', ['submitted', 'importing']).limit(1).maybeSingle();
   if (active) throw new Error('A search-analysis batch is already submitted. Refresh its status first.');
-  const { data: successfulProbe } = await admin.from('cakegenie_search_analysis_batch_runs').select('id').eq('is_compatibility_probe', true).in('status', ['completed', 'completed_with_errors']).limit(1).maybeSingle();
+  const { data: successfulProbe } = await admin.from('cakegenie_search_analysis_batch_runs').select('id').eq('is_compatibility_probe', true).in('status', ['completed', 'completed_with_errors']).gt('completed_count', 0).limit(1).maybeSingle();
   const isCompatibilityProbe = !successfulProbe;
   const limit = isCompatibilityProbe ? PROBE_SIZE : Math.min(Math.max(requestedLimit, 1), MAX_BATCH_SIZE);
   const { data: rows, error } = await admin.from('cakegenie_search_analysis_batch_items').select('*').in('status', ['queued', 'retryable']).order('source_usage_count', { ascending: false }).order('queued_at').order('id').limit(limit);
@@ -199,6 +212,11 @@ export async function submitNextSearchAnalysisBatch(requestedLimit = MAX_BATCH_S
 
 function extractText(line: JsonlResponse | null) {
   return line?.response?.candidates?.[0]?.content?.parts?.map((part) => part.text ?? '').join('').trim() || null;
+}
+
+function extractOutputRequestFileUri(line: JsonlResponse | null) {
+  const parts = line?.request?.contents?.flatMap((content) => content.parts ?? []) ?? [];
+  return parts.find((part) => part.fileData?.fileUri)?.fileData?.fileUri ?? null;
 }
 
 function isTerminalProviderFailure(state?: string | null) {
@@ -257,11 +275,21 @@ export async function reconcileSearchAnalysisBatch(runId: string, requestContext
   const { data: run, error } = await admin.from('cakegenie_search_analysis_batch_runs').select('*').eq('id', runId).single();
   if (error) throw error;
   if (run.status !== 'submitted' && run.status !== 'importing') return { run };
+  const storage = createBatchStorage(requestContext);
+  let outputFile = null as Awaited<ReturnType<typeof findSearchAnalysisOutputFile>>;
   if (run.status === 'submitted') {
     let providerJob: Awaited<ReturnType<ReturnType<typeof getAI>['batches']['get']>>;
     try {
       providerJob = await getAI(requestContext).batches.get({ name: run.gemini_job_name });
     } catch (providerError) {
+      outputFile = await findSearchAnalysisOutputFile(storage, run.output_file_uri);
+      if (outputFile) {
+        await admin.from('cakegenie_search_analysis_batch_runs').update({
+          status: 'importing',
+          error: null,
+          updated_at: new Date().toISOString(),
+        }).eq('id', runId);
+      } else {
       const errorMessage = getProviderRefreshErrorMessage(providerError);
       await closeSearchAnalysisProviderFailure(admin, runId, run.submitted_count ?? 0, errorMessage);
       return {
@@ -272,8 +300,9 @@ export async function reconcileSearchAnalysisBatch(runId: string, requestContext
           error: errorMessage,
         },
       };
+      }
     }
-    if (providerJob.state !== 'JOB_STATE_SUCCEEDED') {
+    if (providerJob! && providerJob.state !== 'JOB_STATE_SUCCEEDED') {
       if (isTerminalProviderFailure(providerJob.state)) {
         const errorMessage = describeProviderFailure(providerJob);
         await closeSearchAnalysisProviderFailure(admin, runId, run.submitted_count ?? 0, errorMessage);
@@ -290,40 +319,43 @@ export async function reconcileSearchAnalysisBatch(runId: string, requestContext
       }
       return { run: { ...run, provider_state: providerJob.state } };
     }
-    await admin.from('cakegenie_search_analysis_batch_runs').update({
+    if (providerJob) await admin.from('cakegenie_search_analysis_batch_runs').update({
       status: 'importing',
       updated_at: new Date().toISOString(),
     }).eq('id', runId);
   }
 
-  const { bucket, path: outputPrefix } = parseGcsUri(run.output_file_uri);
-  const [files] = await createBatchStorage(requestContext).bucket(bucket).getFiles({ prefix: outputPrefix })
-    .catch((error: unknown) => { throw toActionableGoogleCloudStorageError(error, 'list'); });
-  const outputFile = files.find((file) => file.name.endsWith('.jsonl'));
+  outputFile = outputFile ?? await findSearchAnalysisOutputFile(storage, run.output_file_uri);
   if (!outputFile) throw new Error(`No JSONL output found under ${run.output_file_uri}.`);
   const { data: rows, error: itemsError } = await admin.from('cakegenie_search_analysis_batch_items').select('*').eq('run_id', runId).order('submission_ordinal');
   if (itemsError) throw itemsError;
   const items = rows as QueueItem[];
+  const itemsByUri = new Map(items.map((item) => [item.normalized_image_url, item]));
+  const fallbackItems = items.slice().sort((left, right) => (left.submission_ordinal ?? 0) - (right.submission_ordinal ?? 0));
   const lines = readline.createInterface({ input: outputFile.createReadStream() });
   let imported = 0;
   let index = 0;
   for await (const rawLine of lines) {
-    const item = items[index];
-    index += 1;
-    if (!item) break;
-    if (item.status !== 'submitted') continue;
     if (imported >= MAX_IMPORTS_PER_REQUEST) break;
-    imported += 1;
     let output: JsonlResponse | null = null;
     try {
       output = JSON.parse(rawLine) as JsonlResponse;
     } catch {
-      await admin.from('cakegenie_search_analysis_batch_items').update({ status: 'failed', error: 'Vertex output was not valid JSON.' }).eq('id', item.id);
+      const fallbackItem = fallbackItems[index];
+      index += 1;
+      if (fallbackItem) {
+        await admin.from('cakegenie_search_analysis_batch_items').update({ status: 'failed', error: 'Vertex output was not valid JSON.' }).eq('id', fallbackItem.id);
+      }
       continue;
     }
+    const item = itemsByUri.get(extractOutputRequestFileUri(output) ?? '') ?? fallbackItems[index];
+    index += 1;
+    if (!item) continue;
+    if (item.status !== 'submitted') continue;
+    imported += 1;
     const text = extractText(output);
     if (!text) {
-      await admin.from('cakegenie_search_analysis_batch_items').update({ status: 'retryable', error: output?.error?.message ?? 'No analysis returned.' }).eq('id', item.id);
+      await admin.from('cakegenie_search_analysis_batch_items').update({ status: 'retryable', error: output?.error?.message ?? output?.status ?? 'No analysis returned.' }).eq('id', item.id);
       continue;
     }
     try {
