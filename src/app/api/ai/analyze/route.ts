@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAI } from '@/lib/ai/client';
+import { getAI, getOrCreatePromptCache } from '@/lib/ai/client';
 import { createClient } from '@/lib/supabase/client';
 import { normalizeAiRouteError } from '@/lib/ai/routeError';
 import { buildSearchAnalysisGenerationConfig, postProcessSearchAnalysisResult } from '@/lib/admin/searchAnalysisContract';
-import { getAnalysisPromptWithFallback } from '@/services/prompts/promptLoader';
+import { getActivePromptDetails } from '@/services/prompts/promptLoader';
+import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
 
 export const maxDuration = 300; // Allow up to 300 seconds (Vercel Pro) for AI processing
 
@@ -41,12 +42,12 @@ export async function POST(req: NextRequest) {
         const supabase = createClient();
 
         // Fetch inputs required for prompt construction
-        const [activePrompt, typeEnums] = await Promise.all([
-            getAnalysisPromptWithFallback(supabase).catch(() => null),
+        const [promptDetails, typeEnums] = await Promise.all([
+            getActivePromptDetails(supabase).catch(() => null),
             getDynamicTypeEnums(supabase)
         ]);
 
-        if (!activePrompt) {
+        if (!promptDetails) {
             return NextResponse.json(
                 { error: 'Failed to load analysis prompt configuration' },
                 { status: 500, headers: CORS_HEADERS }
@@ -54,20 +55,58 @@ export async function POST(req: NextRequest) {
         }
 
         const aiClient = getAI(req);
-        const response = await aiClient.models.generateContent({
-            model: "gemini-3.1-flash-lite-preview",
-            contents: [{
-                role: 'user',
-                parts: [
-                    { inlineData: { mimeType, data: imageData } },
-                    { text: activePrompt }
-                ],
-            }],
-            config: {
-                ...buildSearchAnalysisGenerationConfig(typeEnums),
-                abortSignal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
-            },
-        });
+        const baseConfig = buildSearchAnalysisGenerationConfig(typeEnums);
+
+        let response;
+        let cacheName: string | null = null;
+
+        // Try to get or create an active context cache for Vertex AI
+        try {
+            cacheName = await getOrCreatePromptCache(
+                aiClient,
+                promptDetails.promptText,
+                promptDetails.version,
+                SYSTEM_INSTRUCTION
+            );
+        } catch (cacheErr) {
+            console.warn('[AI Cache] Failed to create or retrieve context cache:', cacheErr);
+        }
+
+        if (cacheName) {
+            // Remove systemInstruction from generation config because it is already stored inside the cached content
+            const { systemInstruction, ...cachedConfig } = baseConfig as any;
+
+            response = await aiClient.models.generateContent({
+                model: "gemini-3.1-flash-lite-preview",
+                contents: [{
+                    role: 'user',
+                    parts: [
+                        { inlineData: { mimeType, data: imageData } }
+                    ],
+                }],
+                config: {
+                    ...cachedConfig,
+                    cachedContent: cacheName,
+                    abortSignal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
+                },
+            });
+        } else {
+            // Fallback to uncached generation if cache lookup fails
+            response = await aiClient.models.generateContent({
+                model: "gemini-3.1-flash-lite-preview",
+                contents: [{
+                    role: 'user',
+                    parts: [
+                        { inlineData: { mimeType, data: imageData } },
+                        { text: promptDetails.promptText }
+                    ],
+                }],
+                config: {
+                    ...baseConfig,
+                    abortSignal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
+                },
+            });
+        }
 
         const jsonText = (response.text || '').trim();
         let result;

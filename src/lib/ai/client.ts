@@ -224,3 +224,61 @@ export function getAIClientDiagnostics(requestContext?: AIRequestContext) {
         nodeEnv: process.env.NODE_ENV || null,
     };
 }
+
+/**
+ * Retrieves an active context cache for the given prompt version or creates a new one.
+ * Returns the resource name of the cache if successful, or null on failure.
+ */
+export async function getOrCreatePromptCache(
+    aiClient: InstanceType<typeof GoogleGenAI>,
+    promptText: string,
+    version: string,
+    systemInstruction: string
+): Promise<string | null> {
+    try {
+        const cleanVersion = version.replace(/\./g, '-');
+        const cacheDisplayName = `genie-cake-analysis-prompt-v${cleanVersion}`;
+        
+        console.info(`[AI Cache] Checking for active cache: ${cacheDisplayName}`);
+        const listResult = await aiClient.caches.list();
+        
+        for await (const cache of listResult) {
+            if (cache.displayName === cacheDisplayName) {
+                // Ensure the cache is not expired or about to expire (within 10 minutes)
+                const expireTime = cache.expireTime ? new Date(cache.expireTime).getTime() : 0;
+                const now = Date.now();
+                if (expireTime > now + 600_000) {
+                    console.info(`[AI Cache] Reusing active cache: ${cache.name}`);
+                    return cache.name;
+                } else {
+                    console.warn(`[AI Cache] Cache ${cache.name} is expiring soon. Cleaning it up.`);
+                    try {
+                        await aiClient.caches.delete({ name: cache.name });
+                    } catch (delErr) {
+                        // Ignore deletion failures
+                    }
+                }
+            }
+        }
+        
+        console.info(`[AI Cache] Cache not found. Creating new cached content for version ${version}...`);
+        const newCache = await aiClient.caches.create({
+            model: 'gemini-3.1-flash-lite-preview',
+            config: {
+                contents: [
+                    { role: 'user', parts: [{ text: promptText }] }
+                ],
+                systemInstruction: systemInstruction,
+                ttl: '604800s', // 7 days TTL (automatically cleaned up if unused)
+                displayName: cacheDisplayName,
+            }
+        });
+        
+        console.info(`[AI Cache] Successfully created cache: ${newCache.name}`);
+        return newCache.name;
+    } catch (error) {
+        console.error('[AI Cache] Failed to manage context cache:', error);
+        return null;
+    }
+}
+
