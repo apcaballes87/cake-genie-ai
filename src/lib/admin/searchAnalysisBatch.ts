@@ -278,7 +278,7 @@ export async function reconcileSearchAnalysisBatch(runId: string, requestContext
   const storage = createBatchStorage(requestContext);
   let outputFile = null as Awaited<ReturnType<typeof findSearchAnalysisOutputFile>>;
   if (run.status === 'submitted') {
-    let providerJob: Awaited<ReturnType<ReturnType<typeof getAI>['batches']['get']>>;
+    let providerJob: Awaited<ReturnType<ReturnType<typeof getAI>['batches']['get']>> | undefined;
     try {
       providerJob = await getAI(requestContext).batches.get({ name: run.gemini_job_name });
     } catch (providerError) {
@@ -302,7 +302,7 @@ export async function reconcileSearchAnalysisBatch(runId: string, requestContext
       };
       }
     }
-    if (providerJob! && providerJob.state !== 'JOB_STATE_SUCCEEDED') {
+    if (providerJob && providerJob.state !== 'JOB_STATE_SUCCEEDED') {
       if (isTerminalProviderFailure(providerJob.state)) {
         const errorMessage = describeProviderFailure(providerJob);
         await closeSearchAnalysisProviderFailure(admin, runId, run.submitted_count ?? 0, errorMessage);
