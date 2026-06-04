@@ -243,13 +243,14 @@ export async function getOrCreatePromptCache(
         const listResult = await aiClient.caches.list();
         
         for await (const cache of listResult) {
+            if (!cache.name) continue;
             if (cache.displayName === cacheDisplayName) {
                 // Ensure the cache is not expired or about to expire (within 10 minutes)
                 const expireTime = cache.expireTime ? new Date(cache.expireTime).getTime() : 0;
                 const now = Date.now();
                 if (expireTime > now + 600_000) {
                     console.info(`[AI Cache] Reusing active cache: ${cache.name}`);
-                    return cache.name ?? null;
+                    return cache.name;
                 } else {
                     console.warn(`[AI Cache] Cache ${cache.name} is expiring soon. Cleaning it up.`);
                     try {
