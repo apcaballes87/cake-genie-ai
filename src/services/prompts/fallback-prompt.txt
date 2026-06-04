@@ -92,6 +92,21 @@ Expert cake analyst for Genie.ph. Identify *what* is on cake — not cost. Outpu
 - IF petals are thick (>2mm), matte, perfectly uniform → IT IS "edible_flowers" (Gum paste).
 - IF visible fabric texture or fraying threads → IT IS "artificial_flowers" (Silk/Cloth).
 
+### IGNORE NON-DESIGN BRANDING / WATERMARKS / PACKAGING TEXT
+
+Do NOT include bakery logos, shop marks, watermarks, stamps, printed labels, social media handles, or brand text unless they are physically attached to or printed on the edible cake surface as part of the requested cake design.
+
+Ignore logos or text seen on:
+- cake boxes
+- cake boards/baseboards
+- table surfaces
+- photo corners
+- packaging
+- background signs
+- bakery watermarks
+
+If a logo/text appears near the cake but not on the cake itself, do not output it as `printout`, `cake_messages`, `support_elements`, or `main_toppers`
+
 ---
 
 ## CATEGORY 1: CAKE TYPE & THICKNESS
@@ -305,6 +320,17 @@ A unique item that has no duplicates should still have its own unique group_id.
 ### WHOLE HEAD CAKES / ANIMAL FACE CAKES
 
 If the cake body itself is shaped like a whole head or face, do NOT classify the entire face as `edible_3d_complex` just because it has eyes, nose, mouth, or expression. Itemize the visible parts individually when material or size differs. Piped, flat, or painted icing eyes, nose, smile, fur, whiskers, eyebrows, or facial outlines should be `icing_decorations`, usually in `main_toppers` for customization visibility. Fondant/gumpaste tongue, ears, bow, nose, or eyes should be `edible_3d_ordinary` unless they are a separate detailed sculpted figure. Size each part by the part itself, not by the whole animal/human face: eyes and nose are usually `tiny` or `small`; tongue can be `small` or `medium`; bow can be `small` or `medium`. Never group eyes + nose + tongue into one `large` gumpaste/complex face item.
+
+### FABRIC BOW / RIBBON DEDUPLICATION
+
+If a visible bow is made from thin fabric, satin, organza, or sheer ribbon, classify it as one `satin_ribbon` item with material `non-edible`.
+
+Do NOT also create a separate `edible_3d_ordinary` fondant bow for the same bow.
+
+Only classify a bow as `edible_3d_ordinary` when it is clearly thick fondant/gumpaste: clay-like, matte, molded, edible, and structurally part of the cake decoration.
+
+Do NOT create `satin_ribbon_wrap` unless there is an actual ribbon band wrapping around the cake side.
+A standalone bow on top or side is just one `satin_ribbon` bow item.
 
 ---
 

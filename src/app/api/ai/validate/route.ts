@@ -6,6 +6,19 @@ import { normalizeAiRouteError } from '@/lib/ai/routeError';
 
 export const maxDuration = 300; // Allow up to 300 seconds (Vercel Pro) for AI processing
 
+const CORS_HEADERS = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export async function OPTIONS() {
+    return new NextResponse(null, {
+        status: 200,
+        headers: CORS_HEADERS,
+    });
+}
+
 // Fail fast on slow AI calls so we can return a clean 504 well before Vercel kills the function.
 // The validation prompt is light; most successful calls complete in <60s.
 const AI_REQUEST_TIMEOUT_MS = 90_000;
@@ -54,7 +67,7 @@ export async function POST(req: NextRequest) {
         if (!imageData || !mimeType) {
             return NextResponse.json(
                 { error: 'Missing required fields: imageData and mimeType' },
-                { status: 400 }
+                { status: 400, headers: CORS_HEADERS }
             );
         }
 
@@ -82,7 +95,7 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        return NextResponse.json(result);
+        return NextResponse.json(result, { headers: CORS_HEADERS });
 
     } catch (error) {
         console.error("Error validating cake image:", error);
@@ -95,7 +108,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json(
             { error: normalizedError.message },
-            { status: normalizedError.status }
+            { status: normalizedError.status, headers: CORS_HEADERS }
         );
     }
 }

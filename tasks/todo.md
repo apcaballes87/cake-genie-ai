@@ -1,5 +1,47 @@
 # Tasks
 
+## Add Branding And Fabric Bow Prompt Guards
+
+### Plan
+
+- [x] Add the non-design branding/watermark/packaging-text exclusion to the fallback prompt.
+- [x] Add the fabric bow/ribbon deduplication rule to the fallback prompt.
+- [x] Create a new higher-version active Supabase `ai_prompts` row from the existing active prompt; do not overwrite the old row.
+- [x] Add focused prompt-text regression checks.
+- [x] Run focused verification and document results.
+
+### Review
+
+- Added the branding guard so bakery logos, shop marks, watermarks, labels, social handles, and background/box/board text are ignored unless physically on the edible cake surface as part of the requested cake design.
+- Added the fabric bow/ribbon guard so thin fabric, satin, organza, or sheer bows become one `satin_ribbon` item and are not duplicated as fondant bows or fake side wraps.
+- Created Supabase `ai_prompts` row `prompt_id = 18`, version `3.9`, from active `prompt_id = 17`; the old row was marked inactive and only one active prompt remains.
+- Verification:
+  - `npx vitest run src/services/prompts/analysisPromptRules.test.ts` passed with 7 tests.
+  - `npx eslint src/services/prompts/analysisPromptRules.test.ts src/services/prompts/promptLoader.ts` passed with only the stale Browserslist notice.
+  - Supabase verification shows active `prompt_id = 18`, version `3.9`, with both new prompt guards present.
+
+## Align Backup Cake-Type Prompt With Live DB Prompt
+
+### Plan
+
+- [x] Compare the user's pasted live DB prompt wording against the local prompt sources.
+- [x] Add the same Bento visible-container rule to the fallback prompt.
+- [x] Add focused prompt-text regression checks.
+- [x] Run focused verification and document results.
+- [x] Wire the fallback prompt file into analysis routes for Supabase prompt-fetch failures.
+- [x] Remove the stale root prompt snapshot.
+
+### Review
+
+- Updated the repo prompt sources only; no Supabase prompt rows were changed in this task.
+- `src/services/prompts/fallback-prompt.txt` now includes the same cakeType rule so fallback behavior matches the live DB prompt.
+- Added a shared prompt loader so `/api/ai/analyze`, `/api/ai/analyze-url`, and admin search-analysis batch use the active Supabase prompt when available and fall back to `src/services/prompts/fallback-prompt.txt` if the active prompt fetch fails.
+- Removed `prompt_v3.8.txt` so the repo has one maintained backup prompt source instead of a stale root snapshot.
+- Verification:
+  - `npx vitest run src/services/prompts/analysisPromptRules.test.ts src/lib/admin/searchAnalysisBatch.test.ts` passed with 10 tests.
+  - `npx eslint src/services/prompts/promptLoader.ts src/services/prompts/analysisPromptRules.test.ts src/app/api/ai/analyze/route.ts src/app/api/ai/analyze-url/route.ts src/lib/admin/searchAnalysisBatch.ts` passed with only the stale Browserslist notice.
+  - `npx tsc --noEmit --pretty false` still fails on unrelated pre-existing test typing issues in blog, customizer, robots, commerce, icing/recolor, pricing, and cache tests; no touched fallback-prompt files remain in the TypeScript error list.
+
 ## Keep Gemini 3.1 Flash Lite On Low Thinking
 
 ### Plan
@@ -17,6 +59,26 @@
   - `npx vitest run src/app/api/ai/validate/route.test.ts` passed with 4 tests.
   - `npx eslint src/lib/admin/searchAnalysisContract.ts src/app/api/ai/analyze/route.ts src/app/api/ai/validate/route.ts src/app/api/ai/validate/route.test.ts` passed with only the stale Browserslist notice.
   - Targeted grep confirms active Gemini 3.1 Flash Lite routes now use `ThinkingLevel.LOW`.
+
+## Switch Gemini 3 Flash Preview To Gemini 3.1 Flash Lite
+
+### Plan
+
+- [x] Replace legacy Gemini 3 Flash Preview call sites with `gemini-3.1-flash-lite-preview`.
+- [x] Update tests and task documentation that assert or describe the old model.
+- [x] Verify there are no remaining old model references in active code.
+- [x] Run focused tests for the touched AI routes.
+- [x] Document results here.
+
+### Review
+
+- Updated `/api/ai/analyze`, `/api/ai/analyze-url`, `/api/ai/validate`, `/api/ai/generate-texts`, and one-off scripts that still referenced the old Gemini 3 Flash Preview model.
+- Updated validation route tests plus repository AI guidance docs to use `gemini-3.1-flash-lite-preview`.
+- Verification:
+  - Full-repo grep for the old Gemini 3 Flash Preview model ID returns no matches.
+  - `npx vitest run src/app/api/ai/validate/route.test.ts` passed with 4 tests.
+  - `npx eslint src/app/api/ai/analyze/route.ts src/app/api/ai/validate/route.ts src/app/api/ai/validate/route.test.ts` passed with only the stale Browserslist notice.
+  - Broader targeted ESLint across all touched files still fails on pre-existing `any` / unused-variable lint debt in `scripts/*`, `src/app/api/ai/analyze-url/route.ts`, and `src/app/api/ai/generate-texts/route.ts`.
 
 ## Make Pinterest RSS Boards The Primary Publishing Lane
 
@@ -68,6 +130,24 @@
   - `npx vitest run src/services/pricingService.database.test.ts` passed.
   - `npx eslint src/constants/pricingEnums.ts src/components/TopperCard.tsx src/app/customizing/CustomizingStepSummarySections.tsx src/services/pricingService.database.test.ts` passed with pre-existing warnings only in `CustomizingStepSummarySections.tsx`.
   - Full `npx tsc --noEmit --pretty false` still fails on unrelated pre-existing test typing errors across blog/customizer/robots/image utility tests.
+
+## Add Whole-Head Cake Facial-Part Prompt Guard
+
+### Plan
+
+- [x] Add an additive prompt section near `edible_3d_complex` so dog/cat/human head cakes do not become one large complex gumpaste face item.
+- [x] Mirror the core rule in the fallback prompt.
+- [x] Update the active Supabase prompt by insertion only, preserving existing prompt text.
+- [x] Backfill the stale dog-head cache price after recalculating current pricing.
+- [x] Add focused prompt-text regression coverage and verify the live prompt/cache state.
+
+### Review
+
+- Added a `WHOLE HEAD CAKES / ANIMAL FACE CAKES` rule to the v3.8 prompt source and fallback prompt.
+- The new rule says whole-head cakes should itemize visible parts, keep piped/flat face details as `icing_decorations`, use `edible_3d_ordinary` for fondant/gumpaste parts like tongue/bow/ears/nose/eyes, and never group eyes + nose + tongue into one `large` gumpaste/complex face item.
+- No schema or pricing-rule changes were needed because existing types/rules already cover the correct classification.
+- Updated active Supabase prompt `prompt_id = 17` additively; the row now contains the head-cake guard and the description notes that no existing prompt text was removed.
+- Recalculated `/customizing/dog-character-white-1-tier-cake-031f`: base `1199`, add-on `100`, total `1299`; updated the cache row price from `1999` to `1299`.
 
 ## Research Cebu Long-Tail Cake Keywords
 
@@ -1413,7 +1493,7 @@
 - Started 2026-05-27 to answer how AI cake analysis and the follow-up purple-background image edit work end to end.
 - The live upload path is `src/contexts/ImageContext.tsx`: it clears stale image state, base64-encodes the file, compresses it, validates it as a single cake, then prefers ORB cache hits before doing fresh AI analysis.
 - Validation runs through `POST /api/ai/validate`; accepted images proceed, while known non-cake or unsupported categories map to user-facing rejection messages before any cached result or analysis is used.
-- Fresh analysis runs through `POST /api/ai/analyze` using `gemini-3-flash-preview` with a strict JSON schema. The first response is intentionally feature-first with coordinates zeroed out, then Roboflow enrichment runs in the background to add positions later.
+- Fresh analysis runs through `POST /api/ai/analyze` using `gemini-3.1-flash-lite-preview` with a strict JSON schema. The first response is intentionally feature-first with coordinates zeroed out, then Roboflow enrichment runs in the background to add positions later.
 - Fresh or enriched results are written into `cakegenie_analysis_cache` with pricing, SEO fields, availability, slug, fingerprint coverage, optional Supabase storage image upload, and ORB indexing metadata via `cacheAnalysisResult(...)`.
 - The purple-background image is not produced by the main analysis route itself. It is a separate background “Image Studio” pipeline triggered after cache write, then fulfilled by `POST /api/admin/cake-cache-images`.
 - Image Studio re-fetches the saved original image, asks Gemini to restage the cake on a seamless light pastel purple studio background, uploads the resulting WebP to Supabase Storage, and stores the URL in `studio_edited_image_url` plus status fields.
@@ -1615,3 +1695,22 @@
   The seed migration contains nine unique slugs, all new across the existing migration history.
   `npx vitest run src/lib/collections/quality.test.ts src/app/api/collections/trends/cron/route.test.ts src/app/collections/'[category]'/page.test.tsx src/app/sitemap.test.ts` passed with 9 tests.
   Focused ESLint passed with only the repository's stale Browserslist database notice.
+
+# Fix Live Collection Metadata Schema Drift
+
+### Plan
+
+- [x] Trace the browser error to the exact Supabase select that requests `collection_type`.
+- [x] Compare the live `cakegenie_collections` columns against the migration that introduced collection publication metadata.
+- [x] Apply the existing idempotent collection metadata migration to the live database.
+- [x] Verify the frontend select fields now resolve against Supabase/PostgREST.
+- [x] Document what happened and the verification result.
+
+### Review
+
+- Root cause: the current frontend query in `getDesignCategories()` had deployed with collection publication metadata fields, but the live `cakegenie_collections` table was still on the old schema.
+- Before the fix, live Supabase only had the old collection columns and was missing `collection_type`, `trend_score`, `publication_status`, `is_indexable`, `matched_design_count`, `studio_image_count`, and `parent_slug`.
+- Applied the existing idempotent migration SQL from `supabase/migrations/20260602103000_add_collection_quality_metadata.sql` to live Supabase and sent `NOTIFY pgrst, 'reload schema'`.
+- Verification:
+  - Live `information_schema.columns` now shows the new metadata columns.
+  - The exact browser/Data API field set now succeeds through `/rest/v1/cakegenie_collections` and returns a published collection row with `collection_type = evergreen`.

@@ -27,6 +27,22 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('Do not use cake size alone to choose "Bento". Use the visible container:');
   });
 
+  it('keeps non-design branding exclusions in the fallback prompt source', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(prompt).toContain('IGNORE NON-DESIGN BRANDING / WATERMARKS / PACKAGING TEXT');
+    expect(prompt).toContain('Do NOT include bakery logos, shop marks, watermarks, stamps, printed labels, social media handles, or brand text');
+    expect(prompt).toContain('If a logo/text appears near the cake but not on the cake itself, do not output it as `printout`, `cake_messages`, `support_elements`, or `main_toppers`');
+  });
+
+  it('keeps fabric bow and ribbon deduplication in the fallback prompt source', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(prompt).toContain('FABRIC BOW / RIBBON DEDUPLICATION');
+    expect(prompt).toContain('Do NOT also create a separate `edible_3d_ordinary` fondant bow for the same bow.');
+    expect(prompt).toContain('Do NOT create `satin_ribbon_wrap` unless there is an actual ribbon band wrapping around the cake side.');
+  });
+
   it('loads the fallback prompt used when Supabase prompt fetch fails', () => {
     const prompt = loadFallbackAnalysisPrompt();
 

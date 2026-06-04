@@ -51,7 +51,7 @@ export function buildImageStudioPrompt(brandLabel: string = 'genie.ph'): string 
   return [
     'Transform this reference into a polished bakery catalog hero image.',
     'First determine whether the source is a direct cake photo or a screenshot/product-grid/social-media capture.',
-    'If the cake subject is a bento cake presented in a clamshell box (lunchbox), consider the box as an integral part of the cake subject and do not remove it.',
+    'If the original image already shows a bento cake presented inside a clamshell box (lunchbox), preserve that clamshell box exactly as part of the cake subject. If the original image does not show a clamshell box or bento container, do NOT add one; preserve the cake design on its original board or base as-is.',
     'If it is a direct cake photo, preserve the actual cake design exactly as-is while elevating it into a premium studio product shot.',
     'If it is a screenshot, collage, phone screenshot, marketplace page, Pinterest pin, or product grid, use it only as a reference for the cake design. Do NOT preserve the screenshot composition, crop, framing, margins, or original scene.',
     'For screenshot-like sources, follow this exact sequence: first identify the single hero cake subject and its essential board or bento box, second extract or cut out only that cake subject, third completely erase the entire original screenshot scene, and fourth place the extracted cake into a brand-new studio setup.',
@@ -61,7 +61,7 @@ export function buildImageStudioPrompt(brandLabel: string = 'genie.ph'): string 
     'When isolating a cake from a screenshot, rebuild any cropped, hidden, low-resolution, or partially occluded cake edges naturally so the cake looks whole and intentionally photographed.',
     'After extraction, the original screenshot must be considered fully discarded. No part of the Google Images page, listing tile, card layout, collage, screenshot crop, or original environment may remain visible or influence the final composition.',
     'Do NOT do a simple background replacement. The final result must read as a fresh ecommerce product photoshoot, not as an edited screenshot, listing capture, collage, composite, or app card.',
-    'Restage the final cake (and its bento box if applicable) as a standalone hero product shot on a seamless light pastel purple cyclorama studio set with a clean floor-to-wall sweep.',
+    'Restage the final cake (retaining its clamshell box ONLY if it was already present in the original source image) as a standalone hero product shot on a seamless light pastel purple cyclorama studio set with a clean floor-to-wall sweep.',
     'Use premium bakery product photography: soft diffused key light, subtle fill light, gentle highlight rolloff, natural depth, and a realistic grounded contact shadow.',
     'Remove screenshot-era lighting, perspective cues, compression artifacts, flat UI framing, grid/listing balance, and any leftover traces of the original screenshot environment.',
     'Keep the cake design, decorations, topper placement, writing, shape, board, and proportions faithful to the source cake.',
