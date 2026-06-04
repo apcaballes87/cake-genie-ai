@@ -16,11 +16,11 @@
 | **SDK Version** | `^1.38.0` or later | Any version below 1.38.0 |
 | **Server-side Auth** | Vertex AI + Workload Identity Federation (WIF) | JSON service account keys or Gemini API keys in API routes |
 | **Vertex Location** | `global` for preview Gemini models | `us-central1` for Gemini 3 preview routes |
-| **Model Name** | `gemini-3-flash-preview`, `gemini-3-pro-image-preview` | `gemini-2.0-flash`, `gemini-1.5-pro`, etc. |
-| **Thinking Config** | `thinkingLevel: ThinkingLevel.LOW/MEDIUM/HIGH` | `thinkingBudget`, `includeThoughts` |
+| **Model Name** | `gemini-3.1-flash-lite-preview`, `gemini-3-pro-image-preview` | `gemini-2.0-flash`, `gemini-1.5-pro`, etc. |
+| **Thinking Config** | `thinkingLevel: ThinkingLevel.MINIMAL/LOW/MEDIUM/HIGH` | `thinkingBudget`, `includeThoughts` |
 | **Thinking Config (`thinkingLevel`)**:
 
-- REQUIRED for `gemini-3-flash-preview`
+- REQUIRED for `gemini-3.1-flash-lite-preview`
 - NOT SUPPORTED for `gemini-3-pro-image-preview`
 
 ### Why This Matters
@@ -53,7 +53,7 @@ import { GoogleGenAI, Modality, Type, ThinkingLevel } from "@google/genai";
 config: {
     // ... other config
     thinkingConfig: {
-        thinkingLevel: ThinkingLevel.LOW,  // or MEDIUM, HIGH, MINIMAL
+        thinkingLevel: ThinkingLevel.MINIMAL,  // or LOW, MEDIUM, HIGH
     },
 }
 ```

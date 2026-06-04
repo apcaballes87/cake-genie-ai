@@ -324,7 +324,7 @@ export async function POST(req: NextRequest) {
 
         const aiClient = getAI(req);
         const response = await aiClient.models.generateContent({
-            model: "gemini-3-flash-preview",
+            model: "gemini-3.1-flash-lite-preview",
             contents: [{
                 role: 'user',
                 parts: [
@@ -338,7 +338,7 @@ export async function POST(req: NextRequest) {
                 responseSchema: hybridAnalysisResponseSchema,
                 temperature: 0,
                 thinkingConfig: {
-                    thinkingLevel: ThinkingLevel.LOW,
+                    thinkingLevel: ThinkingLevel.MINIMAL,
                 },
             },
         });

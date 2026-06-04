@@ -60,7 +60,7 @@ async function rewriteMetadata(currentMetadata: any): Promise<any | null> {
 
   try {
     const response = await aiClient.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-3.1-flash-lite-preview",
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       config: {
         responseMimeType: 'application/json',

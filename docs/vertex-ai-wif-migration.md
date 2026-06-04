@@ -27,7 +27,7 @@ Vercel serverless functions do not automatically bundle loose config files such 
 
 ### Preview Models Returned Regional `404` Errors
 
-Preview Gemini models such as `gemini-3-flash-preview` were not consistently available on regional endpoints like `us-central1`. Requests that succeeded against the global Vertex endpoint could fail with `404` when routed regionally.
+Preview Gemini models such as `gemini-3.1-flash-lite-preview` were not consistently available on regional endpoints like `us-central1`. Requests that succeeded against the global Vertex endpoint could fail with `404` when routed regionally.
 
 ## 2. The Solution Implemented
 

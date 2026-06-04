@@ -31,7 +31,7 @@ async function classifyImageWithModel(
             responseSchema: validationResponseSchema,
             temperature: 0,
             thinkingConfig: {
-                thinkingLevel: ThinkingLevel.LOW,
+                thinkingLevel: ThinkingLevel.MINIMAL,
             },
             abortSignal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
         },
@@ -58,8 +58,8 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const primaryModel = useCase === 'chat' ? 'gemini-2.5-flash' : 'gemini-3-flash-preview';
-        const fallbackModel = 'gemini-3-flash-preview';
+        const primaryModel = useCase === 'chat' ? 'gemini-2.5-flash' : 'gemini-3.1-flash-lite-preview';
+        const fallbackModel = 'gemini-3.1-flash-lite-preview';
 
         let result;
         try {
