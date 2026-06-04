@@ -1,5 +1,57 @@
 # Tasks
 
+## Diagnose Stalled Search Analysis Batch Probe
+
+### Plan
+
+- [x] Inspect live search-analysis batch run and item state.
+- [x] Check GCS input/output artifacts for the stalled compatibility run.
+- [x] Compare submitted JSONL against the official Vertex Gemini batch JSONL format.
+- [x] Patch the batch JSONL builder and focused tests.
+- [x] Submit a new 3-item compatibility probe with the corrected JSONL.
+- [x] Poll the corrected probe through terminal provider/import status.
+- [x] Patch import recovery for image-preview batch output that prefixes valid JSON with Markdown reasoning.
+- [x] Re-import the live compatibility probe and verify Supabase run/item state.
+- [x] Run focused tests, ESLint, build, and diff checks.
+
+### Review
+
+- The stalled run was the first compatibility probe: `6d8c1c39-d882-4bed-9458-a8bc7c72f9ca`, provider job `projects/521499900963/locations/global/batchPredictionJobs/3109677818338869248`, submitted at `2026-06-03T00:52:39Z`.
+- Live DB state before the fix: `1902` items still `queued`, `3` probe items `retryable`, and no completed/imported analysis rows from the probe.
+- GCS contained only the original `input.jsonl`; no output JSONL was written under the probe output prefix.
+- Root cause found in the submitted JSONL: analysis batch parameters were flattened under `request` as `responseMimeType`, `responseSchema`, `temperature`, and `thinkingConfig`. Vertex Gemini batch Cloud Storage input expects generation parameters under `request.generationConfig`.
+- Follow-up live probes exposed three additional compatibility issues: `systemInstruction` must be a content object, Vertex output lines can arrive in a different order than submission order, and `gemini-3.1-flash-image-preview` batch output can prefix valid final JSON with Markdown reasoning.
+- Patched `src/lib/admin/searchAnalysisBatch.ts` so batch input lines now use `request.contents`, content-shaped `request.systemInstruction`, and `request.generationConfig`.
+- Patched output import to correlate by echoed request `fileUri` before falling back to ordinal order.
+- Patched batch import parsing to try strict JSON first, then recover the final JSON object from Markdown-prefixed image-preview output before running the existing post-processing and Supabase persistence path.
+- Added focused regression coverage in `src/lib/admin/searchAnalysisBatch.test.ts` for the corrected batch request shape, output correlation, and Markdown-prefixed JSON recovery.
+- Submitted a new corrected 3-item compatibility probe: `cbc64212-fc47-4a92-a0fd-80b0645ea8fc`, provider job `projects/179200066172/locations/global/batchPredictionJobs/390752688616243200`.
+- The corrected probe JSONL was verified in GCS and has only `contents`, `systemInstruction`, and `generationConfig` under `request`.
+- Final live compatibility probe: `cf9c94c9-4aeb-4534-a485-749f54bcc851`, provider job `projects/179200066172/locations/global/batchPredictionJobs/4783451175162740736`.
+- Recovered/imported final probe result: run status `completed`, `submitted_count = 3`, `completed_count = 1`, `failed_count = 0`, `retryable_count = 0`.
+- Item outcomes: two terminal `rejected` rows for `multiple_cakes`; one completed cache row `bfb77a42-4df1-46f3-9944-f7e40387744e`.
+- Verification:
+  - `npx vitest run src/lib/admin/searchAnalysisBatch.test.ts` passed with 9 tests.
+  - `npx eslint src/lib/admin/searchAnalysisBatch.ts src/lib/admin/searchAnalysisBatch.test.ts` passed with only the stale Browserslist notice.
+  - `npm run build` passed.
+  - `git diff --check` passed.
+
+## Connect Pinterest Board RSS Feeds Via Chrome
+
+### Plan
+
+- [x] Verify the Chrome automation bridge can talk to the logged-in browser session.
+- [x] Claim the open Pinterest bulk-create settings tab instead of opening an unrelated session.
+- [x] Create the requested board, attach the board-specific RSS feed, and save the auto-publish mapping.
+- [x] Confirm the saved Pinterest board/RSS connection in the live UI and document the result.
+
+### Review
+
+- Used the Chrome automation bridge against the already logged-in `genie.ph` Chrome profile and claimed the existing Pinterest settings tab at `https://ph.pinterest.com/settings/bulk-create-pins/`.
+- Pinterest's current UI already had the `Addams Family Cake` board selected, so no new board creation step was needed for this first mapping.
+- Connected `https://genie.ph/feed/pinterest?board=addams-family-cake` to the `Addams Family Cake` board and saved it successfully.
+- Live UI verification: the page switched to the saved state showing the connected RSS URL, `Saved Pins to Addams Family Cake`, plus `Edit` and `Add another` controls.
+
 ## Add Branding And Fabric Bow Prompt Guards
 
 ### Plan

@@ -219,6 +219,29 @@ function extractOutputRequestFileUri(line: JsonlResponse | null) {
   return parts.find((part) => part.fileData?.fileUri)?.fileData?.fileUri ?? null;
 }
 
+export function parseSearchAnalysisBatchOutputText(text: string) {
+  const trimmed = text.trim();
+  try {
+    return JSON.parse(trimmed) as Record<string, unknown>;
+  } catch {
+    // The image-preview batch model can prepend visible reasoning/Markdown even
+    // when the final answer is valid JSON. Keep the importer strict about the
+    // persisted shape, but recover the final object when present.
+  }
+
+  const objectStarts = [...trimmed.matchAll(/{/g)].map((match) => match.index).filter((index): index is number => typeof index === 'number');
+  for (const start of objectStarts) {
+    const candidate = trimmed.slice(start).replace(/```(?:json)?\s*$/i, '').trim();
+    try {
+      return JSON.parse(candidate) as Record<string, unknown>;
+    } catch {
+      // Try the next opening brace. This keeps earlier prose/braces from poisoning import.
+    }
+  }
+
+  throw new SyntaxError('Search-analysis batch output did not contain valid JSON.');
+}
+
 function isTerminalProviderFailure(state?: string | null) {
   return Boolean(state && (
     state.includes('FAILED') ||
@@ -290,16 +313,16 @@ export async function reconcileSearchAnalysisBatch(runId: string, requestContext
           updated_at: new Date().toISOString(),
         }).eq('id', runId);
       } else {
-      const errorMessage = getProviderRefreshErrorMessage(providerError);
-      await closeSearchAnalysisProviderFailure(admin, runId, run.submitted_count ?? 0, errorMessage);
-      return {
-        run: {
-          ...run,
-          status: 'failed',
-          retryable_count: run.submitted_count ?? 0,
-          error: errorMessage,
-        },
-      };
+        const errorMessage = getProviderRefreshErrorMessage(providerError);
+        await closeSearchAnalysisProviderFailure(admin, runId, run.submitted_count ?? 0, errorMessage);
+        return {
+          run: {
+            ...run,
+            status: 'failed',
+            retryable_count: run.submitted_count ?? 0,
+            error: errorMessage,
+          },
+        };
       }
     }
     if (providerJob && providerJob.state !== 'JOB_STATE_SUCCEEDED') {
@@ -359,7 +382,7 @@ export async function reconcileSearchAnalysisBatch(runId: string, requestContext
       continue;
     }
     try {
-      const result = postProcessSearchAnalysisResult(JSON.parse(text));
+      const result = postProcessSearchAnalysisResult(parseSearchAnalysisBatchOutputText(text));
       const rejection = result.rejection as { isRejected?: boolean; reason?: string; message?: string } | undefined;
       if (rejection?.isRejected) {
         await admin.from('cakegenie_search_analysis_batch_items').update({ status: 'rejected', error: rejection.reason ?? rejection.message }).eq('id', item.id);

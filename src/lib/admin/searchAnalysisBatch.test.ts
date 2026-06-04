@@ -5,6 +5,7 @@ import {
   buildSearchAnalysisBatchGenerationConfig,
   buildSearchAnalysisPersistenceOptions,
   correlateSearchAnalysisOutputs,
+  parseSearchAnalysisBatchOutputText,
   resolveSearchAnalysisIntake,
   selectEligibleSearchAnalysisItems,
 } from './searchAnalysisBatch';
@@ -79,6 +80,33 @@ describe('search analysis batch helpers', () => {
       ['second', { request: { contents: [{ parts: [{ fileData: { fileUri: 'https://cdn.example/second.jpg' } }] }] }, response: {} }],
       ['first', { request: { contents: [{ parts: [{ fileData: { fileUri: 'https://cdn.example/first.jpg' } }] }] }, error: { message: 'bad' } }],
     ]);
+  });
+
+  it('parses strict JSON batch output', () => {
+    expect(parseSearchAnalysisBatchOutputText('{"rejection":{"isRejected":true}}')).toEqual({
+      rejection: { isRejected: true },
+    });
+  });
+
+  it('recovers final JSON when the image-preview batch model prefixes Markdown reasoning', () => {
+    expect(parseSearchAnalysisBatchOutputText(`**Processing image**
+
+The image has one cake.
+
+{
+  "rejection": {
+    "isRejected": false,
+    "message": "Accepted"
+  },
+  "cakeThickness": "5 in"
+}`)).toMatchObject({
+      rejection: { isRejected: false, message: 'Accepted' },
+      cakeThickness: '5 in',
+    });
+  });
+
+  it('rejects batch output without a valid JSON object', () => {
+    expect(() => parseSearchAnalysisBatchOutputText('**Processing image** no object')).toThrow('Search-analysis batch output did not contain valid JSON.');
   });
 
   it('prevents duplicate queue work for cache hits and existing queue items', () => {

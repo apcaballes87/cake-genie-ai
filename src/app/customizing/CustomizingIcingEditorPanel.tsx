@@ -48,6 +48,12 @@ interface CustomizingIcingEditorPanelProps {
      */
     onToggleMask?: () => void;
     isMaskActive?: boolean;
+    /**
+     * Called when the user taps a color swatch while the AI icing mask is
+     * generating. Triggers a brief MagicGlitter flash on the hero image to
+     * give the illusion that the tap is already being processed.
+     */
+    onIllusionGlitter?: () => void;
 }
 
 // Display labels per group. The Side Icing tool keeps the user-facing label
@@ -242,6 +248,7 @@ export const CustomizingIcingEditorPanel = memo(function CustomizingIcingEditorP
     maskStatus = 'idle',
     onToggleMask,
     isMaskActive = false,
+    onIllusionGlitter,
 }: CustomizingIcingEditorPanelProps) {
     const selectedIcingItem = isIcingSelection(selectedItem) ? selectedItem : null;
     const isBento = cakeType === 'Bento';
@@ -258,6 +265,13 @@ export const CustomizingIcingEditorPanel = memo(function CustomizingIcingEditorP
         const selectedColor = colorKeys.map((k) => icingDesign.colors?.[k]).find((c): c is string => !!c) || '#FFFFFF';
 
         const applyColor = (newHex: string) => {
+            // If the mask is still generating, flash the hero with MagicGlitter
+            // so the tap feels instantly acknowledged — the real recolor will
+            // apply as soon as the mask is ready.
+            if (isGeneratingMask) {
+                onIllusionGlitter?.();
+            }
+
             const colors = { ...icingDesign.colors };
             for (const key of colorKeys) {
                 colors[key] = newHex;
@@ -317,7 +331,6 @@ export const CustomizingIcingEditorPanel = memo(function CustomizingIcingEditorP
                         <ColorPalette
                             selectedColor={selectedColor}
                             onColorChange={applyColor}
-                            disabled={isBusy}
                         />
                     </div>
                 )}
