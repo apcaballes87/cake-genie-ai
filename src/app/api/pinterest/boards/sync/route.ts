@@ -2,10 +2,15 @@
 import { NextResponse } from 'next/server';
 import { pinterestService } from '@/lib/services/pinterest';
 import { createClient } from '@supabase/supabase-js';
+import { isPinterestCollectionFeedReady } from '@/lib/pinterest/feed';
 
 export const dynamic = 'force-dynamic';
 // Allow up to 5 minutes for large collections
 export const maxDuration = 300;
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 export async function POST() {
   try {
@@ -66,14 +71,16 @@ export async function POST() {
     // 2. Fetch all collections from DB
     const { data: collections, error: collectionsError } = await supabase
       .from('cakegenie_collections')
-      .select('name, slug, description, item_count')
+      .select('name, slug, description, item_count, publication_status, is_indexable')
       .order('name', { ascending: true });
 
     if (collectionsError || !collections || collections.length === 0) {
       return NextResponse.json({ error: 'Failed to fetch collections or none found' }, { status: 500 });
     }
 
-    // 3. Attempt to create a board for each collection.
+    const readyCollections = collections.filter(isPinterestCollectionFeedReady);
+
+    // 3. Attempt to create a board for each Pinterest-ready collection.
     //    No pre-fetching of existing boards — we rely on Pinterest returning 409
     //    when a board with that name already exists.
     const results: {
@@ -84,7 +91,7 @@ export async function POST() {
       error?: string;
     }[] = [];
 
-    for (const collection of collections) {
+    for (const collection of readyCollections) {
       const boardName = collection.name;
       const boardDescription =
         collection.description ||
@@ -103,8 +110,8 @@ export async function POST() {
           // 409 — board already exists
           results.push({ collection: boardName, slug: collection.slug, status: 'exists' });
         }
-      } catch (err: any) {
-        results.push({ collection: boardName, slug: collection.slug, status: 'error', error: err.message });
+      } catch (err) {
+        results.push({ collection: boardName, slug: collection.slug, status: 'error', error: getErrorMessage(err) });
       }
 
       // 1 second delay between requests to stay within Pinterest rate limits
@@ -116,14 +123,15 @@ export async function POST() {
     const errors = results.filter((r) => r.status === 'error').length;
 
     return NextResponse.json({
-      message: `Done! ${created} boards created, ${existing} already existed, ${errors} errors.`,
+      message: `Done! ${created} ready boards created, ${existing} already existed, ${errors} errors. Skipped ${collections.length - readyCollections.length} collections that are not ready for Pinterest RSS.`,
       created,
       existing,
       errors,
+      skipped: collections.length - readyCollections.length,
       results,
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error('Board sync error:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(err) }, { status: 500 });
   }
 }

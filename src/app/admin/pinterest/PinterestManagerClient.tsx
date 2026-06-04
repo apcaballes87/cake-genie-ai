@@ -11,22 +11,60 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
+type PinterestCollectionOption = {
+  keyword: string;
+  slug: string;
+  count: number;
+};
+
+type PinterestProduct = {
+  p_hash: string;
+  slug: string;
+  original_image_url?: string | null;
+  alt_text?: string | null;
+  seo_description?: string | null;
+};
+
+type PinterestSyncResult = {
+  message?: string;
+  used_limit?: number;
+  results?: {
+    p_hash: string;
+    status: string;
+    error?: string;
+  }[];
+};
+
+type PinterestBoardSyncResult = {
+  message?: string;
+  results?: {
+    collection: string;
+    slug: string;
+    status: 'created' | 'exists' | 'error';
+    error?: string;
+  }[];
+};
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export default function PinterestManagerClient() {
-  const [collections, setCollections] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
+  const [collections, setCollections] = useState<PinterestCollectionOption[]>([]);
+  const [products, setProducts] = useState<PinterestProduct[]>([]);
   const [selectedCollection, setSelectedCollection] = useState<string>('');
   const [selectedCollectionName, setSelectedCollectionName] = useState<string>('');
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [syncResults, setSyncResults] = useState<any>(null);
+  const [syncResults, setSyncResults] = useState<PinterestSyncResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dailyUsage, setDailyUsage] = useState<number>(0);
   const DAILY_LIMIT = 10;
   const [isConnected, setIsConnected] = useState(false);
   const [pinterestUser, setPinterestUser] = useState<{ username?: string; business_name?: string; account_type?: string } | null>(null);
   const [boardSyncing, setBoardSyncing] = useState(false);
-  const [boardResults, setBoardResults] = useState<any>(null);
+  const [boardResults, setBoardResults] = useState<PinterestBoardSyncResult | null>(null);
 
   useEffect(() => {
     // Handle redirect params from OAuth callback
@@ -119,21 +157,21 @@ export default function PinterestManagerClient() {
       alert('Please connect your Pinterest account first.');
       return;
     }
-    if (!confirm(`This will create a Pinterest board for every collection (${collections.length} collections). Continue?`)) return;
+    if (!confirm(`This will create Pinterest boards only for collections that pass the published/indexable catalog gate. Continue?`)) return;
 
     setBoardSyncing(true);
     setBoardResults(null);
     setError(null);
-    setMessage('Creating boards for all collections...');
+    setMessage('Creating boards for Pinterest-ready collections...');
 
     try {
       const response = await fetch('/api/pinterest/boards/sync', { method: 'POST' });
-      const data = await response.json();
+      const data = await response.json() as PinterestBoardSyncResult & { error?: string };
       if (!response.ok) throw new Error(data.error || 'Board sync failed');
       setBoardResults(data);
       setMessage(null);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(getErrorMessage(err));
       setMessage(null);
     } finally {
       setBoardSyncing(false);
@@ -158,7 +196,7 @@ export default function PinterestManagerClient() {
         const description = (product.seo_description || product.alt_text || 'Order this beautiful custom cake on Genie.ph').slice(0, 500);
         const link = `https://genie.ph/customizing/${product.slug}`;
         const keywords = product.slug?.split('-').join(', ') || '';
-        return [title, product.original_image_url, boardName, description, link, keywords];
+        return [title, product.original_image_url || '', boardName, description, link, keywords];
       });
 
     // Build CSV content with proper escaping
@@ -199,7 +237,7 @@ export default function PinterestManagerClient() {
       }
     }
 
-    let accessToken = null;
+    let accessToken: string | null = null;
     if (!isConnected) {
       accessToken = prompt('Pinterest not connected in cloud. Please enter your Pinterest Access Token for manual sync OR click "Connect to Pinterest" first:');
       if (!accessToken) return;
@@ -221,14 +259,14 @@ export default function PinterestManagerClient() {
         }),
       });
 
-      const data = await response.json();
+      const data = await response.json() as PinterestSyncResult & { error?: string };
       if (!response.ok) throw new Error(data.error || 'Sync failed');
 
       setSyncResults(data);
       setMessage(null);
       fetchDailyUsage();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(getErrorMessage(err));
       setMessage(null);
     } finally {
       setLoading(false);
@@ -242,7 +280,7 @@ export default function PinterestManagerClient() {
           <h1 className="text-4xl font-extrabold bg-linear-to-r from-red-600 to-pink-500 bg-clip-text text-transparent">
             Pinterest Channel Manager
           </h1>
-          <p className="text-gray-500 mt-2">Claim your domain and sync products safely.</p>
+          <p className="text-gray-500 mt-2">Claim your domain, create focused boards, and connect RSS feeds safely.</p>
         </div>
         
         <div className="p-4 bg-orange-50 border border-orange-100 rounded-2xl flex items-start gap-3 max-w-sm">
@@ -250,10 +288,10 @@ export default function PinterestManagerClient() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           </div>
           <div>
-            <p className="text-xs font-bold text-orange-800 uppercase tracking-wider">Bulk Upload Mode</p>
+            <p className="text-xs font-bold text-orange-800 uppercase tracking-wider">RSS-First Mode</p>
             <p className="text-xs text-orange-700 leading-relaxed">
-              Download a CSV and upload it at <b>Pinterest Bulk Create Pins</b> to create up to <b>200 pins at once</b>.
-              No API access required.
+              Use Pinterest&apos;s native <b>Auto-publish from RSS</b> for collection boards first.
+              Keep API/CSV pushes for controlled manual campaigns.
             </p>
           </div>
         </div>
@@ -275,7 +313,7 @@ export default function PinterestManagerClient() {
                 className="w-full p-4 border border-gray-200 rounded-xl focus:ring-4 focus:ring-pink-100 focus:border-pink-500 transition-all bg-white font-medium"
               >
                 <option value="">-- Choose a Collection --</option>
-                {collections.map((c: any) => (
+                {collections.map((c) => (
                   <option key={c.slug} value={c.slug}>
                     {c.keyword} ({c.count})
                   </option>
@@ -312,7 +350,7 @@ export default function PinterestManagerClient() {
               ) : (
                 <>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" /></svg>
-                  Auto-Create All Boards ({collections.length})
+                  Create Ready Boards Only
                 </>
               )}
             </button>
@@ -354,7 +392,7 @@ export default function PinterestManagerClient() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
             {products.length > 0 ? (
-              products.map((product: any) => (
+              products.map((product) => (
                 <div 
                   key={product.p_hash}
                   onClick={() => toggleProduct(product.p_hash)}
@@ -366,7 +404,7 @@ export default function PinterestManagerClient() {
                 >
                   <div className="relative w-16 h-16 shrink-0 bg-gray-100 rounded-xl overflow-hidden shadow-sm">
                     {product.original_image_url ? (
-                      <img src={product.original_image_url} alt={product.alt_text} className="w-full h-full object-cover" />
+                      <img src={product.original_image_url} alt={product.alt_text || ''} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-gray-300">
                         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
@@ -403,7 +441,7 @@ export default function PinterestManagerClient() {
 
             <div className="relative flex items-center justify-center">
               <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200"></div></div>
-              <span className="relative bg-white px-4 text-xs text-gray-400 font-medium">OR use API (requires Standard access)</span>
+              <span className="relative bg-white px-4 text-xs text-gray-400 font-medium">Advanced manual push (requires Standard API access)</span>
             </div>
 
             <button
@@ -419,7 +457,7 @@ export default function PinterestManagerClient() {
               ) : (
                 <>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" /></svg>
-                  Push via API {dailyUsage >= DAILY_LIMIT && '(Daily Limit Reached)'}
+                  Manual API Push {dailyUsage >= DAILY_LIMIT && '(Daily Limit Reached)'}
                 </>
               )}
             </button>
@@ -456,7 +494,7 @@ export default function PinterestManagerClient() {
             <p className="text-sm font-bold text-green-600 mb-4 px-1">Daily Limit Used: {syncResults.used_limit}/{DAILY_LIMIT}</p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {syncResults.results?.map((res: any) => (
+              {syncResults.results?.map((res) => (
                 <div key={res.p_hash} className="bg-white/70 backdrop-blur-sm p-4 rounded-2xl border border-green-200/50 flex flex-col shadow-sm">
                   <span className="text-xs uppercase font-bold text-green-600 tracking-widest mb-1 truncate">{res.p_hash}</span>
                   <div className="flex items-baseline gap-2">
@@ -483,7 +521,7 @@ export default function PinterestManagerClient() {
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-64 overflow-y-auto pr-1">
-            {boardResults.results?.map((r: any) => (
+            {boardResults.results?.map((r) => (
               <div key={r.slug} className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-medium ${
                 r.status === 'created' ? 'bg-green-50 border-green-200 text-green-800' :
                 r.status === 'exists' ? 'bg-white border-gray-200 text-gray-500' :

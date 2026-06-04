@@ -1,5 +1,30 @@
 # Tasks
 
+## Make Pinterest RSS Boards The Primary Publishing Lane
+
+### Plan
+
+- [x] Reuse the collection publication/indexability quality gate for Pinterest board feed eligibility.
+- [x] Tighten `/feed/pinterest?board={slug}` so unready collections do not emit RSS items.
+- [x] Prefer stable public image URLs and suppress malformed or duplicate feed items.
+- [x] Update the feed-directory endpoint so operators only see ready feed URLs by default.
+- [x] Keep board creation scoped to ready collections instead of every collection row.
+- [x] Reword the admin Pinterest surface around RSS-first setup and controlled manual API pushes.
+- [x] Run focused tests, lint, and a production build; document results here.
+
+### Review
+
+- Added shared Pinterest feed helpers for collection readiness, feed limit capping, public image URL sanitization, duplicate link suppression, studio-image preference, and tolerant keyword parsing for both array and comma-delimited cache rows.
+- `/feed/pinterest?board={slug}` now emits items only for collections that pass the existing published/indexable/8-design quality gate, and `/feed/pinterest/feeds` lists ready feeds separately from skipped collections.
+- `/api/pinterest/boards/sync` now creates boards only for Pinterest-ready collections instead of every collection row.
+- `/admin/pinterest` now presents RSS auto-publish as the primary workflow and labels API pushes as advanced/manual.
+- Verification:
+  - `npx vitest run src/lib/pinterest/feed.test.ts` passed with 5 tests.
+  - Targeted ESLint passed with one existing `<img>` warning in `PinterestManagerClient.tsx`.
+  - `npm run build` passed.
+  - Production server route checks on `http://localhost:3004` returned 200 for `/feed/pinterest/feeds`, `/feed/pinterest`, and `/feed/pinterest?board=addams-family-cake`.
+  - Runtime XML sample: all-designs feed had 200 items; `addams-family-cake` board feed had 53 items; both included RSS 2.0 and `media:content`.
+
 ## Review AI Cake Analysis Prompt, Schema, And Pricing Rules
 
 ### Plan

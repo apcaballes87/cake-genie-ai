@@ -1,9 +1,47 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest } from 'next/server';
-import { slugToTitle } from '@/lib/utils/pinterest';
+import {
+  buildPinterestCollectionSearchTerms,
+  buildPinterestFeedItems,
+  isPinterestCollectionFeedReady,
+  normalizePinterestFeedLimit,
+  sanitizeXml,
+  type PinterestFeedItem,
+  type PinterestFeedDesign,
+} from '@/lib/pinterest/feed';
 
 // Cache for 6 hours - Pinterest checks feeds within 24 hours
 export const revalidate = 21600;
+
+const PINTEREST_FEED_QUERY_TIMEOUT_MS = 8000;
+
+type FeedQueryError = {
+  message?: string;
+};
+
+type SupabaseFeedQuery<T> = {
+  abortSignal: (signal: AbortSignal) => PromiseLike<{ data: T[] | null; error: FeedQueryError | null }>;
+};
+
+async function runFeedQuery<T>(query: SupabaseFeedQuery<T>, label: string): Promise<T[]> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PINTEREST_FEED_QUERY_TIMEOUT_MS);
+
+  try {
+    const { data, error } = await query.abortSignal(controller.signal);
+    if (error) {
+      console.error(`Pinterest RSS query failed (${label}):`, error.message || error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error(`Pinterest RSS query aborted or failed (${label}):`, error);
+    return [];
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 /**
  * Pinterest RSS Feed - Auto-publish pins from your domain.
@@ -25,12 +63,9 @@ export async function GET(request: NextRequest) {
   );
 
   const board = request.nextUrl.searchParams.get('board');
-  const limit = Math.min(
-    parseInt(request.nextUrl.searchParams.get('limit') || '200', 10),
-    200
-  );
+  const limit = normalizePinterestFeedLimit(request.nextUrl.searchParams.get('limit'));
 
-  let designs: any[] = [];
+  let designs: PinterestFeedDesign[] = [];
   let feedTitle = 'Genie.ph - Custom Cake Designs';
   let feedDescription = 'Beautiful custom cake designs from Genie.ph. Order online in Cebu, Philippines.';
 
@@ -38,50 +73,50 @@ export async function GET(request: NextRequest) {
     // Fetch collection info
     const { data: collection } = await supabase
       .from('cakegenie_collections')
-      .select('name, slug, tags, description')
+      .select('name, slug, tags, description, item_count, publication_status, is_indexable')
       .eq('slug', board)
       .single();
 
-    if (collection) {
+    if (isPinterestCollectionFeedReady(collection)) {
       feedTitle = `${collection.name} - Genie.ph`;
       feedDescription = collection.description || `${collection.name} cake designs from Genie.ph`;
 
       // Build search terms from collection name + tags
-      const searchTerms = [collection.name, ...(collection.tags || [])];
+      const searchTerms = buildPinterestCollectionSearchTerms(collection);
       const orFilter = searchTerms
         .map(term => {
-          const cleaned = term.trim().toLowerCase();
           return [
-            `keywords.ilike.%${cleaned}%`,
-            `alt_text.ilike.%${cleaned}%`,
-            `slug.ilike.%${cleaned}%`,
+            `keywords.ilike.%${term}%`,
+            `alt_text.ilike.%${term}%`,
+            `slug.ilike.%${term.replace(/\s+/g, '-')}%`,
           ].join(',');
         })
         .join(',');
 
-      const { data } = await supabase
+      const data = await runFeedQuery<PinterestFeedDesign>(supabase
         .from('cakegenie_analysis_cache')
-        .select('slug, keywords, original_image_url, alt_text, seo_description, price, created_at, image_width, image_height')
+        .select('slug, keywords, original_image_url, studio_edited_image_url, alt_text, seo_description, price, created_at, image_width, image_height')
         .not('original_image_url', 'is', null)
         .not('slug', 'is', null)
+        .not('price', 'is', null)
         .or(orFilter)
-        .order('created_at', { ascending: true }) // Oldest first per Pinterest docs
-        .limit(limit);
+        .order('created_at', { ascending: false })
+        .limit(limit), `board:${board}`);
 
-      designs = data || [];
+      designs = [...(data || [])].reverse(); // Pinterest wants oldest first within the selected feed window.
     }
   } else {
     // All latest designs
-    const { data } = await supabase
+    const data = await runFeedQuery<PinterestFeedDesign>(supabase
       .from('cakegenie_analysis_cache')
-      .select('slug, keywords, original_image_url, alt_text, seo_description, price, created_at, image_width, image_height')
+      .select('slug, keywords, original_image_url, studio_edited_image_url, alt_text, seo_description, price, created_at, image_width, image_height')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
       .not('price', 'is', null)
-      .order('created_at', { ascending: true }) // Oldest first
-      .limit(limit);
+      .order('created_at', { ascending: false })
+      .limit(limit), 'all-designs');
 
-    designs = data || [];
+    designs = [...(data || [])].reverse(); // Pinterest wants oldest first within the selected feed window.
   }
 
   const baseUrl = 'https://genie.ph';
@@ -94,47 +129,7 @@ export async function GET(request: NextRequest) {
     description: feedDescription,
     link: baseUrl,
     feedUrl,
-    items: designs.map(design => {
-      const title = formatTitle(design.slug);
-      
-      let baseDesc = design.seo_description || design.alt_text || 'A beautiful custom cake design.';
-      baseDesc = baseDesc.trim();
-      if (baseDesc && !['.', '!', '?'].includes(baseDesc.slice(-1))) {
-        baseDesc += '.';
-      }
-
-      let richDesc = `${title} 🎂\n\n${baseDesc}`;
-      if (design.price) {
-        richDesc += ` Starting at PHP ${design.price}.`;
-      }
-      richDesc += `\n\nPerfect for your next celebration in Cebu, Philippines! Order online at Genie.ph custom cake shop.`;
-
-      // Extract hashtags from keywords
-      let hashtagString = '#cebucakes #customcakes #genieph #cakedesign #birthdaycake';
-      if (design.keywords && Array.isArray(design.keywords) && design.keywords.length > 0) {
-        const keywordTags = design.keywords
-            .filter((k: any) => typeof k === 'string' && k.length > 2)
-            .slice(0, 5)
-            .map((k: string) => `#${k.replace(/[\s-]/g, '').toLowerCase()}`)
-            .join(' ');
-        if (keywordTags) {
-          hashtagString = `${keywordTags} #cebucakes #genieph`;
-        }
-      }
-      richDesc += `\n\n${hashtagString}`;
-
-      return {
-        title,
-        description: sanitizeXml(richDesc),
-        link: `${baseUrl}/customizing/${design.slug}`,
-        imageUrl: sanitizeImageUrl(design.original_image_url),
-        imageWidth: design.image_width || undefined,
-        imageHeight: design.image_height || undefined,
-        pubDate: design.created_at ? new Date(design.created_at).toUTCString() : new Date().toUTCString(),
-        // price is handled in richDesc now, but we'll keep it for the interface
-        price: design.price,
-      };
-    }),
+    items: buildPinterestFeedItems(designs, baseUrl),
   });
 
   return new Response(rssXml, {
@@ -145,51 +140,12 @@ export async function GET(request: NextRequest) {
   });
 }
 
-// ─── Helpers ──────────────────────────────────────────
-
-function formatTitle(slug: string): string {
-  return slugToTitle(slug);
-}
-
-function sanitizeXml(text: string): string {
-  if (!text) return '';
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-}
-
-function sanitizeImageUrl(url: string | null): string {
-  if (!url || url.startsWith('data:')) return '';
-  try {
-    const parsed = new URL(url);
-    // Strip Supabase auth tokens from URLs
-    if (parsed.hostname.includes('supabase')) {
-      return `${parsed.origin}${parsed.pathname}`;
-    }
-    return url;
-  } catch {
-    return url || '';
-  }
-}
-
 interface RSSFeedOptions {
   title: string;
   description: string;
   link: string;
   feedUrl: string;
-  items: {
-    title: string;
-    description: string;
-    link: string;
-    imageUrl: string;
-    imageWidth?: number;
-    imageHeight?: number;
-    pubDate: string;
-    price?: number;
-  }[];
+  items: PinterestFeedItem[];
 }
 
 function generateRSS(options: RSSFeedOptions): string {
