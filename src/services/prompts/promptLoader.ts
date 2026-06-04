@@ -24,7 +24,7 @@ export function loadFallbackAnalysisPrompt() {
   return readFileSync(join(process.cwd(), FALLBACK_PROMPT_PATH), 'utf8');
 }
 
-export async function getAnalysisPromptWithFallback(supabase: SupabasePromptClient) {
+export async function getAnalysisPromptWithFallback(supabase: any) {
   const { data, error } = await supabase
     .from('ai_prompts')
     .select('prompt_text')
