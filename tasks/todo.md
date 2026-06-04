@@ -1,5 +1,23 @@
 # Tasks
 
+## Diagnose Homepage Hero First-Image Disappear
+
+### Plan
+
+- [x] Review project lessons and existing landing-page context.
+- [x] Trace homepage server render, Suspense behavior, hero carousel placeholder, and Embla mount path.
+- [x] Reproduce the likely mobile first-load behavior from the component lifecycle and attempted local browser access.
+- [x] Patch the hero carousel first-paint behavior with minimal impact.
+- [x] Verify with focused diff/lint checks and document the remaining local-server blocker.
+
+### Review
+
+- Root cause: the mobile homepage intentionally delayed the Embla carousel through `useShouldMountCarousel()` until interaction or a 1500ms timer, but its pre-Embla placeholder rendered only the selected center card. When Embla mounted, React replaced that one-card DOM with the full carousel DOM, so the already-loaded minimalist cake appeared to disappear before the full carousel painted.
+- Patched `HeroProductPeekCarouselPlaceholder` in `src/app/LandingClient.tsx` to render the same six-slide visual row and dot indicators as the Embla carousel while keeping Embla itself delayed off the LCP path.
+- Kept only the first hero product eager/high-priority in the mobile placeholder; the remaining placeholder slides render but stay lazy/low-priority.
+- Verification: `git diff --check` passed. Focused ESLint was attempted on `src/app/LandingClient.tsx` and `src/app/HeroProductPeekCarouselEmbla.tsx`; it still fails on pre-existing lint debt in `LandingClient.tsx` (`react-hooks/set-state-in-effect`, `react/no-unescaped-entities`, unused values, and `<img>` warnings), not on this placeholder change.
+- Local browser verification was blocked because an existing `next-server` process on port 3002 held `.next/dev/lock` and did not return bytes to `curl` within 10 seconds; a second dev server on 3003 could not acquire the lock.
+
 ## Diagnose Stalled Search Analysis Batch Probe
 
 ### Plan

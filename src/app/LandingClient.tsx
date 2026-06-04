@@ -391,8 +391,8 @@ function useShouldMountCarousel(): boolean {
 
 /**
  * Static placeholder shown in place of HeroProductPeekCarousel until embla
- * mounts. Renders just the centered card (no scrolling, no slide list, no
- * dot indicators) so the layout is stable but no layout-measuring JS runs.
+ * mounts. It mirrors the initial Embla slide row so the user does not see the
+ * first image disappear when the interactive carousel takes over.
  *
  * IMPORTANT: this must be visually compatible with the first paint of the
  * carousel so the LCP element doesn't shift when embla replaces it.
@@ -413,32 +413,43 @@ function HeroProductPeekCarouselPlaceholder({
     return (
         <div className={`relative w-full overflow-hidden bg-transparent ${aspectClassName}`}>
             <div className="h-full overflow-hidden">
-                <div className="flex h-full justify-center touch-pan-y">
+                <div className="flex h-full translate-x-1/4 touch-pan-y">
                     {products.map((product, productIndex) => {
                         const isCenter = productIndex === heroProductIndex;
-                        // Skip non-center cards entirely to avoid extra DOM.
-                        // Embla will render the full slide list once mounted.
-                        if (!isCenter) return null;
                         return (
                             <div
                                 key={product.title}
-                                className={`relative ${cardSpacingClassName} h-full min-w-0 overflow-hidden rounded-[1.35rem] bg-slate-100 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.75)]`}
+                                className={`relative ${cardSpacingClassName} h-full min-w-0 overflow-hidden rounded-[1.35rem] bg-slate-100 transition-shadow duration-500 ease-out ${isCenter ? 'shadow-[0_18px_45px_-28px_rgba(15,23,42,0.75)]' : ''
+                                    }`}
                                 style={{ flex: cardFlexStyle }}
                                 aria-label={`${product.title} example`}
                             >
                                 <HeroProductImage
                                     src={product.image}
                                     alt={`${product.title} example`}
-                                    priority={true}
+                                    priority={productIndex === 0}
                                     sizes="(max-width: 767px) 50vw, (max-width: 1279px) 40vw, 380px"
-                                    imageClassName="object-cover scale-[1.1]"
+                                    imageClassName={`object-cover transition-transform duration-700 ${isCenter ? 'scale-[1.1]' : 'scale-100'}`}
+                                    aria-hidden={!isCenter}
                                     draggable={false}
                                 />
-                                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/25 to-transparent" />
+                                {isCenter && (
+                                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/25 to-transparent" />
+                                )}
                             </div>
                         );
                     })}
                 </div>
+            </div>
+            <div className="absolute bottom-3 left-0 right-0 z-30 flex justify-center gap-1.5">
+                {products.map((product, i) => (
+                    <span
+                        key={product.title}
+                        aria-hidden="true"
+                        className={`h-1.5 rounded-full transition-all duration-300 ${i === heroProductIndex ? 'w-5 bg-white shadow-sm' : 'w-1.5 bg-white/55'
+                            }`}
+                    />
+                ))}
             </div>
         </div>
     );
