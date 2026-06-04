@@ -20,13 +20,6 @@ interface CustomizingHeroPanelProps {
     isStudioBackgroundEditingPending?: boolean;
     isGeneratingMask?: boolean;
     isComposingSelfie?: boolean;
-    /**
-     * When true, a brief MagicGlitter sparkle plays over the hero to give
-     * the user instant visual feedback when they tap a swatch while the AI
-     * icing mask is still generating (pure illusion — the real update is
-     * already in-flight).
-     */
-    isIllusionGlittering?: boolean;
     dynamicLoadingMessage: string;
     error: string | null;
     originalImagePreview: string | null;
@@ -160,7 +153,6 @@ export const CustomizingHeroPanel = memo(({
     isStudioBackgroundEditingPending = false,
     isGeneratingMask = false,
     isComposingSelfie = false,
-    isIllusionGlittering = false,
     dynamicLoadingMessage,
     error,
     originalImagePreview,
@@ -417,12 +409,6 @@ export const CustomizingHeroPanel = memo(({
                             </div>
                         ) : null}
 
-
-                        {isIllusionGlittering && !isUpdatingDesign ? (
-                            <div className="absolute inset-0 pointer-events-none z-25">
-                                <MagicGlitter />
-                            </div>
-                        ) : null}
 
                         {isUpdatingDesign ? (
                             <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center z-20">

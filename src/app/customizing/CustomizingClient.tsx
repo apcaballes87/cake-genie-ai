@@ -917,15 +917,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         onFallback: handleIcingMaskFallback,
     });
 
-    // Brief MagicGlitter illusion: flashes on the hero for 1.2 s when the user
-    // taps a color swatch while the mask is still generating, giving instant
-    // visual feedback without blocking or disabling the swatches.
-    const [isIllusionGlittering, setIsIllusionGlittering] = useState(false);
-    const handleIllusionGlitter = useCallback(() => {
-        setIsIllusionGlittering(true);
-        setTimeout(() => setIsIllusionGlittering(false), 1200);
-    }, []);
-
     // "Fix Mask" handler: clears the cached mask and immediately regenerates it
     // with the current icing color, showing the hero loading animation during generation.
     const handleRegenerateMask = useCallback(async () => {
@@ -3442,7 +3433,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             isStudioBackgroundEditingPending={isStudioBackgroundEditingPending}
                             isGeneratingMask={icingMaskStatus === 'generating'}
                             isComposingSelfie={isComposingSelfie}
-                            isIllusionGlittering={isIllusionGlittering}
                             dynamicLoadingMessage={dynamicLoadingMessage}
                             error={error}
                             originalImagePreview={originalImagePreview}
@@ -3868,7 +3858,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         maskStatus={icingMaskStatus}
                         onToggleMask={handleToggleMask}
                         isMaskActive={isMaskOverlayActive}
-                        onIllusionGlitter={handleIllusionGlitter}
                         onRevert={() => {
                             const revertTo = committedStateRef.current?.icingDesign ?? analysisResult?.icing_design;
                             if (revertTo && icingDesign) {
