@@ -261,6 +261,16 @@ export const CustomizingHeroPanel = memo(({
         }
         centerMobileHeroScrollPosition();
     };
+
+    const handleToggleSaveDesign = (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.stopPropagation();
+        void onToggleSaveDesign();
+    };
+
+    const handleUndo = (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.stopPropagation();
+        onUndo();
+    };
     const renderScrollableImage = (
         src: string,
         alt: string,
@@ -562,18 +572,16 @@ export const CustomizingHeroPanel = memo(({
 
                         {hasOriginalDisplayImage ? (
                             <>
-                                {(isStudioBackgroundEditingPending || isGeneratingMask || isComposingSelfie) ? (
-                                    <div className="absolute bottom-3 left-3 z-10 pointer-events-none">
-                                        <div
-                                            className="flex h-9 px-3.5 items-center gap-2.5 rounded-full bg-white/95 text-purple-600 shadow-lg ring-1 ring-purple-100 backdrop-blur-md transition-all duration-300 animate-pulse"
-                                            aria-label={isComposingSelfie ? "ai is adding your image to the cake" : isStudioBackgroundEditingPending ? "ai is editing your background" : "ai is editing your icing"}
-                                            title={isComposingSelfie ? "ai is adding your image to the cake" : isStudioBackgroundEditingPending ? "ai is editing your background" : "ai is editing your icing"}
+                                {showSaveDesignButton ? (
+                                    <div className="absolute bottom-4 left-4 z-10">
+                                        <button
+                                            onClick={handleToggleSaveDesign}
+                                            className={`backdrop-blur-sm rounded-full text-[10px] max-[360px]:text-[8px] font-semibold transition-all shadow-md px-2.5 py-1 max-[360px]:px-2 max-[360px]:py-0.5 flex items-center gap-1 ${isCurrentDesignSaved ? 'bg-pink-500 text-white hover:bg-pink-600' : 'genie-btn-secondary'}`}
+                                            aria-label={isCurrentDesignSaved ? 'Remove from saved' : 'Save this design'}
                                         >
-                                            <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0 text-purple-500" />
-                                            <span className="text-[8px] font-bold text-slate-800 tracking-wider select-none whitespace-nowrap">
-                                                {isComposingSelfie ? "ai adding your image on this cake..." : isStudioBackgroundEditingPending ? "ai is editing your background..." : "ai is editing your icing..."}
-                                            </span>
-                                        </div>
+                                            <Heart className="w-3 h-3 max-[360px]:w-2.5 max-[360px]:h-2.5" fill={isCurrentDesignSaved ? 'currentColor' : 'none'} />
+                                            {isCurrentDesignSaved ? 'Saved' : 'Save'}
+                                        </button>
                                     </div>
                                 ) : null}
 
@@ -616,29 +624,23 @@ export const CustomizingHeroPanel = memo(({
                                     </div>
                                 ) : null}
 
-
-
-                                <div className="absolute top-3 right-3 z-10 flex gap-2">
-                                    {showSaveDesignButton ? (
-                                        <button
-                                            onClick={(event) => {
-                                                event.stopPropagation();
-                                                void onToggleSaveDesign();
-                                            }}
-                                            className={`backdrop-blur-sm rounded-full text-[10px] max-[360px]:text-[8px] font-semibold transition-all shadow-md px-2.5 py-1 max-[360px]:px-2 max-[360px]:py-0.5 flex items-center gap-1 ${isCurrentDesignSaved ? 'bg-pink-500 text-white hover:bg-pink-600' : 'genie-btn-secondary'}`}
-                                            aria-label={isCurrentDesignSaved ? 'Remove from saved' : 'Save this design'}
+                                <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+                                    {(isStudioBackgroundEditingPending || isGeneratingMask || isComposingSelfie) ? (
+                                        <div
+                                            className="flex h-9 px-3.5 items-center gap-2.5 rounded-full bg-white/95 text-purple-600 shadow-lg ring-1 ring-purple-100 backdrop-blur-md transition-all duration-300 animate-pulse pointer-events-none"
+                                            aria-label={isComposingSelfie ? "ai is adding your image to the cake" : isStudioBackgroundEditingPending ? "ai is editing your background" : "ai is editing your icing"}
+                                            title={isComposingSelfie ? "ai is adding your image to the cake" : isStudioBackgroundEditingPending ? "ai is editing your background" : "ai is editing your icing"}
                                         >
-                                            <Heart className="w-3 h-3 max-[360px]:w-2.5 max-[360px]:h-2.5" fill={isCurrentDesignSaved ? 'currentColor' : 'none'} />
-                                            {isCurrentDesignSaved ? 'Saved' : 'Save'}
-                                        </button>
+                                            <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0 text-purple-500" />
+                                            <span className="text-[8px] font-bold text-slate-800 tracking-wider select-none whitespace-nowrap">
+                                                {isComposingSelfie ? "ai adding your image on this cake..." : isStudioBackgroundEditingPending ? "ai is editing your background..." : "ai is editing your icing..."}
+                                            </span>
+                                        </div>
                                     ) : null}
 
                                     {canUndo ? (
                                         <button
-                                            onClick={(event) => {
-                                                event.stopPropagation();
-                                                onUndo();
-                                            }}
+                                            onClick={handleUndo}
                                             disabled={!canUndo || isLoading}
                                             className="genie-btn-primary backdrop-blur-sm rounded-full text-[10px] max-[360px]:text-[8px] font-semibold px-2.5 py-1 max-[360px]:px-2 max-[360px]:py-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                                             aria-label="Undo last change"
