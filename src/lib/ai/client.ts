@@ -249,7 +249,7 @@ export async function getOrCreatePromptCache(
                 const now = Date.now();
                 if (expireTime > now + 600_000) {
                     console.info(`[AI Cache] Reusing active cache: ${cache.name}`);
-                    return cache.name;
+                    return cache.name ?? null;
                 } else {
                     console.warn(`[AI Cache] Cache ${cache.name} is expiring soon. Cleaning it up.`);
                     try {
@@ -275,7 +275,7 @@ export async function getOrCreatePromptCache(
         });
         
         console.info(`[AI Cache] Successfully created cache: ${newCache.name}`);
-        return newCache.name;
+        return newCache.name ?? null;
     } catch (error) {
         console.error('[AI Cache] Failed to manage context cache:', error);
         return null;
