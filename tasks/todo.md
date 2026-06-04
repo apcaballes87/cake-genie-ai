@@ -1,5 +1,23 @@
 # Tasks
 
+## Keep Gemini 3.1 Flash Lite On Low Thinking
+
+### Plan
+
+- [x] Revert Gemini 3.1 Flash Lite text routes from `ThinkingLevel.MINIMAL` back to `ThinkingLevel.LOW`.
+- [x] Update AI guidance docs to show `LOW` as the current default.
+- [x] Run focused AI route tests and lint.
+- [x] Commit and push the scoped correction.
+
+### Review
+
+- Reverted Gemini 3.1 Flash Lite text routes to `ThinkingLevel.LOW` after the minimal-thinking experiment was rejected.
+- Updated AI guidance docs to make `LOW` the current default thinking-level example.
+- Verification:
+  - `npx vitest run src/app/api/ai/validate/route.test.ts` passed with 4 tests.
+  - `npx eslint src/lib/admin/searchAnalysisContract.ts src/app/api/ai/analyze/route.ts src/app/api/ai/validate/route.ts src/app/api/ai/validate/route.test.ts` passed with only the stale Browserslist notice.
+  - Targeted grep confirms active Gemini 3.1 Flash Lite routes now use `ThinkingLevel.LOW`.
+
 ## Make Pinterest RSS Boards The Primary Publishing Lane
 
 ### Plan

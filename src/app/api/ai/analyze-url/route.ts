@@ -338,7 +338,7 @@ export async function POST(req: NextRequest) {
                 responseSchema: hybridAnalysisResponseSchema,
                 temperature: 0,
                 thinkingConfig: {
-                    thinkingLevel: ThinkingLevel.MINIMAL,
+                    thinkingLevel: ThinkingLevel.LOW,
                 },
             },
         });

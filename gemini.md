@@ -32,7 +32,7 @@ This project uses the official modern `@google/genai` SDK (version `^1.38.0` or 
    ```typescript
    config: {
        thinkingConfig: {
-           thinkingLevel: ThinkingLevel.MINIMAL, // or LOW, MEDIUM, HIGH
+           thinkingLevel: ThinkingLevel.LOW, // or MINIMAL, MEDIUM, HIGH
        },
    }
    ```

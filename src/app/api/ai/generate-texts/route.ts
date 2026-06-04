@@ -93,7 +93,7 @@ Cake Info: ${JSON.stringify(cakeInfo || {})}
                 responseSchema: textGenerationSchema,
                 temperature: 0.7, // Slightly higher creative temperature for copy
                 thinkingConfig: {
-                    thinkingLevel: ThinkingLevel.MINIMAL,
+                    thinkingLevel: ThinkingLevel.LOW,
                 },
             },
         });

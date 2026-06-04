@@ -53,7 +53,7 @@ import { GoogleGenAI, Modality, Type, ThinkingLevel } from "@google/genai";
 config: {
     // ... other config
     thinkingConfig: {
-        thinkingLevel: ThinkingLevel.MINIMAL,  // or LOW, MEDIUM, HIGH
+        thinkingLevel: ThinkingLevel.LOW,  // or MINIMAL, MEDIUM, HIGH
     },
 }
 ```

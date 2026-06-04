@@ -31,7 +31,7 @@ async function classifyImageWithModel(
             responseSchema: validationResponseSchema,
             temperature: 0,
             thinkingConfig: {
-                thinkingLevel: ThinkingLevel.MINIMAL,
+                thinkingLevel: ThinkingLevel.LOW,
             },
             abortSignal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
         },
