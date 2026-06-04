@@ -47,7 +47,7 @@ describe('Pinterest RSS feed helpers', () => {
     expect(sanitizePinterestImageUrl('file:///tmp/cake.webp')).toBe('');
   });
 
-  it('builds valid unique feed items and prefers studio edited images', () => {
+  it('builds valid unique feed items from studio edited images only', () => {
     const items = buildPinterestFeedItems([
       {
         slug: 'kuromi-purple-birthday-cake-abcdef123456',
@@ -61,9 +61,11 @@ describe('Pinterest RSS feed helpers', () => {
       {
         slug: 'kuromi-purple-birthday-cake-abcdef123456',
         original_image_url: 'https://example.com/duplicate.webp',
+        studio_edited_image_url: 'https://example.com/duplicate-studio.webp',
       },
       {
-        slug: 'missing-image-cake',
+        slug: 'original-only-cake',
+        original_image_url: 'https://example.com/original-only.webp',
       },
     ]);
 
@@ -84,11 +86,23 @@ describe('Pinterest RSS feed helpers', () => {
         slug: 'minimalist-heart-cake-abcdef123456',
         keywords: 'minimalist cake, heart cake',
         original_image_url: 'https://example.com/cake.webp',
+        studio_edited_image_url: 'https://example.com/studio-cake.webp',
       },
     ]);
 
     expect(items).toHaveLength(1);
     expect(items[0].description).toContain('#minimalistcake');
     expect(items[0].description).toContain('#heartcake');
+  });
+
+  it('does not publish original-image-only rows to Pinterest', () => {
+    const items = buildPinterestFeedItems([
+      {
+        slug: 'raw-upload-cake-abcdef123456',
+        original_image_url: 'https://example.com/raw-upload.webp',
+      },
+    ]);
+
+    expect(items).toEqual([]);
   });
 });

@@ -122,9 +122,7 @@ export function buildPinterestFeedItems(
     const slug = design.slug?.trim();
     if (!slug) continue;
 
-    const imageUrl = sanitizePinterestImageUrl(
-      design.studio_edited_image_url || design.original_image_url,
-    );
+    const imageUrl = sanitizePinterestImageUrl(design.studio_edited_image_url);
     if (!imageUrl) continue;
 
     const link = `${baseUrl}/customizing/${slug}`;
