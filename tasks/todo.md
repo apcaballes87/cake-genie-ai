@@ -105,6 +105,29 @@
   - Production server route checks on `http://localhost:3004` returned 200 for `/feed/pinterest/feeds`, `/feed/pinterest`, and `/feed/pinterest?board=addams-family-cake`.
   - Runtime XML sample: all-designs feed had 200 items; `addams-family-cake` board feed had 53 items; both included RSS 2.0 and `media:content`.
 
+## Add Pinterest Catalog Data Source Feed
+
+### Plan
+
+- [x] Add a separate Pinterest retail catalog XML feed at `/feed/pinterest/catalog`.
+- [x] Model the XML after the existing Google Merchant RSS feed while using Pinterest catalog values.
+- [x] Publish only products/designs with `studio_edited_image_url`, `slug`, and `price`.
+- [x] Emit required catalog fields: `id`, `title`, `description`, `link`, `image_link`, `price`, and `availability`.
+- [x] Run focused tests, lint, build, and a production route sample; document results here.
+
+### Review
+
+- Added `https://genie.ph/feed/pinterest/catalog` as a dedicated Pinterest retail catalog XML feed, separate from the organic board RSS feeds.
+- The catalog uses RSS 2.0 with the Google product namespace shape already used by `/feed/google`, but emits Pinterest catalog values such as `availability = in stock` and `price = {amount} PHP`.
+- The feed only includes rows with `studio_edited_image_url`, `slug`, and `price`; original-upload-only rows are excluded.
+- Added pure catalog helpers and focused tests for required fields, studio-image-only filtering, Supabase URL cleanup, deduplication, and XML generation.
+- Verification:
+  - `npx vitest run src/lib/pinterest/catalog.test.ts src/lib/pinterest/feed.test.ts` passed with 10 tests.
+  - `npx eslint src/lib/pinterest/catalog.ts src/lib/pinterest/catalog.test.ts src/app/feed/pinterest/catalog/route.ts` passed with only the stale Browserslist notice.
+  - `npm run build` passed and included `/feed/pinterest/catalog`.
+  - Production server route check on `http://localhost:3004/feed/pinterest/catalog` returned 200 with `application/xml`.
+  - Runtime XML sample had 5,168 items, with matching counts for `id`, `title`, `description`, `link`, `image_link`, `price`, and `availability`; no original-image URLs leaked.
+
 ## Review AI Cake Analysis Prompt, Schema, And Pricing Rules
 
 ### Plan
