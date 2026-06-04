@@ -1,5 +1,30 @@
 # Tasks
 
+## Improve Pinterest Feed SEO Fields
+
+### Plan
+
+- [x] Confirm where Pinterest RSS and catalog titles, descriptions, and alt-text fallbacks are built.
+- [x] Update the shared Pinterest slug-to-title helper to strip short trailing hash-like suffixes such as `30e2`.
+- [x] Cap RSS descriptions to Pinterest's documented 800-character Pin description limit.
+- [x] Emit Pinterest catalog `g:alt_text` from our internal `alt_text` field.
+- [x] Add focused regression coverage for title cleanup, RSS description length, and catalog alt text.
+- [x] Run targeted verification and document the result.
+
+### Review
+
+- Confirmed the Pinterest RSS feed title comes from `slugToTitle(design.slug)` in `src/lib/pinterest/feed.ts`, and the catalog fallback title also uses the same helper in `src/lib/pinterest/catalog.ts`.
+- Confirmed both Pinterest surfaces already emit descriptions:
+  - RSS uses `seo_description || alt_text || "A beautiful custom cake design."`
+  - Catalog uses `seo_description || alt_text || fallback catalog copy`
+- Updated `src/lib/utils/pinterest.ts` so short trailing hash-like slug suffixes such as `30e2` are stripped from reader-facing Pinterest titles, while plain numeric endings like `2025` are preserved.
+- Updated `src/lib/pinterest/feed.ts` so generated RSS Pin descriptions are capped at 800 characters, matching Pinterest's documented Pin spec.
+- Updated `src/lib/pinterest/catalog.ts` so the catalog feed emits `<g:alt_text>` from `alt_text`, with commas removed to match Pinterest catalog formatting guidance.
+- Added `src/lib/utils/pinterest.test.ts` to lock the cleanup behavior.
+- Verification:
+  - `npx vitest run src/lib/pinterest/feed.test.ts src/lib/pinterest/catalog.test.ts src/lib/utils/pinterest.test.ts` passed with 13 tests.
+  - `npm run build` passed.
+
 ## Diagnose Homepage Hero First-Image Disappear
 
 ### Plan

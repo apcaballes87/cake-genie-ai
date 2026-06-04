@@ -1,15 +1,16 @@
 /**
  * Converts a product slug into a clean, human-readable Pinterest pin title.
  *
- * Slugs often have a hex p_hash appended (e.g. "ps5-birthday-cake-c0fcef5f63fefeff").
- * This function strips any segment that looks like a hex hash (8+ hex chars)
- * before converting to title case.
+ * Slugs often have a hash-like suffix appended (e.g. "ps5-birthday-cake-c0fcef5f63fefeff"
+ * or short variants like "travel-cake-30e2"). This function strips any trailing segment
+ * that looks like a hash token before converting to title case.
  *
  * Examples:
  *   "ps5-birthday-cake-c0fcef5f63fefeff" -> "Ps5 Birthday Cake"
+ *   "travel-suitcase-sky-blue-square-cake-30e2" -> "Travel Suitcase Sky Blue Square Cake"
  *   "blue_nintendo_cake_e7c1c70643efebff" -> "Blue Nintendo Cake"
  *   "elegant-wedding-cake"               -> "Elegant Wedding Cake"
- *   "number-3-cake-ab12cd34ef56gh78"     -> "Number 3 Cake"  (non-hex stops stripping)
+ *   "graduation-cake-2025"               -> "Graduation Cake 2025"
  */
 export function slugToTitle(slug: string, maxLength = 100): string {
   if (!slug) return 'Custom Cake Design';
@@ -17,9 +18,12 @@ export function slugToTitle(slug: string, maxLength = 100): string {
   // Replace underscores with dashes to unify separators
   const normalizedSlug = slug.replace(/_/g, '-');
   const parts = normalizedSlug.split('-');
+  const hashLikeSuffix = /^(?=.*[a-f])[0-9a-f]{4,}$/i;
+  const cleaned = [...parts];
 
-  // Filter out any segment that looks purely like a hex hash (at least 8 chars)
-  const cleaned = parts.filter(part => !/^[0-9a-f]{8,}$/i.test(part));
+  while (cleaned.length > 1 && hashLikeSuffix.test(cleaned[cleaned.length - 1] || '')) {
+    cleaned.pop();
+  }
 
   const title = cleaned
     .filter(Boolean)

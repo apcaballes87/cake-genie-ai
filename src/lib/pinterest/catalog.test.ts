@@ -12,6 +12,7 @@ describe('Pinterest catalog feed helpers', () => {
       slug: 'kuromi-purple-birthday-cake-abcdef123456',
       seo_title: 'Kuromi Purple Birthday Cake',
       seo_description: 'A purple Kuromi birthday cake for custom celebrations.',
+      alt_text: 'Kuromi cake with purple frosting, character topper, and stars',
       studio_edited_image_url: 'https://example.com/studio.webp',
       price: 1299,
     });
@@ -19,6 +20,7 @@ describe('Pinterest catalog feed helpers', () => {
     expect(item).toMatchObject({
       title: 'Kuromi Purple Birthday Cake',
       description: 'A purple Kuromi birthday cake for custom celebrations.',
+      altText: 'Kuromi cake with purple frosting character topper and stars',
       link: 'https://genie.ph/customizing/kuromi-purple-birthday-cake-abcdef123456',
       imageLink: 'https://example.com/studio.webp',
       price: 1299,
@@ -59,6 +61,7 @@ describe('Pinterest catalog feed helpers', () => {
     expect(items).toHaveLength(1);
     expect(xml).toContain('<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">');
     expect(xml).toContain('<g:image_link>https://example.com/studio-heart.webp</g:image_link>');
+    expect(xml).toContain('<g:alt_text>Custom minimalist cake heart cake cake design from Genie.ph</g:alt_text>');
     expect(xml).toContain('<g:price>1599 PHP</g:price>');
     expect(xml).toContain('<g:availability>in stock</g:availability>');
     expect(xml).toContain('<g:adult>false</g:adult>');

@@ -36,6 +36,7 @@ type JsonlResponse = {
     candidates?: Array<{ content?: { parts?: Array<{ inlineData?: { data?: string; mimeType?: string } }> } }>;
   };
   error?: { message?: string };
+  request?: { contents?: Array<{ parts?: Array<{ fileData?: { fileUri?: string } | null }> }> };
 };
 
 type BatchRun = {
@@ -183,22 +184,40 @@ async function importStage(run: BatchRun, items: BatchItem[], stage: Stage, maxI
     .catch((error: unknown) => { throw toActionableGoogleCloudStorageError(error, 'list'); });
   const outputFile = files.find((file) => file.name.endsWith('.jsonl'));
   if (!outputFile) throw new Error(`No JSONL output found under ${run.output_file_uri}.`);
+  const itemsByUri = new Map<string, BatchItem>();
+  for (const item of items) {
+    const key = stage === 'studio' ? item.original_image_url : item.studio_edited_image_url;
+    if (key) {
+      itemsByUri.set(key, item);
+    }
+  }
+
   const lines = readline.createInterface({ input: outputFile.createReadStream() });
   let completed = 0;
   let failed = 0;
   let imported = 0;
-  let index = 0;
   for await (const rawLine of lines) {
-    const item = items[index];
-    index += 1;
-    if (!item) break;
+    let line: JsonlResponse;
+    try {
+      line = JSON.parse(rawLine) as JsonlResponse;
+    } catch {
+      continue;
+    }
+    const parts = line.request?.contents?.flatMap((content) => content.parts ?? []) ?? [];
+    const fileUri = parts.find((part) => part?.fileData?.fileUri)?.fileData?.fileUri ?? null;
+    if (!fileUri) {
+      continue;
+    }
+    const item = itemsByUri.get(fileUri);
+    if (!item) {
+      continue;
+    }
     const currentStatus = stage === 'studio' ? item.studio_status : item.mask_status;
     if (currentStatus === 'completed') {
       completed += 1;
       continue;
     }
     if (imported >= maxImports) break;
-    const line = JSON.parse(rawLine) as JsonlResponse;
     const image = extractImage(line);
     if (!image) {
       failed += 1;

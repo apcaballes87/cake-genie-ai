@@ -19,6 +19,7 @@ export type PinterestCatalogItem = {
   id: string;
   title: string;
   description: string;
+  altText: string;
   link: string;
   imageLink: string;
   price: number;
@@ -84,11 +85,21 @@ export function buildPinterestCatalogItem(
     || design.alt_text
     || `Custom ${keywords || slugToTitle(slug)} cake design from Genie.ph`
   ).slice(0, 10000);
+  const altText = (
+    design.alt_text
+    || description
+    || title
+  )
+    .replace(/,/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 500);
 
   return {
     id: toGoogleMerchantId(slug),
     title: sanitizePinterestCatalogXml(title),
     description: sanitizePinterestCatalogXml(description),
+    altText: sanitizePinterestCatalogXml(altText),
     link: `${baseUrl}/customizing/${slug}`,
     imageLink,
     price,
@@ -121,6 +132,7 @@ export function generatePinterestCatalogXml(baseUrl: string, items: PinterestCat
       <g:description>${item.description}</g:description>
       <g:link>${sanitizePinterestCatalogXml(item.link)}</g:link>
       <g:image_link>${sanitizePinterestCatalogXml(item.imageLink)}</g:image_link>
+      <g:alt_text>${item.altText}</g:alt_text>
       <g:price>${item.price} PHP</g:price>
       <g:availability>${item.availability}</g:availability>
       <g:condition>new</g:condition>

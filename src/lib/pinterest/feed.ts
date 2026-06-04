@@ -2,6 +2,7 @@ import { isIndexableCollection } from '@/lib/collections/quality';
 import { slugToTitle } from '@/lib/utils/pinterest';
 
 export const PINTEREST_FEED_LIMIT = 200;
+export const PINTEREST_DESCRIPTION_MAX_LENGTH = 800;
 
 export type PinterestFeedCollection = {
   name?: string | null;
@@ -111,6 +112,12 @@ function normalizePinterestKeywords(keywords: PinterestFeedDesign['keywords']): 
   return [];
 }
 
+function truncatePinterestDescription(description: string): string {
+  if (description.length <= PINTEREST_DESCRIPTION_MAX_LENGTH) return description;
+  const truncated = description.slice(0, PINTEREST_DESCRIPTION_MAX_LENGTH - 3).trimEnd();
+  return `${truncated}...`;
+}
+
 export function buildPinterestFeedItems(
   designs: PinterestFeedDesign[],
   baseUrl = 'https://genie.ph',
@@ -149,6 +156,7 @@ export function buildPinterestFeedItems(
       .join(' ');
 
     description += `\n\n${keywordTags ? `${keywordTags} ` : ''}#cebucakes #genieph`;
+    description = truncatePinterestDescription(description);
 
     items.push({
       title,

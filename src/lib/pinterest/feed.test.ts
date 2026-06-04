@@ -105,4 +105,20 @@ describe('Pinterest RSS feed helpers', () => {
 
     expect(items).toEqual([]);
   });
+
+  it('caps Pinterest RSS descriptions at 800 characters', () => {
+    const items = buildPinterestFeedItems([
+      {
+        slug: 'travel-suitcase-sky-blue-square-cake-30e2',
+        keywords: ['travel cake', 'suitcase cake'],
+        studio_edited_image_url: 'https://example.com/studio-travel.webp',
+        seo_description: 'A'.repeat(1200),
+      },
+    ]);
+
+    expect(items).toHaveLength(1);
+    expect(items[0].title).toBe('Travel Suitcase Sky Blue Square Cake');
+    expect(items[0].description).toHaveLength(800);
+    expect(items[0].description.endsWith('...')).toBe(true);
+  });
 });
