@@ -70,11 +70,23 @@ export function selectEligibleSearchAnalysisItems(items: QueueItem[], limit = MA
     .slice(0, Math.min(Math.max(limit, 1), MAX_BATCH_SIZE));
 }
 
+export function buildSearchAnalysisBatchGenerationConfig(requestConfig: Record<string, unknown>) {
+  const { responseMimeType, responseSchema, temperature, thinkingConfig } = requestConfig;
+  return {
+    ...(responseMimeType ? { responseMimeType } : {}),
+    ...(responseSchema ? { responseSchema } : {}),
+    ...(typeof temperature === 'number' ? { temperature } : {}),
+    ...(thinkingConfig ? { thinkingConfig } : {}),
+  };
+}
+
 export function buildSearchAnalysisBatchInputLine(item: QueueItem, activePrompt: string, requestConfig: Record<string, unknown>) {
+  const { systemInstruction } = requestConfig;
   return JSON.stringify({
     request: {
       contents: [{ role: 'user', parts: [{ fileData: { fileUri: item.normalized_image_url, mimeType: 'image/jpeg' } }, { text: activePrompt }] }],
-      ...requestConfig,
+      ...(systemInstruction ? { systemInstruction } : {}),
+      generationConfig: buildSearchAnalysisBatchGenerationConfig(requestConfig),
     },
   });
 }
@@ -198,28 +210,73 @@ function isTerminalProviderFailure(state?: string | null) {
   ));
 }
 
+function describeProviderFailure(providerJob: { state?: string | null; error?: { message?: string; code?: number | string } | null }) {
+  const details = [
+    providerJob.state ? `state=${providerJob.state}` : null,
+    providerJob.error?.code ? `code=${providerJob.error.code}` : null,
+    providerJob.error?.message ? `message=${providerJob.error.message}` : null,
+  ].filter(Boolean).join('; ');
+  return details ? `Search-analysis batch provider job failed: ${details}` : 'Search-analysis batch provider job failed before import.';
+}
+
+function getProviderRefreshErrorMessage(error: unknown) {
+  const raw = error instanceof Error ? error.message : String(error);
+  try {
+    const parsed = JSON.parse(raw) as { error?: { status?: string; message?: string; code?: number } };
+    if (parsed.error?.status || parsed.error?.message) {
+      return `Search-analysis batch provider refresh failed: ${parsed.error.status ?? parsed.error.code ?? 'unknown'}${parsed.error.message ? ` - ${parsed.error.message}` : ''}`;
+    }
+  } catch {
+    // Not a JSON-encoded provider error.
+  }
+  return `Search-analysis batch provider refresh failed: ${raw}`;
+}
+
+async function closeSearchAnalysisProviderFailure(
+  admin: ReturnType<typeof createAdminServerSupabaseClient>,
+  runId: string,
+  submittedCount: number,
+  errorMessage: string,
+) {
+  await admin.from('cakegenie_search_analysis_batch_items').update({
+    status: 'retryable',
+    run_id: null,
+    error: errorMessage,
+    updated_at: new Date().toISOString(),
+  }).eq('run_id', runId).eq('status', 'submitted');
+  await admin.from('cakegenie_search_analysis_batch_runs').update({
+    status: 'failed',
+    retryable_count: submittedCount,
+    error: errorMessage,
+    updated_at: new Date().toISOString(),
+  }).eq('id', runId);
+}
+
 export async function reconcileSearchAnalysisBatch(runId: string, requestContext?: AIRequestContext) {
   const admin = createAdminServerSupabaseClient();
   const { data: run, error } = await admin.from('cakegenie_search_analysis_batch_runs').select('*').eq('id', runId).single();
   if (error) throw error;
   if (run.status !== 'submitted' && run.status !== 'importing') return { run };
   if (run.status === 'submitted') {
-    const providerJob = await getAI(requestContext).batches.get({ name: run.gemini_job_name });
-    if (providerJob.state !== 'JOB_STATE_SUCCEEDED') {
-      if (isTerminalProviderFailure(providerJob.state)) {
-        const errorMessage = `Search-analysis batch provider job ended as ${providerJob.state}.`;
-        await admin.from('cakegenie_search_analysis_batch_items').update({
-          status: 'retryable',
-          run_id: null,
-          error: errorMessage,
-          updated_at: new Date().toISOString(),
-        }).eq('run_id', runId).eq('status', 'submitted');
-        await admin.from('cakegenie_search_analysis_batch_runs').update({
+    let providerJob: Awaited<ReturnType<ReturnType<typeof getAI>['batches']['get']>>;
+    try {
+      providerJob = await getAI(requestContext).batches.get({ name: run.gemini_job_name });
+    } catch (providerError) {
+      const errorMessage = getProviderRefreshErrorMessage(providerError);
+      await closeSearchAnalysisProviderFailure(admin, runId, run.submitted_count ?? 0, errorMessage);
+      return {
+        run: {
+          ...run,
           status: 'failed',
           retryable_count: run.submitted_count ?? 0,
           error: errorMessage,
-          updated_at: new Date().toISOString(),
-        }).eq('id', runId);
+        },
+      };
+    }
+    if (providerJob.state !== 'JOB_STATE_SUCCEEDED') {
+      if (isTerminalProviderFailure(providerJob.state)) {
+        const errorMessage = describeProviderFailure(providerJob);
+        await closeSearchAnalysisProviderFailure(admin, runId, run.submitted_count ?? 0, errorMessage);
         return {
           run: {
             ...run,

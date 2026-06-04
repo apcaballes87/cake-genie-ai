@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildSearchAnalysisBatchInputLine,
+  buildSearchAnalysisBatchGenerationConfig,
   buildSearchAnalysisPersistenceOptions,
   correlateSearchAnalysisOutputs,
   resolveSearchAnalysisIntake,
@@ -35,15 +36,34 @@ describe('search analysis batch helpers', () => {
 
   it('constructs a Vertex JSONL request with the normalized public image', () => {
     const line = JSON.parse(buildSearchAnalysisBatchInputLine(item() as QueueItem, 'analyze exactly', {
+      systemInstruction: 'be exact',
       responseMimeType: 'application/json',
       temperature: 0,
     }));
     expect(line).toEqual({
       request: {
         contents: [{ role: 'user', parts: [{ fileData: { fileUri: 'https://cdn.example/cake.jpg', mimeType: 'image/jpeg' } }, { text: 'analyze exactly' }] }],
-        responseMimeType: 'application/json',
-        temperature: 0,
+        systemInstruction: 'be exact',
+        generationConfig: {
+          responseMimeType: 'application/json',
+          temperature: 0,
+        },
       },
+    });
+  });
+
+  it('keeps batch model parameters inside generationConfig', () => {
+    expect(buildSearchAnalysisBatchGenerationConfig({
+      systemInstruction: 'not here',
+      responseMimeType: 'application/json',
+      responseSchema: { type: 'OBJECT' },
+      temperature: 0,
+      thinkingConfig: { thinkingLevel: 'LOW' },
+    })).toEqual({
+      responseMimeType: 'application/json',
+      responseSchema: { type: 'OBJECT' },
+      temperature: 0,
+      thinkingConfig: { thinkingLevel: 'LOW' },
     });
   });
 
