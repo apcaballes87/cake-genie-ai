@@ -56,6 +56,7 @@ import {
   submitNextSearchAnalysisBatch,
   reconcileSearchAnalysisBatch,
 } from './searchAnalysisBatch';
+import { buildSearchAnalysisResponseSchema } from './searchAnalysisContract';
 import type { QueueItem } from './searchAnalysisBatch';
 
 const item = (overrides: Record<string, unknown> = {}) => ({
@@ -73,6 +74,79 @@ const item = (overrides: Record<string, unknown> = {}) => ({
 });
 
 describe('search analysis batch helpers', () => {
+  it('requires SEO copy and accepted-analysis fields in the shared response schema', () => {
+    const schema = buildSearchAnalysisResponseSchema({
+      mainTopperTypes: ['printout', 'edible_photo_top'],
+      supportElementTypes: ['dragees', 'sprinkles'],
+    }) as any;
+
+    expect(schema.required).toEqual(expect.arrayContaining([
+      'cakeType',
+      'cakeThickness',
+      'main_toppers',
+      'support_elements',
+      'cake_messages',
+      'icing_design',
+      'keyword',
+      'alt_text',
+      'seo_title',
+      'seo_description',
+      'rejection',
+    ]));
+  });
+
+  it('keeps cupcake analyses accepted while removing cupcake-only rejection', () => {
+    const schema = buildSearchAnalysisResponseSchema({
+      mainTopperTypes: ['printout', 'edible_photo_top'],
+      supportElementTypes: ['dragees', 'sprinkles'],
+    }) as any;
+
+    const rejectionReasons = schema.properties.rejection.properties.reason.enum;
+    expect(rejectionReasons).not.toContain('cupcakes_only');
+
+    const cinderellaCupcakes = {
+      cakeType: 'cupcakes-printout-toppers',
+      cakeThickness: '2 in',
+      main_toppers: [{
+        x: 0,
+        y: 0,
+        type: 'printout',
+        material: 'photopaper',
+        group_id: 'cinderella_toppers',
+        classification: 'hero',
+        size: 'medium',
+        quantity: 3,
+        description: 'Cinderella character cutouts',
+      }],
+      support_elements: [{
+        x: 0,
+        y: 0,
+        type: 'dragees',
+        material: 'candy',
+        group_id: 'silver_dragees',
+        color: '#C0C0C0',
+        size: 'tiny',
+        quantity: 15,
+        description: 'silver dragees',
+      }],
+      cake_messages: [],
+      icing_design: {
+        base: 'soft-icing',
+        color_type: 'single',
+        colors: { side: '#87CEEB' },
+      },
+      keyword: 'Cinderella Cupcakes',
+      alt_text: 'Cupcakes with printed Cinderella character toppers and silver dragees on blue icing',
+      seo_title: 'Cinderella Cupcakes With Blue Icing Cebu | Genie.ph',
+      seo_description: 'These are Cinderella cupcakes with printed character toppers. The cupcakes use blue icing with a soft piped finish. Silver dragees add small metallic accents on top. Made for a child who wants a princess-themed birthday set. Order through Genie.ph for delivery in Cebu City.',
+      rejection: { isRejected: false, message: '' },
+    };
+
+    for (const key of schema.required) {
+      expect(cinderellaCupcakes).toHaveProperty(key);
+    }
+  });
+
   it('filters ineligible items and orders usage, queue time, then id predictably', () => {
     const selected = selectEligibleSearchAnalysisItems([
       item({ id: 'z', status: 'completed', source_usage_count: 99 }),

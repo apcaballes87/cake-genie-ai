@@ -1,5 +1,35 @@
 # Tasks
 
+## Backfill Generic SEO Descriptions And Alt Text
+
+### Plan
+
+- [ ] Count and sample `cakegenie_analysis_cache` rows whose `seo_description` contains both `Get instant pricing` and `Starting at`.
+- [ ] Create a focused Gemini 2.5 Flash backfill script that regenerates `seo_description` and `alt_text` from `analysis_json`.
+- [ ] Dry-run a small sample and inspect generated copy for banned fallback phrases.
+- [ ] Run the live backfill, then verify no matching generic descriptions remain.
+
+## Require SEO Copy For Accepted Cake Analysis
+
+### Plan
+
+- [x] Tighten the active `/api/ai/analyze` structured-output schema so accepted cake and cupcake analyses must include `alt_text`, `seo_title`, and `seo_description`.
+- [x] Remove stale cupcake rejection residue now that cupcake-only uploads are accepted.
+- [x] Add focused regression coverage for the analysis schema, including a Cinderella cupcake accepted-analysis shape.
+- [x] Run focused tests/lint and record the result.
+
+### Review
+
+- Root cause: the active `/api/ai/analyze` route uses the shared search-analysis structured-output schema, and that schema previously required only `rejection`. The prompt said `seo_title` and `seo_description` were required, but the model was not schema-forced to emit them.
+- Updated `src/lib/admin/searchAnalysisContract.ts` so accepted-analysis fields are required at the top level, including `alt_text`, `seo_title`, and `seo_description`.
+- Removed stale `cupcakes_only` rejection handling from `src/services/geminiService.ts` and `src/app/api/ai/analyze-url/route.ts`.
+- Added regression coverage proving the shared schema requires SEO copy and that a Cinderella cupcake accepted-analysis shape carries all required fields.
+- Verification:
+  - `npx vitest run src/lib/admin/searchAnalysisBatch.test.ts` passed with 15 tests.
+  - `npx eslint src/lib/admin/searchAnalysisContract.ts src/lib/admin/searchAnalysisBatch.test.ts src/app/api/ai/analyze-url/route.ts` passed with only the stale Browserslist notice.
+  - Full focused ESLint including `src/services/geminiService.ts` still hits pre-existing unrelated `no-explicit-any` errors at lines 228 and 241.
+  - `git diff --check` passed.
+
 ## Fix Customizer Icing Swatch Fix Button Source
 
 ### Plan

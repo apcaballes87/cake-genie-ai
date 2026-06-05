@@ -91,7 +91,19 @@ export function buildSearchAnalysisResponseSchema(typeEnums: TypeEnums) {
       },
       is_tall_proportion: { type: Type.BOOLEAN },
     },
-    required: ['rejection'],
+    required: [
+      'cakeType',
+      'cakeThickness',
+      'main_toppers',
+      'support_elements',
+      'cake_messages',
+      'icing_design',
+      'keyword',
+      'alt_text',
+      'seo_title',
+      'seo_description',
+      'rejection',
+    ],
   };
 }
 

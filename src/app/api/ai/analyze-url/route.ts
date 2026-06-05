@@ -296,7 +296,6 @@ export async function POST(req: NextRequest) {
                                 'not_a_cake',
                                 'multiple_cakes',
                                 'cake_slice_only',
-                                'cupcakes_only',
                                 'complex_sculpture',
                                 'large_wedding_cake',
                             ],

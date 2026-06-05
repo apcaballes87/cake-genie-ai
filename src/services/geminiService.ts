@@ -25,7 +25,6 @@ const REJECTION_FALLBACK_MESSAGES: Record<string, string> = {
     not_a_cake: "This image doesn't appear to be a cake. Please upload a cake image.",
     multiple_cakes: "Please upload a single cake image. This image contains multiple cakes.",
     cake_slice_only: "We can't price cakes that are 1 slice only. Please upload a whole cake design image.",
-    cupcakes_only: "We currently don't process cupcake-only images. Please upload a cake design.",
     complex_sculpture: "This cake design is too complex for online pricing. Please contact us for a custom quote.",
     large_wedding_cake: "Large wedding cakes require in-store consultation for accurate pricing.",
 };
