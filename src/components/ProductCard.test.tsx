@@ -139,4 +139,17 @@ describe('ProductCard', () => {
         const image = container.querySelector('[data-src]');
         expect(image).toHaveAttribute('data-src', 'https://example.com/cake.webp');
     });
+
+    it('appends "Cupcakes" instead of "Cake" for cupcake designs', () => {
+        render(
+            <ProductCard
+                {...baseProps}
+                slug="hello-kitty-cupcakes"
+                keywords="Hello Kitty"
+                analysis_json={{ cakeType: 'cupcakes-printout-toppers' }}
+            />
+        );
+
+        expect(screen.getByText('Hello Kitty Cupcakes')).toBeInTheDocument();
+    });
 });

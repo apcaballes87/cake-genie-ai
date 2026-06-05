@@ -66,11 +66,28 @@ type ProductCardShellProps = {
     onSaveClick: (e: React.MouseEvent<HTMLButtonElement>) => Promise<void>;
 };
 
-const buildProductTitle = (keywords?: string | null, collectionContext?: string) => {
-    const firstKeyword = keywords ? keywords.split(',')[0] : 'Custom Cake';
-    const baseTitle = firstKeyword.trim().toLowerCase().endsWith('cake')
-        ? firstKeyword.trim()
-        : `${firstKeyword.trim()} Cake`;
+const buildProductTitle = (keywords?: string | null, collectionContext?: string, analysis_json?: ProductCardProps['analysis_json']) => {
+    const isCupcake = Boolean(
+        analysis_json?.cakeType?.toLowerCase().includes('cupcake') ||
+        keywords?.toLowerCase().includes('cupcake')
+    );
+
+    const firstKeyword = keywords ? keywords.split(',')[0].trim() : (isCupcake ? 'Custom Cupcakes' : 'Custom Cake');
+    let baseTitle = '';
+    
+    if (isCupcake) {
+        if (firstKeyword.toLowerCase().endsWith('cupcakes')) {
+            baseTitle = firstKeyword;
+        } else if (firstKeyword.toLowerCase().endsWith('cupcake')) {
+            baseTitle = `${firstKeyword}s`;
+        } else {
+            baseTitle = `${firstKeyword} Cupcakes`;
+        }
+    } else {
+        baseTitle = firstKeyword.toLowerCase().endsWith('cake')
+            ? firstKeyword
+            : `${firstKeyword} Cake`;
+    }
 
     const titleCase = baseTitle
         .toLowerCase()
@@ -81,18 +98,19 @@ const buildProductTitle = (keywords?: string | null, collectionContext?: string)
     // Enrich with collection context for better image alt text
     // e.g. "Kuromi Cake" + collection "birthday" → "Kuromi Birthday Cake Design"
     if (collectionContext) {
-        // Strip trailing "cake" from context to avoid "Debut Cake Cake" doubling
-        const ctxClean = collectionContext.replace(/\s*cake\s*$/i, '').trim();
+        // Strip trailing "cake" or "cupcake/cupcakes" from context to avoid doubling
+        const ctxClean = collectionContext.replace(/\s*(cake|cupcakes?)\s*$/i, '').trim();
         if (ctxClean) {
             const ctxLower = ctxClean.toLowerCase();
             const titleLower = titleCase.toLowerCase();
+            const cleanTitle = titleLower.replace(isCupcake ? /\s*cupcakes?\s*$/ : /\s*cake\s*$/, '');
             // Only append if collection context isn't already in the title
-            if (!titleLower.includes(ctxLower) && !ctxLower.includes(titleLower.replace(/\s*cake\s*$/, ''))) {
-                // Insert collection context before "Cake" for natural phrasing
-                const cakeIdx = titleLower.lastIndexOf('cake');
-                if (cakeIdx > 0) {
+            if (!titleLower.includes(ctxLower) && !ctxLower.includes(cleanTitle)) {
+                // Insert collection context before "Cake" or "Cupcakes" for natural phrasing
+                const targetIdx = titleLower.lastIndexOf(isCupcake ? 'cupcakes' : 'cake');
+                if (targetIdx > 0) {
                     const ctxCap = ctxClean.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-                    return `${titleCase.slice(0, cakeIdx)}${ctxCap} ${titleCase.slice(cakeIdx)} Design`;
+                    return `${titleCase.slice(0, targetIdx)}${ctxCap} ${titleCase.slice(targetIdx)} Design`;
                 }
             }
         }
@@ -247,7 +265,7 @@ const useProductCardCommon = ({ p_hash, original_image_url, studio_edited_image_
 };
 
 const LinkedProductCard = (props: ProductCardProps & { slug: string }) => {
-    const title = buildProductTitle(props.keywords, props.collectionContext);
+    const title = buildProductTitle(props.keywords, props.collectionContext, props.analysis_json);
     const { isSaved, handleSaveClick } = useProductCardCommon(props);
 
     const handleCardClick = () => {
@@ -273,7 +291,7 @@ const LinkedProductCard = (props: ProductCardProps & { slug: string }) => {
 };
 
 const InteractiveProductCard = (props: ProductCardProps) => {
-    const title = buildProductTitle(props.keywords, props.collectionContext);
+    const title = buildProductTitle(props.keywords, props.collectionContext, props.analysis_json);
     const { router, isSaved, handleSaveClick, preferredImageUrl } = useProductCardCommon(props);
     const { handleImageUpload: hookImageUpload, clearImages } = useImageManagement();
     const {
@@ -294,7 +312,7 @@ const InteractiveProductCard = (props: ProductCardProps) => {
         trackSelectItem({
             item_list_name: props.listName ?? 'unknown',
             item_id: props.p_hash,
-            item_name: buildProductTitle(props.keywords, props.collectionContext),
+            item_name: buildProductTitle(props.keywords, props.collectionContext, props.analysis_json),
         });
 
         const toastId = showLoading('Loading design...');
