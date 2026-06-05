@@ -4,10 +4,21 @@
 
 ### Plan
 
-- [ ] Count and sample `cakegenie_analysis_cache` rows whose `seo_description` contains both `Get instant pricing` and `Starting at`.
-- [ ] Create a focused Gemini 2.5 Flash backfill script that regenerates `seo_description` and `alt_text` from `analysis_json`.
-- [ ] Dry-run a small sample and inspect generated copy for banned fallback phrases.
-- [ ] Run the live backfill, then verify no matching generic descriptions remain.
+- [x] Count and sample `cakegenie_analysis_cache` rows whose `seo_description` contains both `Get instant pricing` and `Starting at`.
+- [x] Create a focused Gemini 2.5 Flash backfill script that regenerates `seo_description` and `alt_text` from `analysis_json`.
+- [x] Dry-run a small sample and inspect generated copy for banned fallback phrases.
+- [x] Run the live backfill, then verify no matching generic descriptions remain.
+
+### Review
+
+- Found 416 live `cakegenie_analysis_cache` rows whose `seo_description` contained both `Get instant pricing` and `Starting at`.
+- Used `scripts/backfill-generic-seo-copy.ts` with `gemini-2.5-flash` through the repo's Vertex AI client to regenerate `alt_text` and `seo_description` from each row's `analysis_json`.
+- Dry-run first caught pricing/marketing wording issues, then the script was tightened with retry validation before live writes.
+- Updated all 416 rows in live Supabase: 14 in the initial serial run, 402 in the resumed concurrent run, and 1 final straggler with empty `keywords`.
+- Verification:
+  - SQL count for descriptions containing both `Get instant pricing` and `Starting at`: `0`.
+  - SQL count for descriptions containing either `Get instant pricing` or `Starting at`: `0`.
+  - Sampled Cinderella cupcakes, Mother's Day, and heart cake rows after update; each now has design-specific alt text and description.
 
 ## Require SEO Copy For Accepted Cake Analysis
 
