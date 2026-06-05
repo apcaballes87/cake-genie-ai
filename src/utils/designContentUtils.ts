@@ -17,6 +17,9 @@ export function generateDesignDetails(design: any, prices?: BasePriceInfo[]): st
     const availability = design.availability || 'normal';
     const tags = design.tags || [];
 
+    const isCupcake = cakeType.toLowerCase().startsWith('cupcakes-') || (design.slug || '').includes('cupcakes-');
+    const pNoun = isCupcake ? 'cupcakes' : 'cake';
+
     // Map tier to layer synonym so page text naturally contains both terms
     // ("1 tier" and "1 layer") — Filipino users search both interchangeably
     const layerSynonymMap: Record<string, string> = {
@@ -37,11 +40,23 @@ export function generateDesignDetails(design: any, prices?: BasePriceInfo[]): st
         : topColor ? `in ${topColor}` : 'with a custom color palette';
 
     if (tags.length >= 2) {
-        sentences.push(`Designed specifically for ${tags[0]} or ${tags[1]} events, this ${keywords} cake is a stunning ${cakeTypeWithSynonym} piece finished with ${icingBase} ${colorDesc}.`);
+        if (isCupcake) {
+            sentences.push(`Designed specifically for ${tags[0]} or ${tags[1]} events, these ${keywords} cupcakes are a stunning set finished with ${icingBase} ${colorDesc}.`);
+        } else {
+            sentences.push(`Designed specifically for ${tags[0]} or ${tags[1]} events, this ${keywords} cake is a stunning ${cakeTypeWithSynonym} piece finished with ${icingBase} ${colorDesc}.`);
+        }
     } else if (tags.length === 1) {
-        sentences.push(`A popular choice for ${tags[0]} celebrations, this ${cakeTypeWithSynonym} ${keywords} cake features ${icingBase} ${colorDesc}.`);
+        if (isCupcake) {
+            sentences.push(`A popular choice for ${tags[0]} celebrations, these ${keywords} cupcakes feature ${icingBase} ${colorDesc}.`);
+        } else {
+            sentences.push(`A popular choice for ${tags[0]} celebrations, this ${cakeTypeWithSynonym} ${keywords} cake features ${icingBase} ${colorDesc}.`);
+        }
     } else {
-        sentences.push(`This ${keywords} cake is a ${cakeTypeWithSynonym} design with ${icingBase} featuring ${colorDesc}.`);
+        if (isCupcake) {
+            sentences.push(`These ${keywords} cupcakes are a custom design with ${icingBase} featuring ${colorDesc}.`);
+        } else {
+            sentences.push(`This ${keywords} cake is a ${cakeTypeWithSynonym} design with ${icingBase} featuring ${colorDesc}.`);
+        }
     }
 
     // Sentence 2: Describe the main toppers (the hero elements)
@@ -86,10 +101,10 @@ export function generateDesignDetails(design: any, prices?: BasePriceInfo[]): st
         sentences.push(`The icing work includes ${joined} for added detail.`);
     }
 
-    // Sentence 5: Cake messages
+    // Sentence 5: Cake/cupcake messages
     if (cakeMessages.length > 0) {
         const messages = cakeMessages.map((m: any) => `"${m.text}"`).join(' and ');
-        sentences.push(`The cake carries the message ${messages}.`);
+        sentences.push(`The ${pNoun} carry the message ${messages}.`);
     }
 
     // Sentence 6: Pricing and sizes
@@ -98,14 +113,20 @@ export function generateDesignDetails(design: any, prices?: BasePriceInfo[]): st
         const lowest = sorted[0];
         const highest = sorted[sorted.length - 1];
         const sizeList = prices.map(p => p.size).join(', ');
-        sentences.push(`Available in ${sizeList}, this design starts at ₱${Math.round(lowest.price).toLocaleString()} and goes up to ₱${Math.round(highest.price).toLocaleString()} for the largest size.`);
+        if (isCupcake) {
+            sentences.push(`Available in ${sizeList}, this design is priced at ₱${Math.round(lowest.price).toLocaleString()} for a set.`);
+        } else {
+            sentences.push(`Available in ${sizeList}, this design starts at ₱${Math.round(lowest.price).toLocaleString()} and goes up to ₱${Math.round(highest.price).toLocaleString()} for the largest size.`);
+        }
     }
 
     // Sentence 7: Availability
     const availabilityMap: Record<string, string> = {
-        'rush': 'This is a simple design eligible for rush orders — you can have it ready in as little as 60 minutes.',
-        'same-day': 'This design qualifies for same-day orders with approximately 3 to 4 hours of lead time.',
-        'normal': 'Due to the complexity of this design, we recommend ordering at least 1 day in advance for the best results.',
+        'rush': `This is a simple design eligible for rush orders — you can have it ready in as little as 60 minutes.`,
+        'same-day': `This design qualifies for same-day orders with approximately 3 to 4 hours of lead time.`,
+        'normal': isCupcake
+            ? `We recommend ordering at least 1 day in advance for the best results.`
+            : `Due to the complexity of this design, we recommend ordering at least 1 day in advance for the best results.`,
     };
     if (availabilityMap[availability]) {
         sentences.push(availabilityMap[availability]);
@@ -127,6 +148,9 @@ export function generateDynamicFAQ(design: any, prices?: BasePriceInfo[]): { que
     const mainToppers = analysis.main_toppers || [];
     const supportElements = analysis.support_elements || [];
 
+    const isCupcake = cakeType.toLowerCase().startsWith('cupcakes-') || (design.slug || '').includes('cupcakes-');
+    const pPluralThis = isCupcake ? 'these' : 'this';
+
     const faqs: { question: string; answer: string }[] = [];
 
     // FAQ 1: Price — always unique per design
@@ -134,19 +158,27 @@ export function generateDynamicFAQ(design: any, prices?: BasePriceInfo[]): { que
         const sorted = [...prices].sort((a, b) => a.price - b.price);
         const priceLines = sorted.map(p => `${p.size} at ₱${Math.round(p.price).toLocaleString()}`).join(', ');
         faqs.push({
-            question: `How much does this ${keywords} cake cost?`,
-            answer: `This ${keywords} ${cakeType.toLowerCase()} cake is available in multiple sizes: ${priceLines}. The price includes the base icing, all decorations shown in the design, and free delivery within Metro Cebu. You can also customize individual elements which may adjust the final price.`,
+            question: isCupcake ? `How much do these ${keywords} cupcakes cost?` : `How much does this ${keywords} cake cost?`,
+            answer: isCupcake
+                ? `These ${keywords} cupcakes are priced at: ${priceLines}. The price includes the base icing, all decorations shown in the design, and free delivery within Metro Cebu. You can also customize individual elements which may adjust the final price.`
+                : `This ${keywords} ${cakeType.toLowerCase()} cake is available in multiple sizes: ${priceLines}. The price includes the base icing, all decorations shown in the design, and free delivery within Metro Cebu. You can also customize individual elements which may adjust the final price.`,
         });
     }
 
     // FAQ 2: Availability — varies by design complexity
     const availabilityAnswers: Record<string, string> = {
-        'rush': `This ${keywords} cake design is simple enough for a rush order. You can have it ready in as little as 60 minutes, making it perfect for last-minute celebrations. Rush orders are available for pickup or delivery within Metro Cebu.`,
-        'same-day': `This ${keywords} cake can be prepared as a same-day order with approximately 3 to 4 hours of lead time. The design includes elements that require some preparation time, but you can still order and receive it on the same day. Place your order before noon for the best availability.`,
-        'normal': `This ${keywords} cake design requires at least 1 day of lead time due to its complexity. We recommend ordering at least 1 to 2 days in advance to ensure our bakers can craft every detail perfectly. Order by 3 PM for next-day delivery slots.`,
+        'rush': isCupcake
+            ? `These ${keywords} cupcakes are simple enough for a rush order. You can have them ready in as little as 60 minutes, making them perfect for last-minute celebrations. Rush orders are available for pickup or delivery within Metro Cebu.`
+            : `This ${keywords} cake design is simple enough for a rush order. You can have it ready in as little as 60 minutes, making it perfect for last-minute celebrations. Rush orders are available for pickup or delivery within Metro Cebu.`,
+        'same-day': isCupcake
+            ? `These ${keywords} cupcakes can be prepared as a same-day order with approximately 3 to 4 hours of lead time. Place your order before noon for the best availability.`
+            : `This ${keywords} cake can be prepared as a same-day order with approximately 3 to 4 hours of lead time. The design includes elements that require some preparation time, but you can still order and receive it on the same day. Place your order before noon for the best availability.`,
+        'normal': isCupcake
+            ? `These ${keywords} cupcakes require at least 1 day of lead time. We recommend ordering at least 1 to 2 days in advance to ensure our bakers can craft every detail perfectly. Order by 3 PM for next-day delivery slots.`
+            : `This ${keywords} cake design requires at least 1 day of lead time due to its complexity. We recommend ordering at least 1 to 2 days in advance to ensure our bakers can craft every detail perfectly. Order by 3 PM for next-day delivery slots.`,
     };
     faqs.push({
-        question: `How soon can I get this ${keywords} cake?`,
+        question: isCupcake ? `How soon can I get ${pPluralThis} ${keywords} cupcakes?` : `How soon can I get this ${keywords} cake?`,
         answer: availabilityAnswers[availability] || availabilityAnswers['normal'],
     });
 
@@ -160,7 +192,7 @@ export function generateDynamicFAQ(design: any, prices?: BasePriceInfo[]): { que
         customizableElements.push('icing colors and style');
     }
     if (analysis.cake_messages?.length > 0) {
-        customizableElements.push('cake messages and text');
+        customizableElements.push('messages and text');
     }
     if (supportElements.length > 0) {
         customizableElements.push('decorative accents');
@@ -170,15 +202,17 @@ export function generateDynamicFAQ(design: any, prices?: BasePriceInfo[]): { que
         const lastEl = customizableElements.length > 1 ? customizableElements.pop() : null;
         const joined = lastEl ? `${customizableElements.join(', ')}, and ${lastEl}` : customizableElements[0];
         faqs.push({
-            question: `Can I customize this ${keywords} cake design?`,
-            answer: `Yes, you can fully customize this design. Editable elements include ${joined}. Use our AI-powered customizer to swap, add, or remove individual elements and see how each change affects the price in real time. For example, switching a toy topper to a printed one can adjust the cost.`,
+            question: isCupcake ? `Can I customize ${pPluralThis} ${keywords} cupcakes?` : `Can I customize this ${keywords} cake design?`,
+            answer: `Yes, you can fully customize this design. Editable elements include ${joined}. Use our AI-powered customizer to swap, add, or remove individual elements and see how each change affects the price in real time.`,
         });
     }
 
     // FAQ 4: Delivery — semi-dynamic with cake type context
     faqs.push({
-        question: `Do you deliver this ${cakeType.toLowerCase()} cake in Cebu?`,
-        answer: `Yes, we offer free delivery for this ${keywords} ${cakeType.toLowerCase()} cake throughout Metro Cebu, including Cebu City, Mandaue, Mactan, Lapu-Lapu, and Talisay. We also serve select areas in Cavite. All cakes are delivered fresh by our partner bakers to ensure quality.`,
+        question: isCupcake ? `Do you deliver ${pPluralThis} cupcakes in Cebu?` : `Do you deliver this ${cakeType.toLowerCase()} cake in Cebu?`,
+        answer: isCupcake
+            ? `Yes, we offer free delivery for these ${keywords} cupcakes throughout Metro Cebu, including Cebu City, Mandaue, Mactan, Lapu-Lapu, and Talisay. We also serve select areas in Cavite.`
+            : `Yes, we offer free delivery for this ${keywords} ${cakeType.toLowerCase()} cake throughout Metro Cebu, including Cebu City, Mandaue, Mactan, Lapu-Lapu, and Talisay. We also serve select areas in Cavite. All cakes are delivered fresh by our partner bakers to ensure quality.`,
     });
 
     // FAQ 5: Payment methods — static but important for conversions and trust
@@ -198,29 +232,28 @@ export function generateDynamicFAQ(design: any, prices?: BasePriceInfo[]): { que
  */
 export function generateRichAltText(design: any): string {
     const storedAlt = (design.alt_text || '').trim();
+    const isCupcake = (design.analysis_json?.cakeType || '').toLowerCase().includes('cupcake') || (design.slug || '').includes('cupcupcake') || (design.slug || '').includes('cupcakes-');
 
     // 1. Trust substantial stored alt text without regenerating.
-    //    Threshold is 60 chars: enough to carry tier, icing, colors, and one
-    //    decoration; shorter values are usually too generic for image search.
     if (storedAlt.length >= 60) {
+        if (isCupcake && /cupcake/i.test(storedAlt) && /\s+cake/i.test(storedAlt)) {
+            return storedAlt.replace(/\s+cake/ig, '');
+        }
         return storedAlt;
     }
 
     // 2. Auto-generated backup: build rich, specific alt text from analysis data.
-    //    Many of the 8K+ designs hit this path when alt_text is empty or short.
     const analysis = design.analysis_json || {};
     const keywords = design.keywords || 'Custom';
     const tags = design.tags || [];
-    const occasion = tags[0] ? tags[0].replace(/cake/i, '').trim() : '';
+    const occasion = tags[0] ? tags[0].replace(/cake/i, '').replace(/cupcakes?/i, '').trim() : '';
     const keywordsLower = keywords.toLowerCase();
     const occasionLower = occasion.toLowerCase();
 
-    // Search-friendly tier names — match how Filipino users actually search:
-    // GSC data shows top queries use "1 layer cake design", "2 tier cake", "1 tier cake"
-    // NOT "single-tier" or "two-tier" which get zero search volume in PH
+    // Search-friendly tier names
     const tierMap: Record<string, string> = {
         '1 tier': '1 layer', '2 tier': '2 tier', '3 tier': '3 tier',
-        '1 tier fondant': '1 layer fondant', '2 tier fondant': '2 tier fondant', '3 tier fondant': '3 tier fondant',
+        '1 tier fondant': '1 layer fondant', '2 tier fondant': '2 layer fondant', '3 tier fondant': '3 tier fondant',
         'bento': 'bento', 'square': 'square', 'rectangle': 'rectangle',
         'square fondant': 'square fondant', 'rectangle fondant': 'rectangle fondant',
     };
@@ -233,32 +266,35 @@ export function generateRichAltText(design: any): string {
     const sideColor = hexToColorNameProse(analysis.icing_design?.colors?.side || '');
     const colors = topColor && sideColor && topColor !== sideColor ? `${topColor} and ${sideColor}` : topColor;
 
-    // Build decoration list (expanded to 4 items for richer descriptions)
+    // Build decoration list
     const mainTopperDescs = (analysis.main_toppers || [])
         .map((d: any) => d.description || d.type?.replace(/_/g, ' ')).filter(Boolean);
     const supportDescs = (analysis.support_elements || [])
         .map((d: any) => d.description || d.type?.replace(/_/g, ' ')).filter(Boolean);
     const allDecos = [...mainTopperDescs, ...supportDescs].slice(0, 4);
 
-    // Build message mention (e.g., 'custom "Happy Birthday" message')
+    // Build message mention
     const messages = (analysis.cake_messages || [])
         .map((m: any) => m.text).filter(Boolean);
     const messagePart = messages.length > 0
         ? `custom "${messages[0]}" message`
         : '';
 
-    // Assemble: "{Keywords} {occasion} cake design — {tier} {icing} cake in {colors} with {decos}"
+    // Assemble parts
     const parts: string[] = [];
 
-    // Opening: always include "cake design" for search matching
+    // Opening
     const shouldAppendOccasion = Boolean(occasion && !keywordsLower.includes(occasionLower));
     const keywordPhrase = `${keywords}${shouldAppendOccasion ? ` ${occasion}` : ''}`.replace(/\s+/g, ' ').trim();
-    const prefix = `${keywordPhrase}${/\bcakes?\b/i.test(keywordPhrase) ? ' design' : ' cake design'}`.replace(/\s+/g, ' ').trim();
+    const suffixPhrase = isCupcake ? 'cupcakes' : 'cake design';
+    const prefix = `${keywordPhrase}${/\bcupcakes?\b/i.test(keywordPhrase) ? '' : ` ${suffixPhrase}`}`.replace(/\s+/g, ' ').trim();
     parts.push(prefix);
 
     // Cake description
-    const cakeDesc = `${cakeType}${icingBase ? ` ${icingBase}` : ''} cake${colors ? ` in ${colors}` : ''}`.trim();
-    if (cakeType || colors) parts.push(cakeDesc);
+    const cakeDesc = isCupcake
+        ? `set of ${colors || 'custom colored'} cupcakes`.trim()
+        : `${cakeType}${icingBase ? ` ${icingBase}` : ''} cake${colors ? ` in ${colors}` : ''}`.trim();
+    if (isCupcake || cakeType || colors) parts.push(cakeDesc);
 
     // Decorations
     if (allDecos.length > 0 || messagePart) {
@@ -276,8 +312,6 @@ export function generateRichAltText(design: any): string {
     const capitalized = generated.charAt(0).toUpperCase() + generated.slice(1);
 
     // 3. Prefer the generated alt when analysis data produced something richer
-    //    than whatever was stored. Falls back to stored alt if generation was
-    //    thin, so a reasonable short alt_text is never replaced by a weaker one.
     const hasRichGeneration = allDecos.length > 0 || colors || messagePart;
     if (hasRichGeneration && capitalized.length > storedAlt.length) {
         return capitalized;

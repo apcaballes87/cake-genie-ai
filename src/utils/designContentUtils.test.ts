@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { generateRichAltText } from './designContentUtils';
+import { generateRichAltText, generateDesignDetails, generateDynamicFAQ } from './designContentUtils';
 
 const RICH_ANALYSIS = {
     cakeType: '1 tier',
@@ -77,5 +77,39 @@ describe('generateRichAltText', () => {
             analysis_json: {},
         });
         expect(result).toBe('vanilla cake design');
+    });
+
+    it('handles cupcakes correct phrasing in alt text, details and FAQ', () => {
+        const cupcakeDesign = {
+            keywords: 'Cinderella',
+            slug: 'cinderella-cupcakes-sky-blue',
+            analysis_json: {
+                cakeType: 'cupcakes-printout-toppers',
+                icing_design: {
+                    base: 'soft_icing',
+                    colors: { top: '#87ceeb' }
+                },
+                main_toppers: [
+                    { description: 'cinderella figure', type: 'printout' }
+                ],
+                cake_messages: [
+                    { text: 'Happy 5th' }
+                ]
+            },
+            tags: ['birthday', 'girl']
+        };
+
+        const alt = generateRichAltText(cupcakeDesign);
+        expect(alt.toLowerCase()).toContain('cupcakes');
+        expect(alt.toLowerCase()).not.toContain('cake design');
+
+        const details = generateDesignDetails(cupcakeDesign);
+        expect(details.toLowerCase()).toContain('cupcakes');
+        expect(details.toLowerCase()).toContain('carry the message');
+        expect(details.toLowerCase()).not.toContain('this cinderella cake');
+
+        const faqs = generateDynamicFAQ(cupcakeDesign, [{ size: '12 pieces', price: 499 }]);
+        expect(faqs[0].question.toLowerCase()).toContain('cupcakes');
+        expect(faqs[0].answer.toLowerCase()).toContain('these cinderella cupcakes');
     });
 });
