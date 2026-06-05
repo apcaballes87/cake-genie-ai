@@ -5,6 +5,7 @@ import { normalizeAiRouteError } from '@/lib/ai/routeError';
 import { buildSearchAnalysisGenerationConfig, postProcessSearchAnalysisResult } from '@/lib/admin/searchAnalysisContract';
 import { getActivePromptDetails } from '@/services/prompts/promptLoader';
 import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
+import { logRejectedUpload } from '@/lib/ai/rejectedUploads';
 
 export const maxDuration = 300; // Allow up to 300 seconds (Vercel Pro) for AI processing
 
@@ -24,13 +25,14 @@ export async function OPTIONS() {
 // Fail fast on slow AI calls so we can return a clean 504 well before Vercel kills the function.
 // The analyze prompt is heavy; most successful calls complete in <90s.
 const AI_REQUEST_TIMEOUT_MS = 120_000;
+const ANALYSIS_MODEL = "gemini-3.1-flash-lite-preview";
 
 import { getDynamicTypeEnums } from '@/lib/ai/utils';
 
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { imageData, mimeType } = body;
+        const { imageData, mimeType, sourceContext } = body;
 
         if (!imageData || !mimeType) {
             return NextResponse.json(
@@ -74,10 +76,11 @@ export async function POST(req: NextRequest) {
 
         if (cacheName) {
             // Remove systemInstruction from generation config because it is already stored inside the cached content
-            const { systemInstruction, ...cachedConfig } = baseConfig as any;
+            const cachedConfig = { ...baseConfig };
+            delete (cachedConfig as { systemInstruction?: unknown }).systemInstruction;
 
             response = await aiClient.models.generateContent({
-                model: "gemini-3.1-flash-lite-preview",
+                model: ANALYSIS_MODEL,
                 contents: [{
                     role: 'user',
                     parts: [
@@ -93,7 +96,7 @@ export async function POST(req: NextRequest) {
         } else {
             // Fallback to uncached generation if cache lookup fails
             response = await aiClient.models.generateContent({
-                model: "gemini-3.1-flash-lite-preview",
+                model: ANALYSIS_MODEL,
                 contents: [{
                     role: 'user',
                     parts: [
@@ -121,6 +124,20 @@ export async function POST(req: NextRequest) {
                 { error: 'Invalid response format from AI' },
                 { status: 500, headers: CORS_HEADERS }
             );
+        }
+
+        const rejection = result?.rejection as { isRejected?: boolean; reason?: string; message?: string } | undefined;
+        if (rejection?.isRejected) {
+            await logRejectedUpload({
+                imageData,
+                mimeType,
+                rejection,
+                modelName: ANALYSIS_MODEL,
+                promptVersion: promptDetails.version,
+                sourceRoute: 'api/ai/analyze',
+                sourceContext: typeof sourceContext === 'string' ? sourceContext : null,
+                request: req,
+            });
         }
 
         return NextResponse.json(result, { headers: CORS_HEADERS });
