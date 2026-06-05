@@ -1046,15 +1046,28 @@ export async function cacheAnalysisResult(
       .single();
 
     let returnedId = upsertData?.id || undefined;
-    if (!returnedId && resolvedPHash) {
+    if (!returnedId) {
       try {
-        const { data: existingData } = await client
-          .from('cakegenie_analysis_cache')
-          .select('id')
-          .eq('p_hash', resolvedPHash)
-          .single();
-        if (existingData?.id) {
-          returnedId = existingData.id;
+        if (resolvedPHash) {
+          const { data: existingData } = await client
+            .from('cakegenie_analysis_cache')
+            .select('id')
+            .eq('p_hash', resolvedPHash)
+            .single();
+          if (existingData?.id) {
+            returnedId = existingData.id;
+          }
+        }
+        if (!returnedId && slug) {
+          const { data: existingData } = await client
+            .from('cakegenie_analysis_cache')
+            .select('id')
+            .eq('slug', slug)
+            .single();
+          if (existingData?.id) {
+            returnedId = existingData.id;
+            console.log(`🧭 Resolving slug collision: mapping to existing cache row ID ${returnedId} with same slug "${slug}".`);
+          }
         }
       } catch (err) {
         console.warn('⚠️ Could not fetch existing ID after upsert:', err);
