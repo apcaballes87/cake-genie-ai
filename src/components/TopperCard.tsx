@@ -46,7 +46,8 @@ export const TopperCard: React.FC<{
     onImageReplace: (file: File) => void;
     itemPrice?: number;
     isAdmin?: boolean;
-}> = React.memo(({ item, type, marker, expanded, onToggle, updateItem, onImageReplace, itemPrice, isAdmin }) => {
+    isCupcake?: boolean;
+}> = React.memo(({ item, type, marker, expanded, onToggle, updateItem, onImageReplace, itemPrice, isAdmin, isCupcake = false }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isUploadingImage, setIsUploadingImage] = useState(false);
 
@@ -122,7 +123,7 @@ export const TopperCard: React.FC<{
                 <div className="grow">
                     <div className="text-xs font-medium text-slate-800">
                         {descriptionString}
-                        {((item as MainTopperUI).quantity || 0) > 1 && ` × ${(item as MainTopperUI).quantity}`}
+                        {!isCupcake && ((item as MainTopperUI).quantity || 0) > 1 && ` × ${(item as MainTopperUI).quantity}`}
                     </div>
                     <div className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
                         <span className="capitalize">{materialLabel || item.type.replace(/_/g, ' ')}</span>

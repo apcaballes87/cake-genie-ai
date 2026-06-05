@@ -18,6 +18,7 @@ interface CustomizingToppersPanelProps {
     isAnalyzing?: boolean;
     visibleSections?: 'all' | 'main' | 'support';
     selectedTopperItem?: Extract<AnalysisItem, { itemCategory: 'topper' | 'element' }> | null;
+    isCupcake?: boolean;
 }
 
 export const CustomizingToppersPanel = memo(function CustomizingToppersPanel({
@@ -34,6 +35,7 @@ export const CustomizingToppersPanel = memo(function CustomizingToppersPanel({
     isAnalyzing,
     visibleSections = 'all',
     selectedTopperItem = null,
+    isCupcake = false,
 }: CustomizingToppersPanelProps) {
     const filteredMainToppers = selectedTopperItem?.itemCategory === 'topper'
         ? mainToppers.filter((topper) => topper.id === selectedTopperItem.id)
@@ -65,6 +67,7 @@ export const CustomizingToppersPanel = memo(function CustomizingToppersPanel({
                 isAdmin={isAdmin}
                 isAnalyzing={isAnalyzing}
                 visibleSections={effectiveVisibleSections}
+                isCupcake={isCupcake}
             />
         </div>
     );

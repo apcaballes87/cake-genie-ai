@@ -480,6 +480,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         chatHistory, addChatEntry,
     } = useCakeCustomization();
 
+    const isCupcake = cakeInfo?.type?.toLowerCase().startsWith('cupcakes') ?? false;
+
+
     const scrollToHero = useCallback(() => {
         if (typeof window === 'undefined') return;
 
@@ -3596,6 +3599,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             ) : (
                                 <CustomizingStepSummarySections
                                     layout="mobile"
+                                    isCupcake={isCupcake}
                                     cakeInfo={cakeInfo}
                                     icingDesign={icingDesign}
                                     cakeMessages={cakeMessages}
@@ -3708,6 +3712,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 dirtyFields={dirtyFields}
                                 className="w-full flex flex-col gap-2"
                                 stepSummaryProps={{
+                                    isCupcake,
                                     cakeInfo,
                                     icingDesign,
                                     cakeMessages,
@@ -3897,6 +3902,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
                     <CustomizingToppersPanel
                         isVisible={activeCustomization === 'toppers'}
+                        isCupcake={isCupcake}
                         mainToppers={mainToppers}
                         supportElements={supportElements}
                         markerMap={markerMap}

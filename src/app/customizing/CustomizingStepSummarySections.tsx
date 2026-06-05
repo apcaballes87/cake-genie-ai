@@ -77,6 +77,7 @@ interface CustomizingStepSummarySectionsProps {
     isStudioBackgroundEditingPending?: boolean;
     /** Status of the mask overlay; used to render a hint (pulse / error) and gate swatch clicks. */
     maskStatus?: MaskStatus;
+    isCupcake?: boolean;
 }
 
 const findScrollableParent = (element: HTMLElement | null): HTMLElement | null => {
@@ -104,13 +105,13 @@ const getMessagePositionLabel = (position: CakeMessageUI['position']) => (
     position === 'top' ? 'TOP' : position === 'side' ? 'FRONT' : 'BASE'
 );
 
-const buildCombinedDecorSummary = (mainToppers: MainTopperUI[], supportElements: SupportElementUI[]) => {
+const buildCombinedDecorSummary = (mainToppers: MainTopperUI[], supportElements: SupportElementUI[], isCupcake?: boolean) => {
     const items = [...mainToppers, ...supportElements];
     if (items.length === 0) return 'No decorations detected yet';
 
     const descriptions = items.map((item) => {
         const quantity = item.quantity || 1;
-        return quantity > 1 ? `${item.description} × ${quantity}` : item.description;
+        return (quantity > 1 && !isCupcake) ? `${item.description} × ${quantity}` : item.description;
     });
 
     if (descriptions.length === 1) return descriptions[0];
@@ -269,6 +270,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     isMaskActive = false,
     isGeneratingMask = false,
     isStudioBackgroundEditingPending = false,
+    isCupcake = false,
     maskStatus = 'idle',
 }: CustomizingStepSummarySectionsProps) {
     // Default position when "+ Add" is clicked: Bento → front (side), all others → base_board
@@ -485,7 +487,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     }, [cakeInfo?.type, cakeInfo?.flavors, onCakeInfoChange]);
 
     const combinedDecorItems = getCombinedDecorItems(mainToppers, supportElements);
-    const combinedDecorSummary = buildCombinedDecorSummary(mainToppers, supportElements);
+    const combinedDecorSummary = buildCombinedDecorSummary(mainToppers, supportElements, isCupcake);
     const mainColorOptionsNode = cakeInfo ? (
         <div className={`${cardClassName} max-md:py-1 max-md:px-1.5`}>
             <div className="flex items-center gap-2 px-1 pb-0.5 md:gap-3">
@@ -1041,7 +1043,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                     showAdvanced ? 'max-h-[2000px] opacity-100 overflow-visible' : 'max-h-0 opacity-0 pointer-events-none overflow-hidden'
                 }`}
             >
-                {cakeInfo && !isAnalyzing && !isRejectionError && cakeTypeSelectorNode && (
+                {cakeInfo && !isCupcake && !isAnalyzing && !isRejectionError && cakeTypeSelectorNode && (
                     <div className={cardClassName}>
                         <div className="flex flex-col gap-2 px-1 pb-2">
                             {cakeTypeSelectorNode}
@@ -1068,9 +1070,11 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-purple-100 bg-white/90 hover:bg-purple-50/70 transition-colors text-left"
                                     >
                                         <div className="min-w-0 flex-1 flex items-center gap-2 text-[11px] leading-5">
-                                            <span className="shrink-0 font-semibold text-slate-700">
-                                                {item.quantity && item.quantity > 1 ? `${item.quantity}x` : '1x'}
-                                            </span>
+                                            {!isCupcake && (
+                                                <span className="shrink-0 font-semibold text-slate-700">
+                                                    {item.quantity && item.quantity > 1 ? `${item.quantity}x` : '1x'}
+                                                </span>
+                                            )}
                                             <span className="truncate text-slate-500">
                                                 {item.description}{' '}
                                                 <span className="text-slate-400">

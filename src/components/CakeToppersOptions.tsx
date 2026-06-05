@@ -19,6 +19,7 @@ interface CakeToppersOptionsProps {
     mode?: 'detailed' | 'summary';
     visibleSections?: 'all' | 'main' | 'support';
     onSectionClick?: (section: 'main' | 'support') => void;
+    isCupcake?: boolean;
 }
 
 import { TopperCard } from './TopperCard';
@@ -36,7 +37,8 @@ export const CakeToppersOptions: React.FC<CakeToppersOptionsProps> = ({
     isAnalyzing,
     mode = 'detailed',
     visibleSections = 'all',
-    onSectionClick
+    onSectionClick,
+    isCupcake = false
 }) => {
     const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
     const [isMainExpanded, setIsMainExpanded] = useState(true);
@@ -58,7 +60,7 @@ export const CakeToppersOptions: React.FC<CakeToppersOptionsProps> = ({
     const buildSummary = (items: Array<MainTopperUI | SupportElementUI>) => {
         const descriptions = items.map((item) => {
             const quantity = item.quantity || 1;
-            return quantity > 1 ? `${item.description} × ${quantity}` : item.description;
+            return (quantity > 1 && !isCupcake) ? `${item.description} × ${quantity}` : item.description;
         });
 
         if (descriptions.length === 0) return 'No items selected';
@@ -83,7 +85,7 @@ export const CakeToppersOptions: React.FC<CakeToppersOptionsProps> = ({
                     >
                         <div className="min-w-0 flex-1 flex items-center gap-2 text-[11px] leading-5">
                             <span className="shrink-0 font-semibold text-slate-700">
-                                Main Toppers ({mainTopperCount}):
+                                Main Toppers{isCupcake ? '' : ` (${mainTopperCount})`}:
                             </span>
                             <span className="truncate text-slate-500">
                                 {buildSummary(mainToppers)}
@@ -101,7 +103,7 @@ export const CakeToppersOptions: React.FC<CakeToppersOptionsProps> = ({
                     >
                         <div className="min-w-0 flex-1 flex items-center gap-2 text-[11px] leading-5">
                             <span className="shrink-0 font-semibold text-slate-700">
-                                Support Elements ({supportElementCount}):
+                                Support Elements{isCupcake ? '' : ` (${supportElementCount})`}:
                             </span>
                             <span className="truncate text-slate-500">
                                 {buildSummary(supportElements)}
@@ -129,7 +131,7 @@ export const CakeToppersOptions: React.FC<CakeToppersOptionsProps> = ({
                             className="w-full flex items-center justify-between py-1.5 px-1 hover:bg-purple-50 rounded-lg transition-colors group"
                         >
                             <h3 className="text-xs font-semibold text-slate-700">
-                                Main Toppers ({mainTopperCount})
+                                Main Toppers{isCupcake ? '' : ` (${mainTopperCount})`}
                             </h3>
                             <div className={`transition-transform duration-200 ${isMainExpanded ? 'rotate-0' : '-rotate-90'}`}>
                                 <ChevronDownIcon className="w-3.5 h-3.5 text-slate-400 group-hover:text-purple-500" />
@@ -150,6 +152,7 @@ export const CakeToppersOptions: React.FC<CakeToppersOptionsProps> = ({
                                     onImageReplace={(file) => onTopperImageReplace(topper.id, file)}
                                     itemPrice={itemPrices?.get(topper.id)}
                                     isAdmin={isAdmin}
+                                    isCupcake={isCupcake}
                                 />
                             ))}
                         </div>
@@ -166,7 +169,7 @@ export const CakeToppersOptions: React.FC<CakeToppersOptionsProps> = ({
                             className="w-full flex items-center justify-between py-1.5 px-1 hover:bg-purple-50 rounded-lg transition-colors group"
                         >
                             <h3 className="text-xs font-semibold text-slate-700">
-                                Support Elements ({supportElementCount})
+                                Support Elements{isCupcake ? '' : ` (${supportElementCount})`}
                             </h3>
                             <div className={`transition-transform duration-200 ${isSupportExpanded ? 'rotate-0' : '-rotate-90'}`}>
                                 <ChevronDownIcon className="w-3.5 h-3.5 text-slate-400 group-hover:text-purple-500" />
@@ -187,6 +190,7 @@ export const CakeToppersOptions: React.FC<CakeToppersOptionsProps> = ({
                                     onImageReplace={(file) => onSupportElementImageReplace(element.id, file)}
                                     itemPrice={itemPrices?.get(element.id)}
                                     isAdmin={isAdmin}
+                                    isCupcake={isCupcake}
                                 />
                             ))}
                         </div>
