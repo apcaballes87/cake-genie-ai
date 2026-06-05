@@ -362,9 +362,11 @@ export default function SearchAnalysisAdminPage() {
                     // Wait for modal to open and load image with polling
                     let originalUrl: string | null = null;
                     let waitCycles = 0;
+                    const pollInterval = isOfflineCollectRef.current ? 50 : 250;
+                    const maxCycles = isOfflineCollectRef.current ? 30 : 12;
 
-                    while (waitCycles <= 12) { // Poll up to 3 seconds
-                        await delay(250);
+                    while (waitCycles <= maxCycles) { // Poll up to 1.5s (offline) or 3s (online)
+                        await delay(pollInterval);
 
                         // 1. Check known modal image classes (must be visible)
                         const previewImages = Array.from(document.querySelectorAll('img.gsc-image-preview, img.gs-image-preview, img.gsc-preview-image, img.gs-preview-image')).filter(img => img.getBoundingClientRect().width > 0);
@@ -453,7 +455,7 @@ export default function SearchAnalysisAdminPage() {
                     } else {
                         document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
                     }
-                    await delay(500); // Wait for modal to close
+                    await delay(isOfflineCollectRef.current ? 100 : 500); // Wait for modal to close
                 }
             } catch (err) {
                 const modalErrorMessage = err instanceof Error ? err.message : 'Unknown modal error';
@@ -601,7 +603,7 @@ export default function SearchAnalysisAdminPage() {
                 setProgress({ current: i + 1, total: currentQueueLength });
                 i++;
                 if (!isStoppedRef.current && i < currentQueueLength) {
-                    await delay(SEARCH_ANALYSIS_BETWEEN_AI_ITEMS_DELAY_MS);
+                    await delay(isOfflineCollectRef.current ? 50 : SEARCH_ANALYSIS_BETWEEN_AI_ITEMS_DELAY_MS);
                 }
             }
         }
@@ -640,8 +642,10 @@ export default function SearchAnalysisAdminPage() {
 
                 // Poll until Google CSE updates the DOM explicitly indicating the new page is current
                 let poller = 0;
-                while (poller < 20) { // Max 10 seconds (500ms * 20)
-                    await delay(500);
+                const pagePollInterval = isOfflineCollectRef.current ? 100 : 500;
+                const maxPagePolls = isOfflineCollectRef.current ? 100 : 20; // 10 seconds total in both cases
+                while (poller < maxPagePolls) {
+                    await delay(pagePollInterval);
                     const activeP = document.querySelector('.gsc-cursor-current-page');
                     if (activeP && activeP.textContent?.trim() === nextP.toString()) {
                         break;
@@ -650,7 +654,7 @@ export default function SearchAnalysisAdminPage() {
                 }
 
                 // Extra short delay to allow images to actually paint into the DOM after page state changed
-                await delay(1000);
+                await delay(isOfflineCollectRef.current ? 300 : 1000);
 
                 processImages(true, isOfflineCollectRef.current);
                 return;
