@@ -300,6 +300,7 @@ interface RecentSearchDesignProp {
     p_hash: string;
     original_image_url: string | null;
     studio_edited_image_url?: string | null;
+    studio_edit_status?: string | null;
     price: number | null;
     keywords: string | null;
     analysis_json: unknown;
@@ -637,8 +638,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
     useEffect(() => {
         const studioPollHash = currentPHash || recentSearchDesign?.p_hash || null;
+        const shouldPoll = Boolean(
+            currentPHash ||
+            (recentSearchDesign?.p_hash && recentSearchDesign?.studio_edit_status === 'processing')
+        );
 
-        if (!studioPollHash || liveStudioEditedImageUrl) {
+        if (!shouldPoll || !studioPollHash || liveStudioEditedImageUrl) {
             return;
         }
 
@@ -3345,7 +3350,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     const showStickyBar = finalPrice !== null || !!basePriceError || isAnalyzing || hasPendingVisualChanges || isUpdatingDesign;
     const isStudioBackgroundEditingPending = Boolean(
         originalImagePreview
-        && (currentPHash || recentSearchDesign?.p_hash)
+        && (
+            currentPHash
+            || (recentSearchDesign?.p_hash && recentSearchDesign?.studio_edit_status === 'processing')
+        )
         && !liveStudioEditedImageUrl
     );
     const preferredHeroOriginalImage = firstNonBlankImageUrl(

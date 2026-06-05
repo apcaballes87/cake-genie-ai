@@ -1,5 +1,26 @@
 # Tasks
 
+## Audit AI Cake Analysis Upload Result Tracking
+
+### Plan
+
+- [ ] Trace the live customer upload analysis route from UI upload through AI validation/analysis and cache persistence.
+- [x] Trace the live customer upload analysis route from UI upload through AI validation/analysis and cache persistence.
+- [x] Trace the admin search-analysis batch route to compare how accepted and rejected outcomes are stored.
+- [x] Verify live Supabase schema/counts for the relevant result tables where possible.
+- [x] Answer whether Genie.ph currently stores all user upload outcomes, only accepted analyses, or separate rejected outcomes.
+
+### Review
+
+- Customer/customizer uploads call `/api/ai/analyze` through `analyzeCakeFeaturesOnly(...)`; non-selfie AI rejections are thrown as `AI_REJECTION` before `ImageContext` reaches `cacheAnalysisResult(...)`.
+- Accepted customer uploads are persisted through `cacheAnalysisResult(...)` into `cakegenie_analysis_cache`.
+- There is no dedicated normal-upload attempt/result table in the traced flow, so customer upload rejects are not reliably stored as accepted/rejected outcomes.
+- Admin search-analysis batch items do have durable statuses in `cakegenie_search_analysis_batch_items`, including `completed`, `failed`, `retryable`, and `rejected`.
+- Live Supabase verification on 2026-06-05:
+  - `cakegenie_analysis_cache`: 11,487 rows total; 8,474 rows with a `rejection` key; 18 rows where `rejection.isRejected = true`.
+  - `cakegenie_search_analysis_batch_items`: 765 completed, 211 rejected, 8 failed, 19 retryable, 1,120 queued.
+  - `cakegenie_search_analysis_batch_runs`: 1 completed, 2 completed_with_errors, 4 failed.
+
 ## Sync Fallback Cake Analysis Prompt To Current Supabase Prompt
 
 ### Plan
