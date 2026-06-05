@@ -88,4 +88,19 @@ describe('CakeBaseOptions', () => {
         expect(screen.queryByText('Cake Type')).not.toBeInTheDocument();
         expect(screen.queryByText('Cake Height (All tiers)')).not.toBeInTheDocument();
     });
+
+    it('hides icing type and height options for cupcakes', () => {
+        render(<CakeBaseOptions {...buildProps({
+            cakeInfo: {
+                type: 'cupcakes-printout-toppers',
+                thickness: '2 in',
+                size: '2oz - 12 pieces',
+                flavors: ['Chocolate Cake'],
+            },
+        })} />);
+
+        expect(screen.queryByText('Icing Type')).not.toBeInTheDocument();
+        expect(screen.queryByText('Cake Height (All tiers)')).not.toBeInTheDocument();
+        expect(screen.queryByText('Height per Cake')).not.toBeInTheDocument();
+    });
 });

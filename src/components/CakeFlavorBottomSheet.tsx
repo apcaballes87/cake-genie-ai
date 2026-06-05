@@ -82,7 +82,8 @@ export const CakeFlavorBottomSheet: React.FC<CakeFlavorBottomSheetProps> = ({
                                     {FLAVOR_OPTIONS.map(flavor => {
                                         const isFlavorDisabled =
                                             TEMPORARILY_DISABLED_FLAVORS.includes(flavor) ||
-                                            (isBento && flavor === 'Ube Cake');
+                                            (isBento && flavor === 'Ube Cake') ||
+                                            (cakeType.toLowerCase().startsWith('cupcakes-') && flavor !== 'Chocolate Cake' && flavor !== 'Vanilla Cake');
                                         const isSelected = selectedFlavor === flavor;
                                         return (
                                             <button

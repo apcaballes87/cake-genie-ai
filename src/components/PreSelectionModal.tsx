@@ -166,7 +166,9 @@ export const PreSelectionModal: React.FC<PreSelectionModalProps> = ({ isOpen, is
                                             )}
                                             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                                                 {FLAVOR_OPTIONS.map(flavor => {
-                                                    const isDisabled = TEMPORARILY_DISABLED_FLAVORS.includes(flavor) || (isBento && flavor === 'Ube Cake');
+                                                    const isDisabled = TEMPORARILY_DISABLED_FLAVORS.includes(flavor) ||
+                                                        (isBento && flavor === 'Ube Cake') ||
+                                                        (localCakeInfo.type.toLowerCase().startsWith('cupcakes-') && flavor !== 'Chocolate Cake' && flavor !== 'Vanilla Cake');
                                                     const isSelected = selectedFlavor === flavor;
                                                     return (
                                                         <button

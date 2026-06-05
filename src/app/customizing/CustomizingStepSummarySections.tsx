@@ -361,6 +361,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
 
     const isDesktop = layout === 'desktop';
     const cakeType = cakeInfo?.type?.toLowerCase() || '';
+    const isCupcakes = cakeType.startsWith('cupcakes-');
     const isTieredFlavorLayout = cakeType.includes('2 tier') || cakeType.includes('3 tier');
     const containerClassName = isDesktop
         ? 'w-full hidden md:flex flex-row md:flex-col overflow-x-auto md:overflow-visible gap-2 pb-6 md:pb-32 scrollbar-hide snap-x md:snap-none relative z-60'
@@ -391,6 +392,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                         const isSelected = currentFlavor === flavor;
 
                         const isBento = currentCakeType === 'Bento';
+                        const isCupcakes = currentCakeType.toLowerCase().startsWith('cupcakes-');
                         const normType = currentCakeType.toLowerCase();
                         const isStandardOrMulti = normType.includes('1 tier') ||
                                                     normType.includes('2 tier') ||
@@ -401,6 +403,8 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                         let isDisabled = false;
                         if (isBento) {
                             isDisabled = flavor !== 'Chocolate Cake';
+                        } else if (isCupcakes) {
+                            isDisabled = flavor !== 'Chocolate Cake' && flavor !== 'Vanilla Cake';
                         } else if (isStandardOrMulti) {
                             isDisabled = flavor === 'Mocha Cake';
                         }
@@ -448,6 +452,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
         if (!cakeInfo?.flavors || !onCakeInfoChange) return;
 
         const isBento = cakeInfo.type === 'Bento';
+        const isCupcakes = cakeInfo.type.toLowerCase().startsWith('cupcakes-');
         const normType = cakeInfo.type.toLowerCase();
         const isStandardOrMulti = normType.includes('1 tier') || 
                                    normType.includes('2 tier') || 
@@ -462,6 +467,8 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
             let isDisabled = false;
             if (isBento) {
                 isDisabled = flavor !== 'Chocolate Cake';
+            } else if (isCupcakes) {
+                isDisabled = flavor !== 'Chocolate Cake' && flavor !== 'Vanilla Cake';
             } else if (isStandardOrMulti) {
                 isDisabled = flavor === 'Mocha Cake';
             }
@@ -749,30 +756,32 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                 >
                     <div className="flex flex-col gap-2 px-1 pb-2">
                         {/* Line 1: Icing Type */}
-                        <div className="flex flex-col gap-1">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Icing Type</span>
-                            <div className="flex flex-wrap gap-1.5">
-                                {[
-                                    { id: 'soft_icing', label: 'Soft Icing' },
-                                    { id: 'fondant', label: 'Fondant' },
-                                ].map((option) => {
-                                    const isSelected = getIcingTypeValue(cakeInfo, icingDesign) === (option.id === 'fondant' ? 'Fondant' : 'Soft Icing');
-                                    return (
-                                        <button
-                                            key={option.id}
-                                            onClick={() => onIcingTypeChange?.(option.id as IcingDesignUI['base'])}
-                                            className={`flex-1 min-h-[32px] flex items-center justify-center px-2.5 py-0.5 rounded-xl border transition-all duration-300 ${
-                                                isSelected 
-                                                    ? 'genie-control-selected text-purple-700 scale-[1.02]' 
-                                                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-purple-200 hover:bg-slate-100/50'
-                                            }`}
-                                        >
-                                            <span className="text-[9px] font-bold">{option.label}</span>
-                                        </button>
-                                    );
-                                })}
+                        {!isCupcakes && (
+                            <div className="flex flex-col gap-1">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Icing Type</span>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {[
+                                        { id: 'soft_icing', label: 'Soft Icing' },
+                                        { id: 'fondant', label: 'Fondant' },
+                                    ].map((option) => {
+                                        const isSelected = getIcingTypeValue(cakeInfo, icingDesign) === (option.id === 'fondant' ? 'Fondant' : 'Soft Icing');
+                                        return (
+                                            <button
+                                                key={option.id}
+                                                onClick={() => onIcingTypeChange?.(option.id as IcingDesignUI['base'])}
+                                                className={`flex-1 min-h-[32px] flex items-center justify-center px-2.5 py-0.5 rounded-xl border transition-all duration-300 ${
+                                                    isSelected 
+                                                        ? 'genie-control-selected text-purple-700 scale-[1.02]' 
+                                                        : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-purple-200 hover:bg-slate-100/50'
+                                                }`}
+                                            >
+                                                <span className="text-[9px] font-bold">{option.label}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* Size, Height, and Flavor Container */}
                         <div className={isTieredFlavorLayout ? 'flex flex-col gap-4 w-full mt-2 bg-transparent' : 'flex flex-row gap-4 w-full mt-2 bg-transparent'}>
@@ -845,56 +854,58 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                 )}
 
                                 {/* Line 5: Height */}
-                                <div className="flex flex-col gap-1">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                        {cakeInfo.type.toLowerCase().includes('2 tier') || cakeInfo.type.toLowerCase().includes('3 tier') ? 'Height per Cake' : 'Height'}
-                                    </span>
-                                    <div 
-                                        ref={heightScrollRef}
-                                        key={cakeInfo.type} 
-                                        className="flex flex-nowrap overflow-x-auto justify-start items-center gap-3 py-1.5 px-2 scrollbar-hide"
-                                    >
-                                        {(THICKNESS_OPTIONS_MAP[cakeInfo.type] || []).map((thickness, index) => {
-                                            const isSelected = cakeInfo.thickness === thickness;
-                                            
-                                            const allWidths = cakeInfo.size.match(/\d+/g) || ["6"];
-                                            const baseWidth = Math.max(...allWidths.map(Number));
-                                            
-                                            const heightValue = parseInt(thickness) || 4;
-                                            const sizeIndex = (basePriceOptions || []).findIndex(opt => opt.size === cakeInfo.size);
-                                            const isRectangle = cakeInfo.type.toLowerCase().includes('rectangle');
-                                            const baseRectWidth = sizeIndex >= 0 ? (74 + sizeIndex * 10) : (baseWidth * 15);
-                                            const rectWidth = isRectangle ? baseRectWidth * 1.4 : baseRectWidth;
-                                            const rectHeight = heightValue * 12;
+                                {!isCupcakes && (
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                            {cakeInfo.type.toLowerCase().includes('2 tier') || cakeInfo.type.toLowerCase().includes('3 tier') ? 'Height per Cake' : 'Height'}
+                                        </span>
+                                        <div 
+                                            ref={heightScrollRef}
+                                            key={cakeInfo.type} 
+                                            className="flex flex-nowrap overflow-x-auto justify-start items-center gap-3 py-1.5 px-2 scrollbar-hide"
+                                        >
+                                            {(THICKNESS_OPTIONS_MAP[cakeInfo.type] || []).map((thickness, index) => {
+                                                const isSelected = cakeInfo.thickness === thickness;
+                                                
+                                                const allWidths = cakeInfo.size.match(/\d+/g) || ["6"];
+                                                const baseWidth = Math.max(...allWidths.map(Number));
+                                                
+                                                const heightValue = parseInt(thickness) || 4;
+                                                const sizeIndex = (basePriceOptions || []).findIndex(opt => opt.size === cakeInfo.size);
+                                                const isRectangle = cakeInfo.type.toLowerCase().includes('rectangle');
+                                                const baseRectWidth = sizeIndex >= 0 ? (74 + sizeIndex * 10) : (baseWidth * 15);
+                                                const rectWidth = isRectangle ? baseRectWidth * 1.4 : baseRectWidth;
+                                                const rectHeight = heightValue * 12;
 
-                                            return (
-                                                <button
-                                                    key={thickness}
-                                                    data-cakethickness={thickness}
-                                                    onClick={() => {
-                                                        onCakeInfoChange?.({ thickness });
-                                                        setTimeout(() => scrollToCenter(heightScrollRef.current, `[data-cakethickness="${thickness}"]`), 50);
-                                                    }}
-                                                    style={{ animationDelay: `${index * 50}ms` }}
-                                                    className="flex flex-col items-center gap-2 group transition-all animate-fade-in-scale opacity-0"
-                                                >
-                                                    <div 
-                                                        style={{ width: `${rectWidth}px`, height: `${rectHeight}px` }}
-                                                        className={`rounded-lg border transition-all duration-500 flex items-center justify-center relative ${
-                                                            isSelected 
-                                                                ? 'genie-control-selected text-purple-700 z-10 scale-105 shadow-sm' 
-                                                                : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-purple-300 hover:bg-slate-100/50 hover:scale-105'
-                                                        }`}
+                                                return (
+                                                    <button
+                                                        key={thickness}
+                                                        data-cakethickness={thickness}
+                                                        onClick={() => {
+                                                            onCakeInfoChange?.({ thickness });
+                                                            setTimeout(() => scrollToCenter(heightScrollRef.current, `[data-cakethickness="${thickness}"]`), 50);
+                                                        }}
+                                                        style={{ animationDelay: `${index * 50}ms` }}
+                                                        className="flex flex-col items-center gap-2 group transition-all animate-fade-in-scale opacity-0"
                                                     >
-                                                        <span className={`text-[9px] font-black ${isSelected ? 'text-purple-600' : 'text-slate-600 group-hover:text-purple-300'} transition-colors`}>
-                                                            {heightValue}&quot;
-                                                        </span>
-                                                    </div>
-                                                </button>
-                                            );
-                                        })}
+                                                        <div 
+                                                            style={{ width: `${rectWidth}px`, height: `${rectHeight}px` }}
+                                                            className={`rounded-lg border transition-all duration-500 flex items-center justify-center relative ${
+                                                                isSelected 
+                                                                    ? 'genie-control-selected text-purple-700 z-10 scale-105 shadow-sm' 
+                                                                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-purple-300 hover:bg-slate-100/50 hover:scale-105'
+                                                            }`}
+                                                        >
+                                                            <span className={`text-[9px] font-black ${isSelected ? 'text-purple-600' : 'text-slate-600 group-hover:text-purple-300'} transition-colors`}>
+                                                                {heightValue}&quot;
+                                                            </span>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
 
                             {/* Multi-tier Flavor Rows */}

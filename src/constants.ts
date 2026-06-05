@@ -37,7 +37,12 @@ export const CAKE_TYPES: CakeType[] = [
   '1 Tier', '2 Tier', '3 Tier',
   '1 Tier Fondant', '2 Tier Fondant', '3 Tier Fondant',
   'Square', 'Rectangle',
-  'Square Fondant', 'Rectangle Fondant'
+  'Square Fondant', 'Rectangle Fondant',
+  'cupcakes-printout-toppers',
+  'cupcakes-edible-photo-toppers',
+  'cupcakes-gumpaste-toppers-ordinary',
+  'cupcakes-gumpaste-toppers-complex',
+  'cupcakes-icing'
 ];
 
 export const SOFT_ICING_CAKE_TYPES: CakeType[] = [
@@ -47,6 +52,11 @@ export const SOFT_ICING_CAKE_TYPES: CakeType[] = [
   '3 Tier',
   'Square',
   'Rectangle',
+  'cupcakes-printout-toppers',
+  'cupcakes-edible-photo-toppers',
+  'cupcakes-gumpaste-toppers-ordinary',
+  'cupcakes-gumpaste-toppers-complex',
+  'cupcakes-icing'
 ];
 
 export const FONDANT_CAKE_TYPES: CakeType[] = [
@@ -141,6 +151,11 @@ export const DEFAULT_THICKNESS_MAP: Record<CakeType, CakeThickness> = {
   'Bento': '2 in',
   'Square Fondant': '5 in',
   'Rectangle Fondant': '5 in',
+  'cupcakes-printout-toppers': '2 in',
+  'cupcakes-edible-photo-toppers': '2 in',
+  'cupcakes-gumpaste-toppers-ordinary': '2 in',
+  'cupcakes-gumpaste-toppers-complex': '2 in',
+  'cupcakes-icing': '2 in',
 };
 
 export const THICKNESS_OPTIONS_MAP: Record<CakeType, CakeThickness[]> = {
@@ -155,6 +170,11 @@ export const THICKNESS_OPTIONS_MAP: Record<CakeType, CakeThickness[]> = {
   'Bento': ['2 in'],
   'Square Fondant': ['5 in', '6 in'],
   'Rectangle Fondant': ['5 in', '6 in'],
+  'cupcakes-printout-toppers': ['2 in'],
+  'cupcakes-edible-photo-toppers': ['2 in'],
+  'cupcakes-gumpaste-toppers-ordinary': ['2 in'],
+  'cupcakes-gumpaste-toppers-complex': ['2 in'],
+  'cupcakes-icing': ['2 in'],
 };
 
 export const ANALYSIS_PHRASES = [
@@ -342,6 +362,11 @@ export const CAKE_TYPE_THUMBNAILS: Record<CakeType, string> = {
   'Bento': `${storageBaseUrl}/bento.webp`,
   'Square Fondant': `${storageBaseUrl}/square.webp`,
   'Rectangle Fondant': `${storageBaseUrl}/rectangle.webp`,
+  'cupcakes-printout-toppers': `${storageBaseUrl}/bento.webp`,
+  'cupcakes-edible-photo-toppers': `${storageBaseUrl}/bento.webp`,
+  'cupcakes-gumpaste-toppers-ordinary': `${storageBaseUrl}/bento.webp`,
+  'cupcakes-gumpaste-toppers-complex': `${storageBaseUrl}/bento.webp`,
+  'cupcakes-icing': `${storageBaseUrl}/bento.webp`,
 };
 
 export const CAKE_SIZE_THUMBNAILS: Record<string, string> = {
@@ -368,6 +393,7 @@ export const CAKE_SIZE_THUMBNAILS: Record<string, string> = {
   '8x12': `${storageBaseUrl}/rectangle.webp`,
   '10x14': `${storageBaseUrl}/rectangle.webp`,
   '12x16': `${storageBaseUrl}/rectangle.webp`,
+  '2oz - 12 pieces': `${storageBaseUrl}/bento.webp`,
 };
 
 export const SQUARE_RECT_SIZE_PATTERN = /\d+\s*[xX×]\s*\d+/g;
@@ -384,6 +410,11 @@ export const DEFAULT_SIZE_MAP: Record<CakeType, CakeSize> = {
   'Bento': '4" Round',
   'Square Fondant': '8" Square',
   'Rectangle Fondant': '9"x13" Rectangle',
+  'cupcakes-printout-toppers': '2oz - 12 pieces',
+  'cupcakes-edible-photo-toppers': '2oz - 12 pieces',
+  'cupcakes-gumpaste-toppers-ordinary': '2oz - 12 pieces',
+  'cupcakes-gumpaste-toppers-complex': '2oz - 12 pieces',
+  'cupcakes-icing': '2oz - 12 pieces',
 };
 
 export const CAKE_THICKNESS_THUMBNAILS: Record<CakeThickness, string> = {

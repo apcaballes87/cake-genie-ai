@@ -20,6 +20,10 @@ export interface DesignData {
  * Determines the availability of a cake design based on its complexity using a hierarchical approach.
  */
 export function getDesignAvailability(design: DesignData): AvailabilityType {
+    if (design.cakeType.toLowerCase().startsWith('cupcakes-')) {
+        return 'normal';
+    }
+
     const allItems = [...design.mainToppers, ...design.supportElements];
 
     // --- STEP 1: NORMAL ORDER CHECKS (1-day lead time) ---

@@ -380,4 +380,20 @@ describe('CustomizingStepSummarySections', () => {
 
         expect(props.onCakeInfoChange).toHaveBeenCalledWith({ flavors: ['Chocolate Cake', 'Vanilla Cake', 'Vanilla Cake'] });
     });
+
+    it('hides icing type and height options for cupcakes', () => {
+        const props = buildProps();
+        props.cakeInfo = {
+            type: 'cupcakes-printout-toppers',
+            size: '2oz - 12 pieces',
+            thickness: '2 in',
+            flavors: ['Chocolate Cake'],
+        };
+
+        render(<CustomizingStepSummarySections {...props} />);
+
+        expect(screen.queryByText('Icing Type')).not.toBeInTheDocument();
+        expect(screen.queryByText('Height')).not.toBeInTheDocument();
+        expect(screen.queryByText('Height per Cake')).not.toBeInTheDocument();
+    });
 });

@@ -2,16 +2,15 @@ import { Type } from "@google/genai";
 
 export const VALIDATION_PROMPT = `You are an image validation expert for a cake customization app. Your task is to analyze the provided image and determine if it's suitable for our automated design and pricing tool. Your response must be a valid JSON object.
 
-**CRITICAL RULE: Focus ONLY on the main subject of the photo.** Ignore blurry, out-of-focus items in the background. If the primary, focused subject is a single cake, the image is valid.
+**CRITICAL RULE: Focus ONLY on the main subject of the photo.** Ignore blurry, out-of-focus items in the background. If the primary, focused subject is a single cake or a set of cupcakes, the image is valid.
 
 Based on the image, classify it into ONE of the following categories:
 
-- "valid_single_cake": The main, in-focus subject is a single, clear image of one cake. It can be a bento, 1-3 tier, square, rectangle, or fondant cake. Other items, including other cakes or cupcakes, are acceptable ONLY if they are blurry, out-of-focus, and clearly in the background.
+- "valid_single_cake": The main, in-focus subject is a single, clear image of one cake or a set of cupcakes. It can be a bento, 1-3 tier, square, rectangle, fondant cake, or cupcakes. Other items, including other cakes, are acceptable ONLY if they are blurry, out-of-focus, and clearly in the background.
 - "edible_photo_reference": The image is not a cake, but it appears to be an image a customer wants printed onto a cake. Examples: personal portrait, baby photo, graduation photo, family photo, logo, cartoon artwork, invitation-style design, or a clean reference image intended for edible photo printing.
 - "payment_receipt": The image is a payment proof or transaction screenshot. Examples: GCash receipt, bank transfer confirmation, Maya screenshot, online banking receipt, payment success screen, reference number screen, or official-looking receipt/payment slip.
-- "not_a_cake": The image does not contain a cake. It might be a person, object, or scene that isn't cake-like.
+- "not_a_cake": The image does not contain a cake or cupcakes. It might be a person, object, or scene that isn't cake/cupcake-like.
 - "multiple_cakes": The image clearly shows two or more separate cakes as the primary, in-focus subjects. Do NOT use this classification if the other cakes are blurry or in the background.
-- "only_cupcakes": The image contains only cupcakes and no larger cake.
 - "complex_sculpture": The cake is an extreme, gravity-defying sculpture, a hyper-realistic object (like a shoe or a car), or has incredibly intricate details that are beyond standard customization.
 - "large_wedding_cake": The cake is clearly a large, elaborate wedding cake, typically 4 tiers or more, often with complex floral arrangements or structures.
 - "non_food": The image is not of a food item at all.
@@ -36,7 +35,6 @@ export const validationResponseSchema = {
                 'payment_receipt',
                 'not_a_cake',
                 'multiple_cakes',
-                'only_cupcakes',
                 'complex_sculpture',
                 'large_wedding_cake',
                 'non_food',
