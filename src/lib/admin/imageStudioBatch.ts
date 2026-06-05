@@ -223,6 +223,10 @@ async function importStage(run: BatchRun, items: BatchItem[], stage: Stage, maxI
       completed += 1;
       continue;
     }
+    if (currentStatus === 'failed') {
+      failed += 1;
+      continue;
+    }
     if (imported >= maxImports) break;
     try {
       const image = extractImage(line);
