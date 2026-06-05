@@ -193,7 +193,7 @@ export async function POST(req: NextRequest) {
         console.log('🔄 Cache MISS for pHash:', pHash);
 
         const [activePrompt, typeEnums] = await Promise.all([
-            getAnalysisPromptWithFallback(supabase).catch(() => null),
+            getAnalysisPromptWithFallback(supabase as unknown as Parameters<typeof getAnalysisPromptWithFallback>[0]).catch(() => null),
             getDynamicTypeEnums(supabase)
         ]);
 
