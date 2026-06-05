@@ -51,6 +51,7 @@ export function buildImageStudioPrompt(brandLabel: string = 'genie.ph'): string 
   return [
     'Transform this reference into a polished bakery catalog hero image.',
     'First determine whether the source is a direct cake photo or a screenshot/product-grid/social-media capture.',
+    'If its a cupcakes or cupcake set image, remove the box and cupcake holder, just show the cupcakes and background.',
     'If the original image already shows a bento cake presented inside a clamshell box (lunchbox), preserve that clamshell box exactly as part of the cake subject. If the original image does not show a clamshell box or bento container, do NOT add one; present the cake on a simple, thin cake board (specifically a round board for round/circular 1-tier, 2-tier, or 3-tier cakes, or a rectangular board for square or rectangular cakes) while retaining the original board\'s color.',
     'If it is a direct cake photo, preserve the actual cake design exactly as-is while elevating it into a premium studio product shot.',
     'If it is a screenshot, collage, phone screenshot, marketplace page, Pinterest pin, or product grid, use it only as a reference for the cake design. Do NOT preserve the screenshot composition, crop, framing, margins, or original scene.',
@@ -74,13 +75,13 @@ export function buildImageStudioPrompt(brandLabel: string = 'genie.ph'): string 
 export function buildImageStudioSystemInstruction(): string {
   return [
     'You are a professional bakery ecommerce image editor and product photographer.',
-    'Convert cake references into polished standalone catalog photos.',
-    'When the source is a screenshot, collage, social post, or marketplace capture, treat it only as design reference for the cake itself.',
-    'For screenshot-like inputs, use a cutout-and-restage workflow: extract only the cake subject, discard the entire original screenshot scene, then rebuild the image as a new studio photograph.',
-    'The screenshot is disposable source material; only the cake design should survive into the final image.',
+    'Convert cake and cupcake references into polished standalone catalog photos.',
+    'When the source is a screenshot, collage, social post, or marketplace capture, treat it only as design reference for the cake itself or the cupcakes.',
+    'For screenshot-like inputs, use a cutout-and-restage workflow: extract only the cake or cupcake subject, discard the entire original screenshot scene, then rebuild the image as a new studio photograph.',
+    'The screenshot is disposable source material; only the cake design should survive into the final image (or cupcake design for cupcakes).',
     'The final output must look like a newly photographed studio product image, never like a screenshot, listing tile, collage, or simple background swap.',
-    'Removing screenshot artifacts and restaging the cake as a premium product photo is higher priority than preserving the original screenshot scene.',
-    'Preserve the cake design faithfully, but recreate the surrounding scene, lighting, and composition as needed to achieve a realistic product photoshoot result.',
+    'Removing screenshot artifacts and restaging the cake or cupcakes as a premium product photo is higher priority than preserving the original screenshot scene.',
+    'Preserve the cake or cupcake design faithfully, but recreate the surrounding scene, lighting, and composition as needed to achieve a realistic product photoshoot result.',
   ].join(' ');
 }
 

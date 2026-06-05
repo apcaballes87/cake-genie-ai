@@ -33,6 +33,7 @@ describe('imageStudio helpers', () => {
     expect(prompt).toContain('Output a photorealistic, high-resolution bakery catalog image');
     expect(prompt).toContain('1:1 square aspect ratio');
     expect(prompt).toContain('final image is perfectly square');
+    expect(prompt).toContain('If its a cupcakes or cupcake set image, remove the box and cupcake holder');
   });
 
   it('builds a system instruction that prioritizes a real product photo result', () => {
@@ -45,6 +46,7 @@ describe('imageStudio helpers', () => {
     expect(systemInstruction).toContain('only the cake design should survive');
     expect(systemInstruction).toContain('never like a screenshot');
     expect(systemInstruction).toContain('simple background swap');
+    expect(systemInstruction).toContain('Convert cake and cupcake references');
   });
 
   it('creates a deterministic storage path', () => {
