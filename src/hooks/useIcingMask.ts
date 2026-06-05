@@ -64,7 +64,7 @@ export interface UseIcingMaskResult {
   hasMask: boolean;
   /** Recolors the icing for `hex` (named `name`), generating the mask first if needed. */
   recolorIcing: (hex: string, name: string) => Promise<void>;
-  /** Force-regenerates the mask (clears cached mask and generates a fresh one). */
+  /** Force-regenerates the mask for the current displayed image. */
   regenerateMask: () => Promise<void>;
   /** Disables the mask overlay, reverting the display to the original un-recolored image. */
   disableMask: () => void;
@@ -693,7 +693,6 @@ export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
 
     const {
       cacheId: currentCacheId,
-      baseImage,
       baseImageUrl,
       studioEditedImageUrl: currentStudioEditedImageUrl,
     } = paramsRef.current;
@@ -862,15 +861,53 @@ export function useIcingMask(params: UseIcingMaskParams): UseIcingMaskResult {
     paramsRef.current.onRecolored(recoloredDataUrl, hex);
   }, [resolveBaseImageElement, resolveBaseImageForSource, generateMaskInternal]);
 
-  // Force-regenerates the mask: clears the in-memory decoded mask, then the next
-  // recolorIcing call (or an explicit recolor triggered here) will re-invoke
-  // generateAndPersistIcingMask with a fresh Gemini call. This lets users fix a
-  // poor-quality mask.
+  // Force-regenerates the mask for the current displayed image. This path backs the
+  // swatch-row "Fix" button, so it must not depend on a later recolor call to infer
+  // the source image. When a studio-edited URL is available, that URL is canonical.
   const regenerateMask = useCallback(async (): Promise<void> => {
+    const {
+      cacheId: currentCacheId,
+      baseImageUrl,
+      studioEditedImageUrl: currentStudioEditedImageUrl,
+    } = paramsRef.current;
+    const targetSourceUrl = currentStudioEditedImageUrl ?? baseImageUrl;
+
     decodedMaskRef.current = null;
+    if (targetSourceUrl && inFlightGenerationRef.current?.url === targetSourceUrl) {
+      inFlightGenerationRef.current = null;
+    }
     setHasMask(false);
-    setStatus('idle');
-  }, []);
+    setStatus('generating');
+
+    if (!targetSourceUrl) {
+      setStatus('error');
+      return;
+    }
+
+    let effectiveBaseImage: { data: string; mimeType: string } | null = null;
+    try {
+      effectiveBaseImage = await resolveBaseImageForSource(targetSourceUrl);
+    } catch (resolveError) {
+      console.warn('Failed to resolve base image for icing mask regeneration.', resolveError);
+    }
+
+    if (!effectiveBaseImage) {
+      setStatus('error');
+      return;
+    }
+
+    try {
+      const decoded = await generateMaskInternal(currentCacheId, effectiveBaseImage, targetSourceUrl);
+      decodedMaskRef.current = decoded;
+      setHasMask(true);
+      setStatus('ready');
+    } catch (generationError) {
+      console.warn('Failed to regenerate icing mask.', generationError);
+      decodedMaskRef.current = null;
+      setHasMask(false);
+      setStatus('error');
+    }
+  }, [resolveBaseImageForSource, generateMaskInternal]);
 
   // Disables the mask overlay: reverts the display to the original (un-recolored)
   // image. The decoded mask stays in memory so the next color click is still instant

@@ -1,5 +1,25 @@
 # Tasks
 
+## Fix Customizer Icing Swatch Fix Button Source
+
+### Plan
+
+- [x] Trace the color swatch Fix button from `CustomizingStepSummarySections` through `CustomizingClient` and `useIcingMask`.
+- [x] Patch manual mask regeneration so it explicitly targets the current displayed image, preferring `studio_edited_image_url` after the studio image arrives.
+- [x] Add focused regression coverage for the Fix button regeneration path.
+- [x] Run targeted tests/lint and record the result.
+
+### Review
+
+- The swatch Fix button in `CustomizingStepSummarySections` calls `handleRegenerateMask` in `CustomizingClient`, which previously called `regenerateMask()` and then `recolorIcing(...)`.
+- Before this fix, `regenerateMask()` only cleared the decoded in-memory mask and set status back to `idle`; it did not itself generate a new mask from the latest displayed image.
+- Updated `src/hooks/useIcingMask.ts` so `regenerateMask()` now explicitly resolves `studioEditedImageUrl ?? baseImageUrl`, fetches the studio image bytes when a studio URL exists, calls `generateAndPersistIcingMask(...)`, decodes the returned mask, and stores it as the ready in-memory mask before recoloring.
+- Added a regression test proving forced regeneration uses `https://example.com/studio.webp` bytes and `sourceImageUrl`, not the original `BASE_IMAGE`, when the studio image is displayed.
+- Verification:
+  - `npx vitest run src/hooks/useIcingMask.test.ts` passed with 17 tests.
+  - `npx eslint src/hooks/useIcingMask.ts src/hooks/useIcingMask.test.ts` passed with only the stale Browserslist notice.
+  - `git diff --check` passed.
+
 ## Audit AI Cake Analysis Upload Result Tracking
 
 ### Plan

@@ -475,6 +475,50 @@ describe('useIcingMask', () => {
     expect(result.current.hasMask).toBe(true);
   });
 
+  it('force-regenerates from the displayed studio image instead of the original base image', async () => {
+    const studioUrl = 'https://example.com/studio.webp';
+    mockGetIcingMask.mockResolvedValue({
+      ...makeMaskRecord(OK_MASK_URL),
+      source_image_url: studioUrl,
+    });
+    mockGenerateAndPersistIcingMask.mockResolvedValue({
+      ...makeMaskRecord(OK_MASK_URL),
+      source_image_url: studioUrl,
+    });
+    mockRecolorWithMask.mockReturnValue(FAKE_RECOLORED_DATA_URL);
+
+    const onRecolored = vi.fn();
+    const { result } = renderHook(() =>
+      useIcingMask(
+        buildParams({
+          baseImage: BASE_IMAGE,
+          baseImageUrl: studioUrl,
+          studioEditedImageUrl: studioUrl,
+          onRecolored,
+        })
+      )
+    );
+
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    mockGenerateAndPersistIcingMask.mockClear();
+    fetchMock.mockClear();
+
+    await act(async () => {
+      await result.current.regenerateMask();
+      await result.current.recolorIcing('#FFC0CB', 'Pink');
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(studioUrl, expect.any(Object));
+    expect(mockGenerateAndPersistIcingMask).toHaveBeenCalledTimes(1);
+    expect(mockGenerateAndPersistIcingMask).toHaveBeenCalledWith({
+      cacheId: 'cache-1',
+      baseImage: { mimeType: 'image/webp', data: 'studio-base64' },
+      sourceImageUrl: studioUrl,
+      icingColorName: undefined,
+    });
+    expect(onRecolored).toHaveBeenCalledWith(FAKE_RECOLORED_DATA_URL, '#FFC0CB');
+  });
+
   describe('staticMaskUrl (edible photo cake flow)', () => {
     const EDIBLE_PHOTO_MASK_URL = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cold-caking/6in-mask.webp';
 
