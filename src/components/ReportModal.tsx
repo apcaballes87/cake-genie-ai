@@ -17,6 +17,11 @@ const cakeTypeDisplayMap: Record<CakeType, string> = {
     'Bento': 'Bento',
     'Square Fondant': 'Square Fondant',
     'Rectangle Fondant': 'Rectangle Fondant',
+    'cupcakes-printout-toppers': 'Cupcakes with Printout Toppers',
+    'cupcakes-edible-photo-toppers': 'Cupcakes with Edible Photo Toppers',
+    'cupcakes-gumpaste-toppers-ordinary': 'Cupcakes with Gumpaste Toppers (Ordinary)',
+    'cupcakes-gumpaste-toppers-complex': 'Cupcakes with Gumpaste Toppers (Complex)',
+    'cupcakes-icing': 'Cupcakes with Icing',
 };
 
 interface ReportModalProps {
