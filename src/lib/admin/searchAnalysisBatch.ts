@@ -27,6 +27,7 @@ export type QueueItem = {
   fingerprint_pipeline: string | null;
   source_image_url: string | null;
   normalized_image_url: string;
+  storage_path: string;
   status: string;
   source_usage_count?: number;
   queued_at?: string;
@@ -168,7 +169,7 @@ export async function queueSearchAnalysisItem(input: {
 
 export async function submitNextSearchAnalysisBatch(requestedLimit = MAX_BATCH_SIZE, requestContext?: AIRequestContext) {
   const admin = createAdminServerSupabaseClient();
-  const { data: active } = await admin.from('cakegenie_search_analysis_batch_runs').select('id').in('status', ['submitted', 'importing']).limit(1).maybeSingle();
+  const { data: active } = await admin.from('cakegenie_search_analysis_batch_runs').select('id').in('status', ['collecting', 'submitted', 'importing']).limit(1).maybeSingle();
   if (active) throw new Error('A search-analysis batch is already submitted. Refresh its status first.');
   const { data: successfulProbe } = await admin.from('cakegenie_search_analysis_batch_runs').select('id').eq('is_compatibility_probe', true).in('status', ['completed', 'completed_with_errors']).gt('completed_count', 0).limit(1).maybeSingle();
   const isCompatibilityProbe = !successfulProbe;
@@ -187,27 +188,60 @@ export async function submitNextSearchAnalysisBatch(requestedLimit = MAX_BATCH_S
   const outputPath = objectName(gcs.prefix, `${runId}/output`);
   const inputUri = `gs://${gcs.bucket}/${inputPath}`;
   const outputUri = `gs://${gcs.bucket}/${outputPath}`;
-  await createBatchStorage(requestContext).bucket(gcs.bucket).file(inputPath).save(
-    items.map((item) => buildSearchAnalysisBatchInputLine(item, activePrompt, generationConfig)).join('\n'),
-    { contentType: 'application/jsonl' },
-  ).catch((error: unknown) => { throw toActionableGoogleCloudStorageError(error, 'create'); });
-  const providerJob = await getAI(requestContext).batches.create({
-    model: MODEL,
-    src: { gcsUri: [inputUri], format: 'jsonl' },
-    config: { displayName: `cakegenie-search-analysis-${runId}`, dest: { gcsUri: outputUri, format: 'jsonl' } },
-  });
-  if (!providerJob.name) throw new Error('Vertex AI did not return a batch job name.');
-  const { data: run, error: insertError } = await admin.from('cakegenie_search_analysis_batch_runs').insert({
-    id: runId, gemini_job_name: providerJob.name, status: 'submitted', is_compatibility_probe: isCompatibilityProbe,
+  const { error: insertError } = await admin.from('cakegenie_search_analysis_batch_runs').insert({
+    id: runId, status: 'collecting', is_compatibility_probe: isCompatibilityProbe,
     input_file_uri: inputUri, output_file_uri: outputUri, submitted_count: items.length,
-  }).select('*').single();
+  });
   if (insertError) throw insertError;
-  for (const [submissionOrdinal, item] of items.entries()) {
+
+  try {
+    const updates = items.map((item, index) => ({
+      id: item.id,
+      p_hash: item.p_hash,
+      normalized_image_url: item.normalized_image_url,
+      storage_path: item.storage_path,
+      run_id: runId,
+      status: 'submitted' as const,
+      submission_ordinal: index,
+      attempt_count: (item.attempt_count ?? 0) + 1,
+      error: null,
+    }));
+    const { error: updateError } = await admin.from('cakegenie_search_analysis_batch_items').upsert(updates);
+    if (updateError) throw updateError;
+
+    await createBatchStorage(requestContext).bucket(gcs.bucket).file(inputPath).save(
+      items.map((item) => buildSearchAnalysisBatchInputLine(item, activePrompt, generationConfig)).join('\n'),
+      { contentType: 'application/jsonl' },
+    ).catch((error: unknown) => { throw toActionableGoogleCloudStorageError(error, 'create'); });
+    const providerJob = await getAI(requestContext).batches.create({
+      model: MODEL,
+      src: { gcsUri: [inputUri], format: 'jsonl' },
+      config: { displayName: `cakegenie-search-analysis-${runId}`, dest: { gcsUri: outputUri, format: 'jsonl' } },
+    });
+    if (!providerJob.name) throw new Error('Vertex AI did not return a batch job name.');
+    const { data: submittedRun, error: submitUpdateError } = await admin.from('cakegenie_search_analysis_batch_runs').update({
+      gemini_job_name: providerJob.name,
+      status: 'submitted',
+      updated_at: new Date().toISOString(),
+    }).eq('id', runId).select('*').single();
+    if (submitUpdateError) throw submitUpdateError;
+    return submittedRun;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to submit search-analysis batch.';
     await admin.from('cakegenie_search_analysis_batch_items').update({
-      run_id: runId, status: 'submitted', submission_ordinal: submissionOrdinal, attempt_count: (item.attempt_count ?? 0) + 1, error: null,
-    }).eq('id', item.id).in('status', ['queued', 'retryable']);
+      run_id: null,
+      status: 'retryable',
+      error: message,
+      updated_at: new Date().toISOString(),
+    }).eq('run_id', runId).eq('status', 'submitted');
+    await admin.from('cakegenie_search_analysis_batch_runs').update({
+      status: 'failed',
+      retryable_count: items.length,
+      error: message,
+      updated_at: new Date().toISOString(),
+    }).eq('id', runId);
+    throw error;
   }
-  return run;
 }
 
 function extractText(line: JsonlResponse | null) {
@@ -371,7 +405,23 @@ export async function reconcileSearchAnalysisBatch(runId: string, requestContext
       }
       continue;
     }
-    const item = itemsByUri.get(extractOutputRequestFileUri(output) ?? '') ?? fallbackItems[index];
+    const echoedUri = extractOutputRequestFileUri(output);
+    let item: QueueItem | undefined;
+    const currentOrdinal = index;
+
+    if (echoedUri) {
+      item = itemsByUri.get(echoedUri);
+      if (!item) {
+        console.warn(`[Batch Import] Echoed URI "${echoedUri}" does not map to any item in run ${runId}. Skipping to prevent cross-contamination.`);
+        index += 1;
+        continue;
+      }
+    } else {
+      item = fallbackItems[currentOrdinal];
+      if (item) {
+        console.warn(`[Batch Import] Output line at index ${currentOrdinal} has no echoed URI. Falling back to ordinal matching for item ${item.id} (p_hash: ${item.p_hash}).`);
+      }
+    }
     index += 1;
     if (!item) continue;
     if (item.status !== 'submitted') continue;

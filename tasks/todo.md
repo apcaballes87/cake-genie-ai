@@ -1833,3 +1833,24 @@
 - Verification:
   - Live `information_schema.columns` now shows the new metadata columns.
   - The exact browser/Data API field set now succeeds through `/rest/v1/cakegenie_collections` and returns a published collection row with `collection_type = evergreen`.
+
+# Diagnose Search Analysis Batch Image/Analysis Mismatch
+
+### Plan
+
+- [x] Trace `my-melody-white-1-tier-cake-e3c3` through `cakegenie_analysis_cache`, batch intake items, and source/normalized image URLs.
+- [x] Inspect batch output correlation and cache persistence paths for ways a result can attach to the wrong image.
+- [x] Check whether the issue is isolated or visible across other recently completed batch rows.
+- [x] Identify the root cause and document the safest fix path.
+
+### Review
+
+- Confirmed `my-melody-white-1-tier-cake-e3c3` cache row `8782560e-bc7f-4bef-93e1-e9823ae5440c` points to `admin/search-analysis/e3c3c1c0c29fb1b3.jpg`, whose source URL is the anime image, but its cached analysis describes a My Melody cake.
+- Confirmed the My Melody Vertex output line echoed request URI `admin/search-analysis/fffffff0e0646080.jpg`, not the anime image. The matching batch item for `fffffff0e0646080` had submission ordinal `973`, while the anime item had ordinal `502`.
+- Verified the latest full run `53882998-c94e-412a-a724-4e6f0eea6a02` had output order shuffled: 1,000 output lines had request URIs, but only 1 line matched its submission ordinal.
+- Root cause: the provider processed 1,000 input lines, but DB run/item mapping was incomplete during import, so output lines whose true item was missing fell back to ordinal matching and contaminated the wrong cache rows.
+- Patched `src/lib/admin/searchAnalysisBatch.ts` so future submissions create a `collecting` run, claim all selected items with run ID and submission ordinal before uploading/submitting the Vertex job, then mark the run `submitted` only after Vertex returns a job name. Failure releases claimed items back to `retryable`.
+- Verification:
+  - `npx vitest run src/lib/admin/searchAnalysisBatch.test.ts` passed with 13 tests.
+  - `npx eslint src/lib/admin/searchAnalysisBatch.ts src/lib/admin/searchAnalysisBatch.test.ts src/scripts/repair-batch-run.ts` passed cleanly.
+  - Created standalone diagnostic script `src/scripts/repair-batch-run.ts` which successfully analyzed GCS and database logs, identified 757 contaminated cache rows, and generated `contaminated_cache_ids.json` and a transaction-safe `remediate_contaminated_run.sql` script for database cleanup.

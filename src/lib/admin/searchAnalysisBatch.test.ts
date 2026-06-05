@@ -1,4 +1,49 @@
-import { describe, expect, it } from 'vitest';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { Readable } from 'stream';
+
+// Define mocks first
+const mockSupabase = {
+  from: vi.fn(),
+};
+
+vi.mock('@/lib/supabase/adminServer', () => ({
+  createAdminServerSupabaseClient: vi.fn(() => mockSupabase),
+}));
+
+const mockAI = {
+  batches: {
+    create: vi.fn(),
+    get: vi.fn(),
+  },
+};
+
+vi.mock('@/lib/ai/client', () => ({
+  getAI: vi.fn(() => mockAI),
+  getGoogleCloudAuthOptions: vi.fn(() => ({})),
+}));
+
+const mockBucket = {
+  getFiles: vi.fn(),
+  file: vi.fn(() => ({
+    save: vi.fn().mockResolvedValue(undefined),
+  })),
+};
+
+vi.mock('@google-cloud/storage', () => {
+  return {
+    Storage: class {
+      bucket() {
+        return mockBucket;
+      }
+    }
+  };
+});
+
+const mockCacheAnalysisResult = vi.fn();
+vi.mock('@/services/supabaseService', () => ({
+  cacheAnalysisResult: (...args: any[]) => mockCacheAnalysisResult(...args),
+}));
 
 import {
   buildSearchAnalysisBatchInputLine,
@@ -8,6 +53,8 @@ import {
   parseSearchAnalysisBatchOutputText,
   resolveSearchAnalysisIntake,
   selectEligibleSearchAnalysisItems,
+  submitNextSearchAnalysisBatch,
+  reconcileSearchAnalysisBatch,
 } from './searchAnalysisBatch';
 import type { QueueItem } from './searchAnalysisBatch';
 
@@ -17,6 +64,7 @@ const item = (overrides: Record<string, unknown> = {}) => ({
   fingerprint_pipeline: 'server-v1',
   source_image_url: 'https://source.example/cake.jpg',
   normalized_image_url: 'https://cdn.example/cake.jpg',
+  storage_path: 'admin/search-analysis/abcdef1234567890.jpg',
   status: 'queued',
   submission_ordinal: null,
   source_usage_count: 0,
@@ -91,7 +139,9 @@ describe('search analysis batch helpers', () => {
   it('recovers final JSON when the image-preview batch model prefixes Markdown reasoning', () => {
     expect(parseSearchAnalysisBatchOutputText(`**Processing image**
 
+
 The image has one cake.
+
 
 {
   "rejection": {
@@ -122,5 +172,274 @@ The image has one cake.
       fingerprintPipeline: 'server-v1',
       persistSourceAsset: 'if_missing',
     });
+  });
+});
+
+describe('search analysis batch run submission and reconciliation regression tests', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.VERTEX_AI_BATCH_GCS_URI = 'gs://test-bucket/prefix';
+  });
+
+  const createFluentChain = (customOverrides: Record<string, any> = {}) => {
+    const chain = {
+      select: vi.fn(() => chain),
+      eq: vi.fn(() => chain),
+      neq: vi.fn(() => chain),
+      in: vi.fn(() => chain),
+      gt: vi.fn(() => chain),
+      not: vi.fn(() => chain),
+      limit: vi.fn(() => chain),
+      order: vi.fn(() => chain),
+      insert: vi.fn(() => chain),
+      update: vi.fn(() => chain),
+      upsert: vi.fn(() => Promise.resolve({ error: null })),
+      single: vi.fn(() => Promise.resolve({ data: null, error: null })),
+      maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
+      then: vi.fn((resolve) => resolve({ data: null, count: 0, error: null })),
+      ...customOverrides,
+    };
+    return chain;
+  };
+
+  it('submit flow creates a collecting run and claims items before calling Vertex', async () => {
+    const callOrder: string[] = [];
+
+    mockSupabase.from = vi.fn((table: string) => {
+      const chain = createFluentChain();
+
+      if (table === 'cakegenie_search_analysis_batch_runs') {
+        chain.maybeSingle.mockImplementation(() => {
+          callOrder.push('check-active');
+          return Promise.resolve({ data: null, error: null });
+        });
+        chain.insert.mockImplementation(() => {
+          callOrder.push('insert-collecting-run');
+          return createFluentChain({
+            select: () => createFluentChain({
+              single: () => Promise.resolve({ data: { id: 'test-run-id' }, error: null }),
+            }),
+          });
+        });
+        chain.update.mockImplementation(() => {
+          callOrder.push('update-run-submitted');
+          return createFluentChain({
+            eq: () => createFluentChain({
+              select: () => createFluentChain({
+                single: () => Promise.resolve({ data: { id: 'test-run-id', status: 'submitted' }, error: null }),
+              }),
+            }),
+          });
+        });
+      }
+
+      if (table === 'cakegenie_search_analysis_batch_items') {
+        chain.limit.mockImplementation(() => {
+          callOrder.push('query-queued-items');
+          return Promise.resolve({ data: [item({ id: 'item1' }), item({ id: 'item2' })], error: null });
+        });
+        chain.upsert.mockImplementation(() => {
+          callOrder.push('upsert-claim-items');
+          return Promise.resolve({ error: null });
+        });
+      }
+
+      if (table === 'ai_prompts') {
+        chain.single.mockResolvedValue({ data: { prompt_text: 'test prompt' }, error: null });
+      }
+
+      if (table === 'cakegenie_pricing_contract') {
+        chain.not = vi.fn(() => Promise.resolve({ data: [], error: null }) as any);
+      }
+
+      return chain as any;
+    });
+
+    mockAI.batches.create.mockImplementation(() => {
+      callOrder.push('call-vertex-ai');
+      return Promise.resolve({ name: 'projects/test/locations/global/batchPredictionJobs/job1' });
+    });
+
+    const run = await submitNextSearchAnalysisBatch(1000);
+
+    expect(run).toBeDefined();
+    expect(callOrder).toEqual([
+      'check-active',
+      'check-active', // check-active is called twice: once for active run check, once for compatibility probe check
+      'query-queued-items',
+      'insert-collecting-run',
+      'upsert-claim-items',
+      'call-vertex-ai',
+      'update-run-submitted',
+    ]);
+  });
+
+  it('submit failure releases items back to retryable and fails the run', async () => {
+    mockSupabase.from = vi.fn((table: string) => {
+      const chain = createFluentChain();
+
+      if (table === 'cakegenie_search_analysis_batch_runs') {
+        chain.maybeSingle.mockResolvedValue({ data: null, error: null });
+        chain.insert.mockReturnValue(createFluentChain({
+          select: () => createFluentChain({
+            single: () => Promise.resolve({ data: { id: 'test-run-id' }, error: null }),
+          }),
+        }));
+        chain.update.mockReturnValue(createFluentChain({
+          eq: () => Promise.resolve({ data: {}, error: null }),
+        }));
+      }
+
+      if (table === 'cakegenie_search_analysis_batch_items') {
+        chain.limit.mockResolvedValue({ data: [item({ id: 'item1' })], error: null });
+        chain.upsert.mockResolvedValue({ error: null });
+        chain.update.mockReturnValue(createFluentChain({
+          eq: () => createFluentChain({
+            eq: () => Promise.resolve({ error: null }),
+          }),
+        }));
+      }
+
+      if (table === 'ai_prompts') {
+        chain.single.mockResolvedValue({ data: { prompt_text: 'test prompt' }, error: null });
+      }
+
+      if (table === 'cakegenie_pricing_contract') {
+        chain.not = vi.fn(() => Promise.resolve({ data: [], error: null }) as any);
+      }
+
+      return chain as any;
+    });
+
+    mockAI.batches.create.mockRejectedValue(new Error('Vertex submission failed'));
+
+    const itemsUpdateSpy = vi.spyOn(mockSupabase, 'from');
+
+    await expect(submitNextSearchAnalysisBatch(1000)).rejects.toThrow('Vertex submission failed');
+
+    // Check that we updated the items to retryable and the run to failed
+    expect(itemsUpdateSpy).toHaveBeenCalledWith('cakegenie_search_analysis_batch_items');
+    expect(itemsUpdateSpy).toHaveBeenCalledWith('cakegenie_search_analysis_batch_runs');
+  });
+
+  it('reconcile matching matches shuffled outputs by request URI and prevents unknown URI contamination', async () => {
+    const runId = 'test-reconcile-run';
+    mockSupabase.from = vi.fn((table: string) => {
+      const chain = createFluentChain();
+
+      if (table === 'cakegenie_search_analysis_batch_runs') {
+        chain.single.mockResolvedValue({
+          data: {
+            id: runId,
+            status: 'importing',
+            output_file_uri: 'gs://test-bucket/output',
+          },
+          error: null,
+        });
+        chain.update.mockReturnValue(createFluentChain({
+          eq: () => createFluentChain({
+            select: () => createFluentChain({
+              single: () => Promise.resolve({ data: {}, error: null }),
+            }),
+          }),
+        }));
+      }
+
+      if (table === 'cakegenie_search_analysis_batch_items') {
+        // Override order to return the list of items
+        chain.order = vi.fn(() => Promise.resolve({
+          data: [
+            item({ id: 'item-1', normalized_image_url: 'uri-1', p_hash: 'ph1', status: 'submitted', submission_ordinal: 0 }),
+            item({ id: 'item-2', normalized_image_url: 'uri-2', p_hash: 'ph2', status: 'submitted', submission_ordinal: 1 }),
+          ],
+          error: null,
+        }) as any);
+        chain.update.mockReturnValue(createFluentChain({
+          eq: () => createFluentChain({
+            neq: () => Promise.resolve({ error: null }),
+          }),
+        }));
+      }
+
+      return chain as any;
+    });
+
+    // Mock output predictions.jsonl content (shuffled!)
+    const jsonlContent = [
+      JSON.stringify({ request: { contents: [{ parts: [{ fileData: { fileUri: 'uri-2' } }] }] }, response: { candidates: [{ content: { parts: [{ text: '{"cakeType": "1 Tier", "icing_design": {"base": "fondant"}}' }] } }] } }),
+      JSON.stringify({ request: { contents: [{ parts: [{ fileData: { fileUri: 'uri-unknown' } }] }] }, response: { candidates: [{ content: { parts: [{ text: '{"cakeType": "2 Tier"}' }] } }] } }),
+      JSON.stringify({ request: { contents: [{ parts: [{ fileData: { fileUri: 'uri-1' } }] }] }, response: { candidates: [{ content: { parts: [{ text: '{"cakeType": "1 Tier", "icing_design": {"base": "soft_icing"}}' }] } }] } }),
+    ].join('\n');
+
+    mockBucket.getFiles.mockResolvedValue([[ { name: 'predictions.jsonl', createReadStream: () => Readable.from([jsonlContent]) } ]]);
+
+    // Mock cacheAnalysisResult
+    mockCacheAnalysisResult.mockResolvedValue({ id: 'new-cache-row-id' });
+
+    const result = await reconcileSearchAnalysisBatch(runId);
+
+    expect(result).toBeDefined();
+
+    // Verify that cacheAnalysisResult was called for uri-1 and uri-2 but NOT uri-unknown
+    expect(mockCacheAnalysisResult).toHaveBeenCalledTimes(2);
+    expect(mockCacheAnalysisResult).toHaveBeenCalledWith('ph1', expect.any(Object), 'uri-1', undefined, expect.any(Object));
+    expect(mockCacheAnalysisResult).toHaveBeenCalledWith('ph2', expect.any(Object), 'uri-2', undefined, expect.any(Object));
+  });
+
+  it('reconcile matching falls back to line index ordinal matching only when echoed URI is missing', async () => {
+    const runId = 'test-reconcile-run-ordinal';
+    mockSupabase.from = vi.fn((table: string) => {
+      const chain = createFluentChain();
+
+      if (table === 'cakegenie_search_analysis_batch_runs') {
+        chain.single.mockResolvedValue({
+          data: {
+            id: runId,
+            status: 'importing',
+            output_file_uri: 'gs://test-bucket/output',
+          },
+          error: null,
+        });
+        chain.update.mockReturnValue(createFluentChain({
+          eq: () => createFluentChain({
+            select: () => createFluentChain({
+              single: () => Promise.resolve({ data: {}, error: null }),
+            }),
+          }),
+        }));
+      }
+
+      if (table === 'cakegenie_search_analysis_batch_items') {
+        chain.order = vi.fn(() => Promise.resolve({
+          data: [
+            item({ id: 'item-1', normalized_image_url: 'uri-1', p_hash: 'ph1', status: 'submitted', submission_ordinal: 0 }),
+            item({ id: 'item-2', normalized_image_url: 'uri-2', p_hash: 'ph2', status: 'submitted', submission_ordinal: 1 }),
+          ],
+          error: null,
+        }) as any);
+        chain.update.mockReturnValue(createFluentChain({
+          eq: () => createFluentChain({
+            neq: () => Promise.resolve({ error: null }),
+          }),
+        }));
+      }
+
+      return chain as any;
+    });
+
+    // Mock output: line has NO echoed request URI
+    const jsonlContent = [
+      JSON.stringify({ response: { candidates: [{ content: { parts: [{ text: '{"cakeType": "1 Tier"}' }] } }] } }),
+    ].join('\n');
+
+    mockBucket.getFiles.mockResolvedValue([[ { name: 'predictions.jsonl', createReadStream: () => Readable.from([jsonlContent]) } ]]);
+    mockCacheAnalysisResult.mockResolvedValue({ id: 'ordinal-cache-id' });
+
+    const result = await reconcileSearchAnalysisBatch(runId);
+    expect(result).toBeDefined();
+
+    // Verify it matched item-1 by index index 0 since request URI was missing
+    expect(mockCacheAnalysisResult).toHaveBeenCalledTimes(1);
+    expect(mockCacheAnalysisResult).toHaveBeenCalledWith('ph1', expect.any(Object), 'uri-1', undefined, expect.any(Object));
   });
 });
