@@ -115,6 +115,20 @@ describe('buildCakeTitle — R6', () => {
         expect(t).not.toMatch(/cake\s+cake/i);
         expect(t).toMatch(/\bCake$/);
     });
+
+    it('builds cupcake titles ending in "Cupcakes" and not containing "Cake"', () => {
+        const t = buildCakeTitle({
+            keyword: 'Cinderella Cupcakes Sky Blue Cake',
+            cakeType: 'cupcakes-printout-toppers',
+            colorTop: '#87CEEB',
+            colorType: 'single',
+            tags: ['cinderella', 'blue', 'cupcakes']
+        });
+        expect(t).toContain('Cinderella-Inspired');
+        expect(t).toContain('Cupcakes');
+        expect(t).not.toContain('Cake');
+        expect(t).not.toMatch(/cupcakes\s+cupcakes/i);
+    });
 });
 
 describe('extractTitleInputFromAnalysis — R7.2 / R10.2 parity mapper', () => {

@@ -153,4 +153,19 @@ describe('CustomizingPageMetaSections', () => {
         expect(screen.queryByText('About This Cake')).not.toBeInTheDocument();
         expect(screen.queryByText('Should stay hidden')).not.toBeInTheDocument();
     });
+
+    it('strips trailing " Cake" suffix from display title if it is a cupcake design', () => {
+        render(
+            <CustomizingPageMetaHeader
+                recentSearchDesign={{
+                    slug: 'cinderella-cupcakes-sky-blue',
+                    seo_title: 'Cinderella-Inspired Cupcakes Sky Blue Cake | Genie.ph',
+                    keywords: 'Cinderella-Inspired Cupcakes Sky Blue',
+                }}
+            />
+        );
+
+        expect(screen.getByRole('heading', { name: 'Cinderella-Inspired Cupcakes Sky Blue' })).toBeInTheDocument();
+        expect(screen.queryByText('Cinderella-Inspired Cupcakes Sky Blue Cake')).not.toBeInTheDocument();
+    });
 });

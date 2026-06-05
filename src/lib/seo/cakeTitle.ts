@@ -247,14 +247,21 @@ export function buildCakeTitle(input: CakeTitleInput, budget: number = CAKE_TITL
         .join(' ')
         .toLowerCase();
 
+    const isCupcake = (input.cakeType ?? '').toLowerCase().includes('cupcake');
+
     // THEME
     let theme = keyword.length > 0 ? titleCase(keyword) : 'Custom';
     // Normalize separators: drop commas/slashes that appear in raw keywords
     // (e.g. "Boss Baby, 1st Birthday") so franchise-token matching is positional
     // and the title reads cleanly.
     theme = theme.replace(/[,/]+/g, ' ').replace(/\s+/g, ' ').trim();
-    // Strip a trailing "Cake" already present in the keyword so we control the head noun.
-    theme = theme.replace(/\s*cake\s*$/i, '').trim() || 'Custom';
+    // Strip a trailing "Cake" or "Cupcakes" already present in the keyword so we control the head noun.
+    theme = theme.replace(/\s*cake\s*$/i, '').trim();
+    if (isCupcake) {
+        theme = theme.replace(/\s*cupcakes?\s*$/i, '').trim();
+    }
+    theme = theme || 'Custom';
+
     // Attach the "-Inspired" qualifier to the specific franchise token within the
     // theme (e.g. "Bluey Birthday" → "Bluey-Inspired Birthday", not
     // "Bluey Birthday-Inspired"). Falls back to whole-theme suffix if the token
@@ -277,6 +284,9 @@ export function buildCakeTitle(input: CakeTitleInput, budget: number = CAKE_TITL
             runningLower += ` ${p.toLowerCase()}`;
         }
         const body = [theme, ...kept].join(' ');
+        if (isCupcake) {
+            return `${body} Cupcakes`.replace(/\bcupcakes?\s+cupcakes?\b/i, 'Cupcakes');
+        }
         return `${body} Cake`.replace(/\bcake\s+cake\b/i, 'Cake');
     };
 
@@ -294,21 +304,21 @@ export function buildCakeTitle(input: CakeTitleInput, budget: number = CAKE_TITL
         if ([...title].length <= budget) return title;
     }
 
-    // Still over budget: word-truncate the theme while keeping ' Cake'.
-    return truncateThemeToFit(theme, budget);
+    // Still over budget: word-truncate the theme while keeping the appropriate head noun.
+    return truncateThemeToFit(theme, budget, isCupcake);
 }
 
-function truncateThemeToFit(theme: string, budget: number): string {
-    const suffix = ' Cake';
-    // Strip any trailing "Cake" already in the theme (keyword-stuffed slugs) so we
-    // never produce "... Cake Cake".
-    const cleanTheme = theme.replace(/\s*cake\s*$/i, '').trim() || 'Custom';
+function truncateThemeToFit(theme: string, budget: number, isCupcake?: boolean): string {
+    const suffix = isCupcake ? ' Cupcakes' : ' Cake';
+    // Strip any trailing "Cake" or "Cupcakes" already in the theme (keyword-stuffed slugs) so we
+    // never produce "... Cake Cake" or "... Cupcakes Cupcakes".
+    const cleanTheme = theme.replace(isCupcake ? /\s*cupcakes?\s*$/i : /\s*cake\s*$/i, '').trim() || 'Custom';
     const themeBudget = budget - suffix.length;
     if ([...cleanTheme].length <= themeBudget) return `${cleanTheme}${suffix}`;
     const sliced = [...cleanTheme].slice(0, Math.max(0, themeBudget)).join('');
     const lastSpace = sliced.lastIndexOf(' ');
     const trimmed = (lastSpace > 0 ? sliced.slice(0, lastSpace) : sliced)
-        .replace(/\s*cake\s*$/i, '')
+        .replace(isCupcake ? /\s*cupcakes?\s*$/i : /\s*cake\s*$/i, '')
         .trim();
     return `${trimmed}${suffix}`;
 }

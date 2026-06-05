@@ -35,11 +35,11 @@ const TEXT_GENERATION_PROMPT = `You are an expert copywriter and SEO specialist 
 
 **Output Requirements:**
 1.  **title:**
-    *   **Structure:** "[Theme] Themed [Size] [Type] Cake"
+    *   **Structure:** "[Theme] Themed [Size] [Type] Cake" (For cupcakes, the structure must be "[Theme] Cupcakes" or "[Theme] Cupcakes with [Topper Type]". NEVER append "Cake" or "Cake Design" to cupcake titles).
     *   **Prioritize the Theme:** The theme you identified MUST be the first part of the title. Capitalize the first letter of each major word (Title Case).
-    *   **Include Size:** Mention if it's "Bento", "6-inch", "2-Tier", etc.
+    *   **Include Size:** Mention if it's "Bento", "6-inch", "2-Tier", etc. (Not applicable for cupcakes).
     *   **Keep it concise:** Max 60 characters if possible, optimized for search clicks.
-    *   **Examples:** "Spiderman Themed 6-inch Cake", "Elegant Floral 2-Tier Wedding Cake", "Cute Bear Bento Cake".
+    *   **Examples:** "Spiderman Themed 6-inch Cake", "Elegant Floral 2-Tier Wedding Cake", "Cute Bear Bento Cake", "Cinderella Cupcakes with Printout Toppers".
 
 2.  **description:**
     *   **Tone:** Enticing, highly descriptive, unique, and professional.
@@ -53,7 +53,7 @@ const TEXT_GENERATION_PROMPT = `You are an expert copywriter and SEO specialist 
 
 3.  **altText:**
     *   **Purpose:** For screen readers and SEO.
-    *   **Content:** A literal, objective, and descriptive summary of the visual image. "A [color] [type] cake featuring [main elements] and [decorations]."
+    *   **Content:** A literal, objective, and descriptive summary of the visual image. "A [color] [type] cake featuring [main elements] and [decorations]." (Or for cupcakes: "A set of [color] cupcakes featuring [main elements] and [decorations].")
     *   **No fluff:** Avoid subjective words ("beautiful", "delicious") or promotional language.
 
 **Output Format:** Your response MUST be a single, valid JSON object with the following structure:
@@ -69,7 +69,7 @@ const textGenerationSchema = {
     properties: {
         title: {
             type: Type.STRING,
-            description: "Structure: '[Theme] Themed [Size] [Type] Cake'. Prioritize the Theme first. Include Size. Max 60 characters."
+            description: "Structure: '[Theme] Themed [Size] [Type] Cake' (or '[Theme] Cupcakes' for cupcakes - NEVER append 'Cake' to cupcakes). Prioritize Theme first. Max 60 characters."
         },
         description: {
             type: Type.STRING,
@@ -77,7 +77,7 @@ const textGenerationSchema = {
         },
         altText: {
             type: Type.STRING,
-            description: "Literal, descriptive summary of the visual image. Example: 'A [color] [type] cake featuring [main elements] and [decorations].' No fluff."
+            description: "Literal, descriptive summary of the visual image. Example: 'A [color] [type] cake featuring [main elements]' (or 'A set of [color] cupcakes featuring [main elements]' for cupcakes). No fluff."
         },
     },
     required: ['title', 'description', 'altText'],

@@ -21,9 +21,14 @@ interface CustomizingSupplementalContentProps {
     showClientFallback: boolean;
 }
 
-export const cleanDisplayTitle = (title?: string | null) => (
-    title?.split('|')[0]?.trim() || ''
-);
+export const cleanDisplayTitle = (title?: string | null) => {
+    if (!title) return '';
+    let cleaned = title.split('|')[0]?.trim() || '';
+    if (/cupcake/i.test(cleaned) && / cake$/i.test(cleaned)) {
+        cleaned = cleaned.replace(/\s+cake$/i, '');
+    }
+    return cleaned;
+};
 
 export const getRecentSearchDisplayTitle = (recentSearchDesign?: RecentSearchDesignMeta) => (
     cleanDisplayTitle(recentSearchDesign?.seo_title)

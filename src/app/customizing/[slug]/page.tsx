@@ -289,7 +289,12 @@ export async function generateMetadata(
     // The root layout template appends ' | Genie.ph'. No price segment in the title.
     // Fallback: if seo_title is somehow blank, rebuild from the design's own
     // structured attributes (same builder the write path and backfill use).
-    const storedTitle = typeof design.seo_title === 'string' ? design.seo_title.trim() : ''
+    const rawStoredTitle = typeof design.seo_title === 'string' ? design.seo_title.trim() : '';
+    const isCupcake = (design.analysis_json?.cakeType || '').startsWith('cupcakes-') || (design.slug || '').includes('cupcakes-');
+    let storedTitle = rawStoredTitle;
+    if (isCupcake && /cupcake/i.test(storedTitle) && / cake$/i.test(storedTitle)) {
+        storedTitle = storedTitle.replace(/\s+cake$/i, '');
+    }
     const title = storedTitle.length > 0
         ? storedTitle
         : buildCakeTitle(
@@ -298,7 +303,7 @@ export async function generateMetadata(
                 design.keywords,
                 design.tags,
             ),
-        )
+        );
 
     // Description with rich fallback chain:
     // 1. Use seo_description if available (unless it's generic/templated)
@@ -401,7 +406,11 @@ export function DesignSchema({
 
     const tags = design.tags || [];
     const keywords = design.keywords || 'Custom';
-    const title = design.seo_title || `${tags.length > 0 ? tags[0] + ' ' : ''}${keywords} Cake`;
+    const isCupcake = (design.analysis_json?.cakeType || '').startsWith('cupcakes-') || (design.slug || '').includes('cupcakes-');
+    let title = design.seo_title || `${tags.length > 0 ? tags[0] + ' ' : ''}${keywords} ${isCupcake ? 'Cupcakes' : 'Cake'}`;
+    if (isCupcake && /cupcake/i.test(title) && / cake$/i.test(title)) {
+        title = title.replace(/\s+cake$/i, '');
+    }
     // Image URL for structured data + sitemap parity. Point at the SAME image the
     // page actually renders as its hero (the largest slug-based variant ≤ 1200,
     // falling back to the original). After the slug-based variant re-path this URL
@@ -673,10 +682,15 @@ function SSRCakeDetails({
     const analysis = design.analysis_json || {};
     const policyUrls = getCommercePolicyUrls();
 
-    // Clean title: use keywords + "Cake Design" if seo_title is missing
-    // Always include "Cake Design" — matches what Filipino users search in Google Images
-    const rawTitle = (design.seo_title || `${keywords} Cake Design`).replace(/\s*\|\s*Genie\.ph\s*$/i, '');
-    const title = /cake\s*design/i.test(rawTitle) ? rawTitle : /cake\s*$/i.test(rawTitle) ? `${rawTitle} Design` : `${rawTitle} Cake Design`;
+    const isCupcake = (analysis.cakeType || '').startsWith('cupcakes-') || (design.slug || '').includes('cupcakes-');
+    const fallbackTitleSuffix = isCupcake ? 'Cupcakes Design' : 'Cake Design';
+    let rawTitle = (design.seo_title || `${keywords} ${fallbackTitleSuffix}`).replace(/\s*\|\s*Genie\.ph\s*$/i, '');
+    if (isCupcake && /cupcake/i.test(rawTitle) && / cake$/i.test(rawTitle)) {
+        rawTitle = rawTitle.replace(/\s+cake$/i, '');
+    }
+    const title = isCupcake
+        ? (/cupcakes?\s*design/i.test(rawTitle) ? rawTitle : /cupcakes?\s*$/i.test(rawTitle) ? `${rawTitle} Design` : `${rawTitle} Cupcakes Design`)
+        : (/cake\s*design/i.test(rawTitle) ? rawTitle : /cake\s*$/i.test(rawTitle) ? `${rawTitle} Design` : `${rawTitle} Cake Design`);
     const altText = generateRichAltText(design);
     const displayPrice = prices?.[0]?.price || design.price;
 
