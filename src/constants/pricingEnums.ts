@@ -62,6 +62,7 @@ export const SUPPORT_ELEMENT_TYPES = [
     'dragees',
     'edible_flowers',
     'edible_photo_side',
+    'edible_photo_print',
     'icing_doodle',
     'icing_palette_knife',
     'icing_brush_stroke',

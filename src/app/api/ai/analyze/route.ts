@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
 
         // Fetch inputs required for prompt construction
         const [promptDetails, typeEnums] = await Promise.all([
-            getActivePromptDetails(supabase).catch(() => null),
+            getActivePromptDetails(supabase as unknown as Parameters<typeof getActivePromptDetails>[0]).catch(() => null),
             getDynamicTypeEnums(supabase)
         ]);
 

@@ -43,6 +43,22 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('Do NOT create `satin_ribbon_wrap` unless there is an actual ribbon band wrapping around the cake side.');
   });
 
+  it('keeps candle classification in the fallback prompt source', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(prompt).toContain('CANDLES ARE ALWAYS CANDLE TYPE');
+    expect(prompt).toContain('classify it as `candle` with material `wax`');
+    expect(prompt).toContain('Do NOT classify candles as `edible_3d_ordinary`, `edible_3d_complex`, `toy`, `gumpaste`, or fondant.');
+  });
+
+  it('keeps edible photo top versus edible photo print rules in the fallback prompt source', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(prompt).toContain('EDIBLE PHOTO TOP VS EDIBLE PHOTO PRINT');
+    expect(prompt).toContain('Use `edible_photo_top` when an edible image/photo/printed graphic covers the top surface of the cake');
+    expect(prompt).toContain('Use `edible_photo_print` only for smaller edible printed cutouts or printed pieces placed on the side of the cake');
+  });
+
   it('loads the fallback prompt used when Supabase prompt fetch fails', () => {
     const prompt = loadFallbackAnalysisPrompt();
 

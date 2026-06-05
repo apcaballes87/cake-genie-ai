@@ -4,7 +4,7 @@ import { join } from 'node:path';
 const FALLBACK_PROMPT_PATH = 'src/services/prompts/fallback-prompt.txt';
 
 type PromptQueryResult = {
-  data: { prompt_text?: string | null } | null;
+  data: { prompt_text?: string | null; version?: string | number | null } | null;
   error: unknown;
 };
 
@@ -24,7 +24,7 @@ export function loadFallbackAnalysisPrompt() {
   return readFileSync(join(process.cwd(), FALLBACK_PROMPT_PATH), 'utf8');
 }
 
-export async function getAnalysisPromptWithFallback(supabase: any) {
+export async function getAnalysisPromptWithFallback(supabase: SupabasePromptClient) {
   const { data, error } = await supabase
     .from('ai_prompts')
     .select('prompt_text')
@@ -40,7 +40,7 @@ export async function getAnalysisPromptWithFallback(supabase: any) {
   return loadFallbackAnalysisPrompt();
 }
 
-export async function getActivePromptDetails(supabase: any): Promise<{ promptText: string; version: string }> {
+export async function getActivePromptDetails(supabase: SupabasePromptClient): Promise<{ promptText: string; version: string }> {
   try {
     const { data, error } = await supabase
       .from('ai_prompts')
@@ -64,4 +64,3 @@ export async function getActivePromptDetails(supabase: any): Promise<{ promptTex
     version: 'fallback'
   };
 }
-

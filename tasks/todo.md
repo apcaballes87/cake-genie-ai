@@ -1,5 +1,51 @@
 # Tasks
 
+## Sync Fallback Cake Analysis Prompt To Current Supabase Prompt
+
+### Plan
+
+- [x] Replace `src/services/prompts/fallback-prompt.txt` with the user's pasted current v3.11 prompt.
+- [x] Confirm the fallback file contains the pasted prompt content, with trailing whitespace normalized for a clean commit.
+- [x] Run focused prompt tests and lint.
+
+### Review
+
+- Synced the fallback prompt to the pasted v3.11 prompt text, normalizing trailing whitespace only.
+- Confirmed the fallback prompt includes the candle, edible-photo, branding, Bento, whole-head, and ribbon guard sections.
+- Verification:
+  - The fallback prompt was checked against the pasted prompt content before whitespace normalization.
+  - `npx vitest run src/services/prompts/analysisPromptRules.test.ts` passed with 9 tests.
+  - `npx eslint src/services/prompts/analysisPromptRules.test.ts src/services/prompts/promptLoader.ts` passed with only the stale Browserslist notice.
+
+## Fix Candle And Edible Photo Print Classification
+
+### Plan
+
+- [x] Add prompt guard so wax birthday/heart/number/taper candles classify as `candle` with material `wax`, not gumpaste/ordinary.
+- [x] Add prompt guard so top-surface printed images classify as `edible_photo_top`, while `edible_photo_print` is reserved for smaller side cutouts/pieces.
+- [x] Create a new higher-version active Supabase `ai_prompts` row without overwriting the existing active row.
+- [x] Move `edible_photo_print` pricing rules out of `main_topper` and into `support_element`.
+- [x] Change candle pricing to `per_piece` so grouped candle quantities price correctly.
+- [x] Add local fallback prompt coverage and update support/display types for `edible_photo_print`.
+- [x] Backfill the stale One Piece cache row after prompt/pricing behavior was finalized.
+- [x] Run focused verification and document results.
+
+### Review
+
+- Added candle and edible-photo disambiguation rules to `src/services/prompts/fallback-prompt.txt`.
+- Created Supabase `ai_prompts` row `prompt_id = 20`, version `3.11`, from active prompt text; only this row is active and it contains candle, edible-photo, branding, and ribbon guards.
+- Moved pricing rules `134`, `135`, and `136` for `edible_photo_print` from `main_topper` to `support_element`, preserving their small/medium/large prices.
+- Updated candle pricing rule `67` from `per_digit` to `per_piece` at ₱25 each.
+- Preserved local `edible_photo_print` compatibility as a legacy main topper type while also allowing it as a support element for corrected pricing.
+- Backfilled `one-piece-pink-1-tier-cake-0000` so the top image is `edible_photo_top`, the visible wax candles are `candle` main toppers, and the piped border is the only support element.
+- Updated the same cache row to `price = 1599` and `add-on-price = 299`, based on a ₱325 corrected raw add-on rounded by the existing cache conventions.
+- Verification:
+  - `npx vitest run src/services/prompts/analysisPromptRules.test.ts` passed with 9 tests.
+  - `npx eslint src/services/prompts/analysisPromptRules.test.ts src/services/prompts/promptLoader.ts src/constants/pricingEnums.ts src/components/TopperCard.tsx` passed with only the stale Browserslist notice.
+  - Supabase verification shows active `prompt_id = 20`, version `3.11`, with candle, edible-photo, branding, and ribbon guards present.
+  - `npx tsc --noEmit --pretty false` still fails on unrelated pre-existing test typing issues; no touched prompt/type/display files remain in the TypeScript error list after the route prompt-loader cast.
+  - Supabase verification returned the corrected `one-piece-pink-1-tier-cake-0000` cache row with `price = 1599`, `add-on-price = 299`, `edible_photo_top`, and `candle` toppers.
+
 ## Improve Pinterest Feed SEO Fields
 
 ### Plan
