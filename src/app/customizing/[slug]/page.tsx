@@ -34,7 +34,7 @@ import {
 } from './metadataHelpers'
 import { buildCakeTitle, extractTitleInputFromAnalysis } from '@/lib/seo/cakeTitle'
 
-const VALID_CAKE_TYPES: CakeType[] = ['1 Tier', '2 Tier', '3 Tier', '1 Tier Fondant', '2 Tier Fondant', '3 Tier Fondant', 'Square', 'Rectangle', 'Bento', 'Square Fondant', 'Rectangle Fondant', 'cupcakes-printout-toppers', 'cupcakes-edible-photo-toppers', 'cupcakes-gumpaste-toppers-ordinary', 'cupcakes-gumpaste-toppers-complex', 'cupcakes-icing'];
+const VALID_CAKE_TYPES: CakeType[] = ['1 Tier', '2 Tier', '3 Tier', '1 Tier Fondant', '2 Tier Fondant', '3 Tier Fondant', 'Square', 'Rectangle', 'Bento', 'Square Fondant', 'Rectangle Fondant', 'cupcakes-printout-toppers', 'cupcakes-edible-photo-toppers', 'cupcakes-gumpaste-toppers-ordinary', 'cupcakes-gumpaste-toppers-complex', 'cupcakes-icing', 'cupcakes-premium-sprinkles'];
 const CAKE_TYPE_THICKNESS_MAP: Record<string, CakeThickness> = {
     '1 Tier': '4 in', '2 Tier': '4 in', '3 Tier': '4 in',
     'Square': '3 in', 'Rectangle': '3 in',
@@ -46,6 +46,7 @@ const CAKE_TYPE_THICKNESS_MAP: Record<string, CakeThickness> = {
     'cupcakes-gumpaste-toppers-ordinary': '2 in',
     'cupcakes-gumpaste-toppers-complex': '2 in',
     'cupcakes-icing': '2 in',
+    'cupcakes-premium-sprinkles': '2 in',
 };
 
 const firstNonBlankImageUrl = (...urls: unknown[]) => {

@@ -42,7 +42,8 @@ export const CAKE_TYPES: CakeType[] = [
   'cupcakes-edible-photo-toppers',
   'cupcakes-gumpaste-toppers-ordinary',
   'cupcakes-gumpaste-toppers-complex',
-  'cupcakes-icing'
+  'cupcakes-icing',
+  'cupcakes-premium-sprinkles'
 ];
 
 export const SOFT_ICING_CAKE_TYPES: CakeType[] = [
@@ -56,7 +57,8 @@ export const SOFT_ICING_CAKE_TYPES: CakeType[] = [
   'cupcakes-edible-photo-toppers',
   'cupcakes-gumpaste-toppers-ordinary',
   'cupcakes-gumpaste-toppers-complex',
-  'cupcakes-icing'
+  'cupcakes-icing',
+  'cupcakes-premium-sprinkles'
 ];
 
 export const FONDANT_CAKE_TYPES: CakeType[] = [
@@ -156,6 +158,7 @@ export const DEFAULT_THICKNESS_MAP: Record<CakeType, CakeThickness> = {
   'cupcakes-gumpaste-toppers-ordinary': '2 in',
   'cupcakes-gumpaste-toppers-complex': '2 in',
   'cupcakes-icing': '2 in',
+  'cupcakes-premium-sprinkles': '2 in',
 };
 
 export const THICKNESS_OPTIONS_MAP: Record<CakeType, CakeThickness[]> = {
@@ -175,6 +178,7 @@ export const THICKNESS_OPTIONS_MAP: Record<CakeType, CakeThickness[]> = {
   'cupcakes-gumpaste-toppers-ordinary': ['2 in'],
   'cupcakes-gumpaste-toppers-complex': ['2 in'],
   'cupcakes-icing': ['2 in'],
+  'cupcakes-premium-sprinkles': ['2 in'],
 };
 
 export const ANALYSIS_PHRASES = [
@@ -367,6 +371,7 @@ export const CAKE_TYPE_THUMBNAILS: Record<CakeType, string> = {
   'cupcakes-gumpaste-toppers-ordinary': `${storageBaseUrl}/bento.webp`,
   'cupcakes-gumpaste-toppers-complex': `${storageBaseUrl}/bento.webp`,
   'cupcakes-icing': `${storageBaseUrl}/bento.webp`,
+  'cupcakes-premium-sprinkles': `${storageBaseUrl}/bento.webp`,
 };
 
 export const CAKE_SIZE_THUMBNAILS: Record<string, string> = {
@@ -415,6 +420,7 @@ export const DEFAULT_SIZE_MAP: Record<CakeType, CakeSize> = {
   'cupcakes-gumpaste-toppers-ordinary': '2oz - 12 pieces',
   'cupcakes-gumpaste-toppers-complex': '2oz - 12 pieces',
   'cupcakes-icing': '2oz - 12 pieces',
+  'cupcakes-premium-sprinkles': '2oz - 12 pieces',
 };
 
 export const CAKE_THICKNESS_THUMBNAILS: Record<CakeThickness, string> = {

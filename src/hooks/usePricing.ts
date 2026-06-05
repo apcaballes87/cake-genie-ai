@@ -34,6 +34,7 @@ const cakeTypeDisplayMap: Record<CakeType, string> = {
     'cupcakes-gumpaste-toppers-ordinary': 'Cupcakes with Gumpaste Toppers (Ordinary)',
     'cupcakes-gumpaste-toppers-complex': 'Cupcakes with Gumpaste Toppers (Complex)',
     'cupcakes-icing': 'Cupcakes with Icing',
+    'cupcakes-premium-sprinkles': 'Cupcakes with Premium Sprinkles',
 };
 
 const pricingKeys = {
