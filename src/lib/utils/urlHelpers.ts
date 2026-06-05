@@ -151,10 +151,19 @@ export function generateCakeAnalysisSlug(params: {
   const type = cakeType || '';
   const hashSuffix = pHash ? pHash.substring(0, 4) : '';
 
-  let slug = generateUrlSlug([kw, color, type], hashSuffix ? `cake-${hashSuffix}` : 'cake');
+  const isCupcake = Boolean(
+    (cakeType && cakeType.toLowerCase().includes('cupcake')) ||
+    (keyword && keyword.toLowerCase().includes('cupcake'))
+  );
 
-  // prevent 'cake-cake' since some names may naturally end with '-cake'
+  const baseSuffix = isCupcake ? 'cupcakes' : 'cake';
+  const suffix = hashSuffix ? `${baseSuffix}-${hashSuffix}` : baseSuffix;
+
+  let slug = generateUrlSlug([kw, color, type], suffix);
+
+  // prevent duplicate words in slug suffixes
   slug = slug.replace(/-cake-cake-/g, '-cake-');
+  slug = slug.replace(/-cupcakes?-cupcakes-/g, '-cupcakes-');
 
   return slug;
 }
@@ -180,12 +189,15 @@ export function upgradeLegacySlug(slug: string): string {
   const lastPartMatches = newSlug.match(/-([a-f0-9]{4,16})$/);
   if (lastPartMatches) {
     const hash = lastPartMatches[1];
-    if (!newSlug.endsWith(`-cake-${hash}`)) {
-      newSlug = newSlug.replace(new RegExp(`-${hash}$`), `-cake-${hash}`);
+    const isCupcake = newSlug.toLowerCase().includes('cupcake');
+    const expectedSuffix = isCupcake ? `-cupcakes-${hash}` : `-cake-${hash}`;
+    if (!newSlug.endsWith(expectedSuffix)) {
+      newSlug = newSlug.replace(new RegExp(`-${hash}$`), expectedSuffix);
     }
   }
 
   newSlug = newSlug.replace(/-cake-cake-/g, '-cake-');
+  newSlug = newSlug.replace(/-cupcakes?-cupcakes-/g, '-cupcakes-');
 
   return newSlug;
 }
@@ -210,12 +222,13 @@ export function downgradeCakeSlug(slug: string): string[] {
 
   const candidates: string[] = [];
 
-  // Candidate 1: Strip `-cake-` before the trailing hash only
-  const hashMatch = slug.match(/-cake-([a-f0-9]{4,16})$/);
+  // Candidate 1: Strip `-cake-` or `-cupcakes-` before the trailing hash only
+  const hashMatch = slug.match(/-(cake|cupcakes)-([a-f0-9]{4,16})$/);
   let strippedSlug = slug;
   if (hashMatch) {
-    const hash = hashMatch[1];
-    strippedSlug = slug.replace(`-cake-${hash}`, `-${hash}`);
+    const type = hashMatch[1];
+    const hash = hashMatch[2];
+    strippedSlug = slug.replace(`-${type}-${hash}`, `-${hash}`);
     if (strippedSlug !== slug) {
       candidates.push(strippedSlug);
     }

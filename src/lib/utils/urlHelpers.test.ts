@@ -89,9 +89,33 @@ describe('generateCakeAnalysisSlug', () => {
       }),
     ).toBe('cake-cake-cake');
   });
+
+  it('appends -cupcakes for cupcake designs instead of -cake', () => {
+    expect(
+      generateCakeAnalysisSlug({
+        keyword: 'Hello Kitty Light Pink Cupcakes',
+        cakeType: 'cupcakes-gumpaste-toppers-complex',
+        pHash: '001c',
+      }),
+    ).toBe('hello-kitty-light-pink-cupcakes-gumpaste-toppers-complex-cupcakes-001c');
+  });
 });
 
 describe('downgradeCakeSlug', () => {
+  it('returns stripped cupcake slug first, then hex-converted slug', () => {
+    expect(downgradeCakeSlug('hello-kitty-pink-cupcakes-001c'))
+      .toEqual([
+        'hello-kitty-pink-001c',
+        'hello-kitty-ffc0cb-001c',
+      ]);
+
+    expect(downgradeCakeSlug('hello-kitty-pink-cupcakes-cupcakes-001c'))
+      .toEqual([
+        'hello-kitty-pink-cupcakes-001c',
+        'hello-kitty-ffc0cb-cupcakes-001c',
+      ]);
+  });
+
   it('returns stripped slug first, then hex-converted slug', () => {
     // "white" is a color name, so both candidates are returned
     expect(downgradeCakeSlug('mickey-mouse-white-1-tier-cake-ffdf'))
