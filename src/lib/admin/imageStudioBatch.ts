@@ -115,6 +115,12 @@ function extractImage(line: JsonlResponse) {
   return image?.data ? Buffer.from(image.data, 'base64') : null;
 }
 
+function throwIfSupabaseError(error: { message?: string } | null | undefined, action: string) {
+  if (error) {
+    throw new Error(`${action}: ${error.message ?? 'Supabase operation failed.'}`);
+  }
+}
+
 function isTerminalProviderFailure(state?: string | null) {
   return Boolean(state && (
     state.includes('FAILED') ||
@@ -218,35 +224,65 @@ async function importStage(run: BatchRun, items: BatchItem[], stage: Stage, maxI
       continue;
     }
     if (imported >= maxImports) break;
-    const image = extractImage(line);
-    if (!image) {
+    try {
+      const image = extractImage(line);
+      if (!image) {
+        const { error: failedUpdateError } = await admin
+          .from('cakegenie_image_studio_batch_items')
+          .update({ [`${stage}_status`]: 'failed', error: line.error?.message ?? 'No image returned.' })
+          .eq('id', item.id);
+        throwIfSupabaseError(failedUpdateError, `Mark ${stage} item failed`);
+        failed += 1;
+        imported += 1;
+        continue;
+      }
+      if (stage === 'studio') {
+        const path = getImageStudioStoragePath({ slug: item.slug, pHash: item.p_hash });
+        const webp = await sharp(image).webp({ quality: 92, effort: 4 }).toBuffer();
+        const { error: uploadError } = await admin.storage.from(STORAGE_BUCKET).upload(path, webp, { contentType: 'image/webp', upsert: true });
+        throwIfSupabaseError(uploadError, `Upload studio image ${path}`);
+        const { data } = admin.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+        const { error: cacheUpdateError } = await admin
+          .from('cakegenie_analysis_cache')
+          .update({ studio_edited_image_url: data.publicUrl, studio_edit_status: 'completed', studio_edited_at: new Date().toISOString() })
+          .eq('id', item.cache_id);
+        throwIfSupabaseError(cacheUpdateError, `Update studio cache row ${item.cache_id}`);
+        const { error: itemUpdateError } = await admin
+          .from('cakegenie_image_studio_batch_items')
+          .update({ studio_status: 'completed', studio_edited_image_url: data.publicUrl, error: null })
+          .eq('id', item.id);
+        throwIfSupabaseError(itemUpdateError, `Mark studio item completed ${item.id}`);
+      } else {
+        const path = `icing-masks/${item.cache_id}/v${CURRENT_MASK_VERSION}.png`;
+        const png = await sharp(image).png().toBuffer();
+        const metadata = await sharp(png).metadata();
+        const { error: uploadError } = await admin.storage.from(STORAGE_BUCKET).upload(path, png, { contentType: 'image/png', upsert: true });
+        throwIfSupabaseError(uploadError, `Upload mask image ${path}`);
+        const { data } = admin.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+        const { error: maskUpsertError } = await admin.from('cakegenie_icing_masks').upsert({
+          cache_id: item.cache_id, mask_url: `${data.publicUrl}?t=${Date.now()}`,
+          source_image_url: item.studio_edited_image_url, mask_version: CURRENT_MASK_VERSION,
+          width: metadata.width, height: metadata.height, status: 'ready',
+        }, { onConflict: 'cache_id,mask_version' });
+        throwIfSupabaseError(maskUpsertError, `Upsert mask row ${item.cache_id}`);
+        const { error: itemUpdateError } = await admin
+          .from('cakegenie_image_studio_batch_items')
+          .update({ mask_status: 'completed', error: null })
+          .eq('id', item.id);
+        throwIfSupabaseError(itemUpdateError, `Mark mask item completed ${item.id}`);
+      }
+      completed += 1;
+      imported += 1;
+    } catch (importError) {
+      const message = importError instanceof Error ? importError.message : `${stage} import failed.`;
+      const { error: failedUpdateError } = await admin
+        .from('cakegenie_image_studio_batch_items')
+        .update({ [`${stage}_status`]: 'failed', error: message })
+        .eq('id', item.id);
+      throwIfSupabaseError(failedUpdateError, `Mark ${stage} import failure ${item.id}`);
       failed += 1;
       imported += 1;
-      await admin.from('cakegenie_image_studio_batch_items').update({ [`${stage}_status`]: 'failed', error: line.error?.message ?? 'No image returned.' }).eq('id', item.id);
-      continue;
     }
-    if (stage === 'studio') {
-      const path = getImageStudioStoragePath({ slug: item.slug, pHash: item.p_hash });
-      const webp = await sharp(image).webp({ quality: 92, effort: 4 }).toBuffer();
-      await admin.storage.from(STORAGE_BUCKET).upload(path, webp, { contentType: 'image/webp', upsert: true });
-      const { data } = admin.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-      await admin.from('cakegenie_analysis_cache').update({ studio_edited_image_url: data.publicUrl, studio_edit_status: 'completed', studio_edited_at: new Date().toISOString() }).eq('id', item.cache_id);
-      await admin.from('cakegenie_image_studio_batch_items').update({ studio_status: 'completed', studio_edited_image_url: data.publicUrl }).eq('id', item.id);
-    } else {
-      const path = `icing-masks/${item.cache_id}/v${CURRENT_MASK_VERSION}.png`;
-      const png = await sharp(image).png().toBuffer();
-      const metadata = await sharp(png).metadata();
-      await admin.storage.from(STORAGE_BUCKET).upload(path, png, { contentType: 'image/png', upsert: true });
-      const { data } = admin.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-      await admin.from('cakegenie_icing_masks').upsert({
-        cache_id: item.cache_id, mask_url: `${data.publicUrl}?t=${Date.now()}`,
-        source_image_url: item.studio_edited_image_url, mask_version: CURRENT_MASK_VERSION,
-        width: metadata.width, height: metadata.height, status: 'ready',
-      }, { onConflict: 'cache_id,mask_version' });
-      await admin.from('cakegenie_image_studio_batch_items').update({ mask_status: 'completed' }).eq('id', item.id);
-    }
-    completed += 1;
-    imported += 1;
   }
   const statusColumn = stage === 'studio' ? 'studio_status' : 'mask_status';
   const { count: remaining, error: countError } = await admin
