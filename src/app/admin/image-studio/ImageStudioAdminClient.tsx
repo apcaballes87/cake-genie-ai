@@ -307,6 +307,8 @@ export default function ImageStudioAdminClient() {
     }
     setOfflineBatch(payload.run ?? null);
     setOfflineBatchHistory(payload.history ?? []);
+    setOfflineBatchAutoRefresh(Boolean(nextRun && nextRun.stage !== 'complete'));
+    setOfflineBatchContinuationError(null);
   }, [appendOfflineBatchLogEntries]);
 
   useEffect(() => {
