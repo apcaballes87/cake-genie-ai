@@ -50,6 +50,10 @@ This project uses the official modern `@google/genai` SDK (version `^1.38.0` or 
    model: "gemini-2.0-flash" | "gemini-1.5-pro"
    ```
 
+4. **💡 Prompt Caching & DB Prompt Management (ai_prompts)**:
+   - **CRITICAL**: Whenever you update or edit `ai_prompts` (the AI analysis prompt), **never just update the text in-place without changing the version**. You must **always** update the `version` column to a new version (e.g. from `3.11` to `3.12`) or insert a **new active row** with the new version.
+   - **Why**: Google Vertex AI uses `cachedContent` based on the display name `genie-cake-analysis-prompt-v{version}` (replacing dots with hyphens). Reusing an existing version name will cause Vertex AI to reuse the old cached context, ignoring your prompt changes completely. Changing the version forces it to build a new context cache.
+
 ---
 
 ## 🔄 Workflow Orchestration
