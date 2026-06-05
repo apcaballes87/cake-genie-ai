@@ -4,7 +4,6 @@
 
 ### Plan
 
-- [ ] Trace the live customer upload analysis route from UI upload through AI validation/analysis and cache persistence.
 - [x] Trace the live customer upload analysis route from UI upload through AI validation/analysis and cache persistence.
 - [x] Trace the admin search-analysis batch route to compare how accepted and rejected outcomes are stored.
 - [x] Verify live Supabase schema/counts for the relevant result tables where possible.
@@ -20,6 +19,33 @@
   - `cakegenie_analysis_cache`: 11,487 rows total; 8,474 rows with a `rejection` key; 18 rows where `rejection.isRejected = true`.
   - `cakegenie_search_analysis_batch_items`: 765 completed, 211 rejected, 8 failed, 19 retryable, 1,120 queued.
   - `cakegenie_search_analysis_batch_runs`: 1 completed, 2 completed_with_errors, 4 failed.
+
+## Create Private Rejected Upload Log
+
+### Plan
+
+- [x] Add a private `cakegenie_rejected_uploads` table for AI rejection audits.
+- [x] Persist rejected upload images to a private storage path instead of public product cache paths.
+- [x] Log rejection reason/message, raw AI rejection JSON, MIME/size/hash metadata, source route, and request context from `/api/ai/analyze`.
+- [x] Make logging best-effort so users still receive the rejection response if persistence fails.
+- [x] Add focused tests and run verification.
+
+### Review
+
+- Added `supabase/migrations/20260605143000_create_cakegenie_rejected_uploads.sql`.
+- Applied the migration to Supabase project `cqmhanqnfybyxezhobkx`.
+- Created private table `public.cakegenie_rejected_uploads` with RLS enabled and no anon/authenticated grants.
+- Created private storage bucket `cakegenie-rejected-uploads`, `public = false`, 10 MB limit, image MIME types only.
+- Added `src/lib/ai/rejectedUploads.ts` to best-effort log rejected uploads from `/api/ai/analyze`.
+- The log stores rejection reason/message/raw JSON, model, prompt version, MIME type, byte size, image SHA-256, pHash when fingerprinting succeeds, private storage bucket/path, user agent, and hashed client IP only.
+- The log does not store raw client IP and does not write rejected uploads to `cakegenie_analysis_cache`.
+- Wired `/api/ai/analyze` to call the logger only when `rejection.isRejected = true`; accepted analyses continue through the existing path.
+- Verification:
+  - `npx vitest run src/lib/ai/rejectedUploads.test.ts` passed with 3 tests.
+  - `npx eslint src/lib/ai/rejectedUploads.ts src/lib/ai/rejectedUploads.test.ts src/app/api/ai/analyze/route.ts` passed with only stale Browserslist notice.
+  - `git diff --check` passed.
+  - `npm run build` passed.
+  - Live Supabase readback confirmed all expected columns, RLS enabled, zero anon/auth grants, private bucket config, and initial row count `0`.
 
 ## Sync Fallback Cake Analysis Prompt To Current Supabase Prompt
 
