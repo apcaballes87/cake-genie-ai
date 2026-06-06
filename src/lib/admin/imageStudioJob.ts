@@ -312,6 +312,18 @@ export async function runImageStudioJob({
   try {
     cacheRow = await getCacheRowByHash(supabase, pHash);
 
+    if (waitForCacheRow && !cacheRow) {
+      console.log(`[AI Studio] Cache row not found for ${pHash}. Retrying for up to 5s...`);
+      for (let attempt = 1; attempt <= 10; attempt += 1) {
+        await sleep(500);
+        cacheRow = await getCacheRowByHash(supabase, pHash);
+        if (cacheRow) {
+          console.log(`[AI Studio] Cache row resolved on attempt ${attempt} for ${pHash}.`);
+          break;
+        }
+      }
+    }
+
     if (requireExistingRow && !cacheRow) {
       throw createStatusError(404, 'Image cache row not found.');
     }

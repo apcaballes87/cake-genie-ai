@@ -29,6 +29,7 @@ type BatchItem = {
   studio_edited_image_url: string | null;
   studio_status?: string;
   mask_status?: string;
+  cache?: { slug: string | null } | null;
 };
 
 type JsonlResponse = {
@@ -241,7 +242,8 @@ async function importStage(run: BatchRun, items: BatchItem[], stage: Stage, maxI
         continue;
       }
       if (stage === 'studio') {
-        const path = getImageStudioStoragePath({ slug: item.slug, pHash: item.p_hash });
+        const latestSlug = item.cache?.slug || item.slug;
+        const path = getImageStudioStoragePath({ slug: latestSlug, pHash: item.p_hash });
         const webp = await sharp(image).webp({ quality: 92, effort: 4 }).toBuffer();
         const { error: uploadError } = await admin.storage.from(STORAGE_BUCKET).upload(path, webp, { contentType: 'image/webp', upsert: true });
         throwIfSupabaseError(uploadError, `Upload studio image ${path}`);
@@ -395,7 +397,7 @@ export async function reconcileImageStudioBatch(runId: string, requestContext?: 
       return { run: { ...run, status: providerJob.state }, providerJob };
     }
   }
-  let itemsQuery = admin.from('cakegenie_image_studio_batch_items').select('*').eq('batch_job_id', runId);
+  let itemsQuery = admin.from('cakegenie_image_studio_batch_items').select('*, cache:cakegenie_analysis_cache(slug)').eq('batch_job_id', runId);
   if (run.stage === 'mask') itemsQuery = itemsQuery.eq('studio_status', 'completed');
   const { data: items, error: itemsError } = await itemsQuery.order('created_at');
   if (itemsError) throw itemsError;
