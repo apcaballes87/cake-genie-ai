@@ -1,6 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { CakeThickness } from '@/types';
 import { toGoogleMerchantId } from '@/lib/commerce/feedIds';
+import { resolveGoogleFeedImage } from '@/lib/commerce/googleFeedImage';
 
 // Cache for 6 hours
 export const revalidate = 21600;
@@ -63,16 +64,30 @@ interface BasePriceMap {
     [cakeType: string]: number; // minimum price for each cake type
 }
 
-async function fetchAllFeedDesigns(supabase: any) {
-    const designs: any[] = [];
+interface FeedDesign {
+    slug: string;
+    keywords: string | null;
+    seo_title: string | null;
+    seo_description: string | null;
+    alt_text: string | null;
+    original_image_url: string | null;
+    studio_edited_image_url: string | null;
+    price: number | null;
+    analysis_json: { cakeType?: string } | null;
+    tags: string[] | null;
+    created_at: string;
+}
+
+async function fetchAllFeedDesigns(supabase: SupabaseClient): Promise<FeedDesign[] | null> {
+    const designs: FeedDesign[] = [];
     let pageStart = 0;
 
     while (true) {
         const pageEnd = pageStart + FEED_PAGE_SIZE - 1;
         const { data, error } = await supabase
             .from('cakegenie_analysis_cache')
-            .select('slug, keywords, seo_title, seo_description, alt_text, original_image_url, price, analysis_json, tags, created_at')
-            .not('original_image_url', 'is', null)
+            .select('slug, keywords, seo_title, seo_description, alt_text, original_image_url, studio_edited_image_url, price, analysis_json, tags, created_at')
+            .or('studio_edited_image_url.not.is.null,original_image_url.not.is.null')
             .not('slug', 'is', null)
             .order('created_at', { ascending: false })
             .range(pageStart, pageEnd);
@@ -86,7 +101,7 @@ async function fetchAllFeedDesigns(supabase: any) {
             break;
         }
 
-        designs.push(...data);
+        designs.push(...(data as FeedDesign[]));
 
         if (data.length < FEED_PAGE_SIZE) {
             break;
@@ -98,7 +113,7 @@ async function fetchAllFeedDesigns(supabase: any) {
     return designs;
 }
 
-async function fetchBasePrices(supabase: any): Promise<BasePriceMap> {
+async function fetchBasePrices(supabase: SupabaseClient): Promise<BasePriceMap> {
     const priceMap: BasePriceMap = {};
     const cakeTypes = Object.keys(CAKE_TYPE_THICKNESS_MAP);
 
@@ -125,7 +140,7 @@ async function fetchBasePrices(supabase: any): Promise<BasePriceMap> {
     return priceMap;
 }
 
-function resolvePrice(design: any, basePrices: BasePriceMap): number {
+function resolvePrice(design: FeedDesign, basePrices: BasePriceMap): number {
     // 1. Use cached price if valid
     if (design.price && design.price > 0) {
         return Math.round(design.price);
@@ -141,7 +156,7 @@ function resolvePrice(design: any, basePrices: BasePriceMap): number {
     return FALLBACK_MIN_PRICE;
 }
 
-function buildItem(design: any, baseUrl: string, basePrices: BasePriceMap) {
+function buildItem(design: FeedDesign, baseUrl: string, basePrices: BasePriceMap) {
     const tags = design.tags || [];
     const keywords = design.keywords || 'Custom';
     const title = design.seo_title
@@ -150,7 +165,7 @@ function buildItem(design: any, baseUrl: string, basePrices: BasePriceMap) {
         || design.alt_text
         || `Custom ${keywords} cake design from Genie.ph`;
     const link = `${baseUrl}/customizing/${design.slug}`;
-    const imageUrl = sanitizeImageUrl(design.original_image_url);
+    const imageUrl = resolveGoogleFeedImage(design);
     const price = resolvePrice(design, basePrices);
 
     return {
@@ -172,19 +187,6 @@ function sanitizeXml(text: string): string {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&apos;');
-}
-
-function sanitizeImageUrl(url: string | null): string {
-    if (!url || url.startsWith('data:')) return '';
-    try {
-        const parsed = new URL(url);
-        if (parsed.hostname.includes('supabase')) {
-            return `${parsed.origin}${parsed.pathname}`;
-        }
-        return url;
-    } catch {
-        return url || '';
-    }
 }
 
 interface FeedItem {

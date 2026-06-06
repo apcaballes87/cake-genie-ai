@@ -1,5 +1,38 @@
 # Tasks
 
+## Prefer Studio Images In Google Shopping Feed
+
+### Audit
+
+- [x] Trace the Google Shopping feed image selection from Supabase query through `g:image_link`.
+- [x] Compare the feed image with `/customizing/[slug]` metadata, structured data, and rendered hero selection.
+- [x] Verify current production feed output and live studio-image coverage.
+
+### Plan
+
+- [x] Update `src/app/feed/google/route.ts` to select `studio_edited_image_url` and resolve the primary image as the first nonblank value from `studio_edited_image_url`, then `original_image_url`.
+- [x] Change feed eligibility so a row is included when either image column is usable, while still requiring a slug.
+- [x] Keep URL sanitization after image selection so Supabase signed/query parameters do not leak into `g:image_link`.
+- [x] Extract or export the feed image resolver and add focused tests for studio-first selection, blank studio fallback, null studio fallback, and invalid/data URL exclusion.
+- [x] Verify the generated feed uses the studio URL for a known row such as `bunny-cupcakes-brown-cupcakes-1c18`, and still uses the original URL for rows without a studio edit.
+- [x] Run focused tests, lint, `git diff --check`, and a production build.
+- [ ] After deployment, verify `https://genie.ph/feed/google`, trigger or wait for the Merchant Center feed refresh, and inspect representative products because Google Shopping image recrawling is not immediate.
+
+### Review
+
+- Root cause: `src/app/feed/google/route.ts` currently selects and filters only `original_image_url`, then writes that field directly to `g:image_link`; it never fetches `studio_edited_image_url`.
+- The `/customizing/[slug]` landing page already applies studio-first fallback through `withPreferredHeroImage`, so the feed currently disagrees with page metadata, Product JSON-LD, and the rendered hero image.
+- Live verification on 2026-06-06 found 12,675 feed-eligible rows with an original image, including 5,515 rows with a nonblank studio image. The production feed still emitted the original customization URL for sampled rows that have a studio edit.
+- No schema migration or image backfill is required for this fix. The change belongs in feed selection and regression coverage.
+- Implemented `resolveGoogleFeedImage(...)` with studio-first selection, original fallback, HTTP(S)-only validation, whitespace handling, and Supabase query-parameter removal.
+- Updated the feed query to fetch both image columns and admit rows when either column is present.
+- Verification:
+  - `npx vitest run src/lib/commerce/googleFeedImage.test.ts src/lib/commerce/feedIds.test.ts` passed with 10 tests.
+  - Focused ESLint passed with only the stale Browserslist notice.
+  - `git diff --check` passed.
+  - Directly invoking `GET()` against live Supabase returned HTTP 200 and emitted `cakegenie/admin/image-studio/bunny-cupcakes-brown-cupcakes-1c18.webp` for the known studio-edited design.
+  - `npm run build` compiled the application successfully, then stopped during TypeScript checking on an unrelated pre-existing error in `scratch/cancel_new_vertex_job.ts:13`.
+
 ## Reduce Customizing Sitemap Age Gate
 
 ### Plan
