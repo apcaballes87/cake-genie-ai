@@ -1,7 +1,7 @@
 'use client';
 
 import { ErrorIcon } from '@/components/icons';
-import { isAiServiceOutageError } from './analysisErrorDisplay';
+import { getCustomerFacingAnalysisError } from './analysisErrorDisplay';
 
 interface AnalysisErrorCardProps {
     analysisError: string;
@@ -19,7 +19,7 @@ export function AnalysisErrorCard({
     onSearchDesigns,
     className = '',
 }: AnalysisErrorCardProps) {
-    const isServiceOutage = isAiServiceOutageError(analysisError);
+    const { isServiceOutage } = getCustomerFacingAnalysisError(analysisError);
 
     return (
         <div className={`text-center p-6 genie-card rounded-2xl flex flex-col items-center justify-center gap-4 ${isServiceOutage ? 'border-purple-200' : 'border-red-200'} ${className}`}>

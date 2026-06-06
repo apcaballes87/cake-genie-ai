@@ -79,6 +79,19 @@ const buildProps = (): React.ComponentProps<typeof CustomizingHeroPanel> => ({
 });
 
 describe('CustomizingHeroPanel', () => {
+    it('hides provider configuration details in the hero error overlay', () => {
+        const props = buildProps();
+        props.error = 'AI cake analysis is not authorized. Please check the Vertex AI and Workload Identity configuration.';
+
+        render(<CustomizingHeroPanel {...props} />);
+
+        expect(screen.getByText('AI Service Temporarily Offline')).toBeInTheDocument();
+        expect(screen.getByText('Please browse or search our cake design gallery while the service recovers.')).toBeInTheDocument();
+        expect(screen.queryByText(/Vertex AI/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/Workload Identity/i)).not.toBeInTheDocument();
+        expect(screen.queryByText('Update Failed')).not.toBeInTheDocument();
+    });
+
     it('renders the empty hero state with disabled report and save actions', () => {
         const props = buildProps();
         props.showFooterActions = true;

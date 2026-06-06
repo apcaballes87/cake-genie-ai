@@ -7,6 +7,7 @@ import { ImageZoomModal } from '@/components/ImageZoomModal';
 import { Heart, ShieldCheck, Wand2 } from 'lucide-react';
 import { ErrorIcon, ImageIcon, ResetIcon, SaveIcon, Loader2, ReportIcon } from '../../components/icons';
 import MagicGlitter from '@/components/MagicGlitter';
+import { getCustomerFacingAnalysisError } from './analysisErrorDisplay';
 
 
 type ImageTab = 'original' | 'customized';
@@ -215,6 +216,7 @@ export const CustomizingHeroPanel = memo(({
         incomingStudioImageUrl && preferredBaseHeroUrl !== incomingStudioImageUrl
     );
     const heroDisplayTitle = heroImageTitle;
+    const customerFacingError = error ? getCustomerFacingAnalysisError(error) : null;
     // Prefer measured dimensions once the image loads; before that, use the
     // DB-provided ratio so the box is reserved at the correct height and the
     // desktop layout doesn't shift on image load. Final fallback 1/1.
@@ -420,8 +422,12 @@ export const CustomizingHeroPanel = memo(({
                         {error ? (
                             <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center z-20 p-4">
                                 <ErrorIcon />
-                                <p className="mt-4 font-semibold text-red-600">{error.startsWith('AI_REJECTION:') ? 'Image Rejected' : 'Update Failed'}</p>
-                                <p className="text-sm text-red-500 text-center">{error.replace('AI_REJECTION: ', '')}</p>
+                                <p className={`mt-4 font-semibold ${customerFacingError?.isServiceOutage ? 'text-purple-700' : 'text-red-600'}`}>
+                                    {customerFacingError?.title}
+                                </p>
+                                <p className={`text-sm text-center ${customerFacingError?.isServiceOutage ? 'text-slate-600' : 'text-red-500'}`}>
+                                    {customerFacingError?.message}
+                                </p>
                             </div>
                         ) : null}
 

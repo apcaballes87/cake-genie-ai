@@ -2047,3 +2047,22 @@
   - Focused ESLint passed for the new outage classifier, card, tests, and updated sidebar.
   - `git diff --check` passed.
   - Full `npx tsc --noEmit` remains blocked by pre-existing errors in `scratch/` and unrelated test files; it reported no errors in the changed implementation files.
+
+# Fix Hero AI Provider Error Leak
+
+### Plan
+
+- [x] Trace the missed “Update Failed” overlay to `CustomizingHeroPanel`.
+- [x] Centralize customer-facing AI outage title and message formatting.
+- [x] Use the sanitized copy in the hero while preserving rejection and ordinary update errors.
+- [x] Run focused tests and document verification.
+
+### Review
+
+- `CustomizingHeroPanel` now uses the same customer-facing error formatter as the mobile and desktop outage cards.
+- Provider authorization and availability failures render “AI Service Temporarily Offline” with gallery guidance instead of “Update Failed” and raw Vertex/Workload Identity details.
+- Image rejections still render “Image Rejected,” and unrelated update errors retain their original messages.
+- Verification:
+  - `npx vitest run src/app/customizing/CustomizingHeroPanel.test.tsx src/app/customizing/analysisErrorDisplay.test.ts src/app/customizing/AnalysisErrorCard.test.tsx` passed all relevant tests.
+  - Focused ESLint completed with zero errors and four pre-existing unused-code warnings in `CustomizingHeroPanel.tsx`.
+  - A scoped search found no remaining active customizer renderer that prints Vertex AI or Workload Identity text.
