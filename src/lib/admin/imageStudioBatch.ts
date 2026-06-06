@@ -69,11 +69,11 @@ function parseGcsUri(value: string) {
   return { bucket: match[1], path: match[2].replace(/\/+$/, '') };
 }
 
-function getRunGcsPrefix(run: BatchRun) {
-  const { bucket, path } = parseGcsUri(run.output_file_uri);
+export function getRunGcsPrefix(outputFileUri: string) {
+  const { bucket, path } = parseGcsUri(outputFileUri);
   const segments = path.split('/').filter(Boolean);
-  if (segments.length < 3) {
-    throw new Error(`Could not derive the batch GCS prefix from ${run.output_file_uri}.`);
+  if (segments.length < 2) {
+    throw new Error(`Could not derive the batch GCS prefix from ${outputFileUri}.`);
   }
   segments.pop();
   segments.pop();
@@ -415,7 +415,7 @@ export async function reconcileImageStudioBatch(runId: string, requestContext?: 
     await admin.from('cakegenie_analysis_cache').update({ batch_job_id: null }).eq('batch_job_id', runId);
     return { run: { ...run, status, stage: 'complete' }, result };
   }
-  const gcs = getRunGcsPrefix(run);
+  const gcs = getRunGcsPrefix(run.output_file_uri);
   const storage = createBatchStorage(requestContext);
   const inputUri = `gs://${gcs.bucket}/${objectName(gcs.prefix, `${runId}/mask-input.jsonl`)}`;
   const outputUri = `gs://${gcs.bucket}/${objectName(gcs.prefix, `${runId}/mask-output`)}`;

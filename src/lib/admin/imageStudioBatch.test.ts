@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildImageStudioBatchInputLine, inferBatchImageMimeType } from './imageStudioBatch';
+import { buildImageStudioBatchInputLine, getRunGcsPrefix, inferBatchImageMimeType } from './imageStudioBatch';
 
 const item = {
   id: 'item-id',
@@ -32,6 +32,17 @@ describe('image studio batch JSONL', () => {
     expect(payload.request.contents[0].parts[0].fileData).toEqual({
       fileUri: item.studio_edited_image_url,
       mimeType: 'image/webp',
+    });
+  });
+
+  it('derives GCS prefixes from both root and nested batch paths', () => {
+    expect(getRunGcsPrefix('gs://batch-bucket/run-id/studio-output')).toEqual({
+      bucket: 'batch-bucket',
+      prefix: '',
+    });
+    expect(getRunGcsPrefix('gs://batch-bucket/cakegenie-image-studio/run-id/studio-output')).toEqual({
+      bucket: 'batch-bucket',
+      prefix: 'cakegenie-image-studio',
     });
   });
 });
