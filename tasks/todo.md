@@ -2024,3 +2024,26 @@
   - `npx vitest run src/lib/admin/searchAnalysisBatch.test.ts` passed with 13 tests.
   - `npx eslint src/lib/admin/searchAnalysisBatch.ts src/lib/admin/searchAnalysisBatch.test.ts src/scripts/repair-batch-run.ts` passed cleanly.
   - Created standalone diagnostic script `src/scripts/repair-batch-run.ts` which successfully analyzed GCS and database logs, identified 757 contaminated cache rows, and generated `contaminated_cache_ids.json` and a transaction-safe `remediate_contaminated_run.sql` script for database cleanup.
+
+# Reroute AI Cake Analysis Provider Outages
+
+### Plan
+
+- [x] Trace the active upload error from `/api/ai/analyze` through `ImageContext` into the customizer.
+- [x] Confirm the existing collections search can support a focused search handoff.
+- [x] Classify AI authorization, quota, and temporary provider failures as a customer-safe outage state.
+- [x] Replace raw provider configuration details with gallery and search actions on mobile and desktop.
+- [x] Add focused tests and verify the fallback flow.
+
+### Review
+
+- Added a shared `AnalysisErrorCard` for the customizer's mobile and desktop layouts.
+- AI authorization, quota, rate-limit, Vertex AI, and Workload Identity errors now display “Our AI service is temporarily offline” without exposing provider configuration details.
+- The outage card links users to `/collections` through “Browse 10,000+ Cake Designs” or to `/search?focus=1` through “Search Cake Designs.”
+- Added `autoFocus` support to `SearchAutocomplete`, so the search handoff places the cursor in the existing search field.
+- Cake-image rejection errors retain the existing upload tips, “Upload Another,” and home actions.
+- Verification:
+  - `npx vitest run src/app/customizing/analysisErrorDisplay.test.ts src/app/customizing/AnalysisErrorCard.test.tsx` passed with 6 tests.
+  - Focused ESLint passed for the new outage classifier, card, tests, and updated sidebar.
+  - `git diff --check` passed.
+  - Full `npx tsc --noEmit` remains blocked by pre-existing errors in `scratch/` and unrelated test files; it reported no errors in the changed implementation files.

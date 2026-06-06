@@ -66,6 +66,7 @@ import { CustomizingOptionsPanel } from './CustomizingOptionsPanel';
 import { CakeFlavorBottomSheet } from '@/components/CakeFlavorBottomSheet';
 import { CustomizingPhotosPanel } from './CustomizingPhotosPanel';
 import { CustomizingSidebarPanel } from './CustomizingSidebarPanel';
+import { AnalysisErrorCard } from './AnalysisErrorCard';
 import { CustomizingStepSummarySections } from './CustomizingStepSummarySections';
 import { CustomizingEmptyLandingState } from './CustomizingEmptyLandingState';
 import { CustomizingAiChatPanel } from './CustomizingAiChatPanel';
@@ -3565,37 +3566,14 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                     }}
                                 />
                             ) : analysisError ? (
-                                <div className="text-center p-6 genie-card rounded-2xl border-red-200 flex flex-col items-center justify-center gap-4 mt-2">
-                                    <div className="text-red-500 bg-red-50 p-3 rounded-full">
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><path d="M12 8V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><path d="M12 16H12.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                                    </div>
-                                    <h2 className="text-lg font-bold text-slate-800">Analysis Error</h2>
-                                    <p className="text-slate-600 mb-2">{analysisError.replace('AI_REJECTION: ', '')}</p>
-
-                                    <div className="bg-orange-50 text-orange-800 text-sm p-4 rounded-xl text-left space-y-2 mb-2 w-full">
-                                        <p className="font-semibold text-orange-900 border-b border-orange-200 pb-1 mb-2">Tips for better results:</p>
-                                        <ul className="list-disc pl-4 space-y-1">
-                                            <li>Only add images with 1 cake</li>
-                                            <li>We only process cakes 1 to 3 tiers (for now)</li>
-                                            <li>Use clear, well-lit images</li>
-                                        </ul>
-                                    </div>
-
-                                    <div className="flex flex-col gap-2 w-full mt-2">
-                                        <button
-                                            onClick={handleUploadAnother}
-                                            className="genie-btn-primary font-bold py-3 px-4 rounded-xl w-full"
-                                        >
-                                            Upload Another
-                                        </button>
-                                        <button
-                                            onClick={() => router.push('/')}
-                                            className="genie-btn-secondary font-bold py-3 px-4 rounded-xl w-full"
-                                        >
-                                            Go Back Home
-                                        </button>
-                                    </div>
-                                </div>
+                                <AnalysisErrorCard
+                                    analysisError={analysisError}
+                                    onUploadAnother={handleUploadAnother}
+                                    onGoBackHome={() => router.push('/')}
+                                    onBrowseGallery={() => router.push('/collections')}
+                                    onSearchDesigns={() => router.push('/search?focus=1')}
+                                    className="mt-2"
+                                />
                             ) : (
                                 <CustomizingStepSummarySections
                                     layout="mobile"
@@ -3707,6 +3685,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                 analysisError={analysisError}
                                 onUploadAnother={handleUploadAnother}
                                 onGoBackHome={() => router.push('/')}
+                                onBrowseGallery={() => router.push('/collections')}
+                                onSearchDesigns={() => router.push('/search?focus=1')}
                                 onUpdateDesign={onUpdateDesign}
                                 isUpdatingDesign={isUpdatingDesign}
                                 dirtyFields={dirtyFields}

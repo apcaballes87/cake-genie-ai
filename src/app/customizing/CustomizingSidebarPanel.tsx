@@ -2,7 +2,8 @@
 
 import { memo, type ComponentProps } from 'react';
 import { ChosenOptionsSkeleton } from '../../components/LoadingSkeletons';
-import { MagicSparkleIcon, ErrorIcon } from '../../components/icons';
+import { MagicSparkleIcon } from '../../components/icons';
+import { AnalysisErrorCard } from './AnalysisErrorCard';
 import { CustomizingStepSummarySections } from './CustomizingStepSummarySections';
 
 interface CustomizingSidebarPanelProps {
@@ -12,6 +13,8 @@ interface CustomizingSidebarPanelProps {
     analysisError?: string | null;
     onUploadAnother?: () => void;
     onGoBackHome?: () => void;
+    onBrowseGallery?: () => void;
+    onSearchDesigns?: () => void;
     onUpdateDesign?: () => void;
     isUpdatingDesign?: boolean;
     dirtyFields?: Set<string>;
@@ -25,6 +28,8 @@ export const CustomizingSidebarPanel = memo(function CustomizingSidebarPanel({
     analysisError,
     onUploadAnother,
     onGoBackHome,
+    onBrowseGallery,
+    onSearchDesigns,
     onUpdateDesign,
     isUpdatingDesign,
     dirtyFields,
@@ -54,37 +59,13 @@ export const CustomizingSidebarPanel = memo(function CustomizingSidebarPanel({
                     </div>
                 </div>
             ) : analysisError ? (
-                <div className="text-center p-6 genie-card rounded-2xl border-red-200 flex flex-col items-center justify-center gap-4">
-                    <div className="text-red-500 bg-red-50 p-3 rounded-full">
-                        <ErrorIcon className="w-8 h-8" />
-                    </div>
-                    <h2 className="text-lg font-bold text-slate-800">Analysis Error</h2>
-                    <p className="text-slate-600 mb-2">{analysisError.replace('AI_REJECTION: ', '')}</p>
-                    
-                    <div className="bg-orange-50 text-orange-800 text-sm p-4 rounded-xl text-left space-y-2 mb-2 w-full">
-                        <p className="font-semibold text-orange-900 border-b border-orange-200 pb-1 mb-2">Tips for better results:</p>
-                        <ul className="list-disc pl-4 space-y-1">
-                            <li>Only add images with 1 cake</li>
-                            <li>We only process cakes 1 to 3 tiers (for now)</li>
-                            <li>Use clear, well-lit images</li>
-                        </ul>
-                    </div>
-                    
-                    <div className="flex flex-col gap-2 w-full mt-2">
-                        <button 
-                            onClick={onUploadAnother}
-                            className="genie-btn-primary font-bold py-3 px-4 rounded-xl w-full"
-                        >
-                            Upload Another
-                        </button>
-                        <button 
-                            onClick={onGoBackHome}
-                            className="genie-btn-secondary font-bold py-3 px-4 rounded-xl w-full"
-                        >
-                            Go Back Home
-                        </button>
-                    </div>
-                </div>
+                <AnalysisErrorCard
+                    analysisError={analysisError}
+                    onUploadAnother={onUploadAnother}
+                    onGoBackHome={onGoBackHome}
+                    onBrowseGallery={onBrowseGallery}
+                    onSearchDesigns={onSearchDesigns}
+                />
             ) : showContentState ? (
                 <>
                     <CustomizingStepSummarySections

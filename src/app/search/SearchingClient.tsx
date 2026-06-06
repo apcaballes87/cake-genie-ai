@@ -416,6 +416,7 @@ const SearchingClient: React.FC = () => {
                                     value={searchInput}
                                     onChange={setSearchInput}
                                     onSearch={handleSearch}
+                                    autoFocus={searchParams.get('focus') === '1'}
                                     showUploadButton={false}
                                     placeholder="Search for other designs..."
                                     inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-purple-100 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
