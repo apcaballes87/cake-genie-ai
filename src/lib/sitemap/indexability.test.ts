@@ -17,8 +17,8 @@ describe('sitemap indexability helpers', () => {
   })
 
   it('applies the sitemap age cutoff', () => {
-    expect(isPastSitemapCutoff('2026-05-01T00:00:00.000Z', NOW)).toBe(true)
-    expect(isPastSitemapCutoff('2026-05-05T00:00:00.000Z', NOW)).toBe(false)
+    expect(isPastSitemapCutoff('2026-05-05T00:00:00.000Z', NOW)).toBe(true)
+    expect(isPastSitemapCutoff('2026-05-08T00:00:00.000Z', NOW)).toBe(false)
   })
 
   it('keeps only canonical, mature customized cake rows', () => {

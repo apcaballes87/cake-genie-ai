@@ -4,7 +4,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase/env'
 import { parseManifest, pickFallbackSrc } from '@/lib/imageVariants/manifest'
 
 export const SITEMAP_CHUNK_SIZE = 1000
-export const CUSTOMIZING_SITEMAP_MIN_AGE_DAYS = 7
+export const CUSTOMIZING_SITEMAP_MIN_AGE_DAYS = 2
 export const MIN_SITEMAP_TEXT_LENGTH = 18
 export const MIN_SITEMAP_IMAGE_DIMENSION = 300
 

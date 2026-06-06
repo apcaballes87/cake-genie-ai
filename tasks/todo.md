@@ -1,5 +1,21 @@
 # Tasks
 
+## Reduce Customizing Sitemap Age Gate
+
+### Plan
+
+- [x] Change the `cakegenie_analysis_cache` sitemap cooling period from 7 days to 2 days.
+- [x] Update focused cutoff coverage so rows older than 2 days pass and rows newer than 2 days stay excluded.
+- [x] Run focused sitemap indexability tests and diff checks.
+
+### Review
+
+- Updated `CUSTOMIZING_SITEMAP_MIN_AGE_DAYS` from `7` to `2` in `src/lib/sitemap/indexability.ts`.
+- Updated the focused cutoff test to confirm a 4-day-old row now passes while a 1-day-old row remains excluded.
+- Verification:
+  - `npx vitest run src/lib/sitemap/indexability.test.ts` passed with 5 tests.
+  - `git diff --check` passed.
+
 ## Backfill Generic SEO Descriptions And Alt Text
 
 ### Plan
