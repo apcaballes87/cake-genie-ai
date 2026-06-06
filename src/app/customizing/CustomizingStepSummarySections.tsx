@@ -148,6 +148,7 @@ const supportMaterialLabelMap: Record<SupportElementType, string> = {
     edible_2d_support: 'Gumpaste (2D)',
     chocolates: 'Chocolates',
     sprinkles: 'Sprinkles',
+    premium_sprinkles: 'Premium Sprinkles',
     support_printout: 'Printout',
     isomalt: 'Isomalt (Sugar Glass)',
     dragees: 'Dragees (Pearls)',

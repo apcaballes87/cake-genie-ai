@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.11 Version - Enhanced 3D Figure & Crown Classification**
+**v3.14 Version - Enhanced 3D Figure, Crown, & Sprinkles Classification**
 ═══════════════════════════════════════════════════════════════════════════════
 
 ## ROLE
@@ -642,7 +642,8 @@ A unique item that has no duplicates should still have its own unique group_id.
 | `isomalt` | candy | Glass sugar toppers, sizes: small/medium/large |
 | `chocolates` | candy | subtype: "ferrero", "oreo", "kisses", "m&ms"; coverage: small/medium/large |
 | `marshmallows` | candy | Marshmallow decorations |
-| `sprinkles` | candy | candy sprinkles, white, gold, silver or any metallic beads, pearls etc.. Sprinkle coverage: light/medium/heavy |
+| `sprinkles` | candy | Normal Sprinkles: long rainbow/colored sprinkles, single color sprinkles, or round metallic/pearl sprinkles covering less than 50% of the icing surface. |
+| `premium_sprinkles` | candy | Premium Sprinkles: round metallic/pearl sprinkles (gold, silver, pearl, or other metallic colors) covering 50% or more of the icing surface. |
 | `macarons` | candy | French macarons, count individually |
 | `meringue` | candy | Meringue kisses, count individually |
 | `edible_2d_support` | edible_fondant | Flat 2d gumpaste shapes (stars, dots, confetti, leaves) - usually tiny/xsmall/small sizes |

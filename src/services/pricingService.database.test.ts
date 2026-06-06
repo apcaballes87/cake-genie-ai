@@ -212,6 +212,44 @@ describe('calculatePriceFromDatabase', () => {
       isEnabled: true,
     } as MainTopperUI;
 
+    const normalSprinkles = {
+      id: 'sprinkles-normal',
+      type: 'sprinkles',
+      description: 'Long rainbow sprinkles',
+      quantity: 1,
+      isEnabled: true,
+    } as SupportElementUI;
+
+    const premiumSprinkles = {
+      id: 'sprinkles-premium',
+      type: 'premium_sprinkles',
+      description: 'Metallic gold sprinkles covering 50% of cupcake',
+      quantity: 1,
+      isEnabled: true,
+    } as SupportElementUI;
+
+    // Test normal sprinkles only (0)
+    const resNormalSprinkles = await calculatePriceFromDatabase({
+      mainToppers: [],
+      supportElements: [normalSprinkles],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: 'Cupcake' } as CakeInfoUI,
+    });
+    expect(resNormalSprinkles.itemPrices.get('sprinkles-normal')).toBe(0);
+    expect(resNormalSprinkles.addOnPricing.addOnPrice).toBe(0);
+
+    // Test premium sprinkles only (100)
+    const resPremiumSprinkles = await calculatePriceFromDatabase({
+      mainToppers: [],
+      supportElements: [premiumSprinkles],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: 'Cupcake' } as CakeInfoUI,
+    });
+    expect(resPremiumSprinkles.itemPrices.get('sprinkles-premium')).toBe(100);
+    expect(resPremiumSprinkles.addOnPricing.addOnPrice).toBe(100);
+
     // Test printout only (0)
     const resPrintout = await calculatePriceFromDatabase({
       mainToppers: [printoutTopper],

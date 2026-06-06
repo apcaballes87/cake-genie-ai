@@ -129,7 +129,7 @@ export async function calculatePriceFromDatabase(
         'meringue',
         'candy',
         'marshmallows',
-        'sprinkles',
+        'premium_sprinkles',
         'dragees',
         'icing_decorations'
       ].includes(type)) return 100;
