@@ -105,9 +105,83 @@ export async function calculatePriceFromDatabase(
     }
   }
 
-  const rules = await getPricingRules(merchantId);
-
   const { mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo } = uiState;
+
+  // Cupcakes pricing override (Option B: Flat Maximum)
+  const isCupcakes = cakeInfo.type === 'Cupcake' || cakeInfo.type.toLowerCase().startsWith('cupcakes-');
+  if (isCupcakes) {
+    const breakdown: { item: string; price: number; }[] = [];
+    const itemPrices = new Map<string, number>();
+
+    const getCupcakeItemPrice = (type: string): number => {
+      if (type === 'edible_3d_complex') return 300;
+      if (['edible_photo_top', 'edible_photo_print', 'edible_photo_side'].includes(type)) return 200;
+      if ([
+        'edible_3d_ordinary',
+        'edible_3d_support',
+        'edible_2d_support',
+        'gumpaste_bundle',
+        'gumpaste_panel',
+        'gumpaste_creations',
+        'edible_flowers',
+        'chocolates',
+        'macarons',
+        'meringue',
+        'candy',
+        'marshmallows',
+        'sprinkles',
+        'dragees',
+        'icing_decorations'
+      ].includes(type)) return 100;
+      return 0;
+    };
+
+    let maxPrice = 0;
+    let maxPriceItemDescription = '';
+
+    // Initialize all to 0
+    mainToppers.forEach(t => itemPrices.set(t.id, 0));
+    supportElements.forEach(e => itemPrices.set(e.id, 0));
+    cakeMessages.forEach(m => itemPrices.set(m.id, 0));
+
+    // Process main toppers
+    mainToppers.forEach(topper => {
+      if (!topper.isEnabled) return;
+      const price = getCupcakeItemPrice(topper.type);
+      itemPrices.set(topper.id, price);
+      if (price > maxPrice) {
+        maxPrice = price;
+        maxPriceItemDescription = topper.description;
+      }
+    });
+
+    // Process support elements
+    supportElements.forEach(element => {
+      if (!element.isEnabled) return;
+      const price = getCupcakeItemPrice(element.type);
+      itemPrices.set(element.id, price);
+      if (price > maxPrice) {
+        maxPrice = price;
+        maxPriceItemDescription = element.description;
+      }
+    });
+
+    const addOnPrice = maxPrice;
+
+    if (addOnPrice > 0) {
+      breakdown.push({
+        item: `Cupcake Topper Design Add-on (${maxPriceItemDescription || 'Flat Rate'})`,
+        price: addOnPrice,
+      });
+    }
+
+    return {
+      addOnPricing: { addOnPrice, breakdown },
+      itemPrices,
+    };
+  }
+
+  const rules = await getPricingRules(merchantId);
 
   const breakdown: { item: string; price: number; }[] = [];
   const itemPrices = new Map<string, number>();

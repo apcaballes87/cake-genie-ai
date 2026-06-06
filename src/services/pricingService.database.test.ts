@@ -93,9 +93,8 @@ describe('calculatePriceFromDatabase', () => {
       id: 'message-1',
       type: 'icing_text' as CakeMessageUI['type'],
       text: 'Happy Birthday',
-      quantity: 1,
       isEnabled: true,
-    };
+    } as CakeMessageUI;
 
     const { addOnPricing, itemPrices } = await calculatePriceFromDatabase({
       mainToppers: [],
@@ -176,5 +175,100 @@ describe('calculatePriceFromDatabase', () => {
 
     expect(itemPrices.get('ribbon-1')).toBe(100);
     expect(addOnPricing.addOnPrice).toBe(100);
+  });
+
+  it('calculates cupcake topper prices correctly (Option B - Flat Maximum)', async () => {
+    const { calculatePriceFromDatabase } = await import('./pricingService.database');
+
+    const printoutTopper = {
+      id: 'printout-1',
+      type: 'printout',
+      description: 'Paper topper',
+      quantity: 1,
+      isEnabled: true,
+    } as MainTopperUI;
+
+    const ediblePhotoTopper = {
+      id: 'photo-1',
+      type: 'edible_photo_top',
+      description: 'Edible photo sheet',
+      quantity: 1,
+      isEnabled: true,
+    } as MainTopperUI;
+
+    const simpleEdibleTopper = {
+      id: 'simple-1',
+      type: 'edible_3d_ordinary',
+      description: 'Simple flower',
+      quantity: 1,
+      isEnabled: true,
+    } as MainTopperUI;
+
+    const complexEdibleTopper = {
+      id: 'complex-1',
+      type: 'edible_3d_complex',
+      description: 'Character figure',
+      quantity: 1,
+      isEnabled: true,
+    } as MainTopperUI;
+
+    // Test printout only (0)
+    const resPrintout = await calculatePriceFromDatabase({
+      mainToppers: [printoutTopper],
+      supportElements: [],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: 'Cupcake' } as CakeInfoUI,
+    });
+    expect(resPrintout.itemPrices.get('printout-1')).toBe(0);
+    expect(resPrintout.addOnPricing.addOnPrice).toBe(0);
+
+    // Test simple only (100)
+    const resSimple = await calculatePriceFromDatabase({
+      mainToppers: [simpleEdibleTopper],
+      supportElements: [],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: 'Cupcake' } as CakeInfoUI,
+    });
+    expect(resSimple.itemPrices.get('simple-1')).toBe(100);
+    expect(resSimple.addOnPricing.addOnPrice).toBe(100);
+
+    // Test photo only (200)
+    const resPhoto = await calculatePriceFromDatabase({
+      mainToppers: [ediblePhotoTopper],
+      supportElements: [],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: 'Cupcake' } as CakeInfoUI,
+    });
+    expect(resPhoto.itemPrices.get('photo-1')).toBe(200);
+    expect(resPhoto.addOnPricing.addOnPrice).toBe(200);
+
+    // Test complex only (300)
+    const resComplex = await calculatePriceFromDatabase({
+      mainToppers: [complexEdibleTopper],
+      supportElements: [],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: 'Cupcake' } as CakeInfoUI,
+    });
+    expect(resComplex.itemPrices.get('complex-1')).toBe(300);
+    expect(resComplex.addOnPricing.addOnPrice).toBe(300);
+
+    // Test Option B: Flat maximum for mixed toppers (printout, simple, and complex)
+    // Capped at complex (300)
+    const resMixed = await calculatePriceFromDatabase({
+      mainToppers: [printoutTopper, simpleEdibleTopper, complexEdibleTopper],
+      supportElements: [],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: 'Cupcake' } as CakeInfoUI,
+    });
+    expect(resMixed.itemPrices.get('printout-1')).toBe(0);
+    expect(resMixed.itemPrices.get('simple-1')).toBe(100);
+    expect(resMixed.itemPrices.get('complex-1')).toBe(300);
+    expect(resMixed.addOnPricing.addOnPrice).toBe(300);
+    expect(resMixed.addOnPricing.breakdown[0].item).toContain('Character figure');
   });
 });
