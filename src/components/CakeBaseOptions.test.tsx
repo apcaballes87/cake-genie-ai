@@ -92,7 +92,7 @@ describe('CakeBaseOptions', () => {
     it('hides icing type and height options for cupcakes', () => {
         render(<CakeBaseOptions {...buildProps({
             cakeInfo: {
-                type: 'cupcakes-printout-toppers',
+                type: 'Cupcake',
                 thickness: '2 in',
                 size: '2oz - 12 pieces',
                 flavors: ['Chocolate Cake'],

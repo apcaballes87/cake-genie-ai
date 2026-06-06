@@ -119,7 +119,7 @@ describe('buildCakeTitle — R6', () => {
     it('builds cupcake titles ending in "Cupcakes" and not containing "Cake"', () => {
         const t = buildCakeTitle({
             keyword: 'Cinderella Cupcakes Sky Blue Cake',
-            cakeType: 'cupcakes-printout-toppers',
+            cakeType: 'Cupcake',
             colorTop: '#87CEEB',
             colorType: 'single',
             tags: ['cinderella', 'blue', 'cupcakes']

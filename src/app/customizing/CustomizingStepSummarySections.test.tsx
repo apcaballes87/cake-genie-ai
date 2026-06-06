@@ -384,7 +384,7 @@ describe('CustomizingStepSummarySections', () => {
     it('hides icing type and height options for cupcakes', () => {
         const props = buildProps();
         props.cakeInfo = {
-            type: 'cupcakes-printout-toppers',
+            type: 'Cupcake',
             size: '2oz - 12 pieces',
             thickness: '2 in',
             flavors: ['Chocolate Cake'],

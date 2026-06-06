@@ -168,7 +168,7 @@ export const PreSelectionModal: React.FC<PreSelectionModalProps> = ({ isOpen, is
                                                 {FLAVOR_OPTIONS.map(flavor => {
                                                     const isDisabled = TEMPORARILY_DISABLED_FLAVORS.includes(flavor) ||
                                                         (isBento && flavor === 'Ube Cake') ||
-                                                        (localCakeInfo.type.toLowerCase().startsWith('cupcakes-') && flavor !== 'Chocolate Cake' && flavor !== 'Vanilla Cake');
+                                                        ((localCakeInfo.type.toLowerCase() === 'cupcake' || localCakeInfo.type.toLowerCase().startsWith('cupcakes-')) && flavor !== 'Chocolate Cake' && flavor !== 'Vanilla Cake');
                                                     const isSelected = selectedFlavor === flavor;
                                                     return (
                                                         <button

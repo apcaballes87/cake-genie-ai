@@ -105,7 +105,7 @@ describe('search analysis batch helpers', () => {
     expect(rejectionReasons).not.toContain('cupcakes_only');
 
     const cinderellaCupcakes = {
-      cakeType: 'cupcakes-printout-toppers',
+      cakeType: 'Cupcake',
       cakeThickness: '2 in',
       main_toppers: [{
         x: 0,

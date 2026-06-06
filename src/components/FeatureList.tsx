@@ -58,12 +58,7 @@ const cakeTypeDisplayMap: Record<CakeType, string> = {
     '1 Tier Fondant': '1 Tier Fondant', '2 Tier Fondant': '2 Tier Fondant', '3 Tier Fondant': '3 Tier Fondant',
     'Square': 'Square', 'Rectangle': 'Rectangle', 'Bento': 'Bento',
     'Square Fondant': 'Square Fondant', 'Rectangle Fondant': 'Rectangle Fondant',
-    'cupcakes-printout-toppers': 'Cupcakes with Printout Toppers',
-    'cupcakes-edible-photo-toppers': 'Cupcakes with Edible Photo Toppers',
-    'cupcakes-gumpaste-toppers-ordinary': 'Cupcakes with Gumpaste Toppers (Ordinary)',
-    'cupcakes-gumpaste-toppers-complex': 'Cupcakes with Gumpaste Toppers (Complex)',
-    'cupcakes-icing': 'Cupcakes with Icing',
-    'cupcakes-premium-sprinkles': 'Cupcakes with Premium Sprinkles',
+    'Cupcake': 'Cupcake',
 };
 
 const Section: React.FC<{ title: string; children: React.ReactNode; defaultOpen?: boolean; count?: number; analysisText?: string }> = ({ title, children, defaultOpen = true, count, analysisText }) => {

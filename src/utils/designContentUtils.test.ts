@@ -84,7 +84,7 @@ describe('generateRichAltText', () => {
             keywords: 'Cinderella',
             slug: 'cinderella-cupcakes-sky-blue',
             analysis_json: {
-                cakeType: 'cupcakes-printout-toppers',
+                cakeType: 'Cupcake',
                 icing_design: {
                     base: 'soft_icing',
                     colors: { top: '#87ceeb' }

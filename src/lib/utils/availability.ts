@@ -20,7 +20,7 @@ export interface DesignData {
  * Determines the availability of a cake design based on its complexity using a hierarchical approach.
  */
 export function getDesignAvailability(design: DesignData): AvailabilityType {
-    if (design.cakeType.toLowerCase().startsWith('cupcakes-')) {
+    if (design.cakeType.toLowerCase() === 'cupcake' || design.cakeType.toLowerCase().startsWith('cupcakes-')) {
         return 'normal';
     }
 

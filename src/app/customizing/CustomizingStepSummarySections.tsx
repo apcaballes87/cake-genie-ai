@@ -363,7 +363,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
 
     const isDesktop = layout === 'desktop';
     const cakeType = cakeInfo?.type?.toLowerCase() || '';
-    const isCupcakes = cakeType.startsWith('cupcakes-');
+    const isCupcakes = cakeType === 'cupcake' || cakeType.startsWith('cupcakes-');
     const isTieredFlavorLayout = cakeType.includes('2 tier') || cakeType.includes('3 tier');
     const containerClassName = isDesktop
         ? 'w-full hidden md:flex flex-row md:flex-col overflow-x-auto md:overflow-visible gap-2 pb-6 md:pb-32 scrollbar-hide snap-x md:snap-none relative z-60'
@@ -394,7 +394,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                         const isSelected = currentFlavor === flavor;
 
                         const isBento = currentCakeType === 'Bento';
-                        const isCupcakes = currentCakeType.toLowerCase().startsWith('cupcakes-');
+                        const isCupcakes = currentCakeType.toLowerCase() === 'cupcake' || currentCakeType.toLowerCase().startsWith('cupcakes-');
                         const normType = currentCakeType.toLowerCase();
                         const isStandardOrMulti = normType.includes('1 tier') ||
                                                     normType.includes('2 tier') ||
@@ -454,7 +454,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
         if (!cakeInfo?.flavors || !onCakeInfoChange) return;
 
         const isBento = cakeInfo.type === 'Bento';
-        const isCupcakes = cakeInfo.type.toLowerCase().startsWith('cupcakes-');
+        const isCupcakes = cakeInfo.type.toLowerCase() === 'cupcake' || cakeInfo.type.toLowerCase().startsWith('cupcakes-');
         const normType = cakeInfo.type.toLowerCase();
         const isStandardOrMulti = normType.includes('1 tier') || 
                                    normType.includes('2 tier') || 

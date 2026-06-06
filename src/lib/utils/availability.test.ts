@@ -4,7 +4,7 @@ import { getDesignAvailability, DesignData } from './availability';
 describe('getDesignAvailability', () => {
     it('returns normal for cupcake types regardless of decorations', () => {
         const design: DesignData = {
-            cakeType: 'cupcakes-printout-toppers',
+            cakeType: 'Cupcake',
             cakeSize: '2oz - 12 pieces',
             icingBase: 'soft_icing',
             drip: false,
@@ -15,7 +15,7 @@ describe('getDesignAvailability', () => {
         expect(getDesignAvailability(design)).toBe('normal');
 
         const complexDesign: DesignData = {
-            cakeType: 'cupcakes-gumpaste-toppers-complex',
+            cakeType: 'Cupcake',
             cakeSize: '2oz - 12 pieces',
             icingBase: 'soft_icing',
             drip: true,

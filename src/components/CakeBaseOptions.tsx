@@ -33,12 +33,7 @@ const cakeTypeDisplayMap: Record<CakeType, string> = {
     '1 Tier Fondant': '1 Tier Fondant', '2 Tier Fondant': '2 Tier Fondant', '3 Tier Fondant': '3 Tier Fondant',
     'Square': 'Square', 'Rectangle': 'Rectangle', 'Bento': 'Bento',
     'Square Fondant': 'Square Fondant', 'Rectangle Fondant': 'Rectangle Fondant',
-    'cupcakes-printout-toppers': 'Cupcakes with Printout Toppers',
-    'cupcakes-edible-photo-toppers': 'Cupcakes with Edible Photo Toppers',
-    'cupcakes-gumpaste-toppers-ordinary': 'Cupcakes with Gumpaste Toppers (Ordinary)',
-    'cupcakes-gumpaste-toppers-complex': 'Cupcakes with Gumpaste Toppers (Complex)',
-    'cupcakes-icing': 'Cupcakes with Icing',
-    'cupcakes-premium-sprinkles': 'Cupcakes with Premium Sprinkles',
+    'Cupcake': 'Cupcake',
 };
 
 export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
@@ -104,7 +99,7 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
     const resolvedIcingBase = icingBase ?? inferIcingBaseFromCakeType(cakeInfo.type);
     const visibleCakeTypes = getCakeTypesForIcingBase(resolvedIcingBase);
     const currentThicknessOptions = THICKNESS_OPTIONS_MAP[cakeInfo.type] || [];
-    const isCupcakes = cakeInfo.type.toLowerCase().startsWith('cupcakes-');
+    const isCupcakes = cakeInfo.type === 'Cupcake' || cakeInfo.type.toLowerCase().startsWith('cupcakes-');
     const shouldShowSection = (section: 'icing' | 'type' | 'size' | 'height') => {
         if (isCupcakes && (section === 'icing' || section === 'height')) {
             return false;

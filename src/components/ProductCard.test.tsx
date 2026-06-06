@@ -146,7 +146,7 @@ describe('ProductCard', () => {
                 {...baseProps}
                 slug="hello-kitty-cupcakes"
                 keywords="Hello Kitty"
-                analysis_json={{ cakeType: 'cupcakes-printout-toppers' }}
+                analysis_json={{ cakeType: 'Cupcake' }}
             />
         );
 

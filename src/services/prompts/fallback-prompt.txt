@@ -129,18 +129,12 @@ If a logo/text appears near the cake but not on the cake itself, do not output i
 
 ### cakeType (Required string)
 
-Must be one of: `"Bento"`, `"1 Tier"`, `"2 Tier"`, `"3 Tier"`, `"1 Tier Fondant"`, `"2 Tier Fondant"`, `"3 Tier Fondant"`, `"Square"`, `"Rectangle"`, `"Square Fondant"`, `"Rectangle Fondant"`, `"cupcakes-printout-toppers"`, `"cupcakes-edible-photo-toppers"`, `"cupcakes-gumpaste-toppers-ordinary"`, `"cupcakes-gumpaste-toppers-complex"`, `"cupcakes-icing"`, `"cupcakes-premium-sprinkles"`
+Must be one of: `"Bento"`, `"1 Tier"`, `"2 Tier"`, `"3 Tier"`, `"1 Tier Fondant"`, `"2 Tier Fondant"`, `"3 Tier Fondant"`, `"Square"`, `"Rectangle"`, `"Square Fondant"`, `"Rectangle Fondant"`, `"Cupcake"`
 
 ### Cupcakes Classification Rule
 
 If the image contains cupcakes (usually a tray, box, or close-up of individual cupcakes) and no larger cake:
-- Classify `cakeType` as one of the following based on the toppers and style:
-  - `"cupcakes-printout-toppers"` if they feature printed paper/cardstock toppers on sticks/toothpicks (e.g. character cutouts, printed shapes).
-  - `"cupcakes-edible-photo-toppers"` if they feature printed edible sheets with photos, personal portraits, or custom images.
-  - `"cupcakes-gumpaste-toppers-ordinary"` if they feature simple gumpaste/fondant toppers (like basic stars, simple flowers, numbers, basic bows).
-  - `"cupcakes-gumpaste-toppers-complex"` if they feature highly detailed sculpted gumpaste/fondant animals, custom cartoon figurines, or detailed 3D models.
-  - `"cupcakes-premium-sprinkles"` if they feature premium looking, metallic or pearl-like gold, silver beads or dragees on top.
-  - `"cupcakes-icing"` if they have only icing/piping and potentially simple candy sprinkles (no matter the color), with no distinct toppers or premium metallic/pearl-like beads.
+- Classify `cakeType` as `"Cupcake"`.
 - Classify `cakeThickness` as `"2 in"`.
 - Do NOT reject the image; return `"isRejected": false` under `rejection`.
 

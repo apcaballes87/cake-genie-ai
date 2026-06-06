@@ -17,7 +17,7 @@ export function generateDesignDetails(design: any, prices?: BasePriceInfo[]): st
     const availability = design.availability || 'normal';
     const tags = design.tags || [];
 
-    const isCupcake = cakeType.toLowerCase().startsWith('cupcakes-') || (design.slug || '').includes('cupcakes-');
+    const isCupcake = cakeType.toLowerCase() === 'cupcake' || cakeType.toLowerCase().startsWith('cupcakes-') || (design.slug || '').includes('cupcakes-');
     const pNoun = isCupcake ? 'cupcakes' : 'cake';
 
     // Map tier to layer synonym so page text naturally contains both terms
@@ -148,7 +148,7 @@ export function generateDynamicFAQ(design: any, prices?: BasePriceInfo[]): { que
     const mainToppers = analysis.main_toppers || [];
     const supportElements = analysis.support_elements || [];
 
-    const isCupcake = cakeType.toLowerCase().startsWith('cupcakes-') || (design.slug || '').includes('cupcakes-');
+    const isCupcake = cakeType.toLowerCase() === 'cupcake' || cakeType.toLowerCase().startsWith('cupcakes-') || (design.slug || '').includes('cupcakes-');
     const pPluralThis = isCupcake ? 'these' : 'this';
 
     const faqs: { question: string; answer: string }[] = [];

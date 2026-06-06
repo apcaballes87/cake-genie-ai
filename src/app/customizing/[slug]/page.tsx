@@ -34,19 +34,14 @@ import {
 } from './metadataHelpers'
 import { buildCakeTitle, extractTitleInputFromAnalysis } from '@/lib/seo/cakeTitle'
 
-const VALID_CAKE_TYPES: CakeType[] = ['1 Tier', '2 Tier', '3 Tier', '1 Tier Fondant', '2 Tier Fondant', '3 Tier Fondant', 'Square', 'Rectangle', 'Bento', 'Square Fondant', 'Rectangle Fondant', 'cupcakes-printout-toppers', 'cupcakes-edible-photo-toppers', 'cupcakes-gumpaste-toppers-ordinary', 'cupcakes-gumpaste-toppers-complex', 'cupcakes-icing', 'cupcakes-premium-sprinkles'];
+const VALID_CAKE_TYPES: CakeType[] = ['1 Tier', '2 Tier', '3 Tier', '1 Tier Fondant', '2 Tier Fondant', '3 Tier Fondant', 'Square', 'Rectangle', 'Bento', 'Square Fondant', 'Rectangle Fondant', 'Cupcake'];
 const CAKE_TYPE_THICKNESS_MAP: Record<string, CakeThickness> = {
     '1 Tier': '4 in', '2 Tier': '4 in', '3 Tier': '4 in',
     'Square': '3 in', 'Rectangle': '3 in',
     '1 Tier Fondant': '5 in', '2 Tier Fondant': '5 in', '3 Tier Fondant': '5 in',
     'Square Fondant': '5 in', 'Rectangle Fondant': '5 in',
     'Bento': '2 in',
-    'cupcakes-printout-toppers': '2 in',
-    'cupcakes-edible-photo-toppers': '2 in',
-    'cupcakes-gumpaste-toppers-ordinary': '2 in',
-    'cupcakes-gumpaste-toppers-complex': '2 in',
-    'cupcakes-icing': '2 in',
-    'cupcakes-premium-sprinkles': '2 in',
+    'Cupcake': '2 in',
 };
 
 const firstNonBlankImageUrl = (...urls: unknown[]) => {
@@ -290,7 +285,7 @@ export async function generateMetadata(
     // Fallback: if seo_title is somehow blank, rebuild from the design's own
     // structured attributes (same builder the write path and backfill use).
     const rawStoredTitle = typeof design.seo_title === 'string' ? design.seo_title.trim() : '';
-    const isCupcake = (design.analysis_json?.cakeType || '').startsWith('cupcakes-') || (design.slug || '').includes('cupcakes-');
+    const isCupcake = (design.analysis_json?.cakeType || '').toLowerCase() === 'cupcake' || (design.analysis_json?.cakeType || '').startsWith('cupcakes-') || (design.slug || '').includes('cupcakes-') || (design.slug || '').includes('cupcake-');
     let storedTitle = rawStoredTitle;
     if (isCupcake && /cupcake/i.test(storedTitle) && / cake$/i.test(storedTitle)) {
         storedTitle = storedTitle.replace(/\s+cake$/i, '');
@@ -406,7 +401,7 @@ export function DesignSchema({
 
     const tags = design.tags || [];
     const keywords = design.keywords || 'Custom';
-    const isCupcake = (design.analysis_json?.cakeType || '').startsWith('cupcakes-') || (design.slug || '').includes('cupcakes-');
+    const isCupcake = (design.analysis_json?.cakeType || '').toLowerCase() === 'cupcake' || (design.analysis_json?.cakeType || '').startsWith('cupcakes-') || (design.slug || '').includes('cupcakes-') || (design.slug || '').includes('cupcake-');
     let title = design.seo_title || `${tags.length > 0 ? tags[0] + ' ' : ''}${keywords} ${isCupcake ? 'Cupcakes' : 'Cake'}`;
     if (isCupcake && /cupcake/i.test(title) && / cake$/i.test(title)) {
         title = title.replace(/\s+cake$/i, '');
@@ -682,7 +677,7 @@ function SSRCakeDetails({
     const analysis = design.analysis_json || {};
     const policyUrls = getCommercePolicyUrls();
 
-    const isCupcake = (analysis.cakeType || '').startsWith('cupcakes-') || (design.slug || '').includes('cupcakes-');
+    const isCupcake = (analysis.cakeType || '').toLowerCase() === 'cupcake' || (analysis.cakeType || '').startsWith('cupcakes-') || (design.slug || '').includes('cupcakes-') || (design.slug || '').includes('cupcake-');
     const fallbackTitleSuffix = isCupcake ? 'Cupcakes Design' : 'Cake Design';
     let rawTitle = (design.seo_title || `${keywords} ${fallbackTitleSuffix}`).replace(/\s*\|\s*Genie\.ph\s*$/i, '');
     if (isCupcake && /cupcake/i.test(rawTitle) && / cake$/i.test(rawTitle)) {
