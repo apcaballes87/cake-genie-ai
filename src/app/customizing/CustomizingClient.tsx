@@ -480,7 +480,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         chatHistory, addChatEntry,
     } = useCakeCustomization();
 
-    const isCupcake = cakeInfo?.type?.toLowerCase().startsWith('cupcakes') ?? false;
+    const isCupcake = cakeInfo?.type === 'Cupcake' || (cakeInfo?.type?.toLowerCase().startsWith('cupcake') ?? false);
 
 
     const scrollToHero = useCallback(() => {
