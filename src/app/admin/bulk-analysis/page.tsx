@@ -161,7 +161,10 @@ export default function BulkAnalysisAdminPage() {
                 // 3. Call AI endpoint
                 const aiResponse = await fetch('/api/ai/analyze', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-admin-pin': ADMIN_PIN
+                    },
                     body: JSON.stringify({
                         imageData: imageData.data,
                         mimeType: imageData.mimeType

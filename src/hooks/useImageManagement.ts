@@ -71,7 +71,7 @@ export const useImageManagement = () => {
         file: File,
         onSuccess: (result: HybridAnalysisResult) => void,
         onError: (error: Error) => void,
-        options?: { imageUrl?: string; onCoordinatesEnriched?: (result: HybridAnalysisResult) => void }
+        options?: { imageUrl?: string; onCoordinatesEnriched?: (result: HybridAnalysisResult) => void; turnstileToken?: string }
     ) => {
         setIsLoading(true); // For file processing
         setError(null);
@@ -243,7 +243,8 @@ export const useImageManagement = () => {
                 // PHASE 1: Fast feature-only analysis with v3.2 prompt (coordinates all 0,0)
                 const fastResult = await analyzeCakeFeaturesOnly(
                     compressedImageData.data,
-                    compressedImageData.mimeType
+                    compressedImageData.mimeType,
+                    options?.turnstileToken
                 );
 
                 onSuccess(fastResult); // User can now see features and price immediately!

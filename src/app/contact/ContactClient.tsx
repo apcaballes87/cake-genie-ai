@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft, Globe, Mail, Phone, MapPin, Clock, Send, Loader2 } from 'lucide-react';
 import { showSuccess, showError } from '@/lib/utils/toast';
 import { genieBusinessProfile } from '@/lib/seo/genieBusinessProfile';
+import { TurnstileWidget } from '@/components/TurnstileWidget';
 
 const ContactInfoItem: React.FC<{ icon: React.ReactNode; label: string; value: string; href?: string }> = ({ icon, label, value, href }) => (
     <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-lg">
@@ -28,11 +29,19 @@ const ContactClient: React.FC = () => {
     const [email, setEmail] = useState('');
     const [message, setMessage] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [turnstileToken, setTurnstileToken] = useState('');
+    const [turnstileKey, setTurnstileKey] = useState(0);
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         if (!name.trim() || !contact.trim() || !email.trim() || !message.trim()) {
             showError("Please fill in all required fields.");
+            return;
+        }
+
+        const siteKey = process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY;
+        if (siteKey && !turnstileToken) {
+            showError("Please complete the security verification.");
             return;
         }
 
@@ -48,6 +57,7 @@ const ContactClient: React.FC = () => {
                     phone: contact,
                     email,
                     message,
+                    turnstileToken,
                 }),
             });
 
@@ -61,8 +71,12 @@ const ContactClient: React.FC = () => {
             setContact('');
             setEmail('');
             setMessage('');
+            setTurnstileToken('');
+            setTurnstileKey(prev => prev + 1);
         } catch (error) {
             showError(error instanceof Error ? error.message : 'Failed to send your message.');
+            setTurnstileKey(prev => prev + 1);
+            setTurnstileToken('');
         } finally {
             setIsSubmitting(false);
         }
@@ -136,6 +150,12 @@ const ContactClient: React.FC = () => {
                             <label htmlFor="message" className="block text-sm font-medium text-slate-600 mb-1">Comment/Message <span className="text-red-500">*</span></label>
                             <textarea id="message" value={message} onChange={e => setMessage(e.target.value)} className={inputStyle} rows={4} required />
                         </div>
+                        <TurnstileWidget
+                            key={turnstileKey}
+                            onVerify={setTurnstileToken}
+                            onExpire={() => setTurnstileToken('')}
+                            onError={() => setTurnstileToken('')}
+                        />
                         <button type="submit" disabled={isSubmitting} className="genie-btn-primary w-full py-3.5 px-4 rounded-lg active:scale-[0.99] transition-transform">
                             {isSubmitting ? (
                                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />

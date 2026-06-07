@@ -550,7 +550,10 @@ export default function SearchAnalysisAdminPage() {
                     // --- AI ANALYSIS (rejection handled by analyze response) ---
                     const aiResponse = await fetch('/api/ai/analyze', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-admin-pin': ADMIN_PIN
+                        },
                         body: JSON.stringify({ imageData: imageData.data, mimeType: imageData.mimeType })
                     });
 

@@ -15,6 +15,47 @@ const KNOWN_ROUTES = new Set([
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
 
+    // Edge Rate Limiting check
+    const isAiRoute = pathname.startsWith('/api/ai/analyze')
+    const isNewsletterRoute = pathname.startsWith('/api/newsletter')
+    const isContactRoute = pathname.startsWith('/api/contact')
+    const isDiscountRoute = pathname.startsWith('/api/signup-discount')
+
+    if (isAiRoute || isNewsletterRoute || isContactRoute || isDiscountRoute) {
+        // Bypass rate limiting for authenticated admin requests using the pin
+        if (isAiRoute) {
+            const adminPin = request.headers.get('x-admin-pin')
+            if (adminPin === '231323') {
+                return NextResponse.next()
+            }
+        }
+
+        const ip = request.headers.get('x-forwarded-for') || (request as any).ip || '127.0.0.1'
+        const limitType = isAiRoute ? 'ai' : isNewsletterRoute ? 'newsletter' : isContactRoute ? 'contact' : 'discount'
+
+        try {
+            const { checkRateLimit } = await import('@/lib/security/rateLimiter')
+            const rateLimitResult = await checkRateLimit(limitType, ip)
+
+            if (!rateLimitResult.success) {
+                return new NextResponse(
+                    JSON.stringify({ error: 'Too many requests. Please try again later.' }),
+                    {
+                        status: 429,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Retry-After': Math.ceil((rateLimitResult.reset - Date.now()) / 1000).toString(),
+                        },
+                    }
+                )
+            }
+        } catch (err) {
+            console.error('Rate limiting error in middleware:', err)
+        }
+
+        return NextResponse.next()
+    }
+
     // Only handle single-segment paths like /NEW20, /ALAN99
     // Skip anything with multiple segments, file extensions, or known routes
     const match = pathname.match(/^\/([A-Za-z0-9]+)$/)
@@ -65,11 +106,17 @@ export async function middleware(request: NextRequest) {
 }
 
 // Matcher excludes:
-// - api/*           : route handlers should never run middleware
+// - api/*           : route handlers should never run middleware (except rate limited endpoints)
 // - _next/*         : Next.js internals (static, image optimizer, data)
 // - favicon.ico     : browsers request this on every page
 // - any path with a "." (file extensions like .xml, .txt, .json, images)
-// This means middleware only runs on actual HTML page requests.
+// This means middleware only runs on actual HTML page requests and rate-limited API routes.
 export const config = {
-    matcher: ['/((?!api|_next|favicon\\.ico|.*\\..*).*)'],
+    matcher: [
+        '/((?!api|_next|favicon\\.ico|.*\\..*).*)',
+        '/api/ai/analyze',
+        '/api/newsletter',
+        '/api/contact',
+        '/api/signup-discount'
+    ],
 }

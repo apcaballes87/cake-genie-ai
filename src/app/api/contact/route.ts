@@ -25,6 +25,18 @@ export async function POST(request: NextRequest) {
     const phone = normalizeString(body.phone)
     const email = normalizeString(body.email).toLowerCase()
     const message = normalizeString(body.message)
+    const turnstileToken = body.turnstileToken
+
+    const ip = request.headers.get('x-forwarded-for') || (request as any).ip || undefined
+    const { verifyTurnstileToken } = await import('@/lib/security/turnstile')
+    const turnstileResult = await verifyTurnstileToken(turnstileToken, ip)
+
+    if (!turnstileResult.success) {
+      return NextResponse.json(
+        { success: false, error: turnstileResult.error || 'Security check failed. Please try again.' },
+        { status: 400 },
+      )
+    }
 
     if (!name || !phone || !email || !message) {
       return NextResponse.json(

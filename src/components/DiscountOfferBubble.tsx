@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { validateDiscountCode } from '@/services/discountService';
 import { Sparkles, Check, ChevronRight, X, Eye, EyeOff, Tag } from 'lucide-react';
 import { showSuccess, showError } from '@/lib/utils/toast';
+import { TurnstileWidget } from '@/components/TurnstileWidget';
 
 /** localStorage key used to resume the discount flow after a Google OAuth redirect. */
 const PENDING_KEY = 'pendingSignupDiscount';
@@ -35,6 +36,8 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
   // Form fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const [turnstileKey, setTurnstileKey] = useState(0);
 
   // Prevent the OAuth-return effect running more than once per mount
   const oauthHandledRef = useRef(false);
@@ -121,7 +124,7 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
       const res = await fetch('/api/newsletter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailAddress, source: 'customizing_bubble' }),
+        body: JSON.stringify({ email: emailAddress, source: 'customizing_bubble', turnstileToken }),
       });
       const data = await res.json();
       if (!data.success || !data.code) {
@@ -163,6 +166,12 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
       return;
     }
 
+    const siteKey = process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY;
+    if (siteKey && !turnstileToken) {
+      setErrorMessage('Complete the security check.');
+      return;
+    }
+
     setStatus('loading');
     const { data, error } = await signUp(email, password);
 
@@ -181,6 +190,8 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
 
     // Immediately authenticated (email confirmation disabled)
     await applyDiscountForCurrentUser();
+    setTurnstileToken('');
+    setTurnstileKey(prev => prev + 1);
   };
 
   // Don't render if discount is already applied (and bubble is collapsed) or hidden
@@ -331,6 +342,13 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
                   {errorMessage && (
                     <p className="text-red-500 text-[10px] font-medium">{errorMessage}</p>
                   )}
+
+                  <TurnstileWidget
+                    key={turnstileKey}
+                    onVerify={setTurnstileToken}
+                    onExpire={() => setTurnstileToken('')}
+                    onError={() => setTurnstileToken('')}
+                  />
 
                   <button
                     type="submit"

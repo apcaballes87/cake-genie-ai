@@ -32,13 +32,30 @@ import { getDynamicTypeEnums } from '@/lib/ai/utils';
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { imageData, mimeType, sourceContext } = body;
+        const { imageData, mimeType, sourceContext, turnstileToken } = body;
 
         if (!imageData || !mimeType) {
             return NextResponse.json(
                 { error: 'Missing required fields: imageData and mimeType' },
                 { status: 400, headers: CORS_HEADERS }
             );
+        }
+
+        // Bypass Turnstile check if it's an admin request using the pin
+        const adminPin = req.headers.get('x-admin-pin');
+        const isAdmin = adminPin === '231323';
+
+        if (!isAdmin) {
+            const ip = req.headers.get('x-forwarded-for') || (req as any).ip || undefined;
+            const { verifyTurnstileToken } = await import('@/lib/security/turnstile');
+            const turnstileResult = await verifyTurnstileToken(turnstileToken, ip);
+
+            if (!turnstileResult.success) {
+                return NextResponse.json(
+                    { error: turnstileResult.error || 'Security check failed. Please try again.' },
+                    { status: 400, headers: CORS_HEADERS }
+                );
+            }
         }
 
         const supabase = createClient();

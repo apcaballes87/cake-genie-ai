@@ -201,6 +201,19 @@ const fetchImageAsInlineData = async (url: string) => {
   };
 };
 
+let cachedLogoBuffer: Buffer | null = null;
+async function getLogoBuffer(): Promise<Buffer> {
+  if (cachedLogoBuffer) return cachedLogoBuffer;
+  const logoUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/new%20genie%20logo%20long.webp';
+  const response = await fetch(logoUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to download watermark logo: HTTP ${response.status}`);
+  }
+  const arrayBuffer = await response.arrayBuffer();
+  cachedLogoBuffer = Buffer.from(arrayBuffer);
+  return cachedLogoBuffer;
+}
+
 const finalizeEditedImage = async (
   buffer: Buffer,
   dimensions?: { width: number; height: number; wasUpscaled: boolean } | null
@@ -222,15 +235,46 @@ const finalizeEditedImage = async (
     ? resizedImage.sharpen(0.8, 1, 2)
     : resizedImage;
 
-  return enhancedImage
-    .webp({
-      // quality 92 is visually indistinguishable from 96 for cake photos but encodes much faster.
-      // effort 4 cuts WebP encode time roughly in half vs effort 6 for ~1-2% extra file size,
-      // which is invisible to users and not worth ~0.7-1.5s of server CPU per studio image.
-      quality: 92,
-      effort: 4,
-    })
-    .toBuffer();
+  // Apply the watermark Genie logo
+  try {
+    const logoBuffer = await getLogoBuffer();
+    const targetLogoWidth = Math.round(width / 3);
+    const logoResizedBuffer = await sharp(logoBuffer)
+      .resize({ width: targetLogoWidth })
+      .ensureAlpha()
+      .linear([1, 1, 1, 0.5], [0, 0, 0, 0])
+      .png()
+      .toBuffer();
+
+    const padding = Math.round(width * 0.03);
+    const top = padding;
+    const left = width - targetLogoWidth - padding;
+
+    return await enhancedImage
+      .composite([
+        {
+          input: logoResizedBuffer,
+          top: top,
+          left: left,
+        },
+      ])
+      .webp({
+        // quality 92 is visually indistinguishable from 96 for cake photos but encodes much faster.
+        // effort 4 cuts WebP encode time roughly in half vs effort 6 for ~1-2% extra file size,
+        // which is invisible to users and not worth ~0.7-1.5s of server CPU per studio image.
+        quality: 92,
+        effort: 4,
+      })
+      .toBuffer();
+  } catch (watermarkError) {
+    console.error('Failed to apply watermark, falling back to clean image:', watermarkError);
+    return enhancedImage
+      .webp({
+        quality: 92,
+        effort: 4,
+      })
+      .toBuffer();
+  }
 };
 
 async function getCacheRowByHash(

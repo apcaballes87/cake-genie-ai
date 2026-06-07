@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { trackSignUp } from '@/lib/analytics';
 import { X, Eye, EyeOff } from 'lucide-react';
+import { TurnstileWidget } from '@/components/TurnstileWidget';
 
 /** Key used to suppress the popup after it has been dismissed or completed. */
 const SEEN_KEY = 'hasSeenNewsletterPopup';
@@ -23,6 +24,8 @@ export default function NewsletterPopup() {
   const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const [turnstileKey, setTurnstileKey] = useState(0);
 
   // Prevent the OAuth-return effect running more than once
   const oauthHandledRef = useRef(false);
@@ -110,7 +113,7 @@ export default function NewsletterPopup() {
       const res = await fetch('/api/newsletter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailAddress, source: 'popup' }),
+        body: JSON.stringify({ email: emailAddress, source: 'popup', turnstileToken }),
       });
       const data = await res.json();
       if (data.success && data.code) {
@@ -149,6 +152,13 @@ export default function NewsletterPopup() {
       return;
     }
 
+    const siteKey = process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY;
+    if (siteKey && !turnstileToken) {
+      setErrorMessage('Please complete the security check.');
+      setStatus('error');
+      return;
+    }
+
     setStatus('loading');
     const { data, error } = await signUp(email, password, { first_name: firstName.trim() });
 
@@ -169,6 +179,8 @@ export default function NewsletterPopup() {
     // Immediately authenticated (email confirmation disabled)
     trackSignUp('email', 'signup_popup');
     await generateDiscountForCurrentUser();
+    setTurnstileToken('');
+    setTurnstileKey(prev => prev + 1);
   };
 
   // ── Google OAuth sign-up ──
@@ -297,6 +309,13 @@ export default function NewsletterPopup() {
                 {status === 'error' && errorMessage && (
                   <p className="text-red-500 text-sm font-medium">{errorMessage}</p>
                 )}
+
+                <TurnstileWidget
+                  key={turnstileKey}
+                  onVerify={setTurnstileToken}
+                  onExpire={() => setTurnstileToken('')}
+                  onError={() => setTurnstileToken('')}
+                />
 
                 <div className="flex gap-2 sm:gap-3 pt-1">
                   <button

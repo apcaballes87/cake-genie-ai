@@ -23,10 +23,21 @@ function generateCode(): string {
 
 export async function POST(request: NextRequest) {
     try {
-        const { email, source = 'popup' } = await request.json();
+        const { email, source = 'popup', turnstileToken } = await request.json();
 
         if (!email || typeof email !== 'string') {
             return NextResponse.json({ success: false, error: 'Email is required.' }, { status: 400 });
+        }
+
+        const ip = request.headers.get('x-forwarded-for') || (request as any).ip || undefined;
+        const { verifyTurnstileToken } = await import('@/lib/security/turnstile');
+        const turnstileResult = await verifyTurnstileToken(turnstileToken, ip);
+
+        if (!turnstileResult.success) {
+            return NextResponse.json(
+                { success: false, error: turnstileResult.error || 'Security check failed. Please try again.' },
+                { status: 400 }
+            );
         }
 
         const normalizedEmail = email.trim().toLowerCase();

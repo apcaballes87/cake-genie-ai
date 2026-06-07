@@ -106,13 +106,14 @@ export const validateCakeImage = async (
  */
 export async function analyzeCakeFeaturesOnly(
     base64ImageData: string,
-    mimeType: string
+    mimeType: string,
+    turnstileToken?: string
 ): Promise<HybridAnalysisResult> {
     try {
         const response = await fetch('/api/ai/analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ imageData: base64ImageData, mimeType })
+            body: JSON.stringify({ imageData: base64ImageData, mimeType, turnstileToken })
         });
 
         if (!response.ok) {
