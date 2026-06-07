@@ -327,21 +327,32 @@ function CartClient() {
             batchSaveToLocalStorage('cart_applied_discount', JSON.stringify(result));
             if (!options?.silent) { showSuccess(result.message || 'Discount applied!'); }
         } else {
-            // For silent re-validations (e.g. subtotal change after the code was
-            // already accepted), keep the cached discount in place. The server-side
-            // RPC in create_order_from_cart re-validates authoritatively at checkout
-            // time, so a transient/anon-RLS failure here must not silently strip a
-            // legitimate code from the user's cart and bump them back to full price.
-            if (options?.silent) {
-                console.warn('[CartClient] Silent discount revalidation failed; keeping cached state.', {
+            // For silent re-validations, only keep cached discount for transient errors.
+            // Business logic failures (minimum order, expired, usage limit, etc.) should
+            // clear the discount since it's not valid for the current cart state.
+            const transientErrors = [
+                'An unexpected error occurred',
+                'Could not verify user session',
+                'Failed to add item to cart',
+            ];
+            const isTransientError = transientErrors.some(e => 
+                result.message?.includes(e)
+            );
+            
+            if (options?.silent && isTransientError) {
+                console.warn('[CartClient] Silent discount revalidation failed (transient); keeping cached state.', {
                     code,
                     reason: result.message,
                 });
                 return;
             }
+            
+            // Clear discount for business logic failures or non-silent attempts
             setAppliedDiscount(null);
             batchRemoveFromLocalStorage('cart_applied_discount');
-            showError(result.message || 'Invalid discount code');
+            if (!options?.silent) {
+                showError(result.message || 'Invalid discount code');
+            }
         }
     }, [discountCode, subtotal, appliedDiscount, handleRemoveDiscount]);
 
