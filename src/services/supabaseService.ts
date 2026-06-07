@@ -1579,7 +1579,7 @@ export async function getDesignsByKeyword(keywordOrSlug: string, limit: number =
       : buildCollectionOrFilter(normalizedKeyword);
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
-      .select('slug, keywords, original_image_url, price, alt_text, usage_count, p_hash, availability, analysis_json, image_width, image_height, studio_edited_image_url, image_variants')
+      .select('slug, keywords, original_image_url, price, alt_text, usage_count, p_hash, availability, analysis_json, image_width, image_height, studio_edited_image_url, image_variants, icing_colors')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
       .or(orFilters)
@@ -1815,6 +1815,7 @@ export async function searchProductsFTS(
     availability?: string[];
     minPrice?: number;
     maxPrice?: number;
+    icingColors?: string[];
   }
 ): Promise<SupabaseServiceResponse<any[]>> {
   const client = typeof window === 'undefined' ? publicSupabaseClient : supabase;
@@ -1831,6 +1832,7 @@ export async function searchProductsFTS(
       p_availability: options?.availability || null,
       p_min_price: options?.minPrice || null,
       p_max_price: options?.maxPrice || null,
+      p_icing_colors: options?.icingColors || null,
     });
 
     if (error) {
@@ -1888,6 +1890,7 @@ export async function searchProductsFTSCount(
     availability?: string[];
     minPrice?: number;
     maxPrice?: number;
+    icingColors?: string[];
   }
 ): Promise<number> {
   const client = typeof window === 'undefined' ? publicSupabaseClient : supabase;
@@ -1900,6 +1903,7 @@ export async function searchProductsFTSCount(
       p_availability: options?.availability || null,
       p_min_price: options?.minPrice || null,
       p_max_price: options?.maxPrice || null,
+      p_icing_colors: options?.icingColors || null,
     });
 
     if (error) {
@@ -1930,6 +1934,7 @@ export interface RecentSearchDesign {
   seo_title: string | null;
   seo_description: string | null;
   created_at: string;
+  icing_colors?: string[] | null;
 }
 
 /**
@@ -1941,7 +1946,7 @@ export async function getAnalysisBySlug(slug: string): Promise<SupabaseServiceRe
   try {
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
-      .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, seo_title, seo_description, created_at, studio_edited_image_url, image_variants')
+      .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, seo_title, seo_description, created_at, studio_edited_image_url, image_variants, icing_colors')
       .eq('slug', slug)
       .single();
 

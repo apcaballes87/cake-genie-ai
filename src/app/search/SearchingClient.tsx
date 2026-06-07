@@ -49,6 +49,19 @@ const SearchResultsSkeleton = ({ count = 8, showHeader = true }: { count?: numbe
     </div>
 );
 
+const COLOR_FILTER_OPTIONS = [
+    { name: 'pink', label: 'Pink', dotClass: 'bg-pink-500 border-pink-300' },
+    { name: 'blue', label: 'Blue', dotClass: 'bg-blue-400 border-blue-200' },
+    { name: 'purple', label: 'Purple', dotClass: 'bg-purple-500 border-purple-300' },
+    { name: 'green', label: 'Green', dotClass: 'bg-green-500 border-green-300' },
+    { name: 'yellow', label: 'Yellow', dotClass: 'bg-yellow-300 border-yellow-200' },
+    { name: 'orange', label: 'Orange', dotClass: 'bg-orange-400 border-orange-200' },
+    { name: 'red', label: 'Red', dotClass: 'bg-red-500 border-red-300' },
+    { name: 'brown', label: 'Brown', dotClass: 'bg-amber-800 border-amber-600' },
+    { name: 'black', label: 'Black', dotClass: 'bg-slate-950 border-slate-800' },
+    { name: 'white', label: 'White', dotClass: 'bg-white border-slate-200' },
+];
+
 const SearchingClient: React.FC = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -88,6 +101,7 @@ const SearchingClient: React.FC = () => {
     // Filter and Sort state
     const [sortBy, setSortBy] = useState<'relevant' | 'price_asc' | 'price_desc'>('relevant');
     const [maxPrice, setMaxPrice] = useState<number | null>(null);
+    const [selectedColor, setSelectedColor] = useState<string | null>(null);
 
     // Loading animation state
     const [loadingStep, setLoadingStep] = useState(0);
@@ -190,7 +204,7 @@ const SearchingClient: React.FC = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [initialQuery]);
 
-    // Fetch internal FTS results when searchQuery or maxPrice changes
+    // Fetch internal FTS results when searchQuery, maxPrice, or selectedColor changes
     useEffect(() => {
         if (!searchQuery || searchQuery.trim().length === 0) {
             setInternalResults([]);
@@ -202,7 +216,8 @@ const SearchingClient: React.FC = () => {
         setIsInternalLoading(true);
 
         const priceParam = maxPrice ? `&maxPrice=${maxPrice}` : '';
-        fetch(`/api/search?q=${encodeURIComponent(searchQuery.trim())}&limit=12${priceParam}`, {
+        const colorParam = selectedColor ? `&icingColors=${selectedColor}` : '';
+        fetch(`/api/search?q=${encodeURIComponent(searchQuery.trim())}&limit=12${priceParam}${colorParam}`, {
             signal: controller.signal
         })
             .then(res => res.json())
@@ -220,7 +235,7 @@ const SearchingClient: React.FC = () => {
             .finally(() => setIsInternalLoading(false));
 
         return () => controller.abort();
-    }, [searchQuery, maxPrice]);
+    }, [searchQuery, maxPrice, selectedColor]);
 
     // Apply client-side sorting
     const processedResults = React.useMemo(() => {
@@ -250,7 +265,8 @@ const SearchingClient: React.FC = () => {
         setIsLoadingMore(true);
 
         const priceParam = maxPrice ? `&maxPrice=${maxPrice}` : '';
-        fetch(`/api/search?q=${encodeURIComponent(searchQuery.trim())}&limit=12&offset=${internalResults.length}${priceParam}`)
+        const colorParam = selectedColor ? `&icingColors=${selectedColor}` : '';
+        fetch(`/api/search?q=${encodeURIComponent(searchQuery.trim())}&limit=12&offset=${internalResults.length}${priceParam}${colorParam}`)
             .then(res => res.json())
             .then(json => {
                 const newResults = json.data || [];
@@ -262,7 +278,7 @@ const SearchingClient: React.FC = () => {
             })
             .catch(err => console.error('Load more error:', err))
             .finally(() => setIsLoadingMore(false));
-    }, [searchQuery, internalResults.length, isLoadingMore, maxPrice]);
+    }, [searchQuery, internalResults.length, isLoadingMore, maxPrice, selectedColor]);
 
     // Loading animation effect
     const isLoading = isFetchingWebImage; // Map to local loading state
@@ -444,60 +460,85 @@ const SearchingClient: React.FC = () => {
 
                     {/* Minimalist Filter & Sort Bar */}
                     {searchQuery && (
-                        <div className="w-full overflow-x-auto no-scrollbar pb-2">
-                            <div className="flex items-center justify-center gap-2 min-w-max px-2">
-                                {[1000, 2000, 3000].map((price) => (
+                        <div className="w-full">
+                            <div className="w-full overflow-x-auto no-scrollbar pb-2 border-b border-slate-100 mb-3">
+                                <div className="flex items-center justify-center gap-2 min-w-max px-2">
+                                    {[1000, 2000, 3000].map((price) => (
+                                        <button
+                                            key={price}
+                                            onClick={() => setMaxPrice(maxPrice === price ? null : price)}
+                                            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 border active:scale-[0.98] ${
+                                                maxPrice === price
+                                                    ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
+                                                    : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300'
+                                            }`}
+                                        >
+                                            {maxPrice === price ? <Check size={12} /> : null}
+                                            Under ₱{price}
+                                        </button>
+                                    ))}
+
+                                    <div className="w-px h-4 bg-slate-200 mx-1"></div>
+
                                     <button
-                                        key={price}
-                                        onClick={() => setMaxPrice(maxPrice === price ? null : price)}
-                                        className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 border ${
-                                            maxPrice === price
+                                        onClick={() => setSortBy(sortBy === 'price_asc' ? 'relevant' : 'price_asc')}
+                                        className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 border active:scale-[0.98] ${
+                                            sortBy === 'price_asc'
                                                 ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
                                                 : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300'
                                         }`}
                                     >
-                                        {maxPrice === price ? <Check size={12} /> : null}
-                                        Under ₱{price}
+                                        <ArrowUpDown size={12} />
+                                        Price: Low
                                     </button>
-                                ))}
-
-                                <div className="w-px h-4 bg-slate-200 mx-1"></div>
-
-                                <button
-                                    onClick={() => setSortBy(sortBy === 'price_asc' ? 'relevant' : 'price_asc')}
-                                    className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 border ${
-                                        sortBy === 'price_asc'
-                                            ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
-                                            : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300'
-                                    }`}
-                                >
-                                    <ArrowUpDown size={12} />
-                                    Price: Low
-                                </button>
-                                <button
-                                    onClick={() => setSortBy(sortBy === 'price_desc' ? 'relevant' : 'price_desc')}
-                                    className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 border ${
-                                        sortBy === 'price_desc'
-                                            ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
-                                            : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300'
-                                    }`}
-                                >
-                                    <ArrowUpDown size={12} className="rotate-180" />
-                                    Price: High
-                                </button>
-
-                                {(maxPrice || sortBy !== 'relevant') && (
                                     <button
-                                        onClick={() => {
-                                            setMaxPrice(null);
-                                            setSortBy('relevant');
-                                        }}
-                                        className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
-                                        title="Clear filters"
+                                        onClick={() => setSortBy(sortBy === 'price_desc' ? 'relevant' : 'price_desc')}
+                                        className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 border active:scale-[0.98] ${
+                                            sortBy === 'price_desc'
+                                                ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
+                                                : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300'
+                                        }`}
                                     >
-                                        <X size={16} />
+                                        <ArrowUpDown size={12} className="rotate-180" />
+                                        Price: High
                                     </button>
-                                )}
+
+                                    {(maxPrice || sortBy !== 'relevant' || selectedColor) && (
+                                        <button
+                                            onClick={() => {
+                                                setMaxPrice(null);
+                                                setSortBy('relevant');
+                                                setSelectedColor(null);
+                                            }}
+                                            className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                                            title="Clear filters"
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Color Filter Swatches */}
+                            <div className="w-full overflow-x-auto no-scrollbar pb-2">
+                                <div className="flex items-center justify-center gap-2 min-w-max px-2">
+                                    <span className="text-[10px] font-bold text-slate-400 mr-1 uppercase tracking-wider">Icing Color:</span>
+                                    {COLOR_FILTER_OPTIONS.map((color) => (
+                                        <button
+                                            key={color.name}
+                                            onClick={() => setSelectedColor(selectedColor === color.name ? null : color.name)}
+                                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 border active:scale-[0.98] ${
+                                                selectedColor === color.name
+                                                    ? 'bg-purple-600 text-white border-purple-600 shadow-sm ring-2 ring-purple-400/50'
+                                                    : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300 hover:bg-slate-50'
+                                            }`}
+                                            aria-label={`Filter by ${color.label} icing`}
+                                        >
+                                            <span className={`w-3 h-3 rounded-full border shadow-sm ${color.dotClass}`} />
+                                            {color.label}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     )}

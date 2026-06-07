@@ -188,3 +188,13 @@ Important:
 - **Naming Prefix**: Prefix event handlers with `"handle"` (e.g., `handleClick`).
 - **Readability**: Prioritize clean, descriptive variable names and early returns.
 - **Accessibility**: Provide standard interactive attributes (`tabindex="0"`, `aria-label`, keypress handler) for non-native interactive elements.
+
+---
+
+## 📦 Vertex AI Batch Processing & Egress Prevention
+
+To prevent catastrophic Google Cloud egress costs (the "GCS Egress Bomb") during offline batch reconciliation (e.g. processing ~1,000 cakes with large inline base64 output images):
+
+1. **Avoid Loop Downloads in Serverless**: Never open GCS file streams (`outputFile.createReadStream()`) repeatedly inside a serverless continuation loop. Skipping lines in a multi-gigabyte file over 100+ serverless runs multiplies egress charges exponentially.
+2. **Prefer Local CLI for Large Batches**: For heavy reconciliation tasks, use the dedicated local script `scripts/reconcile-batch-local.ts` via the shortcut `npm run reconcile:local`. Running it locally downloads the output JSONL file exactly once, avoiding serverless timeout splits and reducing egress fees by 98%+.
+3. **Set Bucket Lifecycle Rules**: Always configure a GCS Object Lifecycle Management rule on the batch GCS bucket to delete temporary files and input/output JSONL files after 7 days to prevent long-term storage fees.

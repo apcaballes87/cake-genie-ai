@@ -3,7 +3,7 @@ set -e
 
 # Configuration
 # TODO: Replace with your actual GCP Project ID
-PROJECT_ID="unique-sentinel-471416-v8" 
+PROJECT_ID="project-068ffeda-8588-46f8-b98"
 REGION="us-central1"
 REPO_NAME="genie-ai-repo"
 IMAGE_NAME="sam-server"

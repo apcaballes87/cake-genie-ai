@@ -74,7 +74,7 @@ async function runBenchmark() {
     try {
         console.log("   Fetching Google Cloud auth token...");
         const token = await getVertexAccessToken();
-        const projectId = process.env.VERTEX_AI_PROJECT || 'project-d823a677-2d5f-4826-aaf';
+        const projectId = process.env.VERTEX_AI_PROJECT || 'project-068ffeda-8588-46f8-b98';
         const location = 'us-central1';
         const modelId = 'multimodalembedding@001';
         const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${modelId}:predict`;

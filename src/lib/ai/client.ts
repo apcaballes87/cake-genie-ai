@@ -2,6 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import fs from 'fs';
 
 let ai: InstanceType<typeof GoogleGenAI> | null = null;
+let aiBatch: InstanceType<typeof GoogleGenAI> | null = null;
 type AIClientMode = 'vertex' | 'apiKey-fallback' | 'service-account-key';
 type AIRequestContext = {
     headers?: {
@@ -62,7 +63,7 @@ function getCredentialSourceFile(credentials: Record<string, unknown> | null) {
 }
 
 function getAIClientConfigState(requestContext?: AIRequestContext): AIClientConfigState {
-    const project = process.env.VERTEX_AI_PROJECT || 'project-d823a677-2d5f-4826-aaf';
+    const project = process.env.VERTEX_AI_PROJECT || 'project-068ffeda-8588-46f8-b98';
     const location = process.env.VERTEX_AI_LOCATION || 'global';
     const apiKey = process.env.GOOGLE_AI_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY;
     const credentialsJson = process.env.GOOGLE_CREDENTIALS_JSON;

@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(parseInt(searchParams.get('limit') || '30'), 100);
   const offset = parseInt(searchParams.get('offset') || '0');
   const availability = searchParams.get('availability')?.split(',').filter(Boolean) || undefined;
+  const icingColors = searchParams.get('icingColors')?.split(',').filter(Boolean) || undefined;
   const minPrice = searchParams.get('minPrice') ? parseFloat(searchParams.get('minPrice')!) : undefined;
   const maxPrice = searchParams.get('maxPrice') ? parseFloat(searchParams.get('maxPrice')!) : undefined;
 
@@ -15,8 +16,8 @@ export async function GET(request: NextRequest) {
   }
 
   const [results, total] = await Promise.all([
-    searchProductsFTS(query, limit, offset, { availability, minPrice, maxPrice }),
-    searchProductsFTSCount(query, { availability, minPrice, maxPrice }),
+    searchProductsFTS(query, limit, offset, { availability, minPrice, maxPrice, icingColors }),
+    searchProductsFTSCount(query, { availability, minPrice, maxPrice, icingColors }),
   ]);
 
   return NextResponse.json(
