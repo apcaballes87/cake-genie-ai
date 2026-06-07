@@ -383,6 +383,8 @@ export interface DiscountValidationResult {
   finalAmount: number;
   message?: string;
   freeDelivery?: boolean;
+  discountType?: 'percentage' | 'fixed' | 'free_delivery';
+  discountValue?: number;
 }
 
 // --- Service Payloads ---

@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { CartItem } from '@/types';
+import { CartItem, DiscountValidationResult } from '@/types';
 import DetailItem from './UI/DetailItem';
 import { LoadingSpinner } from './LoadingSpinner';
 import { TrashIcon } from './icons';
@@ -71,9 +71,11 @@ interface CartItemCardProps {
     item: CartItem;
     onRemove: (id: string) => void;
     onZoom: (image: string) => void;
+    appliedDiscount?: DiscountValidationResult | null;
+    subtotal?: number;
 }
 
-const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom }) => {
+const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom, appliedDiscount, subtotal }) => {
     const tierLabels = item.details.flavors.length === 2
         ? ['Top Tier', 'Bottom Tier']
         : item.details.flavors.length === 3
@@ -88,6 +90,12 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom }) =
         drip: 'Drip',
         gumpasteBaseBoardColor: 'Base Board'
     };
+
+    const isPercentageDiscount = appliedDiscount?.discountType === 'percentage';
+    const discountPercentage = appliedDiscount?.discountValue || 0;
+    const discountedPrice = isPercentageDiscount
+        ? Math.round(item.totalPrice * (1 - discountPercentage / 100))
+        : item.totalPrice;
 
     if (item.status === 'pending') {
         return (
@@ -109,7 +117,15 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom }) =
                         <div className="flex justify-between items-start">
                             <div>
                                 <h2 className="font-semibold text-slate-800">{item.size}</h2>
-                                <p className="text-lg font-bold text-purple-600 mt-1">₱{item.totalPrice.toLocaleString()}</p>
+                                {isPercentageDiscount ? (
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className="text-lg text-slate-400 line-through">₱{item.totalPrice.toLocaleString()}</span>
+                                        <span className="text-lg font-bold text-purple-600">₱{discountedPrice.toLocaleString()}</span>
+                                        <span className="text-xs font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">-{discountPercentage}%</span>
+                                    </div>
+                                ) : (
+                                    <p className="text-lg font-bold text-purple-600 mt-1">₱{item.totalPrice.toLocaleString()}</p>
+                                )}
                             </div>
                             <button onClick={() => onRemove(item.id)} className="p-2 genie-icon-button rounded-full transition-colors" aria-label="Remove item">
                                 <TrashIcon className="w-5 h-5" />
@@ -193,7 +209,15 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom }) =
                     <div className="flex justify-between items-start">
                         <div>
                             <h2 className="font-semibold text-slate-800">{item.size}</h2>
-                            <p className="text-lg font-bold text-purple-600 mt-1">₱{item.totalPrice.toLocaleString()}</p>
+                            {isPercentageDiscount ? (
+                                <div className="flex items-center gap-2 mt-1">
+                                    <span className="text-lg text-slate-400 line-through">₱{item.totalPrice.toLocaleString()}</span>
+                                    <span className="text-lg font-bold text-purple-600">₱{discountedPrice.toLocaleString()}</span>
+                                    <span className="text-xs font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">-{discountPercentage}%</span>
+                                </div>
+                            ) : (
+                                <p className="text-lg font-bold text-purple-600 mt-1">₱{item.totalPrice.toLocaleString()}</p>
+                            )}
                         </div>
                         <button onClick={() => onRemove(item.id)} className="p-2 genie-icon-button rounded-full transition-colors" aria-label="Remove item">
                             <TrashIcon className="w-5 h-5" />

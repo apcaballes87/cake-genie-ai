@@ -1265,6 +1265,8 @@ function CartClient() {
                                                     item={item}
                                                     onRemove={onRemoveItem}
                                                     onZoom={setZoomedImage}
+                                                    appliedDiscount={appliedDiscount}
+                                                    subtotal={subtotal}
                                                 />
                                             ))}
                                         </div>

@@ -160,6 +160,9 @@ export async function validateDiscountCode(
     const finalAmount = Math.max(0, orderAmount - discountAmount);
 
     const freeDelivery = discountCode.free_delivery === true;
+    const discountType = discountCode.discount_percentage ? 'percentage' : 
+                         discountCode.discount_amount ? 'fixed' : 'free_delivery';
+    const discountValue = discountCode.discount_percentage || discountCode.discount_amount || 0;
 
     return {
       valid: true,
@@ -169,6 +172,8 @@ export async function validateDiscountCode(
       finalAmount,
       message: 'Discount code applied successfully!',
       freeDelivery,
+      discountType,
+      discountValue,
     };
   } catch (error) {
     console.error('Error validating discount code:', error);
