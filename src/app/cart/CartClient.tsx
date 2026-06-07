@@ -315,7 +315,9 @@ function CartClient() {
         }
 
         setIsValidatingCode(true);
+        console.log('🎫 [CartClient] Applying discount:', { code, subtotal });
         const result = await validateDiscountCode(code, subtotal);
+        console.log('🎫 [CartClient] Discount result:', result);
         setIsValidatingCode(false);
 
         if (result.valid) {
@@ -552,6 +554,7 @@ function CartClient() {
     // Effect to re-validate discount when cart total changes
     const isInitialMount = useRef(true);
     useEffect(() => {
+        console.log('🎫 [CartClient] Subtotal changed:', { subtotal, discountCode, hasAppliedDiscount: !!appliedDiscount });
         if (isInitialMount.current) {
             isInitialMount.current = false;
             // On initial load, if a discount code is loaded from localStorage,

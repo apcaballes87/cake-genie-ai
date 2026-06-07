@@ -150,6 +150,15 @@ export async function validateDiscountCode(
       discountAmount = (orderAmount * discountCode.discount_percentage) / 100;
     }
 
+    console.log('🎫 Discount calculation:', {
+      code: normalizedCode,
+      orderAmount,
+      discount_percentage: discountCode.discount_percentage,
+      discount_amount: discountCode.discount_amount,
+      max_discount_amount: discountCode.max_discount_amount,
+      calculatedDiscountAmount: discountAmount,
+    });
+
     // Apply max discount cap if set
     if (discountCode.max_discount_amount !== null && discountCode.max_discount_amount !== undefined) {
       discountAmount = Math.min(discountAmount, Number(discountCode.max_discount_amount));
