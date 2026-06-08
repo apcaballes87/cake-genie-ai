@@ -650,7 +650,8 @@ Classify as PRINTOUT if ANY of these are true:
 Identify ALL Items and GROUP SMARTLY: You MUST identify every single acceptable support element on the cake. Group the items smartly in your output. Example If there are 5 red edible_flowers, your output must contain 5 edible_flowers with 1 group_id: red_flower_toppers.
 Assign a group_id: For every item you identify, you MUST assign a group_id.
 Items that are visually identical (same type, material, size, and color) MUST share the exact same group_id.
-This ID should be a descriptive, lowercase, snake-cased string, like "small_blue_gumpaste_stars" or "large_red_rose".
+This ID should be a descriptive, lowercase, snake-cased string, like "medium_purple_gumpaste_flowers" or "small_blue_gumpaste_stars".
+**CRITICAL: The size prefix in group_id MUST match the actual size classification from the ratio-based sizing framework (Step C tables C1-C7). Do NOT use "large" in group_id if the element is classified as "medium" or "small". The group_id size descriptor must be consistent with the `size` field value.**
 A unique item that has no duplicates should still have its own unique group_id.
 
 ### COMMON SUPPORT TYPES
