@@ -8,8 +8,8 @@ import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { getCakeBasePriceOptions, getRelatedProductsByKeywords, getCollectionForDesignKeyword } from '@/services/supabaseService'
 import { CakeType, CakeThickness, BasePriceInfo, HybridAnalysisResult, CakeInfoUI } from '@/types'
 import { CustomizationProvider, CustomizationState } from '@/contexts/CustomizationContext'
-// FAQPageSchema deprecated (restricted to gov/healthcare Aug 2023) — using HTML accordions instead
 import { DesignAboutSection } from '@/components/DesignAboutSection'
+import { buildFAQPageSchema } from '@/lib/seo/schema'
 import LazyImage from '@/components/LazyImage'
 import { LandingFooter } from '@/components/landing/LandingFooter'
 import { mapAnalysisToState, mapProductToDefaultState } from '@/utils/customizationMapper'
@@ -377,6 +377,7 @@ export function DesignSchema({
     isSiteReviewSummaryFallback,
     perDesignReviewStats,
     linkedMerchantProducts,
+    faqs,
 }: {
     design: any;
     prices?: BasePriceInfo[];
@@ -384,6 +385,7 @@ export function DesignSchema({
     isSiteReviewSummaryFallback: boolean;
     perDesignReviewStats: { total: number; averageRating: number } | null;
     linkedMerchantProducts: { product_id: string }[];
+    faqs?: { question: string; answer: string }[];
 }) {
     // Sanitize string to prevent script injection in JSON-LD (matches SEOSchemas.tsx pattern)
     const sanitize = (str: string | null | undefined) => str ? str.replace(/<\/script/gi, '<\\/script') : '';
@@ -619,6 +621,14 @@ export function DesignSchema({
         ],
     };
 
+    // FAQPage schema for AI citability — generated from dynamic per-design FAQs
+    // Note: Google restricts FAQ rich results to gov/health sites, but FAQPage schema
+    // is still valuable for GEO — AI platforms (ChatGPT, Perplexity, Claude, Gemini)
+    // parse FAQ structured data for question-answer extraction and citation.
+    const faqPageSchema = faqs && faqs.length > 0
+        ? buildFAQPageSchema(faqs, pageUrl)
+        : null;
+
     return (
         <>
             <script
@@ -637,6 +647,12 @@ export function DesignSchema({
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(commerceFactsSchema).replace(/</g, '\\u003c') }}
             />
+            {faqPageSchema && (
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(faqPageSchema).replace(/</g, '\\u003c') }}
+                />
+            )}
         </>
     );
 }
@@ -1011,9 +1027,9 @@ function SSRCakeDetails({
  * Lives outside #ssr-content and outside Suspense so both Googlebot and users see it.
  * This avoids any cloaking concerns where crawlers see different content than users.
  */
-function SSRDesignContent({ design, prices }: { design: any; prices?: BasePriceInfo[] }) {
+function SSRDesignContent({ design, prices, faqs }: { design: any; prices?: BasePriceInfo[]; faqs?: { question: string; answer: string }[] }) {
     const designDetails = resolveRichDescription(design, prices);
-    const dynamicFAQs = generateDynamicFAQ(design, prices);
+    const dynamicFAQs = faqs || generateDynamicFAQ(design, prices);
     const keywords = design.keywords || 'Custom';
     const tags = design.tags || [];
     const analysis = design.analysis_json || {};
@@ -1177,6 +1193,9 @@ export default async function RecentSearchPage({ params }: Props) {
     })();
     const isSiteReviewSummaryFallback = false;
 
+    // Generate dynamic FAQs for this design (used for FAQPage schema + SSR content)
+    const dynamicFAQs = generateDynamicFAQ(design, prices);
+
     // Generate unique caption for image SEO from the first 1-2 sentences of design details
     const detailsText = generateDesignDetails(design, prices);
     const captionSentences = detailsText.split('. ').slice(0, 2);
@@ -1234,6 +1253,7 @@ export default async function RecentSearchPage({ params }: Props) {
                 isSiteReviewSummaryFallback={isSiteReviewSummaryFallback}
                 perDesignReviewStats={null}
                 linkedMerchantProducts={linkedMerchantProducts}
+                faqs={dynamicFAQs}
             />
 
             {/* Preload the hero image for faster LCP.
@@ -1293,7 +1313,7 @@ export default async function RecentSearchPage({ params }: Props) {
                         currentKeywords={design.keywords}
                         currentSlug={slug}
                         initialCaption={captionText}
-                        postEditorSlot={<SSRDesignContent design={design} prices={prices} />}
+                        postEditorSlot={<SSRDesignContent design={design} prices={prices} faqs={dynamicFAQs} />}
                         hideAiChat={false}
                         enableMobileHeroPan={true}
                         reviewSummary={reviewSummary}

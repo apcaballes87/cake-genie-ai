@@ -38,7 +38,8 @@ export const CAKE_TYPES: CakeType[] = [
   '1 Tier Fondant', '2 Tier Fondant', '3 Tier Fondant',
   'Square', 'Rectangle',
   'Square Fondant', 'Rectangle Fondant',
-  'Cupcake'
+  'Cupcake',
+  'Bento Cupcake Set'
 ];
 
 export const SOFT_ICING_CAKE_TYPES: CakeType[] = [
@@ -48,7 +49,8 @@ export const SOFT_ICING_CAKE_TYPES: CakeType[] = [
   '3 Tier',
   'Square',
   'Rectangle',
-  'Cupcake'
+  'Cupcake',
+  'Bento Cupcake Set'
 ];
 
 export const FONDANT_CAKE_TYPES: CakeType[] = [
@@ -144,6 +146,7 @@ export const DEFAULT_THICKNESS_MAP: Record<CakeType, CakeThickness> = {
   'Square Fondant': '5 in',
   'Rectangle Fondant': '5 in',
   'Cupcake': '2 in',
+  'Bento Cupcake Set': '2 in',
 };
 
 export const THICKNESS_OPTIONS_MAP: Record<CakeType, CakeThickness[]> = {
@@ -159,6 +162,7 @@ export const THICKNESS_OPTIONS_MAP: Record<CakeType, CakeThickness[]> = {
   'Square Fondant': ['5 in', '6 in'],
   'Rectangle Fondant': ['5 in', '6 in'],
   'Cupcake': ['2 in'],
+  'Bento Cupcake Set': ['2 in'],
 };
 
 export const ANALYSIS_PHRASES = [
@@ -347,6 +351,7 @@ export const CAKE_TYPE_THUMBNAILS: Record<CakeType, string> = {
   'Square Fondant': `${storageBaseUrl}/square.webp`,
   'Rectangle Fondant': `${storageBaseUrl}/rectangle.webp`,
   'Cupcake': `${storageBaseUrl}/bento.webp`,
+  'Bento Cupcake Set': `${storageBaseUrl}/bento.webp`,
 };
 
 export const CAKE_SIZE_THUMBNAILS: Record<string, string> = {
@@ -391,6 +396,7 @@ export const DEFAULT_SIZE_MAP: Record<CakeType, CakeSize> = {
   'Square Fondant': '8" Square',
   'Rectangle Fondant': '9"x13" Rectangle',
   'Cupcake': '2oz - 12 pieces',
+  'Bento Cupcake Set': '4" Bento + 5 Cupcakes',
 };
 
 export const CAKE_THICKNESS_THUMBNAILS: Record<CakeThickness, string> = {
