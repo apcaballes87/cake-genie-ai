@@ -214,25 +214,9 @@ const PayOrderButton: React.FC<{ order: EnrichedOrder }> = ({ order }) => {
 const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrder: EnrichedOrder) => void; onReviewSubmitted?: () => void }> = ({ order, onOrderUpdate, onReviewSubmitted }) => {
     const { user } = useAuth();
     const [zoomedItem, setZoomedItem] = useState<CakeGenieOrderItem | null>(null);
-    const [showReviewForm, setShowReviewForm] = useState(false);
-    const [selectedItemForReview, setSelectedItemForReview] = useState<any>(null);
 
     // Use the order data directly from the prop - already fetched in the main query
     const details = order;
-
-    // Check if order is eligible for review (delivery date is today or has passed, & not cancelled)
-    const isReviewEligible = (() => {
-        if (!details?.delivery_date || details?.order_status === 'cancelled') return false;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const deliveryDate = new Date(details.delivery_date + 'T00:00:00');
-        return today >= deliveryDate;
-    })();
-
-    // Fetch existing reviews for this order when eligible
-    const { data: existingReviews = [], refetch: refetchReviews } = useOrderReviews(
-        isReviewEligible ? details?.order_id : undefined
-    );
 
     if (!details) {
         return <div className="p-4 text-center text-sm text-red-600">Could not load order details.</div>;
@@ -376,85 +360,6 @@ const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrde
                 {details.payment_proof_url && details.payment_status !== 'pending' && (
                     <a href={details.payment_proof_url} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-600 hover:text-purple-700 hover:underline text-center block mt-2">View Submitted Proof</a>
                 )}
-
-                {/* Per-Item Review Section */}
-                {isReviewEligible && details.cakegenie_order_items && details.cakegenie_order_items.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-slate-100">
-                        <h4 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                            <Star className="w-4 h-4 text-yellow-500" />
-                            Rate Your Order
-                        </h4>
-                        <div className="space-y-2">
-                            {details.cakegenie_order_items.map((item: any) => {
-                                const itemReview = existingReviews.find(
-                                    (r) => r.order_item_id === item.item_id
-                                );
-                                const isReviewed = !!itemReview;
-
-                                return (
-                                    <div
-                                        key={item.item_id}
-                                        className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200"
-                                    >
-                                        <div className="w-12 h-12 shrink-0 rounded-md overflow-hidden">
-                                            <LazyImage
-                                                src={item.customized_image_url}
-                                                alt={item.cake_type}
-                                                fill={false}
-                                                width={48}
-                                                height={48}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        </div>
-                                        <div className="grow min-w-0">
-                                            <p className="text-sm font-medium text-slate-800 truncate">{item.cake_type}</p>
-                                            <p className="text-xs text-slate-500">{item.cake_size}</p>
-                                        </div>
-                                        {isReviewed ? (
-                                            <div className="shrink-0 flex items-center gap-1 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">
-                                                <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
-                                                <span className="text-xs font-semibold text-green-700">{itemReview.rating}/5</span>
-                                            </div>
-                                        ) : (
-                                            <button
-                                                onClick={() => {
-                                                    setSelectedItemForReview(item);
-                                                    setShowReviewForm(true);
-                                                }}
-                                                className="rounded-full px-3 py-1.5 text-xs shadow-sm bg-purple-600 text-white hover:bg-purple-700"
-                                            >
-                                                Write Review
-                                            </button>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                )}
-
-                {/* Review Form Modal */}
-                {showReviewForm && selectedItemForReview && user && (
-                    <ReviewForm
-                        isOpen={showReviewForm}
-                        onClose={() => {
-                            setShowReviewForm(false);
-                            setSelectedItemForReview(null);
-                        }}
-                        orderId={details.order_id}
-                        orderItemId={selectedItemForReview.item_id}
-                        merchantId={details.merchant_id || ''}
-                        productId={selectedItemForReview.product_id}
-                        userId={user.id}
-                        orderNumber={details.order_number}
-                        itemName={selectedItemForReview.cake_type}
-                        itemImageUrl={selectedItemForReview.customized_image_url}
-                        onReviewSubmitted={() => {
-                            refetchReviews();
-                            if (onReviewSubmitted) onReviewSubmitted();
-                        }}
-                    />
-                )}
             </div>
             <ImageZoomModal
                 isOpen={!!zoomedItem}
@@ -478,11 +383,32 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onOrderUpdate }) => {
     const { user } = useAuth();
     const cancelMutation = useCancelOrder();
     const [copied, setCopied] = useState(false);
+    const [showReviewForm, setShowReviewForm] = useState(false);
+    const [selectedItemForReview, setSelectedItemForReview] = useState<any>(null);
 
     const orderDate = new Date(order.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
     // The query now returns the full items array, so we use .length for the count.
     const itemCount = order.cakegenie_order_items?.length ?? 0;
+
+    // Check if order is eligible for review (delivery date is today or has passed, & not cancelled)
+    const isReviewEligible = (() => {
+        if (!order.delivery_date || order.order_status === 'cancelled') return false;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const deliveryDate = new Date(order.delivery_date + 'T00:00:00');
+        return today >= deliveryDate;
+    })();
+
+    // Fetch existing reviews to check if already reviewed
+    const { data: existingReviews = [], refetch: refetchReviews } = useOrderReviews(
+        isReviewEligible ? order.order_id : undefined
+    );
+
+    // Check if all items are already reviewed
+    const allItemsReviewed = isReviewEligible && order.cakegenie_order_items?.every(
+        (item: any) => existingReviews.some((r) => r.order_item_id === item.item_id)
+    );
 
     const handleCancelOrder = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -577,7 +503,8 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onOrderUpdate }) => {
                                 </button>
                             )}
 
-                            {order.order_status === 'pending' && (
+                            {/* Cancel Button — only when order is pending AND delivery date hasn't arrived */}
+                            {order.order_status === 'pending' && !isReviewEligible && (
                                 <button
                                     onClick={handleCancelOrder}
                                     disabled={cancelMutation.isPending}
@@ -598,6 +525,30 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onOrderUpdate }) => {
                                     )}
                                 </button>
                             )}
+
+                            {/* Write Review Button — on/after delivery date, not yet reviewed */}
+                            {isReviewEligible && !allItemsReviewed && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedItemForReview(null);
+                                        setShowReviewForm(true);
+                                    }}
+                                    className="p-2 sm:px-3 sm:py-1.5 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 shadow-sm"
+                                >
+                                    <Star className="w-4 h-4" />
+                                    <span className="hidden sm:inline">Write Review</span>
+                                </button>
+                            )}
+
+                            {/* Already Reviewed Badge */}
+                            {isReviewEligible && allItemsReviewed && (
+                                <div className="flex items-center gap-1 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">
+                                    <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                                    <span className="text-xs font-semibold text-green-700">Reviewed</span>
+                                </div>
+                            )}
+
                             <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                         </div>
                     </div>
@@ -635,6 +586,29 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onOrderUpdate }) => {
 
                     <OrderDetails order={order} onOrderUpdate={onOrderUpdate} onReviewSubmitted={() => onOrderUpdate(order)} />
                 </div>
+            )}
+
+            {/* Review Form Modal — triggered from collapsed card button */}
+            {showReviewForm && user && (
+                <ReviewForm
+                    isOpen={showReviewForm}
+                    onClose={() => {
+                        setShowReviewForm(false);
+                        setSelectedItemForReview(null);
+                    }}
+                    orderId={order.order_id}
+                    orderItemId={selectedItemForReview?.item_id}
+                    merchantId={order.merchant_id || ''}
+                    productId={selectedItemForReview?.product_id}
+                    userId={user.id}
+                    orderNumber={order.order_number}
+                    itemName={selectedItemForReview?.cake_type || order.cakegenie_order_items?.[0]?.cake_type}
+                    itemImageUrl={selectedItemForReview?.customized_image_url || order.cakegenie_order_items?.[0]?.customized_image_url}
+                    onReviewSubmitted={() => {
+                        refetchReviews();
+                        onOrderUpdate(order);
+                    }}
+                />
             )}
         </div>
     );
