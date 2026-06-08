@@ -135,7 +135,7 @@ describe('extractTitleInputFromAnalysis — R7.2 / R10.2 parity mapper', () => {
     const analysis = {
         keyword: 'Kuromi',
         cakeType: '1 Tier',
-        icing_design: { colors: { top: '#C4B5FD', side: '#C4B5FD' }, color_type: 'single' },
+        icing_design: { colors: { side: '#C4B5FD', top: '#C4B5FD' }, color_type: 'single' },
         main_toppers: [
             { description: 'Kuromi character', classification: 'hero' },
             { description: 'sprinkles', classification: 'support' },

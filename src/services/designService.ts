@@ -257,43 +257,43 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
     // Handle Drip
     if (newIcing.drip && !originalIcing.drip) {
         let instruction = `- **Add a drip effect**. The drip should flow naturally from the top edge and interact realistically with any existing side decorations, flowing around them, not erasing them.`;
-        if (newIcing.colors.drip) {
-            instruction += ` The DRIP color should be **${colorName(newIcing.colors.drip)}**.`;
+        if (newIcing.colors.side ?? newIcing.colors.top) {
+            instruction += ` The DRIP color should be **${colorName(newIcing.colors.side ?? newIcing.colors.top)}**.`;
         }
         icingChanges.push(instruction);
     } else if (!newIcing.drip && originalIcing.drip) {
         icingChanges.push(`- **Remove the drip effect**.`);
     } else if (newIcing.drip && originalIcing.drip &&
-        newIcing.colors.drip?.toUpperCase() !== originalIcing.colors.drip?.toUpperCase()) {
-        icingChanges.push(`- **Recolor the drip**. The new DRIP color should be **${colorName(newIcing.colors.drip!)}**. Preserve all other details.`);
+        (newIcing.colors.side ?? newIcing.colors.top).toUpperCase() !== (originalIcing.colors.side ?? originalIcing.colors.top).toUpperCase()) {
+        icingChanges.push(`- **Recolor the drip**. The new DRIP color should be **${colorName(newIcing.colors.side ?? newIcing.colors.top)}**. Preserve all other details.`);
     }
 
     // Handle Top Border
     if (newIcing.border_top && !originalIcing.border_top) {
         let instruction = `- **Add a decorative top border**.`;
-        if (newIcing.colors.borderTop) {
-            instruction += ` The TOP border color shade should be **${colorName(newIcing.colors.borderTop)}**.`;
+        if (newIcing.colors.top ?? newIcing.colors.side) {
+            instruction += ` The TOP border color shade should be **${colorName(newIcing.colors.top ?? newIcing.colors.side)}**.`;
         }
         icingChanges.push(instruction);
     } else if (!newIcing.border_top && originalIcing.border_top) {
         icingChanges.push(`- **Remove the top border**.`);
     } else if (newIcing.border_top && originalIcing.border_top &&
-        newIcing.colors.borderTop?.toUpperCase() !== originalIcing.colors.borderTop?.toUpperCase()) {
-        icingChanges.push(`- **Re-hue the shade of the top icing border** to **${colorName(newIcing.colors.borderTop!)}**.`);
+        (newIcing.colors.top ?? newIcing.colors.side).toUpperCase() !== (originalIcing.colors.top ?? originalIcing.colors.side).toUpperCase()) {
+        icingChanges.push(`- **Re-hue the shade of the top icing border** to **${colorName(newIcing.colors.top ?? newIcing.colors.side)}**.`);
     }
 
     // Handle Base Border
     if (newIcing.border_base && !originalIcing.border_base) {
         let instruction = `- **Add a decorative base border**.`;
-        if (newIcing.colors.borderBase) {
-            instruction += ` The BASE border color shade should be **${colorName(newIcing.colors.borderBase)}**.`;
+        if (newIcing.colors.side ?? newIcing.colors.top) {
+            instruction += ` The BASE border color shade should be **${colorName(newIcing.colors.side ?? newIcing.colors.top)}**.`;
         }
         icingChanges.push(instruction);
     } else if (!newIcing.border_base && originalIcing.border_base) {
         icingChanges.push(`- **Remove the base border**.`);
     } else if (newIcing.border_base && originalIcing.border_base &&
-        newIcing.colors.borderBase?.toUpperCase() !== originalIcing.colors.borderBase?.toUpperCase()) {
-        icingChanges.push(`- **Re-hue the shade of the base icing border** to **${colorName(newIcing.colors.borderBase!)}**.`);
+        (newIcing.colors.side ?? newIcing.colors.top).toUpperCase() !== (originalIcing.colors.side ?? originalIcing.colors.top).toUpperCase()) {
+        icingChanges.push(`- **Re-hue the shade of the base icing border** to **${colorName(newIcing.colors.side ?? newIcing.colors.top)}**.`);
     }
 
     // Handle Gumpaste Base Board

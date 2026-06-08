@@ -184,10 +184,10 @@ export const buildAiChatPromptSuggestions = (
 
     const topIcingColor = formatPromptColor(colors?.top);
     const sideIcingColor = formatPromptColor(colors?.side);
-    const primaryIcingColor = sideIcingColor || topIcingColor || formatPromptColor(colors?.borderTop) || 'white';
-    const dripColor = formatPromptColor(colors?.drip) || topIcingColor || primaryIcingColor;
-    const topBorderColor = formatPromptColor(colors?.borderTop) || primaryIcingColor;
-    const bottomBorderColor = formatPromptColor(colors?.borderBase) || primaryIcingColor;
+    const primaryIcingColor = sideIcingColor || topIcingColor || formatPromptColor(colors?.top ?? colors?.side) || 'white';
+    const dripColor = formatPromptColor(colors?.side ?? colors?.top) || topIcingColor || primaryIcingColor;
+    const topBorderColor = formatPromptColor(colors?.top ?? colors?.side) || primaryIcingColor;
+    const bottomBorderColor = formatPromptColor(colors?.side ?? colors?.top) || primaryIcingColor;
     const baseBoardColor = formatPromptColor(colors?.gumpasteBaseBoardColor) || 'white';
     if (resolvedCakeType) {
         addSuggestion(suggestions, `change the cake type from ${resolvedCakeType} to ...`);

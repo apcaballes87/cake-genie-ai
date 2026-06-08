@@ -47,18 +47,20 @@ export const getIcingImage = (
     type: IcingImageType,
     isTopSpecific = false,
 ): string => {
+    const sideColor = icingDesign.colors?.side;
+    const topColor = icingDesign.colors?.top;
     const color = (() => {
         switch (type) {
             case 'top':
-                return icingDesign.colors?.top;
+                return topColor;
             case 'side':
-                return icingDesign.colors?.side;
+                return sideColor;
             case 'drip':
-                return icingDesign.colors?.drip;
+                return sideColor ?? topColor;
             case 'borderTop':
-                return icingDesign.colors?.borderTop;
+                return topColor ?? sideColor;
             case 'borderBase':
-                return icingDesign.colors?.borderBase;
+                return sideColor ?? topColor;
             case 'gumpasteBaseBoard':
                 return icingDesign.colors?.gumpasteBaseBoardColor;
             default:

@@ -73,11 +73,11 @@ type ToggleGroup = 'drip' | 'borderTop' | 'borderBase' | 'gumpasteBaseBoard';
 const TOGGLE_GROUPS = new Set<IcingGroup>(['drip', 'borderTop', 'borderBase', 'gumpasteBaseBoard']);
 
 const GROUP_COLOR_KEYS: Record<IcingGroup, Array<keyof IcingColorDetails>> = {
-    drip: ['drip'],
+    drip: ['side', 'top'],
     top: ['top'],
     side: ['side'],
-    borderTop: ['borderTop'],
-    borderBase: ['borderBase'],
+    borderTop: ['top', 'side'],
+    borderBase: ['side', 'top'],
     gumpasteBaseBoard: ['gumpasteBaseBoardColor'],
 };
 
@@ -215,7 +215,7 @@ const VisibleStatusMessage = memo(function VisibleStatusMessage({
 });
 
 const areIcingDesignsEqual = (a: IcingDesign, b: IcingDesign): boolean => {
-    const aKeys: Array<keyof IcingColorDetails> = ['top', 'side', 'drip', 'borderTop', 'borderBase', 'gumpasteBaseBoardColor'];
+    const aKeys: Array<keyof IcingColorDetails> = ['top', 'side', 'gumpasteBaseBoardColor'];
     for (const key of aKeys) {
         if ((a.colors?.[key] || '') !== (b.colors?.[key] || '')) return false;
     }

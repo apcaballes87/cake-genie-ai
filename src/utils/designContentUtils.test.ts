@@ -5,7 +5,7 @@ const RICH_ANALYSIS = {
     cakeType: '1 tier',
     icing_design: {
         base: 'soft_icing',
-        colors: { top: '#ffc0cb', side: '#ffffff' },
+        colors: { side: '#ffffff', top: '#ffc0cb' },
     },
     main_toppers: [
         { description: 'hello kitty figurine', type: 'figurine' },
@@ -87,7 +87,7 @@ describe('generateRichAltText', () => {
                 cakeType: 'Cupcake',
                 icing_design: {
                     base: 'soft_icing',
-                    colors: { top: '#87ceeb' }
+                    colors: { side: '#87ceeb', top: '#87ceeb' }
                 },
                 main_toppers: [
                     { description: 'cinderella figure', type: 'printout' }

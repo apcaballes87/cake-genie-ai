@@ -11,14 +11,7 @@ const createAnalysis = (overrides: Partial<HybridAnalysisResult> = {}): HybridAn
     icing_design: {
         base: 'soft_icing',
         color_type: 'single',
-        colors: {
-            top: '#FFC0CB',
-            side: '#FFC0CB',
-            drip: '#FFFFFF',
-            borderTop: '#FFC0CB',
-            borderBase: '#FFC0CB',
-            gumpasteBaseBoardColor: '#FFFFFF',
-        },
+        colors: { side: '#FFC0CB', top: '#FFC0CB', gumpasteBaseBoardColor: '#FFFFFF' },
         border_top: false,
         border_base: false,
         drip: false,
@@ -59,14 +52,7 @@ describe('buildAiChatPromptSuggestions', () => {
             icing_design: {
                 base: 'soft_icing',
                 color_type: 'single',
-                colors: {
-                    top: '#FFC0CB',
-                    side: '#FFC0CB',
-                    drip: '#FFFFFF',
-                    borderTop: '#FFC0CB',
-                    borderBase: '#FFC0CB',
-                    gumpasteBaseBoardColor: '#FFFFFF',
-                },
+                colors: { side: '#FFC0CB', top: '#FFC0CB', gumpasteBaseBoardColor: '#FFFFFF' },
                 border_top: true,
                 border_base: false,
                 drip: false,
@@ -115,14 +101,7 @@ describe('buildAiChatPromptSuggestions', () => {
             icing_design: {
                 base: 'soft_icing',
                 color_type: 'gradient_2',
-                colors: {
-                    top: '#FFC0CB',
-                    side: '#87CEEB',
-                    drip: '#FFFFFF',
-                    borderTop: '#FFC0CB',
-                    borderBase: '#87CEEB',
-                    gumpasteBaseBoardColor: '#FFFFFF',
-                },
+                colors: { side: '#87CEEB', top: '#FFC0CB', gumpasteBaseBoardColor: '#FFFFFF' },
                 border_top: false,
                 border_base: true,
                 drip: true,

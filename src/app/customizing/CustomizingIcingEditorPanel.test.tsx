@@ -20,9 +20,8 @@ const baseIcingDesign: IcingDesignUI = {
     border_top: true,
     border_base: false,
     colors: {
-        top: '#ffffff',
         side: '#f5deb3',
-        borderTop: '#ff69b4',
+        top: '#ffffff',
     },
     gumpasteBaseBoard: false,
     dripPrice: 0,

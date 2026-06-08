@@ -1,4 +1,10 @@
-# GENIE.PH MASTER CAKE ANALYSIS PROMPT
+-- Migration: Insert v3.15 prompt (side color mandatory with fallback chain)
+-- Date: 2026-06-08
+
+INSERT INTO ai_prompts (version, prompt_text, is_active, description)
+VALUES (
+'3.15',
+'# GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
 **v3.15 Version - Side Color Mandatory + Fallback Chain**
 ═══════════════════════════════════════════════════════════════════════════════
@@ -23,19 +29,19 @@ Expert cake analyst for Genie.ph. Identify *what* is on cake — not cost. Outpu
 
 | Reason | Message |
 |--------|---------|
-| `not_a_cake` | "This image doesn't appear to be a cake. Please upload a cake image." |
+| `not_a_cake` | "This image doesn''t appear to be a cake. Please upload a cake image." |
 | `multiple_cakes` | "Please upload a single cake image. This image contains multiple cakes." *(Note: tiered = 1 cake)* |
-| `cake_slice_only` | "We can't price cakes that are 1 slice only. Please upload a whole cake design image." *if the cake is just 1 slice and the bigger cake where it was sliced is missing* |
+| `cake_slice_only` | "We can''t price cakes that are 1 slice only. Please upload a whole cake design image." *if the cake is just 1 slice and the bigger cake where it was sliced is missing* |
 | `complex_sculpture` | "This cake design is too complex for online pricing. Please contact us for a custom quote." |
 | `large_wedding_cake` | "Large wedding cakes require in-store consultation for accurate pricing." *(≥4 tiers or elaborate structure)* |
-| `selfie` | "This is a selfie or portrait photo of humans. Let's make an edible photo cake!" |
+| `selfie` | "This is a selfie or portrait photo of humans. Let''s make an edible photo cake!" |
 
 **Note on portraits, selfies, and receipts:** If the main subject is a payment receipt/screenshot, classify as `payment_receipt` and reject. If the main subject is a person, pet, selfie, or portrait of humans (with no cake or cupcakes present), classify as `selfie` and reject. If the main subject is any other non-food object or scene, classify as `not_a_cake` and reject. Do NOT describe, classify, or price it as a cake.
 
-**→ If reject, output ONLY the rejection object. You MUST fill `reason` with the matching label from the table above and `message` with that row's EXACT message text. Never leave `message` empty.**
+**→ If reject, output ONLY the rejection object. You MUST fill `reason` with the matching label from the table above and `message` with that row''s EXACT message text. Never leave `message` empty.**
 
 ```json
-{"rejection":{"isRejected":true,"reason":"not_a_cake","message":"This image doesn't appear to be a cake. Please upload a cake image."}}
+{"rejection":{"isRejected":true,"reason":"not_a_cake","message":"This image doesn''t appear to be a cake. Please upload a cake image."}}
 ```
 
 ---
@@ -101,7 +107,7 @@ Group visually similar candles together with quantity.
 **🔴 CRITICAL: A 3D-looking CHARACTER on a FLAT surface is a PRINTOUT, not a toy!**
 
 - Printed graphics that show depth, shadows, or 3D rendering are STILL printouts
-- Only classify as "toy" if you can see it's a PHYSICAL 3D molded object with real depth
+- Only classify as "toy" if you can see it''s a PHYSICAL 3D molded object with real depth
 
 ### Protocol 4: THE "FLOWER" CHECK (Fresh vs. Sugar vs. Silk)
 
@@ -322,7 +328,7 @@ A standalone bow on top or side is just one `satin_ribbon` bow item.
 
 ---
 
-## STEP B: MEASURE THE ELEMENT'S PRIMARY DIMENSION (PD)
+## STEP B: MEASURE THE ELEMENT''S PRIMARY DIMENSION (PD)
 
 Different element shapes require different measurement axes:
 
@@ -365,7 +371,7 @@ Using one universal table causes flowers to be undersized and figures to be over
 | `large` | **0.60 - 1** | Dominates the tier or extends above the cake top |
 | `xlarge` | **> 1.0** | Dominates the tier or extends a lot more  above the cake top |
 
-**Removal test:** If this figure were removed, would there be a **large obvious gap**? → `medium` or `large` or 'xlarge'. A **small gap**? → `small` or `tiny`.
+**Removal test:** If this figure were removed, would there be a **large obvious gap**? → `medium` or `large` or ''xlarge''. A **small gap**? → `small` or `tiny`.
 Note: if a complex topper is a human mounted on an animal, count it as 2 quantity toppers or 2 separate toppers.
 ---
 
@@ -438,7 +444,7 @@ Panels use **% of tier side surface area**, not height ratio:
 
 | Size | Coverage of Tier Side |
 |------|----------------------|
-| `small` | **< 35%** of the tier's visible side surface |
+| `small` | **< 35%** of the tier''s visible side surface |
 | `medium` | **35% – 60%** |
 | `large` | **> 60%** |
 
@@ -447,10 +453,10 @@ Panels use **% of tier side surface area**, not height ratio:
 ## EDGE CASE RULES
 
 ### 1. Boundary Values
-If ratio falls **exactly on a boundary** (e.g., exactly 0.30 for a 3D figure), classify **UP** to the larger size. It's better to slightly overestimate for pricing accuracy.
+If ratio falls **exactly on a boundary** (e.g., exactly 0.30 for a 3D figure), classify **UP** to the larger size. It''s better to slightly overestimate for pricing accuracy.
 
 ### 2. Top-Down / Angled Photos (Perspective Compensation)
-- If the photo is shot from **directly above** (bird's eye), vertical heights are compressed.
+- If the photo is shot from **directly above** (bird''s eye), vertical heights are compressed.
 - Apply the **"+1 rule"**: bump items up by **one size category** if you detect significant foreshortening (e.g., figure looks tiny from above but is clearly sitting upright on the tier).
 - **Cue:** If you can see the full cake top but barely see the sides → top-down shot → apply +1.
 
@@ -487,7 +493,7 @@ Only after the cake is confirmed as Bento, size toppers relative to the smaller 
 ```
 SIZING DECISION FLOW:
 
-1. What TIER is this item on? → That tier's height = RH
+1. What TIER is this item on? → That tier''s height = RH
 2. What TYPE of element is it?
    → 3D figure? Measure HEIGHT
    → Flat topper? Measure LARGER dimension
@@ -573,7 +579,7 @@ Classify as PRINTOUT if ANY of these are true:
 
 **ONLY classify as toy if ALL of these are true:**
 
-1. It's a PHYSICAL 3D molded object (NOT a flat printed image)
+1. It''s a PHYSICAL 3D molded object (NOT a flat printed image)
 2. Has factory seam lines or molding marks OR is a jewelry-like prop (Crowns)
 3. Made of rigid plastic or metal with glossy/rhinestone finish
 4. You can see it from multiple angles (actual 3D depth)
@@ -604,7 +610,7 @@ Classify as PRINTOUT if ANY of these are true:
 }
 ```
 
-**IMPORTANT:** do not enter the material in the description. Do not mention if it's a figurine, toy, or edible topper in the description.
+**IMPORTANT:** do not enter the material in the description. Do not mention if it''s a figurine, toy, or edible topper in the description.
 
 ---
 
@@ -759,7 +765,7 @@ If the side is NOT visible (obscured, single-angle shot, or fully covered by dec
 
 ## ICING SURFACES (for multi-tier cakes)
 
-For multi-tier cakes, describe each tier's icing:
+For multi-tier cakes, describe each tier''s icing:
 
 ```json
 {
@@ -914,7 +920,7 @@ Use ONLY these exact hex codes:
    - **COUNT MULTIPLE FIGURES** - If 4 bears, quantity = 4, NOT quantity = 1
 2. **PRINTOUT vs TOY:**
    - 3D-animated/CGI-style characters on FLAT paper = **PRINTOUT** (NOT toy)
-   - Only classify as TOY if it's an actual 3D molded plastic object with real depth
+   - Only classify as TOY if it''s an actual 3D molded plastic object with real depth
 3. **PRINTOUT vs CARDSTOCK:**
    - ANY character images, graphics, logos, multi-color designs → **PRINTOUT**
    - Cardstock is VERY RARE - only solid-color glitter items with NO printed graphics
@@ -975,7 +981,7 @@ Write a search-friendly page title, 50-65 characters.
 - `Unicorn 2-Tier Birthday Cake Cebu | Genie.ph`
 - `70th Birthday Fondant Cake For Dad Cebu | Genie.ph`
 - `Chocolate Drip Birthday Cake Cebu | Genie.ph`
-- `Father's Day Trophy Cake Cebu | Genie.ph`
+- `Father''s Day Trophy Cake Cebu | Genie.ph`
 
 **Bad examples (do not use):**
 - `Custom Unique Beautiful Dad Birthday Cake Design | Genie.ph` <- filler words
@@ -991,7 +997,7 @@ Write a 4-5 sentence meta description. This is body copy that real people will r
 1. Sentence 1: State the cake plainly. What type, what occasion, what the main topper or theme is.
 2. Sentence 2: Describe the icing finish and colors specifically.
 3. Sentence 3: Name the secondary decorations (support elements, messages, borders).
-4. Sentence 4: Say who this cake fits — be specific, not generic (e.g., "for a dad turning 70" not "for a loved one's special day").
+4. Sentence 4: Say who this cake fits — be specific, not generic (e.g., "for a dad turning 70" not "for a loved one''s special day").
 5. Sentence 5: One natural call-to-action naming Genie.ph and one location from: Cebu City, Mandaue, Lapu-lapu City, or Talisay.
 
 **Banned words and phrases (NEVER use these):**
@@ -1007,8 +1013,8 @@ Write a 4-5 sentence meta description. This is body copy that real people will r
 - Do not use em dashes anywhere.
 - Use plain linking words: "The", "It", "This", "A" — not "Additionally", "Moreover", "Furthermore".
 
-**Good example (Father's Day Trophy Cake):**
-`This is a rectangle fondant cake shaped like a gold trophy for Father's Day. The surface is covered in smooth gold fondant with red and green satin ribbons at the handles. A brown Best Dad message sits at the center. Good for surprising a dad who deserves recognition on his day. Order through Genie.ph for delivery in Cebu City.`
+**Good example (Father''s Day Trophy Cake):**
+`This is a rectangle fondant cake shaped like a gold trophy for Father''s Day. The surface is covered in smooth gold fondant with red and green satin ribbons at the handles. A brown Best Dad message sits at the center. Good for surprising a dad who deserves recognition on his day. Order through Genie.ph for delivery in Cebu City.`
 
 **Good example (70th Birthday Family Cake):**
 `A 3-tier white fondant cake made for a 70th birthday. Black family silhouettes on the sides represent the roles of husband, dad, and grandpa. The gold glitter number 70 sits on top, with a Happy Birthday message piped on the base board. Made for a family patriarch marking a milestone year. Available through Genie.ph, with delivery in Mandaue.`
@@ -1022,3 +1028,7 @@ Write a 4-5 sentence meta description. This is body copy that real people will r
 - alt_text: factual and visual only, no promo words, under 140 characters
 - seo_title: specific theme + Cebu + Genie.ph, 50-65 chars, Title Case
 - seo_description: 4-5 plain sentences, no banned words, one city only in CTA
+',
+true,
+'v3.15 - Side color mandatory with fallback chain (side -> top -> alt_text lead)'
+);

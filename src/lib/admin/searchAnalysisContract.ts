@@ -62,9 +62,14 @@ export function buildSearchAnalysisResponseSchema(typeEnums: TypeEnums) {
           colors: {
             type: Type.OBJECT,
             properties: {
-              top: { type: Type.STRING }, side: { type: Type.STRING },
+              side: {
+                type: Type.STRING,
+                description: 'REQUIRED. Customer-facing dominant color. The swatch filter reads this. Must be a hex from the approved palette. See CATEGORY 5 side color rules.',
+              },
+              top: { type: Type.STRING },
               gumpasteBaseBoardColor: { type: Type.STRING },
             },
+            required: process.env.ENFORCE_SIDE_COLOR === 'true' ? ['side'] : [],
           },
           drip: { type: Type.BOOLEAN }, border_top: { type: Type.BOOLEAN },
           border_base: { type: Type.BOOLEAN }, gumpasteBaseBoard: { type: Type.BOOLEAN },

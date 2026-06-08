@@ -133,7 +133,7 @@ describe('cacheAnalysisResult', () => {
         keyword: 'lavender',
         icing_design: {
           base: 'soft_icing',
-          colors: { top: 'purple', side: 'white' },
+          colors: { side: 'white', top: 'purple' },
         },
         main_toppers: [],
         support_elements: [],
@@ -177,7 +177,7 @@ describe('cacheAnalysisResult', () => {
         keyword: 'roblox',
         icing_design: {
           base: 'soft_icing',
-          colors: { top: 'blue', side: 'white' },
+          colors: { side: 'white', top: 'blue' },
         },
         main_toppers: [],
         support_elements: [],
@@ -223,7 +223,7 @@ describe('cacheAnalysisResult', () => {
         keyword: 'separate-design',
         icing_design: {
           base: 'soft_icing',
-          colors: { top: 'white', side: 'white' },
+          colors: { side: 'white', top: 'white' },
         },
         main_toppers: [],
         support_elements: [],
@@ -266,7 +266,7 @@ describe('cacheAnalysisResult', () => {
           keyword: 'indexed-design',
           icing_design: {
             base: 'soft_icing',
-            colors: { top: 'pink', side: 'white' },
+            colors: { side: 'white', top: 'pink' },
           },
           main_toppers: [],
           support_elements: [],
@@ -324,7 +324,7 @@ describe('cacheAnalysisResult', () => {
             keyword: 'non-blocking-index',
             icing_design: {
               base: 'soft_icing',
-              colors: { top: 'blue', side: 'white' },
+              colors: { side: 'white', top: 'blue' },
             },
             main_toppers: [],
             support_elements: [],
@@ -370,7 +370,7 @@ describe('cacheAnalysisResult', () => {
         keyword: 'catalog-refresh',
         icing_design: {
           base: 'soft_icing',
-          colors: { top: 'purple', side: 'white' },
+          colors: { side: 'white', top: 'purple' },
         },
         main_toppers: [],
         support_elements: [],
@@ -406,7 +406,7 @@ describe('cacheAnalysisResult', () => {
         keyword: 'catalog-refresh',
         icing_design: {
           base: 'soft_icing',
-          colors: { top: 'purple', side: 'white' },
+          colors: { side: 'white', top: 'purple' },
         },
         main_toppers: [],
         support_elements: [],
@@ -439,7 +439,7 @@ describe('cacheAnalysisResult', () => {
         keyword: 'catalog-refresh',
         icing_design: {
           base: 'soft_icing',
-          colors: { top: 'purple', side: 'white' },
+          colors: { side: 'white', top: 'purple' },
         },
         main_toppers: [],
         support_elements: [],

@@ -223,29 +223,32 @@ const getIcingImage = (icingDesign: IcingDesignUI, type: IcingImageType, isTopSp
     let prefix = 'icing';
     let defaultFile = 'icing_white.webp';
 
+    const sideColor = icingDesign.colors?.side;
+    const topColor = icingDesign.colors?.top;
+
     switch (type) {
         case 'top':
-            color = icingDesign.colors?.top;
+            color = topColor;
             if (isTopSpecific) {
                 prefix = 'topicing';
                 defaultFile = 'topicing_white.webp';
             }
             break;
         case 'side':
-            color = icingDesign.colors?.side;
+            color = sideColor;
             break;
         case 'drip':
-            color = icingDesign.colors?.drip;
+            color = sideColor ?? topColor;
             prefix = 'drip';
             defaultFile = 'drip_white.webp';
             break;
         case 'borderTop':
-            color = icingDesign.colors?.borderTop;
+            color = topColor ?? sideColor;
             prefix = 'top';
             defaultFile = 'top_white.webp';
             break;
         case 'borderBase':
-            color = icingDesign.colors?.borderBase;
+            color = sideColor ?? topColor;
             prefix = 'baseborder';
             defaultFile = 'baseborder_white.webp';
             break;
@@ -2927,7 +2930,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
 
             if (analysisResult && icingDesign && analysisResult.icing_design) {
                 if (icingDesign.drip && !analysisResult.icing_design.drip) {
-                    specificMessages.push(`Adding ${colorName(icingDesign.colors.drip)} drip effect...`);
+                    const dripColor = icingDesign.colors?.side ?? icingDesign.colors?.top;
+                    specificMessages.push(`Adding ${colorName(dripColor)} drip effect...`);
                 }
                 if (analysisResult.icing_design.colors && icingDesign.colors.side !== analysisResult.icing_design.colors.side) {
                     specificMessages.push(`Painting the sides ${colorNameSimple(icingDesign.colors.side)}...`);

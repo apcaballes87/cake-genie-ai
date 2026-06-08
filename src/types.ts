@@ -83,11 +83,8 @@ export interface CakeMessage {
 }
 
 export interface IcingColorDetails {
-  side?: string;
+  side: string;
   top?: string;
-  borderTop?: string;
-  borderBase?: string;
-  drip?: string;
   gumpasteBaseBoardColor?: string;
 }
 

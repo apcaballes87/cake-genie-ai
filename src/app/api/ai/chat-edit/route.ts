@@ -206,22 +206,24 @@ CAKE MESSAGES:
   - If user says "top": set position to "top".
 
 ICING DESIGN & EFFECTS:
-- "colors" object under "icing_design" maps design elements to colors. Valid keys: top, side, drip, borderTop, borderBase, gumpasteBaseBoardColor.
-- Drip: If user asks for a drip (e.g., "add gold drip"), set icing_design.drip = true AND icing_design.colors.drip = "#FFD700". To remove, set drip = false.
-- Borders: "Top border" -> border_top = true & colors.borderTop. "Bottom border" -> border_base = true & colors.borderBase.
-- Base Board: "Base board" -> gumpasteBaseBoard = true & colors.gumpasteBaseBoardColor.
-- Cake Color: "make the cake [color]" -> change colors.side and colors.top to the matching HEX code.
+- "colors" object under "icing_design" has keys: side (required), top, gumpasteBaseBoardColor. All values are HEX codes from the approved palette.
+- Drip: If user asks for a drip (e.g., "add gold drip"), set icing_design.drip = true. To remove, set drip = false. (No color in colors object; drip color is inferred from side/top).
+- Borders: "Top border" -> set border_top = true. "Bottom border" -> set border_base = true. (No color in colors object; border color is inferred from side/top).
+- Base Board: "Base board" -> set gumpasteBaseBoard = true AND set colors.gumpasteBaseBoardColor to the matching HEX.
+- Cake Color: "make the cake [color]" -> change colors.side and colors.top to the matching HEX code. Side is the primary color for slugs/filters.
 
 CRITICAL RULES:
-1. All colors must be valid CSS HEX codes.
+1. All colors must be valid CSS HEX codes from the approved palette above.
 2. Set booleans strictly to true or false.
 3. NEVER add "drip", "border", or "board" to support_elements. They MUST ONLY BE CONFIGURED inside the icing_design object.
 4. Do NOT remove any existing message or element unless explicitly asked to "remove" or "delete" it.
+5. The "colors" object does NOT contain drip, borderTop, or borderBase keys. Those are separate boolean flags at icing_design level.
 
 EXAMPLES:
 - Prompt: "add message Happy Birthday in front side" -> Action: add to cake_messages { text: "Happy Birthday", position: "side", type: "icing_script", color: "#000000" }.
-- Prompt: "make the cake mint green" -> Action: set icing_design.colors.top and side to "#98FF98". Return ALL other fields unchanged.
-- Prompt: "add a gold drip" -> Action: set icing_design.drip = true AND icing_design.colors.drip = "#FFD700". Return ALL other fields unchanged.
+- Prompt: "make the cake mint green" -> Action: set icing_design.colors.side and icing_design.colors.top to "#98FF98". Return ALL other fields unchanged.
+- Prompt: "add a gold drip" -> Action: set icing_design.drip = true. Return ALL other fields unchanged.
+- Prompt: "add top border" -> Action: set icing_design.border_top = true. Return ALL other fields unchanged.
 
 Return the FULL, COMPLETE updated JSON with every field from the input included.
  

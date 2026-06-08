@@ -545,7 +545,7 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
                 const allAnalysisColorKeys = Object.keys(newDesign.colors) as Array<keyof IcingColorDetails>;
                 for (const colorKey of allAnalysisColorKeys) {
                     if (!dirtyFields.has(`icingDesign.colors.${String(colorKey)}`)) {
-                        mergedIcing.colors[colorKey] = newDesign.colors[colorKey];
+                        mergedIcing.colors[colorKey] = newDesign.colors[colorKey] ?? '#FFFFFF';
                     }
                 }
             }
@@ -774,11 +774,8 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
             base: current.icingDesign.base,
             color_type: current.icingDesign.color_type,
             colors: {
-                top: current.icingDesign.colors.top || '#FFFFFF',
                 side: current.icingDesign.colors.side || '#FFFFFF',
-                drip: current.icingDesign.colors.drip || '#FFFFFF',
-                borderTop: current.icingDesign.colors.borderTop || '#FFFFFF',
-                borderBase: current.icingDesign.colors.borderBase || '#FFFFFF',
+                top: current.icingDesign.colors.top || '#FFFFFF',
                 gumpasteBaseBoardColor: current.icingDesign.colors.gumpasteBaseBoardColor || '#FFFFFF'
             },
             border_top: current.icingDesign.border_top,

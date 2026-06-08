@@ -48,11 +48,8 @@ const buildProps = (): React.ComponentProps<typeof CustomizingStepSummarySection
         border_base: false,
         gumpasteBaseBoard: false,
         colors: {
-            drip: '#ff69b4',
-            borderTop: '#ff0000',
-            borderBase: '#00ff00',
-            top: '#ffffff',
             side: '#f5deb3',
+            top: '#ffffff',
             gumpasteBaseBoardColor: '#cccccc',
         },
         dripPrice: 0,

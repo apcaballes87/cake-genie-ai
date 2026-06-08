@@ -25,7 +25,7 @@ const analysisResult: HybridAnalysisResult = {
     icing_design: {
         base: 'soft_icing',
         color_type: 'single',
-        colors: { top: '#ffffff', side: '#ffffff' },
+        colors: { side: '#ffffff', top: '#ffffff' },
         border_top: false,
         border_base: false,
         drip: false,

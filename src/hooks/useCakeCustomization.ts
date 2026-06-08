@@ -361,7 +361,7 @@ export const useCakeCustomization = () => {
                 const allAnalysisColorKeys = Object.keys(analysisIcing.colors) as Array<keyof IcingColorDetails>;
                 for (const colorKey of allAnalysisColorKeys) {
                     if (!dirtyFields.has(`icingDesign.colors.${String(colorKey)}`)) {
-                        newIcing.colors[colorKey] = analysisIcing.colors[colorKey];
+                        newIcing.colors[colorKey] = analysisIcing.colors[colorKey] ?? '#FFFFFF';
                     }
                 }
             }

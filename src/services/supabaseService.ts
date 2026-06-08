@@ -888,7 +888,7 @@ export async function cacheAnalysisResult(
     const keywords = analysisResult.keyword || '';
 
     // Generate SEO-friendly slug: keyword + icing color + type + phash
-    const icingColor = analysisResult.icing_design?.colors?.top || analysisResult.icing_design?.colors?.side || null;
+    const icingColor = analysisResult.icing_design?.colors?.side || analysisResult.icing_design?.colors?.top || null;
     const slug = generateCakeAnalysisSlug({
       keyword: keywords,
       icingColor,
@@ -1815,7 +1815,7 @@ export async function searchProductsFTS(
     availability?: string[];
     minPrice?: number;
     maxPrice?: number;
-    icingColors?: string[];
+    icingColors?: string;
   }
 ): Promise<SupabaseServiceResponse<any[]>> {
   const client = typeof window === 'undefined' ? publicSupabaseClient : supabase;
@@ -1890,7 +1890,7 @@ export async function searchProductsFTSCount(
     availability?: string[];
     minPrice?: number;
     maxPrice?: number;
-    icingColors?: string[];
+    icingColors?: string;
   }
 ): Promise<number> {
   const client = typeof window === 'undefined' ? publicSupabaseClient : supabase;
@@ -1934,7 +1934,7 @@ export interface RecentSearchDesign {
   seo_title: string | null;
   seo_description: string | null;
   created_at: string;
-  icing_colors?: string[] | null;
+  icing_colors?: string | null;
 }
 
 /**
