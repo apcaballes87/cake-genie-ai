@@ -12,8 +12,63 @@ const KNOWN_ROUTES = new Set([
     'sitemap-index.xml', 'sitemap.xml', 'terms',
 ])
 
+// Known malicious bot user agents (SEO scrapers, spam bots)
+// NOTE: AI crawlers (GPTBot, ClaudeBot, PerplexityBot) are NOT blocked — they help GEO
+const BLOCKED_USER_AGENTS = [
+    'semrush', 'ahrefs', 'mj12bot', 'dotbot', 'blexbot',
+    'screaming frog', 'petalbot', 'yandex',
+]
+
+// Rate limiting store (in-memory, resets on cold start)
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>()
+const RATE_LIMIT_WINDOW = 60 * 1000 // 1 minute
+const RATE_LIMIT_MAX = 60 // max requests per window
+
+function checkIpRateLimit(ip: string): boolean {
+    const now = Date.now()
+    const record = rateLimitStore.get(ip)
+
+    if (!record || now > record.resetTime) {
+        rateLimitStore.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW })
+        return true
+    }
+
+    record.count++
+    return record.count <= RATE_LIMIT_MAX
+}
+
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
+
+    // === BOT BLOCKING ===
+    const userAgent = request.headers.get('user-agent')?.toLowerCase() || ''
+    const referer = request.headers.get('referer') || ''
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || '127.0.0.1'
+
+    // Block known malicious bot user agents
+    for (const bot of BLOCKED_USER_AGENTS) {
+        if (userAgent.includes(bot)) {
+            return new NextResponse('Forbidden', { status: 403 })
+        }
+    }
+
+    // Block requests with no user agent (common for bots)
+    if (!userAgent) {
+        return new NextResponse('Forbidden', { status: 403 })
+    }
+
+    // Block suspicious patterns: no referer + fast repeated requests
+    // This catches bots that hit multiple pages without referrer
+    if (!referer && !pathname.startsWith('/api/')) {
+        if (!checkIpRateLimit(ip)) {
+            return new NextResponse('Too Many Requests', {
+                status: 429,
+                headers: { 'Retry-After': '60' },
+            })
+        }
+    }
+
+    // === END BOT BLOCKING ===
 
     // Edge Rate Limiting check
     const isAiRoute = pathname.startsWith('/api/ai/analyze')
