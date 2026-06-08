@@ -220,11 +220,13 @@ const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrde
     // Use the order data directly from the prop - already fetched in the main query
     const details = order;
 
-    // Check if order is eligible for review (delivery date has passed & not cancelled)
+    // Check if order is eligible for review (delivery date is today or has passed, & not cancelled)
     const isReviewEligible = (() => {
         if (!details?.delivery_date || details?.order_status === 'cancelled') return false;
-        const deliveryEnd = new Date(details.delivery_date + 'T23:59:59');
-        return new Date() > deliveryEnd;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const deliveryDate = new Date(details.delivery_date + 'T00:00:00');
+        return today >= deliveryDate;
     })();
 
     // Fetch existing reviews for this order when eligible
