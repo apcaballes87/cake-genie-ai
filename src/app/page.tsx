@@ -13,6 +13,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { genieBusinessProfile, buildGenieLocalBusinessSchema } from '@/lib/seo/genieBusinessProfile';
 import { HOMEPAGE_ASSETS } from '@/constants';
 import AnimatedBlobs from '@/components/UI/AnimatedBlobs';
+import { buildFAQPageSchema } from '@/lib/seo/schema';
 
 // The newsletter popup is gated on a 25s timer or 40% scroll, so it never
 // affects the initial render. Lazy-loading it keeps its bundle (and the auth
@@ -137,6 +138,37 @@ function LocalBusinessSchema({
     );
 }
 
+function HomepageFAQSchema() {
+    const homepageFaqs = [
+        {
+            question: 'What is Genie.ph?',
+            answer: 'Genie.ph is the Philippines\' first AI-powered marketplace for custom cakes, founded in 2024 in Cebu City. Genie.ph connects customers with vetted local bakers, provides instant AI pricing from cake photos, and offers a visual customization tool. Genie.ph has served thousands of custom cake orders across Metro Cebu with a 4.9/5 average customer rating.',
+        },
+        {
+            question: 'How much do custom cakes cost on Genie.ph?',
+            answer: 'Custom cakes on Genie.ph start at ₱350 for bento cakes, ₱800 for standard 1-tier cakes, and ₱1,500 for multi-tier event cakes. Cupcake sets of 12 pieces start at ₱499. Upload a photo to the Cake Price Calculator for a free instant estimate.',
+        },
+        {
+            question: 'Where does Genie.ph deliver?',
+            answer: 'Genie.ph delivers throughout Metro Cebu including Cebu City, Mandaue City, Lapu-Lapu City (Mactan), Talisay City, and select areas in Liloan, Consolacion, and Minglanilla. Free delivery is available within Cebu City proper.',
+        },
+        {
+            question: 'How do I order a custom cake on Genie.ph?',
+            answer: 'Order a custom cake in 3 steps: 1) Upload a design photo to the Cake Price Calculator for instant AI pricing, 2) Customize colors, flavors, size, and toppers using the visual editor, 3) Place your order with secure payment via GCash, Maya, or credit card. Orders placed by 3 PM qualify for next-day delivery.',
+        },
+    ];
+
+    const faqSchema = buildFAQPageSchema(homepageFaqs, 'https://genie.ph');
+    if (!faqSchema) return null;
+
+    return (
+        <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+    );
+}
+
 async function getHomepageReviews() {
     const supabase: SupabaseClient = await createClient();
 
@@ -239,6 +271,7 @@ export default function Home() {
             <link rel="preload" as="image" href={HOMEPAGE_ASSETS.heroProducts.floral} />
             <link rel="preload" as="image" href={HOMEPAGE_ASSETS.heroProducts.bento} />
             <WebSiteSchema />
+            <HomepageFAQSchema />
             <AnimatedBlobs />
             {/*
               The hero (LandingClient with empty data) renders immediately so

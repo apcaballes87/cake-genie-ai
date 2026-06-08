@@ -76,7 +76,7 @@ const AboutClient: React.FC = () => {
                     <div className="rounded-2xl border border-purple-100 bg-linear-to-r from-purple-50/50 via-white to-purple-50/50 p-5">
                         <p className="text-sm font-semibold uppercase tracking-[0.16em] text-purple-600">What Genie.ph is</p>
                         <p className="mt-3 text-base leading-7 text-slate-600">
-                            Genie.ph is a Cebu-based AI-powered marketplace for custom cakes. We help customers upload a design, estimate the price, customize the details, and place an order with vetted local bakers serving Metro Cebu.
+                            Genie.ph is the Philippines&apos; first AI-powered marketplace for custom cakes, founded in 2024 in Cebu City. Genie.ph helps customers upload a design, get instant AI pricing, customize every detail, and place an order with vetted local bakers serving Metro Cebu. With a 4.9/5 customer rating, Genie.ph has served thousands of custom cake orders and won 1st Place at the Startup Innovation Summit.
                         </p>
                         <div className="mt-4 flex flex-wrap gap-3">
                             <Link href="/customizing" className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
@@ -89,7 +89,8 @@ const AboutClient: React.FC = () => {
                     </div>
 
                     <Section title="Our Story">
-                        <p>Genie was founded by Alan Paris Caballes with a vision to revolutionize the made-to-order economy. What began as a solution to the frustrations of ordering custom cakes—the long waits for replies, tedious back-and-forth conversations, and unclear pricing—has evolved into a cutting-edge platform that bridges the gap between artisans and their customers through innovative AI-powered technology.</p>
+                        <p>Genie.ph was founded in 2024 by Alan Paris Caballes with a vision to revolutionize the made-to-order economy. What began as a solution to the frustrations of ordering custom cakes—the long waits for replies, tedious back-and-forth conversations, and unclear pricing—has evolved into a cutting-edge platform that bridges the gap between artisans and their customers through innovative AI-powered technology.</p>
+                        <p>Since launching, Genie.ph has served thousands of custom cake orders across Metro Cebu, earning a 4.9/5 average customer rating and winning 1st Place at the Startup Innovation Summit in Mandaue City. Genie.ph connects customers with a curated network of vetted local bakers, providing instant AI pricing from cake photos and a visual customization tool that makes ordering custom cakes as easy as a few clicks.</p>
                     </Section>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-200">

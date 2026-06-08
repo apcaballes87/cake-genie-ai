@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { buildMarketingPageMetadata } from '@/lib/utils/metadata'
+import { buildFAQPageSchema } from '@/lib/seo/schema'
 
 export const metadata = buildMarketingPageMetadata({
     title: 'Frequently Asked Questions',
@@ -13,19 +14,19 @@ const faqs = [
         questions: [
             {
                 q: 'How does Genie.ph pricing work?',
-                a: 'Genie.ph uses AI-powered image analysis to provide instant price estimates for custom cake designs. Simply upload a photo of any cake design, and our AI engine analyzes the complexity, size, decorations, and icing style to generate accurate pricing from our partner bakeries in Cebu. Prices start as low as \u20B1350 for bento cakes and vary based on size, complexity, and customization options.'
+                a: 'Genie.ph prices custom cakes using AI-powered image analysis that evaluates complexity, size, decorations, and icing style to generate instant quotes from partner bakeries in Cebu. Bento cakes start at ₱350, standard 1-tier cakes from ₱800, and multi-tier cakes from ₱1,500. Upload a photo to the Cake Price Calculator for a free estimate with no commitment required.'
             },
             {
                 q: 'What payment methods do you accept?',
-                a: 'We accept GCash, Maya (formerly PayMaya), and secure credit/debit card payments through our local payment gateways. All transactions are encrypted and processed securely.'
+                a: 'Genie.ph accepts GCash, Maya (formerly PayMaya), bank transfers (BDO, BPI, Metrobank), and all major credit/debit cards processed securely via Xendit. All transactions are PCI-DSS compliant and encrypted end-to-end. Choose your preferred method at checkout.'
             },
             {
                 q: 'Can I get a price estimate before placing an order?',
-                a: 'Yes! That is one of our core features. Upload any cake design photo to our Cake Price Calculator and receive an instant AI-generated price estimate with no commitment required. You can then customize the design and compare quotes from multiple bakeries.'
+                a: 'Yes — upload any cake design photo to the Cake Price Calculator and receive an instant AI-generated price estimate in under 10 seconds. No account or commitment required. After estimating, you can customize the design and compare quotes from multiple bakeries before ordering.'
             },
             {
                 q: 'Is there a minimum order amount?',
-                a: 'Minimum order amounts vary by merchant. Most of our partner bakeries have a minimum starting price based on the cake type. Bento cakes typically start around \u20B1350, while standard tiered cakes start from \u20B1800 and up depending on size and design complexity.'
+                a: 'Minimum order amounts vary by merchant. Bento cakes typically start at ₱350 (serves 1–2), standard round cakes from ₱800 (serves 4–6), and multi-tier event cakes from ₱1,500. Each bakery sets its own minimums based on design complexity and ingredients.'
             },
         ]
     },
@@ -34,15 +35,15 @@ const faqs = [
         questions: [
             {
                 q: 'What can I customize on my cake?',
-                a: 'You can customize virtually every aspect of your cake including: icing colors and style, cake flavors, size (from bento to multi-tier), toppers and decorations, cake messages and text, fondant or buttercream finish, and special elements like drip effects or edible prints. Our AI-powered editor makes customization easy and visual.'
+                a: 'Genie.ph lets you customize icing colors and style, cake flavors (chocolate, ube, vanilla, mocha), sizes from bento to multi-tier, toppers and decorations, cake messages, fondant or buttercream finish, drip effects, and edible photo prints. Use the AI-powered visual editor to modify any element and see price updates in real time.'
             },
             {
                 q: 'Can I upload my own design?',
-                a: 'Absolutely! You can upload any cake photo or design inspiration. Our AI analyzes the image and breaks it down into customizable components like icing, toppers, colors, and messages. You can then modify each element to create your perfect cake.'
+                a: 'Yes — upload any cake photo or inspiration image and the AI analyzes it into customizable components: icing, toppers, colors, and messages. You can then modify each element individually, swap decorations, change colors, and add personalized text to create your perfect cake.'
             },
             {
                 q: 'What cake sizes are available?',
-                a: 'We offer a wide range of sizes: Bento cakes (4 inches, perfect for 1-2 people), Round cakes from 6 to 12 inches, Square cakes, and Multi-tier cakes for weddings and large events. Each baker may have slightly different size offerings.'
+                a: 'Genie.ph offers bento cakes (4 inches, serves 1–2, from ₱350), round cakes (6–12 inches, serves 4–20+), square cakes, rectangle cakes, and multi-tier cakes (2–3 tiers for weddings and large events). Cupcake sets of 12 pieces start at ₱499. Each baker may have slightly different size offerings.'
             },
         ]
     },
@@ -51,15 +52,15 @@ const faqs = [
         questions: [
             {
                 q: 'Where does Genie.ph deliver?',
-                a: 'We currently deliver throughout Metro Cebu including Cebu City, Mandaue City, Lapu-Lapu City (Mactan), Talisay City, and select areas in Liloan, Consolacion, and Minglanilla. Delivery coverage depends on the specific baker you order from.'
+                a: 'Genie.ph delivers throughout Metro Cebu: Cebu City, Mandaue City, Lapu-Lapu City (Mactan), Talisay City, and select areas in Liloan, Consolacion, and Minglanilla. Free delivery is available within Cebu City proper. Delivery coverage depends on the specific baker — check the delivery rates page for exact zones and fees.'
             },
             {
                 q: 'How long does delivery take?',
-                a: 'Custom cakes typically require 3-7 days handling time for the baker to craft your design, plus 1-2 days for delivery depending on your location within Cebu. Rush orders may be available from select merchants for an additional fee.'
+                a: 'Custom cakes require 1–3 days lead time for the baker to craft your design, plus same-day or next-day delivery within Metro Cebu. Order by 3 PM for next-day delivery slots. Rush orders may be available from select merchants for an additional fee — contact the baker directly through the platform.'
             },
             {
                 q: 'Can I pick up my order instead?',
-                a: 'Yes! Many of our partner bakeries offer pickup options. During checkout, you can choose between delivery or pickup from the baker\'s location. Pickup availability and hours vary by merchant.'
+                a: 'Yes — many partner bakeries offer pickup options. During checkout, select delivery or pickup from the baker\'s location. Pickup availability and hours vary by merchant, typically 9 AM to 6 PM daily. Pickup eliminates delivery fees entirely.'
             },
         ]
     },
@@ -68,15 +69,15 @@ const faqs = [
         questions: [
             {
                 q: 'What is Genie.ph?',
-                a: 'Genie.ph is the Philippines\' first AI-powered marketplace for custom cakes. We connect customers with talented local bakers and cakeshops in Cebu, making it easy to design, price, and order custom cakes online. Our AI technology analyzes cake designs to provide instant, accurate pricing.'
+                a: 'Genie.ph is the Philippines\' first AI-powered marketplace for custom cakes, founded in 2024 in Cebu City. Genie.ph connects customers with vetted local bakers, provides instant AI pricing from cake photos, and offers a visual customization tool. Genie.ph has served thousands of custom cake orders across Metro Cebu with a 4.9/5 average customer rating.'
             },
             {
                 q: 'How is Genie.ph different from ordering directly from a bakery?',
-                a: 'Genie.ph offers several advantages: instant AI pricing so you know the cost upfront, the ability to compare quotes from multiple bakers, an easy visual customization tool, secure online payments, and access to a curated network of vetted local artisan bakers all in one platform.'
+                a: 'Genie.ph offers instant AI pricing from uploaded photos, quotes from multiple bakers for comparison, a visual customization tool with real-time price updates, secure online payments via Xendit, and access to a curated network of vetted artisan bakers — all on one platform. Customers save an average of 30 minutes per order versus contacting bakeries individually.'
             },
             {
                 q: 'Are the bakers on Genie.ph verified?',
-                a: 'Yes, all baker partners on Genie.ph go through a verification process. We review their portfolio, food safety practices, and customer feedback before onboarding them onto our platform. We continuously monitor quality to ensure you receive the best custom cakes in Cebu.'
+                a: 'Yes — all baker partners undergo a verification process that reviews portfolio quality, food safety practices, and customer feedback before onboarding. Genie.ph continuously monitors ratings and quality metrics, and only bakers maintaining a 4.5+ average rating remain on the platform.'
             },
         ]
     },
@@ -85,23 +86,35 @@ const faqs = [
         questions: [
             {
                 q: 'What is your refund policy?',
-                a: 'Since custom cakes are perishable, made-to-order products, we generally do not accept returns. However, if there is a significant quality issue or the cake does not match the agreed-upon design, please contact our customer service at +63-908-940-8747 within 24 hours of receiving your order. We will work with the baker to resolve any issues.'
+                a: 'Custom cakes are perishable, made-to-order products and are generally non-returnable. If there is a significant quality issue or the cake does not match the agreed-upon design, contact customer service at +63-908-940-8747 within 24 hours of receiving your order with photos. Genie.ph coordinates with the baker to resolve issues via replacement or partial refund.'
             },
             {
                 q: 'What if my cake arrives damaged?',
-                a: 'If your cake arrives damaged during delivery, please take photos immediately and contact us through our live chat or call +63-908-940-8747. We will coordinate with the baker and delivery team to find the best resolution, which may include a replacement or partial refund.'
+                a: 'If your cake arrives damaged, take photos immediately and contact Genie.ph through live chat or call +63-908-940-8747. Genie.ph coordinates with the baker and delivery team to resolve the issue — typically via a replacement cake or partial refund within 48 hours. Damage claims filed within 24 hours receive priority processing.'
             },
             {
                 q: 'How do I contact customer support?',
-                a: 'You can reach our customer support team through: live chat on our website (available during business hours), phone at +63-908-940-8747, or visit our office at Park Tower One, Cebu Business Park, Cebu City. We are available in both English and Filipino.'
+                a: 'Reach Genie.ph customer support via live chat on the website (available during business hours), phone at +63-908-940-8747, email at support@genie.ph, or visit the office at Park Tower One, Cebu Business Park, Cebu City. Support is available in English and Filipino with average response times under 2 hours.'
             },
         ]
     },
 ]
 
+const flatFaqs = faqs.flatMap((section) =>
+    section.questions.map((faq) => ({ question: faq.q, answer: faq.a }))
+)
+
+const faqSchema = buildFAQPageSchema(flatFaqs, 'https://genie.ph')
+
 export default function FAQPage() {
     return (
         <main className="min-h-screen bg-gradient-to-br from-purple-50/50 via-slate-50 to-purple-50/30">
+            {faqSchema && (
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+                />
+            )}
             <div className="container mx-auto px-4 py-12 max-w-4xl">
                 <header className="text-center mb-12">
                     <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">

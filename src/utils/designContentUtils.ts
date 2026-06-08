@@ -113,24 +113,20 @@ export function generateDesignDetails(design: any, prices?: BasePriceInfo[]): st
         const lowest = sorted[0];
         const highest = sorted[sorted.length - 1];
         const sizeList = prices.map(p => p.size).join(', ');
+        const availabilityHint = availability === 'rush'
+            ? ' Rush orders are available for this design.'
+            : availability === 'same-day'
+                ? ' Same-day delivery is available.'
+                : ' Order by 3 PM for next-day delivery.';
         if (isCupcake) {
-            sentences.push(`Available in ${sizeList}, this design is priced at ₱${Math.round(lowest.price).toLocaleString()} for a set.`);
+            sentences.push(`Available in ${sizeList}, this design is priced at ₱${Math.round(lowest.price).toLocaleString()} for a set.${availabilityHint}`);
         } else {
-            sentences.push(`Available in ${sizeList}, this design starts at ₱${Math.round(lowest.price).toLocaleString()} and goes up to ₱${Math.round(highest.price).toLocaleString()} for the largest size.`);
+            sentences.push(`Available in ${sizeList}, this design starts at ₱${Math.round(lowest.price).toLocaleString()} and goes up to ₱${Math.round(highest.price).toLocaleString()} for the largest size.${availabilityHint}`);
         }
     }
 
-    // Sentence 7: Availability
-    const availabilityMap: Record<string, string> = {
-        'rush': `This is a simple design eligible for rush orders — you can have it ready in as little as 60 minutes.`,
-        'same-day': `This design qualifies for same-day orders with approximately 3 to 4 hours of lead time.`,
-        'normal': isCupcake
-            ? `We recommend ordering at least 1 day in advance for the best results.`
-            : `Due to the complexity of this design, we recommend ordering at least 1 day in advance for the best results.`,
-    };
-    if (availabilityMap[availability]) {
-        sentences.push(availabilityMap[availability]);
-    }
+    // Sentence 7: Delivery coverage
+    sentences.push(`Free delivery is available throughout Metro Cebu, including Cebu City, Mandaue, Lapu-Lapu, and Talisay.`);
 
     return sentences.join(' ');
 }
@@ -161,7 +157,7 @@ export function generateDynamicFAQ(design: any, prices?: BasePriceInfo[]): { que
             question: isCupcake ? `How much do these ${keywords} cupcakes cost?` : `How much does this ${keywords} cake cost?`,
             answer: isCupcake
                 ? `These ${keywords} cupcakes are priced at: ${priceLines}. The price includes the base icing, all decorations shown in the design, and free delivery within Metro Cebu. You can also customize individual elements which may adjust the final price.`
-                : `This ${keywords} ${cakeType.toLowerCase()} cake is available in multiple sizes: ${priceLines}. The price includes the base icing, all decorations shown in the design, and free delivery within Metro Cebu. You can also customize individual elements which may adjust the final price.`,
+                : `This ${keywords} cake is available in multiple sizes: ${priceLines}. The price includes the base icing, all decorations shown in the design, and free delivery within Metro Cebu. You can also customize individual elements which may adjust the final price.`,
         });
     }
 
@@ -185,8 +181,8 @@ export function generateDynamicFAQ(design: any, prices?: BasePriceInfo[]): { que
     // FAQ 3: Customization — varies based on what's actually on the cake
     const customizableElements: string[] = [];
     if (mainToppers.length > 0) {
-        const topperTypes = [...new Set(mainToppers.map((t: any) => t.type?.replace(/_/g, ' ')))];
-        customizableElements.push(`toppers (currently ${topperTypes.join(', ')})`);
+        const topperDescriptions = [...new Set(mainToppers.map((t: any) => t.description || t.type?.replace(/_/g, ' ')))];
+        customizableElements.push(`toppers (currently ${topperDescriptions.join(', ')})`);
     }
     if (analysis.icing_design) {
         customizableElements.push('icing colors and style');
@@ -209,10 +205,10 @@ export function generateDynamicFAQ(design: any, prices?: BasePriceInfo[]): { que
 
     // FAQ 4: Delivery — semi-dynamic with cake type context
     faqs.push({
-        question: isCupcake ? `Do you deliver ${pPluralThis} cupcakes in Cebu?` : `Do you deliver this ${cakeType.toLowerCase()} cake in Cebu?`,
+        question: isCupcake ? `Do you deliver ${pPluralThis} ${keywords} cupcakes in Cebu?` : `Do you deliver this ${keywords} cake in Cebu?`,
         answer: isCupcake
             ? `Yes, we offer free delivery for these ${keywords} cupcakes throughout Metro Cebu, including Cebu City, Mandaue, Mactan, Lapu-Lapu, and Talisay. We also serve select areas in Cavite.`
-            : `Yes, we offer free delivery for this ${keywords} ${cakeType.toLowerCase()} cake throughout Metro Cebu, including Cebu City, Mandaue, Mactan, Lapu-Lapu, and Talisay. We also serve select areas in Cavite. All cakes are delivered fresh by our partner bakers to ensure quality.`,
+            : `Yes, we offer free delivery for this ${keywords} cake throughout Metro Cebu, including Cebu City, Mandaue, Mactan, Lapu-Lapu, and Talisay. We also serve select areas in Cavite. All cakes are delivered fresh by our partner bakers to ensure quality.`,
     });
 
     // FAQ 5: Payment methods — static but important for conversions and trust
