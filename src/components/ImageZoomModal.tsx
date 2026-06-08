@@ -128,7 +128,7 @@ export const ImageZoomModal = React.memo<ImageZoomModalProps>((props) => {
     return null;
   }
 
-  const resetKey = `${initialTab}:${originalImage ?? ''}:${customizedImage ?? ''}`;
+  const resetKey = `${isOpen}:${initialTab}:${originalImage ?? ''}:${customizedImage ?? ''}`;
 
   return <ImageZoomModalContent key={resetKey} {...props} />;
 });
