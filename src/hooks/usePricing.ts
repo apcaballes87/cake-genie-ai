@@ -30,6 +30,7 @@ const cakeTypeDisplayMap: Record<CakeType, string> = {
     'Square Fondant': 'Square Fondant',
     'Rectangle Fondant': 'Rectangle Fondant',
     'Cupcake': 'Cupcake',
+    'Bento Cupcake Set': 'Bento Cupcake Set',
 };
 
 const pricingKeys = {

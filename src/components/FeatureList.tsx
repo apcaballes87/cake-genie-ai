@@ -59,6 +59,7 @@ const cakeTypeDisplayMap: Record<CakeType, string> = {
     'Square': 'Square', 'Rectangle': 'Rectangle', 'Bento': 'Bento',
     'Square Fondant': 'Square Fondant', 'Rectangle Fondant': 'Rectangle Fondant',
     'Cupcake': 'Cupcake',
+    'Bento Cupcake Set': 'Bento Cupcake Set',
 };
 
 const Section: React.FC<{ title: string; children: React.ReactNode; defaultOpen?: boolean; count?: number; analysisText?: string }> = ({ title, children, defaultOpen = true, count, analysisText }) => {

@@ -107,9 +107,12 @@ export async function calculatePriceFromDatabase(
 
   const { mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo } = uiState;
 
+  // Bento Cupcake Set pricing: Use standard database pricing (Bento rules apply via special_conditions)
+  const isBentoCupcakeSet = cakeInfo.type === 'Bento Cupcake Set';
+
   // Cupcakes pricing override (Option B: Flat Maximum)
   const isCupcakes = cakeInfo.type === 'Cupcake' || cakeInfo.type.toLowerCase().startsWith('cupcakes-');
-  if (isCupcakes) {
+  if (isCupcakes && !isBentoCupcakeSet) {
     const breakdown: { item: string; price: number; }[] = [];
     const itemPrices = new Map<string, number>();
 
@@ -306,7 +309,7 @@ export async function calculatePriceFromDatabase(
 
       const conditions = rule.special_conditions;
       if (conditions) {
-        if (conditions.bento_price && cakeInfo.type === 'Bento') price = conditions.bento_price;
+        if (conditions.bento_price && (cakeInfo.type === 'Bento' || cakeInfo.type === 'Bento Cupcake Set')) price = conditions.bento_price;
       }
 
       if (rule.classification === 'hero') {

@@ -34,6 +34,7 @@ const cakeTypeDisplayMap: Record<CakeType, string> = {
     'Square': 'Square', 'Rectangle': 'Rectangle', 'Bento': 'Bento',
     'Square Fondant': 'Square Fondant', 'Rectangle Fondant': 'Rectangle Fondant',
     'Cupcake': 'Cupcake',
+    'Bento Cupcake Set': 'Bento Cupcake Set',
 };
 
 export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({

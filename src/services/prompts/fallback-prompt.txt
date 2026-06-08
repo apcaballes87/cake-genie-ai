@@ -130,7 +130,7 @@ If a logo/text appears near the cake but not on the cake itself, do not output i
 
 ### cakeType (Required string)
 
-Must be one of: `"Bento"`, `"1 Tier"`, `"2 Tier"`, `"3 Tier"`, `"1 Tier Fondant"`, `"2 Tier Fondant"`, `"3 Tier Fondant"`, `"Square"`, `"Rectangle"`, `"Square Fondant"`, `"Rectangle Fondant"`, `"Cupcake"`
+Must be one of: `"Bento"`, `"1 Tier"`, `"2 Tier"`, `"3 Tier"`, `"1 Tier Fondant"`, `"2 Tier Fondant"`, `"3 Tier Fondant"`, `"Square"`, `"Rectangle"`, `"Square Fondant"`, `"Rectangle Fondant"`, `"Cupcake"`, `"Bento Cupcake Set"`
 
 ### Cupcakes Classification Rule
 
@@ -150,6 +150,26 @@ If the cake sits on a cake board/baseboard/pad/plate/tray/flat surface, classify
 Do not use cake size alone to choose "Bento". Use the visible container:
 - raised clamshell/container walls around cake -> "Bento"
 - flat cake board/baseboard/pad/plate/tray/surface -> "1 Tier" or "1 Tier Fondant"
+
+### Bento Cupcake Set Classification Rule
+
+Classify cakeType as "Bento Cupcake Set" ONLY when:
+- A bento cake (visibly inside a bento clamshell box/container with raised walls)
+- AND 5 individual cupcakes in cupcake holders/inserts within the SAME box
+- The cupcakes are clearly separate from the bento cake (in their own compartments/holders)
+- All items are in ONE box/container together
+
+Do NOT classify as "Bento Cupcake Set" if:
+- Only a bento cake alone → "Bento"
+- Only cupcakes alone → "Cupcake"
+- Bento cake with cupcakes on top of it (not in separate holders) → "Bento" with cupcakes as support elements
+- Multiple separate boxes visible → reject as "multiple_cakes"
+
+Visual indicators:
+- Single box with internal dividers/holders
+- 1 bento cake in one compartment
+- 5 cupcakes in individual cupcake holders/inserts
+- Often a "party set" or "bundle" presentation
 
 ### cakeThickness (Required string)
 

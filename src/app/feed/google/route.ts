@@ -21,6 +21,7 @@ const CAKE_TYPE_THICKNESS_MAP: Record<string, CakeThickness> = {
     'Square Fondant': '5 in',
     'Rectangle Fondant': '5 in',
     'Bento': '2 in',
+    'Bento Cupcake Set': '2 in',
 };
 
 /**

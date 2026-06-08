@@ -123,7 +123,7 @@ export const calculatePrice = (
                 break;
             case 'icing_doodle':
                 if (topper.description?.toLowerCase().includes('intricate') || topper.description?.toLowerCase().includes('complex')) {
-                    price = cakeInfo.type === 'Bento' ? 50 : 100;
+                    price = (cakeInfo.type === 'Bento' || cakeInfo.type === 'Bento Cupcake Set') ? 50 : 100;
                     nonGumpasteTotal += price;
                 }
                 break;
@@ -253,7 +253,7 @@ export const calculatePrice = (
 
             case 'icing_doodle':
                 if (element.description?.toLowerCase().includes('intricate') || element.description?.toLowerCase().includes('complex')) {
-                    price = cakeInfo.type === 'Bento' ? 50 : 100;
+                    price = (cakeInfo.type === 'Bento' || cakeInfo.type === 'Bento Cupcake Set') ? 50 : 100;
                     // Note: As per old logic, this was not part of allowance. Keeping it that way unless specified.
                     // To make it eligible, change to: supportGumpasteRawTotal += price;
                     nonGumpasteTotal += price;
