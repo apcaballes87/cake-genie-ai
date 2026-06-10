@@ -130,6 +130,14 @@ const OrderConfirmationContent: React.FC = () => {
             // Mark as fired so refreshing the page doesn't re-send the event
             sessionStorage.setItem(purchaseEventKey, '1');
         }
+
+        // Clear cart state from sessionStorage after successful payment
+        // This is safe to do here because payment is confirmed
+        if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('pending_payment_cart');
+            sessionStorage.removeItem('pending_payment_order_id');
+            sessionStorage.removeItem('pending_payment_guest_email');
+        }
     }, [paymentStatus, order, purchaseEventKey]);
 
     if (loading) {

@@ -58,6 +58,64 @@ const flushWrites = () => {
 // Debounce the flush operation to batch multiple writes within 100ms
 const debouncedFlush = debounce(flushWrites, 100);
 
+// Helper to strip base64 image data from cart items before caching
+// This prevents localStorage quota exceeded errors on mobile
+const stripBase64FromCartItems = (items: any[]): any[] => {
+    return items.map(item => ({
+        ...item,
+        // Replace base64 data URIs with a placeholder
+        // The cart will still show the item, but images will need to be re-fetched
+        original_image_url: item.original_image_url?.startsWith('data:')
+            ? '' // Empty string - cart will show placeholder
+            : item.original_image_url,
+        customized_image_url: item.customized_image_url?.startsWith('data:')
+            ? '' // Empty string - cart will show placeholder
+            : item.customized_image_url,
+    }));
+};
+
+// Helper to estimate localStorage usage
+const estimateLocalStorageSize = (): number => {
+    if (typeof window === 'undefined') return 0;
+    let total = 0;
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key) {
+            const value = localStorage.getItem(key);
+            if (value) {
+                total += key.length + value.length;
+            }
+        }
+    }
+    return total;
+};
+
+// Helper to clear old cart items from localStorage to free up space
+const clearOldCartItems = (): void => {
+    if (typeof window === 'undefined') return;
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('cart_')) {
+            try {
+                const item = localStorage.getItem(key);
+                if (item) {
+                    const data = JSON.parse(item);
+                    if (data.timestamp) {
+                        const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+                        if (data.timestamp < oneDayAgo) {
+                            keysToRemove.push(key);
+                        }
+                    }
+                }
+            } catch (e) {
+                // Ignore items not in the new format
+            }
+        }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+};
+
 export const batchSaveToLocalStorage = (key: string, value: string) => {
     if (typeof window === 'undefined') return;
     const dataToStore = {
@@ -427,9 +485,23 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, [user, authLoading, loadCartData, shouldDeferCartSync]);
 
     // Auto-cache cart items whenever they change (for instant load on next visit)
+    // Strip base64 image data to prevent localStorage quota exceeded errors
     useEffect(() => {
         if (cartItems.length > 0) {
-            batchSaveToLocalStorage('cart_items_cache', JSON.stringify(cartItems));
+            // Strip base64 data before caching to save space
+            const cacheableItems = stripBase64FromCartItems(cartItems);
+            const dataStr = JSON.stringify(cacheableItems);
+            
+            // Check if we're approaching localStorage quota (5MB typical limit)
+            const currentSize = estimateLocalStorageSize();
+            const newSize = dataStr.length;
+            
+            if (currentSize + newSize > 4.5 * 1024 * 1024) {
+                // Approaching quota limit - clear old cart items first
+                clearOldCartItems();
+            }
+            
+            batchSaveToLocalStorage('cart_items_cache', dataStr);
         } else {
             batchRemoveFromLocalStorage('cart_items_cache');
         }

@@ -1,10 +1,11 @@
 'use client';
 
-import React, { memo, useState, useCallback } from 'react';
+import React, { memo, useState, useCallback, useEffect, useRef } from 'react';
 import { getRecommendedProducts, type RecommendedProductsQueryOptions } from '@/services/supabaseService';
 import { ProductCard } from '@/components/ProductCard';
 import Masonry from 'react-masonry-css';
 import { ImagePlus } from 'lucide-react';
+import { trackViewItemList } from '@/lib/analytics';
 
 interface RecommendedProduct {
     p_hash: string;
@@ -50,6 +51,38 @@ const RecommendedProductsGridComponent = ({
     const [offset, setOffset] = useState(initialProducts.length);
     const [hasMore, setHasMore] = useState(loadMoreEnabled && initialProducts.length >= 8);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const gridRef = useRef<HTMLDivElement>(null);
+    // Track which products have already been reported in a view_item_list event
+    // so Load More only fires for the newly added items.
+    const seenHashesRef = useRef(new Set<string>());
+
+    // Fire a single view_item_list event when the grid enters the viewport.
+    // Re-fires for newly loaded items on "Load More".
+    useEffect(() => {
+        if (!gridRef.current || products.length === 0) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (!entries.some(e => e.isIntersecting)) return;
+                const newItems = products.filter(p => !seenHashesRef.current.has(p.p_hash));
+                if (newItems.length === 0) return;
+                newItems.forEach(p => seenHashesRef.current.add(p.p_hash));
+                trackViewItemList(
+                    listName,
+                    newItems.map(p => ({
+                        item_id: p.p_hash,
+                        item_name: p.keywords?.split(',')[0]?.trim() || 'Custom Cake',
+                        price: p.price,
+                        item_category: 'recommended',
+                    }))
+                );
+            },
+            { threshold: 0.5 }
+        );
+
+        observer.observe(gridRef.current);
+        return () => observer.disconnect();
+    }, [products, listName]);
 
     const handleOpenUploader = () => {
         window.dispatchEvent(new Event('genie:open-upload-modal'));
@@ -94,7 +127,7 @@ const RecommendedProductsGridComponent = ({
             </div>
 
             {/* Product Grid */}
-            <div className="mb-0">
+            <div className="mb-0" ref={gridRef}>
                 {products.length > 0 ? (
                     <Masonry
                         breakpointCols={{

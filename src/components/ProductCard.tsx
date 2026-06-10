@@ -315,6 +315,19 @@ const InteractiveProductCard = (props: ProductCardProps) => {
             item_name: buildProductTitle(props.keywords, props.collectionContext, props.analysis_json),
         });
 
+        // If we have precomputed analysis, navigate immediately without blocking
+        if (isValidPrecomputedAnalysis(props.analysis_json)) {
+            clearImages();
+            clearCustomization();
+            setIsAnalyzing(true);
+            setAnalysisError(null);
+            initializeDefaultState();
+            setPendingAnalysisData(props.analysis_json as unknown as HybridAnalysisResult);
+            router.push('/customizing');
+            return;
+        }
+
+        // Otherwise, show loading and do analysis
         const toastId = showLoading('Loading design...');
         clearImages();
         clearCustomization();
@@ -339,9 +352,10 @@ const InteractiveProductCard = (props: ProductCardProps) => {
                     toast.dismiss(toastId);
                     console.error('Error processing image:', error);
                     if (error instanceof Error && error.message.startsWith('AI_REJECTION:')) {
-                        showError(error.message.replace('AI_REJECTION: ', ''));
+                        const message = error.message.replace('AI_REJECTION: ', '');
+                        showError(`Design not available: ${message}. Try a different design.`);
                     } else {
-                        showError('Failed to load design');
+                        showError('Failed to load design. Please try again.');
                     }
                 },
                 {

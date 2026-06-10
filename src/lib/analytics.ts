@@ -34,6 +34,17 @@ export const trackViewItem = (item: {
         items: [item],
     });
 
+export const trackViewItemList = (itemListName: string, items: Array<{
+    item_id: string;
+    item_name: string;
+    price?: number;
+    item_category?: string;
+}>): void =>
+    trackEvent('view_item_list', {
+        item_list_name: itemListName,
+        items: items,
+    });
+
 export const trackSelectItem = (item: {
     item_list_name: string;
     item_id: string;

@@ -28,6 +28,7 @@ import { useAvailabilitySettings } from '@/hooks/useAvailabilitySettings';
 import { validateDiscountCode, getUserDiscountCodes } from '@/services/discountService';
 import type { DiscountValidationResult } from '@/types';
 import { useSmartBack, useRecordNavigation } from '@/hooks/useSmartBack';
+import PaymentErrorBoundary from '@/components/PaymentErrorBoundary';
 
 const getErrorMessage = (error: unknown, fallback: string) => (
     error instanceof Error ? error.message : fallback
@@ -94,6 +95,37 @@ function CartClient() {
         recordNavigation('cart', null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // Check for payment failure and restore cart if needed
+    const paymentFailed = searchParams.get('payment_failed') === 'true';
+    const pendingOrderId = searchParams.get('order_id');
+
+    useEffect(() => {
+        if (paymentFailed && pendingOrderId && typeof window !== 'undefined') {
+            // Check if we have a pending payment cart to restore
+            const savedCart = sessionStorage.getItem('pending_payment_cart');
+            if (savedCart) {
+                try {
+                    const cartItems = JSON.parse(savedCart);
+                    // Restore cart items to localStorage for CartContext to pick up
+                    const cacheData = {
+                        value: JSON.stringify(cartItems),
+                        timestamp: Date.now()
+                    };
+                    localStorage.setItem('cart_items_cache', JSON.stringify(cacheData));
+                    // Clear the pending payment data
+                    sessionStorage.removeItem('pending_payment_cart');
+                    sessionStorage.removeItem('pending_payment_order_id');
+                    sessionStorage.removeItem('pending_payment_guest_email');
+                    // Reload the page to pick up the restored cart
+                    window.location.href = '/cart';
+                } catch (e) {
+                    console.error('Failed to restore cart from sessionStorage:', e);
+                }
+            }
+        }
+    }, [paymentFailed, pendingOrderId]);
+
     const urlDiscount = searchParams.get('discount');
     const { user, signInAnonymously } = useAuth();
     const isRegisteredUser = !!(user && !user.is_anonymous);
@@ -986,15 +1018,17 @@ function CartClient() {
                     }
                 }
 
-                // Clear cart and guest data, then redirect
+                // Save cart state to sessionStorage as backup before redirect
+                // This allows cart recovery if payment fails
+                if (typeof window !== 'undefined') {
+                    sessionStorage.setItem('pending_payment_cart', JSON.stringify(cartItems));
+                    sessionStorage.setItem('pending_payment_order_id', order.order_id);
+                    sessionStorage.setItem('pending_payment_guest_email', guestEmail || '');
+                }
+
+                // Redirect to payment - don't clear cart yet
+                // Cart will be cleared after payment confirmation on order-confirmation page
                 setIsRedirecting(true);
-                clearCart();
-                setAppliedDiscount(null);
-                setDiscountCode('');
-                setGuestEmail('');
-                setGuestAddress(null);
-                batchRemoveFromLocalStorage('cart_guest_email');
-                batchRemoveFromLocalStorage('cart_guest_address');
                 window.location.href = paymentUrl;
             } else {
                 throw new Error('Payment URL not generated.');
@@ -1720,14 +1754,16 @@ function CartClient() {
                                                     {/* Address Form or Add Button */}
                                                     {(isAddingAddress || (user?.is_anonymous && !guestAddress)) && user ? (
                                                         <div className="mt-4">
-                                                            <AddressForm
-                                                                userId={user.id}
-                                                                onSuccess={isAnonymous ? handleGuestAddressSuccess : handleNewAddressSuccess}
-                                                                onCancel={() => setIsAddingAddress(false)}
-                                                                isGuest={isAnonymous}
-                                                                hideActions={!isAnonymous}
-                                                                onFormChange={handleFormChange}
-                                                            />
+                                                            <GoogleMapsLoaderProvider>
+                                                                <AddressForm
+                                                                    userId={user.id}
+                                                                    onSuccess={isAnonymous ? handleGuestAddressSuccess : handleNewAddressSuccess}
+                                                                    onCancel={() => setIsAddingAddress(false)}
+                                                                    isGuest={isAnonymous}
+                                                                    hideActions={!isAnonymous}
+                                                                    onFormChange={handleFormChange}
+                                                                />
+                                                            </GoogleMapsLoaderProvider>
                                                         </div>
                                                     ) : (
                                                         <div className="mt-2">
@@ -1905,45 +1941,33 @@ function CartClient() {
                                         </div>
                                     )}
 
-                                    <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                                        <button
-                                            onClick={handleSubmitOrder}
-                                            disabled={
-                                                isPlacingOrder ||
-                                                isCreatingPayment ||
-                                                getMissingRequirements().length > 0
-                                            }
-                                            className="flex-1 genie-btn-primary py-4 rounded-full font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-                                        >
-                                            {isCreatingPayment ? (
-                                                <span className="flex items-center justify-center gap-2">
-                                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                                    Redirecting to Payment...
-                                                </span>
-                                            ) : isPlacingOrder ? (
-                                                <span className="flex items-center justify-center gap-2">
-                                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                                    Creating Order...
-                                                </span>
-                                            ) : (
-                                                `Place Order - ₱${total.toFixed(2)} `
-                                            )}
-                                        </button>
-
-                                        {/* Split with Friends — hidden for now, re-enable by removing the hidden class */}
-                                        <button
-                                            onClick={() => setIsSplitModalOpen(true)}
-                                            disabled={
-                                                isPlacingOrder ||
-                                                isCreatingPayment ||
-                                                getMissingRequirements().length > 0
-                                            }
-                                            className="hidden flex-1 genie-btn-secondary py-4 px-4 font-bold rounded-full transition-colors items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            <Users className="w-5 h-5" />
-                                            <span>Split Bill with Friends</span>
-                                        </button>
-                                    </div>
+                                    <PaymentErrorBoundary>
+                                        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                                            <button
+                                                onClick={handleSubmitOrder}
+                                                disabled={
+                                                    isPlacingOrder ||
+                                                    isCreatingPayment ||
+                                                    getMissingRequirements().length > 0
+                                                }
+                                                className="flex-1 genie-btn-primary py-4 rounded-full font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                                            >
+                                                {isCreatingPayment ? (
+                                                    <span className="flex items-center justify-center gap-2">
+                                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                                        Redirecting to Payment...
+                                                    </span>
+                                                ) : isPlacingOrder ? (
+                                                    <span className="flex items-center justify-center gap-2">
+                                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                                        Creating Order...
+                                                    </span>
+                                                ) : (
+                                                    `Place Order - ₱${total.toFixed(2)} `
+                                                )}
+                                            </button>
+                                        </div>
+                                    </PaymentErrorBoundary>
 
                                     <p className="text-xs text-center text-slate-500 mt-2">
                                         Send payment link to your friends, pay with GCash
@@ -2004,12 +2028,9 @@ function CartClient() {
 
 // Wrap the exported component with GoogleMapsLoaderProvider
 // This ensures Google Maps only loads when the cart page is visited
+// Google Maps is lazy-loaded only when the address form is opened
 function CartClientWithMaps() {
-    return (
-        <GoogleMapsLoaderProvider>
-            <CartClient />
-        </GoogleMapsLoaderProvider>
-    );
+    return <CartClient />;
 }
 
 export default CartClientWithMaps;

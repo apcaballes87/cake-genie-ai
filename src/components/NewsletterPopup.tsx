@@ -51,6 +51,10 @@ export default function NewsletterPopup() {
     if (isAuthenticated) return;                                // already logged in
     if (localStorage.getItem(SEEN_KEY)) return;                 // already dismissed
 
+    // Skip popup on mobile devices for better UX
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) return;
+
     let opened = false;
     const open = () => {
       if (opened) return;
