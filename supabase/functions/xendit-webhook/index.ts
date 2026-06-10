@@ -43,10 +43,10 @@ serve(async (req) => {
 
         if (isV3) {
             // v3 Payment Request webhook format
-            // The data is nested under webhookData.data
+            // Payload: { event, api_version, data: { payment_request_id, reference_id, status, ... } }
             const data = webhookData.data || webhookData;
-            paymentRequestId = data.id || null;
-            externalId = data.external_id || null;
+            paymentRequestId = data.payment_request_id || data.id || null;
+            externalId = data.reference_id || data.external_id || null; // v3 uses reference_id
             status = data.status || null;
             capturedAmount = data.captured_amount || data.amount || null;
             paidAt = data.captured_at || data.paid_at || null;
