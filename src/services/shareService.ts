@@ -507,11 +507,12 @@ export async function createContribution(
       return { success: false, error: 'Failed to create payment link' };
     }
 
-    // 5. Update contribution with Xendit details
+    // 5. Update contribution with Xendit details (v3 payment request)
     await supabase
       .from('bill_contributions')
       .update({
-        xendit_invoice_id: paymentData.invoiceId,
+        xendit_payment_request_id: paymentData.paymentRequestId,
+        xendit_invoice_id: paymentData.paymentRequestId, // Backward compat
         xendit_external_id: contribution.contribution_id,
         payment_url: paymentData.paymentUrl
       })

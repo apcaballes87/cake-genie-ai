@@ -6,7 +6,6 @@ import { corsHeaders } from '../_shared/cors.ts'
 
 declare const Deno: any;
 
-const XENDIT_SECRET_KEY = Deno.env.get('XENDIT_SECRET_KEY');
 const XENDIT_API_URL = 'https://api.xendit.co';
 
 serve(async (req) => {
@@ -15,10 +14,6 @@ serve(async (req) => {
   }
 
   try {
-    if (!XENDIT_SECRET_KEY) {
-        throw new Error('XENDIT_SECRET_KEY is not set in environment variables.');
-    }
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
@@ -28,20 +23,33 @@ serve(async (req) => {
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
-    const { contributionId } = await req.json();
+    const { contributionId, payment_mode } = await req.json();
     if (!contributionId) {
       throw new Error('contributionId is required in the request body.');
     }
 
-    // 1. Get the invoice_id from bill_contributions table
+    const mode = payment_mode || 'test';
+    const XENDIT_SECRET_KEY = mode === 'live'
+      ? (Deno.env.get('XENDIT_LIVE_API_KEY') || Deno.env.get('XENDIT_SECRET_KEY'))
+      : (Deno.env.get('XENDIT_TEST_API_KEY') || Deno.env.get('XENDIT_SECRET_KEY'));
+
+    if (!XENDIT_SECRET_KEY) {
+        throw new Error(`Xendit API Key for ${mode} mode is not set.`);
+    }
+
+    const xenditAuthHeader = 'Basic ' + btoa(XENDIT_SECRET_KEY + ':');
+
+    // 1. Get the payment_request_id from bill_contributions table
     const { data: contributionRecord, error: dbError } = await supabaseAdmin
       .from('bill_contributions')
-      .select('xendit_invoice_id, status')
+      .select('xendit_payment_request_id, xendit_invoice_id, status')
       .eq('contribution_id', contributionId)
       .single();
 
     if (dbError) throw dbError;
-    if (!contributionRecord || !contributionRecord.xendit_invoice_id) {
+
+    const paymentRequestId = contributionRecord.xendit_payment_request_id || contributionRecord.xendit_invoice_id;
+    if (!contributionRecord || !paymentRequestId) {
       throw new Error(`No payment record found for contributionId: ${contributionId}`);
     }
 
@@ -51,12 +59,9 @@ serve(async (req) => {
             status: 200,
         });
     }
-    
-    const invoiceId = contributionRecord.xendit_invoice_id;
 
-    // 2. Call Xendit's API
-    const xenditAuthHeader = 'Basic ' + btoa(XENDIT_SECRET_KEY + ':');
-    const xenditResponse = await fetch(`${XENDIT_API_URL}/v2/invoices/${invoiceId}`, {
+    // 2. Call Xendit's Payment Request API
+    const xenditResponse = await fetch(`${XENDIT_API_URL}/v2/payment_requests/${paymentRequestId}`, {
       method: 'GET',
       headers: { 'Authorization': xenditAuthHeader },
     });
@@ -66,23 +71,26 @@ serve(async (req) => {
       throw new Error(`Xendit API error: ${xenditResponse.status} ${errorBody}`);
     }
 
-    const invoice = await xenditResponse.json();
-    const latestStatus = invoice.status.toLowerCase(); // PAID, PENDING, EXPIRED, FAILED
+    const paymentRequest = await xenditResponse.json();
+
+    // Map v3 status to internal status
+    const latestStatus = paymentRequest.status === 'SUCCEEDED' ? 'paid'
+      : paymentRequest.status === 'EXPIRED' ? 'expired'
+      : paymentRequest.status === 'FAILED' || paymentRequest.status === 'CANCELED' ? 'failed'
+      : 'pending';
 
     // 3. Update database if status changed to paid
     if (latestStatus === 'paid' && contributionRecord.status !== 'paid') {
-        console.log(`Status for invoice ${invoiceId} is PAID. Updating database.`);
+        console.log(`Status for payment request ${paymentRequestId} is SUCCEEDED. Updating database.`);
 
         const { error: updateError } = await supabaseAdmin
             .from('bill_contributions')
             .update({ 
                 status: 'paid', 
-                paid_at: invoice.paid_at,
+                paid_at: paymentRequest.captured_at || new Date().toISOString(),
             })
             .eq('contribution_id', contributionId);
         if (updateError) throw updateError;
-        
-        // A database trigger on `bill_contributions` will handle updating `cakegenie_shared_designs`.
     }
 
     return new Response(JSON.stringify({ success: true, status: latestStatus }), {

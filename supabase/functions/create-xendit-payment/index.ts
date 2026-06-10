@@ -27,9 +27,9 @@ serve(async (req) => {
             success_redirect_url,
             failure_redirect_url,
             payment_mode,
-            items,
             customerEmail,
-            customerName
+            customerName,
+            paymentTokenId
         } = requestBody;
 
         console.log('Processing payment for Order ID:', orderId);
@@ -58,7 +58,7 @@ serve(async (req) => {
                 .from('cakegenie_orders')
                 .update({
                     payment_status: 'paid',
-                    order_status: 'confirmed', // or 'pending_fulfillment' depending on workflow
+                    order_status: 'confirmed',
                     updated_at: new Date().toISOString()
                 })
                 .eq('order_id', orderId);
@@ -70,8 +70,8 @@ serve(async (req) => {
 
             return new Response(JSON.stringify({
                 success: true,
-                paymentUrl: success_redirect_url, // Redirect directly to success
-                invoiceId: 'FREE-' + orderId,
+                paymentUrl: success_redirect_url,
+                paymentRequestId: 'FREE-' + orderId,
                 isFree: true
             }), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -79,7 +79,7 @@ serve(async (req) => {
             });
         }
 
-        // 3. Proceed with Xendit Payment for non-zero amounts
+        // 3. Proceed with Xendit Payment Request API v3 for non-zero amounts
         const mode = payment_mode || 'test';
         const XENDIT_SECRET_KEY = mode === 'live'
             ? (Deno.env.get('XENDIT_LIVE_API_KEY') || Deno.env.get('XENDIT_SECRET_KEY'))
@@ -110,7 +110,6 @@ serve(async (req) => {
 
         // Construct Detailed Description
         let description = `Order #${orderData.order_number}\n\n`;
-        // Use client-provided success_redirect_url base or fallback
         const baseUrl = success_redirect_url ? success_redirect_url.split('/order-confirmation')[0] : 'https://cakegenie.ph';
         description += `View Customization Details: ${baseUrl}/account/orders\n\n`;
 
@@ -132,48 +131,80 @@ serve(async (req) => {
             });
         }
 
-        // Create Invoice
+        // Create Payment Request via Xendit Payment Request API v3
         const xenditAuthHeader = 'Basic ' + btoa(XENDIT_SECRET_KEY + ':');
-        const response = await fetch('https://api.xendit.co/v2/invoices', {
+
+        // Build payment request body
+        const paymentRequestPayload: Record<string, any> = {
+            external_id: orderId,
+            amount: amount,
+            description: description.substring(0, 500), // V3 has 500 char limit
+            type: 'PAY', // One-time payment, shows available methods
+            currency: 'PHP',
+            customer: {
+                given_names: customerName || 'Customer',
+                email: customerEmail || 'customer@example.com'
+            },
+            success_redirect_url,
+            failure_redirect_url
+        };
+
+        // If paymentTokenId is provided (PAY_AND_SAVE for returning users with Maya)
+        if (paymentTokenId) {
+            paymentRequestPayload.type = 'PAY_AND_SAVE';
+            paymentRequestPayload.payment_method = {
+                type: 'EWALLET',
+                reusability: 'MULTIPLE_USE'
+            };
+        }
+
+        console.log('Creating Payment Request with payload:', JSON.stringify(paymentRequestPayload, null, 2));
+
+        const response = await fetch('https://api.xendit.co/v2/payment_requests', {
             method: 'POST',
             headers: {
                 'Authorization': xenditAuthHeader,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                external_id: orderId,
-                amount: amount, // TRUSTED AMOUNT FROM DB
-                payer_email: customerEmail,
-                description: description,
-                invoice_duration: 86400,
-                success_redirect_url,
-                failure_redirect_url,
-                items: items, // Using items for display, but amount is overridden
-                customer: {
-                    given_names: customerName,
-                    email: customerEmail
-                }
-            })
+            body: JSON.stringify(paymentRequestPayload)
         });
 
         if (!response.ok) {
             const err = await response.json();
-            throw new Error(err.message || 'Failed to create Xendit invoice');
+            console.error('Xendit API error:', err);
+            throw new Error(err.message || 'Failed to create Xendit payment request');
         }
 
-        const invoice = await response.json();
+        const paymentRequest = await response.json();
+        console.log('Payment Request created:', JSON.stringify(paymentRequest, null, 2));
+
+        // Extract payment URL from actions array (REDIRECT_CUSTOMER type)
+        let paymentUrl = null;
+        if (paymentRequest.actions && Array.isArray(paymentRequest.actions)) {
+            const redirectAction = paymentRequest.actions.find(
+                (action: any) => action.type === 'REDIRECT_CUSTOMER'
+            );
+            if (redirectAction) {
+                paymentUrl = redirectAction.value;
+            }
+        }
+
+        // Also extract token_id for future PAY_AND_SAVE usage
+        const tokenId = paymentRequest.payment_method?.token_id || null;
 
         // Save to database
         const { error: dbError } = await supabaseAdmin
             .from('xendit_payments')
             .insert({
                 order_id: orderId,
-                xendit_invoice_id: invoice.id,
-                xendit_external_id: invoice.external_id,
-                status: invoice.status,
-                amount: invoice.amount,
-                payment_link_url: invoice.invoice_url,
-                expiry_date: invoice.expiry_date
+                xendit_payment_request_id: paymentRequest.id,
+                xendit_external_id: paymentRequest.external_id,
+                xendit_invoice_id: paymentRequest.id, // Keep for backward compat
+                status: paymentRequest.status,
+                amount: paymentRequest.amount,
+                payment_link_url: paymentUrl,
+                payment_token_id: tokenId,
+                expiry_date: paymentRequest.expires_at
             });
 
         if (dbError) {
@@ -183,9 +214,10 @@ serve(async (req) => {
 
         return new Response(JSON.stringify({
             success: true,
-            paymentUrl: invoice.invoice_url,
-            invoiceId: invoice.id,
-            expiresAt: invoice.expiry_date
+            paymentUrl: paymentUrl,
+            paymentRequestId: paymentRequest.id,
+            tokenId: tokenId,
+            expiresAt: paymentRequest.expires_at
         }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200,

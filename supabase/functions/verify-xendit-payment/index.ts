@@ -36,51 +36,70 @@ serve(async (req) => {
 
     // Use the Service Role Key to bypass RLS for server-to-server operations
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+    const xenditAuthHeader = 'Basic ' + btoa(XENDIT_SECRET_KEY + ':');
+
+    // --- Helper: Map v3 status to internal status ---
+    const mapStatus = (v3Status: string): string => {
+      switch (v3Status) {
+        case 'SUCCEEDED': return 'PAID';
+        case 'EXPIRED': return 'EXPIRED';
+        case 'FAILED': return 'FAILED';
+        case 'CANCELED': return 'FAILED';
+        case 'PENDING': return 'PENDING';
+        default: return v3Status;
+      }
+    };
+
+    // --- Helper: Fetch payment request from Xendit ---
+    const fetchPaymentRequest = async (paymentRequestId: string) => {
+      const response = await fetch(`${XENDIT_API_URL}/v2/payment_requests/${paymentRequestId}`, {
+        method: 'GET',
+        headers: { 'Authorization': xenditAuthHeader },
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`Xendit API error: ${response.status} ${errorBody}`);
+      }
+
+      return await response.json();
+    };
 
     // --- HANDLE CONTRIBUTION PAYMENT ---
     if (contributionId) {
+      // Try payment_request_id first, fall back to invoice_id for backward compat
       const { data: contribution, error: dbError } = await supabaseAdmin
         .from('order_contributions')
-        .select('xendit_invoice_id, status')
+        .select('xendit_payment_request_id, xendit_invoice_id, status')
         .eq('contribution_id', contributionId)
         .single();
 
       if (dbError) throw dbError;
-      if (!contribution || !contribution.xendit_invoice_id) {
+      
+      const paymentRequestId = contribution.xendit_payment_request_id || contribution.xendit_invoice_id;
+      if (!contribution || !paymentRequestId) {
         throw new Error(`No contribution record found for ID: ${contributionId}`);
       }
 
       if (contribution.status === 'paid') {
-        return new Response(JSON.stringify({ success: true, status: 'paid', message: 'Status is already paid.' }), {
+        return new Response(JSON.stringify({ success: true, status: 'PAID', message: 'Status is already PAID.' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200,
         });
       }
 
-      const invoiceId = contribution.xendit_invoice_id;
-      const xenditAuthHeader = 'Basic ' + btoa(XENDIT_SECRET_KEY + ':');
-      const xenditResponse = await fetch(`${XENDIT_API_URL}/v2/invoices/${invoiceId}`, {
-        method: 'GET',
-        headers: { 'Authorization': xenditAuthHeader },
-      });
-
-      if (!xenditResponse.ok) {
-        const errorBody = await xenditResponse.text();
-        throw new Error(`Xendit API error: ${xenditResponse.status} ${errorBody}`);
-      }
-
-      const invoice = await xenditResponse.json();
-      const latestStatus = invoice.status; // Xendit returns 'PAID', 'PENDING', 'EXPIRED'
+      const paymentRequest = await fetchPaymentRequest(paymentRequestId);
+      const latestStatus = mapStatus(paymentRequest.status);
 
       if (latestStatus === 'PAID') {
         if (contribution.status !== 'paid') {
-          console.log(`Status for contribution invoice ${invoiceId} is PAID. Updating database.`);
+          console.log(`Status for contribution ${paymentRequestId} is SUCCEEDED. Updating database.`);
 
           const { error: updateError } = await supabaseAdmin
             .from('order_contributions')
             .update({
-              status: 'paid', // Lowercase to match trigger expectation
-              paid_at: invoice.paid_at || new Date().toISOString(),
+              status: 'paid',
+              paid_at: paymentRequest.captured_at || new Date().toISOString(),
               updated_at: new Date().toISOString()
             })
             .eq('contribution_id', contributionId);
@@ -89,7 +108,6 @@ serve(async (req) => {
         }
 
         // Force update order totals to ensure consistency (self-healing)
-        // This handles cases where the trigger might have failed or not fired
         const { data: contributions, error: sumError } = await supabaseAdmin
           .from('order_contributions')
           .select('amount')
@@ -99,7 +117,6 @@ serve(async (req) => {
         if (!sumError && contributions) {
           const totalCollected = contributions.reduce((sum, c) => sum + (c.amount || 0), 0);
 
-          // Get order total to check if fully funded
           const { data: order } = await supabaseAdmin
             .from('cakegenie_orders')
             .select('total_amount')
@@ -130,17 +147,19 @@ serve(async (req) => {
     }
 
     // --- HANDLE STANDARD ORDER PAYMENT ---
-    // 1. Get the invoice_id from your database using the orderId
+    // 1. Get the payment_request_id from database using orderId
     const { data: paymentRecord, error: dbError } = await supabaseAdmin
       .from('xendit_payments')
-      .select('xendit_invoice_id, status')
+      .select('xendit_payment_request_id, xendit_invoice_id, status')
       .eq('order_id', orderId)
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
 
     if (dbError) throw dbError;
-    if (!paymentRecord || !paymentRecord.xendit_invoice_id) {
+    
+    const paymentRequestId = paymentRecord.xendit_payment_request_id || paymentRecord.xendit_invoice_id;
+    if (!paymentRecord || !paymentRequestId) {
       throw new Error(`No payment record found for orderId: ${orderId}`);
     }
 
@@ -152,40 +171,30 @@ serve(async (req) => {
       });
     }
 
-    const invoiceId = paymentRecord.xendit_invoice_id;
-
-    // 2. Call Xendit's API to get the latest invoice status
-    const xenditAuthHeader = 'Basic ' + btoa(XENDIT_SECRET_KEY + ':');
-    const xenditResponse = await fetch(`${XENDIT_API_URL}/v2/invoices/${invoiceId}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': xenditAuthHeader,
-      },
-    });
-
-    if (!xenditResponse.ok) {
-      const errorBody = await xenditResponse.text();
-      throw new Error(`Xendit API error: ${xenditResponse.status} ${errorBody}`);
-    }
-
-    const invoice = await xenditResponse.json();
-    const latestStatus = invoice.status;
+    // 2. Call Xendit's Payment Request API to get the latest status
+    const paymentRequest = await fetchPaymentRequest(paymentRequestId);
+    const latestStatus = mapStatus(paymentRequest.status);
 
     // 3. If the status has changed to PAID, update your database
     if (latestStatus === 'PAID' && paymentRecord.status !== 'PAID') {
-      console.log(`Status for invoice ${invoiceId} is PAID. Updating database.`);
+      console.log(`Status for payment request ${paymentRequestId} is SUCCEEDED. Updating database.`);
 
-      // Update xendit_payments first to record the raw data
+      // Extract payment details from the v3 response
+      const paymentMethodType = paymentRequest.payment_method?.type || null;
+      const paymentMethod = paymentRequest.payment_method?.display_name || paymentMethodType;
+      const capturedAmount = paymentRequest.captured_amount || paymentRequest.amount;
+
+      // Update xendit_payments to record the raw data
       const { error: updatePaymentError } = await supabaseAdmin
         .from('xendit_payments')
         .update({
           status: 'PAID',
-          payment_method: invoice.payment_method,
-          paid_amount: invoice.paid_amount,
-          paid_at: invoice.paid_at,
+          payment_method: paymentMethod,
+          paid_amount: capturedAmount,
+          paid_at: paymentRequest.captured_at || new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
-        .eq('xendit_invoice_id', invoiceId);
+        .eq('xendit_payment_request_id', paymentRequestId);
       if (updatePaymentError) throw updatePaymentError;
 
       // --- SECURITY CHECK: VERIFY AMOUNT ---
@@ -199,7 +208,7 @@ serve(async (req) => {
         throw new Error(`Could not fetch order to verify amount for orderId: ${orderId}`);
       }
 
-      const paidAmount = invoice.paid_amount || invoice.amount;
+      const paidAmount = capturedAmount || paymentRequest.amount;
       const orderTotal = order.total_amount;
 
       // Allow for small floating point differences
@@ -214,7 +223,6 @@ serve(async (req) => {
           })
           .eq('order_id', orderId);
 
-        // We still return success: true because the *check* succeeded, but the status reflects the mismatch
         return new Response(JSON.stringify({ success: true, status: 'PAYMENT_MISMATCH', message: 'Payment amount mismatch detected.' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200,

@@ -26,7 +26,50 @@ serve(async (req) => {
         const webhookData = await req.json();
         console.log('Payload:', JSON.stringify(webhookData, null, 2));
 
-        const { id: xenditInvoiceId, external_id: externalId, status, paid_amount, paid_at, payment_method, payment_channel } = webhookData;
+        // --- Detect webhook format (v2 Invoice vs v3 Payment Request) ---
+        // v2 Invoice webhook: { id, external_id, status, paid_amount, ... }
+        // v3 Payment Request webhook: { id, external_id, status, data: { ... } }
+        // v3 also has event field like "payment_request.updated" or "payment.capture"
+
+        const isV3 = webhookData.event && webhookData.event.startsWith('payment');
+        let paymentRequestId: string | null = null;
+        let externalId: string | null = null;
+        let status: string | null = null;
+        let capturedAmount: number | null = null;
+        let paidAt: string | null = null;
+        let paymentMethod: string | null = null;
+        let paymentChannel: string | null = null;
+        let rawData = webhookData;
+
+        if (isV3) {
+            // v3 Payment Request webhook format
+            // The data is nested under webhookData.data
+            const data = webhookData.data || webhookData;
+            paymentRequestId = data.id || null;
+            externalId = data.external_id || null;
+            status = data.status || null;
+            capturedAmount = data.captured_amount || data.amount || null;
+            paidAt = data.captured_at || data.paid_at || null;
+            paymentMethod = data.payment_method?.type || data.payment_method || null;
+            paymentChannel = data.payment_method?.channel_code || data.payment_channel || null;
+
+            console.log(`\n📌 V3 Webhook detected: ${webhookData.event}`);
+            console.log(`Payment Request ID: ${paymentRequestId}`);
+            console.log(`Status: ${status}`);
+        } else {
+            // v2 Invoice webhook format (backward compat)
+            paymentRequestId = webhookData.id || null;
+            externalId = webhookData.external_id || null;
+            status = webhookData.status || null;
+            capturedAmount = webhookData.paid_amount || webhookData.amount || null;
+            paidAt = webhookData.paid_at || null;
+            paymentMethod = webhookData.payment_method || null;
+            paymentChannel = webhookData.payment_channel || null;
+
+            console.log('\n📌 V2 Webhook detected (invoice format)');
+            console.log(`Invoice ID: ${paymentRequestId}`);
+            console.log(`Status: ${status}`);
+        }
 
         if (!externalId) {
             console.error('❌ No external_id in webhook payload');
@@ -36,33 +79,67 @@ serve(async (req) => {
             });
         }
 
-        const paymentStatus = status === 'PAID' ? 'PAID' : status === 'EXPIRED' ? 'EXPIRED' : status === 'FAILED' ? 'FAILED' : 'PENDING';
+        // Map v3 status to internal status
+        const paymentStatus = status === 'SUCCEEDED' || status === 'PAID'
+            ? 'PAID'
+            : status === 'EXPIRED' ? 'EXPIRED'
+            : status === 'FAILED' || status === 'CANCELED' ? 'FAILED'
+            : 'PENDING';
 
         console.log(`\n💳 Processing ${paymentStatus} payment`);
         console.log(`External ID: ${externalId}`);
-        console.log(`Xendit Invoice ID: ${xenditInvoiceId}`);
+        console.log(`Payment Request/Invoice ID: ${paymentRequestId}`);
 
         // Check if this is a contribution payment first
-        const { data: contribution, error: contributionError } = await supabase
-            .from('bill_contributions')
-            .select('contribution_id, order_id')
-            .eq('xendit_invoice_id', xenditInvoiceId)
-            .single();
+        // Try xendit_payment_request_id first, then xendit_invoice_id for backward compat
+        let contribution = null;
+        
+        if (paymentRequestId) {
+            const { data: contribByReqId } = await supabase
+                .from('order_contributions')
+                .select('contribution_id, order_id')
+                .eq('xendit_payment_request_id', paymentRequestId)
+                .single();
+            
+            if (contribByReqId) {
+                contribution = contribByReqId;
+            }
+        }
+
+        // Fallback: try xendit_invoice_id
+        if (!contribution && paymentRequestId) {
+            const { data: contribByInvoiceId } = await supabase
+                .from('order_contributions')
+                .select('contribution_id, order_id')
+                .eq('xendit_invoice_id', paymentRequestId)
+                .single();
+            
+            if (contribByInvoiceId) {
+                contribution = contribByInvoiceId;
+            }
+        }
+
+        // Also try bill_contributions table (legacy)
+        if (!contribution && paymentRequestId) {
+            const { data: billContrib } = await supabase
+                .from('bill_contributions')
+                .select('contribution_id, order_id')
+                .eq('xendit_invoice_id', paymentRequestId)
+                .single();
+            
+            if (billContrib) {
+                contribution = billContrib;
+            }
+        }
 
         if (contribution) {
-            // ... existing contribution logic (omitted since we focus on main orders, but let's keep it if we want full file fidelity. 
-            // However, to save space and reduce risk, I'll assume the user wants me to fix the ORDER flow.
-            // But wait, the original file had this. I should preserve it.
-            // I'll copy the contribution logic from Step 31 manually or just assume standard update.
-            // Actually, I should probably NOT delete existing logic.
-            // I'll reconstruct it based on Step 31 content.
             console.log('✅ Found linked contribution:', contribution.contribution_id);
 
             await supabase
-                .from('bill_contributions')
+                .from('order_contributions')
                 .update({
-                    status: paymentStatus === 'PAID' ? 'paid' : paymentStatus,
-                    paid_at: paid_at ? new Date(paid_at).toISOString() : null,
+                    status: paymentStatus === 'PAID' ? 'paid' : paymentStatus.toLowerCase(),
+                    paid_at: paidAt ? new Date(paidAt).toISOString() : null,
                     updated_at: new Date().toISOString()
                 })
                 .eq('contribution_id', contribution.contribution_id);
@@ -73,36 +150,66 @@ serve(async (req) => {
         // If not a contribution, handle as ORDER
         console.log('\n🛒 ORDER PAYMENT DETECTED');
 
+        // Try to find payment record by xendit_payment_request_id first, then xendit_invoice_id
+        let paymentRecord = null;
+
+        if (paymentRequestId) {
+            const { data: recordByReqId } = await supabase
+                .from('xendit_payments')
+                .select('order_id, amount')
+                .eq('xendit_payment_request_id', paymentRequestId)
+                .single();
+            
+            if (recordByReqId) {
+                paymentRecord = recordByReqId;
+            }
+        }
+
+        // Fallback: try xendit_invoice_id
+        if (!paymentRecord && paymentRequestId) {
+            const { data: recordByInvoiceId } = await supabase
+                .from('xendit_payments')
+                .select('order_id, amount')
+                .eq('xendit_invoice_id', paymentRequestId)
+                .single();
+            
+            if (recordByInvoiceId) {
+                paymentRecord = recordByInvoiceId;
+            }
+        }
+
+        if (!paymentRecord) {
+            console.error('❌ No payment record found for ID:', paymentRequestId);
+            return new Response(JSON.stringify({ error: 'No payment record found' }), {
+                status: 404,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
+
         const { error: updateError } = await supabase
             .from('xendit_payments')
             .update({
                 status: paymentStatus,
-                payment_method: payment_method,
-                payment_channel: payment_channel,
-                paid_at: paid_at ? new Date(paid_at).toISOString() : null,
-                webhook_data: webhookData,
-                paid_amount: paid_amount
+                payment_method: paymentMethod,
+                payment_channel: paymentChannel,
+                paid_at: paidAt ? new Date(paidAt).toISOString() : null,
+                webhook_data: rawData,
+                paid_amount: capturedAmount
             })
-            .eq('xendit_invoice_id', xenditInvoiceId);
+            .eq(paymentRequestId && paymentRequestId.startsWith('pr-')
+                ? 'xendit_payment_request_id'
+                : 'xendit_invoice_id', paymentRequestId);
 
         if (updateError) {
             console.error('❌ Error updating payment:', updateError);
-            throw updateError; // Or handle gracefully
+            throw updateError;
         }
 
         console.log('✅ Payment record updated');
 
         if (paymentStatus === 'PAID') {
-            const { data: paymentRecord } = await supabase
-                .from('xendit_payments')
-                .select('order_id, amount')
-                .eq('xendit_invoice_id', xenditInvoiceId)
-                .single();
-
             if (paymentRecord?.order_id) {
-
                 // --- SECURITY FIX: VERIFY AMOUNT ---
-                // Fetch order total to verify amount
                 const { data: order, error: orderError } = await supabase
                     .from('cakegenie_orders')
                     .select('total_amount')
@@ -114,13 +221,11 @@ serve(async (req) => {
                     throw new Error('Order verification failed');
                 }
 
-                // Verify Amount
-                const receivedAmount = paid_amount || paymentRecord.amount;
+                const receivedAmount = capturedAmount || paymentRecord.amount;
                 const orderTotal = order.total_amount;
 
                 console.log(`Verifying Payment: Received ${receivedAmount}, Order Total ${orderTotal}`);
 
-                // Allow for small floating point differences
                 if (Math.abs(receivedAmount - orderTotal) > 1.0) {
                     console.error(`❌ Payment Mismatch! Received: ${receivedAmount}, Expected: ${orderTotal}`);
 
@@ -137,7 +242,6 @@ serve(async (req) => {
                         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
                     });
                 }
-                // -----------------------------------
 
                 await supabase
                     .from('cakegenie_orders')

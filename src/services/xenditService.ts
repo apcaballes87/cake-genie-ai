@@ -7,18 +7,17 @@ export interface CreatePaymentParams {
   amount: number;
   customerEmail?: string;
   customerName?: string;
-  items?: Array<{
-    name: string;
-    quantity: number;
-    price: number;
-  }>;
+  paymentTokenId?: string; // For PAY_AND_SAVE returning users
 }
 
 export interface CreatePaymentResponse {
   success: boolean;
   paymentUrl: string;
-  invoiceId: string;
+  paymentRequestId: string;
+  tokenId?: string;
   expiresAt: string;
+  // Backward compat aliases
+  invoiceId: string;
   error?: string;
 }
 
@@ -31,7 +30,6 @@ export async function createXenditPayment(params: CreatePaymentParams): Promise<
     const paymentMode = (typeof window !== 'undefined' && localStorage.getItem('xendit_payment_mode')) || 'live';
 
     // Dynamically construct redirect URLs based on the current domain.
-    // This fixes the issue where deployed apps would fail on payment redirects.
     const domain = window.location.origin;
     const successUrl = `${domain}/order-confirmation?order_id=${params.orderId}`;
     const failureUrl = `${domain}/cart?payment_failed=true&order_id=${params.orderId}`;
@@ -40,7 +38,7 @@ export async function createXenditPayment(params: CreatePaymentParams): Promise<
       ...params,
       success_redirect_url: successUrl,
       failure_redirect_url: failureUrl,
-      payment_mode: paymentMode, // Send payment mode to edge function
+      payment_mode: paymentMode,
     };
 
     // Call the Edge Function
@@ -60,7 +58,12 @@ export async function createXenditPayment(params: CreatePaymentParams): Promise<
       throw new Error(data.error || 'Payment creation failed');
     }
 
-    return data;
+    // Map v3 response to our interface (backward compat)
+    return {
+      ...data,
+      paymentRequestId: data.paymentRequestId,
+      invoiceId: data.paymentRequestId, // Backward compat alias
+    };
   } catch (error) {
     console.error('createXenditPayment error:', error);
     throw error;
@@ -95,7 +98,7 @@ export async function getPaymentStatus(orderId: string) {
 
 /**
  * Proactively verifies payment status by invoking a server-side Edge Function.
- * This function asks Xendit for the latest invoice status and updates the DB.
+ * This function asks Xendit for the latest payment request status and updates the DB.
  */
 export async function verifyXenditPayment(orderId: string, contributionId?: string): Promise<{ success: boolean; status?: string; error?: string }> {
   try {
@@ -115,6 +118,7 @@ export async function verifyXenditPayment(orderId: string, contributionId?: stri
       throw new Error(error.message || 'Failed to verify payment status.');
     }
 
+    // The edge function now returns v3-mapped status (PAID/EXPIRED/FAILED/PENDING)
     return data;
   } catch (error) {
     console.error('verifyXenditPayment error:', error);
