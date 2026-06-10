@@ -44,6 +44,9 @@ const CAKE_TYPE_THICKNESS_MAP: Record<string, CakeThickness> = {
     'Cupcake': '2 in',
 };
 
+// Matches legacy 16-char hex pHash suffixes (e.g., "pokemon-cake-0001ff8bfff7f700")
+const LEGACY_HEX_RE = /[a-f0-9]{16}$/i;
+
 const firstNonBlankImageUrl = (...urls: unknown[]) => {
     for (const url of urls) {
         if (typeof url === 'string' && url.trim()) {
@@ -221,7 +224,31 @@ const getDesign = cache(async (slug: string) => {
     }
 
     // Priority 2: exact slug match.
-    if (exactResult.data) return withPreferredHeroImage(exactResult.data);
+    // For legacy 16-char hex slugs, check if a modern equivalent exists
+    // (same seo_title) and redirect to it to consolidate duplicate content.
+    if (exactResult.data) {
+        if (LEGACY_HEX_RE.test(slug)) {
+            const legacyTitle = exactResult.data.seo_title;
+            if (legacyTitle) {
+                const { data: candidates } = await supabase
+                    .from('cakegenie_analysis_cache')
+                    .select('slug')
+                    .eq('seo_title', legacyTitle)
+                    .neq('slug', slug)
+                    .limit(5);
+
+                // Find the first modern slug (no 16-char hex suffix)
+                const modernEquivalent = candidates?.find(
+                    (c) => !LEGACY_HEX_RE.test(c.slug)
+                );
+
+                if (modernEquivalent) {
+                    permanentRedirect(`/customizing/${modernEquivalent.slug}`);
+                }
+            }
+        }
+        return withPreferredHeroImage(exactResult.data);
+    }
 
     // Priority 3: legacy slug that needs a 301 redirect to the modern format.
     if (shouldCheckUpgrade && upgradedResult.data) {

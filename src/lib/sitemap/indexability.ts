@@ -13,7 +13,6 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000
 const LEGACY_ANALYSIS_SLUG_RE = /[a-f0-9]{16}$/i
 const ADULT_SITEMAP_TERMS = [
   'adult',
-  'bachelorette',
   'cock',
   'penis',
   'vulva',
@@ -199,12 +198,18 @@ export async function getSitemapChunkHints(now = new Date()): Promise<SitemapChu
     { count: sharedDesignCount, error: sharedDesignCountError },
     { data: latestSharedRows, error: latestSharedError },
   ] = await Promise.all([
+    // Count query applies the same server-side filters as the generation query.
+    // Additional JavaScript-level filters (adult terms, generic text, legacy slugs)
+    // are applied during row fetching — this count may be slightly higher than the
+    // actual indexable count, which is safe (results in one empty trailing chunk at most).
     supabase
       .from('cakegenie_analysis_cache')
       .select('slug', { count: 'exact', head: true })
       .not('slug', 'is', null)
       .not('image_width', 'is', null)
       .not('image_height', 'is', null)
+      .gte('image_width', MIN_SITEMAP_IMAGE_DIMENSION)
+      .gte('image_height', MIN_SITEMAP_IMAGE_DIMENSION)
       .or('seo_title.not.is.null,alt_text.not.is.null,keywords.not.is.null')
       .lte('created_at', cutoffDate),
     supabase
@@ -213,6 +218,8 @@ export async function getSitemapChunkHints(now = new Date()): Promise<SitemapChu
       .not('slug', 'is', null)
       .not('image_width', 'is', null)
       .not('image_height', 'is', null)
+      .gte('image_width', MIN_SITEMAP_IMAGE_DIMENSION)
+      .gte('image_height', MIN_SITEMAP_IMAGE_DIMENSION)
       .or('seo_title.not.is.null,alt_text.not.is.null,keywords.not.is.null')
       .lte('created_at', cutoffDate)
       .order('created_at', { ascending: false })
