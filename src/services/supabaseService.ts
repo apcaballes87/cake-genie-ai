@@ -1256,43 +1256,99 @@ export async function getPopularDesigns(
  * Strips " Cakes", " Cake", " Themed", etc. from a collection name to get at the core keyword.
  */
 const cleanCollectionName = (name: string): string => {
-  return name
-    .replace(/(?:\s+Cakes?|\s+Themed|\s+Design|\s+Collections?)$/i, '')
-    .trim();
+    return name
+        .replace(/(?:\s+Cakes?|\s+Themed|\s+Design|\s+Collections?)$/i, '')
+        .trim();
+};
+
+/**
+ * Maps a collection's clean keyword to a canonical icing_colors bucket
+ * (if the collection is a color collection). Sub-colors like "lavender" or
+ * "sage green" map to their parent bucket. Returns null for non-color
+ * collections so the existing tag/keyword matching path is used.
+ *
+ * icing_colors is the analyst's normalized "side color" of the cake — far
+ * more accurate than the noisy `tags` array (which includes accent colors).
+ * See cakegenie_analysis_cache.icing_colors and the
+ * `get_closest_icing_color()` function for the canonical bucket list.
+ */
+const COLOR_CANONICAL: Record<string, string> = {
+    white: 'white',
+    black: 'black',
+    blue: 'blue',
+    pink: 'pink',
+    yellow: 'yellow',
+    purple: 'purple',
+    lavender: 'purple',    // lavender is a sub-color of purple
+    red: 'red',
+    green: 'green',
+    sage: 'green',        // sage green maps to green
+    'sage green': 'green',
+    emerald: 'green',     // emerald green maps to green
+    'emerald green': 'green',
+    orange: 'orange',
+    brown: 'brown',
+    gold: 'yellow',       // gold is rare; treat as a yellow variant
+    silver: 'white',      // silver accents usually ride on white
+    maroon: 'red',
+    teal: 'blue',
+    cream: 'white',
+    ivory: 'white',
+};
+
+const canonicalColorFor = (cleanKeyword: string): string | null => {
+    return COLOR_CANONICAL[cleanKeyword] || null;
 };
 
 /**
  * Builds a Supabase OR-filter string that matches products against
  * the core keyword derived from the collection name.
+ *
+ * For color collections (cleanKeyword matches COLOR_CANONICAL), only
+ * `icing_colors.eq.<canonical>` is used. The tag/keyword/slug fallbacks
+ * are skipped because they produce noisy results (e.g. a teal cake with
+ * yellow stars gets tagged "yellow" but is not actually a yellow cake).
+ *
+ * As the icing_colors column is backfilled for more designs, the
+ * collection's item_count will grow automatically.
  */
 const buildCollectionOrFilter = (collectionName: string, collectionTags: string[] = []): string => {
-  const keyword = cleanCollectionName(collectionName);
-  const cleanKeyword = keyword.toLowerCase();
+    const keyword = cleanCollectionName(collectionName);
+    const cleanKeyword = keyword.toLowerCase();
 
-  if (!cleanKeyword) return 'id.eq.-1'; // Should not happen with valid names
+    if (!cleanKeyword) return 'id.eq.-1'; // Should not happen with valid names
 
-  const filters: string[] = [];
+    const filters: string[] = [];
 
-  // 1. Exact match in tags array
-  filters.push(`tags.cs.{"${cleanKeyword}"}`);
+    // 0. Color collection: strict match on icing_colors ONLY.
+    // No keyword/slug/multi-word tag fallbacks — those are too noisy
+    // for color matching and pull in accent-only designs.
+    const canonical = canonicalColorFor(cleanKeyword);
+    if (canonical) {
+        filters.push(`icing_colors.eq.${canonical}`);
+        return filters.join(',');
+    }
 
-  // 2. Keyword match in keywords field (text search)
-  filters.push(`keywords.ilike.%${cleanKeyword}%`);
+    // 1. Exact match in tags array
+    filters.push(`tags.cs.{"${cleanKeyword}"}`);
 
-  // 3. Slug match
-  const slugKeyword = cleanKeyword.replace(/\s+/g, '-');
-  filters.push(`slug.ilike.%${slugKeyword}%`);
+    // 2. Keyword match in keywords field (text search)
+    filters.push(`keywords.ilike.%${cleanKeyword}%`);
 
-  // 4. (Optional) If we still want some tags but only very specific ones (length > 1 word)
-  for (const tag of collectionTags) {
-    const cleanTag = tag.trim().toLowerCase();
-    if (cleanTag === cleanKeyword || cleanTag.split(/\s+/).length < 2) continue;
+    // 3. Slug match
+    const slugKeyword = cleanKeyword.replace(/\s+/g, '-');
+    filters.push(`slug.ilike.%${slugKeyword}%`);
 
-    // Only add multi-word tags from the collection's tag list for precision
-    filters.push(`tags.cs.{"${cleanTag}"}`);
-  }
+    // 4. (Optional) If we still want some tags but only very specific ones (length > 1 word)
+    for (const tag of collectionTags) {
+        const cleanTag = tag.trim().toLowerCase();
+        if (cleanTag === cleanKeyword || cleanTag.split(/\s+/).length < 2) continue;
 
-  return filters.join(',');
+        // Only add multi-word tags from the collection's tag list for precision
+        filters.push(`tags.cs.{"${cleanTag}"}`);
+    }
+
+    return filters.join(',');
 };
 
 /**

@@ -26,8 +26,52 @@ const cleanCollectionName = (name: string): string => {
 };
 
 /**
+ * Maps a collection's clean keyword to a canonical icing_colors bucket
+ * (if the collection is a color collection). Sub-colors like "lavender" or
+ * "sage green" map to their parent bucket. Returns null for non-color
+ * collections so the existing tag/keyword matching path is used.
+ *
+ * icing_colors is the analyst's normalized "side color" of the cake — far
+ * more accurate than the noisy `tags` array (which includes accent colors).
+ * See cakegenie_analysis_cache.icing_colors and the
+ * `get_closest_icing_color()` function for the canonical bucket list.
+ */
+const COLOR_CANONICAL: Record<string, string> = {
+    white: 'white',
+    black: 'black',
+    blue: 'blue',
+    pink: 'pink',
+    yellow: 'yellow',
+    purple: 'purple',
+    lavender: 'purple',    // lavender is a sub-color of purple
+    red: 'red',
+    green: 'green',
+    sage: 'green',        // sage green maps to green
+    'sage green': 'green',
+    emerald: 'green',     // emerald green maps to green
+    'emerald green': 'green',
+    orange: 'orange',
+    brown: 'brown',
+    gold: 'yellow',       // gold is rare; treat as a yellow variant
+    silver: 'white',      // silver accents usually ride on white
+    maroon: 'red',
+    teal: 'blue',
+    cream: 'white',
+    ivory: 'white',
+};
+
+const canonicalColorFor = (cleanKeyword: string): string | null => {
+    return COLOR_CANONICAL[cleanKeyword] || null;
+};
+
+/**
  * Builds a Supabase OR-filter string that matches products against
  * the core keyword derived from the collection name.
+ *
+ * For color collections (cleanKeyword matches COLOR_CANONICAL), only
+ * `icing_colors.eq.<canonical>` is used. The tag/keyword/slug fallbacks
+ * are skipped because they produce noisy results (e.g. a teal cake with
+ * yellow stars gets tagged "yellow" but is not actually a yellow cake).
  */
 const buildCollectionOrFilter = (collectionName: string, collectionTags: string[] = []): string => {
     const keyword = cleanCollectionName(collectionName);
@@ -36,6 +80,15 @@ const buildCollectionOrFilter = (collectionName: string, collectionTags: string[
     if (!cleanKeyword) return 'id.eq.-1';
 
     const filters: string[] = [];
+
+    // 0. Color collection: strict match on icing_colors ONLY.
+    // No keyword/slug/multi-word tag fallbacks — those are too noisy
+    // for color matching and pull in accent-only designs.
+    const canonical = canonicalColorFor(cleanKeyword);
+    if (canonical) {
+        filters.push(`icing_colors.eq.${canonical}`);
+        return filters.join(',');
+    }
 
     // 1. Exact match in tags array
     filters.push(`tags.cs.{"${cleanKeyword}"}`);
