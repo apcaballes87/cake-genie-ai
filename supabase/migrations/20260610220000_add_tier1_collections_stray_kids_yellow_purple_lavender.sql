@@ -1,0 +1,147 @@
+-- Add Tier-1 high-intent collections identified via gap analysis on
+-- cakegenie_analysis_cache tags and PH market search demand:
+--   1. Stray Kids Cakes  - 30 designs, K-pop fandom gap
+--   2. Yellow Cakes      - 99 designs, missing color (Pink/Black/Emerald/Sage already live)
+--   3. Purple Cakes      - 78 designs, missing color
+--   4. Lavender Cakes    - 23 designs, trending aesthetic, sub-intent of purple
+-- Run scripts/sync-new-collections.ts after applying so sample_image,
+-- item_count, and matched_design_count get populated.
+INSERT INTO public.cakegenie_collections (name, slug, tags, description)
+VALUES
+  (
+    'Stray Kids Cakes',
+    'stray-kids',
+    ARRAY[
+      'Stray Kids Cakes',
+      'stray kids',
+      'stray kids cake',
+      'stray kids birthday',
+      'stray kids kpop',
+      'stray kids fan',
+      'stray kids photo',
+      'stray kids 1 tier',
+      'skzoo cake',
+      'skz cake',
+      'kpop stray kids',
+      'bang chan cake',
+      'chan cake',
+      'han cake',
+      'felix cake',
+      'hyunjin cake',
+      'seungmin cake',
+      'leeknow cake',
+      'i.n cake',
+      'stay cake',
+      'stray kids minimal',
+      'stray kids photo cake',
+      'stray kids group',
+      'stray kids fan cake',
+      'kpop idol cake'
+    ],
+    'Find Stray Kids cakes for the STAY in your life. Skzoo characters, member photos, group shots, and minimalist bias-themed designs are all here, ready to customize with their name, a short message, or a callout to your favorite era. Whether it is for a birthday, anniversary, or just a fan surprise, the design gets adjusted before checkout. Pick a starting point, change the colors and size, and review the quote. Delivery and pickup are available across Metro Cebu.'
+  ),
+  (
+    'Yellow Cakes',
+    'yellow-cakes',
+    ARRAY[
+      'Yellow Cakes',
+      'yellow',
+      'yellow cake',
+      'yellow birthday',
+      'yellow birthday cake',
+      'yellow theme',
+      'sunflower cake',
+      'sunflower birthday',
+      'daisy cake',
+      'daisy birthday',
+      'lemon cake',
+      'lemon birthday',
+      'pineapple cake',
+      'pineapple birthday',
+      'yellow minimalist',
+      'yellow floral',
+      'yellow ombre',
+      'yellow fondant',
+      'yellow drip',
+      'yellow 1 tier',
+      'yellow color cake',
+      'yellow pastel',
+      'yellow bright',
+      'yellow bento',
+      'yellow smash cake',
+      'yellow bumble bee',
+      'bee cake'
+    ],
+    'Find yellow cake designs for birthdays, baby showers, and any celebration that needs a little sunshine. Sunflower, daisy, pineapple, lemon, and minimalist yellow styles are all here, ready to customize with a name, a short message, or a bright palette. Whether you are matching a specific color theme or going for a soft pastel look, the design gets adjusted before checkout. Pick a starting point, change the size, and review the quote. Delivery and pickup are available across Metro Cebu.'
+  ),
+  (
+    'Purple Cakes',
+    'purple-cakes',
+    ARRAY[
+      'Purple Cakes',
+      'purple',
+      'purple cake',
+      'purple birthday',
+      'purple birthday cake',
+      'purple theme',
+      'purple minimalist',
+      'purple floral',
+      'purple ombre',
+      'purple fondant',
+      'purple drip',
+      'purple 1 tier',
+      'purple color cake',
+      'purple pastel',
+      'purple jewel',
+      'plum cake',
+      'plum birthday',
+      'grape cake',
+      'eggplant cake',
+      'violet cake',
+      'lavender cake',
+      'lavender purple',
+      'pop star cake',
+      'kawaii purple',
+      'purple bento',
+      'purple smash cake',
+      'purple kuromi'
+    ],
+    'Find purple cake designs for birthdays, debuts, and milestone celebrations. Lavender, plum, grape, eggplant, and minimalist purple styles are all here, ready to customize with a name, a short message, or a deeper purple palette. Whether you are going for soft lavender or a rich jewel tone, the design gets adjusted before checkout. Pick a starting point, change the size, and review the quote. Delivery and pickup are available across Metro Cebu.'
+  ),
+  (
+    'Lavender Cakes',
+    'lavender-cakes',
+    ARRAY[
+      'Lavender Cakes',
+      'lavender',
+      'lavender cake',
+      'lavender birthday',
+      'lavender birthday cake',
+      'lavender theme',
+      'lavender minimalist',
+      'lavender floral',
+      'lavender ombre',
+      'lavender fondant',
+      'lavender 1 tier',
+      'lavender color cake',
+      'lavender purple',
+      'lavender wisteria',
+      'lavender lilac',
+      'lilac cake',
+      'lilac birthday',
+      'wisteria cake',
+      'dusty purple',
+      'dusty lavender',
+      'lavender wedding',
+      'lavender engagement',
+      'lavender anniversary',
+      'lavender heart',
+      'soft purple cake',
+      'pastel purple'
+    ],
+    'Find lavender cake designs for soft, romantic, and aesthetic moments. Lilac, wisteria, dusty purple, and minimalist lavender styles are all here, ready to customize with a name, a short message, or a delicate purple palette. Weddings, engagements, anniversaries, and quiet celebrations are a good fit. Pick a starting point, change the size, and review the quote. Delivery and pickup are available across Metro Cebu.'
+  )
+ON CONFLICT (slug) DO UPDATE SET
+  name = EXCLUDED.name,
+  tags = EXCLUDED.tags,
+  description = EXCLUDED.description;

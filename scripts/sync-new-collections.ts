@@ -38,7 +38,17 @@ const buildCollectionOrFilter = (collectionName: string, collectionTags: string[
     return filters.join(',');
 };
 
-const targetSlugs = ['mothers-day-cakes', 'fathers-day-cakes'];
+// Slugs of the new collections to sync. Kept as a hardcoded list so
+// the targeted run stays fast — full update-collections-studio-images.ts
+// iterates all 400+ collections and times out.
+const targetSlugs = [
+    'mothers-day-cakes',
+    'fathers-day-cakes',
+    'stray-kids',
+    'yellow-cakes',
+    'purple-cakes',
+    'lavender-cakes',
+];
 
 async function processCollection(collection: any, isDryRun: boolean) {
     const orFilters = buildCollectionOrFilter(collection.name, collection.tags || []);
