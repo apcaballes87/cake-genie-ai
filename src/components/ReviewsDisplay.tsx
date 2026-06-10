@@ -49,55 +49,61 @@ export const ReviewCard: React.FC<{
   const displayName = getReviewDisplayName(review);
   const [localLightbox, setLocalLightbox] = useState<string | null>(null);
 
-  const hasBeforeAfter = !!(review.original_image_url && review.finished_image_url);
+  const hasBefore = !!review.original_image_url;
+  const hasAfter = !!review.finished_image_url;
+  const hasAnyImage = hasBefore || hasAfter;
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
-      {hasBeforeAfter ? (
+      {hasAnyImage ? (
         <div className="flex flex-col md:flex-row-reverse gap-5 items-start">
           {/* Right Side: Before & After images */}
-          <div className="grid grid-cols-2 gap-2.5 w-full md:w-44 lg:w-52 flex-shrink-0">
+          <div className={`grid gap-2.5 w-full md:w-44 lg:w-52 flex-shrink-0 ${hasBefore && hasAfter ? 'grid-cols-2' : 'grid-cols-1'}`}>
             {/* Before */}
-            <div className="relative aspect-square w-full rounded-lg overflow-hidden border border-slate-100 group shadow-xs">
-              <button
-                type="button"
-                className="absolute inset-0 w-full h-full text-left cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-pink-400 focus:rounded-lg"
-                onClick={() => setLocalLightbox(review.original_image_url!)}
-                aria-label="View original inspiration design"
-              >
-                <span className="absolute top-1.5 left-1.5 z-10 px-1 py-0.5 text-[7px] min-[400px]:text-[8px] font-extrabold tracking-wider text-pink-700 bg-pink-50/90 backdrop-blur-xs rounded-md shadow-xs uppercase border border-pink-100 whitespace-nowrap">
-                  Cake Inspo
-                </span>
-                <LazyImage
-                  src={review.original_image_url!}
-                  alt="Inspiration cake design"
-                  fill
-                  imageClassName="object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
-                  sizes="(max-width: 768px) 50vw, 150px"
-                />
-              </button>
-            </div>
+            {hasBefore && (
+              <div className="relative aspect-square w-full rounded-lg overflow-hidden border border-slate-100 group shadow-xs">
+                <button
+                  type="button"
+                  className="absolute inset-0 w-full h-full text-left cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-pink-400 focus:rounded-lg"
+                  onClick={() => setLocalLightbox(review.original_image_url!)}
+                  aria-label="View original inspiration design"
+                >
+                  <span className="absolute top-1.5 left-1.5 z-10 px-1 py-0.5 text-[7px] min-[400px]:text-[8px] font-extrabold tracking-wider text-pink-700 bg-pink-50/90 backdrop-blur-xs rounded-md shadow-xs uppercase border border-pink-100 whitespace-nowrap">
+                    Cake Inspo
+                  </span>
+                  <LazyImage
+                    src={review.original_image_url!}
+                    alt="Inspiration cake design"
+                    fill
+                    imageClassName="object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
+                    sizes="(max-width: 768px) 50vw, 150px"
+                  />
+                </button>
+              </div>
+            )}
 
             {/* After */}
-            <div className="relative aspect-square w-full rounded-lg overflow-hidden border border-slate-100 group shadow-xs">
-              <button
-                type="button"
-                className="absolute inset-0 w-full h-full text-left cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-purple-400 focus:rounded-lg"
-                onClick={() => setLocalLightbox(review.finished_image_url!)}
-                aria-label="View finished masterpiece cake"
-              >
-                <span className="absolute top-1.5 left-1.5 z-10 px-1 py-0.5 text-[7px] min-[400px]:text-[8px] font-extrabold tracking-wider text-purple-700 bg-purple-50/90 backdrop-blur-xs rounded-md shadow-xs uppercase border border-purple-100 whitespace-nowrap">
-                  Final Product
-                </span>
-                <LazyImage
-                  src={review.finished_image_url!}
-                  alt="Finished custom cake"
-                  fill
-                  imageClassName="object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
-                  sizes="(max-width: 768px) 50vw, 150px"
-                />
-              </button>
-            </div>
+            {hasAfter && (
+              <div className="relative aspect-square w-full rounded-lg overflow-hidden border border-slate-100 group shadow-xs">
+                <button
+                  type="button"
+                  className="absolute inset-0 w-full h-full text-left cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-purple-400 focus:rounded-lg"
+                  onClick={() => setLocalLightbox(review.finished_image_url!)}
+                  aria-label="View finished masterpiece cake"
+                >
+                  <span className="absolute top-1.5 left-1.5 z-10 px-1 py-0.5 text-[7px] min-[400px]:text-[8px] font-extrabold tracking-wider text-purple-700 bg-purple-50/90 backdrop-blur-xs rounded-md shadow-xs uppercase border border-purple-100 whitespace-nowrap">
+                    Final Product
+                  </span>
+                  <LazyImage
+                    src={review.finished_image_url!}
+                    alt="Finished custom cake"
+                    fill
+                    imageClassName="object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
+                    sizes="(max-width: 768px) 50vw, 150px"
+                  />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Right Side: details */}
