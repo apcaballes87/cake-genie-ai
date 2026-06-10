@@ -34,25 +34,12 @@ serve(async (req) => {
       throw new Error('Supabase environment variables are not set.');
     }
 
-    // Use the Service Role Key to bypass RLS for server-to-server operations
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
     const xenditAuthHeader = 'Basic ' + btoa(XENDIT_SECRET_KEY + ':');
 
-    // --- Helper: Map v3 status to internal status ---
-    const mapStatus = (v3Status: string): string => {
-      switch (v3Status) {
-        case 'SUCCEEDED': return 'PAID';
-        case 'EXPIRED': return 'EXPIRED';
-        case 'FAILED': return 'FAILED';
-        case 'CANCELED': return 'FAILED';
-        case 'PENDING': return 'PENDING';
-        default: return v3Status;
-      }
-    };
-
-    // --- Helper: Fetch payment request from Xendit ---
-    const fetchPaymentRequest = async (paymentRequestId: string) => {
-      const response = await fetch(`${XENDIT_API_URL}/v2/payment_requests/${paymentRequestId}`, {
+    // --- Helper: Fetch invoice from Xendit ---
+    const fetchInvoice = async (invoiceId: string) => {
+      const response = await fetch(`${XENDIT_API_URL}/v2/invoices/${invoiceId}`, {
         method: 'GET',
         headers: { 'Authorization': xenditAuthHeader },
       });
@@ -67,7 +54,6 @@ serve(async (req) => {
 
     // --- HANDLE CONTRIBUTION PAYMENT ---
     if (contributionId) {
-      // Try payment_request_id first, fall back to invoice_id for backward compat
       const { data: contribution, error: dbError } = await supabaseAdmin
         .from('order_contributions')
         .select('xendit_payment_request_id, xendit_invoice_id, status')
@@ -76,8 +62,8 @@ serve(async (req) => {
 
       if (dbError) throw dbError;
       
-      const paymentRequestId = contribution.xendit_payment_request_id || contribution.xendit_invoice_id;
-      if (!contribution || !paymentRequestId) {
+      const invoiceId = contribution.xendit_invoice_id || contribution.xendit_payment_request_id;
+      if (!contribution || !invoiceId) {
         throw new Error(`No contribution record found for ID: ${contributionId}`);
       }
 
@@ -88,26 +74,24 @@ serve(async (req) => {
         });
       }
 
-      const paymentRequest = await fetchPaymentRequest(paymentRequestId);
-      const latestStatus = mapStatus(paymentRequest.status);
+      const invoice = await fetchInvoice(invoiceId);
+      const latestStatus = invoice.status;
 
-      if (latestStatus === 'PAID') {
-        if (contribution.status !== 'paid') {
-          console.log(`Status for contribution ${paymentRequestId} is SUCCEEDED. Updating database.`);
+      if (latestStatus === 'PAID' && contribution.status !== 'paid') {
+        console.log(`Status for invoice ${invoiceId} is PAID. Updating database.`);
 
-          const { error: updateError } = await supabaseAdmin
-            .from('order_contributions')
-            .update({
-              status: 'paid',
-              paid_at: paymentRequest.captured_at || new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            })
-            .eq('contribution_id', contributionId);
+        const { error: updateError } = await supabaseAdmin
+          .from('order_contributions')
+          .update({
+            status: 'paid',
+            paid_at: invoice.paid_at || new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('contribution_id', contributionId);
 
-          if (updateError) throw updateError;
-        }
+        if (updateError) throw updateError;
 
-        // Force update order totals to ensure consistency (self-healing)
+        // Force update order totals
         const { data: contributions, error: sumError } = await supabaseAdmin
           .from('order_contributions')
           .select('amount')
@@ -116,7 +100,6 @@ serve(async (req) => {
 
         if (!sumError && contributions) {
           const totalCollected = contributions.reduce((sum, c) => sum + (c.amount || 0), 0);
-
           const { data: order } = await supabaseAdmin
             .from('cakegenie_orders')
             .select('total_amount')
@@ -126,16 +109,11 @@ serve(async (req) => {
           if (order) {
             const isFullyFunded = totalCollected >= order.total_amount;
             const updates: any = { amount_collected: totalCollected };
-
             if (isFullyFunded) {
               updates.payment_status = 'paid';
               updates.order_status = 'confirmed';
             }
-
-            await supabaseAdmin
-              .from('cakegenie_orders')
-              .update(updates)
-              .eq('order_id', contribution.order_id);
+            await supabaseAdmin.from('cakegenie_orders').update(updates).eq('order_id', contribution.order_id);
           }
         }
       }
@@ -147,7 +125,6 @@ serve(async (req) => {
     }
 
     // --- HANDLE STANDARD ORDER PAYMENT ---
-    // 1. Get the payment_request_id from database using orderId
     const { data: paymentRecord, error: dbError } = await supabaseAdmin
       .from('xendit_payments')
       .select('xendit_payment_request_id, xendit_invoice_id, status')
@@ -158,12 +135,11 @@ serve(async (req) => {
 
     if (dbError) throw dbError;
     
-    const paymentRequestId = paymentRecord.xendit_payment_request_id || paymentRecord.xendit_invoice_id;
-    if (!paymentRecord || !paymentRequestId) {
+    const invoiceId = paymentRecord.xendit_invoice_id || paymentRecord.xendit_payment_request_id;
+    if (!paymentRecord || !invoiceId) {
       throw new Error(`No payment record found for orderId: ${orderId}`);
     }
 
-    // If status is already PAID, no need to check again.
     if (paymentRecord.status === 'PAID') {
       return new Response(JSON.stringify({ success: true, status: 'PAID', message: 'Status is already PAID.' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -171,30 +147,25 @@ serve(async (req) => {
       });
     }
 
-    // 2. Call Xendit's Payment Request API to get the latest status
-    const paymentRequest = await fetchPaymentRequest(paymentRequestId);
-    const latestStatus = mapStatus(paymentRequest.status);
+    const invoice = await fetchInvoice(invoiceId);
+    const latestStatus = invoice.status;
 
-    // 3. If the status has changed to PAID, update your database
     if (latestStatus === 'PAID' && paymentRecord.status !== 'PAID') {
-      console.log(`Status for payment request ${paymentRequestId} is SUCCEEDED. Updating database.`);
+      console.log(`Status for invoice ${invoiceId} is PAID. Updating database.`);
 
-      // Extract payment details from the v3 response
-      const paymentMethodType = paymentRequest.payment_method?.type || null;
-      const paymentMethod = paymentRequest.payment_method?.display_name || paymentMethodType;
-      const capturedAmount = paymentRequest.captured_amount || paymentRequest.amount;
+      const paymentMethod = invoice.payment_method || null;
+      const paidAmount = invoice.paid_amount || invoice.amount;
 
-      // Update xendit_payments to record the raw data
       const { error: updatePaymentError } = await supabaseAdmin
         .from('xendit_payments')
         .update({
           status: 'PAID',
           payment_method: paymentMethod,
-          paid_amount: capturedAmount,
-          paid_at: paymentRequest.captured_at || new Date().toISOString(),
+          paid_amount: paidAmount,
+          paid_at: invoice.paid_at || new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
-        .eq('xendit_payment_request_id', paymentRequestId);
+        .eq('xendit_invoice_id', invoiceId);
       if (updatePaymentError) throw updatePaymentError;
 
       // --- SECURITY CHECK: VERIFY AMOUNT ---
@@ -208,18 +179,13 @@ serve(async (req) => {
         throw new Error(`Could not fetch order to verify amount for orderId: ${orderId}`);
       }
 
-      const paidAmount = capturedAmount || paymentRequest.amount;
-      const orderTotal = order.total_amount;
-
-      // Allow for small floating point differences
-      if (Math.abs(paidAmount - orderTotal) > 1.0) {
-        console.error(`❌ Payment Mismatch in Verification! Received: ${paidAmount}, Expected: ${orderTotal}`);
-
+      if (Math.abs(paidAmount - order.total_amount) > 1.0) {
+        console.error(`❌ Payment Mismatch! Received: ${paidAmount}, Expected: ${order.total_amount}`);
         await supabaseAdmin
           .from('cakegenie_orders')
           .update({
             payment_status: 'payment_mismatch',
-            order_notes: `Payment Mismatch (Verification): Paid ${paidAmount}, Expected ${orderTotal}`
+            order_notes: `Payment Mismatch (Verification): Paid ${paidAmount}, Expected ${order.total_amount}`
           })
           .eq('order_id', orderId);
 
@@ -229,7 +195,6 @@ serve(async (req) => {
         });
       }
 
-      // --- AMOUNT VERIFIED: PROCEED TO CONFIRM ---
       const { error: updateOrderError } = await supabaseAdmin
         .from('cakegenie_orders')
         .update({

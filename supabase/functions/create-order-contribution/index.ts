@@ -79,7 +79,7 @@ serve(async (req) => {
             throw new Error('Failed to create contribution record: ' + contribError.message);
         }
 
-        // 3. Create Xendit Payment Request (v3 API)
+        // 3. Create Xendit Invoice
         const mode = payment_mode || 'test';
         const XENDIT_SECRET_KEY = mode === 'live'
             ? (Deno.env.get('XENDIT_LIVE_API_KEY') || Deno.env.get('XENDIT_SECRET_KEY'))
@@ -92,7 +92,7 @@ serve(async (req) => {
         const xenditAuthHeader = 'Basic ' + btoa(XENDIT_SECRET_KEY + ':');
         const externalId = contribution.contribution_id;
 
-        const xenditResponse = await fetch('https://api.xendit.co/v2/payment_requests', {
+        const xenditResponse = await fetch('https://api.xendit.co/v2/invoices', {
             method: 'POST',
             headers: {
                 'Authorization': xenditAuthHeader,
@@ -101,8 +101,7 @@ serve(async (req) => {
             body: JSON.stringify({
                 external_id: externalId,
                 amount: amount,
-                description: `Contribution for Order ${order.order_number}`.substring(0, 500),
-                type: 'PAY',
+                description: `Contribution for Order ${order.order_number}`.substring(0, 255),
                 currency: 'PHP',
                 customer: {
                     given_names: contributorName || 'Contributor',
@@ -114,44 +113,33 @@ serve(async (req) => {
         });
 
         if (!xenditResponse.ok) {
-            const err = await xenditResponse.json();
-            throw new Error(err.message || 'Failed to create Xendit payment request');
+            const err = await xenditResponse.text();
+            throw new Error('Xendit error (' + xenditResponse.status + '): ' + err);
         }
 
-        const paymentRequest = await xenditResponse.json();
+        const invoice = await xenditResponse.json();
 
-        // Extract payment URL from actions array
-        let paymentUrl = null;
-        if (paymentRequest.actions && Array.isArray(paymentRequest.actions)) {
-            const redirectAction = paymentRequest.actions.find(
-                (action: any) => action.type === 'REDIRECT_CUSTOMER'
-            );
-            if (redirectAction) {
-                paymentUrl = redirectAction.value;
-            }
-        }
-
-        // 4. Update Contribution with Payment Request Details
+        // 4. Update Contribution with Invoice Details
         const { error: updateError } = await supabaseAdmin
             .from('order_contributions')
             .update({
-                xendit_payment_request_id: paymentRequest.id,
-                xendit_invoice_id: paymentRequest.id, // Backward compat
-                payment_url: paymentUrl,
+                xendit_invoice_id: invoice.id,
+                xendit_payment_request_id: invoice.id,
+                payment_url: invoice.invoice_url,
                 updated_at: new Date().toISOString()
             })
             .eq('contribution_id', contribution.contribution_id);
 
         if (updateError) {
-            console.error('Failed to update contribution with payment request:', updateError);
+            console.error('Failed to update contribution with invoice:', updateError);
             throw new Error('Failed to update contribution record');
         }
 
         return new Response(JSON.stringify({
             success: true,
-            paymentUrl: paymentUrl,
+            paymentUrl: invoice.invoice_url,
             contributionId: contribution.contribution_id,
-            paymentRequestId: paymentRequest.id
+            paymentRequestId: invoice.id
         }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200,

@@ -19,7 +19,13 @@ serve(async (req) => {
 
         const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
-        const requestBody = await req.json();
+        let requestBody;
+        try {
+            requestBody = await req.json();
+        } catch (e) {
+            console.error('Failed to parse request body:', e);
+            throw new Error('Invalid request body: must be valid JSON');
+        }
         console.log('Received request body:', JSON.stringify(requestBody, null, 2));
 
         const {
@@ -30,9 +36,9 @@ serve(async (req) => {
             customerEmail,
             customerName,
             paymentTokenId
-        } = requestBody;
+        } = requestBody || {};
 
-        console.log('Processing payment for Order ID:', orderId);
+        console.log('Processing payment for Order ID:', orderId, 'payment_mode:', payment_mode);
 
         // 1. Fetch Order from Database to get Trusted Amount
         const { data: order, error: orderError } = await supabaseAdmin
@@ -46,14 +52,13 @@ serve(async (req) => {
             throw new Error('Order not found');
         }
 
-        const amount = order.total_amount;
-        console.log(`Order ${order.order_number} Total Amount: ${amount}`);
+        const amount = Number(order.total_amount);
+        console.log(`Order ${order.order_number} Total Amount: ${amount} (type: ${typeof amount})`);
 
         // 2. Handle Free Orders (100% Discount)
         if (amount <= 0) {
             console.log('Order amount is 0 or negative. Marking as PAID immediately.');
 
-            // Mark as paid directly
             const { error: updateError } = await supabaseAdmin
                 .from('cakegenie_orders')
                 .update({
@@ -79,7 +84,7 @@ serve(async (req) => {
             });
         }
 
-        // 3. Proceed with Xendit Payment Request API v3 for non-zero amounts
+        // 3. Proceed with Xendit Invoice API for non-zero amounts
         const mode = payment_mode || 'test';
         const XENDIT_SECRET_KEY = mode === 'live'
             ? (Deno.env.get('XENDIT_LIVE_API_KEY') || Deno.env.get('XENDIT_SECRET_KEY'))
@@ -109,37 +114,19 @@ serve(async (req) => {
         }
 
         // Construct Detailed Description
-        let description = `Order #${orderData.order_number}\n\n`;
-        const baseUrl = success_redirect_url ? success_redirect_url.split('/order-confirmation')[0] : 'https://cakegenie.ph';
-        description += `View Customization Details: ${baseUrl}/account/orders\n\n`;
-
+        let description = `Order #${orderData.order_number}`;
         if (orderData.cakegenie_order_items && orderData.cakegenie_order_items.length > 0) {
-            orderData.cakegenie_order_items.forEach((item: any, index: number) => {
-                const details = item.customization_details;
-                if (index > 0) description += '\n-------------------\n\n';
-
-                description += `Type:\n${item.cake_size} ${item.cake_type}\n`;
-
-                if (details.flavors && details.flavors.length > 0) {
-                    description += `Flavor:\n${details.flavors.join(', ')}\n`;
-                }
-
-                if (details.mainToppers && details.mainToppers.length > 0) {
-                    const toppers = details.mainToppers.map((t: any) => `${t.description} (${t.size || 'medium'})`).join(', ');
-                    description += `Main Toppers:\n${toppers}\n`;
-                }
+            orderData.cakegenie_order_items.forEach((item: any) => {
+                description += ` | ${item.cake_size} ${item.cake_type}`;
             });
         }
 
-        // Create Payment Request via Xendit Payment Request API v3
         const xenditAuthHeader = 'Basic ' + btoa(XENDIT_SECRET_KEY + ':');
 
-        // Build payment request body
-        const paymentRequestPayload: Record<string, any> = {
+        const invoicePayload: Record<string, any> = {
             external_id: orderId,
             amount: amount,
-            description: description.substring(0, 500), // V3 has 500 char limit
-            type: 'PAY', // One-time payment, shows available methods
+            description: description.substring(0, 255),
             currency: 'PHP',
             customer: {
                 given_names: customerName || 'Customer',
@@ -149,62 +136,51 @@ serve(async (req) => {
             failure_redirect_url
         };
 
-        // If paymentTokenId is provided (PAY_AND_SAVE for returning users with Maya)
         if (paymentTokenId) {
-            paymentRequestPayload.type = 'PAY_AND_SAVE';
-            paymentRequestPayload.payment_method = {
+            invoicePayload.payment_method = {
                 type: 'EWALLET',
-                reusability: 'MULTIPLE_USE'
+                reusability: 'MULTIPLE_USE',
+                ewallet: {
+                    channel_properties: {
+                        payment_token_id: paymentTokenId
+                    }
+                }
             };
         }
 
-        console.log('Creating Payment Request with payload:', JSON.stringify(paymentRequestPayload, null, 2));
+        console.log('Creating Invoice with payload:', JSON.stringify(invoicePayload, null, 2));
 
-        const response = await fetch('https://api.xendit.co/v2/payment_requests', {
+        const response = await fetch('https://api.xendit.co/v2/invoices', {
             method: 'POST',
             headers: {
                 'Authorization': xenditAuthHeader,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(paymentRequestPayload)
+            body: JSON.stringify(invoicePayload)
         });
 
         if (!response.ok) {
-            const err = await response.json();
-            console.error('Xendit API error:', err);
-            throw new Error(err.message || 'Failed to create Xendit payment request');
+            const errText = await response.text();
+            console.error('Xendit API error (status ' + response.status + '):', errText);
+            let errObj;
+            try { errObj = JSON.parse(errText); } catch (_e) { errObj = { message: errText }; }
+            throw new Error(`Xendit error (${response.status}): ${errObj.message || errText}`);
         }
 
-        const paymentRequest = await response.json();
-        console.log('Payment Request created:', JSON.stringify(paymentRequest, null, 2));
+        const invoice = await response.json();
+        console.log('Invoice created:', JSON.stringify(invoice, null, 2));
 
-        // Extract payment URL from actions array (REDIRECT_CUSTOMER type)
-        let paymentUrl = null;
-        if (paymentRequest.actions && Array.isArray(paymentRequest.actions)) {
-            const redirectAction = paymentRequest.actions.find(
-                (action: any) => action.type === 'REDIRECT_CUSTOMER'
-            );
-            if (redirectAction) {
-                paymentUrl = redirectAction.value;
-            }
-        }
-
-        // Also extract token_id for future PAY_AND_SAVE usage
-        const tokenId = paymentRequest.payment_method?.token_id || null;
-
-        // Save to database
         const { error: dbError } = await supabaseAdmin
             .from('xendit_payments')
             .insert({
                 order_id: orderId,
-                xendit_payment_request_id: paymentRequest.id,
-                xendit_external_id: paymentRequest.external_id,
-                xendit_invoice_id: paymentRequest.id, // Keep for backward compat
-                status: paymentRequest.status,
-                amount: paymentRequest.amount,
-                payment_link_url: paymentUrl,
-                payment_token_id: tokenId,
-                expiry_date: paymentRequest.expires_at
+                xendit_invoice_id: invoice.id,
+                xendit_external_id: invoice.external_id,
+                xendit_payment_request_id: invoice.id,
+                status: invoice.status,
+                amount: invoice.amount,
+                payment_link_url: invoice.invoice_url,
+                expiry_date: invoice.expiry_date
             });
 
         if (dbError) {
@@ -214,10 +190,10 @@ serve(async (req) => {
 
         return new Response(JSON.stringify({
             success: true,
-            paymentUrl: paymentUrl,
-            paymentRequestId: paymentRequest.id,
-            tokenId: tokenId,
-            expiresAt: paymentRequest.expires_at
+            paymentUrl: invoice.invoice_url,
+            paymentRequestId: invoice.id,
+            invoiceId: invoice.id,
+            expiresAt: invoice.expiry_date
         }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200,

@@ -39,7 +39,7 @@ serve(async (req) => {
 
     const xenditAuthHeader = 'Basic ' + btoa(XENDIT_SECRET_KEY + ':');
 
-    // 1. Get the payment_request_id from bill_contributions table
+    // 1. Get the invoice_id from bill_contributions table
     const { data: contributionRecord, error: dbError } = await supabaseAdmin
       .from('bill_contributions')
       .select('xendit_payment_request_id, xendit_invoice_id, status')
@@ -48,8 +48,8 @@ serve(async (req) => {
 
     if (dbError) throw dbError;
 
-    const paymentRequestId = contributionRecord.xendit_payment_request_id || contributionRecord.xendit_invoice_id;
-    if (!contributionRecord || !paymentRequestId) {
+    const invoiceId = contributionRecord.xendit_invoice_id || contributionRecord.xendit_payment_request_id;
+    if (!contributionRecord || !invoiceId) {
       throw new Error(`No payment record found for contributionId: ${contributionId}`);
     }
 
@@ -60,8 +60,8 @@ serve(async (req) => {
         });
     }
 
-    // 2. Call Xendit's Payment Request API
-    const xenditResponse = await fetch(`${XENDIT_API_URL}/v2/payment_requests/${paymentRequestId}`, {
+    // 2. Call Xendit's Invoice API
+    const xenditResponse = await fetch(`${XENDIT_API_URL}/v2/invoices/${invoiceId}`, {
       method: 'GET',
       headers: { 'Authorization': xenditAuthHeader },
     });
@@ -71,23 +71,22 @@ serve(async (req) => {
       throw new Error(`Xendit API error: ${xenditResponse.status} ${errorBody}`);
     }
 
-    const paymentRequest = await xenditResponse.json();
+    const invoice = await xenditResponse.json();
 
-    // Map v3 status to internal status
-    const latestStatus = paymentRequest.status === 'SUCCEEDED' ? 'paid'
-      : paymentRequest.status === 'EXPIRED' ? 'expired'
-      : paymentRequest.status === 'FAILED' || paymentRequest.status === 'CANCELED' ? 'failed'
+    const latestStatus = invoice.status === 'PAID' ? 'paid'
+      : invoice.status === 'EXPIRED' ? 'expired'
+      : invoice.status === 'FAILED' ? 'failed'
       : 'pending';
 
     // 3. Update database if status changed to paid
     if (latestStatus === 'paid' && contributionRecord.status !== 'paid') {
-        console.log(`Status for payment request ${paymentRequestId} is SUCCEEDED. Updating database.`);
+        console.log(`Status for invoice ${invoiceId} is PAID. Updating database.`);
 
         const { error: updateError } = await supabaseAdmin
             .from('bill_contributions')
             .update({ 
                 status: 'paid', 
-                paid_at: paymentRequest.captured_at || new Date().toISOString(),
+                paid_at: invoice.paid_at || new Date().toISOString(),
             })
             .eq('contribution_id', contributionId);
         if (updateError) throw updateError;
