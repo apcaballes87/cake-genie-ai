@@ -34,6 +34,9 @@ describe('imageStudio helpers', () => {
     expect(prompt).toContain('1:1 square aspect ratio');
     expect(prompt).toContain('final image is perfectly square');
     expect(prompt).toContain('If its a cupcakes or cupcake set image, remove the box and cupcake holder');
+    expect(prompt).toContain('translate that text into English');
+    expect(prompt).toContain('foreign (non-English) language');
+    expect(prompt).toContain('English text on the source cake should be preserved as-is');
   });
 
   it('builds a system instruction that prioritizes a real product photo result', () => {
