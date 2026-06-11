@@ -1,5 +1,29 @@
 # Tasks
 
+## Stabilize Mobile Homepage Hero Carousel Handoff
+
+### Plan
+
+- [x] Trace the current mobile hero placeholder and delayed Embla handoff in `LandingClient`.
+- [x] Keep the placeholder rendered until the Embla chunk is loaded and the interactive carousel is ready.
+- [x] Align the placeholder's visible slide window with the live carousel and prevent remounted hero images from starting hidden.
+- [x] Add focused regression coverage and verify with targeted tests/checks.
+
+### Review
+
+- Root cause: the mobile homepage still depended on a two-phase hero path in [src/app/LandingClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/LandingClient.tsx:354). The static placeholder showed the active card plus the next card but no wrapped previous card, then the component swapped directly to the delayed Embla import. During that handoff the carousel slot could briefly go empty while the chunk loaded, and the new hero images remounted through `LazyImage` with `opacity-0` until their own `onLoad`, causing the visible disappear/reappear sequence and the downstream section jump.
+- Added [src/app/landingHeroCarousel.ts](/Users/apcaballes/genieph-nextjs/src/app/landingHeroCarousel.ts:1) so the mobile placeholder now renders a wrapped `previous/current/next` window around the active hero index instead of starting at index `0`.
+- Updated [src/app/LandingClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/LandingClient.tsx:400) so the placeholder stays in normal flow until the Embla module is imported and signals ready. The interactive carousel mounts in an overlaid layer first, then takes over without collapsing the slot.
+- Updated [src/app/HeroProductPeekCarouselEmbla.tsx](/Users/apcaballes/genieph-nextjs/src/app/HeroProductPeekCarouselEmbla.tsx:21) with an `onReady` callback and the same visible-slide helper so the initial live carousel aligns with the placeholder window.
+- Extended [src/components/LazyImage.tsx](/Users/apcaballes/genieph-nextjs/src/components/LazyImage.tsx:11) with an internal `showBeforeLoad` option and used it on the mobile hero carousel images, so the remounted visible slides no longer start artificially hidden during the handoff.
+- Added focused regression coverage in [src/app/landingHeroCarousel.test.ts](/Users/apcaballes/genieph-nextjs/src/app/landingHeroCarousel.test.ts:1) and [src/components/LazyImage.test.tsx](/Users/apcaballes/genieph-nextjs/src/components/LazyImage.test.tsx:1).
+- Verification:
+  - `npx vitest run src/app/landingHeroCarousel.test.ts src/components/LazyImage.test.tsx` passed with 11 tests.
+  - Focused ESLint passed for the new helper/Embla/LazyImage files. `LandingClient.tsx` still has the repo's pre-existing lint debt (`react-hooks/set-state-in-effect`, unescaped entities, unused values, and legacy `<img>` warnings), so this change does not newly clear that file.
+  - `git diff --check` passed.
+  - `npm run build` passed. Static generation still logged the existing Supabase `57014` fallback-query timeouts during page generation, but the build completed successfully.
+  - Built-app browser verification on `http://127.0.0.1:3007/` with a `390x844` viewport showed the mobile hero rendering with left/center/right cards on first paint and still stable after the delayed handoff interval; the hero image count stayed at `6` and the “Generic cakes make generic celebrations” heading position remained stable instead of jumping.
+
 ## Demote Legacy Category Hubs And Strengthen Collection Canonicals
 
 ### Plan

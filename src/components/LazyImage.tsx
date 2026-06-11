@@ -9,6 +9,7 @@ interface LazyImageProps extends Omit<ImageProps, 'onLoad' | 'onError'> {
   placeholderClassName?: string;
   containerClassName?: string;
   imageClassName?: string;
+  showBeforeLoad?: boolean;
   title?: string;
   onLoad?: (event: React.SyntheticEvent<HTMLImageElement>) => void; // Update to match native event if needed, but next/image onLoad is slightly different
   onError?: (event: React.SyntheticEvent<HTMLImageElement>) => void;
@@ -34,6 +35,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   placeholderClassName,
   containerClassName,
   imageClassName,
+  showBeforeLoad = false,
   title,
   onLoad,
   onError,
@@ -86,6 +88,8 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   const effectiveSrc = variantFallbackSrc ?? src;
 
   const sizes = props.sizes || '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw';
+  const shouldShowImage = showBeforeLoad || priority || isLoaded;
+  const opacityDurationClassName = showBeforeLoad || priority ? 'duration-0' : 'duration-200';
 
   const imageElement = (
     <Image
@@ -99,7 +103,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
       width={!isFilling ? width : undefined}
       height={!isFilling ? height : undefined}
       sizes={sizes}
-      className={`transition-opacity ${priority ? 'duration-0' : 'duration-200'} ${isLoaded || priority ? 'opacity-100' : 'opacity-0'} ${isFilling && !imageClassName?.includes('object-') ? 'object-cover' : ''} ${imageClassName || ''}`}
+      className={`transition-opacity ${opacityDurationClassName} ${shouldShowImage ? 'opacity-100' : 'opacity-0'} ${isFilling && !imageClassName?.includes('object-') ? 'object-cover' : ''} ${imageClassName || ''}`}
       unoptimized={unoptimized}
       fetchPriority={fetchPriority}
       decoding={decoding}

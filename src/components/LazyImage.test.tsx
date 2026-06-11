@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import React from 'react';
 import { render } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
@@ -141,5 +142,20 @@ describe('LazyImage', () => {
         // variant (2400) since there's nothing smaller.
         const img = container.querySelector('img');
         expect(img!.getAttribute('src')).toBe('https://x.example.com/2400.webp');
+    });
+
+    it('can keep an image visible before onLoad when showBeforeLoad is set', () => {
+        const { container } = render(
+            <LazyImage
+                src="https://x.example.com/original.jpg"
+                alt="cake"
+                showBeforeLoad
+            />,
+        );
+
+        const img = container.querySelector('img');
+        expect(img).not.toBeNull();
+        expect(img!.className).toContain('opacity-100');
+        expect(img!.className).toContain('duration-0');
     });
 });

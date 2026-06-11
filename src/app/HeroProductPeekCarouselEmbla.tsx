@@ -5,11 +5,12 @@ import useEmblaCarousel from 'embla-carousel-react';
 import { WheelGesturesPlugin } from 'embla-carousel-wheel-gestures';
 import LazyImage from '@/components/LazyImage';
 import type { LandingHeroProduct } from '@/components/landing/landingHeroContent';
+import { getMobileHeroCarouselVisibleIndices } from './landingHeroCarousel';
 
 /**
  * Embla-powered hero peek carousel for the mobile landing page.
  *
- * This file is loaded via next/dynamic (ssr: false) from LandingClient so the
+ * This file is imported on demand from LandingClient so the
  * embla-carousel-react + embla-carousel-wheel-gestures bundles don't ship in
  * the initial JS for desktop users (who never see this component) or for
  * mobile users on first paint.
@@ -19,25 +20,34 @@ import type { LandingHeroProduct } from '@/components/landing/landingHeroContent
  * the import + gating the mount in LandingClient via useShouldMountCarousel
  * pulls that work out of the LCP critical path.
  */
+export interface HeroProductPeekCarouselEmblaProps {
+    products: readonly LandingHeroProduct[];
+    heroProductIndex: number;
+    onSelectProduct: (index: number) => void;
+    onInteraction?: (index: number) => void;
+    onReady?: () => void;
+    cardSpacingClassName?: string;
+    cardFlexStyle?: string;
+    aspectClassName?: string;
+}
+
 export default function HeroProductPeekCarouselEmbla({
     products,
     heroProductIndex,
     onSelectProduct,
     onInteraction,
+    onReady,
     cardSpacingClassName = 'mx-1',
     cardFlexStyle = '0 0 min(calc(50% - 8px), 232px)',
     aspectClassName = 'aspect-[3/2]',
-}: {
-    products: readonly LandingHeroProduct[];
-    heroProductIndex: number;
-    onSelectProduct: (index: number) => void;
-    onInteraction?: (index: number) => void;
-    cardSpacingClassName?: string;
-    cardFlexStyle?: string;
-    aspectClassName?: string;
-}) {
+}: HeroProductPeekCarouselEmblaProps) {
     const wheelGestures = useMemo(() => [WheelGesturesPlugin()], []);
     const userTriggeredSelectionRef = useRef(false);
+    const hasReportedReadyRef = useRef(false);
+    const visibleProductIndices = useMemo(
+        () => new Set(getMobileHeroCarouselVisibleIndices(products.length, heroProductIndex)),
+        [products.length, heroProductIndex]
+    );
     const [emblaRef, emblaApi] = useEmblaCarousel(
         {
             align: 'center',
@@ -68,6 +78,10 @@ export default function HeroProductPeekCarouselEmbla({
         };
 
         syncSelectedProduct();
+        if (!hasReportedReadyRef.current) {
+            hasReportedReadyRef.current = true;
+            onReady?.();
+        }
         emblaApi.on('select', syncSelectedProduct);
         emblaApi.on('reInit', syncSelectedProduct);
 
@@ -82,7 +96,7 @@ export default function HeroProductPeekCarouselEmbla({
             emblaApi.off('reInit', syncSelectedProduct);
             emblaApi.off('pointerDown', handlePointerDown);
         };
-    }, [emblaApi, onSelectProduct, onInteraction]);
+    }, [emblaApi, onSelectProduct, onInteraction, onReady]);
 
     const handleProductClick = (index: number) => {
         userTriggeredSelectionRef.current = true;
@@ -112,6 +126,7 @@ export default function HeroProductPeekCarouselEmbla({
                                     alt={`${product.title} example`}
                                     fill
                                     priority={productIndex === 0}
+                                    showBeforeLoad={visibleProductIndices.has(productIndex)}
                                     loading={productIndex === 0 ? 'eager' : 'lazy'}
                                     fetchPriority={productIndex === 0 ? 'high' : 'low'}
                                     decoding="async"
