@@ -446,3 +446,122 @@ describe('DesignSchema — R9 JSON-LD safety', () => {
     );
   });
 });
+
+describe('DesignSchema — R10 Product.review (themed-pool JSON-LD safety)', () => {
+  // Mock-themed-review factory — only review_id, _source, and the
+  // schema-relevant fields matter for these tests.
+  const mkThemedReview = (id: string, source: 'exact' | 'themed' | 'recent') =>
+    ({
+      review_id: id,
+      _source: source,
+      rating: 5,
+      title: `Great cake ${id}`,
+      comment: `Loved it — review ${id}`,
+      created_at: '2026-05-01T00:00:00Z',
+    } as unknown as import('@/lib/reviews').ThemedReview);
+
+  it('emits a Product.review array with only the exact-tier reviews', () => {
+    const { container } = render(
+      <DesignSchema
+        design={baseDesign()}
+        siteReviewSummary={{ total: 0, averageRating: 0 }}
+        isSiteReviewSummaryFallback
+        perDesignReviewStats={null}
+        linkedMerchantProducts={[]}
+        themedReviews={[
+          mkThemedReview('e1', 'exact'),
+          mkThemedReview('t1', 'themed'),
+          mkThemedReview('r1', 'recent'),
+          mkThemedReview('e2', 'exact'),
+        ]}
+      />,
+    );
+    const product = getProductGraph(container);
+    expect(product).not.toBeNull();
+    expect(Array.isArray(product!.review)).toBe(true);
+    expect(product!.review).toHaveLength(2);
+    // Themed and recent reviews must NOT appear — they're about other
+    // products, and marking them up for this Product would be a
+    // structured-data lie.
+    const reviewIds = product!.review.map((r: { name?: string }) => r.name);
+    expect(reviewIds).toEqual(['Great cake e1', 'Great cake e2']);
+  });
+
+  it('strips the _source discriminator from emitted review items', () => {
+    const { container } = render(
+      <DesignSchema
+        design={baseDesign()}
+        siteReviewSummary={{ total: 0, averageRating: 0 }}
+        isSiteReviewSummaryFallback
+        perDesignReviewStats={null}
+        linkedMerchantProducts={[]}
+        themedReviews={[mkThemedReview('e1', 'exact')]}
+      />,
+    );
+    const product = getProductGraph(container);
+    const reviewJson = JSON.stringify(product!.review);
+    // _source is a UI-only field; it must never leak into JSON-LD.
+    expect(reviewJson).not.toContain('_source');
+  });
+
+  it('omits the review field entirely when no exact-tier reviews exist', () => {
+    const { container } = render(
+      <DesignSchema
+        design={baseDesign()}
+        siteReviewSummary={{ total: 0, averageRating: 0 }}
+        isSiteReviewSummaryFallback
+        perDesignReviewStats={null}
+        linkedMerchantProducts={[]}
+        themedReviews={[
+          mkThemedReview('t1', 'themed'),
+          mkThemedReview('r1', 'recent'),
+        ]}
+      />,
+    );
+    const product = getProductGraph(container);
+    expect(product!.review).toBeUndefined();
+  });
+
+  it('omits the review field when themedReviews prop is not passed', () => {
+    // Backwards compatibility — the prop is optional, and pre-Step-C
+    // callers don't supply it. The schema should still validate.
+    const { container } = render(
+      <DesignSchema
+        design={baseDesign()}
+        siteReviewSummary={{ total: 0, averageRating: 0 }}
+        isSiteReviewSummaryFallback
+        perDesignReviewStats={null}
+        linkedMerchantProducts={[]}
+      />,
+    );
+    const product = getProductGraph(container);
+    expect(product!.review).toBeUndefined();
+  });
+
+  it('emits a valid schema.org/Review shape for each exact-tier review', () => {
+    const { container } = render(
+      <DesignSchema
+        design={baseDesign()}
+        siteReviewSummary={{ total: 0, averageRating: 0 }}
+        isSiteReviewSummaryFallback
+        perDesignReviewStats={null}
+        linkedMerchantProducts={[]}
+        themedReviews={[mkThemedReview('e1', 'exact')]}
+      />,
+    );
+    const product = getProductGraph(container);
+    const review = product!.review[0];
+    expect(review['@type']).toBe('Review');
+    expect(review.author).toMatchObject({ '@type': 'Person' });
+    expect(typeof review.author.name).toBe('string');
+    expect(review.datePublished).toBe('2026-05-01T00:00:00Z');
+    expect(review.reviewBody).toBe('Loved it — review e1');
+    expect(review.name).toBe('Great cake e1');
+    expect(review.reviewRating).toMatchObject({
+      '@type': 'Rating',
+      ratingValue: 5,
+      bestRating: 5,
+      worstRating: 1,
+    });
+  });
+});

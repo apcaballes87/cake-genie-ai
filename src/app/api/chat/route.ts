@@ -8,6 +8,55 @@ const supabaseAdmin = supabaseUrl && supabaseServiceKey
   ? createClient(supabaseUrl, supabaseServiceKey)
   : null;
 
+type ChatPageContext = {
+  url: string | null;
+  title: string | null;
+};
+
+function normalizeOptionalString(value: unknown, maxLength: number): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  return trimmed.slice(0, maxLength);
+}
+
+function normalizePageContext(value: unknown): ChatPageContext | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const raw = value as Record<string, unknown>;
+  const url = normalizeOptionalString(raw.url, 2048);
+  const title = normalizeOptionalString(raw.title, 255);
+
+  if (!url && !title) {
+    return null;
+  }
+
+  return {
+    url,
+    title,
+  };
+}
+
+function buildConversationPageContextUpdate(pageContext: ChatPageContext | null) {
+  if (!pageContext) {
+    return {};
+  }
+
+  return {
+    last_customer_page_url: pageContext.url,
+    last_customer_page_title: pageContext.title,
+    last_customer_page_seen_at: new Date().toISOString(),
+  };
+}
+
 export async function GET(request: NextRequest) {
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
@@ -16,8 +65,6 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const conversationId = searchParams.get('conversation_id');
-    const sessionId = searchParams.get('session_id');
-    const userId = searchParams.get('user_id');
 
     if (conversationId) {
       const { data: messages, error } = await supabaseAdmin
@@ -57,6 +104,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { action, conversationId, sessionId, userId, content, email, name, imageUrl } = body;
+    const pageContext = normalizePageContext(body.pageContext);
 
     if (action === 'send_message') {
       if (!content && !imageUrl || !conversationId) {
@@ -82,9 +130,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
       }
 
+      const conversationUpdate = {
+        updated_at: new Date().toISOString(),
+        ...buildConversationPageContextUpdate(pageContext),
+      };
+
       await supabaseAdmin
         .from('chat_conversations')
-        .update({ updated_at: new Date().toISOString() })
+        .update(conversationUpdate)
         .eq('id', conversationId);
 
       return NextResponse.json({ success: true, data: message }, { status: 201 });
@@ -152,16 +205,31 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      if (conversation) {
+        const conversationUpdate = {
+          updated_at: new Date().toISOString(),
+          ...buildConversationPageContextUpdate(pageContext),
+        };
+
+        await supabaseAdmin
+          .from('chat_conversations')
+          .update(conversationUpdate)
+          .eq('id', conversation.id);
+      }
+
       if (!conversation) {
+        const newConversationPayload = {
+          user_id: userId || null,
+          session_id: sessionId || null,
+          customer_email: email || null,
+          customer_name: name || null,
+          status: 'active',
+          ...buildConversationPageContextUpdate(pageContext),
+        };
+
         const { data: newConversation, error } = await supabaseAdmin
           .from('chat_conversations')
-          .insert({
-            user_id: userId || null,
-            session_id: sessionId || null,
-            customer_email: email || null,
-            customer_name: name || null,
-            status: 'active',
-          })
+          .insert(newConversationPayload)
           .select()
           .single();
 

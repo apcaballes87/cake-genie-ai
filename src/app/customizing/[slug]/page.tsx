@@ -16,7 +16,7 @@ import { mapAnalysisToState, mapProductToDefaultState } from '@/utils/customizat
 import { upgradeLegacySlug, downgradeCakeSlug } from '@/lib/utils/urlHelpers'
 import { generateDesignDetails, generateDynamicFAQ, generateRichAltText } from '@/utils/designContentUtils'
 import { parseManifest, buildSrcSet, pickFallbackSrc } from '@/lib/imageVariants/manifest'
-import { buildReviewSummary, getThemedReviewsForSlug, getSourceSubtitle, getReviewDisplayName, getReviewAvatarInitial, type ThemedReview } from '@/lib/reviews'
+import { buildReviewSummary, getThemedReviewsForSlug, getSourceSubtitle, getReviewDisplayName, getReviewAvatarInitial, getExactReviewsForSchema, type ThemedReview } from '@/lib/reviews'
 import {
     buildCustomCakeAdditionalProperties,
     buildMerchantReturnPolicy,
@@ -405,6 +405,7 @@ export function DesignSchema({
     perDesignReviewStats,
     linkedMerchantProducts,
     faqs,
+    themedReviews,
 }: {
     design: any;
     prices?: BasePriceInfo[];
@@ -413,6 +414,13 @@ export function DesignSchema({
     perDesignReviewStats: { total: number; averageRating: number } | null;
     linkedMerchantProducts: { product_id: string }[];
     faqs?: { question: string; answer: string }[];
+    /**
+     * Optional themed review pool (output of getThemedReviewsForSlug).
+     * Only tier-1 (exact) reviews are marked up in Product.review — themed
+     * and recent reviews are about *other* products and would be a
+     * structured-data lie. See plan §12 Rule 3.
+     */
+    themedReviews?: ThemedReview[];
 }) {
     // Sanitize string to prevent script injection in JSON-LD (matches SEOSchemas.tsx pattern)
     const sanitize = (str: string | null | undefined) => str ? str.replace(/<\/script/gi, '<\\/script') : '';
@@ -549,6 +557,38 @@ export function DesignSchema({
         ? [imageObject, customizedImageObject]
         : imageObject || (imageUrl || undefined);
 
+    // Build Product.review items from the themed-pool result. Only
+    // tier-1 (exact) reviews qualify — themed/recent reviews are about
+    // other products and would misrepresent the page in structured data.
+    // See plan §12 Rule 3.
+    const exactReviews = getExactReviewsForSchema(themedReviews);
+    const productReviews = exactReviews.length > 0
+        ? exactReviews.map((r) => {
+            // Build a minimal-but-valid schema.org/Review object. We
+            // intentionally skip optional fields (reviewAspect,
+            // aggregateRating inside review) when the underlying data
+            // doesn't supply them — the JSON-LD validator only complains
+            // about wrong types, not missing optionals.
+            const authorName = getReviewDisplayName(r) || 'Customer';
+            return {
+                '@type': 'Review',
+                author: {
+                    '@type': 'Person',
+                    name: sanitize(authorName),
+                },
+                datePublished: r.created_at,
+                reviewBody: r.comment ? sanitize(r.comment) : undefined,
+                name: r.title ? sanitize(r.title) : undefined,
+                reviewRating: {
+                    '@type': 'Rating',
+                    ratingValue: r.rating,
+                    bestRating: 5,
+                    worstRating: 1,
+                },
+            };
+        })
+        : null;
+
     // Product schema with SoftwareApplication link
     const productSchema = {
         '@context': 'https://schema.org',
@@ -566,6 +606,7 @@ export function DesignSchema({
         },
         offers: offers,
         ...(aggregateRating !== null ? { aggregateRating } : {}),
+        ...(productReviews ? { review: productReviews } : {}),
         category: 'Custom Cakes',
         additionalProperty: buildCustomCakeAdditionalProperties({
             cakeType: design.analysis_json?.cakeType || null,
@@ -1368,6 +1409,7 @@ export default async function RecentSearchPage({ params }: Props) {
                 perDesignReviewStats={null}
                 linkedMerchantProducts={linkedMerchantProducts}
                 faqs={dynamicFAQs}
+                themedReviews={themedReviews}
             />
 
             {/* Preload the hero image for faster LCP.

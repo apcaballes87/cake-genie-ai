@@ -151,13 +151,11 @@ export function generateDynamicFAQ(design: any, prices?: BasePriceInfo[]): { que
 
     // FAQ 1: Price — always unique per design
     if (prices && prices.length > 0) {
-        const sorted = [...prices].sort((a, b) => a.price - b.price);
-        const priceLines = sorted.map(p => `${p.size} at ₱${Math.round(p.price).toLocaleString()}`).join(', ');
         faqs.push({
             question: isCupcake ? `How much do these ${keywords} cupcakes cost?` : `How much does this ${keywords} cake cost?`,
             answer: isCupcake
-                ? `These ${keywords} cupcakes are priced at: ${priceLines}. The price includes the base icing, all decorations shown in the design, and free delivery within Metro Cebu. You can also customize individual elements which may adjust the final price.`
-                : `This ${keywords} cake is available in multiple sizes: ${priceLines}. The price includes the base icing, all decorations shown in the design, and free delivery within Metro Cebu. You can also customize individual elements which may adjust the final price.`,
+                ? `To see the exact price for these ${keywords} cupcakes, simply select your desired options (such as flavor or quantity) from the configuration menu above. The price will update in real time and be displayed in the add to cart bar at the bottom of the screen.`
+                : `To see the exact price for this ${keywords} cake, simply select your desired size and height options from the configuration menu above. The price will update in real time and be displayed in the add to cart bar at the bottom of the screen.`,
         });
     }
 

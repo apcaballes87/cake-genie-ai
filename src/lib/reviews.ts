@@ -179,6 +179,31 @@ export type ReviewSource = 'exact' | 'themed' | 'recent';
 export type ThemedReview = CakeGenieReview & { _source: ReviewSource };
 
 /**
+ * Filters a themed-pool result down to reviews that are safe to mark up
+ * in structured data (i.e. the product schema's `review` field), and
+ * strips the UI-only `_source` discriminator so the returned objects
+ * are plain `CakeGenieReview`s.
+ *
+ * Why this filter matters: a 'themed' review is for a *different but
+ * related* product (e.g. a Charizard review shown on a Pikachu page).
+ * Marking those up as `Product.review` for Pikachu would be a structured-
+ * data lie that Google could penalise. Only reviews with
+ * `_source === 'exact'` are truly about the current product.
+ *
+ * Plan reference: §12 Rule 3.
+ */
+export function getExactReviewsForSchema(themedReviews: ReadonlyArray<ThemedReview> | null | undefined): CakeGenieReview[] {
+    if (!themedReviews || themedReviews.length === 0) return [];
+    const exact = themedReviews.filter((r) => r._source === 'exact');
+    return exact.map((r) => {
+        // Strip the UI-only discriminator; the rest is the real review.
+        const { _source, ...clean } = r;
+        void _source; // eslint-disable-line @typescript-eslint/no-unused-vars
+        return clean;
+    });
+}
+
+/**
  * Returns a section-subtitle that honestly describes the source mix of the
  * reviews actually rendered. This is the user-facing signal that a Charizard
  * review on a Pikachu page is a *themed* review, not a fake Pikachu review.

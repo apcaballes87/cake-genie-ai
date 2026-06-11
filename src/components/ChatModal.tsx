@@ -43,6 +43,11 @@ interface Message {
     is_sent?: boolean;
 }
 
+interface ChatPageContext {
+    url: string;
+    title: string;
+}
+
 interface ChatModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -89,6 +94,17 @@ function getChatImageAnalysisErrorMessage(error: unknown): string {
 function extractProductLink(text: string): string | null {
     const match = text.match(/customizing\/([a-zA-Z0-9-]+)/);
     return match ? match[1] : null;
+}
+
+function getCurrentPageContext(): ChatPageContext | null {
+    if (typeof window === 'undefined') {
+        return null;
+    }
+
+    return {
+        url: window.location.href,
+        title: document.title || '',
+    };
 }
 
 async function fetchProductBySlug(slug: string, supabase: ReturnType<typeof createClient>): Promise<{ title: string; imageUrl: string; price: string } | null> {
@@ -388,6 +404,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                     userId: userId || undefined,
                     email: userEmail || email || undefined,
                     name: userName || name || undefined,
+                    pageContext: getCurrentPageContext(),
                 }),
             });
 
@@ -550,6 +567,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                         imageUrl,
                         sessionId: userId ? undefined : sessionId,
                         userId: userId || undefined,
+                        pageContext: getCurrentPageContext(),
                     }),
                 });
 
@@ -698,6 +716,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                     content: inputValue,
                     sessionId: userId ? undefined : sessionId,
                     userId: userId || undefined,
+                    pageContext: getCurrentPageContext(),
                 }),
             });
 

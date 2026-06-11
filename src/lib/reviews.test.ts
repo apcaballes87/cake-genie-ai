@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buildReviewSummary,
   GENERIC_KEYWORD_BLOCKLIST,
+  getExactReviewsForSchema,
   getSourceSubtitle,
   getThemedReviewsForSlug,
   hasReviewSummary,
@@ -98,6 +99,62 @@ describe('getSourceSubtitle', () => {
   it('handles tier-3 only (most recent fallback when no theme match)', () => {
     expect(getSourceSubtitle([mk('a', 'recent'), mk('b', 'recent')]))
       .toBe('Recent reviews from Genie.ph customers');
+  });
+});
+
+describe('getExactReviewsForSchema', () => {
+  const mk = (
+    id: string,
+    source: ThemedReview['_source'],
+    extras: Record<string, unknown> = {}
+  ): ThemedReview => ({ review_id: id, _source: source, ...extras } as ThemedReview);
+
+  it('returns empty array for null/undefined input', () => {
+    expect(getExactReviewsForSchema(null)).toEqual([]);
+    expect(getExactReviewsForSchema(undefined)).toEqual([]);
+  });
+
+  it('returns empty array for empty input', () => {
+    expect(getExactReviewsForSchema([])).toEqual([]);
+  });
+
+  it('keeps only tier-1 ("exact") reviews and strips the _source discriminator', () => {
+    const reviews = [
+      mk('a', 'exact', { rating: 5, comment: 'loved it' }),
+      mk('b', 'themed', { rating: 4, comment: 'different product' }),
+      mk('c', 'recent', { rating: 3, comment: 'recent' }),
+      mk('d', 'exact', { rating: 5, comment: 'great again' }),
+    ];
+
+    const result = getExactReviewsForSchema(reviews);
+
+    expect(result).toHaveLength(2);
+    expect(result[0].review_id).toBe('a');
+    expect(result[0].rating).toBe(5);
+    expect(result[0].comment).toBe('loved it');
+    expect(result[1].review_id).toBe('d');
+    // _source is stripped from the returned objects — must never leak
+    // into JSON-LD or any other serialisation downstream.
+    expect((result[0] as unknown as { _source?: string })._source).toBeUndefined();
+    expect((result[1] as unknown as { _source?: string })._source).toBeUndefined();
+  });
+
+  it('returns empty array when no exact-tier reviews exist (themed/recent only)', () => {
+    const reviews = [
+      mk('a', 'themed'),
+      mk('b', 'recent'),
+    ];
+    // Critical: themed/recent reviews are filtered out, not just labelled.
+    // Marking up a themed review as Product.review for the current product
+    // would be a structured-data lie.
+    expect(getExactReviewsForSchema(reviews)).toEqual([]);
+  });
+
+  it('does not mutate the input array', () => {
+    const reviews = [mk('a', 'exact'), mk('b', 'themed')];
+    const snapshot = reviews.map((r) => ({ ...r }));
+    getExactReviewsForSchema(reviews);
+    expect(reviews).toEqual(snapshot);
   });
 });
 

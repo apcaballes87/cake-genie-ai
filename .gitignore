@@ -75,3 +75,14 @@ supabase/.env
 *.n8n
 upload-to-shopify-cakesandmemories.n8n
 Untitled-*.n8n
+
+# Local working docs — review creation prompts, audit notes, etc.
+# Keep out of GitHub; lives in your local working copy only.
+REVIEW_CREATION_PROMPT.md
+
+# Progress/backfill tracking files
+*-progress.json
+regenerate-descriptions-progress.json
+generic-seo-copy-backfill-progress.json
+metadata-correction-progress.json
+
