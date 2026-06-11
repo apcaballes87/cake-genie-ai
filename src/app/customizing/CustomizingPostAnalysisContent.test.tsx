@@ -41,7 +41,8 @@ describe('CustomizingPostAnalysisContent', () => {
                 keywords="Mermaid"
                 availability="same-day"
                 tags={['under the sea', 'girls birthday']}
-                aboutDescription="Pastel mermaid cake with shell topper details."
+                seoDescription="Pastel mermaid cake with shell topper details."
+                altText="Pastel mermaid cake with shell topper details"
                 basePriceOptions={[{ size: '6" Round', price: 1200 }]}
             />
         );
@@ -58,7 +59,7 @@ describe('CustomizingPostAnalysisContent', () => {
         expect(screen.getByText('How much does this Mermaid cake cost?')).toBeInTheDocument();
     });
 
-    it('omits optional description and empty rows when data is absent', () => {
+    it('fills in generated description content when explicit SEO copy is absent', () => {
         render(
             <CustomizingPostAnalysisContent
                 analysisResult={{
@@ -69,12 +70,13 @@ describe('CustomizingPostAnalysisContent', () => {
                 keywords="Minimalist"
                 availability="normal"
                 tags={[]}
-                aboutDescription=""
+                seoDescription=""
+                altText=""
                 basePriceOptions={[{ size: '6" Round', price: 900 }]}
             />
         );
 
-        expect(screen.queryByText('About This Minimalist Cake')).not.toBeInTheDocument();
+        expect(screen.getByText('About This Minimalist Cake')).toBeInTheDocument();
         expect(screen.queryByText('Primary Features')).not.toBeInTheDocument();
         expect(screen.queryByText('Decorations')).not.toBeInTheDocument();
         expect(screen.queryByText('Tags')).not.toBeInTheDocument();

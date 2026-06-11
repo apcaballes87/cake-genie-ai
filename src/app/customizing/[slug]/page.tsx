@@ -14,7 +14,7 @@ import LazyImage from '@/components/LazyImage'
 import { LandingFooter } from '@/components/landing/LandingFooter'
 import { mapAnalysisToState, mapProductToDefaultState } from '@/utils/customizationMapper'
 import { upgradeLegacySlug, downgradeCakeSlug } from '@/lib/utils/urlHelpers'
-import { generateDesignDetails, generateDynamicFAQ, generateRichAltText } from '@/utils/designContentUtils'
+import { buildDesignPageContent, generateDesignDetails, generateRichAltText, isGenericDesignDescription } from '@/utils/designContentUtils'
 import { parseManifest, buildSrcSet, pickFallbackSrc } from '@/lib/imageVariants/manifest'
 import { buildPerDesignReviewSummary, buildReviewSummary, getThemedReviewsForSlug, getSourceSubtitle, getReviewDisplayName, getReviewAvatarInitial, getExactReviewsForSchema, type ThemedReview } from '@/lib/reviews'
 import {
@@ -129,24 +129,12 @@ const getLinkedMerchantProductsByHash = cache(async (pHash: string | null | unde
 });
 
 /**
- * Detects whether a description is generic or templated.
- */
-const isGenericDescription = (desc: string | null | undefined): boolean => {
-    if (!desc) return true;
-    const d = desc.toLowerCase().trim();
-    if (d.includes('get instant pricing for this') && d.includes('genie.ph')) return true;
-    if (d.includes('get the price of any cake instantly')) return true;
-    if (d.includes('customize and order at genie.ph')) return true;
-    return false;
-};
-
-/**
  * Resolves the richest, most unique visual description available for a design,
  * falling back to high-fidelity prose generation.
  */
 const resolveRichDescription = (design: any, prices?: BasePriceInfo[]): string => {
     const rawDesc = design.seo_description || '';
-    if (!isGenericDescription(rawDesc)) {
+    if (!isGenericDesignDescription(rawDesc)) {
         return rawDesc;
     }
     
@@ -400,6 +388,7 @@ export async function generateMetadata(
 export function DesignSchema({
     design,
     prices,
+    pageDescription,
     siteReviewSummary,
     isSiteReviewSummaryFallback,
     perDesignReviewStats,
@@ -409,6 +398,7 @@ export function DesignSchema({
 }: {
     design: any;
     prices?: BasePriceInfo[];
+    pageDescription?: string;
     siteReviewSummary: { total: number; averageRating: number };
     isSiteReviewSummaryFallback: boolean;
     perDesignReviewStats: { total: number; averageRating: number } | null;
@@ -466,7 +456,7 @@ export function DesignSchema({
     const pageUrl = `https://genie.ph/customizing/${design.slug || ''}`;
     const policyUrls = getCommercePolicyUrls();
 
-    const schemaDescription = resolveRichDescription(design, prices);
+    const schemaDescription = pageDescription || resolveRichDescription(design, prices);
     const sanitizedDesc = sanitize(schemaDescription);
 
     // Detect MIME type from URL extension — 82% of stored images are .jpg (JPEG),
@@ -1095,9 +1085,19 @@ function SSRCakeDetails({
  * Lives outside #ssr-content and outside Suspense so both Googlebot and users see it.
  * This avoids any cloaking concerns where crawlers see different content than users.
  */
-function SSRDesignContent({ design, prices, faqs, themedReviews }: { design: any; prices?: BasePriceInfo[]; faqs?: { question: string; answer: string }[]; themedReviews?: ThemedReview[] }) {
-    const designDetails = resolveRichDescription(design, prices);
-    const dynamicFAQs = faqs || generateDynamicFAQ(design, prices);
+function SSRDesignContent({
+    design,
+    description,
+    faqs,
+    themedReviews,
+}: {
+    design: any;
+    description: string;
+    faqs: { question: string; answer: string }[];
+    themedReviews?: ThemedReview[];
+}) {
+    const designDetails = description;
+    const dynamicFAQs = faqs;
     const keywords = design.keywords || 'Custom';
     const tags = design.tags || [];
     const analysis = design.analysis_json || {};
@@ -1383,11 +1383,12 @@ export default async function RecentSearchPage({ params }: Props) {
     // for "X happy customers" everywhere on the page.
     const displayReviewSummary = perDesignReviewStats || reviewSummary;
 
-    // Generate dynamic FAQs for this design (used for FAQPage schema + SSR content)
-    const dynamicFAQs = generateDynamicFAQ(design, prices);
+    const pageContent = buildDesignPageContent(design, prices);
+    const dynamicFAQs = pageContent.faqs;
 
-    // Generate unique caption for image SEO from the first 1-2 sentences of design details
-    const detailsText = generateDesignDetails(design, prices);
+    // Generate unique caption for image SEO from the first 1-2 sentences of the
+    // resolved page description so audits and rendered copy stay in sync.
+    const detailsText = pageContent.description;
     const captionSentences = detailsText.split('. ').slice(0, 2);
     let captionText = captionSentences.join('. ');
     if (captionText && !captionText.endsWith('.')) captionText += '.';
@@ -1439,6 +1440,7 @@ export default async function RecentSearchPage({ params }: Props) {
             <DesignSchema
                 design={design}
                 prices={prices}
+                pageDescription={pageContent.description}
                 siteReviewSummary={reviewSummary}
                 isSiteReviewSummaryFallback={isSiteReviewSummaryFallback}
                 perDesignReviewStats={perDesignReviewStats}
@@ -1504,7 +1506,7 @@ export default async function RecentSearchPage({ params }: Props) {
                         currentKeywords={design.keywords}
                         currentSlug={slug}
                         initialCaption={captionText}
-                        postEditorSlot={<SSRDesignContent design={design} prices={prices} faqs={dynamicFAQs} themedReviews={themedReviews} />}
+                        postEditorSlot={<SSRDesignContent design={design} description={pageContent.description} faqs={dynamicFAQs} themedReviews={themedReviews} />}
                         hideAiChat={false}
                         enableMobileHeroPan={true}
                         reviewSummary={displayReviewSummary}

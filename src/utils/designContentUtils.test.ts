@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { generateRichAltText, generateDesignDetails, generateDynamicFAQ } from './designContentUtils';
+import {
+    AIApiClient,
+    buildDesignPageContent,
+    generateDesignDetails,
+    generateDynamicCollectionDescription,
+    generateDynamicFAQ,
+    generateRichAltText,
+} from './designContentUtils';
 
 const RICH_ANALYSIS = {
     cakeType: '1 tier',
@@ -111,5 +118,129 @@ describe('generateRichAltText', () => {
         const faqs = generateDynamicFAQ(cupcakeDesign, [{ size: '12 pieces', price: 499 }]);
         expect(faqs[0].question.toLowerCase()).toContain('cupcakes');
         expect(faqs[0].answer.toLowerCase()).toContain('these cinderella cupcakes');
+    });
+
+    it('adds thin-page boost FAQs for sparse designs until the estimated unique content clears the floor', () => {
+        const sparseDesign = {
+            keywords: 'Minimalist Bento',
+            availability: 'rush',
+            tags: ['minimalist', 'bento'],
+            seo_description: 'This minimalist bento cake features smooth white soft icing and a clean, modern aesthetic.',
+            analysis_json: {
+                cakeType: 'Bento',
+                icing_design: {
+                    base: 'soft-icing',
+                    colors: { side: '#FFFFFF', top: '#FFFFFF' },
+                    border_top: true,
+                    border_base: false,
+                    drip: false,
+                    gumpasteBaseBoard: false,
+                },
+                main_toppers: [],
+                support_elements: [
+                    { description: 'green satin ribbon bows and drapes', type: 'satin_ribbon', quantity: 1 },
+                    { description: 'piped icing border', type: 'icing_decorations', quantity: 1 },
+                    { description: 'piped green heart accents', type: 'icing_decorations', quantity: 10 },
+                ],
+                cake_messages: [],
+            },
+        };
+
+        const pageContent = buildDesignPageContent(sparseDesign, [{ size: '4" Bento', price: 399 }]);
+
+        expect(pageContent.description.toLowerCase()).toContain('minimalist bento');
+        expect(pageContent.faqs.some((faq) => faq.question.includes('store and transport'))).toBe(true);
+        expect(pageContent.faqs.some((faq) => faq.question.includes('overall look'))).toBe(true);
+        expect(pageContent.estimatedUniqueWordCount).toBeGreaterThanOrEqual(250);
+    });
+});
+
+describe('generateDynamicCollectionDescription', () => {
+    const mockDesigns = [
+        {
+            keywords: 'cinderella, princess',
+            analysis_json: {
+                cakeType: '1 tier',
+                icing_design: {
+                    colors: { top: 'pastel blue' },
+                },
+                main_toppers: [{ description: 'cinderella tiara topper', type: 'tiara' }],
+                cake_messages: [{ text: 'Happy 5th Birthday Princess' }],
+            },
+        },
+        {
+            keywords: 'carriage cake',
+            analysis_json: {
+                cakeType: '2 tier',
+                icing_design: {
+                    colors: { top: 'white and gold' },
+                },
+                main_toppers: [{ description: 'golden carriage topper', type: 'carriage' }],
+                cake_messages: [],
+            },
+        },
+    ];
+
+    it('returns empty string if designs list is empty', async () => {
+        const mockAiClient = {} as unknown as AIApiClient;
+        const result = await generateDynamicCollectionDescription('Cinderella', [], mockAiClient);
+        expect(result).toBe('');
+    });
+
+    it('correctly constructs the prompt and calls the Gemini API to return a description', async () => {
+        let capturedArgs: unknown = null;
+        const mockAiClient = {
+            models: {
+                generateContent: async (args: unknown) => {
+                    capturedArgs = args;
+                    return {
+                        text: JSON.stringify({
+                            description: 'A magical collection of Cinderella themed custom cakes. Features elegant pastel blue and gold color palettes decorated with carriage and tiara toppers perfect for princess birthdays.',
+                        }),
+                    };
+                },
+            },
+        } as unknown as AIApiClient;
+
+        const result = await generateDynamicCollectionDescription('Cinderella', mockDesigns, mockAiClient);
+
+        expect(result).toContain('magical collection of Cinderella themed custom cakes');
+        expect(capturedArgs).toBeDefined();
+        const args = capturedArgs as {
+            model: string;
+            contents: { role: string; parts: { text: string }[] }[];
+            config?: {
+                responseMimeType?: string;
+                thinkingConfig?: {
+                    thinkingLevel?: string;
+                };
+            };
+        };
+        expect(args.model).toBe('gemini-3.1-flash-lite-preview');
+        expect(args.config?.responseMimeType).toBe('application/json');
+        expect(args.config?.thinkingConfig?.thinkingLevel).toBe('LOW');
+
+        // Assert prompt contains elements of the designs context
+        const promptText = args.contents[0].parts[0].text;
+        expect(promptText).toContain('Cinderella');
+        expect(promptText).toContain('pastel blue');
+        expect(promptText).toContain('cinderella tiara topper');
+        expect(promptText).toContain('white and gold');
+        expect(promptText).toContain('golden carriage topper');
+    });
+
+    it('handles JSON parsing errors or API errors by returning an empty string', async () => {
+        const mockAiClient = {
+            models: {
+                generateContent: async () => {
+                    return {
+                        text: 'not-a-json-string',
+                    };
+                },
+            },
+        } as unknown as AIApiClient;
+
+        const result = await generateDynamicCollectionDescription('Cinderella', mockDesigns, mockAiClient);
+        expect(result).toBe('');
     });
 });

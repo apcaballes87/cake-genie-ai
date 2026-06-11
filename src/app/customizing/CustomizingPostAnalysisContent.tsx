@@ -1,14 +1,15 @@
 import React, { useMemo } from 'react';
 import { DesignAboutSection } from '@/components/DesignAboutSection';
 import type { BasePriceInfo, HybridAnalysisResult } from '@/types';
-import { generateDynamicFAQ } from '@/utils/designContentUtils';
+import { buildDesignPageContent } from '@/utils/designContentUtils';
 
 interface CustomizingPostAnalysisContentProps {
     analysisResult: HybridAnalysisResult;
     keywords: string;
     availability?: string | null;
     tags?: string[] | null;
-    aboutDescription?: string | null;
+    seoDescription?: string | null;
+    altText?: string | null;
     basePriceOptions: BasePriceInfo[];
 }
 
@@ -17,15 +18,19 @@ export const CustomizingPostAnalysisContent = React.memo(({
     keywords,
     availability,
     tags,
-    aboutDescription,
+    seoDescription,
+    altText,
     basePriceOptions,
 }: CustomizingPostAnalysisContentProps) => {
-    const faqs = useMemo(() => generateDynamicFAQ({
+    const pageContent = useMemo(() => buildDesignPageContent({
         keywords,
         analysis_json: analysisResult,
         availability: availability || 'normal',
         tags: tags || [],
-    }, basePriceOptions), [analysisResult, availability, basePriceOptions, keywords, tags]);
+        seo_description: seoDescription || null,
+        alt_text: altText || null,
+    }, basePriceOptions), [altText, analysisResult, availability, basePriceOptions, keywords, seoDescription, tags]);
+    const faqs = pageContent.faqs;
 
     const primaryFeatures = useMemo(
         () => analysisResult.main_toppers.map((topper) => topper.description || topper.type).join(', '),
@@ -87,11 +92,11 @@ export const CustomizingPostAnalysisContent = React.memo(({
                 </div>
             </section>
 
-            {aboutDescription && (
+            {pageContent.description && (
                 <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
                     <DesignAboutSection
                         title={`About This ${keywords || 'Custom'} Cake`}
-                        description={aboutDescription}
+                        description={pageContent.description}
                         showDisclaimer={true}
                     />
                 </section>

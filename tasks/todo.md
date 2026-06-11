@@ -17,9 +17,9 @@
 - Verification:
   - `npx vitest run src/app/landingHeroCarousel.test.ts src/components/LazyImage.test.tsx` passed with 15 tests.
   - Focused ESLint passed for `src/app/landingHeroCarousel.ts`, `src/app/landingHeroCarousel.test.ts`, `src/app/HeroProductPeekCarouselEmbla.tsx`, `src/components/LazyImage.tsx`, and `src/components/LazyImage.test.tsx`, with only the existing Browserslist data warning.
-  - `git diff --check` passed.
-  - `npm run build` passed. Static generation still logged the existing Supabase `57014` fallback-query timeout during page generation, but the build completed successfully.
-  - Follow-up in-app browser verification was attempted against a local production server on `127.0.0.1:3008`, but the browser runtime became unavailable before the scroll check completed. The feature is therefore verified by focused tests plus production build in this pass.
+  - `git diff --check` is currently blocked by unrelated pre-existing whitespace issues in `src/app/collections/[category]/page.tsx` and `src/utils/designContentUtils.ts`, not by this landing-page change.
+  - `npm run build` is currently blocked by an unrelated local type error in `src/app/collections/[category]/page.tsx` (`Cannot find name 'readableTitle'`). This landing-page feature had already passed build earlier in the session before that unrelated route drift surfaced, but the final rerun cannot claim a clean repo-wide build because of the collections error.
+  - Headless Chrome verification against local production server `http://127.0.0.1:3008/` at a `390x844` viewport confirmed the behavior. Before scroll, the page was still on the default hero headline (`Minimalist Cakes...`) at `scrollY: 0`. After three downward page scrolls (`scrollY: 540`), the active hero card had advanced to `Doodle Cakes example` and the headline text reflected the matching variant, confirming that downward page scroll now moves the carousel to the right through the existing text-animation path.
 
 ## Stabilize Mobile Homepage Hero Carousel Handoff
 
@@ -238,6 +238,41 @@
   - `cakegenie_search_analysis_batch_runs`: 1 completed, 2 completed_with_errors, 4 failed.
 
 ## Create Private Rejected Upload Log
+
+## Fix Thin AI Analysis Pages For New Customizer Slugs
+
+### Plan
+
+- [x] Review `scripts/debug/prompt-fix-thin-pages.md` against the live implementation and note which parts are already shipped versus still missing.
+- [x] Trace the real `/customizing/[slug]` content path to confirm whether page body content is coming from `seo_description`, `generateDesignDetails(...)`, or a fallback mix.
+- [x] Implement the smallest durable fix so newly analyzed cake images render sufficiently rich per-page content by default instead of depending on short AI copy.
+- [x] Update verification to audit the actual rendered-content resolver and add focused regression coverage for the thin-page guardrail.
+
+### Review
+
+- Prompt review: `scripts/debug/prompt-fix-thin-pages.md` is directionally good but partly stale. The budget-tip logic, care guidance, dynamic FAQ work, and the audit script already existed in `src/utils/designContentUtils.ts` and `scripts/audit-thin-content.ts`, so the real gap was no longer “add these features from scratch.”
+- Root cause: thin-page risk had narrowed to sparse designs such as minimalist/bento/monthly-milestone variants. The page body and the post-analysis view could still render short AI `seo_description` text, while the audit script measured a slightly different content path. That made it harder to guarantee the real rendered page would clear the same threshold the audit was reporting.
+- Added a shared thin-page guardrail in [src/utils/designContentUtils.ts](/Users/apcaballes/genieph-nextjs/src/utils/designContentUtils.ts:1): `buildDesignPageContent(...)` now builds the actual per-page description + FAQ set, measures unique-word depth with the same boilerplate stripping used by the audit, injects targeted boost FAQs only when a design is still thin, and combines the richer deterministic description only as a fallback when needed.
+- Updated [src/app/customizing/[slug]/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/[slug]/page.tsx:1), [src/app/customizing/CustomizingPostAnalysisContent.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingPostAnalysisContent.tsx:1), and [src/app/customizing/CustomizingClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingClient.tsx:3967) so both the indexed slug page and the fresh post-analysis view use the same enriched page-content builder instead of drifting between raw `seo_description` and generated prose.
+- Updated [scripts/audit-thin-content.ts](/Users/apcaballes/genieph-nextjs/scripts/audit-thin-content.ts:1) to audit the same builder the page now uses, then added focused regression coverage in [src/utils/designContentUtils.test.ts](/Users/apcaballes/genieph-nextjs/src/utils/designContentUtils.test.ts:1) and [src/app/customizing/CustomizingPostAnalysisContent.test.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingPostAnalysisContent.test.tsx:1).
+- Verification:
+  - `npx vitest run src/utils/designContentUtils.test.ts src/app/customizing/CustomizingPostAnalysisContent.test.tsx 'src/app/customizing/[slug]/page.test.tsx'` passed with 24 tests and 1 existing skipped test.
+  - `npx tsx scripts/audit-thin-content.ts` passed on a live 250-row sample and improved the audit from `52` low pages / `299` avg unique words / `60.8%` similarity to `0` low pages / `354` avg unique words / `35.4%` similarity.
+  - `git diff --check` is still blocked by unrelated pre-existing trailing whitespace in `src/app/collections/[category]/page.tsx`.
+- Focused ESLint still reports the repo’s existing `no-explicit-any` debt in `src/app/customizing/[slug]/page.tsx` and `src/utils/designContentUtils.ts`; this pass did not newly clear those legacy file-level issues.
+
+## Backfill Rich Stored SEO Descriptions
+
+### Plan
+
+- [ ] Add a shared deterministic helper that enriches short stored `seo_description` values from `analysis_json`, then keeps the existing availability-append sync behavior.
+- [ ] Update `cacheAnalysisResult(...)` so future AI cake-analysis rows store the enriched description by default instead of the shorter raw AI paragraph.
+- [ ] Create a focused backfill script for existing `cakegenie_analysis_cache` rows whose stored `seo_description` is still too short, then dry-run representative samples.
+- [ ] Run the live backfill, verify counts plus before/after samples, and record the outcome here.
+
+### Review
+
+- Pending.
 
 ### Plan
 

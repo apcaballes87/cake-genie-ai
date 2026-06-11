@@ -3969,7 +3969,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                         keywords={currentKeywords || recentSearchDesign?.keywords || 'custom'}
                         availability={recentSearchDesign?.availability || availabilityType || 'normal'}
                         tags={recentSearchDesign?.tags || []}
-                        aboutDescription={recentSearchDesign?.seo_description || recentSearchDesign?.alt_text || analysisResult.seo_description || analysisResult.alt_text || ''}
+                        seoDescription={recentSearchDesign?.seo_description || analysisResult.seo_description || ''}
+                        altText={recentSearchDesign?.alt_text || analysisResult.alt_text || ''}
                         basePriceOptions={basePriceOptions}
                     />
                 )}

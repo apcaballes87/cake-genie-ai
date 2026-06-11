@@ -2,6 +2,9 @@ import { Metadata } from 'next'
 import { notFound, permanentRedirect } from 'next/navigation'
 import { getDesignCategories, getDesignsByKeyword, getCollectionBySlug } from '@/services/supabaseService'
 import CategoryClient from '@/app/collections/[category]/CategoryClient'
+import { getAI } from '@/lib/ai/client'
+import { generateDynamicCollectionDescription } from '@/utils/designContentUtils'
+import { cache } from 'react'
 
 export const revalidate = 3600; // ISR: revalidate every hour
 
@@ -109,7 +112,12 @@ function truncateMetaDescription(description: string): string {
     return `${shortened}...`;
 }
 
-function buildCollectionMetaDescription(collection: CollectionRecord | null, readableTitle: string, fallbackCategory: string): string {
+function buildCollectionMetaDescription(
+    collection: CollectionRecord | null, 
+    readableTitle: string, 
+    fallbackCategory: string,
+    resolvedDescription?: string | null
+): string {
     const defaultName = normalizeCollectionBaseName(readableTitle || humanizeSlug(fallbackCategory));
     const collectionName = defaultName.toLowerCase();
     const countText = collection?.item_count && collection.item_count > 0
@@ -119,7 +127,7 @@ function buildCollectionMetaDescription(collection: CollectionRecord | null, rea
     const tagText = tagHighlights.length > 0
         ? ` Explore ${tagHighlights.join(', ')}.`
         : '';
-    const customDescription = normalizeWhitespace(collection?.description || COLLECTION_SEO_FALLBACKS[fallbackCategory]?.description || '');
+    const customDescription = resolvedDescription || normalizeWhitespace(collection?.description || COLLECTION_SEO_FALLBACKS[fallbackCategory]?.description || '');
     const closingText = ' Customize your cake and get instant pricing from Cebu bakers.';
 
     return truncateMetaDescription(
@@ -163,6 +171,35 @@ function buildItemListName(design: CategoryDesign, readableTitle: string): strin
     return `${normalizedKeyword} in ${normalizeCollectionBaseName(readableTitle)}`;
 }
 
+const getCachedCollectionDescription = cache(async (category: string, title: string, collection: CollectionRecord | null) => {
+    let description = collection?.description || COLLECTION_SEO_FALLBACKS[category]?.description || null;
+
+    if (!description) {
+        // Skip calling Gemini API during Next.js production build phase to prevent build slowness and rate limits.
+        // It will fall back to the template description during build, and be generated dynamically on-demand at runtime.
+        if (process.env.NEXT_PHASE === 'phase-production-build') {
+            return `Explore our collection of custom ${normalizeCollectionBaseName(title)} cakes, featuring a variety of unique designs, colors, and toppers perfect for birthdays and themed celebrations.`;
+        }
+
+        try {
+            const canonicalCategory = collection?.slug || category;
+            const { data: designs } = await getDesignsByKeyword(canonicalCategory, 4);
+            if (designs && designs.length > 0) {
+                const ai = getAI();
+                description = await generateDynamicCollectionDescription(title, designs, ai);
+            }
+        } catch (e) {
+            console.error('Failed to generate collection description dynamically:', e);
+        }
+        
+        // Fallback if AI generation failed or returned empty
+        if (!description) {
+            description = `Explore our collection of custom ${normalizeCollectionBaseName(title)} cakes, featuring a variety of unique designs, colors, and toppers perfect for birthdays and themed celebrations.`;
+        }
+    }
+    return description;
+});
+
 export async function generateMetadata(
     { params }: Props
 ): Promise<Metadata> {
@@ -176,7 +213,8 @@ export async function generateMetadata(
     }
     const canonicalCategory = collection?.slug || category;
     const title = collection?.name || humanizeSlug(category);
-    const description = buildCollectionMetaDescription(collection, title, category);
+    const resolvedDesc = await getCachedCollectionDescription(category, title, collection);
+    const description = buildCollectionMetaDescription(collection, title, category, resolvedDesc);
 
     const { data: designs } = await getDesignsByKeyword(canonicalCategory, 1);
     const ogImage = collection?.sample_image || designs?.[0]?.original_image_url;
@@ -255,8 +293,8 @@ export default async function CategoryPage({ params }: Props) {
 
     const canonicalCategory = collection?.slug || category;
     const readableTitle = collection?.name || humanizeSlug(category);
-    const description = collection?.description || COLLECTION_SEO_FALLBACKS[category]?.description || null;
-    const pageDescription = buildCollectionMetaDescription(collection, readableTitle, category);
+    const resolvedDesc = await getCachedCollectionDescription(category, readableTitle, collection);
+    const pageDescription = buildCollectionMetaDescription(collection, readableTitle, category, resolvedDesc);
     const collectionHeading = buildCollectionHeading(readableTitle);
     const tagHighlights = extractTagHighlights(collection?.tags);
     const { data: designs } = await getDesignsByKeyword(canonicalCategory, 30);
@@ -332,7 +370,7 @@ export default async function CategoryPage({ params }: Props) {
                 keyword={canonicalCategory}
                 readableTitle={readableTitle}
                 category={canonicalCategory}
-                description={description}
+                description={resolvedDesc}
                 designCount={collection?.item_count || designs.length}
                 heading={collectionHeading}
                 intro={pageDescription}
