@@ -2099,3 +2099,50 @@
   - `npx vitest run src/app/customizing/CustomizingHeroPanel.test.tsx src/app/customizing/analysisErrorDisplay.test.ts src/app/customizing/AnalysisErrorCard.test.tsx` passed all relevant tests.
   - Focused ESLint completed with zero errors and four pre-existing unused-code warnings in `CustomizingHeroPanel.tsx`.
   - A scoped search found no remaining active customizer renderer that prints Vertex AI or Workload Identity text.
+# AI Cake Analysis SEO Copy Audit (2026-06-11)
+
+- [x] Trace how a new image reaches AI cake analysis.
+- [x] Identify the authoritative prompts and structured-output schemas for `seo_title`, `seo_description`, and `alt_text`.
+- [x] Trace post-processing, cache persistence, slug generation, and page/feed consumption.
+- [x] Compare the repo fallback prompt with the active Supabase prompt and inspect representative stored outputs.
+- [x] Document root causes, exact prompt recommendations, and verification results.
+
+## Review
+
+- New customizer uploads run `/api/ai/analyze` from `ImageContext`, using Gemini 3.1 Flash Lite Preview with `ThinkingLevel.LOW`, the active `ai_prompts` row, and the shared structured-output contract in `searchAnalysisContract.ts`.
+- Live Supabase verification found active prompt `v3.15` (`prompt_id = 24`). Its SEO section matches `src/services/prompts/fallback-prompt.txt`.
+- The schema requires `alt_text`, `seo_title`, and `seo_description`, but schema descriptions conflict with the prompt: the schema says exactly 5-6 description sentences while the prompt says 4-5.
+- `cacheAnalysisResult()` stores the AI `alt_text` and `seo_description` directly. It does not store the AI `seo_title` as the public title; `buildCakeTitle()` deterministically rebuilds the stored title from keyword, cake type, colors, tags, and hero toppers.
+- Recent live rows confirm that stored `seo_title` differs from `analysis_json.seo_title`, while stored and AI-generated descriptions/alt text match.
+- The current description prompt is over-constrained and repetitive. It forces five content beats plus a Genie.ph/location CTA, producing recurring phrasing such as “This is…”, “It is a fun choice…”, and “Order through Genie.ph…”.
+- The same `seo_description` serves visible product copy, feeds, and metadata input. `/customizing/[slug]` later removes the generated Genie.ph CTA, truncates the copy to 155 characters, and appends its own price CTA, so the AI-generated CTA is wasted and the field is serving incompatible long-copy and metadata roles.
+- Recommended prompt direction:
+  - Keep `alt_text` factual, visual, concise, and free of inferred audience, marketing language, and personal names unless the visible wording is essential to identify the design.
+  - Stop asking the model to write a “meta description” of 4-5 sentences. Generate natural product-description source copy in 2-3 varied sentences, approximately 220-360 characters, with no CTA, price, location, or Genie.ph mention.
+  - Avoid fixed sentence-by-sentence templates. Require coverage of theme/cake form, finish/colors, and distinctive decorations, but allow the model to combine or reorder those details naturally.
+  - Remove phrases such as “fun choice”, “perfect for”, “designed for fans”, and generic recipient speculation.
+  - Treat `seo_title` as a structured theme-quality signal or stop generating it in analysis; the public title is owned by `buildCakeTitle()`.
+- No production prompt, schema, or application behavior was changed during this audit.
+
+# Improve New-Image Description and Alt Text (2026-06-11)
+
+- [x] Replace only the SEO-copy section inherited from prompt v3.15.
+- [x] Align structured-output descriptions with the new description and alt-text contract.
+- [x] Append availability copy in memory after `getDesignAvailability(...)`.
+- [x] Persist the finalized description in both `analysis_json` and `seo_description`.
+- [x] Add focused availability-copy and cache-persistence tests.
+- [x] Activate a new live prompt row without changing existing cache rows.
+
+## Review
+
+- Activated Supabase prompt `v3.16` (`prompt_id = 25`) and retained inactive `v3.15` (`prompt_id = 24`) for rollback.
+- Verified the prompt content before `STEP 5: SEO COPY GENERATION` is byte-for-byte unchanged from the repo's prior v3.15 prompt.
+- The new description instructions produce 5-7 natural sentences covering the visual hook, design story, details, supported audience/occasion, and customization options. They prohibit availability guesses, prices, brand/platform promotion, locations, CTAs, filler adjectives, and personal names.
+- Alt text now targets 80-140 characters with a hard 160-character maximum, preserves relevant character/franchise names, and generalizes personal text.
+- Availability copy is a synchronous constant lookup and string concatenation inside the existing cache write. It introduces no AI call, database query, timer, or additional await, and `onSuccess(fastResult)` still runs before the cache write.
+- Existing cache rows were not backfilled. Live verification showed zero cache rows created between prompt activation and the verification query.
+- Verification:
+  - 13 focused Vitest tests passed.
+  - Focused ESLint passed.
+  - `git diff --check` passed.
+  - Production code compilation passed, but the full build stopped during TypeScript validation on the pre-existing unrelated `reviewsToShow` error in `src/app/customizing/[slug]/page.tsx`.

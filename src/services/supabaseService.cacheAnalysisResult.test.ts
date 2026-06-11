@@ -15,6 +15,7 @@ const rpcMock = vi.fn();
 const fetchMock = vi.fn();
 const storageUploadMock = vi.fn();
 const storageGetPublicUrlMock = vi.fn();
+const getDesignAvailabilityMock = vi.fn();
 
 interface ProductSizesQuery {
   select: ReturnType<typeof vi.fn>;
@@ -82,7 +83,7 @@ vi.mock('@/lib/utils/pricing', () => ({
 }));
 
 vi.mock('@/lib/utils/availability', () => ({
-  getDesignAvailability: () => ['made_to_order'],
+  getDesignAvailability: (...args: unknown[]) => getDesignAvailabilityMock(...args),
 }));
 
 vi.mock('@/utils/tagUtils', () => ({
@@ -115,11 +116,56 @@ describe('cacheAnalysisResult', () => {
     updateMock.mockReset().mockReturnValue(analysisCacheUpdateQuery);
     maybeSingleMock.mockReset().mockResolvedValue({ data: { price: 999 }, error: null });
     rpcMock.mockReset().mockResolvedValue({ data: [], error: null });
+    getDesignAvailabilityMock.mockReset().mockReturnValue('normal');
     fromMock.mockReset().mockImplementation((table: string) => {
       if (table === 'productsizes_cakegenie') return productSizesQuery;
       if (table === 'cakegenie_analysis_cache') return analysisCacheQuery;
       return analysisCacheQuery;
     });
+  });
+
+  it('stores the same finalized description in analysis_json and seo_description', async () => {
+    getDesignAvailabilityMock.mockReturnValue('same-day');
+    const { cacheAnalysisResult } = await import('./supabaseService');
+
+    await cacheAnalysisResult(
+      '1234567890abcdef',
+      {
+        cakeType: '1 Tier',
+        cakeThickness: '4 in',
+        keyword: 'basketball',
+        seo_description: 'A sky blue soft-icing cake with basketball details.',
+        icing_design: {
+          base: 'soft_icing',
+          colors: { side: 'blue', top: 'blue' },
+        },
+        main_toppers: [],
+        support_elements: [],
+        cake_messages: [],
+      } as unknown as HybridAnalysisResult,
+      'https://example.com/basketball.webp',
+      undefined,
+      {
+        fingerprintPipeline: 'v1-test-pipeline',
+        triggerStudioEdit: false,
+      },
+    );
+
+    const expected =
+      'A sky blue soft-icing cake with basketball details. This design is available for same-day orders with 3 to 4 hours of preparation.';
+
+    expect(upsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        seo_description: expected,
+        analysis_json: expect.objectContaining({
+          seo_description: expected,
+        }),
+        availability: 'same-day',
+      }),
+      expect.objectContaining({
+        onConflict: 'p_hash',
+      }),
+    );
   });
 
   it('stores fingerprint pipeline metadata with the canonical p_hash', async () => {
@@ -300,7 +346,10 @@ describe('cacheAnalysisResult', () => {
   it('does not wait for ORB indexing before resolving the cache write', async () => {
     const { cacheAnalysisResult } = await import('./supabaseService');
     const originalWindow = globalThis.window;
-    let resolveIndexFetch: ((value: any) => void) | null = null;
+    let resolveIndexFetch!: (value: {
+      ok: boolean;
+      json: () => Promise<{ success: boolean }>;
+    }) => void;
 
     fetchMock.mockReset().mockImplementation(
       () =>
@@ -347,7 +396,7 @@ describe('cacheAnalysisResult', () => {
         })
       );
     } finally {
-      resolveIndexFetch?.({
+      resolveIndexFetch({
         ok: true,
         json: async () => ({ success: true }),
       });

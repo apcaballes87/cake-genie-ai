@@ -955,25 +955,28 @@ Generate alt_text, seo_title, and seo_description for every accepted cake.
 
 ### alt_text (Required string)
 
-Write a literal, factual image description for screen readers and image search.
+Write one literal, factual sentence for screen readers, image search, and custom cake buyers.
 
 **Rules:**
-- Describe what you actually see: color + cake type + key decorations.
-- Max 140 characters.
-- No promotional words (no "beautiful", "stunning", "elegant", "gorgeous", "unique").
-- No brand name.
+- Describe only visible content: precise dominant color, cake form, icing finish, theme or character, and up to two distinctive decorations.
+- Target 80-140 characters. Hard maximum: 160 characters.
+- Start directly with the subject. Never start with "image of", "photo of", or "picture of".
+- Do not use promotional language, locations, bakery or platform brand names, calls to action, or repeated keywords. Character and franchise names are allowed when visibly relevant to the design.
+- Do not include personal names or quote personal messages. Describe them generically as a name plaque, age topper, or piped message.
+- Mention non-personal visible theme text only when it materially identifies the design.
+- Use cupcakes as a plural noun. Never write "cupcake cake".
 - No punctuation at the end.
 
-**Structure:** `[Color] [cake type] [occasion if visible] with [main topper/decoration] and [secondary detail]`
+**Structure:** `[Precise color] [cake form] with [icing finish], [theme or character], and [distinctive decorations]`
 
 **Good examples:**
-- `White 2-tier birthday cake with fondant unicorn topper and rainbow edible stars`
-- `Navy blue heart-shaped cake with gold gumpaste letters and dragee border`
-- `Chocolate single-tier cake with red piped Happy Birthday message and rosette border`
+- `Sky blue 2-tier fondant birthday cake with a unicorn topper, rainbow arch, and white sugar clouds`
+- `Dusty rose heart cake with smooth soft icing, piped shell borders, and a gold age topper`
+- `Chocolate cupcakes with basketball printouts, orange icing swirls, and black sugar accents`
 
 **Bad examples (do not use):**
-- `A stunning and elegant birthday cake beautifully decorated...` <- promotional
-- `A unique white cake featuring vibrant decorations...` <- vague and promotional
+- `Image of a beautiful and unique birthday cake` <- promotional, vague, and starts with "image of"
+- `Casey's amazing blue cupcake cake from Cebu` <- personal name, filler adjective, location, and incorrect cupcake wording
 
 ---
 
@@ -1006,40 +1009,41 @@ Write a search-friendly page title, 50-65 characters.
 
 ### seo_description (Required string)
 
-Write a 4-5 sentence meta description. This is body copy that real people will read in Google search results.
+Write a natural 5-7 sentence description for people comparing custom cake designs. Follow the content order below, but write flowing prose without labels, headings, or numbered sections.
 
-**Rules — what to write:**
-1. Sentence 1: State the cake plainly. What type, what occasion, what the main topper or theme is.
-2. Sentence 2: Describe the icing finish and colors specifically.
-3. Sentence 3: Name the secondary decorations (support elements, messages, borders).
-4. Sentence 4: Say who this cake fits — be specific, not generic (e.g., "for a dad turning 70" not "for a loved one's special day").
-5. Sentence 5: One natural call-to-action naming Genie.ph and one location from: Cebu City, Mandaue, Lapu-lapu City, or Talisay.
+**Write in this order:**
+1. **Visual hook:** Describe the cake form, icing finish, texture, and precise dominant colors.
+2. **Design story:** Name the theme, character, keyword, and main toppers naturally. Explain what makes the design visually distinctive.
+3. **The details:** Describe visible support decorations, drip effects, borders, sugar accents, and piped details. Mention craftsmanship only through specific visible techniques.
+4. **Who this is for:** State the visible or strongly supported occasion and suitable audience, age group, personality, or fandom. Do not invent an occasion or recipient.
+5. **Customization:** Explain naturally that visible toppers, colors, and messages can be customized. Do not discuss rush, same-day, normal delivery, availability, or lead time; the application adds that fact after analysis.
 
 **Banned words and phrases (NEVER use these):**
-- elegant, stunning, beautiful, vibrant, unique, sophisticated, heartwarming, gorgeous, exquisite, breathtaking
+- beautiful, stunning, elegant, gorgeous, perfect, amazing, lovely, unique
 - "perfect for", "perfect centerpiece", "perfect way to show"
 - "serves as", "stands as", "is a testament to"
 - "showcasing", "highlighting", "underscoring" at sentence start
-- any rule-of-three city list (X, Y, and Z) for location — pick ONE city only
+- Genie.ph, URLs, locations, peso prices, PHP, "Starting at", ordering instructions, or any call to action
+- personal names or quoted personal messages; use "name plaque", "age topper", or "piped message"
+- unsupported taste, ingredient, serving-size, availability, or lead-time claims
 
 **Sentence variety rules:**
 - Vary sentence length. Mix short sentences with longer ones.
 - Do not start consecutive sentences with the same word.
 - Do not use em dashes anywhere.
 - Use plain linking words: "The", "It", "This", "A" — not "Additionally", "Moreover", "Furthermore".
+- Use precise color names such as sky blue, dusty rose, ivory, sage green, or navy when supported by the image.
+- Use "cupcakes" throughout for cupcake sets. Never write "cupcake cake".
 
-**Good example (Father's Day Trophy Cake):**
-`This is a rectangle fondant cake shaped like a gold trophy for Father's Day. The surface is covered in smooth gold fondant with red and green satin ribbons at the handles. A brown Best Dad message sits at the center. Good for surprising a dad who deserves recognition on his day. Order through Genie.ph for delivery in Cebu City.`
-
-**Good example (70th Birthday Family Cake):**
-`A 3-tier white fondant cake made for a 70th birthday. Black family silhouettes on the sides represent the roles of husband, dad, and grandpa. The gold glitter number 70 sits on top, with a Happy Birthday message piped on the base board. Made for a family patriarch marking a milestone year. Available through Genie.ph, with delivery in Mandaue.`
+**Good example:**
+`A 2-tier fondant cake pairs smooth ivory tiers with dusty rose panels and crisp gold edging. A princess character topper anchors the design, while a small castle and crown establish the fairytale theme. Sugar flowers, pearl accents, and a neat base border add layered detail without crowding the tiers. The design suits a young princess fan celebrating a birthday. Its polished finish also works for children who prefer soft colors and storybook details. The character topper, color palette, age topper, and piped message can be customized.`
 
 **Bad example (do not write like this):**
-`This elegant and heartwarming cake is the perfect centerpiece for a special celebration. The sophisticated design showcases vibrant decorations highlighting the love for a special someone. Order your custom creation through Genie.ph for delivery in Cebu City, Mandaue, or Lapu-lapu City.` <- banned words, vague, rule-of-three location
+`This stunning and unique cake is perfect for any special celebration. Order now through Genie.ph for delivery in Cebu City.` <- filler adjectives, vague language, brand mention, location, and CTA
 
 ---
 
 **IMPORTANT REMINDERS:**
-- alt_text: factual and visual only, no promo words, under 140 characters
+- alt_text: one factual visual sentence, target 80-140 characters, hard maximum 160
 - seo_title: specific theme + Cebu + Genie.ph, 50-65 chars, Title Case
-- seo_description: 4-5 plain sentences, no banned words, one city only in CTA
+- seo_description: 5-7 natural sentences in the required content order, with no availability claim, price, brand, location, or CTA

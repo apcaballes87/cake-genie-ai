@@ -18,6 +18,7 @@ import { MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoU
 import { generateCakeAnalysisSlug } from '@/lib/utils/urlHelpers';
 import { generateTagsForAnalysis } from '@/utils/tagUtils';
 import { buildCakeTitle, extractTitleInputFromAnalysis } from '@/lib/seo/cakeTitle';
+import { appendAvailabilitySentence } from '@/lib/seo/analysisCopy';
 import {
   getDistinctiveRelatedSearchTerms,
   normalizeRelatedSearchPhrase,
@@ -902,7 +903,7 @@ export async function cacheAnalysisResult(
     // (preserves historical tag behaviour). The customer-facing seo_title is built
     // deterministically below via buildCakeTitle (R10), NOT from this value.
     const tagSourceTitle = analysisResult.seo_title || `${keywords || 'Custom'} Cake | Genie.ph`;
-    const seoDescription = analysisResult.seo_description || `Get instant pricing for this ${keywords || 'custom'} cake design. Customize and order at Genie.ph. Starting at ₱${totalPrice.toLocaleString()}.`;
+    const generatedSeoDescription = analysisResult.seo_description || `Get instant pricing for this ${keywords || 'custom'} cake design. Customize and order at Genie.ph. Starting at ₱${totalPrice.toLocaleString()}.`;
     const fingerprintedAt = new Date().toISOString();
 
     let finalImageUrl = imageUrl;
@@ -977,6 +978,11 @@ export async function cacheAnalysisResult(
       mainToppers,
       supportElements,
     });
+    const seoDescription = appendAvailabilitySentence(generatedSeoDescription, availability);
+    const finalizedAnalysisResult = {
+      ...analysisResult,
+      seo_description: seoDescription,
+    };
 
     // Generate tags (uses the legacy title string only as a token source)
     const tags = generateTagsForAnalysis(analysisResult, keywords, tagSourceTitle, altText);
@@ -1019,7 +1025,7 @@ export async function cacheAnalysisResult(
       fingerprint_status: 'ready',
       fingerprint_error: null,
       fingerprinted_at: fingerprintedAt,
-      analysis_json: analysisResult,
+      analysis_json: finalizedAnalysisResult,
       price: totalPrice,
       keywords: keywords,
       slug: slug,

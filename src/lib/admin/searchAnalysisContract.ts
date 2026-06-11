@@ -76,11 +76,15 @@ export function buildSearchAnalysisResponseSchema(typeEnums: TypeEnums) {
         },
         required: ['base', 'color_type', 'colors'],
       },
-      keyword: { type: Type.STRING }, alt_text: { type: Type.STRING },
+      keyword: { type: Type.STRING },
+      alt_text: {
+        type: Type.STRING,
+        description: 'One factual visual sentence, ideally 80-140 characters and never more than 160. Character and franchise names are allowed when visually relevant.',
+      },
       seo_title: { type: Type.STRING, description: 'SEO optimized title for the cake product.' },
       seo_description: {
         type: Type.STRING,
-        description: 'Meta description for search engines, exactly 5 to 6 sentences.',
+        description: 'Natural customer-facing cake description in 5 to 7 sentences. Do not include availability or lead-time claims.',
       },
       rejection: {
         type: Type.OBJECT,
