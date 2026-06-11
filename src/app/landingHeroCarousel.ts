@@ -60,7 +60,7 @@ export function getNextMobileHeroScrollAccumulation({
     if (accumulatedDirection !== scrollDirection) {
         return {
             accumulatedDelta: scrollDelta,
-            direction: null,
+            direction: Math.abs(scrollDelta) >= threshold ? (scrollDelta > 0 ? 'next' : 'prev') : null,
             shouldAdvance: Math.abs(scrollDelta) >= threshold,
         };
     }

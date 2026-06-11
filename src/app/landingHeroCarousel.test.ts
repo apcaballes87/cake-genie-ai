@@ -31,6 +31,7 @@ describe('getNextMobileHeroScrollAccumulation', () => {
             userCanSeeHero: true,
         })).toEqual({
             accumulatedDelta: 60,
+            direction: null,
             shouldAdvance: false,
         });
     });
@@ -44,6 +45,7 @@ describe('getNextMobileHeroScrollAccumulation', () => {
             userCanSeeHero: true,
         })).toEqual({
             accumulatedDelta: 0,
+            direction: 'next',
             shouldAdvance: true,
         });
     });
@@ -57,11 +59,12 @@ describe('getNextMobileHeroScrollAccumulation', () => {
             userCanSeeHero: false,
         })).toEqual({
             accumulatedDelta: 0,
+            direction: null,
             shouldAdvance: false,
         });
     });
 
-    it('resets accumulation on upward or stationary scroll', () => {
+    it('starts accumulating upward scroll immediately after a direction change', () => {
         expect(getNextMobileHeroScrollAccumulation({
             accumulatedDelta: 70,
             productCount: 6,
@@ -69,8 +72,37 @@ describe('getNextMobileHeroScrollAccumulation', () => {
             threshold: 100,
             userCanSeeHero: true,
         })).toEqual({
-            accumulatedDelta: 0,
+            accumulatedDelta: -12,
+            direction: null,
             shouldAdvance: false,
+        });
+    });
+
+    it('advances to the previous slide once the upward threshold is reached', () => {
+        expect(getNextMobileHeroScrollAccumulation({
+            accumulatedDelta: -46,
+            productCount: 6,
+            scrollDelta: -18,
+            threshold: 60,
+            userCanSeeHero: true,
+        })).toEqual({
+            accumulatedDelta: 0,
+            direction: 'prev',
+            shouldAdvance: true,
+        });
+    });
+
+    it('can advance immediately on a large direction-changing scroll', () => {
+        expect(getNextMobileHeroScrollAccumulation({
+            accumulatedDelta: 70,
+            productCount: 6,
+            scrollDelta: -120,
+            threshold: 100,
+            userCanSeeHero: true,
+        })).toEqual({
+            accumulatedDelta: -120,
+            direction: 'prev',
+            shouldAdvance: true,
         });
     });
 });

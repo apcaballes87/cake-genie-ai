@@ -1463,8 +1463,8 @@ const LandingClient: React.FC<LandingClientProps> = ({
             const rect = heroMobilePreview.getBoundingClientRect();
             const viewportHeight = window.innerHeight;
             const userCanSeeHero = rect.top < viewportHeight * 0.85 && rect.bottom > viewportHeight * 0.35;
-            const scrollThreshold = Math.max(90, Math.round(viewportHeight * 0.14));
-            const { accumulatedDelta, shouldAdvance } = getNextMobileHeroScrollAccumulation({
+            const scrollThreshold = Math.max(48, Math.round(viewportHeight * 0.075));
+            const { accumulatedDelta, direction, shouldAdvance } = getNextMobileHeroScrollAccumulation({
                 accumulatedDelta: heroScrollAccumulationRef.current,
                 productCount: heroProductCount,
                 scrollDelta,
@@ -1476,9 +1476,13 @@ const LandingClient: React.FC<LandingClientProps> = ({
             if (!shouldAdvance) return;
 
             const now = window.performance?.now?.() ?? Date.now();
-            if (now - heroLastAutoAdvanceAtRef.current < 280) return;
+            if (now - heroLastAutoAdvanceAtRef.current < 160) return;
 
             heroLastAutoAdvanceAtRef.current = now;
+            if (direction === 'prev') {
+                handleHeroPrev();
+                return;
+            }
             handleHeroNext();
         };
 
@@ -1487,7 +1491,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
         return () => {
             window.removeEventListener('scroll', handleScroll);
         };
-    }, [handleHeroNext, heroProductCount, heroUploadState]);
+    }, [handleHeroNext, handleHeroPrev, heroProductCount, heroUploadState]);
 
     const resetHeroUploadPreview = useCallback(() => {
         setHeroUploadState('idle');
