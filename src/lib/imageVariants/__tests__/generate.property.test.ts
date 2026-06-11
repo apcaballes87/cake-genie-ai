@@ -72,6 +72,13 @@ async function makeFixture(width: number, color: { r: number; g: number; b: numb
 // Property 5: no upscaling (Req 1.3)
 // ---------------------------------------------------------------------------
 
+// These property tests run sharp encode/decode 30 times per case, which
+// is CPU-bound and can exceed vitest's default 5s timeout under load (CI,
+// parallel runs, slow disks). The properties are deterministic — the only
+// thing that varies is wall-clock. 30s is plenty of headroom on a single
+// core; CI shared runners typically need 60s.
+const PROPERTY_TEST_TIMEOUT = 30_000;
+
 describe('Property 5: no upscaling (Req 1.3)', () => {
     it('every produced variant has width <= source width', async () => {
         await fc.assert(
@@ -90,7 +97,7 @@ describe('Property 5: no upscaling (Req 1.3)', () => {
             }),
             { numRuns: 30 },
         );
-    });
+    }, PROPERTY_TEST_TIMEOUT);
 
     it('source dimensions reported match input dimensions', async () => {
         await fc.assert(
@@ -102,7 +109,7 @@ describe('Property 5: no upscaling (Req 1.3)', () => {
             }),
             { numRuns: 30 },
         );
-    });
+    }, PROPERTY_TEST_TIMEOUT);
 });
 
 // ---------------------------------------------------------------------------
@@ -127,7 +134,7 @@ describe('Property 6: per-variant byte budget (Req 1.8)', () => {
             }),
             { numRuns: 30 },
         );
-    });
+    }, PROPERTY_TEST_TIMEOUT);
 
     it('encoded buffer length equals reported bytes (for any complexity)', async () => {
         // Vary channels too (3 = JPEG-compatible RGB, 4 = RGBA via PNG)
@@ -160,5 +167,5 @@ describe('Property 6: per-variant byte budget (Req 1.8)', () => {
             }),
             { numRuns: 30 },
         );
-    });
+    }, PROPERTY_TEST_TIMEOUT);
 });
