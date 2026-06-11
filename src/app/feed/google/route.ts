@@ -3,8 +3,9 @@ import { CakeThickness } from '@/types';
 import { toGoogleMerchantId } from '@/lib/commerce/feedIds';
 import { resolveGoogleFeedImage } from '@/lib/commerce/googleFeedImage';
 
-// Cache for 6 hours
-export const revalidate = 21600;
+// Force dynamic rendering to prevent Next.js from generating a massive 20MB+ static file during build.
+// Vercel's Edge CDN will still cache the response for 6 hours via the Cache-Control header.
+export const dynamic = 'force-dynamic';
 
 const FEED_PAGE_SIZE = 1000;
 const FALLBACK_MIN_PRICE = 1099;
