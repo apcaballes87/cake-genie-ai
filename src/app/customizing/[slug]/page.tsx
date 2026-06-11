@@ -1388,12 +1388,18 @@ export default async function RecentSearchPage({ params }: Props) {
     // for the honest source-mix subtitle, and that JSON-LD serialisation
     // must strip before adding to Product.review (only `_source === 'exact'`
     // is safe to mark up — see plan §12 Rule 3).
+    // A review is "about" a specific design when its original_image_url
+    // matches the design's image URL. That's the join key the themed-pool
+    // helper uses for tier-1 (exact) matches. (cakegenie_analysis_cache
+    // has no product_id column — that assumption was wrong, see
+    // getThemedReviewsForSlug's docstring.)
     const themedReviews: ThemedReview[] = await (async () => {
-        if (!design?.product_id) return [];
+        const designImageUrl = design?.original_image_url;
+        if (!designImageUrl) return [];
         try {
             return await getThemedReviewsForSlug(
-                design.product_id,
-                design.keywords,
+                designImageUrl,
+                design?.keywords,
                 3
             );
         } catch (error) {

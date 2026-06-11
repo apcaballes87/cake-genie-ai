@@ -261,9 +261,15 @@ export function getSourceSubtitle(reviews: ReadonlyArray<ThemedReview>): string 
 }
 
 /**
- * Fetches up to `limit` reviews for the given product using the 4-tier
+ * Fetches up to `limit` reviews for the given design using the 4-tier
  * fallback. Each returned review has a `_source` discriminator
  * ('exact' | 'themed' | 'recent') so the UI can label it honestly.
+ *
+ * Tier-1 (exact) matches by `original_image_url` — the review's image
+ * URL must equal the design's image URL. This is how a review is
+ * "about" a specific design: a user uploads a photo of the finished
+ * cake, the photo URL is stored on the review, and the design with
+ * the same image is the cake the review is about.
  *
  * Tier 2 is skipped if `primaryKeyword` is null, empty, or in the
  * GENERIC_KEYWORD_BLOCKLIST.
@@ -276,7 +282,7 @@ export function getSourceSubtitle(reviews: ReadonlyArray<ThemedReview>): string 
  * JSON-LD (only `_source === 'exact'` is safe to mark up — plan §12 Rule 3).
  */
 export async function getThemedReviewsForSlug(
-  productId: string,
+  designImageUrl: string,
   primaryKeyword: string | null | undefined,
   limit = 3
 ): Promise<ThemedReview[]> {
@@ -284,14 +290,14 @@ export async function getThemedReviewsForSlug(
   const seenIds = new Set<string>();
   const result: ThemedReview[] = [];
 
-  // ── Tier 1: exact product match ──
+  // ── Tier 1: exact design match (same image URL) ──
   const { data: exact, error: exactErr } = await supabase
     .from('cakegenie_reviews')
     .select(REVIEW_SELECT_WITH_KEYWORDS)
     .eq('is_visible', true)
     .eq('is_approved', true)
     .eq('is_published', true)
-    .eq('product_id', productId)
+    .eq('original_image_url', designImageUrl)
     .order('created_at', { ascending: false })
     .limit(limit);
 

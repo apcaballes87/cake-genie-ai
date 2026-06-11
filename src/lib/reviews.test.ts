@@ -276,8 +276,8 @@ describe('getThemedReviewsForSlug', () => {
     expect(chain.eq).toHaveBeenCalledWith('is_visible', true);
     expect(chain.eq).toHaveBeenCalledWith('is_approved', true);
     expect(chain.eq).toHaveBeenCalledWith('is_published', true);
-    // Exact match uses the current product's id
-    expect(chain.eq).toHaveBeenCalledWith('product_id', 'prod-123');
+    // Exact match uses the current design's image URL
+    expect(chain.eq).toHaveBeenCalledWith('original_image_url', 'prod-123');
     // Tier 1 filled the limit — no themed query should be issued
     expect(chain.ilike).not.toHaveBeenCalled();
   });
