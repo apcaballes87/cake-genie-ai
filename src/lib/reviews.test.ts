@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  buildPerDesignReviewSummary,
   buildReviewSummary,
   GENERIC_KEYWORD_BLOCKLIST,
   getExactReviewsForSchema,
@@ -154,6 +155,55 @@ describe('getExactReviewsForSchema', () => {
     const reviews = [mk('a', 'exact'), mk('b', 'themed')];
     const snapshot = reviews.map((r) => ({ ...r }));
     getExactReviewsForSchema(reviews);
+    expect(reviews).toEqual(snapshot);
+  });
+});
+
+describe('buildPerDesignReviewSummary', () => {
+  const mk = (
+    id: string,
+    source: ThemedReview['_source'],
+    rating: number,
+  ): ThemedReview => ({ review_id: id, _source: source, rating } as ThemedReview);
+
+  it('returns null for null/undefined/empty input', () => {
+    expect(buildPerDesignReviewSummary(null)).toBeNull();
+    expect(buildPerDesignReviewSummary(undefined)).toBeNull();
+    expect(buildPerDesignReviewSummary([])).toBeNull();
+  });
+
+  it('returns null when no exact-tier reviews exist (themed/recent only)', () => {
+    // Plan §12 Rule 2: themed/recent reviews are about other products
+    // and must not contribute to this product's star average.
+    expect(buildPerDesignReviewSummary([
+      mk('t1', 'themed', 5),
+      mk('r1', 'recent', 4),
+    ])).toBeNull();
+  });
+
+  it('computes total + averageRating from exact-tier reviews only', () => {
+    const result = buildPerDesignReviewSummary([
+      mk('e1', 'exact', 5),
+      mk('t1', 'themed', 1),  // excluded — different product
+      mk('e2', 'exact', 3),
+      mk('e3', 'exact', 4),
+      mk('r1', 'recent', 5),  // excluded — different product
+    ]);
+    expect(result).toEqual({ total: 3, averageRating: 4 });
+  });
+
+  it('returns 0 averageRating for a single 0-rating exact review (defensive)', () => {
+    // Edge case — shouldn't happen in production (the review pool
+    // filters on is_visible + is_approved), but the helper should
+    // not divide by zero.
+    const result = buildPerDesignReviewSummary([mk('e1', 'exact', 0)]);
+    expect(result).toEqual({ total: 1, averageRating: 0 });
+  });
+
+  it('does not mutate the input array', () => {
+    const reviews = [mk('e1', 'exact', 5), mk('t1', 'themed', 1)];
+    const snapshot = reviews.map((r) => ({ ...r }));
+    buildPerDesignReviewSummary(reviews);
     expect(reviews).toEqual(snapshot);
   });
 });

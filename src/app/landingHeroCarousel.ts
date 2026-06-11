@@ -45,24 +45,38 @@ export function getNextMobileHeroScrollAccumulation({
     scrollDelta: number;
     threshold: number;
     userCanSeeHero: boolean;
-}): { accumulatedDelta: number; shouldAdvance: boolean } {
-    if (!userCanSeeHero || productCount <= 1 || scrollDelta <= 0) {
+}): { accumulatedDelta: number; direction: 'next' | 'prev' | null; shouldAdvance: boolean } {
+    if (!userCanSeeHero || productCount <= 1 || scrollDelta === 0) {
         return {
             accumulatedDelta: 0,
+            direction: null,
             shouldAdvance: false,
         };
     }
 
+    const scrollDirection = scrollDelta > 0 ? 1 : -1;
+    const accumulatedDirection = accumulatedDelta === 0 ? scrollDirection : Math.sign(accumulatedDelta);
+
+    if (accumulatedDirection !== scrollDirection) {
+        return {
+            accumulatedDelta: scrollDelta,
+            direction: null,
+            shouldAdvance: Math.abs(scrollDelta) >= threshold,
+        };
+    }
+
     const nextAccumulatedDelta = accumulatedDelta + scrollDelta;
-    if (nextAccumulatedDelta < threshold) {
+    if (Math.abs(nextAccumulatedDelta) < threshold) {
         return {
             accumulatedDelta: nextAccumulatedDelta,
+            direction: null,
             shouldAdvance: false,
         };
     }
 
     return {
         accumulatedDelta: 0,
+        direction: nextAccumulatedDelta > 0 ? 'next' : 'prev',
         shouldAdvance: true,
     };
 }

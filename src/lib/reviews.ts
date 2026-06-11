@@ -134,6 +134,26 @@ export function buildReviewSummary(ratingRows: RatingOnlyReview[] | null | undef
   return { total, averageRating };
 }
 
+/**
+ * Computes the per-product review summary from a themed-pool result.
+ * Only tier-1 (exact) reviews count — themed and recent reviews are about
+ * other products and must NOT be folded into the star average or the
+ * JSON-LD `aggregateRating` (plan §12 Rule 2).
+ *
+ * Returns `null` when the pool is empty or contains no exact-tier
+ * reviews, so the caller can fall back to the site-wide summary.
+ */
+export function buildPerDesignReviewSummary(
+    themedReviews: ReadonlyArray<ThemedReview> | null | undefined
+): ReviewSummary | null {
+    if (!themedReviews || themedReviews.length === 0) return null;
+    const exact = themedReviews.filter((r) => r._source === 'exact');
+    if (exact.length === 0) return null;
+    const total = exact.length;
+    const sum = exact.reduce((acc, r) => acc + (r.rating || 0), 0);
+    return { total, averageRating: sum / total };
+}
+
 export function hasReviewSummary(reviewSummary: ReviewSummary | null | undefined): reviewSummary is ReviewSummary {
   return Boolean(reviewSummary && reviewSummary.total > 0 && reviewSummary.averageRating > 0);
 }

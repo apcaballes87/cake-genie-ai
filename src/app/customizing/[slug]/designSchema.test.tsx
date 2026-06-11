@@ -245,6 +245,27 @@ describe('DesignSchema — R1 aggregateRating', () => {
     const product = getProductGraph(container);
     expect(product!).not.toHaveProperty('aggregateRating');
   });
+
+  it('per-design stats override site-wide even when site has a higher total', async () => {
+    // Plan §12 Rule 2 + the pre-existing aggregateRating site-wide
+    // bug fix: perDesign takes precedence, so the JSON-LD matches the
+    // reviews actually shown on the page.
+    const { container } = render(
+      <DesignSchema
+        design={baseDesign()}
+        siteReviewSummary={{ total: 247, averageRating: 4.8 }}
+        isSiteReviewSummaryFallback={false}
+        perDesignReviewStats={{ total: 2, averageRating: 5.0 }}
+        linkedMerchantProducts={[]}
+      />,
+    );
+    const product = getProductGraph(container);
+    expect(product!.aggregateRating).toMatchObject({
+      '@type': 'AggregateRating',
+      ratingValue: 5.0,
+      reviewCount: 2,
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------

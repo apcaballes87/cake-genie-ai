@@ -128,6 +128,41 @@ export function generateDesignDetails(design: any, prices?: BasePriceInfo[]): st
     // Sentence 7: Delivery coverage
     sentences.push(`Free delivery is available throughout Metro Cebu, including Cebu City, Mandaue, Lapu-Lapu, and Talisay.`);
 
+    // Sentence 8: Budget Customization Tips based on topper/icing types
+    const allItems = [...mainToppers, ...supportElements];
+    const itemStrings = allItems.map(item => `${item.type || ''} ${item.description || ''}`.toLowerCase());
+
+    const hasFondant = cakeType.toLowerCase().includes('fondant') || (icingDesign.base || '').toLowerCase().includes('fondant');
+    const hasEdibleTopper = itemStrings.some(s => s.includes('edible') && !s.includes('photo') && !s.includes('image') && !s.includes('print'));
+    const hasToy = itemStrings.some(s => s.includes('toy') || s.includes('figure') || s.includes('doll') || s.includes('plastic'));
+    const hasEdiblePhoto = itemStrings.some(s => s.includes('photo') || s.includes('image') || s.includes('print')) && itemStrings.some(s => s.includes('edible'));
+    const hasGlitterCardstock = itemStrings.some(s => s.includes('cardstock') || s.includes('glitter') || s.includes('paper'));
+
+    const budgetTips: string[] = [];
+    if (hasFondant) budgetTips.push('swapping the fondant finish for a soft icing base');
+    if (hasEdibleTopper) budgetTips.push('replacing the edible toppers with a plastic toy or a free paper printout');
+    if (hasToy) budgetTips.push('replacing the toy toppers with a free paper printout');
+    if (hasEdiblePhoto) budgetTips.push('replacing the edible photo elements with a free paper printout');
+    if (hasGlitterCardstock) budgetTips.push('replacing the glitter cardstock toppers with a free printout');
+
+    if (budgetTips.length > 0) {
+        let joinedTips = '';
+        if (budgetTips.length === 1) {
+            joinedTips = budgetTips[0];
+        } else {
+            const lastTip = budgetTips.pop();
+            joinedTips = `${budgetTips.join(', ')}, or ${lastTip}`;
+        }
+        sentences.push(`If you are looking to customize this design on a budget, you can save money by ${joinedTips}.`);
+    }
+
+    // Sentence 9: Care Instructions based on Icing Finish
+    if (hasFondant) {
+        sentences.push(`To preserve the hand-crafted fondant details, keep the cake in a cool, air-conditioned room and avoid direct sunlight. Avoid refrigerating fondant elements before serving to prevent condensation.`);
+    } else {
+        sentences.push(`Because this design features a delicate soft icing finish, we recommend keeping the cake refrigerated until 30 minutes before serving. Transport flat in an air-conditioned vehicle.`);
+    }
+
     return sentences.join(' ');
 }
 
@@ -209,7 +244,37 @@ export function generateDynamicFAQ(design: any, prices?: BasePriceInfo[]): { que
             : `Yes, we offer free delivery for this ${keywords} cake throughout Metro Cebu, including Cebu City, Mandaue, Mactan, Lapu-Lapu, and Talisay. We also serve select areas in Cavite. All cakes are delivered fresh by our partner bakers to ensure quality.`,
     });
 
-    // FAQ 5: Payment methods — static but important for conversions and trust
+    // FAQ 5: Budget Customization FAQ
+    const allItems = [...mainToppers, ...supportElements];
+    const itemStrings = allItems.map(item => `${item.type || ''} ${item.description || ''}`.toLowerCase());
+    const hasFondant = cakeType.toLowerCase().includes('fondant') || (analysis.icing_design?.base || '').toLowerCase().includes('fondant');
+    const hasEdibleTopper = itemStrings.some(s => s.includes('edible') && !s.includes('photo') && !s.includes('image') && !s.includes('print'));
+    const hasToy = itemStrings.some(s => s.includes('toy') || s.includes('figure') || s.includes('doll') || s.includes('plastic'));
+    const hasEdiblePhoto = itemStrings.some(s => s.includes('photo') || s.includes('image') || s.includes('print')) && itemStrings.some(s => s.includes('edible'));
+    const hasGlitterCardstock = itemStrings.some(s => s.includes('cardstock') || s.includes('glitter') || s.includes('paper'));
+
+    const faqBudgetTips: string[] = [];
+    if (hasFondant) faqBudgetTips.push('swapping the fondant finish for a soft icing base');
+    if (hasEdibleTopper) faqBudgetTips.push('replacing the edible toppers with a plastic toy or a free paper printout');
+    if (hasToy) faqBudgetTips.push('replacing the toy toppers with a free paper printout');
+    if (hasEdiblePhoto) faqBudgetTips.push('replacing the edible photo elements with a free paper printout');
+    if (hasGlitterCardstock) faqBudgetTips.push('replacing the glitter cardstock toppers with a free printout');
+
+    if (faqBudgetTips.length > 0) {
+        let joinedTips = '';
+        if (faqBudgetTips.length === 1) {
+            joinedTips = faqBudgetTips[0];
+        } else {
+            const lastTip = faqBudgetTips.pop();
+            joinedTips = `${faqBudgetTips.join(', ')}, or ${lastTip}`;
+        }
+        faqs.push({
+            question: isCupcake ? `How can I customize these ${keywords} cupcakes on a budget?` : `How can I customize this ${keywords} cake to save money?`,
+            answer: `You can customize this design to fit a smaller budget by swapping premium decorations for lower-cost alternatives. For this specific design, you can save by ${joinedTips}. Simply specify these choices in the additional instructions box before checkout.`,
+        });
+    }
+
+    // FAQ 6: Payment methods — static but important for conversions and trust
     faqs.push({
         question: 'What payment options are available?',
         answer: 'We accept e-wallets (GCash and Maya), bank transfers (BDO, BPI, and Metrobank), and all major credit and debit cards processed securely via Xendit. You can choose your preferred payment method at checkout.',

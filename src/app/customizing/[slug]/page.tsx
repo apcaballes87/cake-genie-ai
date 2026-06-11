@@ -16,7 +16,7 @@ import { mapAnalysisToState, mapProductToDefaultState } from '@/utils/customizat
 import { upgradeLegacySlug, downgradeCakeSlug } from '@/lib/utils/urlHelpers'
 import { generateDesignDetails, generateDynamicFAQ, generateRichAltText } from '@/utils/designContentUtils'
 import { parseManifest, buildSrcSet, pickFallbackSrc } from '@/lib/imageVariants/manifest'
-import { buildReviewSummary, getThemedReviewsForSlug, getSourceSubtitle, getReviewDisplayName, getReviewAvatarInitial, getExactReviewsForSchema, type ThemedReview } from '@/lib/reviews'
+import { buildPerDesignReviewSummary, buildReviewSummary, getThemedReviewsForSlug, getSourceSubtitle, getReviewDisplayName, getReviewAvatarInitial, getExactReviewsForSchema, type ThemedReview } from '@/lib/reviews'
 import {
     buildCustomCakeAdditionalProperties,
     buildMerchantReturnPolicy,
@@ -1369,6 +1369,20 @@ export default async function RecentSearchPage({ params }: Props) {
         }
     })();
 
+    // Per-design star summary for the page-top "X happy customers" line
+    // and the JSON-LD `aggregateRating` block. Built from tier-1 (exact)
+    // reviews only — themed/recent reviews are about other products and
+    // must never feed this product's average (plan §12 Rule 2).
+    // Returns null when the pool is empty so resolveAggregateRating
+    // falls back to the site-wide summary.
+    const perDesignReviewStats = buildPerDesignReviewSummary(themedReviews);
+
+    // The page-top hero and the JSON-LD aggregateRating must stay in
+    // lockstep. Prefer the per-design summary when we have one; otherwise
+    // fall back to the site-wide one. This is the single source of truth
+    // for "X happy customers" everywhere on the page.
+    const displayReviewSummary = perDesignReviewStats || reviewSummary;
+
     // Generate dynamic FAQs for this design (used for FAQPage schema + SSR content)
     const dynamicFAQs = generateDynamicFAQ(design, prices);
 
@@ -1427,7 +1441,7 @@ export default async function RecentSearchPage({ params }: Props) {
                 prices={prices}
                 siteReviewSummary={reviewSummary}
                 isSiteReviewSummaryFallback={isSiteReviewSummaryFallback}
-                perDesignReviewStats={null}
+                perDesignReviewStats={perDesignReviewStats}
                 linkedMerchantProducts={linkedMerchantProducts}
                 faqs={dynamicFAQs}
                 themedReviews={themedReviews}
@@ -1493,11 +1507,11 @@ export default async function RecentSearchPage({ params }: Props) {
                         postEditorSlot={<SSRDesignContent design={design} prices={prices} faqs={dynamicFAQs} themedReviews={themedReviews} />}
                         hideAiChat={false}
                         enableMobileHeroPan={true}
-                        reviewSummary={reviewSummary}
+                        reviewSummary={displayReviewSummary}
                     />
                 </CustomizationProvider>
             </Suspense>
-            <LandingFooter reviewSummary={reviewSummary} />
+            <LandingFooter reviewSummary={displayReviewSummary} />
         </>
     )
 }
