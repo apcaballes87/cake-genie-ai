@@ -32,7 +32,7 @@ import {
     resolveSkuMpn,
     FALLBACK_MIN_PRICE,
 } from './metadataHelpers'
-import { buildCakeTitle, extractTitleInputFromAnalysis } from '@/lib/seo/cakeTitle'
+import { buildCakeTitle, extractTitleInputFromAnalysis, extractDesignCodeFromSlug, CAKE_TITLE_BUDGET } from '@/lib/seo/cakeTitle'
 
 const VALID_CAKE_TYPES: CakeType[] = ['1 Tier', '2 Tier', '3 Tier', '1 Tier Fondant', '2 Tier Fondant', '3 Tier Fondant', 'Square', 'Rectangle', 'Bento', 'Square Fondant', 'Rectangle Fondant', 'Cupcake'];
 const CAKE_TYPE_THICKNESS_MAP: Record<string, CakeThickness> = {
@@ -305,15 +305,28 @@ export async function generateMetadata(
     if (isCupcake && /cupcake/i.test(storedTitle) && / cake$/i.test(storedTitle)) {
         storedTitle = storedTitle.replace(/\s+cake$/i, '');
     }
-    const title = storedTitle.length > 0
+    
+    const designCode = extractDesignCodeFromSlug(slug);
+    const suffix = designCode ? ` - ${designCode}` : '';
+    let baseTitle = storedTitle.length > 0
         ? storedTitle
         : buildCakeTitle(
             extractTitleInputFromAnalysis(
                 (design.analysis_json ?? {}) as Parameters<typeof extractTitleInputFromAnalysis>[0],
                 design.keywords,
                 design.tags,
+                slug,
             ),
         );
+
+    if (suffix && !baseTitle.endsWith(suffix)) {
+        const budget = CAKE_TITLE_BUDGET - suffix.length;
+        if (baseTitle.length > budget) {
+            baseTitle = baseTitle.substring(0, budget).trim();
+        }
+        baseTitle = `${baseTitle}${suffix}`;
+    }
+    const title = baseTitle;
 
     // Description with rich fallback chain:
     // 1. Use seo_description if available (unless it's generic/templated)
@@ -429,10 +442,20 @@ export function DesignSchema({
     const tags = design.tags || [];
     const keywords = design.keywords || 'Custom';
     const isCupcake = (design.analysis_json?.cakeType || '').toLowerCase() === 'cupcake' || (design.analysis_json?.cakeType || '').startsWith('cupcakes-') || (design.slug || '').includes('cupcakes-') || (design.slug || '').includes('cupcake-');
-    let title = design.seo_title || `${tags.length > 0 ? tags[0] + ' ' : ''}${keywords} ${isCupcake ? 'Cupcakes' : 'Cake'}`;
-    if (isCupcake && /cupcake/i.test(title) && / cake$/i.test(title)) {
-        title = title.replace(/\s+cake$/i, '');
+    let baseTitle = design.seo_title || `${tags.length > 0 ? tags[0] + ' ' : ''}${keywords} ${isCupcake ? 'Cupcakes' : 'Cake'}`;
+    if (isCupcake && /cupcake/i.test(baseTitle) && / cake$/i.test(baseTitle)) {
+        baseTitle = baseTitle.replace(/\s+cake$/i, '');
     }
+    const designCode = extractDesignCodeFromSlug(design.slug);
+    const suffix = designCode ? ` - ${designCode}` : '';
+    if (suffix && !baseTitle.endsWith(suffix)) {
+        const budget = CAKE_TITLE_BUDGET - suffix.length;
+        if (baseTitle.length > budget) {
+            baseTitle = baseTitle.substring(0, budget).trim();
+        }
+        baseTitle = `${baseTitle}${suffix}`;
+    }
+    let title = baseTitle;
     // Image URL for structured data + sitemap parity. Point at the SAME image the
     // page actually renders as its hero (the largest slug-based variant ≤ 1200,
     // falling back to the original). After the slug-based variant re-path this URL
@@ -757,9 +780,19 @@ function SSRCakeDetails({
     if (isCupcake && /cupcake/i.test(rawTitle) && / cake$/i.test(rawTitle)) {
         rawTitle = rawTitle.replace(/\s+cake$/i, '');
     }
-    const title = isCupcake
+    const designCode = extractDesignCodeFromSlug(design.slug);
+    const suffix = designCode ? ` - ${designCode}` : '';
+    let baseTitle = isCupcake
         ? (/cupcakes?\s*design/i.test(rawTitle) ? rawTitle : /cupcakes?\s*$/i.test(rawTitle) ? `${rawTitle} Design` : `${rawTitle} Cupcakes Design`)
         : (/cake\s*design/i.test(rawTitle) ? rawTitle : /cake\s*$/i.test(rawTitle) ? `${rawTitle} Design` : `${rawTitle} Cake Design`);
+    if (suffix && !baseTitle.endsWith(suffix)) {
+        const budget = CAKE_TITLE_BUDGET - suffix.length;
+        if (baseTitle.length > budget) {
+            baseTitle = baseTitle.substring(0, budget).trim();
+        }
+        baseTitle = `${baseTitle}${suffix}`;
+    }
+    const title = baseTitle;
     const altText = generateRichAltText(design);
     const displayPrice = prices?.[0]?.price || design.price;
 

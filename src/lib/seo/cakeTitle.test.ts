@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
     buildCakeTitle,
     extractTitleInputFromAnalysis,
+    extractDesignCodeFromSlug,
     CAKE_TITLE_BUDGET,
     type CakeTitleInput,
 } from './cakeTitle';
@@ -175,5 +176,34 @@ describe('extractTitleInputFromAnalysis — R7.2 / R10.2 parity mapper', () => {
         const input = extractTitleInputFromAnalysis(null, null, null);
         expect(input.heroToppers).toEqual([]);
         expect(buildCakeTitle(input)).toBe('Custom Cake');
+    });
+
+    it('extracts design code from various slug formats', () => {
+        expect(extractDesignCodeFromSlug('roblox-sky-blue-1-tier-cake-c783')).toBe('C783');
+        expect(extractDesignCodeFromSlug('stray-kids-orange-1-tier-cake-68ff')).toBe('68FF');
+        expect(extractDesignCodeFromSlug('new-year-2026-cake-9cd3c3c3d3c2f0fe')).toBe('F0FE');
+        expect(extractDesignCodeFromSlug('anniversary-red-gold-cake-c180fdfcff370f0f')).toBe('0F0F');
+        expect(extractDesignCodeFromSlug('custom-cake')).toBeNull();
+        expect(extractDesignCodeFromSlug('')).toBeNull();
+        expect(extractDesignCodeFromSlug(null)).toBeNull();
+    });
+
+    it('appends design code to buildCakeTitle and adjusts budget', () => {
+        const input: CakeTitleInput = {
+            keyword: 'Roblox',
+            cakeType: '1 Tier',
+            colorTop: '#87CEEB',
+            colorType: 'single',
+            tags: ['birthday', 'roblox'],
+            designCode: 'C783',
+        };
+        const title = buildCakeTitle(input);
+        expect(title).toBe('Roblox-Inspired Sky Blue Birthday Cake - C783');
+        expect([...title].length).toBeLessThanOrEqual(CAKE_TITLE_BUDGET);
+        
+        // Under tight budget, it should truncate theme/body but keep suffix
+        const tightTitle = buildCakeTitle(input, 25);
+        expect(tightTitle).toBe('Roblox - C783');
+        expect([...tightTitle].length).toBeLessThanOrEqual(25);
     });
 });

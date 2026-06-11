@@ -112,7 +112,7 @@ describe('generateRichAltText', () => {
 
         const details = generateDesignDetails(cupcakeDesign);
         expect(details.toLowerCase()).toContain('cupcakes');
-        expect(details.toLowerCase()).toContain('carry the message');
+        expect(details.toLowerCase()).toContain('piped message details');
         expect(details.toLowerCase()).not.toContain('this cinderella cake');
 
         const faqs = generateDynamicFAQ(cupcakeDesign, [{ size: '12 pieces', price: 499 }]);

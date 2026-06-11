@@ -24,6 +24,17 @@ import { hexToName } from '@/lib/utils/urlHelpers';
 /** Default in-route title budget: 60 cp SERP cap − len(' | Genie.ph') = 49. */
 export const CAKE_TITLE_BUDGET = 49;
 
+export function extractDesignCodeFromSlug(slug: string | null | undefined): string | null {
+    if (!slug) return null;
+    const match = slug.match(/-([a-f0-9]{4,16})$/);
+    if (!match) return null;
+    const hash = match[1];
+    if (hash.length > 4) {
+        return hash.substring(hash.length - 4).toUpperCase();
+    }
+    return hash.toUpperCase();
+}
+
 export interface CakeTitleInput {
     /** Theme keyword, e.g. "Kuromi", "18th Birthday", "Corset Heart". */
     keyword?: string | null;
@@ -39,6 +50,8 @@ export interface CakeTitleInput {
     tags?: (string | null | undefined)[] | null;
     /** Optional hero-topper descriptions (used for detail inference only). */
     heroToppers?: (string | null | undefined)[] | null;
+    /** Unique design code suffix extracted from the slug hash. */
+    designCode?: string | null;
 }
 
 /**
@@ -236,6 +249,10 @@ function isRedundant(segment: string, existingLower: string): boolean {
  *   the theme.
  */
 export function buildCakeTitle(input: CakeTitleInput, budget: number = CAKE_TITLE_BUDGET): string {
+    const designCode = input.designCode ? input.designCode.trim() : '';
+    const suffix = designCode ? ` - ${designCode}` : '';
+    const bodyBudget = budget - suffix.length;
+
     const keyword = (input.keyword ?? '').trim();
     const keywordLower = keyword.toLowerCase();
     const tagsLower = (input.tags ?? [])
@@ -300,12 +317,15 @@ export function buildCakeTitle(input: CakeTitleInput, budget: number = CAKE_TITL
     ];
 
     for (const parts of candidates) {
-        const title = assemble(parts);
-        if ([...title].length <= budget) return title;
+        const titleBody = assemble(parts);
+        if ([...titleBody].length <= bodyBudget) {
+            return suffix ? `${titleBody}${suffix}` : titleBody;
+        }
     }
 
     // Still over budget: word-truncate the theme while keeping the appropriate head noun.
-    return truncateThemeToFit(theme, budget, isCupcake);
+    const truncatedBody = truncateThemeToFit(theme, bodyBudget, isCupcake);
+    return suffix ? `${truncatedBody}${suffix}` : truncatedBody;
 }
 
 function truncateThemeToFit(theme: string, budget: number, isCupcake?: boolean): string {
@@ -359,6 +379,7 @@ export function extractTitleInputFromAnalysis(
     analysis: TitleAnalysisLike | null | undefined,
     keywords: string | null | undefined,
     tags: (string | null | undefined)[] | null | undefined,
+    slug?: string | null,
 ): CakeTitleInput {
     const a = analysis ?? {};
     const colors = a.icing_design?.colors ?? {};
@@ -377,5 +398,6 @@ export function extractTitleInputFromAnalysis(
         colorType: a.icing_design?.color_type ?? null,
         tags: tags ?? null,
         heroToppers,
+        designCode: extractDesignCodeFromSlug(slug),
     };
 }

@@ -18,7 +18,7 @@ import { MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoU
 import { generateCakeAnalysisSlug } from '@/lib/utils/urlHelpers';
 import { generateTagsForAnalysis } from '@/utils/tagUtils';
 import { buildCakeTitle, extractTitleInputFromAnalysis } from '@/lib/seo/cakeTitle';
-import { appendAvailabilitySentence } from '@/lib/seo/analysisCopy';
+import { enrichStoredSeoDescription } from '@/lib/seo/analysisCopy';
 import {
   getDistinctiveRelatedSearchTerms,
   normalizeRelatedSearchPhrase,
@@ -978,14 +978,20 @@ export async function cacheAnalysisResult(
       mainToppers,
       supportElements,
     });
-    const seoDescription = appendAvailabilitySentence(generatedSeoDescription, availability);
+    // Generate tags (uses the legacy title string only as a token source)
+    const tags = generateTagsForAnalysis(analysisResult, keywords, tagSourceTitle, altText);
+    const seoDescription = enrichStoredSeoDescription({
+      analysisResult,
+      availability,
+      keywords,
+      rawDescription: generatedSeoDescription,
+      tags,
+    });
     const finalizedAnalysisResult = {
       ...analysisResult,
       seo_description: seoDescription,
+      tags,
     };
-
-    // Generate tags (uses the legacy title string only as a token source)
-    const tags = generateTagsForAnalysis(analysisResult, keywords, tagSourceTitle, altText);
 
     // Build the customer-facing SEO title deterministically from structured
     // attributes (R10). Never derived from the AI seo_title or cake_messages (PII).

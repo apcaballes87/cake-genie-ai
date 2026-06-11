@@ -352,8 +352,17 @@ export function generateDesignDetails(design: any, prices?: BasePriceInfo[]): st
 
     // Sentence 5: Cake/cupcake messages
     if (cakeMessages.length > 0) {
-        const messages = cakeMessages.map((m: any) => `"${m.text}"`).join(' and ');
-        sentences.push(`The ${pNoun} carry the message ${messages}.`);
+        const positions = [...new Set(
+            cakeMessages
+                .map((message: any) => message.position?.replace(/_/g, ' '))
+                .filter(Boolean),
+        )];
+        const positionText = positions.length > 0
+            ? ` on the ${joinReadableList(positions)}`
+            : '';
+        sentences.push(isCupcake
+            ? `The ${pNoun} include visible piped message details${positionText} that can be personalized for the occasion.`
+            : `The ${pNoun} includes a visible piped message${positionText} that can be personalized for the occasion.`);
     }
 
     // Sentence 6: Pricing and sizes

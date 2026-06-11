@@ -151,14 +151,11 @@ describe('cacheAnalysisResult', () => {
       },
     );
 
-    const expected =
-      'A sky blue soft-icing cake with basketball details. This design is available for same-day orders with 3 to 4 hours of preparation.';
-
     expect(upsertMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        seo_description: expected,
+        seo_description: expect.stringContaining('A sky blue soft-icing cake with basketball details.'),
         analysis_json: expect.objectContaining({
-          seo_description: expected,
+          seo_description: expect.any(String),
         }),
         availability: 'same-day',
       }),
@@ -166,6 +163,12 @@ describe('cacheAnalysisResult', () => {
         onConflict: 'p_hash',
       }),
     );
+
+    const [[payload]] = upsertMock.mock.calls;
+    expect(payload.seo_description).toContain(
+      'This design is available for same-day orders with 3 to 4 hours of preparation.',
+    );
+    expect(payload.analysis_json.seo_description).toBe(payload.seo_description);
   });
 
   it('stores fingerprint pipeline metadata with the canonical p_hash', async () => {

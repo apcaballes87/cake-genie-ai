@@ -265,14 +265,24 @@
 
 ### Plan
 
-- [ ] Add a shared deterministic helper that enriches short stored `seo_description` values from `analysis_json`, then keeps the existing availability-append sync behavior.
-- [ ] Update `cacheAnalysisResult(...)` so future AI cake-analysis rows store the enriched description by default instead of the shorter raw AI paragraph.
-- [ ] Create a focused backfill script for existing `cakegenie_analysis_cache` rows whose stored `seo_description` is still too short, then dry-run representative samples.
-- [ ] Run the live backfill, verify counts plus before/after samples, and record the outcome here.
+- [x] Add a shared deterministic helper that enriches short stored `seo_description` values from `analysis_json`, then keeps the existing availability-append sync behavior.
+- [x] Update `cacheAnalysisResult(...)` so future AI cake-analysis rows store the enriched description by default instead of the shorter raw AI paragraph.
+- [x] Create a focused backfill script for existing `cakegenie_analysis_cache` rows whose stored `seo_description` is still too short, then dry-run representative samples.
+- [x] Run the live backfill, verify counts plus before/after samples, and record the outcome here.
 
 ### Review
 
-- Pending.
+- Added `enrichStoredSeoDescription(...)` in [src/lib/seo/analysisCopy.ts](/Users/apcaballes/genieph-nextjs/src/lib/seo/analysisCopy.ts:1). It strips duplicate availability text, enriches short descriptions with deterministic detail from `analysis_json`, and then reapplies the canonical availability sentence once so the cache row and `analysis_json` stay in sync.
+- Updated [src/services/supabaseService.ts](/Users/apcaballes/genieph-nextjs/src/services/supabaseService.ts:1) so future `cacheAnalysisResult(...)` writes use the enriched stored description by default instead of the shorter raw AI paragraph. This means newly analyzed cake images now persist the richer description path automatically.
+- Added [scripts/backfill-thin-seo-descriptions.ts](/Users/apcaballes/genieph-nextjs/scripts/backfill-thin-seo-descriptions.ts:1) as a deterministic live backfill script. It scopes updates to rows whose stored `seo_description` is generic or under `130` words, updates both `seo_description` and `analysis_json.seo_description`, supports dry-run vs `--apply`, and keeps resumable progress tracking for live runs.
+- Tightened the deterministic prose helper in [src/utils/designContentUtils.ts](/Users/apcaballes/genieph-nextjs/src/utils/designContentUtils.ts:1) so message-related description text no longer quotes raw customer messages; it now describes them generically as visible piped message details.
+- Verification:
+  - `npx vitest run src/lib/seo/analysisCopy.test.ts src/services/supabaseService.cacheAnalysisResult.test.ts src/utils/designContentUtils.test.ts src/app/customizing/CustomizingPostAnalysisContent.test.tsx` passed with 27 tests.
+  - Dry-run before the live write scanned `13,036` cache rows and found `21` true short-description candidates.
+  - Live run `npx tsx scripts/backfill-thin-seo-descriptions.ts --apply` updated all `21` candidate rows with `failed=0`.
+  - Post-backfill dry-run scanned `13,036` rows and returned `candidates=0`.
+  - Direct DB spot-checks for `monthly-milestone-pink-1-tier-cake-8010` and `basketball-black-1-tier-cake-dfc1` confirmed `seo_description === analysis_json.seo_description` after the update.
+  - `git diff --check` passed after the code changes in this pass.
 
 ### Plan
 
