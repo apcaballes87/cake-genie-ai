@@ -1,7 +1,7 @@
 import { Children, isValidElement, type ReactElement, type ReactNode } from 'react';
 import { render, screen } from '@testing-library/react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import RecentSearchPage, { generateMetadata } from './page';
 import { createClient } from '@/lib/supabase/server';
 import { getCakeBasePriceOptions, getRelatedProductsByKeywords } from '@/services/supabaseService';
