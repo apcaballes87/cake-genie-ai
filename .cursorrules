@@ -39,10 +39,10 @@ Follow these rules when you write code:
 - Use consts instead of functions, for example, “const toggle = () =>”. Also, define a type if possible.
 
 ## Subsystem & Maintenance Rules
-
 Before modifying UI flows, navigation logic, or global event listeners, you **MUST** review the specialized guidelines in the following directory:
 
 - [Regression Prevention and UI Stability](file:///Users/apcaballes/genieph-nextjs/.agent/rules/regression_prevention.md)
+- [Data Layer Verification](file:///Users/apcaballes/genieph-nextjs/.agent/rules/data_layer_verification.md)
 
 ## 🔄 Agent & Workflow Rules
 
