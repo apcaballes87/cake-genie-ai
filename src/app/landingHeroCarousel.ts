@@ -32,3 +32,37 @@ export function getMobileHeroCarouselVisibleProducts<T>(
         []
     );
 }
+
+export function getNextMobileHeroScrollAccumulation({
+    accumulatedDelta,
+    productCount,
+    scrollDelta,
+    threshold,
+    userCanSeeHero,
+}: {
+    accumulatedDelta: number;
+    productCount: number;
+    scrollDelta: number;
+    threshold: number;
+    userCanSeeHero: boolean;
+}): { accumulatedDelta: number; shouldAdvance: boolean } {
+    if (!userCanSeeHero || productCount <= 1 || scrollDelta <= 0) {
+        return {
+            accumulatedDelta: 0,
+            shouldAdvance: false,
+        };
+    }
+
+    const nextAccumulatedDelta = accumulatedDelta + scrollDelta;
+    if (nextAccumulatedDelta < threshold) {
+        return {
+            accumulatedDelta: nextAccumulatedDelta,
+            shouldAdvance: false,
+        };
+    }
+
+    return {
+        accumulatedDelta: 0,
+        shouldAdvance: true,
+    };
+}

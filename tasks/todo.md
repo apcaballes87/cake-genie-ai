@@ -1,5 +1,26 @@
 # Tasks
 
+## Advance Mobile Hero Carousel On Scroll
+
+### Plan
+
+- [x] Trace the existing mobile hero interaction path and identify where scroll-driven slide changes should hook in.
+- [x] Add a mobile-only, hero-in-view scroll trigger that advances the carousel to the right while preserving the existing headline animation path.
+- [x] Cover the scroll-threshold behavior with focused tests and verify with build/browser checks.
+
+### Review
+
+- Root cause: the mobile hero already had a single interaction path for arrows/swipes through `heroProductIndex`, `handleHeroNext`, and `activateHeroHeadlineVariant`, but ordinary page scroll never touched that flow. Users could scroll past the hero without seeing the carousel rotate or the headline animation react.
+- Extended [src/app/landingHeroCarousel.ts](/Users/apcaballes/genieph-nextjs/src/app/landingHeroCarousel.ts:1) with `getNextMobileHeroScrollAccumulation(...)`, a small helper that accumulates downward scroll only while the hero is visible and returns a single “advance now” signal once the threshold is reached.
+- Updated [src/app/LandingClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/LandingClient.tsx:1437) with a mobile-only window scroll listener tied to `heroMobilePreviewRef`. While the hero upload state is still `idle` and the preview section is in view, downward scroll now advances the carousel to the right using `handleHeroNext()`, which means the existing text animation path still runs through `activateHeroHeadlineVariant(...)`.
+- Added focused regression coverage in [src/app/landingHeroCarousel.test.ts](/Users/apcaballes/genieph-nextjs/src/app/landingHeroCarousel.test.ts:1) for accumulation, threshold crossing, hidden-hero reset, and upward-scroll reset.
+- Verification:
+  - `npx vitest run src/app/landingHeroCarousel.test.ts src/components/LazyImage.test.tsx` passed with 15 tests.
+  - Focused ESLint passed for `src/app/landingHeroCarousel.ts`, `src/app/landingHeroCarousel.test.ts`, `src/app/HeroProductPeekCarouselEmbla.tsx`, `src/components/LazyImage.tsx`, and `src/components/LazyImage.test.tsx`, with only the existing Browserslist data warning.
+  - `git diff --check` passed.
+  - `npm run build` passed. Static generation still logged the existing Supabase `57014` fallback-query timeout during page generation, but the build completed successfully.
+  - Follow-up in-app browser verification was attempted against a local production server on `127.0.0.1:3008`, but the browser runtime became unavailable before the scroll check completed. The feature is therefore verified by focused tests plus production build in this pass.
+
 ## Stabilize Mobile Homepage Hero Carousel Handoff
 
 ### Plan

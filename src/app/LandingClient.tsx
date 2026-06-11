@@ -25,7 +25,7 @@ import {
     type LandingHeroProduct,
 } from '@/components/landing/landingHeroContent';
 import { HeroTransitionSection } from '@/components/landing';
-import { getMobileHeroCarouselVisibleProducts } from './landingHeroCarousel';
+import { getMobileHeroCarouselVisibleProducts, getNextMobileHeroScrollAccumulation } from './landingHeroCarousel';
 import type { HeroProductPeekCarouselEmblaProps } from './HeroProductPeekCarouselEmbla';
 import {
     Search,
@@ -1351,6 +1351,9 @@ const LandingClient: React.FC<LandingClientProps> = ({
     const [isOccasionOpen, setIsOccasionOpen] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const heroMobilePreviewRef = useRef<HTMLElement>(null);
+    const heroScrollAccumulationRef = useRef(0);
+    const heroLastScrollYRef = useRef(0);
+    const heroLastAutoAdvanceAtRef = useRef(0);
     const uploadToastId = useRef<string | null>(null);
     const isMounted = React.useSyncExternalStore(subscribeToHydration, () => true, () => false);
 
@@ -1433,6 +1436,58 @@ const LandingClient: React.FC<LandingClientProps> = ({
     const handleHeroInteraction = useCallback((productIndex: number) => {
         activateHeroHeadlineVariant(productIndex);
     }, [activateHeroHeadlineVariant]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const mobileQuery = window.matchMedia('(max-width: 767px)');
+        heroLastScrollYRef.current = window.scrollY;
+        heroScrollAccumulationRef.current = 0;
+
+        const handleScroll = () => {
+            const currentScrollY = window.scrollY;
+            const scrollDelta = currentScrollY - heroLastScrollYRef.current;
+            heroLastScrollYRef.current = currentScrollY;
+
+            if (!mobileQuery.matches || heroUploadState !== 'idle') {
+                heroScrollAccumulationRef.current = 0;
+                return;
+            }
+
+            const heroMobilePreview = heroMobilePreviewRef.current;
+            if (!heroMobilePreview) {
+                heroScrollAccumulationRef.current = 0;
+                return;
+            }
+
+            const rect = heroMobilePreview.getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
+            const userCanSeeHero = rect.top < viewportHeight * 0.85 && rect.bottom > viewportHeight * 0.35;
+            const scrollThreshold = Math.max(90, Math.round(viewportHeight * 0.14));
+            const { accumulatedDelta, shouldAdvance } = getNextMobileHeroScrollAccumulation({
+                accumulatedDelta: heroScrollAccumulationRef.current,
+                productCount: heroProductCount,
+                scrollDelta,
+                threshold: scrollThreshold,
+                userCanSeeHero,
+            });
+
+            heroScrollAccumulationRef.current = accumulatedDelta;
+            if (!shouldAdvance) return;
+
+            const now = window.performance?.now?.() ?? Date.now();
+            if (now - heroLastAutoAdvanceAtRef.current < 280) return;
+
+            heroLastAutoAdvanceAtRef.current = now;
+            handleHeroNext();
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+        };
+    }, [handleHeroNext, heroProductCount, heroUploadState]);
 
     const resetHeroUploadPreview = useCallback(() => {
         setHeroUploadState('idle');
