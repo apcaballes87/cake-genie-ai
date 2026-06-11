@@ -356,7 +356,7 @@ export function generateDesignDetails(design: any, prices?: BasePriceInfo[]): st
             cakeMessages
                 .map((message: any) => message.position?.replace(/_/g, ' '))
                 .filter(Boolean),
-        )];
+        )] as string[];
         const positionText = positions.length > 0
             ? ` on the ${joinReadableList(positions)}`
             : '';
