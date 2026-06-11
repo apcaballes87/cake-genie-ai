@@ -16,7 +16,7 @@ import { mapAnalysisToState, mapProductToDefaultState } from '@/utils/customizat
 import { upgradeLegacySlug, downgradeCakeSlug } from '@/lib/utils/urlHelpers'
 import { generateDesignDetails, generateDynamicFAQ, generateRichAltText } from '@/utils/designContentUtils'
 import { parseManifest, buildSrcSet, pickFallbackSrc } from '@/lib/imageVariants/manifest'
-import { buildReviewSummary } from '@/lib/reviews'
+import { buildReviewSummary, getThemedReviewsForSlug, getSourceSubtitle, getReviewDisplayName, getReviewAvatarInitial, type ThemedReview } from '@/lib/reviews'
 import {
     buildCustomCakeAdditionalProperties,
     buildMerchantReturnPolicy,
@@ -1054,7 +1054,7 @@ function SSRCakeDetails({
  * Lives outside #ssr-content and outside Suspense so both Googlebot and users see it.
  * This avoids any cloaking concerns where crawlers see different content than users.
  */
-function SSRDesignContent({ design, prices, faqs }: { design: any; prices?: BasePriceInfo[]; faqs?: { question: string; answer: string }[] }) {
+function SSRDesignContent({ design, prices, faqs, themedReviews }: { design: any; prices?: BasePriceInfo[]; faqs?: { question: string; answer: string }[]; themedReviews?: ThemedReview[] }) {
     const designDetails = resolveRichDescription(design, prices);
     const dynamicFAQs = faqs || generateDynamicFAQ(design, prices);
     const keywords = design.keywords || 'Custom';
@@ -1115,6 +1115,73 @@ function SSRDesignContent({ design, prices, faqs }: { design: any; prices?: Base
                     </table>
                 </div>
             </section>
+
+            {/* Themed reviews section — 4-tier fallback (exact → themed → recent → empty).
+                Renders nothing when themedReviews is empty/absent. The `_source` discriminator
+                is stripped before display (JSON-LD purity rule — only `_source === 'exact'`
+                is safe to mark up). The section subtitle honestly describes the source mix
+                via getSourceSubtitle. */}
+            {themedReviews && themedReviews.length > 0 && (
+                <section
+                    data-testid="themed-reviews-section"
+                    className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6"
+                >
+                    <h2 className="text-xl font-bold text-slate-800 mb-1 text-center">
+                        Customer Reviews
+                    </h2>
+                    <p className="text-xs text-slate-500 text-center mb-4">
+                        {getSourceSubtitle(themedReviews)}
+                    </p>
+                    <div className="space-y-3">
+                        {themedReviews.map((review) => {
+                            // Strip the UI-only discriminator before rendering.
+                            // The real review object is what the user sees.
+                            const { _source, ...displayReview } = review;
+                            return (
+                                <article
+                                    key={displayReview.review_id}
+                                    className="bg-white rounded-xl shadow-sm border border-slate-200 p-4"
+                                    data-review-source={_source}
+                                >
+                                    <header className="flex items-center gap-3 mb-2">
+                                        <div
+                                            className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-200 to-purple-200 flex items-center justify-center text-sm font-semibold text-purple-700 shrink-0"
+                                            aria-hidden="true"
+                                        >
+                                            {getReviewAvatarInitial(displayReview)}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="font-semibold text-sm text-slate-800 truncate">
+                                                {getReviewDisplayName(displayReview)}
+                                            </p>
+                                            <div className="flex items-center gap-1 text-xs text-amber-500" aria-label={`${displayReview.rating} out of 5 stars`}>
+                                                {Array.from({ length: 5 }).map((_, i) => (
+                                                    <span
+                                                        key={i}
+                                                        className={i < displayReview.rating ? 'text-amber-500' : 'text-slate-200'}
+                                                    >
+                                                        ★
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </header>
+                                    {displayReview.title && (
+                                        <h3 className="text-sm font-semibold text-slate-800 mb-1">
+                                            {displayReview.title}
+                                        </h3>
+                                    )}
+                                    {displayReview.comment && (
+                                        <p className="text-sm text-slate-600 leading-relaxed">
+                                            {displayReview.comment}
+                                        </p>
+                                    )}
+                                </article>
+                            );
+                        })}
+                    </div>
+                </section>
+            )}
 
             {/* Design Details - now rendered in SSR for SEO */}
             {designDetails && (
@@ -1219,6 +1286,26 @@ export default async function RecentSearchPage({ params }: Props) {
         }
     })();
     const isSiteReviewSummaryFallback = false;
+
+    // Themed review pool — 4-tier fallback (exact → same-keyword → recent → empty).
+    // Wrapped in try/catch so a public-client failure never breaks the page.
+    // Returns ThemedReview[] with a `_source` discriminator that the UI uses
+    // for the honest source-mix subtitle, and that JSON-LD serialisation
+    // must strip before adding to Product.review (only `_source === 'exact'`
+    // is safe to mark up — see plan §12 Rule 3).
+    const themedReviews: ThemedReview[] = await (async () => {
+        if (!design?.product_id) return [];
+        try {
+            return await getThemedReviewsForSlug(
+                design.product_id,
+                design.keywords,
+                3
+            );
+        } catch (error) {
+            console.error('Error fetching themed reviews for customizing slug page:', error);
+            return [];
+        }
+    })();
 
     // Generate dynamic FAQs for this design (used for FAQPage schema + SSR content)
     const dynamicFAQs = generateDynamicFAQ(design, prices);
@@ -1340,7 +1427,7 @@ export default async function RecentSearchPage({ params }: Props) {
                         currentKeywords={design.keywords}
                         currentSlug={slug}
                         initialCaption={captionText}
-                        postEditorSlot={<SSRDesignContent design={design} prices={prices} faqs={dynamicFAQs} />}
+                        postEditorSlot={<SSRDesignContent design={design} prices={prices} faqs={dynamicFAQs} themedReviews={themedReviews} />}
                         hideAiChat={false}
                         enableMobileHeroPan={true}
                         reviewSummary={reviewSummary}
