@@ -29,7 +29,11 @@ vi.mock('@/components/LazyImage', () => ({
 }));
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }));
 // The themed-reviews section in the page reads from the result of
-// `getThemedReviewsForSlug(design.product_id, design.keywords, 3)`.
+// `getThemedReviewsForSlug(design.original_image_url, design.keywords, 3)`.
+// Tier-1 (exact) matches are reviews whose `original_image_url` equals
+// the design's image URL — that's how a review is "about" a design.
+// (cakegenie_analysis_cache has no product_id column; the join key is
+// the image URL.)
 // To test the section rendering without mocking the full Supabase
 // chain, we mock the helper directly. Tests that exercise the section
 // call `setThemedReviews(rows)` to inject results; default is empty.
@@ -66,7 +70,6 @@ describe('RecentSearchPage', () => {
     setThemedReviews([]); // reset themed-reviews mock between tests
     const design = {
       slug: 'pink-minimalist-light-pink-bento-cake-f707',
-      product_id: 'product-current',
       keywords: 'Pink Minimalist Bento Cake',
       seo_title: 'Pink Minimalist Bento Cake | Genie.ph',
       seo_description: 'Soft pink minimalist bento cake design.',
