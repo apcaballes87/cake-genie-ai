@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import CustomizingClient from '@/app/customizing/CustomizingClient';
 import { CustomizingPageSkeleton } from '@/components/LoadingSkeletons';
-import { getMerchantBySlug, getMerchantProductBySlug, getCakeBasePriceOptions, getAnalysisByExactHash, getImageDimensionsByHash, getProductReviewStats } from '@/services/supabaseService';
+import { getMerchantBySlug, getMerchantProductBySlug, getCakeBasePriceOptions, getAnalysisByExactHash, getImageDimensionsByHash, getProductReviewStats, getCollectionForDesignKeyword } from '@/services/supabaseService';
 import { BasePriceInfo, CakeType, ProductPageProps, CakeThickness } from '@/types';
 import { ProductSchema } from '@/components/SEOSchemas';
 import { CustomizationProvider } from '@/contexts/CustomizationContext';
@@ -16,6 +16,35 @@ import {
     getMerchantListingActivePrice,
     getMerchantListingNote,
 } from '@/lib/commerce/machineReadable';
+
+async function resolveThemeCollectionForProduct(product: {
+    category?: string | null;
+    tags?: string[] | null;
+    title: string;
+}) {
+    const probes = [
+        product.category,
+        ...(product.tags || []),
+        product.title,
+    ]
+        .map((value) => value?.trim())
+        .filter((value): value is string => Boolean(value));
+
+    const seen = new Set<string>();
+
+    for (const probe of probes) {
+        const normalized = probe.toLowerCase();
+        if (seen.has(normalized)) continue;
+        seen.add(normalized);
+
+        const { data } = await getCollectionForDesignKeyword(probe);
+        if (data) {
+            return data;
+        }
+    }
+
+    return null;
+}
 
 // Generate dynamic metadata for SEO and social sharing
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
@@ -134,6 +163,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
     const { data: productReviewStats } = await getProductReviewStats(product.product_id);
     const startingPriceDisplay = startingPrice !== null ? `₱${startingPrice.toLocaleString()}` : 'Contact us';
+    const themeCollection = await resolveThemeCollectionForProduct(product);
 
     const faqs = [
         {
@@ -226,6 +256,23 @@ export default async function ProductPage({ params }: ProductPageProps) {
                             </Link>
                         </div>
                     </div>
+
+                    {themeCollection && (
+                        <div className="rounded-xl border border-pink-200 bg-pink-50 p-5 my-6">
+                            <h2 className="text-lg font-semibold text-slate-800 mb-2">Browse the full theme collection</h2>
+                            <p className="text-sm text-slate-700">
+                                Looking for more options in the same style? Explore the published {themeCollection.name} collection to compare related cake designs before you customize or order.
+                            </p>
+                            <div className="mt-3">
+                                <Link
+                                    href={`/collections/${themeCollection.slug}`}
+                                    className="inline-flex items-center rounded-full border border-pink-300 bg-white px-4 py-2 text-sm font-semibold text-pink-700 hover:bg-pink-100"
+                                >
+                                    See all {themeCollection.item_count} {themeCollection.name} designs
+                                </Link>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="bg-slate-50 rounded-xl p-6 border border-slate-200 my-8">
                         <h2 className="text-xl font-semibold text-slate-800 mb-4">Product Details</h2>

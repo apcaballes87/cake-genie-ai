@@ -53,4 +53,22 @@ describe('customizing category metadata', () => {
     expect(metadata.openGraph?.title).toBe('Birthday Cake Designs in Cebu | Genie.ph');
     expect(JSON.stringify(metadata.openGraph?.images)).not.toMatch(/cakes cake|cakes cakes/i);
   });
+
+  it('keeps the route crawlable for links but noindexed for search results', async () => {
+    const { generateMetadata } = await import('./page');
+
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ keyword: 'birthday-cakes' }),
+    });
+
+    expect(metadata.alternates?.canonical).toBe('https://genie.ph/customizing/category/birthday-cakes');
+    expect(metadata.robots).toMatchObject({
+      index: false,
+      follow: true,
+      googleBot: {
+        index: false,
+        follow: true,
+      },
+    });
+  });
 });

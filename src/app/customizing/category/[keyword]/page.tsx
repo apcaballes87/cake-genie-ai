@@ -197,6 +197,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         alternates: {
             canonical: `https://genie.ph/customizing/category/${keyword}`,
         },
+        robots: {
+            index: false,
+            follow: true,
+            googleBot: {
+                index: false,
+                follow: true,
+                'max-video-preview': -1,
+                'max-image-preview': 'large',
+                'max-snippet': -1,
+            },
+        },
     };
 }
 

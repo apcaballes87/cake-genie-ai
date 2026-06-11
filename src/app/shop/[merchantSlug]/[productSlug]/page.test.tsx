@@ -6,6 +6,7 @@ import ProductPage from './page';
 import {
   getAnalysisByExactHash,
   getCakeBasePriceOptions,
+  getCollectionForDesignKeyword,
   getImageDimensionsByHash,
   getMerchantBySlug,
   getMerchantProductBySlug,
@@ -28,6 +29,7 @@ vi.mock('@/services/supabaseService', () => ({
   getCakeBasePriceOptions: vi.fn(),
   getAnalysisByExactHash: vi.fn(),
   getImageDimensionsByHash: vi.fn(),
+  getCollectionForDesignKeyword: vi.fn(),
   getProductReviewStats: vi.fn(),
 }));
 
@@ -53,6 +55,7 @@ describe('ProductPage', () => {
     vi.mocked(getAnalysisByExactHash).mockResolvedValue({ cakeInfo: { type: '1 Tier', thickness: '3 in' } } as never);
     vi.mocked(getImageDimensionsByHash).mockResolvedValue({ image_width: 1200, image_height: 1200 } as never);
     vi.mocked(getCakeBasePriceOptions).mockResolvedValue([{ price: 1299, size: '6 in' }] as never);
+    vi.mocked(getCollectionForDesignKeyword).mockResolvedValue({ data: null, error: null } as never);
     vi.mocked(getProductReviewStats).mockResolvedValue({ data: { total: 0, averageRating: 0 }, error: null } as never);
   });
 
@@ -90,5 +93,37 @@ describe('ProductPage', () => {
 
     expect(staticMarkup).toContain('Starts at ₱1,299');
     expect(staticMarkup).not.toContain('₱undefined');
+  });
+
+  it('renders a link back to the matching collection hub when one exists', async () => {
+    vi.mocked(getMerchantProductBySlug).mockResolvedValueOnce({
+      data: {
+        product_id: 'product-123',
+        title: 'Anniversary Bento Cake',
+        slug: 'anniversary-bento-cake',
+        image_url: 'https://example.com/anniversary-bento-cake.webp',
+        alt_text: 'Anniversary bento cake with ribbon details',
+        custom_price: 1299,
+        cake_type: '1 Tier',
+        p_hash: '000038d7bfffffb8',
+        category: 'Bento Cakes',
+        tags: ['anniversary', 'minimalist'],
+      },
+      error: null,
+    } as never);
+    vi.mocked(getCollectionForDesignKeyword).mockResolvedValueOnce({
+      data: {
+        slug: 'bento-cake',
+        name: 'Bento Cakes',
+        item_count: 24,
+      },
+      error: null,
+    } as never);
+
+    const page = await ProductPage({ params: Promise.resolve({ merchantSlug: 'sweet-delights', productSlug: 'anniversary-bento-cake' }) });
+    render(page);
+
+    expect(getCollectionForDesignKeyword).toHaveBeenCalledWith('Bento Cakes');
+    expect(screen.getByRole('link', { name: 'See all 24 Bento Cakes designs' })).toHaveAttribute('href', '/collections/bento-cake');
   });
 });

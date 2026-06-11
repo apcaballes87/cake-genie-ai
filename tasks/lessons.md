@@ -1,5 +1,7 @@
 # Lessons
 
+- When retiring an older SEO surface in Genie.ph, do not stop at `robots` or sitemap changes alone. Also check first-party discovery surfaces like `/customizing` theme chips and JSON-LD item lists so the deprecated hub is not still being promoted internally.
+
 - Cupcake-only uploads are accepted cake designs in the current analyzer. Do not explain cupcake analysis problems through a `cupcakes_only` rejection path; inspect the active schema/prompt contract for missing accepted-output fields instead.
 - For Pinterest feeds and catalog exports, do not trust raw design slugs as reader-facing titles. Strip trailing short hash-like slug suffixes such as `30e2` so Pinterest sees clean product names instead of internal uniqueness tokens.
 - When explaining pipeline timing in the customizer upload flow, distinguish exactly between "starts at the same time as fast `/api/ai/analyze`" and "starts immediately after fast analysis" or "runs in parallel with enrichment." In this repo, those are materially different behaviors and the user will care about the latency distinction.

@@ -1,5 +1,67 @@
 # Tasks
 
+## Demote Legacy Category Hubs And Strengthen Collection Canonicals
+
+### Plan
+
+- [x] Mark `/customizing/category/*` as `noindex,follow` so it stays usable without competing with `/collections/*`.
+- [x] Remove `/customizing/category/*` entries from the XML sitemap and stop promoting them from `/customizing` theme discovery.
+- [x] Add shop product backlinks into matching `/collections/*` hubs and verify with focused tests.
+- [x] Document the still-manual GSC query-language audit loop as a follow-up instead of inventing a fake data source.
+
+### Review
+
+- Updated [src/app/customizing/category/[keyword]/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/category/[keyword]/page.tsx:149) so legacy customizer category hubs now return `robots: noindex,follow` while remaining user-accessible.
+- Removed hardcoded `/customizing/category/*` routes from [src/app/sitemap.ts](/Users/apcaballes/genieph-nextjs/src/app/sitemap.ts:156), leaving `/collections/*` as the only promoted category-hub sitemap surface.
+- Repointed the `/customizing` page's theme chips, editorial links, and ItemList JSON-LD source from `/customizing/category/*` to `/collections/*` in [src/app/customizing/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/page.tsx:25), so first-party discovery now promotes the canonical collection hubs instead of the legacy category layer.
+- Added `resolveThemeCollectionForProduct(...)` plus a visible "Browse the full theme collection" CTA in [src/app/shop/[merchantSlug]/[productSlug]/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/shop/[merchantSlug]/[productSlug]/page.tsx:15) so shop product detail pages feed authority and users back into matching collection hubs.
+- Left the query-language audit loop as a manual follow-up. The repo has no live GSC data source wired in, so this implementation does not fake demand validation; it records that collection `name` / `slug` / tags still need to be checked against real impression and query data outside the repo.
+- Verification:
+  - `npx vitest run 'src/app/customizing/category/[keyword]/page.test.tsx' src/app/sitemap.test.ts 'src/app/shop/[merchantSlug]/[productSlug]/page.test.tsx' src/app/customizing/page.test.tsx` passed with 9 tests.
+  - Focused ESLint passed with only the stale Browserslist warning.
+  - `git diff --check` passed.
+  - `npm run build` passed.
+  - During static generation, a few existing Supabase `57014` statement-timeout warnings appeared from `getDesignsByKeyword` fallback queries, but the build completed successfully and emitted the updated routes.
+
+## Capture Customer Chat Page Context
+
+### Plan
+
+- [x] Trace the customer chat modal request flow and confirm the best place to persist page context.
+- [x] Add durable page-context columns to `chat_conversations` and thread page URL/title through the chat modal API.
+- [x] Add focused `/api/chat` regression coverage plus verification notes, then document the final review here.
+
+### Review
+
+- Root cause: the customer chat modal stored messages but never sent page context, and `chat_conversations` had no durable field for the last page the customer was viewing.
+- Added `supabase/migrations/20260611142000_add_chat_conversation_page_context.sql` to store `last_customer_page_url`, `last_customer_page_title`, and `last_customer_page_seen_at` on each conversation.
+- Applied the same schema change to Supabase project `cqmhanqnfybyxezhobkx` as migration `add_chat_conversation_page_context`, so the live database is ready for the new fields.
+- Updated [src/components/ChatModal.tsx](/Users/apcaballes/genieph-nextjs/src/components/ChatModal.tsx:54) to capture `window.location.href` plus `document.title` and send that `pageContext` when starting a conversation, sending a text message, and sending an image message.
+- Updated [src/app/api/chat/route.ts](/Users/apcaballes/genieph-nextjs/src/app/api/chat/route.ts:1) to normalize that payload and persist it on new conversations and on later customer messages so support always sees the latest page context tied to the thread.
+- Added focused regression coverage in [src/app/api/chat/route.test.ts](/Users/apcaballes/genieph-nextjs/src/app/api/chat/route.test.ts:1) for both the new-conversation write path and the customer-message refresh path.
+- Verification:
+  - `npx vitest run src/app/api/chat/route.test.ts` passed with 2 tests.
+  - `npx eslint src/app/api/chat/route.ts src/app/api/chat/route.test.ts` passed. `npx eslint src/components/ChatModal.tsx --quiet` produced no errors.
+  - `git diff --check` passed.
+  - Supabase MCP `apply_migration` succeeded for project `cqmhanqnfybyxezhobkx`, and `list_migrations` now includes `add_chat_conversation_page_context`.
+
+## Inspect Parallel Studio Background Edit Prompt
+
+### Plan
+
+- [x] Trace the fresh-upload path that triggers the parallel studio background edit.
+- [x] Confirm the exact server route/helper that sends the background-edit request to Gemini.
+- [x] Extract the current prompt and system instruction used for the studio background edit.
+- [x] Summarize exactly where to change the prompt if the user wants new wording.
+
+### Review
+
+- The fresh-upload customizer path starts the background studio edit in parallel from [src/contexts/ImageContext.tsx](/Users/apcaballes/genieph-nextjs/src/contexts/ImageContext.tsx:603) by calling `triggerStudioEditFromUpload(pHash, compressedImageData)` before the fast analysis completes.
+- That helper lives in [src/services/geminiService.ts](/Users/apcaballes/genieph-nextjs/src/services/geminiService.ts:145) and posts to `/api/ai/trigger-studio-edit` with the pHash plus the inline original image bytes.
+- The server route [src/app/api/ai/trigger-studio-edit/route.ts](/Users/apcaballes/genieph-nextjs/src/app/api/ai/trigger-studio-edit/route.ts:1) defers the work with `after(...)` and calls `runImageStudioJob(...)`.
+- The real Gemini image-edit call happens in [src/lib/admin/imageStudioJob.ts](/Users/apcaballes/genieph-nextjs/src/lib/admin/imageStudioJob.ts:406), which builds the prompt with `buildImageStudioPrompt()` and the system instruction with `buildImageStudioSystemInstruction()`.
+- The prompt and system instruction source of truth are both in [src/lib/admin/imageStudio.ts](/Users/apcaballes/genieph-nextjs/src/lib/admin/imageStudio.ts:50). Changing that file changes both the inline job and the batch studio path, because `src/lib/admin/imageStudioBatch.ts` reuses the same builders.
+
 ## Prefer Studio Images In Google Shopping Feed
 
 ### Audit

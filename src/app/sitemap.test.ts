@@ -91,6 +91,7 @@ describe('sitemap collections routes', () => {
         }),
       ]),
     );
+    expect(entries.some((entry) => entry.url.includes('/customizing/category/'))).toBe(false);
   });
 
   it('derives dynamic sitemap chunk ids from lightweight chunk hints', async () => {

@@ -202,24 +202,6 @@ export default async function sitemap({ id }: { id: SitemapParam }): Promise<Met
             priority: 0.8,
         }));
 
-        const customizingCategoryRoutes = [
-            '/customizing/category/birthday-cakes',
-            '/customizing/category/kuromi-cake',
-            '/customizing/category/wedding-cake',
-            '/customizing/category/graduation-cake',
-            '/customizing/category/minimalist-cake',
-            '/customizing/category/bento-cake',
-            '/customizing/category/character-cake',
-            '/customizing/category/debut-cake',
-            '/customizing/category/baptism-cake',
-            '/customizing/category/anniversary-cake',
-        ].map((route) => ({
-            url: `${baseUrl}${route}`,
-            lastModified: new Date(),
-            changeFrequency: 'weekly' as const,
-            priority: 0.85,
-        }));
-
         const { data: collections, error: collectionsError } = await supabase
             .from('cakegenie_collections')
             .select('slug, created_at, sample_image, item_count, publication_status, is_indexable')
@@ -242,7 +224,7 @@ export default async function sitemap({ id }: { id: SitemapParam }): Promise<Met
                 images: sanitizeUrl(collection.sample_image) ? [sanitizeUrl(collection.sample_image)] : [],
             }))
 
-        return [...coreRoutes, ...blogCategoryRoutes, ...customizingCategoryRoutes, ...collectionRoutes];
+        return [...coreRoutes, ...blogCategoryRoutes, ...collectionRoutes];
     }
 
     // Chunk 1: Bakeries (Merchants)

@@ -23,16 +23,16 @@ const FEATURED_DESIGN_LIMIT = 12;
 
 // Curated theme chips — also used as the ItemList JSON-LD source.
 const THEMES: { href: string; label: string; name: string }[] = [
-    { href: '/customizing/category/birthday-cakes', label: 'Birthday Cake Designs', name: 'Birthday Cakes' },
-    { href: '/customizing/category/kuromi-cake', label: 'Kuromi Cake Designs', name: 'Kuromi Cakes' },
-    { href: '/customizing/category/wedding-cake', label: 'Wedding Cake Designs', name: 'Wedding Cakes' },
-    { href: '/customizing/category/graduation-cake', label: 'Graduation Cake Designs', name: 'Graduation Cakes' },
-    { href: '/customizing/category/minimalist-cake', label: 'Minimalist Cake Designs', name: 'Minimalist Cakes' },
-    { href: '/customizing/category/bento-cake', label: 'Bento Cake Designs', name: 'Bento Cakes' },
-    { href: '/customizing/category/character-cake', label: 'Character Cake Designs', name: 'Character Cakes' },
-    { href: '/customizing/category/debut-cake', label: 'Debut Cake Designs', name: 'Debut Cakes' },
-    { href: '/customizing/category/baptism-cake', label: 'Baptism Cake Designs', name: 'Baptism Cakes' },
-    { href: '/customizing/category/anniversary-cake', label: 'Anniversary Cake Designs', name: 'Anniversary Cakes' },
+    { href: '/collections/birthday-cakes', label: 'Birthday Cake Designs', name: 'Birthday Cakes' },
+    { href: '/collections/kuromi-cake', label: 'Kuromi Cake Designs', name: 'Kuromi Cakes' },
+    { href: '/collections/wedding-cake', label: 'Wedding Cake Designs', name: 'Wedding Cakes' },
+    { href: '/collections/graduation-cake', label: 'Graduation Cake Designs', name: 'Graduation Cakes' },
+    { href: '/collections/minimalist-cake', label: 'Minimalist Cake Designs', name: 'Minimalist Cakes' },
+    { href: '/collections/bento-cake', label: 'Bento Cake Designs', name: 'Bento Cakes' },
+    { href: '/collections/character-cake', label: 'Character Cake Designs', name: 'Character Cakes' },
+    { href: '/collections/debut-cake', label: 'Debut Cake Designs', name: 'Debut Cakes' },
+    { href: '/collections/baptism-cake', label: 'Baptism Cake Designs', name: 'Baptism Cakes' },
+    { href: '/collections/anniversary-cake', label: 'Anniversary Cake Designs', name: 'Anniversary Cakes' },
 ];
 
 // Stringify with the same XSS-safe escape used elsewhere in this codebase.
@@ -350,23 +350,23 @@ export default async function CustomizingPage(props: CustomizingPageProps) {
                         </p>
                         <p>
                             Shoppers come to this page to plan{' '}
-                            <Link href="/customizing/category/birthday-cakes" className="text-purple-600 underline underline-offset-2 hover:text-purple-800">
+                            <Link href="/collections/birthday-cakes" className="text-purple-600 underline underline-offset-2 hover:text-purple-800">
                                 birthday cakes
                             </Link>
                             ,{' '}
-                            <Link href="/customizing/category/wedding-cake" className="text-purple-600 underline underline-offset-2 hover:text-purple-800">
+                            <Link href="/collections/wedding-cake" className="text-purple-600 underline underline-offset-2 hover:text-purple-800">
                                 wedding cakes
                             </Link>
                             ,{' '}
-                            <Link href="/customizing/category/debut-cake" className="text-purple-600 underline underline-offset-2 hover:text-purple-800">
+                            <Link href="/collections/debut-cake" className="text-purple-600 underline underline-offset-2 hover:text-purple-800">
                                 debut cakes
                             </Link>
                             ,{' '}
-                            <Link href="/customizing/category/graduation-cake" className="text-purple-600 underline underline-offset-2 hover:text-purple-800">
+                            <Link href="/collections/graduation-cake" className="text-purple-600 underline underline-offset-2 hover:text-purple-800">
                                 graduation cakes
                             </Link>
                             , and{' '}
-                            <Link href="/customizing/category/character-cake" className="text-purple-600 underline underline-offset-2 hover:text-purple-800">
+                            <Link href="/collections/character-cake" className="text-purple-600 underline underline-offset-2 hover:text-purple-800">
                                 character cakes
                             </Link>{' '}
                             for last-minute celebrations. Genie partners with bakeries across Cebu City,
