@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import SearchingClient from './SearchingClient';
 import { SearchPageSkeleton } from '@/components/LoadingSkeletons';
 import { buildNoIndexPageMetadata } from '@/lib/utils/metadata';
+import { searchProductsFTSCount } from '@/services/supabaseService';
 
 type Props = {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>
@@ -15,10 +16,16 @@ export async function generateMetadata(
     const q = resolvedParams.q
     const query = typeof q === 'string' ? q : ''
 
+    let countText = '';
+    if (query) {
+        const count = await searchProductsFTSCount(query);
+        countText = `${count} `;
+    }
+
     return buildNoIndexPageMetadata({
-        title: query ? `Results for "${query}"` : 'Search Cake Designs',
+        title: query ? `${countText}Cake designs for "${query}"` : 'Search Cake Designs',
         description: query
-            ? `Browse custom cake designs matching "${query}". Order from local bakeries in Cebu.`
+            ? `Browse ${countText.toLowerCase()}custom cake designs matching "${query}". Order from local bakeries in Cebu.`
             : 'Search for cake designs to customize. Find the perfect cake for any occasion.',
         follow: true,
     })

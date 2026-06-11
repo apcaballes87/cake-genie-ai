@@ -1217,6 +1217,27 @@ function SSRDesignContent({ design, prices, faqs, themedReviews }: { design: any
                                             {displayReview.comment}
                                         </p>
                                     )}
+                                    {/* Themed and recent reviews are about OTHER products. Surface
+                                        a link to the original cake so the user can verify context
+                                        and (if they like what they see) customise it. Exact-tier
+                                        reviews are already about this page's product, so no link. */}
+                                    {_source !== 'exact' && (() => {
+                                        const originalSlug =
+                                            (displayReview as unknown as { cakegenie_analysis_cache?: { slug?: string } })
+                                                .cakegenie_analysis_cache?.slug;
+                                        if (!originalSlug || originalSlug === design.slug) return null;
+                                        return (
+                                            <p className="text-xs text-slate-500 mt-2">
+                                                <a
+                                                    href={`/customizing/${originalSlug}`}
+                                                    className="text-purple-600 hover:text-purple-800 hover:underline transition-colors"
+                                                    data-testid="view-original-cake-link"
+                                                >
+                                                    View original cake →
+                                                </a>
+                                            </p>
+                                        );
+                                    })()}
                                 </article>
                             );
                         })}

@@ -11,11 +11,42 @@ let capturedInitialData: unknown;
 vi.mock('next/navigation', () => ({ notFound: vi.fn(), permanentRedirect: vi.fn() }));
 vi.mock('next/link', () => ({ default: ({ href, children }: { href: string; children: ReactNode }) => <a href={href}>{children}</a> }));
 vi.mock('next/image', () => ({ default: (props: Record<string, unknown>) => <img {...props} /> }));
-vi.mock('../CustomizingClient', () => ({ default: () => <div data-testid="customizing-client" /> }));
+// Mock CustomizingClient but still render its postEditorSlot prop —
+// that's where the themed-reviews section lives (via SSRDesignContent).
+// Without this, the test couldn't see the Customer Reviews section.
+vi.mock('../CustomizingClient', () => ({
+  default: ({ postEditorSlot }: { postEditorSlot?: ReactNode }) => (
+    <>
+      <div data-testid="customizing-client" />
+      {postEditorSlot}
+    </>
+  ),
+}));
 vi.mock('@/components/LoadingSpinner', () => ({ LoadingSpinner: () => <div data-testid="loading-spinner" /> }));
 vi.mock('@/components/DesignAboutSection', () => ({ DesignAboutSection: () => <div data-testid="design-about-section" /> }));
 vi.mock('@/components/LazyImage', () => ({
   default: ({ alt, src }: { alt: string; src: string }) => <img data-testid="lazy-image" alt={alt} src={src} />,
+}));
+vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }));
+// The themed-reviews section in the page reads from the result of
+// `getThemedReviewsForSlug(design.product_id, design.keywords, 3)`.
+// To test the section rendering without mocking the full Supabase
+// chain, we mock the helper directly. Tests that exercise the section
+// call `setThemedReviews(rows)` to inject results; default is empty.
+const themedReviewsState = vi.hoisted(() => ({ rows: [] as unknown[] }));
+const setThemedReviews = (rows: unknown[]) => {
+  themedReviewsState.rows = rows;
+};
+vi.mock('@/lib/reviews', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/reviews')>('@/lib/reviews');
+  return {
+    ...actual,
+    getThemedReviewsForSlug: vi.fn(async () => themedReviewsState.rows),
+  };
+});
+vi.mock('@/services/supabaseService', () => ({
+  getCakeBasePriceOptions: vi.fn(),
+  getRelatedProductsByKeywords: vi.fn(),
 }));
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }));
 vi.mock('@/services/supabaseService', () => ({
@@ -32,8 +63,10 @@ vi.mock('@/contexts/CustomizationContext', () => ({
 describe('RecentSearchPage', () => {
   beforeEach(() => {
     capturedInitialData = undefined;
+    setThemedReviews([]); // reset themed-reviews mock between tests
     const design = {
       slug: 'pink-minimalist-light-pink-bento-cake-f707',
+      product_id: 'product-current',
       keywords: 'Pink Minimalist Bento Cake',
       seo_title: 'Pink Minimalist Bento Cake | Genie.ph',
       seo_description: 'Soft pink minimalist bento cake design.',
@@ -138,6 +171,96 @@ describe('RecentSearchPage', () => {
     expect(consoleErrorSpy).toHaveBeenCalledTimes(2);
 
     consoleErrorSpy.mockRestore();
+  });
+
+  describe('Customer Reviews section (themed-pool UI)', () => {
+    // Build a ThemedReview with the given source and original slug.
+    // We keep the shape minimal — the section only reads review_id,
+    // rating, title, comment, the joined slug, and _source.
+    const mkThemedReview = (
+      reviewId: string,
+      source: 'exact' | 'themed' | 'recent',
+      originalSlug: string | null
+    ) => ({
+      review_id: reviewId,
+      product_id: 'product-current',
+      rating: 5,
+      title: `Title for ${reviewId}`,
+      comment: `Comment for ${reviewId}`,
+      reviewer_name: 'Anon',
+      is_verified: true,
+      is_approved: true,
+      is_visible: true,
+      is_published: true,
+      original_image_url: null,
+      finished_image_url: null,
+      merchant_response: null,
+      merchant_response_at: null,
+      created_at: '2026-05-01T00:00:00Z',
+      updated_at: '2026-05-01T00:00:00Z',
+      merchant: null,
+      user: { first_name: 'A', last_name: 'B' },
+      order_item: null,
+      cakegenie_analysis_cache: originalSlug ? { slug: originalSlug, keywords: 'pokemon' } : null,
+      _source: source,
+    });
+
+    afterEach(() => {
+      setThemedReviews([]); // reset between tests
+    });
+
+    it('renders a "View original cake" link on tier-2 (themed) review cards', async () => {
+      setThemedReviews([mkThemedReview('themed-1', 'themed', 'pikachu-original-cake')]);
+
+      const page = await RecentSearchPage({ params: Promise.resolve({ slug: 'charizard-cake' }) });
+      render(page);
+
+      const link = screen.getByTestId('view-original-cake-link');
+      expect(link).toBeInTheDocument();
+      expect(link.closest('a')).toHaveAttribute('href', '/customizing/pikachu-original-cake');
+    });
+
+    it('renders a "View original cake" link on tier-3 (recent) review cards', async () => {
+      setThemedReviews([mkThemedReview('recent-1', 'recent', 'recent-cake-design')]);
+
+      const page = await RecentSearchPage({ params: Promise.resolve({ slug: 'current-cake' }) });
+      render(page);
+
+      const link = screen.getByTestId('view-original-cake-link');
+      expect(link.closest('a')).toHaveAttribute('href', '/customizing/recent-cake-design');
+    });
+
+    it('does NOT render a "View original cake" link for tier-1 (exact) review cards', async () => {
+      setThemedReviews([mkThemedReview('exact-1', 'exact', 'this-cake')]);
+
+      const page = await RecentSearchPage({ params: Promise.resolve({ slug: 'this-cake' }) });
+      render(page);
+
+      // Section still renders (it has an exact review), but exact reviews
+      // are *already* about the current product, so no link is needed.
+      expect(screen.queryByTestId('view-original-cake-link')).not.toBeInTheDocument();
+    });
+
+    it('does NOT render a "View original cake" link when no reviews are returned', async () => {
+      setThemedReviews([]);
+
+      const page = await RecentSearchPage({ params: Promise.resolve({ slug: 'any-cake' }) });
+      render(page);
+
+      expect(screen.queryByTestId('view-original-cake-link')).not.toBeInTheDocument();
+    });
+
+    it('omits the link when the themed review has no original slug (defensive)', async () => {
+      // cakegenie_analysis_cache is null — this shouldn't happen in
+      // production (the join is part of the select), but the UI
+      // shouldn't crash if the data is malformed.
+      setThemedReviews([mkThemedReview('orphan-1', 'themed', null)]);
+
+      const page = await RecentSearchPage({ params: Promise.resolve({ slug: 'current-cake' }) });
+      render(page);
+
+      expect(screen.queryByTestId('view-original-cake-link')).not.toBeInTheDocument();
+    });
   });
 
   // TODO(genie-platform): the related-designs data flow is no longer wired

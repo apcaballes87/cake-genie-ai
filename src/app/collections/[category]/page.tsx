@@ -202,7 +202,7 @@ export async function generateMetadata(
             canonical: `https://genie.ph/collections/${canonicalCategory}`,
         },
         openGraph: {
-            title: collectionHeading,
+            title: buildCollectionMetaTitle(title),
             description,
             url: `https://genie.ph/collections/${canonicalCategory}`,
             type: 'website',
@@ -212,7 +212,7 @@ export async function generateMetadata(
                 images: [{
                     url: ogImage,
                     width: 1200,
-                    height: 1200,
+                    height: 630,
                     alt: `${collectionHeading} on Genie.ph`,
                 }],
             } : {}),
@@ -225,7 +225,7 @@ export async function generateMetadata(
                 images: [{
                     url: ogImage,
                     width: 1200,
-                    height: 1200,
+                    height: 630,
                     alt: `${collectionHeading} on Genie.ph`,
                 }],
             } : {}),
