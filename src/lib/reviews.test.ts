@@ -266,7 +266,7 @@ describe('getThemedReviewsForSlug', () => {
     const chain = makeChain({ data: exactRows, error: null });
     mockSupabase.from.mockReturnValue(chain);
 
-    const result = await getThemedReviewsForSlug('prod-123', 'pokemon', 3);
+    const result = await getThemedReviewsForSlug('https://example.com/design.webp', 'pokemon', 3);
 
     expect(result).toHaveLength(3);
     expect(result.map((r) => r._source)).toEqual(['exact', 'exact', 'exact']);
@@ -277,7 +277,7 @@ describe('getThemedReviewsForSlug', () => {
     expect(chain.eq).toHaveBeenCalledWith('is_approved', true);
     expect(chain.eq).toHaveBeenCalledWith('is_published', true);
     // Exact match uses the current design's image URL
-    expect(chain.eq).toHaveBeenCalledWith('original_image_url', 'prod-123');
+    expect(chain.eq).toHaveBeenCalledWith('original_image_url', 'https://example.com/design.webp');
     // Tier 1 filled the limit — no themed query should be issued
     expect(chain.ilike).not.toHaveBeenCalled();
   });
@@ -296,7 +296,7 @@ describe('getThemedReviewsForSlug', () => {
       return makeChain({ data: tier2Rows, error: null });          // tier 2
     });
 
-    const result = await getThemedReviewsForSlug('prod-123', 'pokemon', 3);
+    const result = await getThemedReviewsForSlug('https://example.com/design.webp', 'pokemon', 3);
 
     expect(result.map((r) => r._source)).toEqual(['themed', 'themed', 'themed']);
     expect(result.map((r) => r.review_id)).toEqual(['t1', 't2', 't3']);
@@ -317,7 +317,7 @@ describe('getThemedReviewsForSlug', () => {
       return makeChain({ data: [mkRaw({ review_id: 'rc1' })], error: null }); // tier 3
     });
 
-    const result = await getThemedReviewsForSlug('prod-123', 'cake', 3);
+    const result = await getThemedReviewsForSlug('https://example.com/design.webp', 'cake', 3);
 
     expect(result.map((r) => r._source)).toEqual(['recent']);
     expect(tier1.ilike).not.toHaveBeenCalled();
@@ -333,7 +333,7 @@ describe('getThemedReviewsForSlug', () => {
 
     for (const kw of [null, undefined, '', '   ']) {
       call = 0;
-      const result = await getThemedReviewsForSlug('prod-123', kw as any, 3);
+      const result = await getThemedReviewsForSlug('https://example.com/design.webp', kw as any, 3);
       expect(result.map((r) => r._source)).toEqual(['recent']);
     }
   });
@@ -350,7 +350,7 @@ describe('getThemedReviewsForSlug', () => {
       });
     });
 
-    const result = await getThemedReviewsForSlug('prod-123', 'pokemon', 3);
+    const result = await getThemedReviewsForSlug('https://example.com/design.webp', 'pokemon', 3);
 
     expect(result.map((r) => r._source)).toEqual(['exact', 'themed', 'recent']);
     expect(result.map((r) => r.review_id)).toEqual(['e1', 't1', 'rc1']);
@@ -365,7 +365,7 @@ describe('getThemedReviewsForSlug', () => {
       return makeChain({ data: [shared, mkRaw({ review_id: 't2' })], error: null });            // tier 2
     });
 
-    const result = await getThemedReviewsForSlug('prod-123', 'pokemon', 3);
+    const result = await getThemedReviewsForSlug('https://example.com/design.webp', 'pokemon', 3);
 
     // shared should appear once as 'exact'; t2 should fill in as 'themed'
     expect(result.map((r) => r.review_id)).toEqual(['shared', 't2']);
@@ -375,7 +375,7 @@ describe('getThemedReviewsForSlug', () => {
   it('returns an empty array when no reviews exist anywhere (all tiers empty)', async () => {
     mockSupabase.from.mockReturnValue(makeChain({ data: [], error: null }));
 
-    const result = await getThemedReviewsForSlug('prod-123', 'pokemon', 3);
+    const result = await getThemedReviewsForSlug('https://example.com/design.webp', 'pokemon', 3);
 
     expect(result).toEqual([]);
   });
@@ -383,7 +383,7 @@ describe('getThemedReviewsForSlug', () => {
   it('propagates supabase errors from the tier-1 query', async () => {
     mockSupabase.from.mockReturnValue(makeChain({ data: null, error: { message: 'boom' } }));
 
-    await expect(getThemedReviewsForSlug('prod-123', 'pokemon', 3))
+    await expect(getThemedReviewsForSlug('https://example.com/design.webp', 'pokemon', 3))
       .rejects.toEqual({ message: 'boom' });
   });
 
@@ -397,7 +397,7 @@ describe('getThemedReviewsForSlug', () => {
     ];
     mockSupabase.from.mockReturnValue(makeChain({ data: fiveRows, error: null }));
 
-    const result = await getThemedReviewsForSlug('prod-123', 'pokemon', 2);
+    const result = await getThemedReviewsForSlug('https://example.com/design.webp', 'pokemon', 2);
 
     expect(result).toHaveLength(2);
     expect(result.map((r) => r.review_id)).toEqual(['a', 'b']);
