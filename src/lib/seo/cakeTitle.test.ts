@@ -203,7 +203,7 @@ describe('extractTitleInputFromAnalysis — R7.2 / R10.2 parity mapper', () => {
         
         // Under tight budget, it should truncate theme/body but keep suffix
         const tightTitle = buildCakeTitle(input, 25);
-        expect(tightTitle).toBe('Roblox - C783');
+        expect(tightTitle).toBe('Roblox-Inspir Cake - C783');
         expect([...tightTitle].length).toBeLessThanOrEqual(25);
     });
 });
