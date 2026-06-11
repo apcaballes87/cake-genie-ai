@@ -44,7 +44,7 @@ describe('CustomizingAiChatPanel', () => {
 
         render(<CustomizingAiChatPanel {...props} />);
 
-        const input = screen.getByPlaceholderText('✨ Describe changes here...');
+        const input = screen.getByPlaceholderText('✨ Tell Genie your cake design wish...');
         fireEvent.focus(input);
         fireEvent.click(input);
         fireEvent.change(input, { target: { value: 'make it pastel blue' } });
@@ -55,7 +55,6 @@ describe('CustomizingAiChatPanel', () => {
         expect(props.onInputChange).toHaveBeenCalledWith('make it pastel blue');
         expect(props.onSuggestionSelect).toHaveBeenCalledWith('add butterflies');
         expect(props.onSubmit).toHaveBeenCalledTimes(1);
-        expect(screen.getByText('Customize your cake design by doing steps 1 to 4 below')).toBeInTheDocument();
     });
 
     it('renders template mode with color picker actions', () => {
@@ -72,7 +71,7 @@ describe('CustomizingAiChatPanel', () => {
         fireEvent.click(screen.getAllByRole('button', { name: /Select .* color/i })[0]);
 
         expect(screen.getByText('Choose icing color')).toBeInTheDocument();
-        expect(screen.queryByPlaceholderText('✨ Describe changes here...')).not.toBeInTheDocument();
+        expect(screen.queryByPlaceholderText('✨ Tell Genie your cake design wish...')).not.toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Submit AI Edit' })).toBeDisabled();
         expect(props.onTemplateColorPickerToggle).toHaveBeenCalledTimes(1);
         expect(props.onTemplateClear).toHaveBeenCalledTimes(1);

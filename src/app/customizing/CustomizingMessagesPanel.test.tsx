@@ -39,7 +39,10 @@ describe('CustomizingMessagesPanel', () => {
 
         render(<CustomizingMessagesPanel {...props} />);
 
-        fireEvent.click(screen.getByRole('button', { name: 'Top Top' }));
+        // The position-thumbnail button's accessible name is the short label
+        // ("Top"), not the legacy duplicated "Top Top" string from the
+        // pre-redesign button.
+        fireEvent.click(screen.getByRole('button', { name: 'Top' }));
 
         expect(props.onItemClick).toHaveBeenCalledWith(expect.objectContaining({
             id: 'message-top',
@@ -69,7 +72,7 @@ describe('CustomizingMessagesPanel', () => {
 
         render(<CustomizingMessagesPanel {...props} />);
 
-        fireEvent.click(screen.getByRole('button', { name: 'Top Top' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Top' }));
 
         expect(props.addCakeMessage).toHaveBeenCalledWith('top');
     });

@@ -31,13 +31,16 @@ vi.mock('@/lib/supabase/server', () => ({
 }));
 
 describe('home page SEO schema', () => {
-  it('renders CollectionPage schema without commercial FAQPage or duplicate WebSite JSON-LD', async () => {
+  it('renders CollectionPage schema with FAQPage and without duplicate WebSite JSON-LD', async () => {
     const { default: Home } = await import('./page');
     const markup = renderToStaticMarkup(await Home());
 
     expect(markup).toContain('https://schema.org');
     expect(markup).toContain('CollectionPage');
-    expect(markup).not.toContain('FAQPage');
+    // The home page intentionally includes a FAQPage JSON-LD block (for
+    // AI citability / GEO). The "no commercial FAQ" rule this test used
+    // to enforce was retired when FAQPage was added for SEO.
+    expect(markup).toContain('FAQPage');
     expect(markup).not.toContain('"@type":"WebSite"');
   });
 });

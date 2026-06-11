@@ -62,7 +62,7 @@ describe('CustomizingDiscoverySections', () => {
             />
         );
 
-        expect(screen.getByText('What other designs are trending in Cebu?')).toBeInTheDocument();
+        expect(screen.getByText('Related Cake Designs')).toBeInTheDocument();
         expect(screen.getByTestId('masonry')).toBeInTheDocument();
         expect(screen.getByTestId('product-card')).toHaveTextContent('Birthday Cake');
 
@@ -71,7 +71,11 @@ describe('CustomizingDiscoverySections', () => {
         expect(onLoadMoreDesigns).toHaveBeenCalledTimes(1);
     });
 
-    it('renders related collections with links and counts', () => {
+    // TODO(genie-platform): the related-collections section was removed from
+    // CustomizingDiscoverySections in the Apr 23 refactor (the prop was
+    // dropped from the interface). Skip this test until the feature is
+    // either re-added or migrated to a new home.
+    it.skip('renders related collections with links and counts [SKIPPED: feature removed]', () => {
         render(
             <CustomizingDiscoverySections
                 isAnalyzing={false}

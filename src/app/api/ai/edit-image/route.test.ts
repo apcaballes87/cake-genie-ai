@@ -51,13 +51,21 @@ describe('/api/ai/edit-image', () => {
             expect.objectContaining({
                 model: 'gemini-3.1-flash-image-preview',
                 config: expect.objectContaining({
-                    responseModalities: ['IMAGE'],
+                    // Both default and color-only paths now resolve to
+                    // gemini-3.1-flash-image-preview, so the request asks for
+                    // both TEXT and IMAGE modalities (lets the model return
+                    // optional explanation text alongside the edited image).
+                    responseModalities: ['TEXT', 'IMAGE'],
                 }),
             })
         );
     });
 
-    it('uses Gemini 2.5 Flash Image when the request explicitly prefers the icing-only model', async () => {
+    it('ignores the legacy gemini-2.5 preferredModel and resolves to 3.1', async () => {
+        // The route consolidated on gemini-3.1-flash-image-preview for both
+        // default and color-only paths. The legacy `preferredModel: "gemini-
+        // 2.5-flash-image"` value is no longer recognized by `resolveModelName`
+        // and falls through to the default 3.1 model.
         generateContent.mockResolvedValueOnce({
             candidates: [
                 {
@@ -90,7 +98,7 @@ describe('/api/ai/edit-image', () => {
         expect(response.status).toBe(200);
         expect(generateContent).toHaveBeenCalledWith(
             expect.objectContaining({
-                model: 'gemini-2.5-flash-image',
+                model: 'gemini-3.1-flash-image-preview',
                 config: expect.objectContaining({
                     responseModalities: ['TEXT', 'IMAGE'],
                 }),
@@ -98,7 +106,11 @@ describe('/api/ai/edit-image', () => {
         );
     });
 
-    it('retries icing-only requests with Gemini 3.1 when Gemini 2.5 returns no image', async () => {
+    it('retries with the default model when the color-only attempt returns no image', async () => {
+        // The color-only and default paths share the same underlying model
+        // now (gemini-3.1-flash-image-preview), but the retry scaffolding is
+        // kept in case future model routing is reintroduced. This test
+        // verifies the retry path still returns the fallback image.
         generateContent
             .mockResolvedValueOnce({
                 candidates: [],
@@ -127,7 +139,7 @@ describe('/api/ai/edit-image', () => {
                 body: JSON.stringify({
                     prompt: 'Change just the icing to mint green',
                     originalImage: { data: 'abc123', mimeType: 'image/png' },
-                    preferredModel: 'gemini-2.5-flash-image',
+                    preferredModel: 'gemini-3.1-flash-image-preview',
                 }),
             }) as never
         );
@@ -136,7 +148,7 @@ describe('/api/ai/edit-image', () => {
         expect(generateContent).toHaveBeenNthCalledWith(
             1,
             expect.objectContaining({
-                model: 'gemini-2.5-flash-image',
+                model: 'gemini-3.1-flash-image-preview',
                 config: expect.objectContaining({
                     responseModalities: ['TEXT', 'IMAGE'],
                 }),
@@ -147,7 +159,7 @@ describe('/api/ai/edit-image', () => {
             expect.objectContaining({
                 model: 'gemini-3.1-flash-image-preview',
                 config: expect.objectContaining({
-                    responseModalities: ['IMAGE'],
+                    responseModalities: ['TEXT', 'IMAGE'],
                 }),
             })
         );
@@ -227,7 +239,11 @@ describe('/api/ai/edit-image', () => {
     });
 
     it('returns the model text when Gemini responds without image data', async () => {
-        generateContent.mockResolvedValueOnce({
+        // The default path now also runs the color-only retry scaffolding,
+        // so `generateContent` can be called twice. We use `mockResolvedValue`
+        // (not `mockResolvedValueOnce`) so the same text response is returned
+        // for both attempts, and the second attempt's text surfaces as 400.
+        generateContent.mockResolvedValue({
             text: 'Could not complete the requested edit.',
             candidates: [],
         });

@@ -1,12 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { findOrbCacheHit } from './orbMatchingService';
+import { findOrbCacheHit, resetOrbBackendHealth } from './orbMatchingService';
 
 describe('findOrbCacheHit', () => {
   const file = new File(['cake-bytes'], 'cake.png', { type: 'image/png' });
 
   beforeEach(() => {
     vi.useFakeTimers();
+    // Clear the offline-memoize cache so a previous test marking the ORB
+    // backend as unreachable doesn't short-circuit this one.
+    resetOrbBackendHealth();
   });
 
   afterEach(() => {

@@ -7,6 +7,17 @@ vi.mock('@/lib/security/rateLimiter', () => ({
     checkRateLimit: (...args: any[]) => mockCheckRateLimit(...args),
 }));
 
+// The middleware returns 403 for any request without a User-Agent (bot-block
+// layer). All rate-limit assertions need a real User-Agent so the request
+// reaches the rate-limit code path.
+const TEST_USER_AGENT = 'Mozilla/5.0 (vitest middleware test)';
+
+function makeRequest(url: string, init: { headers?: Record<string, string> } = {}): NextRequest {
+    return new NextRequest(url, {
+        headers: { 'user-agent': TEST_USER_AGENT, ...init.headers },
+    });
+}
+
 describe('middleware', () => {
     beforeEach(() => {
         vi.resetModules();
@@ -28,7 +39,7 @@ describe('middleware', () => {
     });
 
     it('should run rate limiter and allow request on success for api/newsletter', async () => {
-        const request = new NextRequest('http://localhost/api/newsletter');
+        const request = makeRequest('http://localhost/api/newsletter');
         const response = await middleware(request);
 
         expect(response).toBeInstanceOf(NextResponse);
@@ -45,7 +56,7 @@ describe('middleware', () => {
             reset: Date.now() + 30000, // resets in 30 seconds
         });
 
-        const request = new NextRequest('http://localhost/api/contact');
+        const request = makeRequest('http://localhost/api/contact');
         const response = await middleware(request);
 
         expect(response).toBeInstanceOf(NextResponse);
@@ -58,10 +69,8 @@ describe('middleware', () => {
     });
 
     it('should bypass rate limiting for /api/ai/analyze if x-admin-pin header is valid', async () => {
-        const request = new NextRequest('http://localhost/api/ai/analyze', {
-            headers: {
-                'x-admin-pin': '231323',
-            },
+        const request = makeRequest('http://localhost/api/ai/analyze', {
+            headers: { 'x-admin-pin': '231323' },
         });
         const response = await middleware(request);
 
@@ -71,7 +80,7 @@ describe('middleware', () => {
     });
 
     it('should rate limit /api/ai/analyze if x-admin-pin header is missing or invalid', async () => {
-        const request = new NextRequest('http://localhost/api/ai/analyze');
+        const request = makeRequest('http://localhost/api/ai/analyze');
         const response = await middleware(request);
 
         expect(response).toBeInstanceOf(NextResponse);
