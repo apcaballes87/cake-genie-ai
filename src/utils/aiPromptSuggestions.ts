@@ -185,10 +185,15 @@ export const buildAiChatPromptSuggestions = (
     const topIcingColor = formatPromptColor(colors?.top);
     const sideIcingColor = formatPromptColor(colors?.side);
     const primaryIcingColor = sideIcingColor || topIcingColor || formatPromptColor(colors?.top ?? colors?.side) || 'white';
-    const dripColor = formatPromptColor(colors?.side ?? colors?.top) || topIcingColor || primaryIcingColor;
+    const baseBoardColor = formatPromptColor(colors?.gumpasteBaseBoardColor) || 'white';
+    // Drip is a separate visual element from both the side/top icing AND the
+    // gumpaste covered base board. It defaults to "white" (the most common
+    // drip in real cake design — white chocolate or vanilla ganache) and is
+    // intentionally independent of the other colors. If the analysis later
+    // grows a `colors.drip` field, swap this default to read from it.
+    const dripColor = 'white';
     const topBorderColor = formatPromptColor(colors?.top ?? colors?.side) || primaryIcingColor;
     const bottomBorderColor = formatPromptColor(colors?.side ?? colors?.top) || primaryIcingColor;
-    const baseBoardColor = formatPromptColor(colors?.gumpasteBaseBoardColor) || 'white';
     if (resolvedCakeType) {
         addSuggestion(suggestions, `change the cake type from ${resolvedCakeType} to ...`);
     }
