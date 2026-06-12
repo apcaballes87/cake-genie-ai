@@ -1,5 +1,22 @@
 # Tasks
 
+## Lower Customizing Availability Bar Further
+
+### Plan
+
+- [x] Recheck the shared sticky-bar overlap contract after the recent availability-height change.
+- [x] Shift the availability bar down by `24px` into the add-to-cart bar while keeping the main action bar fixed.
+- [x] Update focused spacing expectations and verify the sticky bar plus editor-sheet contract together.
+
+### Review
+
+- Increased the shared overlap in [src/app/customizing/stickyBarLayout.ts](/Users/apcaballes/genieph-nextjs/src/app/customizing/stickyBarLayout.ts:1) from `12px` to `24px`, which drops the availability bar further into the add-to-cart bar without moving the main sticky action bar itself.
+- Kept [src/components/StickyAddToCartBar.tsx](/Users/apcaballes/genieph-nextjs/src/components/StickyAddToCartBar.tsx:1) on the same overlap-based layout path, so the lower placement still comes from the single shared constant instead of another one-off CSS adjustment.
+- Updated [src/app/customizing/CustomizingEditorSheet.test.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingEditorSheet.test.tsx:1) to reflect the new derived sheet clearance of `100px` when the availability bar is visible.
+- Verification:
+  - `npx vitest run src/components/StickyAddToCartBar.test.tsx src/app/customizing/CustomizingEditorSheet.test.tsx` passed with `10` tests.
+  - `npx eslint src/components/StickyAddToCartBar.tsx src/components/StickyAddToCartBar.test.tsx src/app/customizing/CustomizingEditorSheet.tsx src/app/customizing/CustomizingEditorSheet.test.tsx src/app/customizing/stickyBarLayout.ts` reported `0` errors and the same existing warnings only.
+
 ## Thicken Customizing Availability Bar
 
 ### Plan
