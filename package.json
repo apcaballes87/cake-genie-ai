@@ -8,6 +8,7 @@
     "start": "next start -p 3002",
     "lint": "eslint",
     "test": "vitest",
+    "check:schema": "tsx scripts/check-required-columns.ts",
     "backfill:variants": "tsx scripts/backfill-image-variants.ts",
     "reconcile:local": "tsx scripts/reconcile-batch-local.ts"
   },
