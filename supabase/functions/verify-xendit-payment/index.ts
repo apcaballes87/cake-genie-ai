@@ -204,6 +204,25 @@ serve(async (req) => {
         })
         .eq('order_id', orderId);
       if (updateOrderError) throw updateOrderError;
+
+      // Defer cart clear: the RPC that created the order leaves the
+      // cart intact on the server so abandoned checkouts can be
+      // recovered. Clear it now that the order is paid. The helper is
+      // idempotent (returns 0 on a second call) so it's safe even if
+      // xendit-webhook also fires.
+      try {
+        const { data: clearedCount, error: clearError } = await supabaseAdmin
+          .rpc('clear_cart_for_paid_order', { p_order_id: orderId });
+
+        if (clearError) {
+          console.error('⚠️  clear_cart_for_paid_order failed (non-fatal):', clearError);
+        } else {
+          console.log(`🛒 Cleared ${clearedCount ?? 0} cart row(s) for paid order ${orderId}`);
+        }
+      } catch (e) {
+        // Never let a cart-clear hiccup roll back the order flip.
+        console.error('⚠️  clear_cart_for_paid_order threw (non-fatal):', e);
+      }
     }
 
     return new Response(JSON.stringify({ success: true, status: latestStatus }), {

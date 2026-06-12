@@ -253,6 +253,25 @@ serve(async (req) => {
                     .eq('order_id', paymentRecord.order_id);
 
                 console.log(`✅ Order ${paymentRecord.order_id} marked as confirmed`);
+
+                // Defer cart clear: the RPC that created the order leaves
+                // the cart intact on the server so abandoned checkouts can
+                // be recovered. Clear it now that the order is paid.
+                // The helper is idempotent (returns 0 on a second call) so
+                // it's safe even if verify-xendit-payment also fires.
+                try {
+                    const { data: clearedCount, error: clearError } = await supabase
+                        .rpc('clear_cart_for_paid_order', { p_order_id: paymentRecord.order_id });
+
+                    if (clearError) {
+                        console.error('⚠️  clear_cart_for_paid_order failed (non-fatal):', clearError);
+                    } else {
+                        console.log(`🛒 Cleared ${clearedCount ?? 0} cart row(s) for paid order ${paymentRecord.order_id}`);
+                    }
+                } catch (e) {
+                    // Never let a cart-clear hiccup roll back the order flip.
+                    console.error('⚠️  clear_cart_for_paid_order threw (non-fatal):', e);
+                }
             }
         }
 
