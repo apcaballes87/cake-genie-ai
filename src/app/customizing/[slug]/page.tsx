@@ -16,7 +16,8 @@ import { mapAnalysisToState, mapProductToDefaultState } from '@/utils/customizat
 import { upgradeLegacySlug, downgradeCakeSlug } from '@/lib/utils/urlHelpers'
 import { buildDesignPageContent, generateDesignDetails, generateRichAltText, isGenericDesignDescription } from '@/utils/designContentUtils'
 import { parseManifest, buildSrcSet, pickFallbackSrc } from '@/lib/imageVariants/manifest'
-import { buildPerDesignReviewSummary, buildReviewSummary, getThemedReviewsForSlug, getSourceSubtitle, getReviewDisplayName, getReviewAvatarInitial, getExactReviewsForSchema, type ThemedReview } from '@/lib/reviews'
+import { buildPerDesignReviewSummary, buildReviewSummary, getThemedReviewsForSlug, getSourceSubtitle, getReviewDisplayName, getExactReviewsForSchema, type ThemedReview } from '@/lib/reviews'
+import { ReviewCard } from '@/components/ReviewsDisplay'
 import {
     buildCustomCakeAdditionalProperties,
     buildMerchantReturnPolicy,
@@ -1212,44 +1213,20 @@ function SSRDesignContent({
                             // The real review object is what the user sees.
                             const { _source, ...displayReview } = review;
                             return (
-                                <article
+                                <div
                                     key={displayReview.review_id}
-                                    className="bg-white rounded-xl shadow-sm border border-slate-200 p-4"
                                     data-review-source={_source}
                                 >
-                                    <header className="flex items-center gap-3 mb-2">
-                                        <div
-                                            className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-200 to-purple-200 flex items-center justify-center text-sm font-semibold text-purple-700 shrink-0"
-                                            aria-hidden="true"
-                                        >
-                                            {getReviewAvatarInitial(displayReview)}
-                                        </div>
-                                        <div className="min-w-0">
-                                            <p className="font-semibold text-sm text-slate-800 truncate">
-                                                {getReviewDisplayName(displayReview)}
-                                            </p>
-                                            <div className="flex items-center gap-1 text-xs text-amber-500" aria-label={`${displayReview.rating} out of 5 stars`}>
-                                                {Array.from({ length: 5 }).map((_, i) => (
-                                                    <span
-                                                        key={i}
-                                                        className={i < displayReview.rating ? 'text-amber-500' : 'text-slate-200'}
-                                                    >
-                                                        ★
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </header>
-                                    {displayReview.title && (
-                                        <h3 className="text-sm font-semibold text-slate-800 mb-1">
-                                            {displayReview.title}
-                                        </h3>
-                                    )}
-                                    {displayReview.comment && (
-                                        <p className="text-sm text-slate-600 leading-relaxed">
-                                            {displayReview.comment}
-                                        </p>
-                                    )}
+                                    {/* Shared review card from ReviewsDisplay — same polish
+                                        as the landing page (verified badge, CAKE INSPO / FINAL
+                                        PRODUCT image pills, hover-zoom, lightbox). Recreate CTA
+                                        is intentionally hidden here because themed/recent reviews
+                                        are about OTHER products; the "View original cake →"
+                                        link below serves that role. */}
+                                    <ReviewCard
+                                        review={displayReview as unknown as Parameters<typeof ReviewCard>[0]['review']}
+                                        showRecreateCta={false}
+                                    />
                                     {/* Themed and recent reviews are about OTHER products. Surface
                                         a link to the original cake so the user can verify context
                                         and (if they like what they see) customise it. Exact-tier
@@ -1260,7 +1237,7 @@ function SSRDesignContent({
                                                 .cakegenie_analysis_cache?.slug;
                                         if (!originalSlug || originalSlug === design.slug) return null;
                                         return (
-                                            <p className="text-xs text-slate-500 mt-2">
+                                            <p className="text-xs text-slate-500 mt-2 pl-1">
                                                 <a
                                                     href={`/customizing/${originalSlug}`}
                                                     className="text-purple-600 hover:text-purple-800 hover:underline transition-colors"
@@ -1271,7 +1248,7 @@ function SSRDesignContent({
                                             </p>
                                         );
                                     })()}
-                                </article>
+                                </div>
                             );
                         })}
                     </div>

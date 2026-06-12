@@ -8,7 +8,17 @@ import { getCakeBasePriceOptions, getRelatedProductsByKeywords } from '@/service
 
 let capturedInitialData: unknown;
 
-vi.mock('next/navigation', () => ({ notFound: vi.fn(), permanentRedirect: vi.fn() }));
+vi.mock('next/navigation', () => ({
+    notFound: vi.fn(),
+    permanentRedirect: vi.fn(),
+    // The shared ReviewCard (used inside themed-pool UI) is a client component that
+    // calls useRouter for the (now-disabled on this page) "Recreate Design" CTA.
+    // We stub it out — the tests assert against the themed-pool wrapper, not the
+    // card's internal navigation.
+    useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn(), forward: vi.fn(), refresh: vi.fn(), prefetch: vi.fn() }),
+    usePathname: () => '/',
+    useSearchParams: () => new URLSearchParams(),
+}));
 vi.mock('next/link', () => ({ default: ({ href, children }: { href: string; children: ReactNode }) => <a href={href}>{children}</a> }));
 vi.mock('next/image', () => ({ default: (props: Record<string, unknown>) => <img {...props} /> }));
 // Mock CustomizingClient but still render its postEditorSlot prop —

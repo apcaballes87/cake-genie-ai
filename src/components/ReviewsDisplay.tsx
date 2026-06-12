@@ -44,7 +44,8 @@ const StarRating: React.FC<{ rating: number; size?: 'sm' | 'md' }> = ({ rating, 
 export const ReviewCard: React.FC<{
   review: CakeGenieReview;
   showMerchantResponse?: boolean;
-}> = ({ review, showMerchantResponse = true }) => {
+  showRecreateCta?: boolean;
+}> = ({ review, showMerchantResponse = true, showRecreateCta = true }) => {
   const router = useRouter();
   const displayName = getReviewDisplayName(review);
   const [localLightbox, setLocalLightbox] = useState<string | null>(null);
@@ -148,7 +149,7 @@ export const ReviewCard: React.FC<{
             </div>
 
             {/* Recreate CTA */}
-            {review.cakegenie_analysis_cache?.slug && (
+            {showRecreateCta && review.cakegenie_analysis_cache?.slug && (
               <div className="mt-3 flex items-center justify-end">
                 <button
                   onClick={() => router.push(`/customizing/${review.cakegenie_analysis_cache?.slug}`)}
@@ -225,7 +226,7 @@ export const ReviewCard: React.FC<{
           )}
 
           {/* Recreate CTA for standard items */}
-          {review.cakegenie_analysis_cache?.slug && (
+          {showRecreateCta && review.cakegenie_analysis_cache?.slug && (
             <div className="mt-3 flex items-center justify-end">
               <button
                 onClick={() => router.push(`/customizing/${review.cakegenie_analysis_cache?.slug}`)}
