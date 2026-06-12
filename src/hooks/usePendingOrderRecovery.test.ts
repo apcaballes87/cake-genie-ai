@@ -1,6 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+    _storageBackend,
     PENDING_PAYMENT_CART_KEY,
     PENDING_PAYMENT_GUEST_EMAIL_KEY,
     PENDING_PAYMENT_ORDER_ID_KEY,
@@ -182,5 +183,107 @@ describe('usePendingOrderRecovery', () => {
         );
 
         expect(result.current.recoveryBanner).toBeNull();
+    });
+
+    // --- safeStorage robustness ---
+    // The following tests cover environments where sessionStorage
+    // access throws (Safari Private Browsing, cross-origin iframes,
+    // QuotaExceededError, SSR edge cases). The hook must never throw
+    // out of its call sites — the recovery feature is best-effort
+    // and a thrown exception would white-screen the cart page.
+    //
+    // We mock the underlying `_storageBackend` (not `safeStorage`
+    // itself) so the safe wrapper's try/catch is the layer that
+    // actually protects the hook from thrown exceptions.
+
+    describe('safeStorage robustness', () => {
+        let getItemSpy: ReturnType<typeof vi.spyOn>;
+        let setItemSpy: ReturnType<typeof vi.spyOn>;
+        let removeItemSpy: ReturnType<typeof vi.spyOn>;
+        let warnSpy: ReturnType<typeof vi.spyOn>;
+
+        beforeEach(() => {
+            // Suppress the console.warn noise from safeStorage — we're
+            // explicitly testing the throw-and-swallow path.
+            warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        });
+
+        afterEach(() => {
+            getItemSpy?.mockRestore();
+            setItemSpy?.mockRestore();
+            removeItemSpy?.mockRestore();
+            warnSpy?.mockRestore();
+        });
+
+        it('does not crash when getItem returns null and every other call throws (Safari Private Browsing)', () => {
+            getItemSpy = vi.spyOn(_storageBackend, 'getItem').mockReturnValue(null);
+            setItemSpy = vi
+                .spyOn(_storageBackend, 'setItem')
+                .mockImplementation(() => {
+                    throw new Error('SecurityError: sessionStorage access denied');
+                });
+            removeItemSpy = vi
+                .spyOn(_storageBackend, 'removeItem')
+                .mockImplementation(() => {
+                    throw new Error('SecurityError: sessionStorage access denied');
+                });
+
+            // Even though every underlying storage call throws, the
+            // hook must still mount and expose a default empty state.
+            const { result } = renderHook(() =>
+                usePendingOrderRecovery({
+                    paymentFailed: false,
+                    paymentFailedOrderId: null,
+                }),
+            );
+
+            expect(result.current.recoveryBanner).toBeNull();
+            expect(result.current.isHydrated).toBe(true);
+
+            // dismiss() must also be safe — it calls setItem which
+            // throws, but safeStorage swallows the throw.
+            expect(() => result.current.dismiss()).not.toThrow();
+
+            // clearSnapshot() and acceptAutoRestore() must also be
+            // safe when the storage is hostile.
+            expect(() => result.current.clearSnapshot()).not.toThrow();
+        });
+
+        it('logs a warning but does not throw when the dismissed-flag setItem throws', () => {
+            // Seed a real snapshot so the banner surfaces.
+            const items = [makeItem({ final_price: 800, quantity: 1 })];
+            seedSnapshot(items);
+
+            // Make the underlying setItem throw to simulate
+            // QuotaExceededError or Safari Private Browsing on the
+            // dismissed-flag write. We mock the backend, NOT the
+            // safeStorage wrapper, so the wrapper's try/catch is the
+            // one doing the swallowing.
+            setItemSpy = vi
+                .spyOn(_storageBackend, 'setItem')
+                .mockImplementation(() => {
+                    throw new Error('QuotaExceededError');
+                });
+
+            const { result } = renderHook(() =>
+                usePendingOrderRecovery({
+                    paymentFailed: false,
+                    paymentFailedOrderId: null,
+                }),
+            );
+
+            // The banner is up — now dismiss it. Wrap in act() so the
+            // setRecoveryBanner(null) update is flushed before we
+            // assert on the next state value.
+            expect(result.current.recoveryBanner).not.toBeNull();
+            act(() => {
+                expect(() => result.current.dismiss()).not.toThrow();
+            });
+
+            // The hook logged a warning (best-effort diagnostic) but
+            // did not propagate the throw. State was still updated.
+            expect(warnSpy).toHaveBeenCalled();
+            expect(result.current.recoveryBanner).toBeNull();
+        });
     });
 });

@@ -27,6 +27,104 @@ interface UsePendingOrderRecoveryApi {
     isHydrated: boolean;
 }
 
+/**
+ * safeStorage
+ *
+ * Thin wrapper around `window.sessionStorage` that swallows thrown
+ * exceptions. Browsers THROW (not return null) from sessionStorage
+ * access in several real-world scenarios:
+ *   - Safari Private Browsing (SecurityError on getItem/setItem)
+ *   - Cross-origin iframes where storage is denied
+ *   - Storage quota exceeded (QuotaExceededError on setItem)
+ *   - `window.sessionStorage` itself being undefined in some SSR
+ *     edge cases (e.g. Next.js static export)
+ *
+ * In all of those cases, the cart recovery feature must NOT
+ * white-screen the page. The hook treats the storage as best-effort:
+ * reads return null on failure, writes are logged and ignored.
+ *
+ * The helper is exported so unit tests can mock the underlying
+ * `_storageBackend` (or the helper itself) to simulate throwing
+ * storages, and so other call sites in the codebase can adopt the
+ * same defensive pattern.
+ */
+interface StorageLike {
+    getItem(key: string): string | null;
+    setItem(key: string, value: string): void;
+    removeItem(key: string): void;
+}
+
+/**
+ * _storageBackend — the raw window.sessionStorage adapter.
+ * Exported (with the underscore prefix) for test injection only.
+ * Production code should call `safeStorage` instead.
+ */
+export const _storageBackend: StorageLike = {
+    getItem(key) {
+        if (typeof window === 'undefined') {
+            throw new ReferenceError('window is undefined (SSR)');
+        }
+        return window.sessionStorage.getItem(key);
+    },
+    setItem(key, value) {
+        if (typeof window === 'undefined') {
+            throw new ReferenceError('window is undefined (SSR)');
+        }
+        window.sessionStorage.setItem(key, value);
+    },
+    removeItem(key) {
+        if (typeof window === 'undefined') {
+            throw new ReferenceError('window is undefined (SSR)');
+        }
+        window.sessionStorage.removeItem(key);
+    },
+};
+
+export const safeStorage = {
+    getItem(key: string): string | null {
+        try {
+            return _storageBackend.getItem(key);
+        } catch (error) {
+            // Safari Private Browsing, cross-origin iframes, SSR.
+            // We deliberately don't re-throw — the recovery feature
+            // is a nice-to-have and must not crash the page.
+            console.warn(
+                '[usePendingOrderRecovery] sessionStorage.getItem failed:',
+                key,
+                error,
+            );
+            return null;
+        }
+    },
+
+    setItem(key: string, value: string): void {
+        try {
+            _storageBackend.setItem(key, value);
+        } catch (error) {
+            // QuotaExceededError, Safari Private Browsing SecurityError,
+            // or any other thrown exception. Log and move on — the
+            // dismissed-flag is best-effort.
+            console.warn(
+                '[usePendingOrderRecovery] sessionStorage.setItem failed:',
+                key,
+                error,
+            );
+        }
+    },
+
+    removeItem(key: string): void {
+        try {
+            _storageBackend.removeItem(key);
+        } catch (error) {
+            console.warn(
+                '[usePendingOrderRecovery] sessionStorage.removeItem failed:',
+                key,
+                error,
+            );
+        }
+    },
+};
+
 const computeItemCount = (items: CakeGenieCartItem[]): number =>
     items.reduce((total, item) => total + (item.quantity ?? 1), 0);
 
@@ -50,6 +148,10 @@ const computeTotalAmount = (items: CakeGenieCartItem[]): number =>
  * The user is in control: we never auto-restore cart items. For the
  * `?payment_failed=true` path, intent is unambiguous so the caller
  * may opt into an inline toast via `acceptAutoRestore()`.
+ *
+ * All sessionStorage access goes through `safeStorage` so the hook
+ * never throws, even in Safari Private Browsing or cross-origin
+ * iframes.
  */
 export function usePendingOrderRecovery(args: {
     paymentFailed: boolean;
@@ -60,9 +162,8 @@ export function usePendingOrderRecovery(args: {
     const [isHydrated, setIsHydrated] = useState(false);
 
     const readSnapshot = useCallback((): PendingOrderSnapshot | null => {
-        if (typeof window === 'undefined') return null;
-        const orderId = window.sessionStorage.getItem(PENDING_PAYMENT_ORDER_ID_KEY);
-        const cartJson = window.sessionStorage.getItem(PENDING_PAYMENT_CART_KEY);
+        const orderId = safeStorage.getItem(PENDING_PAYMENT_ORDER_ID_KEY);
+        const cartJson = safeStorage.getItem(PENDING_PAYMENT_CART_KEY);
         if (!orderId || !cartJson) return null;
 
         let parsed: unknown;
@@ -74,7 +175,7 @@ export function usePendingOrderRecovery(args: {
         if (!Array.isArray(parsed) || parsed.length === 0) return null;
 
         // Already dismissed in this session? Skip.
-        if (window.sessionStorage.getItem(pendingPaymentDismissedKey(orderId)) === '1') {
+        if (safeStorage.getItem(pendingPaymentDismissedKey(orderId)) === '1') {
             return null;
         }
 
@@ -91,8 +192,6 @@ export function usePendingOrderRecovery(args: {
 
     // Initial mount + `pageshow` (fires on browser back in some browsers).
     useEffect(() => {
-        if (typeof window === 'undefined') return;
-
         const hydrate = () => {
             const snap = readSnapshot();
             if (snap) {
@@ -121,28 +220,29 @@ export function usePendingOrderRecovery(args: {
         };
 
         hydrate();
-        window.addEventListener('pageshow', hydrate);
-        return () => {
-            window.removeEventListener('pageshow', hydrate);
-        };
+        if (typeof window !== 'undefined') {
+            window.addEventListener('pageshow', hydrate);
+            return () => {
+                window.removeEventListener('pageshow', hydrate);
+            };
+        }
+        return undefined;
     }, [paymentFailed, paymentFailedOrderId, readSnapshot]);
 
     const dismiss = useCallback(() => {
         if (!recoveryBanner) return;
-        if (typeof window !== 'undefined') {
-            window.sessionStorage.setItem(
-                pendingPaymentDismissedKey(recoveryBanner.orderId),
-                '1',
-            );
-        }
+        // Best-effort: throws are swallowed inside safeStorage.
+        safeStorage.setItem(
+            pendingPaymentDismissedKey(recoveryBanner.orderId),
+            '1',
+        );
         setRecoveryBanner(null);
     }, [recoveryBanner]);
 
     const clearSnapshot = useCallback(() => {
-        if (typeof window === 'undefined') return;
-        window.sessionStorage.removeItem(PENDING_PAYMENT_ORDER_ID_KEY);
-        window.sessionStorage.removeItem(PENDING_PAYMENT_CART_KEY);
-        window.sessionStorage.removeItem(PENDING_PAYMENT_GUEST_EMAIL_KEY);
+        safeStorage.removeItem(PENDING_PAYMENT_ORDER_ID_KEY);
+        safeStorage.removeItem(PENDING_PAYMENT_CART_KEY);
+        safeStorage.removeItem(PENDING_PAYMENT_GUEST_EMAIL_KEY);
     }, []);
 
     const acceptAutoRestore = useCallback((): PendingOrderSnapshot | null => {

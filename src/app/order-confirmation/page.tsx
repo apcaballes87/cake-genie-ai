@@ -127,23 +127,43 @@ const OrderConfirmationContent: React.FC = () => {
                 items: orderItems,
             });
 
-            // Mark as fired so refreshing the page doesn't re-send the event
-            sessionStorage.setItem(purchaseEventKey, '1');
+            // Mark as fired so refreshing the page doesn't re-send the event.
+            // Guarded with try/catch — sessionStorage.setItem can throw
+            // in Safari Private Browsing / cross-origin iframes, and we
+            // must never block the success path on analytics dedup.
+            try {
+                sessionStorage.setItem(purchaseEventKey, '1');
+            } catch (error) {
+                console.warn(
+                    '[OrderConfirmationPage] sessionStorage.setItem failed:',
+                    error,
+                );
+            }
         }
 
-        // Clear cart state from sessionStorage after successful payment
-        // This is safe to do here because payment is confirmed
+        // Clear cart state from sessionStorage after successful payment.
+        // Wrapped in try/catch because sessionStorage access can THROW
+        // (Safari Private Browsing, cross-origin iframes, quota hits)
+        // and a thrown exception here would prevent the user from
+        // seeing the "Order Placed Successfully!" confirmation —
+        // strictly worse than leaving the snapshot in storage.
         if (typeof window !== 'undefined') {
-            sessionStorage.removeItem('pending_payment_cart');
-            sessionStorage.removeItem('pending_payment_order_id');
-            sessionStorage.removeItem('pending_payment_guest_email');
-            // Also clear the dismissed-flag for THIS order so a future
-            // abandoned order (different order_id) can show its banner
-            // fresh. We can't just clear all `pending_payment_dismissed_for_*`
-            // keys in one pass without iterating, so we use a single
-            // counter: bumping a session-scope version invalidates any
-            // older flags and lets future recoveries show through.
-            sessionStorage.removeItem(`pending_payment_dismissed_for_${orderId}`);
+            try {
+                sessionStorage.removeItem('pending_payment_cart');
+                sessionStorage.removeItem('pending_payment_order_id');
+                sessionStorage.removeItem('pending_payment_guest_email');
+                // Also clear the dismissed-flag for THIS order so a
+                // future abandoned order (different order_id) can
+                // show its banner fresh.
+                sessionStorage.removeItem(
+                    `pending_payment_dismissed_for_${orderId}`,
+                );
+            } catch (error) {
+                console.warn(
+                    '[OrderConfirmationPage] sessionStorage.removeItem failed:',
+                    error,
+                );
+            }
         }
     }, [paymentStatus, order, purchaseEventKey, orderId]);
 
