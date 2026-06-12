@@ -105,4 +105,18 @@ describe('StickyAddToCartBar', () => {
             display: 'inline-block',
         });
     });
+
+    it('keeps the availability notification layer above the main add-to-cart bar', () => {
+        const props = buildProps();
+        props.availability = 'same-day';
+
+        const { container } = render(<StickyAddToCartBar {...props} />);
+
+        const stickyBar = container.querySelector('[data-sticky-add-to-cart-bar]');
+        const notificationGrid = stickyBar?.querySelector('.grid');
+        const mainBar = stickyBar?.querySelector('.backdrop-blur-lg');
+
+        expect(notificationGrid).toHaveClass('relative', 'z-10');
+        expect(mainBar).toHaveClass('relative', 'z-0');
+    });
 });

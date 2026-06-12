@@ -44,7 +44,7 @@ describe('CustomizingEditorSheet', () => {
         render(<CustomizingEditorSheet {...props} />);
 
         expect(screen.getByText('Cake Options')).toBeInTheDocument();
-        expect(screen.getByText('78px')).toBeInTheDocument();
+        expect(screen.getByText('80px')).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: /apply changes/i }));
         expect(props.onApplyOptions).toHaveBeenCalledTimes(1);
         expect(screen.getByText('panel-content')).toBeInTheDocument();
@@ -101,7 +101,7 @@ describe('CustomizingEditorSheet', () => {
 
         render(<CustomizingEditorSheet {...props} />);
 
-        expect(screen.getByText('78px')).toBeInTheDocument();
+        expect(screen.getByText('80px')).toBeInTheDocument();
     });
 
     it('offsets the sheet using base offset when availability bar is hidden', () => {

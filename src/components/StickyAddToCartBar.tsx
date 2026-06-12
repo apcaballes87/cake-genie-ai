@@ -234,7 +234,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
         >
             <div className={`pointer-events-auto transition-all duration-300 max-w-4xl mx-auto w-full ${isBlurred ? 'blur-[2px] opacity-50 pointer-events-none' : ''}`}>
                 {/* Top Section: Warnings & Availability */}
-                <div className={`grid transition-[grid-template-rows,opacity] duration-500 ease-in-out ${hasTopNotification ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                <div className={`relative z-10 grid transition-[grid-template-rows,opacity] duration-500 ease-in-out ${hasTopNotification ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                     <div
                         className="relative overflow-visible"
                         style={hasTopNotification ? { marginBottom: `-${STICKY_ADD_TO_CART_AVAILABILITY_OVERLAP_PX}px` } : undefined}
@@ -247,7 +247,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                 <div className={`h-4 transition-opacity duration-500 ease-in-out ${hasTopNotification ? 'opacity-100' : 'opacity-0'} ${notificationBridgeColor}`} />
 
                 {/* Bottom Section: Main Action Bar */}
-                <div className={`relative bg-white/80 backdrop-blur-lg px-3 pt-3 pb-[calc(20px+env(safe-area-inset-bottom))] rounded-t-2xl shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.1)] ${hasTopNotification ? 'border-t border-transparent' : 'border-t border-slate-200'} transition-all duration-300`}>
+                <div className={`relative z-0 bg-white/80 backdrop-blur-lg px-3 pt-3 pb-[calc(20px+env(safe-area-inset-bottom))] rounded-t-2xl shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.1)] ${hasTopNotification ? 'border-t border-transparent' : 'border-t border-slate-200'} transition-all duration-300`}>
                     <div className="max-w-4xl mx-auto flex justify-between items-center gap-4">
                         <div className="min-w-[80px] min-h-[48px] flex items-center">
                             <div className="relative">
