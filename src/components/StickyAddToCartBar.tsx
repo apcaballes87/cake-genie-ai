@@ -9,7 +9,10 @@ import { ColorPalette } from './ColorPalette';
 import type { CustomizingAiPromptSuggestionItem } from '@/app/customizing/CustomizingAiChatPanel';
 import type { ParsedAiChatPromptTemplate } from '@/utils/aiChatPromptComposer';
 import { DiscountOfferBubble } from './DiscountOfferBubble';
-import { STICKY_ADD_TO_CART_AVAILABILITY_OVERLAP_PX } from '@/app/customizing/stickyBarLayout';
+import {
+    STICKY_ADD_TO_CART_AVAILABILITY_OVERLAP_PX,
+    STICKY_ADD_TO_CART_AVAILABILITY_VERTICAL_PADDING_PX,
+} from '@/app/customizing/stickyBarLayout';
 
 // --- Sticky Add to Cart Bar ---
 interface StickyAddToCartBarProps {
@@ -166,10 +169,18 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     const renderAvailabilityNotification = () => {
         if (!availability || !showAvailability) return null;
 
+        const notificationBodyStyle = {
+            paddingTop: `${STICKY_ADD_TO_CART_AVAILABILITY_VERTICAL_PADDING_PX}px`,
+            paddingBottom: `${STICKY_ADD_TO_CART_AVAILABILITY_VERTICAL_PADDING_PX}px`,
+        } satisfies React.CSSProperties;
+
         if (availability === 'rush') {
             return (
                 <div className="bg-green-100 rounded-t-2xl">
-                    <div className="max-w-4xl mx-auto flex items-center justify-center gap-2 text-green-800 text-[10px] sm:text-[11px] font-bold p-1">
+                    <div
+                        className="max-w-4xl mx-auto flex items-center justify-center gap-2 px-1 text-green-800 text-[10px] sm:text-[11px] font-bold"
+                        style={notificationBodyStyle}
+                    >
                         <span>⚡</span>
                         <span>Rush Order Available! Ready in 60 mins</span>
                     </div>
@@ -179,7 +190,10 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
         if (availability === 'same-day') {
             return (
                 <div className="bg-blue-100 rounded-t-2xl">
-                    <div className="max-w-4xl mx-auto flex items-center justify-center gap-2 text-blue-800 text-[10px] sm:text-[11px] font-bold p-1">
+                    <div
+                        className="max-w-4xl mx-auto flex items-center justify-center gap-2 px-1 text-blue-800 text-[10px] sm:text-[11px] font-bold"
+                        style={notificationBodyStyle}
+                    >
                         <span>🕐</span>
                         <span>Same-Day Order! Ready in 3 hours</span>
                     </div>
@@ -189,7 +203,10 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
         if (availability === 'normal') {
             return (
                 <div className="bg-slate-100 rounded-t-2xl">
-                    <div className="max-w-4xl mx-auto flex items-center justify-center gap-2 text-slate-700 text-[10px] sm:text-[11px] font-bold p-1">
+                    <div
+                        className="max-w-4xl mx-auto flex items-center justify-center gap-2 px-1 text-slate-700 text-[10px] sm:text-[11px] font-bold"
+                        style={notificationBodyStyle}
+                    >
                         <span>📅</span>
                         <span>Standard order. Receive this by tomorrow</span>
                     </div>

@@ -2,7 +2,10 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi, beforeAll } from 'vitest';
 import StickyAddToCartBar from './StickyAddToCartBar';
-import { STICKY_ADD_TO_CART_AVAILABILITY_OVERLAP_PX } from '@/app/customizing/stickyBarLayout';
+import {
+    STICKY_ADD_TO_CART_AVAILABILITY_OVERLAP_PX,
+    STICKY_ADD_TO_CART_AVAILABILITY_VERTICAL_PADDING_PX,
+} from '@/app/customizing/stickyBarLayout';
 
 vi.mock('./ShareButton', () => ({
     ShareButton: ({ onClick }: { onClick: () => void }) => <button onClick={onClick}>share</button>,
@@ -72,5 +75,20 @@ describe('StickyAddToCartBar', () => {
         const availabilityWrapper = stickyBar?.querySelector('.grid > div');
 
         expect(availabilityWrapper).toHaveStyle({ marginBottom: `-${STICKY_ADD_TO_CART_AVAILABILITY_OVERLAP_PX}px` });
+    });
+
+    it('increases the availability bar vertical padding by the shared height constant', () => {
+        const props = buildProps();
+        props.availability = 'normal';
+
+        render(<StickyAddToCartBar {...props} />);
+
+        const availability = screen.getByText('Standard order. Receive this by tomorrow');
+        const notificationBody = availability.parentElement;
+
+        expect(notificationBody).toHaveStyle({
+            paddingTop: `${STICKY_ADD_TO_CART_AVAILABILITY_VERTICAL_PADDING_PX}px`,
+            paddingBottom: `${STICKY_ADD_TO_CART_AVAILABILITY_VERTICAL_PADDING_PX}px`,
+        });
     });
 });

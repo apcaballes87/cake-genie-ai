@@ -1,5 +1,22 @@
 # Tasks
 
+## Thicken Customizing Availability Bar
+
+### Plan
+
+- [x] Trace the availability bar height and the dependent editor-sheet offset on `/customizing`.
+- [x] Increase the availability bar's vertical thickness by `20px` without moving the main action bar.
+- [x] Update focused spacing tests and verify the shared sticky layout contract.
+
+### Review
+
+- Increased the availability notification thickness by `20px` total in [src/components/StickyAddToCartBar.tsx](/Users/apcaballes/genieph-nextjs/src/components/StickyAddToCartBar.tsx:1) by replacing the old uniform `p-1` body padding with explicit shared vertical padding.
+- Extended [src/app/customizing/stickyBarLayout.ts](/Users/apcaballes/genieph-nextjs/src/app/customizing/stickyBarLayout.ts:1) with the extra-height constant, so the sticky bar and editor-sheet clearance stay derived from the same layout contract.
+- The visible editor-sheet clearance above the sticky stack now rises from `92px` to `112px` when the availability bar is shown, and the focused expectation in [src/app/customizing/CustomizingEditorSheet.test.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingEditorSheet.test.tsx:1) was updated accordingly.
+- Verification:
+  - `npx vitest run src/components/StickyAddToCartBar.test.tsx src/app/customizing/CustomizingEditorSheet.test.tsx` passed with `10` tests.
+  - `npx eslint src/components/StickyAddToCartBar.tsx src/components/StickyAddToCartBar.test.tsx src/app/customizing/CustomizingEditorSheet.tsx src/app/customizing/CustomizingEditorSheet.test.tsx src/app/customizing/stickyBarLayout.ts` reported `0` errors and the same existing warnings only.
+
 ## Lower Customizing Availability Bar
 
 ### Plan
