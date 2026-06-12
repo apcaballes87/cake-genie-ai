@@ -3383,6 +3383,17 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         return () => desktopSidebarScroll.removeEventListener('wheel', handleSidebarWheel);
     }, []);
 
+    const hasPrintoutConversion = useMemo(() => {
+        if (!mainToppers || !supportElements) return false;
+        const topperConverted = mainToppers.some(
+            (t) => t.isEnabled && t.type === 'printout' && t.original_type && t.original_type !== 'printout'
+        );
+        const elementConverted = supportElements.some(
+            (s) => s.isEnabled && s.type === 'support_printout' && s.original_type && s.original_type !== 'support_printout'
+        );
+        return topperConverted || elementConverted;
+    }, [mainToppers, supportElements]);
+
     const showStickyBar = finalPrice !== null || !!basePriceError || isAnalyzing || hasPendingVisualChanges || isUpdatingDesign;
     const isStudioBackgroundEditingPending = Boolean(
         originalImagePreview
@@ -3832,6 +3843,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     hideStickyBar={hideStickyBar}
                     hideAiChat={hideAiChat}
                     showAvailabilityOffset={!hideStickyBar && Boolean(availabilityType) && !isAnalyzing}
+                    showPrintoutOffset={!hideStickyBar && hasPrintoutConversion && !isAnalyzing}
                     hasCakeInfoChanges={dirtyFields.has('cakeInfo')}
                     hasPendingVisualChanges={hasPendingVisualChanges}
                     isUpdatingDesign={isUpdatingDesign}
@@ -4003,6 +4015,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     // isBlurred={isPreSelectionModalOpen}
                     cakeInfo={cakeInfo}
                     availability={hideStickyBar ? undefined : availabilityType}
+                    hasPrintoutConversion={hideStickyBar ? false : hasPrintoutConversion}
                     hasPendingDesignChanges={hideStickyBar ? false : hasPendingVisualChanges}
                     onApplyChangesClick={handleApplyPendingDesignChanges}
                     isApplyingChanges={hideStickyBar ? false : isUpdatingDesign}

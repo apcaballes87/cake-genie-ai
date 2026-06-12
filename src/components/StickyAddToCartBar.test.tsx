@@ -5,6 +5,7 @@ import StickyAddToCartBar from './StickyAddToCartBar';
 import {
     STICKY_ADD_TO_CART_AVAILABILITY_OVERLAP_PX,
     STICKY_ADD_TO_CART_AVAILABILITY_VERTICAL_PADDING_PX,
+    STICKY_ADD_TO_CART_PRINTOUT_OVERLAP_PX,
 } from '@/app/customizing/stickyBarLayout';
 
 vi.mock('./ShareButton', () => ({
@@ -72,7 +73,7 @@ describe('StickyAddToCartBar', () => {
         const { container } = render(<StickyAddToCartBar {...props} />);
 
         const stickyBar = container.querySelector('[data-sticky-add-to-cart-bar]');
-        const availabilityWrapper = stickyBar?.querySelector('.grid > div');
+        const availabilityWrapper = stickyBar?.querySelector('[data-availability-wrapper]');
 
         expect(availabilityWrapper).toHaveStyle({ marginBottom: `-${STICKY_ADD_TO_CART_AVAILABILITY_OVERLAP_PX}px` });
     });
@@ -87,26 +88,12 @@ describe('StickyAddToCartBar', () => {
         const notificationBody = availability.parentElement;
 
         expect(notificationBody).toHaveStyle({
-            paddingTop: `${STICKY_ADD_TO_CART_AVAILABILITY_VERTICAL_PADDING_PX}px`,
+            paddingTop: '2px',
             paddingBottom: `${STICKY_ADD_TO_CART_AVAILABILITY_VERTICAL_PADDING_PX}px`,
         });
     });
 
-    it('nudges the same-day availability text up by 2px without changing the row padding', () => {
-        const props = buildProps();
-        props.availability = 'same-day';
-
-        render(<StickyAddToCartBar {...props} />);
-
-        const sameDayText = screen.getByText('Same-Day Order! Ready in 3 hours');
-
-        expect(sameDayText).toHaveStyle({
-            transform: 'translateY(-2px)',
-            display: 'inline-block',
-        });
-    });
-
-    it('keeps the availability notification layer above the main add-to-cart bar', () => {
+    it('keeps the availability notification layer below the main add-to-cart bar', () => {
         const props = buildProps();
         props.availability = 'same-day';
 
@@ -116,7 +103,22 @@ describe('StickyAddToCartBar', () => {
         const notificationGrid = stickyBar?.querySelector('.grid');
         const mainBar = stickyBar?.querySelector('.backdrop-blur-lg');
 
-        expect(notificationGrid).toHaveClass('relative', 'z-10');
-        expect(mainBar).toHaveClass('relative', 'z-0');
+        expect(notificationGrid).toHaveClass('relative', 'z-0');
+        expect(mainBar).toHaveClass('relative', 'z-10');
+    });
+
+    it('renders the printout warning bar when hasPrintoutConversion is true', () => {
+        const props = buildProps();
+        props.hasPrintoutConversion = true;
+
+        const { container } = render(<StickyAddToCartBar {...props} />);
+
+        const warningText = screen.getByText('Topper changed to printout');
+        expect(warningText).toBeDefined();
+
+        const stickyBar = container.querySelector('[data-sticky-add-to-cart-bar]');
+        const printoutWrapper = stickyBar?.querySelector('[data-printout-wrapper]');
+
+        expect(printoutWrapper).toHaveStyle({ marginBottom: `-${STICKY_ADD_TO_CART_PRINTOUT_OVERLAP_PX}px` });
     });
 });

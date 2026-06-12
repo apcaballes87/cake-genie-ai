@@ -12,6 +12,7 @@ import { DiscountOfferBubble } from './DiscountOfferBubble';
 import {
     STICKY_ADD_TO_CART_AVAILABILITY_OVERLAP_PX,
     STICKY_ADD_TO_CART_AVAILABILITY_VERTICAL_PADDING_PX,
+    STICKY_ADD_TO_CART_PRINTOUT_OVERLAP_PX,
 } from '@/app/customizing/stickyBarLayout';
 
 // --- Sticky Add to Cart Bar ---
@@ -38,6 +39,7 @@ interface StickyAddToCartBarProps {
     applyChangesLabel?: string;
     ediblePhotoAddonNote?: boolean;
     isBlurred?: boolean;
+    hasPrintoutConversion?: boolean;
 }
 
 const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
@@ -62,11 +64,12 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     isApplyingChanges = false,
     ediblePhotoAddonNote = false,
     isBlurred = false,
+    hasPrintoutConversion = false,
 }) => {
-    const show = Boolean(price !== null || error || isAnalyzing || hasPendingDesignChanges || isApplyingChanges || availability);
-
     const showAvailability = Boolean(availability && !isAnalyzing && !error);
-    const hasTopNotification = !error && showAvailability && Boolean(availability);
+    const showPrintoutNotification = Boolean(hasPrintoutConversion && !isAnalyzing && !error);
+    const hasTopNotification = !error && (showAvailability || showPrintoutNotification);
+    const show = Boolean(price !== null || error || isAnalyzing || hasPendingDesignChanges || isApplyingChanges || availability || hasPrintoutConversion);
     const addToCartDisabledReason = isAnalyzing
         ? 'Wait for analysis to finish before buying'
         : isLoading
@@ -170,19 +173,15 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
         if (!availability || !showAvailability) return null;
 
         const notificationBodyStyle = {
-            paddingTop: `${STICKY_ADD_TO_CART_AVAILABILITY_VERTICAL_PADDING_PX}px`,
+            paddingTop: '2px',
             paddingBottom: `${STICKY_ADD_TO_CART_AVAILABILITY_VERTICAL_PADDING_PX}px`,
-        } satisfies React.CSSProperties;
-        const sameDayTextStyle = {
-            transform: 'translateY(-2px)',
-            display: 'inline-block',
         } satisfies React.CSSProperties;
 
         if (availability === 'rush') {
             return (
                 <div className="bg-green-100 rounded-t-2xl">
                     <div
-                        className="max-w-4xl mx-auto flex items-center justify-center gap-2 px-1 text-green-800 text-[10px] sm:text-[11px] font-bold"
+                        className="max-w-4xl mx-auto flex items-start justify-center gap-2 px-1 text-green-800 text-[10px] sm:text-[11px] font-bold"
                         style={notificationBodyStyle}
                     >
                         <span>⚡</span>
@@ -195,11 +194,11 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
             return (
                 <div className="bg-blue-100 rounded-t-2xl">
                     <div
-                        className="max-w-4xl mx-auto flex items-center justify-center gap-2 px-1 text-blue-800 text-[10px] sm:text-[11px] font-bold"
+                        className="max-w-4xl mx-auto flex items-start justify-center gap-2 px-1 text-blue-800 text-[10px] sm:text-[11px] font-bold"
                         style={notificationBodyStyle}
                     >
                         <span>🕐</span>
-                        <span style={sameDayTextStyle}>Same-Day Order! Ready in 3 hours</span>
+                        <span>Same-Day Order! Ready in 3 hours</span>
                     </div>
                 </div>
             );
@@ -208,7 +207,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
             return (
                 <div className="bg-slate-100 rounded-t-2xl">
                     <div
-                        className="max-w-4xl mx-auto flex items-center justify-center gap-2 px-1 text-slate-700 text-[10px] sm:text-[11px] font-bold"
+                        className="max-w-4xl mx-auto flex items-start justify-center gap-2 px-1 text-slate-700 text-[10px] sm:text-[11px] font-bold"
                         style={notificationBodyStyle}
                     >
                         <span>📅</span>
@@ -220,10 +219,32 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
         return null;
     };
 
+    const renderPrintoutNotification = () => {
+        if (!hasPrintoutConversion || !showPrintoutNotification) return null;
+
+        const notificationBodyStyle = {
+            paddingTop: '2px',
+            paddingBottom: `${STICKY_ADD_TO_CART_AVAILABILITY_VERTICAL_PADDING_PX}px`,
+        } satisfies React.CSSProperties;
+
+        return (
+            <div className="bg-red-100 rounded-t-2xl">
+                <div
+                    className="max-w-4xl mx-auto flex items-start justify-center gap-2 px-1 text-red-800 text-[10px] sm:text-[11px] font-bold"
+                    style={notificationBodyStyle}
+                >
+                    <span>⚠️</span>
+                    <span>Topper changed to printout</span>
+                </div>
+            </div>
+        );
+    };
+
     const bottomNotificationColor =
         showAvailability && availability === 'rush' ? 'bg-green-100' :
         showAvailability && availability === 'same-day' ? 'bg-blue-100' :
-        showAvailability && availability === 'normal' ? 'bg-slate-100' : '';
+        showAvailability && availability === 'normal' ? 'bg-slate-100' :
+        showPrintoutNotification ? 'bg-red-100' : '';
 
     const notificationBridgeColor = bottomNotificationColor;
 
@@ -233,21 +254,33 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
             className={`fixed bottom-0 left-0 right-0 z-90 pointer-events-none transition-transform duration-300 ease-in-out ${show ? 'translate-y-0' : 'translate-y-full'} ${className || ''}`}
         >
             <div className={`pointer-events-auto transition-all duration-300 max-w-4xl mx-auto w-full ${isBlurred ? 'blur-[2px] opacity-50 pointer-events-none' : ''}`}>
-                {/* Top Section: Warnings & Availability */}
-                <div className={`relative z-10 grid transition-[grid-template-rows,opacity] duration-500 ease-in-out ${hasTopNotification ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                {/* Red Bar Section: Printout Conversion Warning (placed behind availability, so it comes first in DOM) */}
+                <div className={`relative z-0 grid transition-[grid-template-rows,opacity] duration-500 ease-in-out ${showPrintoutNotification ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                     <div
+                        data-printout-wrapper
                         className="relative overflow-visible"
-                        style={hasTopNotification ? { marginBottom: `-${STICKY_ADD_TO_CART_AVAILABILITY_OVERLAP_PX}px` } : undefined}
+                        style={showPrintoutNotification ? { marginBottom: `-${STICKY_ADD_TO_CART_PRINTOUT_OVERLAP_PX}px` } : undefined}
+                    >
+                        {renderPrintoutNotification()}
+                    </div>
+                </div>
+
+                {/* Top Section: Warnings & Availability */}
+                <div className={`relative z-0 grid transition-[grid-template-rows,opacity] duration-500 ease-in-out ${showAvailability ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                    <div
+                        data-availability-wrapper
+                        className="relative overflow-visible"
+                        style={showAvailability ? { marginBottom: `-${STICKY_ADD_TO_CART_AVAILABILITY_OVERLAP_PX}px` } : undefined}
                     >
                         {renderAvailabilityNotification()}
                     </div>
                 </div>
                 {/* Bridge: 16px of matching color outside overflow-hidden, fills the transparent
                     rounded-corner area at the top of the main bar (border-radius = 1rem = 16px) */}
-                <div className={`h-4 transition-opacity duration-500 ease-in-out ${hasTopNotification ? 'opacity-100' : 'opacity-0'} ${notificationBridgeColor}`} />
+                <div className={`h-4 rounded-t-2xl transition-opacity duration-500 ease-in-out ${hasTopNotification ? 'opacity-100' : 'opacity-0'} ${notificationBridgeColor}`} />
 
                 {/* Bottom Section: Main Action Bar */}
-                <div className={`relative z-0 bg-white/80 backdrop-blur-lg px-3 pt-3 pb-[calc(20px+env(safe-area-inset-bottom))] rounded-t-2xl shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.1)] ${hasTopNotification ? 'border-t border-transparent' : 'border-t border-slate-200'} transition-all duration-300`}>
+                <div className={`relative z-10 bg-white/80 backdrop-blur-lg px-3 pt-3 pb-[calc(20px+env(safe-area-inset-bottom))] rounded-t-2xl shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.1)] ${hasTopNotification ? 'border-t border-transparent' : 'border-t border-slate-200'} transition-all duration-300`}>
                     <div className="max-w-4xl mx-auto flex justify-between items-center gap-4">
                         <div className="min-w-[80px] min-h-[48px] flex items-center">
                             <div className="relative">

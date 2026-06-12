@@ -7,6 +7,7 @@ import { MagicSparkleIcon } from '../../components/icons';
 import {
     STICKY_ADD_TO_CART_AVAILABILITY_OFFSET_PX,
     STICKY_ADD_TO_CART_BASE_OFFSET_PX,
+    STICKY_ADD_TO_CART_PRINTOUT_OFFSET_PX,
 } from './stickyBarLayout';
 
 interface CustomizingEditorSheetProps {
@@ -14,6 +15,7 @@ interface CustomizingEditorSheetProps {
     activeCustomization: string | null;
     activeTopperSection: 'main' | 'support' | null;
     showAvailabilityOffset: boolean;
+    showPrintoutOffset: boolean;
     hasCakeInfoChanges: boolean;
     hasPendingVisualChanges: boolean;
     isUpdatingDesign: boolean;
@@ -46,6 +48,7 @@ export const CustomizingEditorSheet = memo(function CustomizingEditorSheet({
     activeCustomization,
     activeTopperSection,
     showAvailabilityOffset,
+    showPrintoutOffset,
     hasCakeInfoChanges,
     hasPendingVisualChanges,
     isUpdatingDesign,
@@ -61,7 +64,9 @@ export const CustomizingEditorSheet = memo(function CustomizingEditorSheet({
     const title = getEditorTitle(activeCustomization, activeTopperSection);
     const bottomOffset = hideStickyBar
         ? 0
-        : STICKY_ADD_TO_CART_BASE_OFFSET_PX + (showAvailabilityOffset ? STICKY_ADD_TO_CART_AVAILABILITY_OFFSET_PX : 0);
+        : STICKY_ADD_TO_CART_BASE_OFFSET_PX 
+          + (showAvailabilityOffset ? STICKY_ADD_TO_CART_AVAILABILITY_OFFSET_PX : 0)
+          + (showPrintoutOffset ? STICKY_ADD_TO_CART_PRINTOUT_OFFSET_PX : 0);
 
     const isOptionsSheet = activeCustomization === 'options';
     const isVisualSheet = activeCustomization === 'icing' || activeCustomization === 'messages' || activeCustomization === 'toppers' || activeCustomization === 'photos';
