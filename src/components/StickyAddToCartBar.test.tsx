@@ -2,6 +2,7 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi, beforeAll } from 'vitest';
 import StickyAddToCartBar from './StickyAddToCartBar';
+import { STICKY_ADD_TO_CART_AVAILABILITY_OVERLAP_PX } from '@/app/customizing/stickyBarLayout';
 
 vi.mock('./ShareButton', () => ({
     ShareButton: ({ onClick }: { onClick: () => void }) => <button onClick={onClick}>share</button>,
@@ -59,5 +60,17 @@ describe('StickyAddToCartBar', () => {
 
         expect(warning).toBeNull();
         expect(availability).toBeDefined();
+    });
+
+    it('pulls the availability bar down by the shared overlap offset', () => {
+        const props = buildProps();
+        props.availability = 'normal';
+
+        const { container } = render(<StickyAddToCartBar {...props} />);
+
+        const stickyBar = container.querySelector('[data-sticky-add-to-cart-bar]');
+        const availabilityWrapper = stickyBar?.querySelector('.grid > div');
+
+        expect(availabilityWrapper).toHaveStyle({ marginBottom: `-${STICKY_ADD_TO_CART_AVAILABILITY_OVERLAP_PX}px` });
     });
 });

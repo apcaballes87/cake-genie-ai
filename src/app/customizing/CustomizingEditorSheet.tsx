@@ -4,6 +4,10 @@ import { memo, type ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
 import { CustomizationBottomSheet } from '../../components/CustomizationBottomSheet';
 import { MagicSparkleIcon } from '../../components/icons';
+import {
+    STICKY_ADD_TO_CART_AVAILABILITY_OFFSET_PX,
+    STICKY_ADD_TO_CART_BASE_OFFSET_PX,
+} from './stickyBarLayout';
 
 interface CustomizingEditorSheetProps {
     isOpen: boolean;
@@ -55,11 +59,9 @@ export const CustomizingEditorSheet = memo(function CustomizingEditorSheet({
     children,
 }: CustomizingEditorSheetProps) {
     const title = getEditorTitle(activeCustomization, activeTopperSection);
-    // Base matches StickyAddToCartBar spacer height: 72px (no AI chat) or 114px (with AI chat)
-    const baseOffset = 72;
     const bottomOffset = hideStickyBar
         ? 0
-        : baseOffset + (showAvailabilityOffset ? 32 : 0);
+        : STICKY_ADD_TO_CART_BASE_OFFSET_PX + (showAvailabilityOffset ? STICKY_ADD_TO_CART_AVAILABILITY_OFFSET_PX : 0);
 
     const isOptionsSheet = activeCustomization === 'options';
     const isVisualSheet = activeCustomization === 'icing' || activeCustomization === 'messages' || activeCustomization === 'toppers' || activeCustomization === 'photos';

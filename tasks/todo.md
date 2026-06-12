@@ -1,5 +1,22 @@
 # Tasks
 
+## Lower Customizing Availability Bar
+
+### Plan
+
+- [x] Trace the sticky availability bar and any dependent bottom-sheet spacing on `/customizing`.
+- [x] Move the availability bar down by about `12px` without shifting the main add-to-cart bar.
+- [x] Update focused tests/offset expectations and verify the sticky layout contract.
+
+### Review
+
+- Lowered the sticky availability notification by overlapping it `12px` into the main add-to-cart bar in [src/components/StickyAddToCartBar.tsx](/Users/apcaballes/genieph-nextjs/src/components/StickyAddToCartBar.tsx:1), instead of moving the whole sticky bar.
+- Added shared layout constants in [src/app/customizing/stickyBarLayout.ts](/Users/apcaballes/genieph-nextjs/src/app/customizing/stickyBarLayout.ts:1) so the editor sheet and sticky bar use the same spacing contract.
+- Updated [src/app/customizing/CustomizingEditorSheet.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingEditorSheet.tsx:1) to use the shared offsets, which changes the sheet clearance from `104px` to `92px` when the availability bar is visible.
+- Verification:
+  - `npx vitest run src/components/StickyAddToCartBar.test.tsx src/app/customizing/CustomizingEditorSheet.test.tsx` passed with `9` tests.
+  - `npx eslint src/components/StickyAddToCartBar.tsx src/components/StickyAddToCartBar.test.tsx src/app/customizing/CustomizingEditorSheet.tsx src/app/customizing/CustomizingEditorSheet.test.tsx src/app/customizing/stickyBarLayout.ts` reported `0` errors and existing warnings only.
+
 ## Advance Mobile Hero Carousel On Scroll
 
 ### Plan
