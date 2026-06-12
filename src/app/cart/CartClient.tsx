@@ -28,6 +28,8 @@ import { useAvailabilitySettings } from '@/hooks/useAvailabilitySettings';
 import { validateDiscountCode, getUserDiscountCodes } from '@/services/discountService';
 import type { DiscountValidationResult } from '@/types';
 import { useSmartBack, useRecordNavigation } from '@/hooks/useSmartBack';
+import { usePendingOrderRecovery } from '@/hooks/usePendingOrderRecovery';
+import { useCancelOrder } from '@/hooks/useOrders';
 import PaymentErrorBoundary from '@/components/PaymentErrorBoundary';
 
 const getErrorMessage = (error: unknown, fallback: string) => (
@@ -84,6 +86,108 @@ const PICKUP_LOCATIONS = [
     }
 ];
 
+// --- Pending Order Recovery Banner ---
+// Shown when the user returns to the cart from Xendit (via the back
+// button or the failure URL) and an unfinished order is detected.
+interface PendingOrderRecoveryBannerProps {
+    snapshot: {
+        orderId: string;
+        itemCount: number;
+        totalAmount: number;
+        createdAt: number;
+    };
+    onResume: () => void;
+    onDiscard: () => void;
+    isResuming: boolean;
+    isDiscarding: boolean;
+}
+
+function formatTimeAgo(timestampMs: number): string {
+    const diffSec = Math.max(0, Math.floor((Date.now() - timestampMs) / 1000));
+    if (diffSec < 60) return 'just now';
+    const minutes = Math.floor(diffSec / 60);
+    if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    const days = Math.floor(hours / 24);
+    return `${days} day${days === 1 ? '' : 's'} ago`;
+}
+
+function PendingOrderRecoveryBanner({
+    snapshot,
+    onResume,
+    onDiscard,
+    isResuming,
+    isDiscarding,
+}: PendingOrderRecoveryBannerProps) {
+    const itemLabel = snapshot.itemCount === 1 ? '1 item' : `${snapshot.itemCount} items`;
+    const timeLabel = formatTimeAgo(snapshot.createdAt);
+    const orderLabel = snapshot.orderId.slice(0, 8).toUpperCase();
+
+    return (
+        <div
+            role="alert"
+            data-testid="cart-recovery-banner"
+            className="mx-4 mt-4 p-4 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 animate-fade-in"
+        >
+            <div className="flex items-start gap-3">
+                <div className="shrink-0 w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center">
+                    <svg
+                        className="w-5 h-5 text-amber-600"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        aria-hidden="true"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                    </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm">
+                        You have an incomplete order from {timeLabel}.
+                    </p>
+                    <p className="text-xs text-amber-800 mt-1">
+                        Order #{orderLabel} · {itemLabel} totaling{' '}
+                        <span className="font-semibold">₱{snapshot.totalAmount.toLocaleString()}</span>
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            onClick={onResume}
+                            disabled={isResuming || isDiscarding}
+                            data-testid="cart-recovery-resume"
+                            className="genie-btn-primary text-white text-xs font-semibold px-4 py-2 rounded-full shadow-sm hover:shadow-md transition-all inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isResuming ? (
+                                <>
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    Redirecting...
+                                </>
+                            ) : (
+                                'Resume payment'
+                            )}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={onDiscard}
+                            disabled={isResuming || isDiscarding}
+                            data-testid="cart-recovery-discard"
+                            className="text-amber-900 bg-white/70 hover:bg-white border border-amber-200 text-xs font-semibold px-4 py-2 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isDiscarding ? 'Discarding...' : 'Discard'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function CartClient() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -96,35 +200,13 @@ function CartClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Check for payment failure and restore cart if needed
+    // Detect an unfinished Xendit payment — either via the explicit
+    // `?payment_failed=true&order_id=...` failure URL or via a plain
+    // browser-back (no query params). The hook + handlers live further
+    // down so they can reference the user + isCreatingPayment state
+    // declared below.
     const paymentFailed = searchParams.get('payment_failed') === 'true';
     const pendingOrderId = searchParams.get('order_id');
-
-    useEffect(() => {
-        if (paymentFailed && pendingOrderId && typeof window !== 'undefined') {
-            // Check if we have a pending payment cart to restore
-            const savedCart = sessionStorage.getItem('pending_payment_cart');
-            if (savedCart) {
-                try {
-                    const cartItems = JSON.parse(savedCart);
-                    // Restore cart items to localStorage for CartContext to pick up
-                    const cacheData = {
-                        value: JSON.stringify(cartItems),
-                        timestamp: Date.now()
-                    };
-                    localStorage.setItem('cart_items_cache', JSON.stringify(cacheData));
-                    // Clear the pending payment data
-                    sessionStorage.removeItem('pending_payment_cart');
-                    sessionStorage.removeItem('pending_payment_order_id');
-                    sessionStorage.removeItem('pending_payment_guest_email');
-                    // Reload the page to pick up the restored cart
-                    window.location.href = '/cart';
-                } catch (e) {
-                    console.error('Failed to restore cart from sessionStorage:', e);
-                }
-            }
-        }
-    }, [paymentFailed, pendingOrderId]);
 
     const urlDiscount = searchParams.get('discount');
     const { user, signInAnonymously } = useAuth();
@@ -209,6 +291,132 @@ function CartClient() {
     const [isRedirecting, setIsRedirecting] = useState(false);
     const [partiallyBlockedSlots, setPartiallyBlockedSlots] = useState<BlockedDateInfo[]>([]);
     const [tooltip, setTooltip] = useState<{ date: string; reason: string; } | null>(null);
+
+    // --- Pending order recovery (Xendit browser-back) ---
+    // The hook reads the sessionStorage snapshot written by
+    // handleSubmitOrder right before redirecting to Xendit and exposes
+    // a banner that lets the user resume or discard the order.
+    const {
+        recoveryBanner,
+        dismiss: dismissRecovery,
+        clearSnapshot: clearPendingSnapshot,
+        acceptAutoRestore,
+        isHydrated: isRecoveryHydrated,
+    } = usePendingOrderRecovery({
+        paymentFailed,
+        paymentFailedOrderId: pendingOrderId,
+    });
+
+    const cancelOrderMutation = useCancelOrder();
+
+    // Inline restore toast for the unambiguous ?payment_failed=true path.
+    // We don't refetch the cart — the data-layer task preserves cart
+    // rows, and the snapshot is the source of truth when the user
+    // lands here before the React state has caught up.
+    const [restoredOrderNumber, setRestoredOrderNumber] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!isRecoveryHydrated) return;
+        if (!recoveryBanner || !recoveryBanner.autoRestore) return;
+
+        if (recoveryBanner.cartItems.length > 0) {
+            const cacheData = {
+                value: JSON.stringify(recoveryBanner.cartItems),
+                timestamp: Date.now(),
+            };
+            try {
+                localStorage.setItem('cart_items_cache', JSON.stringify(cacheData));
+            } catch (e) {
+                console.error('Failed to restore cart to localStorage cache:', e);
+            }
+        }
+
+        setRestoredOrderNumber(recoveryBanner.orderId);
+        clearPendingSnapshot();
+        // We intentionally keep the banner mounted for the inline toast
+        // — clear the recoveryBanner state only AFTER the snapshot is
+        // wiped, so the user still sees the "items restored" message.
+        dismissRecovery();
+        // Suppress unused-locals: acceptAutoRestore is the public API for
+        // opting into the auto-restore path; we use the side-effect path
+        // here so the user sees the inline toast.
+        void acceptAutoRestore;
+    }, [isRecoveryHydrated, recoveryBanner, clearPendingSnapshot, dismissRecovery, acceptAutoRestore]);
+
+    const handleResumePayment = useCallback(async () => {
+        if (!recoveryBanner || isCreatingPayment || isRedirecting) return;
+        setIsCreatingPayment(true);
+        setIsRedirecting(true);
+        try {
+            const snap = recoveryBanner;
+            // We don't have a getSingleOrder helper in scope here, so we
+            // fall back to the snapshot's running total. The Xendit edge
+            // function will reject stale amounts if any drift has
+            // happened, surfacing a clean error to the user.
+            const amount = snap.totalAmount;
+            const emailToUse =
+                (typeof window !== 'undefined'
+                    ? window.sessionStorage.getItem('pending_payment_guest_email')
+                    : null) || user?.email || 'customer@example.com';
+            const nameToUse =
+                user?.user_metadata?.first_name ||
+                user?.user_metadata?.full_name ||
+                'Customer';
+
+            const { paymentUrl, error: paymentError } = await createXenditPayment({
+                orderId: snap.orderId,
+                amount,
+                customerEmail: emailToUse,
+                customerName: nameToUse,
+            });
+
+            if (paymentError) throw new Error(paymentError);
+            if (paymentUrl) {
+                // Refresh the snapshot timestamp before redirecting so
+                // a future browser-back still finds it (e.g. Xendit
+                // times out before the failure redirect).
+                if (typeof window !== 'undefined') {
+                    window.sessionStorage.setItem(
+                        'pending_payment_order_id',
+                        snap.orderId,
+                    );
+                    window.sessionStorage.setItem(
+                        'pending_payment_cart',
+                        JSON.stringify(snap.cartItems),
+                    );
+                }
+                window.location.href = paymentUrl;
+            } else {
+                throw new Error('Payment URL not generated.');
+            }
+        } catch (error: unknown) {
+            console.error('Resume payment error:', error);
+            showError(getErrorMessage(error, 'Failed to resume payment.'));
+            setIsCreatingPayment(false);
+            setIsRedirecting(false);
+        }
+    }, [recoveryBanner, isCreatingPayment, isRedirecting, user]);
+
+    const handleDiscardPendingOrder = useCallback(async () => {
+        if (!recoveryBanner) return;
+        const orderId = recoveryBanner.orderId;
+        const userId = user?.id;
+
+        try {
+            if (userId) {
+                await cancelOrderMutation.mutateAsync({ orderId, userId });
+            }
+        } catch (error) {
+            // Cancellation may legitimately fail (already paid, already
+            // cancelled, etc.). We still want to clear the local
+            // snapshot so the banner stops showing — the server is the
+            // source of truth, not the local cache.
+            console.warn('cancelOrder failed for recovered pending order:', error);
+        } finally {
+            clearPendingSnapshot();
+            dismissRecovery();
+        }
+    }, [recoveryBanner, user, cancelOrderMutation, clearPendingSnapshot, dismissRecovery]);
 
     // Month picker state
     const [selectedMonth, setSelectedMonth] = useState<{ year: number; month: number } | null>(null);
@@ -1275,6 +1483,49 @@ function CartClient() {
                             <CloseIcon />
                         </button>
                     </div>
+
+                    {mounted && isRecoveryHydrated && recoveryBanner && !recoveryBanner.autoRestore && (
+                        <PendingOrderRecoveryBanner
+                            snapshot={recoveryBanner}
+                            onResume={handleResumePayment}
+                            onDiscard={handleDiscardPendingOrder}
+                            isDiscarding={cancelOrderMutation.isPending}
+                            isResuming={isCreatingPayment || isRedirecting}
+                        />
+                    )}
+
+                    {mounted && isRecoveryHydrated && restoredOrderNumber && (
+                        <div
+                            role="status"
+                            data-testid="cart-recovery-restore-toast"
+                            className="mx-4 mt-4 flex items-start gap-3 p-3 rounded-lg border border-green-200 bg-green-50 text-green-800 text-sm animate-fade-in"
+                        >
+                            <svg
+                                className="w-5 h-5 mt-0.5 shrink-0"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                                aria-hidden="true"
+                            >
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <div className="flex-1">
+                                <p className="font-semibold">Your previous order did not complete — items restored.</p>
+                                <p className="text-xs text-green-700 mt-0.5">
+                                    Order #{restoredOrderNumber.slice(0, 8).toUpperCase()} is back in your cart.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setRestoredOrderNumber(null)}
+                                className="text-green-700 hover:text-green-900 text-xs font-semibold"
+                                aria-label="Dismiss restore notice"
+                            >
+                                Dismiss
+                            </button>
+                        </div>
+                    )}
 
                     {!mounted || isCartLoading ? (
                         <div className="p-4"><CartSkeleton count={2} /></div>

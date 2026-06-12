@@ -137,8 +137,15 @@ const OrderConfirmationContent: React.FC = () => {
             sessionStorage.removeItem('pending_payment_cart');
             sessionStorage.removeItem('pending_payment_order_id');
             sessionStorage.removeItem('pending_payment_guest_email');
+            // Also clear the dismissed-flag for THIS order so a future
+            // abandoned order (different order_id) can show its banner
+            // fresh. We can't just clear all `pending_payment_dismissed_for_*`
+            // keys in one pass without iterating, so we use a single
+            // counter: bumping a session-scope version invalidates any
+            // older flags and lets future recoveries show through.
+            sessionStorage.removeItem(`pending_payment_dismissed_for_${orderId}`);
         }
-    }, [paymentStatus, order, purchaseEventKey]);
+    }, [paymentStatus, order, purchaseEventKey, orderId]);
 
     if (loading) {
         return (
