@@ -173,6 +173,10 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
             paddingTop: `${STICKY_ADD_TO_CART_AVAILABILITY_VERTICAL_PADDING_PX}px`,
             paddingBottom: `${STICKY_ADD_TO_CART_AVAILABILITY_VERTICAL_PADDING_PX}px`,
         } satisfies React.CSSProperties;
+        const sameDayTextStyle = {
+            transform: 'translateY(-2px)',
+            display: 'inline-block',
+        } satisfies React.CSSProperties;
 
         if (availability === 'rush') {
             return (
@@ -195,7 +199,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                         style={notificationBodyStyle}
                     >
                         <span>🕐</span>
-                        <span>Same-Day Order! Ready in 3 hours</span>
+                        <span style={sameDayTextStyle}>Same-Day Order! Ready in 3 hours</span>
                     </div>
                 </div>
             );

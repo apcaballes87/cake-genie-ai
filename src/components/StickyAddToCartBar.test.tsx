@@ -91,4 +91,18 @@ describe('StickyAddToCartBar', () => {
             paddingBottom: `${STICKY_ADD_TO_CART_AVAILABILITY_VERTICAL_PADDING_PX}px`,
         });
     });
+
+    it('nudges the same-day availability text up by 2px without changing the row padding', () => {
+        const props = buildProps();
+        props.availability = 'same-day';
+
+        render(<StickyAddToCartBar {...props} />);
+
+        const sameDayText = screen.getByText('Same-Day Order! Ready in 3 hours');
+
+        expect(sameDayText).toHaveStyle({
+            transform: 'translateY(-2px)',
+            display: 'inline-block',
+        });
+    });
 });
