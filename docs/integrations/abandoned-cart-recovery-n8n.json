@@ -1,0 +1,283 @@
+{
+  "name": "CakeGenie - Abandoned Cart Recovery Workflow (CRUD)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "hours": 1,
+              "minutes": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "schedule-trigger-id",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "cakegenie_eligible_abandoned_carts",
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        200,
+        0
+      ],
+      "id": "supabase-get-eligible-carts-id",
+      "name": "Get Eligible Carts",
+      "credentials": {
+        "supabaseApi": {
+          "id": "replace-with-your-supabase-credential-id",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [
+        450,
+        0
+      ],
+      "id": "split-in-batches-id",
+      "name": "Split In Batches"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "cakegenie_cart",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "user_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.user_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        680,
+        -100
+      ],
+      "id": "supabase-get-cart-items-id",
+      "name": "Get Cart Items",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "replace-with-your-supabase-credential-id",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Get cart items and user details\nconst cartItems = input.all().map(item => item.json);\nconst userData = $('Split In Batches').item.json;\nconst emailType = userData.email_to_send;\nconst firstName = userData.first_name || 'Customer';\nconst recipientEmail = userData.recipient_email;\n\n// Helper function to format currency\nconst formatCurrency = (amount) => {\n  const num = parseFloat(amount) || 0;\n  return '₱' + num.toFixed(2).replace(/\\\\B(?=(\\\\d{3})+(?!\\\\d))/g, ',');\n};\n\n// Check if there are valid items (to handle empty dummy item from alwaysOutputData)\nconst hasValidItems = cartItems && cartItems.length > 0 && cartItems[0].cart_item_id;\n\nif (!hasValidItems) {\n  return [{\n    json: {\n      sendEmail: false,\n      userId: userData.user_id,\n      emailType: emailType\n    }\n  }];\n}\n\n// Build cart items HTML and text\nlet itemsHtml = '';\nlet itemsText = '';\nlet subtotal = 0;\n\nfor (const item of cartItems) {\n  const itemName = \\`\\${item.cake_size || '4\"'} \\${item.cake_type || 'Round'}, \\${item.cake_thickness || '2 in thickness'}\\`;\n  const qty = item.quantity || 1;\n  const price = parseFloat(item.final_price) || 0;\n  const itemTotal = price * qty;\n  subtotal += itemTotal;\n  \n  const imageUrl = item.customized_image_url || item.original_image_url || 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/placeholder-cake.jpg';\n  const flavor = item.customization_details?.flavors?.[0] || item.customization_details?.flavor || 'Custom flavor';\n  \n  itemsHtml += \\`\n  <tr>\n    <td style=\"padding: 12px; border-bottom: 1px solid #ddd;\">\n      <div style=\"display: flex; align-items: center;\">\n        <img src=\"\\${imageUrl}\" alt=\"Cake design\" style=\"width: 80px; height: 80px; object-fit: cover; border-radius: 8px; margin-right: 12px; display: block;\" />\n        <div>\n          <strong>\\${itemName}</strong>\n          <br><small style=\"color: #666;\">Flavor: \\${flavor}</small>\n        </div>\n      </div>\n    </td>\n    <td style=\"padding: 12px; border-bottom: 1px solid #ddd; text-align: center;\">\\${qty}</td>\n    <td style=\"padding: 12px; border-bottom: 1px solid #ddd; text-align: right;\">\\${formatCurrency(price)}</td>\n    <td style=\"padding: 12px; border-bottom: 1px solid #ddd; text-align: right;\">\\${formatCurrency(itemTotal)}</td>\n  </tr>\\`;\n  \n  itemsText += \\`\\${itemName} x \\${qty} - \\${formatCurrency(itemTotal)}\\\\n\\`;\n}\n\n// Tailor email copy based on type (100 min vs 18 hour)\nconst isFirstEmail = emailType === '100_min';\nconst subject = isFirstEmail \n  ? \\`✨ We've saved your custom cake design, \\${firstName}! ✨\\`\n  : \\`🎂 Still thinking about your cake, \\${firstName}? (We saved your cart!)\\`;\n\nconst headerTitle = isFirstEmail\n  ? \\`Your custom design is waiting!\\`\n  : \\`Magical celebrations are just a click away!\\`;\n\nconst introductoryCopy = isFirstEmail\n  ? \\`We noticed you left some custom creations in your cart. Your dream cake is still saved and ready for you to complete!\\`\n  : \\`Don't let your celebrations go without a custom touch! We've saved your custom cake design. Return now to secure your delivery date.\\`;\n\n// Build HTML email\nconst htmlContent = \\`<!DOCTYPE html><html><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1.0'><style>body{font-family:Arial,sans-serif;line-height:1.6;color:#333;margin:0;padding:0}.container{max-width:600px;margin:0 auto;padding:0}.logo-header{text-align:center;padding:30px 20px;background:#fff}.logo-header img{max-width:280px;height:auto;display:block;margin:0 auto}.header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:30px;text-align:center;border-radius:10px 10px 0 0}.content{background:#fff;padding:30px;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 10px 10px}.section{margin:20px 0}.section-title{font-size:18px;font-weight:bold;color:#667eea;margin-bottom:10px;border-bottom:2px solid #667eea;padding-bottom:5px}.footer{text-align:center;padding:20px;color:#666;font-size:14px}.btn-primary{display:inline-block;padding:12px 24px;background:#667eea;color:#ffffff !important;text-decoration:none;font-weight:bold;border-radius:8px;margin:20px 0;text-align:center}</style></head><body><div class='container'><div class='logo-header'><img src='https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/new%20genie%20logo%20long.webp' alt='Genie.ph'></div><div class='header'><h1 style='margin:0;font-size:26px'>\\${headerTitle}</h1></div><div class='content'><p>Hi <strong>\\${firstName}</strong>,</p><p>\\${introductoryCopy}</p><div class='section'><div class='section-title'>🎂 Saved in Your Cart</div>\\\\\\\\n<table style=\"width: 100%; border-collapse: collapse; margin: 20px 0;\">\\\\\\\\n  <thead>\\\\\\\\n    <tr style=\"background-color: #f8f9fa;\">\\\\\\\\n      <th style=\"padding: 12px; border-bottom: 2px solid #dee2e6; text-align: left;\">Item Details</th>\\\\\\\\n      <th style=\"padding: 12px; border-bottom: 2px solid #dee2e6; text-align: center; width: 80px;\">Qty</th>\\\\\\\\n      <th style=\"padding: 12px; border-bottom: 2px solid #dee2e6; text-align: right; width: 100px;\">Price</th>\\\\\\\\n      <th style=\"padding: 12px; border-bottom: 2px solid #dee2e6; text-align: right; width: 100px;\">Total</th>\\\\\\\\n    </tr>\\\\\\\\n  </thead>\\\\\\\\n  <tbody>\\${itemsHtml}\\\\\\\\n  </tbody>\\\\\\\\n  <tfoot>\\\\\\\\n    <tr>\\\\\\\\n      <td colspan=\"3\" style=\"padding: 12px; text-align: right; font-weight: bold; border-top: 2px solid #dee2e6;\">Estimated Subtotal:</td>\\\\\\\\n      <td style=\"padding: 12px; text-align: right; font-weight: bold; border-top: 2px solid #dee2e6; color: #28a745;\">\\${formatCurrency(subtotal)}</td>\\\\\\\\n    </tr>\\\\\\\\n  </tfoot>\\\\\\\\n</table></div>\\\\\\\\n<div style=\"text-align: center;\">\\\\\\\\n  <a href=\"https://genie.ph/cart\" class=\"btn-primary\" style=\"color:#ffffff !important;\">✨ Return and Checkout Now</a>\\\\\\\\n</div><div style='background:#f8f9fa;padding:20px;border-radius:8px;margin:20px 0'><p style='margin:0;font-size:14px;color:#666'><strong>Need assistance?</strong><br>If you run into any issues checking out or have questions about customized designs, reply to this email or contact us at <strong>09089408747</strong>.</p></div><p style='text-align:center;color:#666;margin:0'>From the Genie.ph Team</p></div><div class='footer'><p>This email was sent to \\${recipientEmail} because you have items in your Genie.ph cart.</p><p>© 2025 Genie.ph - Making celebrations magical, one cake at a time ✨</p></div></div></body></html>\\`;\n\nconst textContent = \\`✨ YOUR SAVED CART AT GENIE.PH ✨\\\\n\\\\nHi \\${firstName},\\\\n\\\\n\\${introductoryCopy}\\\\n\\\\n🎂 Items in Your Cart:\\\\n\\${itemsText}\\\\nEstimated Subtotal: \\${formatCurrency(subtotal)}\\\\n\\\\nReturn to your cart to check out here: https://genie.ph/cart\\\\n\\\\nNeed Help?\\\\nReply directly to this email or call us at 09089408747.\\\\n\\\\nFrom the Genie.ph Team\\`;\n\nreturn [{\n  json: {\n    sendEmail: true,\n    recipientEmail: recipientEmail,\n    recipientName: firstName,\n    subject: subject,\n    htmlContent: htmlContent,\n    textContent: textContent,\n    userId: userData.user_id,\n    emailType: emailType\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        -100
+      ],
+      "id": "js-format-emails-id",
+      "name": "Format Abandoned Email"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.sendEmail }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        -100
+      ],
+      "id": "should-send-email-id",
+      "name": "Should Send Email?"
+    },
+    {
+      "parameters": {
+        "from": "Genie PH <orders@mail.genie.ph>",
+        "to": "={{ $json.recipientEmail }}",
+        "subject": "={{ $json.subject }}",
+        "html": "={{ $json.htmlContent }}",
+        "text": "={{ $json.textContent }}",
+        "additionalOptions": {}
+      },
+      "type": "n8n-nodes-resend.resend",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        -150
+      ],
+      "id": "send-email-resend-id",
+      "name": "Send Email",
+      "credentials": {
+        "resendApi": {
+          "id": "bPZBGsOCdbp0ZT76",
+          "name": "Resend account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "cakegenie_abandoned_cart_emails",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $json.userId }}"
+            },
+            {
+              "fieldId": "email_type",
+              "fieldValue": "={{ $json.emailType }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        -150
+      ],
+      "id": "supabase-log-email-id",
+      "name": "Log Sent Email",
+      "credentials": {
+        "supabaseApi": {
+          "id": "replace-with-your-supabase-credential-id",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Eligible Carts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Eligible Carts": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split In Batches": {
+      "main": [
+        [
+          {
+            "node": "Get Cart Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Cart Items": {
+      "main": [
+        [
+          {
+            "node": "Format Abandoned Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Abandoned Email": {
+      "main": [
+        [
+          {
+            "node": "Should Send Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Send Email?": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [
+          {
+            "node": "Log Sent Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Sent Email": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
