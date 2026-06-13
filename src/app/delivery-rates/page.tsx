@@ -1,23 +1,42 @@
-// Triggering clean Vercel rebuild after transient platform deployment error
 import React from 'react';
 import Link from 'next/link';
 import { Truck, MapPin, Search as SearchIcon, AlertCircle } from 'lucide-react';
-import { CITIES_AND_BARANGAYS, getDeliveryFeeByCity } from '@/constants';
+import { CITIES_AND_BARANGAYS } from '@/constants';
+import {
+    getDeliveryFeeByCity,
+    getDeliveryRateCards,
+    getDeliveryRateSummary,
+} from '@/lib/commerce/deliveryRates';
 import { buildMarketingPageMetadata } from '@/lib/utils/metadata';
+
+const DELIVERY_RATE_CARDS = getDeliveryRateCards();
+const {
+    minFee: lowestDeliveryFee,
+    maxFee: highestDeliveryFee,
+    lowestRateCity,
+    highestRateCity,
+} = getDeliveryRateSummary();
+
+const deliveryFeeRangeCopy = lowestDeliveryFee === 0
+    ? `Delivery fees vary by city, from free delivery in ${lowestRateCity} up to ₱${highestDeliveryFee} for ${highestRateCity}.`
+    : `Delivery fees vary by city, starting at ₱${lowestDeliveryFee} in ${lowestRateCity} up to ₱${highestDeliveryFee} for ${highestRateCity}.`;
+
+const SERVICE_CITY_COUNT = DELIVERY_RATE_CARDS.length;
+const topLevelDescription = `${deliveryFeeRangeCopy} Check rates and covered barangays before checkout.`;
 
 export const metadata = buildMarketingPageMetadata({
     title: 'Delivery Rates and Covered Areas in Cebu',
-    description: 'Find out the delivery fees and serviceable areas for Genie.ph in Cebu. We deliver fresh custom cakes to Cebu City, Mandaue, Lapu-Lapu, Talisay, Consolacion, Cordova, and Liloan.',
+    description: topLevelDescription,
     canonicalPath: 'https://genie.ph/delivery-rates',
 });
 
 const SEO_CONTENT = {
     title: "Delivery Rates & Serviceable Areas",
-    description: "At Cake Genie, we strive to make receiving your dream cake as seamless and affordable as possible. Our delivery fees are calculated based on your city within Metro Cebu. Check our rates and covered barangays below.",
+    description: "At Cake Genie, we use the same city-based delivery fee table on this page that powers checkout. Review the current range, then check your covered barangay below.",
     faqs: [
         {
             question: "How much is the delivery fee?",
-            answer: "Delivery fees vary by city, starting at ₱100 for Cebu City up to ₱400 for Liloan. The exact fee is automatically calculated during checkout when you pin your location on our Google Maps modal."
+            answer: `${deliveryFeeRangeCopy} The exact fee is automatically calculated during checkout when you pin your location on our Google Maps modal.`
         },
         {
             question: "How is the delivery fee calculated?",
@@ -34,15 +53,9 @@ const SEO_CONTENT = {
     ]
 };
 
-const DELIVERY_RATES = [
-    { city: 'Cebu City', rate: getDeliveryFeeByCity('Cebu City') },
-    { city: 'Mandaue City', rate: getDeliveryFeeByCity('Mandaue City') },
-    { city: 'Lapu-Lapu City', rate: getDeliveryFeeByCity('Lapu-Lapu City') },
-    { city: 'Talisay City', rate: getDeliveryFeeByCity('Talisay City') },
-    { city: 'Consolacion', rate: getDeliveryFeeByCity('Consolacion') },
-    { city: 'Cordova', rate: getDeliveryFeeByCity('Cordova') },
-    { city: 'Liloan', rate: 400 }, // Hardcoded here as an example if it's not strictly in constants but known, else get from constant if available. The constant returns 0 for Liloan if not defined, but the implementation plan says Liloan is ₱400. In constants.ts, getDeliveryFeeByCity('Liloan') actually returns 400.
-];
+function formatDeliveryFee(rate: number): string {
+    return rate === 0 ? 'Free' : `₱${rate}`;
+}
 
 export default function DeliveryRatesPage() {
     return (
@@ -61,7 +74,28 @@ export default function DeliveryRatesPage() {
                         <p className="text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
                             {SEO_CONTENT.description}
                         </p>
+                        <p className="mt-3 text-base font-medium text-slate-700">
+                            {deliveryFeeRangeCopy}
+                        </p>
                     </div>
+
+                    <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <div className="rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm">
+                            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Coverage</div>
+                            <div className="mt-2 text-2xl font-bold text-slate-900">{SERVICE_CITY_COUNT} cities</div>
+                            <div className="mt-1 text-sm text-slate-600">Metro Cebu service areas listed below</div>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm">
+                            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Lowest Rate</div>
+                            <div className="mt-2 text-2xl font-bold text-slate-900">{formatDeliveryFee(lowestDeliveryFee)}</div>
+                            <div className="mt-1 text-sm text-slate-600">Currently in {lowestRateCity}</div>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm">
+                            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Highest Rate</div>
+                            <div className="mt-2 text-2xl font-bold text-slate-900">{formatDeliveryFee(highestDeliveryFee)}</div>
+                            <div className="mt-1 text-sm text-slate-600">Currently in {highestRateCity}</div>
+                        </div>
+                    </section>
 
                     {/* How it Works Section */}
                     <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 mb-12">
@@ -75,6 +109,9 @@ export default function DeliveryRatesPage() {
                                     You don&apos;t need to guess! When you check out, simply pin your location on our <strong>interactive Google Map</strong>.
                                     Our system will instantly detect your city and automatically apply the correct flat delivery rate to your order total.
                                 </p>
+                                <p className="mt-3 text-sm text-slate-500">
+                                    The numbers shown on this page are pulled from the same delivery fee table used at checkout.
+                                </p>
                             </div>
                         </div>
                     </section>
@@ -83,10 +120,10 @@ export default function DeliveryRatesPage() {
                     <section className="mb-16">
                         <h2 className="text-3xl font-bold text-slate-900 mb-6 text-center">Flat Rate Delivery Fees</h2>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                            {DELIVERY_RATES.map((item) => (
+                            {DELIVERY_RATE_CARDS.map((item) => (
                                 <div key={item.city} className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex items-center justify-between hover:border-purple-300 hover:shadow-md transition-all">
                                     <span className="font-semibold text-slate-700">{item.city}</span>
-                                    <span className="text-lg font-bold text-purple-600">₱{item.rate}</span>
+                                    <span className="text-lg font-bold text-purple-600">{formatDeliveryFee(item.rate)}</span>
                                 </div>
                             ))}
                         </div>
@@ -105,7 +142,7 @@ export default function DeliveryRatesPage() {
                                     <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                                         <h3 className="text-xl font-bold text-slate-800">{city}</h3>
                                         <span className="text-sm font-medium text-purple-600 bg-purple-50 px-3 py-1 rounded-full">
-                                            ₱{getDeliveryFeeByCity(city)}
+                                            {formatDeliveryFee(getDeliveryFeeByCity(city))}
                                         </span>
                                     </div>
                                     <ul className="grid grid-cols-2 gap-x-4 gap-y-2">

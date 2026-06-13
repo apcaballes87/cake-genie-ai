@@ -18,6 +18,7 @@ import {
   PH_Country_Code,
   validateLeadTimeConstants,
 } from './machineReadable';
+import { DELIVERY_FEES_BY_CITY } from './deliveryRates';
 
 describe('machine-readable commerce helpers', () => {
   it('builds price ranges from variant prices', () => {
@@ -271,6 +272,11 @@ describe('buildOfferShippingDetails — R2 deliveryTime', () => {
   it('returns ShippingDeliveryTime with handlingTime/transitTime', () => {
     const result = buildOfferShippingDetails() as any;
     expect(result).toHaveProperty('deliveryTime');
+    expect(result.shippingRate).toEqual({
+      '@type': 'MonetaryAmount',
+      currency: 'PHP',
+      maxValue: Math.max(...Object.values(DELIVERY_FEES_BY_CITY)),
+    });
     expect(result.deliveryTime['@type']).toBe('ShippingDeliveryTime');
     expect(result.deliveryTime.handlingTime).toEqual({
       '@type': 'QuantitativeValue',
@@ -292,6 +298,7 @@ describe('buildOfferShippingDetails — R2 deliveryTime', () => {
     expect(result.shippingDestination['@type']).toBe('DefinedRegion');
     expect(result.shippingDestination.addressCountry).toBe('PH');
     expect(result.doesNotShip).toBe(false);
+    expect(result.shippingRate.currency).toBe('PHP');
   });
 
   it('preserves shape when called with explicit null merchant', () => {
@@ -300,6 +307,7 @@ describe('buildOfferShippingDetails — R2 deliveryTime', () => {
     expect(result.shippingDestination['@type']).toBe('DefinedRegion');
     expect(result.shippingDestination.addressCountry).toBe('PH');
     expect(result.doesNotShip).toBe(false);
+    expect(result.shippingRate.maxValue).toBe(Math.max(...Object.values(DELIVERY_FEES_BY_CITY)));
     expect(result.deliveryTime['@type']).toBe('ShippingDeliveryTime');
     expect(result.deliveryTime.handlingTime.unitCode).toBe('DAY');
     expect(result.deliveryTime.transitTime.unitCode).toBe('DAY');
@@ -327,6 +335,8 @@ describe('buildOfferShippingDetails — R2 deliveryTime', () => {
           expect(r['@type']).toBe('OfferShippingDetails');
           expect(r.shippingDestination.addressCountry).toBe('PH');
           expect(r.doesNotShip).toBe(false);
+          expect(r.shippingRate.currency).toBe('PHP');
+          expect(r.shippingRate.maxValue).toBe(Math.max(...Object.values(DELIVERY_FEES_BY_CITY)));
           expect(r.deliveryTime['@type']).toBe('ShippingDeliveryTime');
           expect(r.deliveryTime.handlingTime.unitCode).toBe('DAY');
           expect(r.deliveryTime.transitTime.unitCode).toBe('DAY');

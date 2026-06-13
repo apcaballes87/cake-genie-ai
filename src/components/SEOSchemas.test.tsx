@@ -35,6 +35,7 @@ describe('ProductSchema', () => {
     expect(markup).toContain('"price":1599');
     expect(markup).toContain('"priceCurrency":"PHP"');
     expect(markup).toContain('"priceSpecification":{"@type":"UnitPriceSpecification","price":1599,"priceCurrency":"PHP"}');
+    expect(markup).toContain('"shippingRate":{"@type":"MonetaryAmount","currency":"PHP"');
     expect(markup).not.toContain('AggregateOffer');
   });
 });

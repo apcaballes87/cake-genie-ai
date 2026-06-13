@@ -5,6 +5,7 @@ import type {
   CommerceOrderSnapshot,
   CommercePolicyUrls,
 } from '@/types';
+import { getDeliveryRateSummary } from './deliveryRates';
 
 const DEFAULT_POLICY_URLS: CommercePolicyUrls = {
   returnPolicy: 'https://genie.ph/return-policy',
@@ -215,6 +216,11 @@ export function buildOfferShippingDetails(
   '@type': 'OfferShippingDetails';
   shippingDestination: { '@type': 'DefinedRegion'; addressCountry: 'PH' };
   doesNotShip: false;
+  shippingRate: {
+    '@type': 'MonetaryAmount';
+    currency: 'PHP';
+    maxValue: number;
+  };
   deliveryTime: {
     '@type': 'ShippingDeliveryTime';
     handlingTime: {
@@ -232,6 +238,7 @@ export function buildOfferShippingDetails(
   };
 } {
   void _merchant;
+  const { maxFee } = getDeliveryRateSummary();
 
   return {
     '@type': 'OfferShippingDetails',
@@ -240,6 +247,11 @@ export function buildOfferShippingDetails(
       addressCountry: 'PH',
     },
     doesNotShip: false,
+    shippingRate: {
+      '@type': 'MonetaryAmount',
+      currency: 'PHP',
+      maxValue: maxFee,
+    },
     deliveryTime: {
       '@type': 'ShippingDeliveryTime',
       handlingTime: {

@@ -1,4 +1,5 @@
 import { Color, CakeType, CakeThickness, CakeSize, CakeFlavor, IcingDesign } from '@/types';
+export { DELIVERY_FEES_BY_CITY, getDeliveryFeeByCity } from '@/lib/commerce/deliveryRates';
 
 export const COLORS: Color[] = [
   { name: 'Dark Red', hex: '#8B0000' },
@@ -428,50 +429,4 @@ export const DEFAULT_ICING_DESIGN: import('@/types').IcingDesignUI = {
   gumpasteBaseBoard: false,
   dripPrice: 100,
   gumpasteBaseBoardPrice: 100,
-};
-
-// Delivery fees by city
-export const DELIVERY_FEES_BY_CITY: Record<string, number> = {
-  'Cebu City': 0,
-  'Cebu': 0, // Alias for Cebu City
-  'Mandaue': 50,
-  'Mandaue City': 50,
-  'Lapu-Lapu': 100,
-  'Lapu-Lapu City': 100,
-  'Lapu-lapu': 100,
-  'Lapu-lapu City': 100,
-  'Cordova': 200,
-  'Consolacion': 200,
-  'Liloan': 300,
-  'Talisay': 150,
-  'Talisay City': 150,
-};
-
-// Helper to get delivery fee by city name (flexible matching)
-export const getDeliveryFeeByCity = (city: string | null | undefined): number => {
-  if (!city) return 0;
-
-  // Try exact match first
-  if (DELIVERY_FEES_BY_CITY[city] !== undefined) {
-    return DELIVERY_FEES_BY_CITY[city];
-  }
-
-  // Try case-insensitive match
-  const normalizedCity = city.toLowerCase().trim();
-  for (const [key, fee] of Object.entries(DELIVERY_FEES_BY_CITY)) {
-    if (key.toLowerCase() === normalizedCity) {
-      return fee;
-    }
-  }
-
-  // Try partial match (e.g., "Cebu" matches "Cebu City", "Mandaue" matches "Mandaue City")
-  for (const [key, fee] of Object.entries(DELIVERY_FEES_BY_CITY)) {
-    const keyLower = key.toLowerCase();
-    if (normalizedCity.includes(keyLower) || keyLower.includes(normalizedCity)) {
-      return fee;
-    }
-  }
-
-  // Default to 0 if city not found
-  return 0;
 };
