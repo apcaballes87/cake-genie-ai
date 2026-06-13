@@ -217,12 +217,12 @@ const getDesign = cache(async (slug: string) => {
     // (same seo_title) and redirect to it to consolidate duplicate content.
     if (exactResult.data) {
         if (LEGACY_HEX_RE.test(slug)) {
-            const legacyTitle = exactResult.data.seo_title;
-            if (legacyTitle) {
+            const legacyHash = exactResult.data.p_hash;
+            if (legacyHash) {
                 const { data: candidates } = await supabase
                     .from('cakegenie_analysis_cache')
                     .select('slug')
-                    .eq('seo_title', legacyTitle)
+                    .eq('p_hash', legacyHash)
                     .neq('slug', slug)
                     .limit(5);
 

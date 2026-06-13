@@ -109,6 +109,115 @@ describe('RecentSearchPage', () => {
     vi.mocked(getRelatedProductsByKeywords).mockResolvedValue({ data: [], error: null } as never);
   });
 
+  it('redirects a legacy 16-character hex slug to its modern equivalent if they share the same p_hash', async () => {
+    const legacyDesign = {
+      slug: 'heart-cake-7fbf4f1f6f180000',
+      seo_title: 'Heart White Cake',
+      p_hash: '3f3f4f1f7f1c0000',
+      original_image_url: 'https://example.com/heart-cake.webp',
+      price: 1299,
+      analysis_json: {},
+    };
+
+    const modernCandidate = {
+      slug: 'heart-cake-white-1-tier-cake-3f3f',
+      p_hash: '3f3f4f1f7f1c0000',
+    };
+
+    const mockFrom = vi.fn((table: string) => {
+      if (table === 'cakegenie_analysis_cache') {
+        return {
+          select: vi.fn(() => {
+            return {
+              eq: vi.fn((field: string, value: string) => {
+                if (field === 'slug' && value === 'heart-cake-7fbf4f1f6f180000') {
+                  return { single: () => Promise.resolve({ data: legacyDesign }) };
+                }
+                if (field === 'p_hash' && value === '3f3f4f1f7f1c0000') {
+                  return {
+                    neq: () => ({
+                      limit: () => Promise.resolve({ data: [modernCandidate] })
+                    })
+                  };
+                }
+                return { single: () => Promise.resolve({ data: null }) };
+              }),
+            };
+          }),
+        };
+      }
+      return {
+        select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null }) }) })
+      };
+    });
+
+    vi.mocked(createClient).mockResolvedValueOnce({
+      from: mockFrom,
+    } as never);
+
+    const { permanentRedirect } = await import('next/navigation');
+    vi.mocked(permanentRedirect).mockClear();
+
+    try {
+      await RecentSearchPage({ params: Promise.resolve({ slug: 'heart-cake-7fbf4f1f6f180000' }) });
+    } catch (e) {
+      // Expect Next.js redirect to throw
+    }
+
+    expect(permanentRedirect).toHaveBeenCalledWith('/customizing/heart-cake-white-1-tier-cake-3f3f');
+  });
+
+  it('does NOT redirect a legacy slug if candidates with the same seo_title have different p_hash', async () => {
+    const legacyDesign = {
+      slug: 'heart-cake-7fbf4f1f6f180000',
+      seo_title: 'Heart White Cake',
+      p_hash: '3f3f4f1f7f1c0000',
+      original_image_url: 'https://example.com/heart-cake.webp',
+      price: 1299,
+      analysis_json: {},
+    };
+
+    const mockFrom = vi.fn((table: string) => {
+      if (table === 'cakegenie_analysis_cache') {
+        return {
+          select: vi.fn(() => {
+            return {
+              eq: vi.fn((field: string, value: string) => {
+                if (field === 'slug' && value === 'heart-cake-7fbf4f1f6f180000') {
+                  return { single: () => Promise.resolve({ data: legacyDesign }) };
+                }
+                if (field === 'p_hash' && value === '3f3f4f1f7f1c0000') {
+                  return {
+                    neq: () => ({
+                      limit: () => Promise.resolve({ data: [] })
+                    })
+                  };
+                }
+                return { single: () => Promise.resolve({ data: null }) };
+              }),
+            };
+          }),
+        };
+      }
+      return {
+        select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null }) }) })
+      };
+    });
+
+    vi.mocked(createClient).mockResolvedValueOnce({
+      from: mockFrom,
+    } as never);
+
+    const { permanentRedirect } = await import('next/navigation');
+    vi.mocked(permanentRedirect).mockClear();
+
+    const page = await RecentSearchPage({ params: Promise.resolve({ slug: 'heart-cake-7fbf4f1f6f180000' }) });
+    render(page);
+
+    expect(permanentRedirect).not.toHaveBeenCalled();
+    expect(screen.getByTestId('customizing-client')).toBeInTheDocument();
+  });
+
   it('renders a visible SSR image and preload link for image SEO alongside the hidden SSR fallback', async () => {
     const page = await RecentSearchPage({ params: Promise.resolve({ slug: 'pink-minimalist-light-pink-bento-cake-f707' }) });
     const { container } = render(page);
@@ -131,6 +240,7 @@ describe('RecentSearchPage', () => {
     // Visible SSR <img> tag for Googlebot + hidden SSR fallback both reference the image
     expect(staticMarkup).toContain('src="https://example.com/pink-bento-cake.webp"');
     expect(staticMarkup).toContain('"@type":"Offer"');
+    expect(staticMarkup).toContain('"shippingRate":{"@type":"MonetaryAmount","currency":"PHP"');
     expect(staticMarkup).not.toContain('AggregateOffer');
   });
 
