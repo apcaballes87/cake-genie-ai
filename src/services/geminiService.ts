@@ -106,14 +106,13 @@ export const validateCakeImage = async (
  */
 export async function analyzeCakeFeaturesOnly(
     base64ImageData: string,
-    mimeType: string,
-    turnstileToken?: string
+    mimeType: string
 ): Promise<HybridAnalysisResult> {
     try {
         const response = await fetch('/api/ai/analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ imageData: base64ImageData, mimeType, turnstileToken })
+            body: JSON.stringify({ imageData: base64ImageData, mimeType })
         });
 
         if (!response.ok) {
@@ -226,7 +225,7 @@ export async function enrichAnalysisWithRoboflow(
 
         // 3. Map main toppers
         if (result.main_toppers) {
-            result.main_toppers = result.main_toppers.map((item: any) => {
+            result.main_toppers = result.main_toppers.map((item: MainTopperUI) => {
                 const match = findMatchingDetection(item.type, item.description, detections);
                 if (match) {
                     const coords = roboflowBboxToAppCoordinates(match, imageDims.width, imageDims.height);
@@ -239,7 +238,7 @@ export async function enrichAnalysisWithRoboflow(
 
         // 4. Map support elements
         if (result.support_elements) {
-            result.support_elements = result.support_elements.map((item: any) => {
+            result.support_elements = result.support_elements.map((item: SupportElementUI) => {
                 const match = findMatchingDetection(item.type, item.description, detections);
                 if (match) {
                     const coords = roboflowBboxToAppCoordinates(match, imageDims.width, imageDims.height);

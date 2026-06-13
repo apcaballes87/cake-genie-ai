@@ -77,7 +77,6 @@ interface HandleImageUploadOptions {
     onCoordinatesEnriched?: (result: HybridAnalysisResult) => void;
     precomputedAnalysis?: HybridAnalysisResult;
     knownSeoMetadata?: CacheSEOMetadata;
-    turnstileToken?: string;
 }
 
 interface LoadImageWithoutAnalysisOptions {
@@ -608,8 +607,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 // PHASE 1: Fast feature-only analysis with v3.2 prompt (coordinates all 0,0)
                 const fastResult = await analyzeCakeFeaturesOnly(
                     compressedImageData.data,
-                    compressedImageData.mimeType,
-                    options?.turnstileToken
+                    compressedImageData.mimeType
                 );
 
                 if (fastResult.rejection && fastResult.rejection.isRejected && fastResult.rejection.reason === 'selfie') {

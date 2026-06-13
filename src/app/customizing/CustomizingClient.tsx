@@ -2,7 +2,6 @@
 
 import dynamic from 'next/dynamic';
 import React, { Dispatch, SetStateAction, useEffect, useState, useMemo, useCallback, useRef } from 'react';
-import { TurnstileWidget } from '@/components/TurnstileWidget';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import { useSmartBack } from '@/hooks/useSmartBack';
 import { useNavigation } from '@/contexts/NavigationContext';
@@ -543,32 +542,14 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         isComposingSelfie,
     } = useImageManagement();
 
-    const [turnstileToken, setTurnstileToken] = useState('');
-    const [turnstileKey, setTurnstileKey] = useState(0);
-
     const hookImageUpload = useCallback(async (
         file: File,
         onSuccess: (result: HybridAnalysisResult) => void,
         onError: (error: Error) => void,
-        options?: any
+        options?: Parameters<typeof rawHookImageUpload>[3]
     ) => {
-        if (!options?.precomputedAnalysis) {
-            const siteKey = process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY;
-            if (siteKey && !turnstileToken) {
-                onError(new Error("Please complete the security check."));
-                return;
-            }
-        }
-        try {
-            await rawHookImageUpload(file, onSuccess, onError, {
-                ...options,
-                turnstileToken
-            });
-        } finally {
-            setTurnstileToken('');
-            setTurnstileKey(prev => prev + 1);
-        }
-    }, [rawHookImageUpload, turnstileToken]);
+        await rawHookImageUpload(file, onSuccess, onError, options);
+    }, [rawHookImageUpload]);
 
 
     // --- Local State ---
@@ -4056,13 +4037,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     isAnalyzing={isAnalyzing}
                     onClose={handlePreSelectionClose}
                     onApply={handlePreSelectionApply}
-                />
-                <TurnstileWidget
-                    key={turnstileKey}
-                    onVerify={setTurnstileToken}
-                    onExpire={() => setTurnstileToken('')}
-                    onError={() => setTurnstileToken('')}
-                    className="fixed bottom-4 left-4 z-[100] scale-90 origin-bottom-left"
                 />
             </div>
         </>

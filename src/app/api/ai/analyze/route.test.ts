@@ -10,7 +10,7 @@ vi.mock('@/lib/ai/client', () => ({
             generateContent: mockGenerateContent,
         },
     })),
-    getOrCreatePromptCache: (...args: any[]) => mockGetOrCreatePromptCache(...args),
+    getOrCreatePromptCache: (...args: unknown[]) => mockGetOrCreatePromptCache(...args),
 }));
 
 vi.mock('@/lib/supabase/client', () => ({
@@ -31,19 +31,11 @@ vi.mock('@/lib/ai/utils', () => ({
     }),
 }));
 
-const mockVerifyTurnstileToken = vi.fn().mockResolvedValue({ success: true });
-vi.mock('@/lib/security/turnstile', () => ({
-    verifyTurnstileToken: (...args: any[]) => mockVerifyTurnstileToken(...args),
-}));
-
 describe('POST /api/ai/analyze', () => {
     beforeEach(() => {
         vi.resetModules();
         mockGenerateContent.mockReset();
         mockGetOrCreatePromptCache.mockReset();
-        mockVerifyTurnstileToken.mockReset();
-
-        mockVerifyTurnstileToken.mockResolvedValue({ success: true });
         mockGenerateContent.mockResolvedValue({
             text: JSON.stringify({
                 title: 'Ocean Mermaid Cake',
@@ -66,31 +58,7 @@ describe('POST /api/ai/analyze', () => {
         expect(payload.error).toContain('Missing required fields');
     });
 
-    it('rejects if Turnstile verification fails for non-admin request', async () => {
-        mockVerifyTurnstileToken.mockResolvedValue({
-            success: false,
-            error: 'Security verification failed.',
-        });
-
-        const { POST } = await import('./route');
-        const request = new NextRequest('http://localhost/api/ai/analyze', {
-            method: 'POST',
-            body: JSON.stringify({
-                imageData: 'base64-data',
-                mimeType: 'image/png',
-                turnstileToken: 'invalid-token',
-            }),
-        });
-
-        const response = await POST(request);
-        const payload = await response.json();
-
-        expect(response.status).toBe(400);
-        expect(payload.error).toBe('Security verification failed.');
-        expect(mockVerifyTurnstileToken).toHaveBeenCalledWith('invalid-token', undefined);
-    });
-
-    it('bypasses Turnstile check if x-admin-pin header is valid', async () => {
+    it('processes successfully for admin requests without a Turnstile check', async () => {
         mockGetOrCreatePromptCache.mockResolvedValue('mock-cache-name');
 
         const { POST } = await import('./route');
@@ -110,10 +78,9 @@ describe('POST /api/ai/analyze', () => {
 
         expect(response.status).toBe(200);
         expect(payload.title).toBe('Ocean Mermaid Cake');
-        expect(mockVerifyTurnstileToken).not.toHaveBeenCalled();
     });
 
-    it('processes successfully if Turnstile verification succeeds', async () => {
+    it('processes successfully for public requests without requiring a Turnstile token', async () => {
         mockGetOrCreatePromptCache.mockResolvedValue(null); // Force uncached path for test coverage
 
         const { POST } = await import('./route');
@@ -122,7 +89,6 @@ describe('POST /api/ai/analyze', () => {
             body: JSON.stringify({
                 imageData: 'base64-data',
                 mimeType: 'image/png',
-                turnstileToken: 'valid-token',
             }),
         });
 
@@ -131,6 +97,5 @@ describe('POST /api/ai/analyze', () => {
 
         expect(response.status).toBe(200);
         expect(payload.title).toBe('Ocean Mermaid Cake');
-        expect(mockVerifyTurnstileToken).toHaveBeenCalledWith('valid-token', undefined);
     });
 });

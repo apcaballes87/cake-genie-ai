@@ -4,7 +4,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { CloseIcon, MessageCircle, Loader2, SendIcon, ImageIcon } from './icons';
 import { createClient } from '@/lib/supabase/client';
 import { fileToBase64, analyzeCakeFeaturesOnly, enrichAnalysisWithRoboflow, validateCakeImage } from '@/services/geminiService';
-import { TurnstileWidget } from '@/components/TurnstileWidget';
 import { findSimilarAnalysisByHash, cacheAnalysisResult } from '@/services/supabaseService';
 import { HybridAnalysisResult } from '@/types';
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
@@ -209,8 +208,7 @@ async function generateStableFallbackHash(base64Data: string): Promise<string | 
 
 async function analyzeImageWithCache(
     imageData: { data: string; mimeType: string },
-    imageUrl?: string,
-    turnstileToken?: string
+    imageUrl?: string
 ): Promise<{ analysis: HybridAnalysisResult | null; slug: string | null; title: string | null; price: number | null; imageUrl: string | null; cacheKey: string | null }> {
     const imageSrc = `data:${imageData.mimeType};base64,${imageData.data}`;
     const imageBlob = dataURItoBlob(imageSrc);
@@ -249,7 +247,7 @@ async function analyzeImageWithCache(
     }
 
     console.log('🔄 Chat: Cache miss, running AI analysis...');
-    const fastResult = await analyzeCakeFeaturesOnly(compressedData.data, compressedData.mimeType, turnstileToken);
+    const fastResult = await analyzeCakeFeaturesOnly(compressedData.data, compressedData.mimeType);
     if (!fastResult) return { analysis: null, slug: null, title: null, price: null, imageUrl: null, cacheKey };
     let finalResult = fastResult;
     const hasBbox = hasBoundingBoxData(fastResult);
@@ -290,8 +288,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
     const [name, setName] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
-    const [turnstileToken, setTurnstileToken] = useState('');
-    const [turnstileKey, setTurnstileKey] = useState(0);
     const pendingImageHashRef = useRef<string | null>(null);
     const activeImageAnalysisIdRef = useRef(0);
     const pendingFollowUpTimeoutsRef = useRef<number[]>([]);
@@ -530,13 +526,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
         const file = e.target.files?.[0];
         if (!file || !conversationId) return;
 
-        const siteKey = process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY;
-        if (siteKey && !turnstileToken) {
-            alert("Please complete the security check before uploading an image.");
-            if (fileInputRef.current) fileInputRef.current.value = '';
-            return;
-        }
-
         clearPendingImageFollowUps();
         const analysisId = ++activeImageAnalysisIdRef.current;
         setIsUploading(true);
@@ -626,7 +615,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                         return;
                     }
 
-                    const analysisResult = await analyzeImageWithCache(fileData, imageUrl, turnstileToken);
+                    const analysisResult = await analyzeImageWithCache(fileData, imageUrl);
                     if (analysisId !== activeImageAnalysisIdRef.current) return;
 
                     let botResponse = '';
@@ -684,8 +673,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
         } finally {
             setIsUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
-            setTurnstileToken('');
-            setTurnstileKey(prev => prev + 1);
         }
     };
 
@@ -975,15 +962,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                             <SendIcon className="w-5 h-5" />
                         </button>
                     </div>
-                    {conversationId && (
-                        <TurnstileWidget
-                            key={turnstileKey}
-                            onVerify={setTurnstileToken}
-                            onExpire={() => setTurnstileToken('')}
-                            onError={() => setTurnstileToken('')}
-                            className="my-1 scale-90"
-                        />
-                    )}
                     <p className="text-xs text-slate-500 text-center mt-2">
                         Available Mon-Sat, 9AM-6PM
                     </p>

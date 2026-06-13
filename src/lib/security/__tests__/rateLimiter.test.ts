@@ -36,18 +36,34 @@ describe('rateLimiter', () => {
         process.env = { ...originalEnv };
     });
 
-    it('should bypass and return success if KV env vars are missing', async () => {
+    it('should fall back to in-memory limiting if KV env vars are missing', async () => {
         delete process.env.KV_REST_API_URL;
         delete process.env.KV_REST_API_TOKEN;
 
         // Import dynamically so it evaluates with the current process.env
         const { checkRateLimit } = await import('../rateLimiter');
 
-        const result = await checkRateLimit('ai', 'test-ip');
-        expect(result).toEqual({
+        const first = await checkRateLimit('ai', 'test-ip');
+        const second = await checkRateLimit('ai', 'test-ip');
+        const third = await checkRateLimit('ai', 'test-ip');
+        const fourth = await checkRateLimit('ai', 'test-ip');
+        const fifth = await checkRateLimit('ai', 'test-ip');
+        const sixth = await checkRateLimit('ai', 'test-ip');
+
+        expect(first).toEqual({
             success: true,
-            remaining: 999,
-            limit: 999,
+            remaining: 4,
+            limit: 5,
+            reset: expect.any(Number),
+        });
+        expect(second.success).toBe(true);
+        expect(third.success).toBe(true);
+        expect(fourth.success).toBe(true);
+        expect(fifth.success).toBe(true);
+        expect(sixth).toEqual({
+            success: false,
+            remaining: 0,
+            limit: 5,
             reset: expect.any(Number),
         });
         expect(mockLimit).not.toHaveBeenCalled();
@@ -76,7 +92,7 @@ describe('rateLimiter', () => {
         });
     });
 
-    it('should fail-safe (bypass) if limiter throws an exception', async () => {
+    it('should fall back to the in-memory limiter if the shared limiter throws', async () => {
         process.env.KV_REST_API_URL = 'https://mock-kv.upstash.io';
         process.env.KV_REST_API_TOKEN = 'mock-token';
 
@@ -85,10 +101,14 @@ describe('rateLimiter', () => {
         const { checkRateLimit } = await import('../rateLimiter');
 
         const result = await checkRateLimit('ai', 'test-ip');
-        expect(result.success).toBe(true);
-        expect(result.remaining).toBe(999);
+        expect(result).toEqual({
+            success: true,
+            remaining: 4,
+            limit: 5,
+            reset: expect.any(Number),
+        });
         expect(console.error).toHaveBeenCalledWith(
-            expect.stringContaining('Rate limit check failed for ai, bypassing:'),
+            expect.stringContaining('Rate limit check failed for ai, falling back to in-memory limiter:'),
             expect.any(Error)
         );
     });

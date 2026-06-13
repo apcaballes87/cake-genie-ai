@@ -73,6 +73,7 @@ const baseProps = {
 
 describe('ProductCard', () => {
     beforeEach(() => {
+        process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://cqmhanqnfybyxezhobkx.supabase.co';
         pushMock.mockReset();
         toggleSaveDesignMock.mockReset();
         isDesignSavedMock.mockReset().mockReturnValue(false);
@@ -151,5 +152,35 @@ describe('ProductCard', () => {
         );
 
         expect(screen.getByText('Hello Kitty Cupcakes')).toBeInTheDocument();
+    });
+
+    it('uses the direct first-party image URL for background-only cards when the image is Genie-owned', () => {
+        const { getByRole } = render(
+            <ProductCard
+                {...baseProps}
+                slug="birthday-cake"
+                backgroundOnly
+                original_image_url="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/designs/cake.webp"
+            />,
+        );
+
+        expect(getByRole('img')).toHaveStyle({
+            backgroundImage: 'url(https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/designs/cake.webp)',
+        });
+    });
+
+    it('keeps external background-only images on the proxy path when no safe direct first-party URL exists', () => {
+        const { getByRole } = render(
+            <ProductCard
+                {...baseProps}
+                slug="birthday-cake"
+                backgroundOnly
+                original_image_url="https://images.example.com/cake.webp"
+            />,
+        );
+
+        expect(getByRole('img')).toHaveStyle({
+            backgroundImage: 'url(/api/proxy-image?url=https%3A%2F%2Fimages.example.com%2Fcake.webp)',
+        });
     });
 });

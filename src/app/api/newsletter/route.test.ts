@@ -14,11 +14,6 @@ vi.mock('@supabase/supabase-js', () => ({
   })),
 }))
 
-const mockVerifyTurnstileToken = vi.fn().mockResolvedValue({ success: true })
-vi.mock('@/lib/security/turnstile', () => ({
-  verifyTurnstileToken: (...args: any[]) => mockVerifyTurnstileToken(...args),
-}))
-
 describe('POST /api/newsletter', () => {
   beforeEach(() => {
     vi.resetModules()
@@ -28,7 +23,6 @@ describe('POST /api/newsletter', () => {
     insertMock.mockReset()
     upsertMock.mockReset()
     fromMock.mockReset()
-    mockVerifyTurnstileToken.mockReset()
     
     // Set up standard mock chain
     fromMock.mockReturnValue({
@@ -40,15 +34,13 @@ describe('POST /api/newsletter', () => {
       insert: insertMock,
       upsert: upsertMock,
     })
-    
-    mockVerifyTurnstileToken.mockResolvedValue({ success: true })
   })
 
   it('rejects invalid email address', async () => {
     const { POST } = await import('./route')
     const request = new NextRequest('http://localhost/api/newsletter', {
       method: 'POST',
-      body: JSON.stringify({ email: 'invalid-email', turnstileToken: 'token' }),
+      body: JSON.stringify({ email: 'invalid-email' }),
       headers: { 'Content-Type': 'application/json' },
     })
 
@@ -60,16 +52,11 @@ describe('POST /api/newsletter', () => {
     expect(payload.error).toBe('Invalid email address.')
   })
 
-  it('rejects if Turnstile token is invalid', async () => {
-    mockVerifyTurnstileToken.mockResolvedValue({
-      success: false,
-      error: 'Security verification failed.',
-    })
-
+  it('rejects missing email values', async () => {
     const { POST } = await import('./route')
     const request = new NextRequest('http://localhost/api/newsletter', {
       method: 'POST',
-      body: JSON.stringify({ email: 'test@example.com', turnstileToken: 'bad-token' }),
+      body: JSON.stringify({}),
       headers: { 'Content-Type': 'application/json' },
     })
 
@@ -78,7 +65,7 @@ describe('POST /api/newsletter', () => {
 
     expect(response.status).toBe(400)
     expect(payload.success).toBe(false)
-    expect(payload.error).toBe('Security verification failed.')
+    expect(payload.error).toBe('Email is required.')
   })
 
   it('registers new subscriber and returns a new discount code', async () => {
@@ -89,7 +76,7 @@ describe('POST /api/newsletter', () => {
     const { POST } = await import('./route')
     const request = new NextRequest('http://localhost/api/newsletter', {
       method: 'POST',
-      body: JSON.stringify({ email: 'test@example.com', turnstileToken: 'valid-token' }),
+      body: JSON.stringify({ email: 'test@example.com' }),
       headers: { 'Content-Type': 'application/json' },
     })
 
@@ -111,7 +98,7 @@ describe('POST /api/newsletter', () => {
     const { POST } = await import('./route')
     const request = new NextRequest('http://localhost/api/newsletter', {
       method: 'POST',
-      body: JSON.stringify({ email: 'existing@example.com', turnstileToken: 'valid-token' }),
+      body: JSON.stringify({ email: 'existing@example.com' }),
       headers: { 'Content-Type': 'application/json' },
     })
 

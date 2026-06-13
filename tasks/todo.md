@@ -2417,3 +2417,106 @@
   - Focused ESLint passed.
   - `git diff --check` passed.
   - Production code compilation passed, but the full build stopped during TypeScript validation on the pre-existing unrelated `reviewsToShow` error in `src/app/customizing/[slug]/page.tsx`.
+
+# Vercel Cost Efficiency Audit (2026-06-12)
+
+### Plan
+
+- [x] Map this month's Vercel bill categories to the live Genie.ph code paths.
+- [x] Verify the linked Vercel project metadata and current Vercel pricing definitions.
+- [x] Rank the likely savings levers by impact and implementation risk.
+- [ ] Decide whether to implement the top low-risk savings changes now.
+
+### Review
+
+- Bill snapshot reviewed: `Fast Origin Transfer $12.80`, `Fluid Provisioned Memory $7.92`, `Fluid Active CPU $6.64`, `ISR Writes $2.58`, `Function Invocations $1.80`, `Build CPU Minutes $0.60`, `ISR Reads $0.32`, `Edge Requests - Additional CPU Duration $0.04`.
+- Linked Vercel project confirmed via `.vercel/project.json` and Vercel app metadata: project `genieph` on `team_suamfAsddS99rFIHeZDTt7hd`.
+- Repo evidence for the top bandwidth bucket:
+  - `src/app/api/proxy-image/route.ts` buffers the full upstream image in a function before returning it, which means every proxy miss incurs compute plus Fast Origin Transfer.
+  - Several high-traffic UI surfaces still request images through `/api/proxy-image`, especially `backgroundOnly` cards in `src/components/ProductCard.tsx`.
+  - The repo already has a real variant pipeline (`src/app/api/internal/variant-pipeline/route.ts`, `src/lib/imageVariants/*`) and responsive rendering support (`src/components/LazyImage.tsx`), so the biggest image savings are likely adoption/routing work instead of new infrastructure.
+- Repo evidence for the Fluid compute bucket:
+  - Long-running AI routes are configured with generous ceilings: `/api/ai/analyze` and `/api/ai/validate` at `300s`, `/api/ai/edit-image` and several admin batch routes at `180s`.
+  - The image-studio batch continuation routes recursively self-schedule with `after(...)`, which is good for durability but can keep compute usage elevated when large admin runs are active.
+- Repo evidence for the ISR bucket:
+  - Many SEO routes use `revalidate = 3600`, including `/customizing`, `/customizing/[slug]`, category pages, collections, blog index, and blog category pages.
+  - Dynamic sitemap/feed endpoints are cached, but the sitemap surfaces are still `force-dynamic`, so their misses still traverse compute.
+- Project activity note:
+  - Recent Vercel deployment history shows frequent same-day production redeploys, which contributes to build minutes and can churn caches, though this month's build spend is currently minor compared with transfer and compute.
+- Verification sources used:
+  - Local repo inspection of the cost-relevant routes/config.
+  - Vercel project metadata from the connected Vercel app.
+  - Current Vercel pricing/docs for CDN, Fluid compute, ISR, and spend management.
+
+# Fix Missing Shipping Rate in Product Schema (2026-06-13)
+
+### Plan
+
+- [x] Add a shared delivery-rate source so product schema and `/delivery-rates` read the same checkout-backed fee table.
+- [x] Extend `buildOfferShippingDetails()` to emit a PH `shippingRate` with the current maximum checkout fee in `PHP`.
+- [x] Update focused schema and commerce tests, then run a full `npm run build`.
+
+### Review
+
+- Root cause: `buildOfferShippingDetails()` emitted `OfferShippingDetails` with destination and lead-time data only, so both `/customizing/[slug]` and merchant product schema shipped `shippingDetails` without `shippingRate`.
+- Added `src/lib/commerce/deliveryRates.ts` as the shared fee source for:
+  - city aliases used by checkout fee lookup,
+  - the visible delivery-rate cards on `/delivery-rates`,
+  - the PH-wide shipping-rate summary used in JSON-LD.
+- `src/lib/commerce/machineReadable.ts` now adds `shippingRate: { "@type": "MonetaryAmount", currency: "PHP", maxValue: 300 }` to `OfferShippingDetails`, while leaving destination, return policy, and lead-time markup unchanged.
+- `src/app/delivery-rates/page.tsx` no longer hardcodes the outdated `₱100` to `₱400` copy or the old Liloan card value. The page now derives its visible city cards and FAQ fee range from the same checkout-backed fee table, which currently resolves to free delivery in Cebu City up to `₱300` in Liloan.
+- Follow-up page polish also moved the metadata description, hero summary, and top-level rate stats onto that same source of truth, and the delivery page now shows `Free` instead of `₱0` for Cebu City.
+- Added focused regression coverage in `src/lib/commerce/deliveryRates.test.ts`, expanded `src/lib/commerce/machineReadable.test.ts` to assert the new shipping-rate shape and maximum fee, and updated existing customizer and merchant schema markup tests to require `shippingRate`.
+- Verification:
+  - `npx vitest run src/lib/commerce/deliveryRates.test.ts src/lib/commerce/machineReadable.test.ts src/components/SEOSchemas.test.tsx 'src/app/customizing/[slug]/page.test.tsx'` passed with `42` tests (`1` skipped).
+  - `git diff --check` passed.
+  - `npm run build` passed end to end. Static generation logged non-blocking pre-existing keyword fallback timeout warnings during prerender, but the build completed successfully.
+
+# Implement Top Vercel Savings Fixes (2026-06-13)
+
+### Plan
+
+- [x] Replace the current "KV missing means bypass" behavior with a real in-memory fallback limiter for public rate-limited routes.
+- [x] Reduce avoidable `/api/proxy-image` traffic from background-only product cards when the image already has a safe direct Genie-owned or variant URL.
+- [x] Add focused regression coverage for the limiter fallback and the new background-image selection behavior.
+- [x] Run focused tests/lint and document verification plus any deploy caveats.
+
+### Review
+
+- Updated [src/lib/security/rateLimiter.ts](/Users/apcaballes/genieph-nextjs/src/lib/security/rateLimiter.ts:1) so missing KV no longer means "allow everything." Public AI/newsletter/contact/discount routes now fall back to a per-instance in-memory sliding-window limiter using the same configured limits, and KV/runtime errors also fall back to that local limiter instead of bypassing protection entirely.
+- Added `isSiteOwnedSupabasePublicImageUrl(...)` in [src/lib/utils/imageSelection.ts](/Users/apcaballes/genieph-nextjs/src/lib/utils/imageSelection.ts:1).
+- Updated [src/components/ProductCard.tsx](/Users/apcaballes/genieph-nextjs/src/components/ProductCard.tsx:1) so `backgroundOnly` cards now prefer:
+  - the existing 1200px-or-smaller variant URL when `image_variants` is present,
+  - otherwise a direct first-party Supabase public URL when the asset is Genie-owned,
+  - and only fall back to `/api/proxy-image` for older or third-party image URLs that still need the proxy.
+- This keeps the background-only related/discovery cards on their current external-image-safe path, but cuts avoidable Vercel proxy traffic for rows we already fully own or have already rehosted through the variant pipeline.
+- Added focused regression coverage in:
+  - [src/lib/security/__tests__/rateLimiter.test.ts](/Users/apcaballes/genieph-nextjs/src/lib/security/__tests__/rateLimiter.test.ts:1) for the no-KV fallback path and the "shared limiter throws" fallback path.
+  - [src/components/ProductCard.test.tsx](/Users/apcaballes/genieph-nextjs/src/components/ProductCard.test.tsx:1) for direct first-party background URLs and external-image proxy fallback.
+- Verification:
+  - `npx vitest run src/lib/security/__tests__/rateLimiter.test.ts src/components/ProductCard.test.tsx` passed with 10 tests.
+  - Focused ESLint passed on the touched files with only the stale Browserslist data warning.
+  - `git diff --check -- src/lib/security/rateLimiter.ts src/lib/security/__tests__/rateLimiter.test.ts src/lib/utils/imageSelection.ts src/components/ProductCard.tsx src/components/ProductCard.test.tsx tasks/todo.md` passed.
+- Deploy caveat:
+  - This change closes the missing-KV fail-open gap immediately once deployed.
+  - Turnstile still depends on `CLOUDFLARE_TURNSTILE_SECRET_KEY` being configured in production; this patch did not change that customer-facing behavior because failing it closed in the current production state would block uploads outright until the secret is added.
+
+# Remove Cloudflare Turnstile Integration (2026-06-13)
+
+### Plan
+
+- [x] Remove Turnstile verification from public API routes and their focused tests.
+- [x] Remove Turnstile token/widget plumbing from customizing, chat, contact, newsletter, and discount signup surfaces.
+- [x] Delete the now-unused Turnstile utility/component files and verify no runtime references remain.
+- [x] Run focused tests/lint and document the new protection posture.
+
+### Review
+
+- Removed Cloudflare Turnstile verification from the public `analyze`, `contact`, and `newsletter` API routes, and updated their focused route tests to reflect the new no-token contract.
+- Removed Turnstile widget/token plumbing from the customizing upload flow, chat image analysis, contact form, newsletter popup, and discount-offer signup surfaces so those UX paths no longer depend on Cloudflare secrets or client-side challenge state.
+- Deleted the unused [src/components/TurnstileWidget.tsx](/Users/apcaballes/genieph-nextjs/src/components/TurnstileWidget.tsx:1), [src/lib/security/turnstile.ts](/Users/apcaballes/genieph-nextjs/src/lib/security/turnstile.ts:1), and [src/lib/security/__tests__/turnstile.test.ts](/Users/apcaballes/genieph-nextjs/src/lib/security/__tests__/turnstile.test.ts:1) files, and confirmed no `src/` references remain to `TurnstileWidget`, `turnstileToken`, `verifyTurnstileToken`, or the Cloudflare Turnstile env vars.
+- The public abuse-protection posture now relies on the existing input validation plus the recently tightened rate limiting in [src/lib/security/rateLimiter.ts](/Users/apcaballes/genieph-nextjs/src/lib/security/rateLimiter.ts:1) instead of Cloudflare Turnstile.
+- Verification:
+  - `npx vitest run src/app/api/ai/analyze/route.test.ts src/app/api/contact/route.test.ts src/app/api/newsletter/route.test.ts src/lib/security/__tests__/rateLimiter.test.ts src/components/ProductCard.test.tsx` passed with `20` tests.
+  - Focused ESLint across the touched Turnstile-removal files completed with `0` errors and only the repo's existing warnings plus the stale Browserslist data warning.
+  - `git diff --check -- src/app/api/ai/analyze/route.ts src/app/api/ai/analyze/route.test.ts src/app/api/contact/route.ts src/app/api/contact/route.test.ts src/app/api/newsletter/route.ts src/app/api/newsletter/route.test.ts src/app/customizing/CustomizingClient.tsx src/app/contact/ContactClient.tsx src/components/NewsletterPopup.tsx src/components/DiscountOfferBubble.tsx src/components/ChatModal.tsx src/contexts/ImageContext.tsx src/hooks/useImageManagement.ts src/services/geminiService.ts src/components/TurnstileWidget.tsx src/lib/security/turnstile.ts src/lib/security/__tests__/turnstile.test.ts tasks/todo.md` passed.

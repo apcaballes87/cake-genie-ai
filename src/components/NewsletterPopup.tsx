@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { trackSignUp } from '@/lib/analytics';
 import { X, Eye, EyeOff } from 'lucide-react';
-import { TurnstileWidget } from '@/components/TurnstileWidget';
 
 /** Key used to suppress the popup after it has been dismissed or completed. */
 const SEEN_KEY = 'hasSeenNewsletterPopup';
@@ -24,11 +23,32 @@ export default function NewsletterPopup() {
   const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [turnstileToken, setTurnstileToken] = useState('');
-  const [turnstileKey, setTurnstileKey] = useState(0);
 
   // Prevent the OAuth-return effect running more than once
   const oauthHandledRef = useRef(false);
+
+  const generateDiscountForCurrentUser = useCallback(async () => {
+    setStatus('loading');
+    try {
+      const res = await fetch('/api/signup-discount', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source: 'popup' }),
+      });
+      const data = await res.json();
+      if (data.success && data.code) {
+        setDiscountCode(data.code);
+        setStatus('success');
+        localStorage.setItem(SEEN_KEY, 'true');
+      } else {
+        setStatus('error');
+        setErrorMessage(data.error || 'Failed to generate discount code. Please contact support.');
+      }
+    } catch {
+      setStatus('error');
+      setErrorMessage('An unexpected error occurred.');
+    }
+  }, []);
 
   // ── Effect 1: Resume the discount flow if user just returned from Google OAuth ──
   useEffect(() => {
@@ -37,13 +57,16 @@ export default function NewsletterPopup() {
 
     const pending = localStorage.getItem(PENDING_KEY);
     if (pending === 'popup' && isAuthenticated && user && !user.is_anonymous) {
-      oauthHandledRef.current = true;
-      localStorage.removeItem(PENDING_KEY);
-      setIsOpen(true);
-      generateDiscountForCurrentUser();
+      const resumeTimer = window.setTimeout(() => {
+        oauthHandledRef.current = true;
+        localStorage.removeItem(PENDING_KEY);
+        setIsOpen(true);
+        void generateDiscountForCurrentUser();
+      }, 0);
+
+      return () => window.clearTimeout(resumeTimer);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, isAuthenticated, user]);
+  }, [generateDiscountForCurrentUser, isAuthenticated, isLoading, user]);
 
   // ── Effect 2: Show popup after 25 s or 40 % scroll (only for unauthenticated visitors) ──
   useEffect(() => {
@@ -83,30 +106,6 @@ export default function NewsletterPopup() {
     localStorage.setItem(SEEN_KEY, 'true');
   };
 
-  /** Calls /api/signup-discount for the currently authenticated user. */
-  const generateDiscountForCurrentUser = async () => {
-    setStatus('loading');
-    try {
-      const res = await fetch('/api/signup-discount', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ source: 'popup' }),
-      });
-      const data = await res.json();
-      if (data.success && data.code) {
-        setDiscountCode(data.code);
-        setStatus('success');
-        localStorage.setItem(SEEN_KEY, 'true');
-      } else {
-        setStatus('error');
-        setErrorMessage(data.error || 'Failed to generate discount code. Please contact support.');
-      }
-    } catch {
-      setStatus('error');
-      setErrorMessage('An unexpected error occurred.');
-    }
-  };
-
   /**
    * Fallback for when email confirmation is required: generates a code via
    * the newsletter route (no session needed) and shows it immediately.
@@ -117,7 +116,7 @@ export default function NewsletterPopup() {
       const res = await fetch('/api/newsletter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailAddress, source: 'popup', turnstileToken }),
+        body: JSON.stringify({ email: emailAddress, source: 'popup' }),
       });
       const data = await res.json();
       if (data.success && data.code) {
@@ -156,13 +155,6 @@ export default function NewsletterPopup() {
       return;
     }
 
-    const siteKey = process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY;
-    if (siteKey && !turnstileToken) {
-      setErrorMessage('Please complete the security check.');
-      setStatus('error');
-      return;
-    }
-
     setStatus('loading');
     const { data, error } = await signUp(email, password, { first_name: firstName.trim() });
 
@@ -183,8 +175,6 @@ export default function NewsletterPopup() {
     // Immediately authenticated (email confirmation disabled)
     trackSignUp('email', 'signup_popup');
     await generateDiscountForCurrentUser();
-    setTurnstileToken('');
-    setTurnstileKey(prev => prev + 1);
   };
 
   // ── Google OAuth sign-up ──
@@ -216,9 +206,9 @@ export default function NewsletterPopup() {
           {status === 'success' ? (
             <div className="text-center py-6">
               <div className="text-3xl mb-3">🎉</div>
-              <h2 className="text-2xl font-extrabold text-gray-900 mb-3">YOU'RE ALL SET!</h2>
+              <h2 className="text-2xl font-extrabold text-gray-900 mb-3">YOU&apos;RE ALL SET!</h2>
 
-              <p className="text-base text-gray-600 mb-5">Here is your 20% off discount code:</p>
+              <p className="text-base text-gray-600 mb-5">Here&apos;s your 20% off discount code:</p>
               <div className="bg-purple-50 border-2 border-dashed border-purple-300 rounded-xl py-3 px-6 inline-block mb-4 shadow-sm">
                 <span className="text-2xl font-bold tracking-wider text-purple-700">{discountCode}</span>
               </div>
@@ -313,13 +303,6 @@ export default function NewsletterPopup() {
                 {status === 'error' && errorMessage && (
                   <p className="text-red-500 text-sm font-medium">{errorMessage}</p>
                 )}
-
-                <TurnstileWidget
-                  key={turnstileKey}
-                  onVerify={setTurnstileToken}
-                  onExpire={() => setTurnstileToken('')}
-                  onError={() => setTurnstileToken('')}
-                />
 
                 <div className="flex gap-2 sm:gap-3 pt-1">
                   <button

@@ -15,8 +15,8 @@ import { showError, showLoading } from '@/lib/utils/toast';
 import { formatStartingPrice } from '@/lib/utils/currency';
 import { HybridAnalysisResult } from '@/types';
 import { trackSelectItem } from '@/lib/analytics';
-import { getPreferredProductImageUrl } from '@/lib/utils/imageSelection';
-import { parseManifest } from '@/lib/imageVariants/manifest';
+import { getPreferredProductImageUrl, isSiteOwnedSupabasePublicImageUrl } from '@/lib/utils/imageSelection';
+import { parseManifest, pickFallbackSrc } from '@/lib/imageVariants/manifest';
 
 export interface ProductCardProps {
     p_hash: string;
@@ -154,6 +154,11 @@ const ProductCardContent = ({
     // parseManifest returns null for NULL / malformed JSONB — LazyImage
     // treats null as "no variants" and renders identically to before.
     const variants = parseManifest(image_variants);
+    const directBackgroundImageUrl = pickFallbackSrc(variants, 1200)
+        ?? (isSiteOwnedSupabasePublicImageUrl(preferredImageUrl) ? preferredImageUrl : null);
+    const backgroundImageUrl = backgroundOnly
+        ? directBackgroundImageUrl ?? `/api/proxy-image?url=${encodeURIComponent(preferredImageUrl)}`
+        : null;
 
     return (
         <>
@@ -168,7 +173,7 @@ const ProductCardContent = ({
                            Only the hero <img> is indexed. */
                         <div
                             className="absolute inset-0 w-full h-full bg-cover bg-center group-hover:scale-105 transition-transform duration-500"
-                            style={{ backgroundImage: `url(/api/proxy-image?url=${encodeURIComponent(preferredImageUrl)})` }}
+                            style={{ backgroundImage: `url(${backgroundImageUrl})` }}
                             role="img"
                             aria-label={title}
                         />

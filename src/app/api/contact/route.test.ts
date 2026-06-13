@@ -12,20 +12,13 @@ vi.mock('@supabase/supabase-js', () => ({
   })),
 }))
 
-const mockVerifyTurnstileToken = vi.fn().mockResolvedValue({ success: true })
-vi.mock('@/lib/security/turnstile', () => ({
-  verifyTurnstileToken: (...args: any[]) => mockVerifyTurnstileToken(...args),
-}))
-
 describe('POST /api/contact', () => {
   beforeEach(() => {
     insertMock.mockReset()
     fromMock.mockClear()
-    mockVerifyTurnstileToken.mockReset()
-    mockVerifyTurnstileToken.mockResolvedValue({ success: true })
   })
 
-  it('rejects incomplete payloads when Turnstile passes', async () => {
+  it('rejects incomplete payloads', async () => {
     const { POST } = await import('./route')
     const request = new NextRequest('http://localhost/api/contact', {
       method: 'POST',
@@ -52,7 +45,6 @@ describe('POST /api/contact', () => {
         phone: '+63 908 940 8747',
         email: 'hello@example.com',
         message: 'I need help ordering a rush birthday cake for Cebu City delivery.',
-        turnstileToken: 'mock-token',
       }),
       headers: { 'Content-Type': 'application/json' },
     })
@@ -62,7 +54,6 @@ describe('POST /api/contact', () => {
 
     expect(response.status).toBe(200)
     expect(payload.success).toBe(true)
-    expect(mockVerifyTurnstileToken).toHaveBeenCalledWith('mock-token', undefined)
     expect(fromMock).toHaveBeenCalledWith('cakegenie_contact_messages')
     expect(insertMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -74,21 +65,15 @@ describe('POST /api/contact', () => {
     )
   })
 
-  it('rejects requests if Turnstile verification fails', async () => {
-    mockVerifyTurnstileToken.mockResolvedValue({
-      success: false,
-      error: 'Turnstile check failed',
-    })
-
+  it('rejects invalid phone numbers before writing to the database', async () => {
     const { POST } = await import('./route')
     const request = new NextRequest('http://localhost/api/contact', {
       method: 'POST',
       body: JSON.stringify({
         name: 'Alan',
-        phone: '+63 908 940 8747',
+        phone: 'abc',
         email: 'hello@example.com',
         message: 'I need help ordering a rush birthday cake.',
-        turnstileToken: 'invalid-token',
       }),
       headers: { 'Content-Type': 'application/json' },
     })
@@ -98,7 +83,7 @@ describe('POST /api/contact', () => {
 
     expect(response.status).toBe(400)
     expect(payload.success).toBe(false)
-    expect(payload.error).toBe('Turnstile check failed')
+    expect(payload.error).toBe('Please enter a valid contact number.')
     expect(insertMock).not.toHaveBeenCalled()
   })
 })
