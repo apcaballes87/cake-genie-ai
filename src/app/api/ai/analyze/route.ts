@@ -60,7 +60,7 @@ async function getCachedTypeEnums(supabase: ReturnType<typeof createClient>): Pr
 }
 
 async function getCachedPromptCacheName(
-    aiClient: InstanceType<typeof import('@/lib/ai/client').GoogleGenAI>,
+    aiClient: ReturnType<typeof getAI>,
     promptDetails: PromptDetails,
 ) {
     const now = Date.now();
