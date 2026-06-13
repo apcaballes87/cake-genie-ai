@@ -1,5 +1,25 @@
 # Tasks
 
+## Fix Cart Discount Mismatch In Xendit Checkout
+
+### Plan
+
+- [x] Trace the live cart -> `create_order_from_cart` -> `create-xendit-payment` path and confirm where discounted totals drift before redirect.
+- [x] Patch the smallest safe root cause so the stored order total and Xendit invoice amount stay aligned with the cart/checkout total.
+- [x] Run focused verification, then record the root cause, fix, and proof in this review section.
+
+### Review
+
+- Root cause: the cart UI and Xendit edge function were not disagreeing about formatting or centavos. The live Supabase `public.create_order_from_cart(...)` body in production had drifted to an older implementation that always stored `discount_amount = 0` and `total_amount = subtotal + delivery_fee`, even when a valid `discount_code_id` was present. `create-xendit-payment` then correctly trusted `cakegenie_orders.total_amount`, so Xendit was charging the undiscounted amount from the saved order row.
+- Evidence from production before the fix: the most recent discounted checkout on `2026-06-13 07:36:23+00` (`ORD-20260613-06883`) had `subtotal = 1199.00`, `discount_code_id` set, but `discount_amount = 0.00`, `total_amount = 1199.00`, and `xendit_amount = 1199.00`. Earlier correctly discounted orders like `ORD-20260610-03921` still showed `discount_amount = 1187.01`, `total_amount = 11.99`, which helped isolate the issue to live function drift rather than the frontend math.
+- Added [supabase/migrations/20260613074116_fix_create_order_discount_drift.sql](/Users/apcaballes/genieph-nextjs/supabase/migrations/20260613074116_fix_create_order_discount_drift.sql:1) to reassert the current 17-argument `create_order_from_cart` function body with server-side discount validation, discounted `total_amount`, discount usage tracking, and the existing `p_clear_cart` behavior preserved.
+- Applied the same corrective migration to the live Supabase project (`cqmhanqnfybyxezhobkx`) as remote migration `20260613074310_fix_create_order_discount_drift`, so production now matches the repo’s intended checkout logic.
+- Verification:
+  - Queried the live function definition before the fix and confirmed it skipped discount validation and assigned `v_total_amount := GREATEST(0, p_subtotal + p_delivery_fee)` with `discount_amount = 0`.
+  - Queried the live function definition after the fix and confirmed it now validates `discount_code_id`, calculates `v_calculated_discount`, stores `discount_amount = v_calculated_discount`, and stores `total_amount = p_subtotal + p_delivery_fee - v_calculated_discount`.
+  - Confirmed the live migration history now includes `20260613074310_fix_create_order_discount_drift`.
+  - I did not run a brand-new live checkout from the browser as a customer, so the remaining verification gap is one fresh discounted order to prove the next Xendit redirect now matches the cart total end to end.
+
 ## Raise Customizing Availability Bar By 2px
 
 ### Plan

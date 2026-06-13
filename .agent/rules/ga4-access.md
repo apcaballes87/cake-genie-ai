@@ -48,26 +48,36 @@ for row in client.run_report(req).rows:
 | **Measurement ID (client-side)** | `G-C28QNPRWFK` (loaded in `src/app/layout.tsx`) |
 | **Helper module** | `src/lib/analytics.ts` (client-side `gtag` wrapper) |
 
-## Auth Status (verified 2026-06-10)
+## Auth Status (verified 2026-06-13)
 
-Two paths exist; only one is currently usable:
-
-### ✅ OAuth ADC (USE THIS) — works
-- **Credentials file:** `~/.config/gcloud/application_default_credentials.json`
-- **OAuth client ID:** `793526722390-k2puor8eniqnvv2i0oiol25blol580g0.apps.googleusercontent.com`
-- **Scopes:** `analytics.readonly`, `webmasters.readonly` (plus more)
-- **Behavior:** `BetaAnalyticsDataClient()` picks this up via Application Default Credentials.
-  **Do not** set `GOOGLE_APPLICATION_CREDENTIALS` — that will switch to the broken service
-  account path below.
-
-### ❌ Service account — present but **NOT** granted to property 510070439
+### ✅ Service account — USE THIS (works as of 2026-06-13)
 - **Service account email:** `persimmon-cakes@project-068ffeda-8588-46f8-b98.iam.gserviceaccount.com`
 - **Key file:** `/Users/apcaballes/ga4-service-account.json`
-- **Status:** `403 PERMISSION_DENIED — User does not have sufficient permissions for this property`
-- **Fix when needed:** GA4 Admin → Property Access Management → Add user
-  (`persimmon-cakes@project-068ffeda-8588-46f8-b98.iam.gserviceaccount.com`) with the
-  **Viewer** role. Then set `GOOGLE_APPLICATION_CREDENTIALS` to the JSON key path and the
-  service-account snippet in the user's earlier prompt will work too.
+- **GA4 grant:** **Viewer** role on property `510070439` (added 2026-06-13 by Alan in
+  GA4 Admin → Property Access Management)
+- **Set the env var before running any GA4 query:**
+
+  ```bash
+  export GOOGLE_APPLICATION_CREDENTIALS=/Users/apcaballes/ga4-service-account.json
+  ```
+
+  The `GOOGLE_APPLICATION_CREDENTIALS` line is also appended to `~/.zshrc` for persistence
+  — new terminals in this user's environment pick it up automatically.
+
+### ❌ OAuth ADC — present but **NO LONGER works** for GA4 Data API
+- **Credentials file:** `~/.config/gcloud/application_default_credentials.json`
+- **OAuth client ID:** `764086051850-6qr4p6gpi6hn506pt8ejuq83di341hur.apps.googleusercontent.com`
+  (this is the gcloud CLI's *public, unverified* client — when the user signs in with a
+  regular @gmail.com account, Google now blocks the consent screen with "This app is
+  blocked" on any sensitive scope)
+- **Behavior:** `BetaAnalyticsDataClient()` picks up ADC automatically and fails with
+  `403 ACCESS_TOKEN_SCOPE_INSUFFICIENT` because the recorded token scopes don't include
+  `analytics.readonly` for the Data API.
+- **Why we abandoned this path:** Workspace allowlist would unblock it, but it's a
+  one-time admin task for a one-time data pull. Service-account path is faster and
+  non-interactive.
+- **Do not** rely on ADC for GA4 in this workspace. Always export the service-account
+  key instead.
 
 ## Common Dimensions
 
