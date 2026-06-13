@@ -71,21 +71,22 @@ export async function middleware(request: NextRequest) {
     // === END BOT BLOCKING ===
 
     // Edge Rate Limiting check
-    const isAiRoute = pathname.startsWith('/api/ai/analyze')
+    const isAiRoute = pathname.startsWith('/api/ai/analyze') || pathname.startsWith('/api/ai/edit-image')
     const isNewsletterRoute = pathname.startsWith('/api/newsletter')
     const isContactRoute = pathname.startsWith('/api/contact')
     const isDiscountRoute = pathname.startsWith('/api/signup-discount')
 
     if (isAiRoute || isNewsletterRoute || isContactRoute || isDiscountRoute) {
         // Bypass rate limiting for authenticated admin requests using the pin
-        if (isAiRoute) {
+        if (pathname.startsWith('/api/ai/analyze')) {
             const adminPin = request.headers.get('x-admin-pin')
             if (adminPin === '231323') {
                 return NextResponse.next()
             }
         }
 
-        const ip = request.headers.get('x-forwarded-for') || (request as any).ip || '127.0.0.1'
+        const requestWithOptionalIp = request as NextRequest & { ip?: string }
+        const ip = request.headers.get('x-forwarded-for') || requestWithOptionalIp.ip || '127.0.0.1'
         const limitType = isAiRoute ? 'ai' : isNewsletterRoute ? 'newsletter' : isContactRoute ? 'contact' : 'discount'
 
         try {
@@ -170,6 +171,7 @@ export const config = {
     matcher: [
         '/((?!api|_next|favicon\\.ico|.*\\..*).*)',
         '/api/ai/analyze',
+        '/api/ai/edit-image',
         '/api/newsletter',
         '/api/contact',
         '/api/signup-discount'

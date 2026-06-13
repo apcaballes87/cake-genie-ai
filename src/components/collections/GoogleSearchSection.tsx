@@ -6,6 +6,8 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useImageManagement } from '@/contexts/ImageContext';
 import { useCakeCustomization } from '@/contexts/CustomizationContext';
 import { showError } from '@/lib/utils/toast';
+import { getProxyAwareImageUrl } from '@/lib/utils/imageSelection';
+import type { GoogleCSEElement } from '@/types';
 
 interface GoogleSearchSectionProps {
     keyword: string;
@@ -18,7 +20,7 @@ export const GoogleSearchSection: React.FC<GoogleSearchSectionProps> = ({ keywor
     const [isCSELoaded, setIsCSELoaded] = useState(false);
     const [isSearching, setIsSearching] = useState(false);
     const [isProcesssingImage, setIsProcessingImage] = useState(false);
-    const cseElementRef = useRef<any>(null);
+    const cseElementRef = useRef<GoogleCSEElement | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
     // Contexts
@@ -215,10 +217,9 @@ export const GoogleSearchSection: React.FC<GoogleSearchSectionProps> = ({ keywor
         router.push('/customizing?from=search');
 
         try {
-            // Try Local Proxy
-            const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
-            const blob = await fetchWithTimeout(proxyUrl, { timeout: 10000 }).then(r => {
-                if (!r.ok) throw new Error(`Proxy error: ${r.status}`);
+            const primaryImageUrl = getProxyAwareImageUrl(imageUrl);
+            const blob = await fetchWithTimeout(primaryImageUrl, { timeout: 10000 }).then(r => {
+                if (!r.ok) throw new Error(`Image fetch error: ${r.status}`);
                 return r.blob();
             }).then(blob => {
                 if (blob.type.startsWith('text/') || blob.type.includes('json')) throw new Error('Proxy returned invalid content');
@@ -251,6 +252,33 @@ export const GoogleSearchSection: React.FC<GoogleSearchSectionProps> = ({ keywor
             });
 
         } catch (err) {
+            if (getProxyAwareImageUrl(imageUrl) === imageUrl) {
+                try {
+                    const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
+                    const blob = await fetchWithTimeout(proxyUrl, { timeout: 10000 }).then(r => {
+                        if (!r.ok) throw new Error(`Proxy error: ${r.status}`);
+                        return r.blob();
+                    });
+                    const file = new File([blob], 'cake-design.webp', { type: blob.type || 'image/webp' });
+                    await new Promise<void>((resolve, reject) => {
+                        handleImageUpload(
+                            file,
+                            (result) => { setPendingAnalysisData(result); setIsAnalyzing(false); resolve(); },
+                            (error) => {
+                                setAnalysisError(error.message);
+                                showError(error.message.replace('AI_REJECTION: ', ''));
+                                setIsAnalyzing(false);
+                                reject(error);
+                            },
+                            { imageUrl }
+                        );
+                    });
+                    return;
+                } catch {
+                    // Fall through to existing backup proxy path.
+                }
+            }
+
             console.warn("Primary proxy failed, trying backup...", err);
             try {
                 const backupProxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(imageUrl)}`;
@@ -448,7 +476,7 @@ export const GoogleSearchSection: React.FC<GoogleSearchSectionProps> = ({ keywor
                 <p className="flex items-center gap-2">
                     <span className="text-xl">💡</span>
                     <span>
-                        Don't see what you like above? Browse these Google results.
+                        Don&apos;t see what you like above? Browse these Google results.
                         <strong> Click any image</strong> to get an instant price for that design!
                     </span>
                 </p>

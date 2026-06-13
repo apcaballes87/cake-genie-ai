@@ -1,8 +1,9 @@
-import React, { useState, useRef, useEffect, useCallback, KeyboardEvent } from 'react';
+import { useState, useRef, useEffect, useCallback, KeyboardEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { trackSearchTerm } from '@/services/supabaseService';
 import { AppState } from './useAppNavigation';
 import { GoogleCSE, GoogleCSEElement } from '@/types';
+import { getProxyAwareImageUrl } from '@/lib/utils/imageSelection';
 
 // Global window type extension from App.tsx
 declare global {
@@ -16,12 +17,12 @@ declare global {
 }
 
 // Declare gtag for Google Analytics event tracking
-declare const gtag: (...args: any[]) => void;
+declare const gtag: (...args: unknown[]) => void;
 
 interface UseSearchEngineProps {
   appState: AppState;
   setAppState: (state: AppState) => void;
-  handleImageUpload: (file: File, imageUrl?: string) => Promise<any>;
+  handleImageUpload: (file: File, imageUrl?: string) => Promise<unknown>;
   setImageError: (error: string | null) => void;
   originalImageData: { data: string; mimeType: string } | null;
   setIsFetchingWebImage: (fetching: boolean) => void;
@@ -311,28 +312,47 @@ export const useSearchEngine = ({
     // Step 2: Wait for CSE to load the high-resolution image
     const imageUrl = await extractHighResUrl(thumbnailUrl, clickedElement);
 
-    // Use our local API route as the primary proxy
-    // This avoids 403 errors from public proxies
-    const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
+    const primaryImageUrl = getProxyAwareImageUrl(imageUrl);
     const timeout = 10000; // 10 seconds
 
     try {
-      const blob = await fetchWithTimeout(proxyUrl, { timeout })
+      let blob = await fetchWithTimeout(primaryImageUrl, { timeout })
         .then(response => {
-          if (!response.ok) throw new Error(`Proxy error: ${response.status}`);
+          if (!response.ok) throw new Error(`Image fetch error: ${response.status}`);
           return response.blob();
         })
         .then(blob => {
           if (blob.type.startsWith('text/') || blob.type.includes('json')) {
-            throw new Error('Proxy returned invalid content');
+            throw new Error('Image fetch returned invalid content');
           }
           return blob;
         });
+
+      if (!blob && primaryImageUrl === imageUrl) {
+        const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
+        blob = await fetchWithTimeout(proxyUrl, { timeout })
+          .then(response => {
+            if (!response.ok) throw new Error(`Proxy error: ${response.status}`);
+            return response.blob();
+          });
+      }
 
       const file = new File([blob], 'cake-design.webp', { type: blob.type || 'image/webp' });
       await handleImageUpload(file, imageUrl);
 
     } catch (err) {
+      if (primaryImageUrl === imageUrl) {
+        try {
+          const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
+          const blob = await fetchWithTimeout(proxyUrl, { timeout }).then(r => r.blob());
+          const file = new File([blob], 'cake-design.webp', { type: blob.type || 'image/webp' });
+          await handleImageUpload(file, imageUrl);
+          return;
+        } catch {
+          // Fall through to final fallback.
+        }
+      }
+
         // Silently try fallbacks
 
       // Fallback strategies if local proxy fails

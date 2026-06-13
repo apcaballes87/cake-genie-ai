@@ -56,6 +56,7 @@ describe('/api/ai/edit-image', () => {
                     // both TEXT and IMAGE modalities (lets the model return
                     // optional explanation text alongside the edited image).
                     responseModalities: ['TEXT', 'IMAGE'],
+                    abortSignal: expect.any(AbortSignal),
                 }),
             })
         );

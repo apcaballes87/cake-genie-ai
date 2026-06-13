@@ -27,6 +27,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { CakeGenieIcingMask } from '@/lib/database.types';
 import { recolorWithMask } from '@/lib/icingMaskComposite';
+import { getProxyAwareImageUrl } from '@/lib/utils/imageSelection';
 import { generateAndPersistIcingMask, getIcingMask } from '@/services/icingMaskService';
 import { fileToBase64 } from '@/services/geminiService';
 
@@ -162,9 +163,7 @@ async function fetchUrlAsBase64(url: string): Promise<{ data: string; mimeType: 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15_000);
   try {
-    const targetUrl = url.startsWith('data:') || url.startsWith('blob:') || url.includes('example.com') || process.env.NODE_ENV === 'test'
-      ? url
-      : `/api/proxy-image?url=${encodeURIComponent(url)}`;
+    const targetUrl = getProxyAwareImageUrl(url);
 
     const response = await fetch(targetUrl, { signal: controller.signal });
     if (!response.ok) {

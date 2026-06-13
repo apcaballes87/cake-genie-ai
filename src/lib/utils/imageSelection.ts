@@ -31,3 +31,26 @@ export const isSiteOwnedSupabasePublicImageUrl = (url?: string | null): boolean 
     return false;
   }
 };
+
+export const shouldBypassImageProxy = (url?: string | null): boolean => {
+  const trimmedUrl = typeof url === 'string' ? url.trim() : '';
+
+  if (!trimmedUrl) {
+    return false;
+  }
+
+  if (
+    trimmedUrl.startsWith('data:') ||
+    trimmedUrl.startsWith('blob:') ||
+    trimmedUrl.includes('example.com')
+  ) {
+    return true;
+  }
+
+  return isSiteOwnedSupabasePublicImageUrl(trimmedUrl);
+};
+
+export const getProxyAwareImageUrl = (url: string): string =>
+  shouldBypassImageProxy(url)
+    ? url
+    : `/api/proxy-image?url=${encodeURIComponent(url)}`;

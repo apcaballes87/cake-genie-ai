@@ -6,8 +6,9 @@ import { buildSearchAnalysisGenerationConfig, postProcessSearchAnalysisResult } 
 import { getActivePromptDetails } from '@/services/prompts/promptLoader';
 import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
 import { logRejectedUpload } from '@/lib/ai/rejectedUploads';
+import { getDynamicTypeEnums } from '@/lib/ai/utils';
 
-export const maxDuration = 300; // Allow up to 300 seconds (Vercel Pro) for AI processing
+export const maxDuration = 150; // Internal timeout aborts well before this; keep some headroom for cleanup.
 
 const CORS_HEADERS = {
     'Access-Control-Allow-Origin': '*',
@@ -26,8 +27,72 @@ export async function OPTIONS() {
 // The analyze prompt is heavy; most successful calls complete in <90s.
 const AI_REQUEST_TIMEOUT_MS = 120_000;
 const ANALYSIS_MODEL = "gemini-3.1-flash-lite-preview";
+const ANALYSIS_CONFIG_CACHE_TTL_MS = 5 * 60_000;
+const PROMPT_CACHE_NAME_TTL_MS = 30 * 60_000;
 
-import { getDynamicTypeEnums } from '@/lib/ai/utils';
+type PromptDetails = Awaited<ReturnType<typeof getActivePromptDetails>>;
+type TypeEnums = Awaited<ReturnType<typeof getDynamicTypeEnums>>;
+
+let cachedPromptDetails: { value: PromptDetails; expiresAt: number } | null = null;
+let cachedTypeEnums: { value: TypeEnums; expiresAt: number } | null = null;
+let cachedPromptCacheByVersion: { version: string; cacheName: string | null; expiresAt: number } | null = null;
+
+async function getCachedPromptDetails(supabase: ReturnType<typeof createClient>): Promise<PromptDetails> {
+    const now = Date.now();
+    if (cachedPromptDetails && cachedPromptDetails.expiresAt > now) {
+        return cachedPromptDetails.value;
+    }
+
+    const value = await getActivePromptDetails(supabase as unknown as Parameters<typeof getActivePromptDetails>[0]);
+    cachedPromptDetails = { value, expiresAt: now + ANALYSIS_CONFIG_CACHE_TTL_MS };
+    return value;
+}
+
+async function getCachedTypeEnums(supabase: ReturnType<typeof createClient>): Promise<TypeEnums> {
+    const now = Date.now();
+    if (cachedTypeEnums && cachedTypeEnums.expiresAt > now) {
+        return cachedTypeEnums.value;
+    }
+
+    const value = await getDynamicTypeEnums(supabase);
+    cachedTypeEnums = { value, expiresAt: now + ANALYSIS_CONFIG_CACHE_TTL_MS };
+    return value;
+}
+
+async function getCachedPromptCacheName(
+    aiClient: InstanceType<typeof import('@/lib/ai/client').GoogleGenAI>,
+    promptDetails: PromptDetails,
+) {
+    const now = Date.now();
+    if (
+        cachedPromptCacheByVersion &&
+        cachedPromptCacheByVersion.version === promptDetails.version &&
+        cachedPromptCacheByVersion.expiresAt > now
+    ) {
+        return cachedPromptCacheByVersion.cacheName;
+    }
+
+    const cacheName = await getOrCreatePromptCache(
+        aiClient,
+        promptDetails.promptText,
+        promptDetails.version,
+        SYSTEM_INSTRUCTION
+    );
+
+    cachedPromptCacheByVersion = {
+        version: promptDetails.version,
+        cacheName,
+        expiresAt: now + PROMPT_CACHE_NAME_TTL_MS,
+    };
+
+    return cacheName;
+}
+
+function clearCachedPromptCacheName(version: string) {
+    if (cachedPromptCacheByVersion?.version === version) {
+        cachedPromptCacheByVersion = null;
+    }
+}
 
 export async function POST(req: NextRequest) {
     try {
@@ -45,8 +110,8 @@ export async function POST(req: NextRequest) {
 
         // Fetch inputs required for prompt construction
         const [promptDetails, typeEnums] = await Promise.all([
-            getActivePromptDetails(supabase as unknown as Parameters<typeof getActivePromptDetails>[0]).catch(() => null),
-            getDynamicTypeEnums(supabase)
+            getCachedPromptDetails(supabase).catch(() => null),
+            getCachedTypeEnums(supabase)
         ]);
 
         if (!promptDetails) {
@@ -64,12 +129,7 @@ export async function POST(req: NextRequest) {
 
         // Try to get or create an active context cache for Vertex AI
         try {
-            cacheName = await getOrCreatePromptCache(
-                aiClient,
-                promptDetails.promptText,
-                promptDetails.version,
-                SYSTEM_INSTRUCTION
-            );
+            cacheName = await getCachedPromptCacheName(aiClient, promptDetails);
         } catch (cacheErr) {
             console.warn('[AI Cache] Failed to create or retrieve context cache:', cacheErr);
         }
@@ -79,20 +139,39 @@ export async function POST(req: NextRequest) {
             const cachedConfig = { ...baseConfig };
             delete (cachedConfig as { systemInstruction?: unknown }).systemInstruction;
 
-            response = await aiClient.models.generateContent({
-                model: ANALYSIS_MODEL,
-                contents: [{
-                    role: 'user',
-                    parts: [
-                        { inlineData: { mimeType, data: imageData } }
-                    ],
-                }],
-                config: {
-                    ...cachedConfig,
-                    cachedContent: cacheName,
-                    abortSignal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
-                },
-            });
+            try {
+                response = await aiClient.models.generateContent({
+                    model: ANALYSIS_MODEL,
+                    contents: [{
+                        role: 'user',
+                        parts: [
+                            { inlineData: { mimeType, data: imageData } }
+                        ],
+                    }],
+                    config: {
+                        ...cachedConfig,
+                        cachedContent: cacheName,
+                        abortSignal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
+                    },
+                });
+            } catch (cachedGenerationError) {
+                clearCachedPromptCacheName(promptDetails.version);
+                console.warn('[AI Cache] Cached analysis generation failed. Retrying without cached content:', cachedGenerationError);
+                response = await aiClient.models.generateContent({
+                    model: ANALYSIS_MODEL,
+                    contents: [{
+                        role: 'user',
+                        parts: [
+                            { inlineData: { mimeType, data: imageData } },
+                            { text: promptDetails.promptText }
+                        ],
+                    }],
+                    config: {
+                        ...baseConfig,
+                        abortSignal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
+                    },
+                });
+            }
         } else {
             // Fallback to uncached generation if cache lookup fails
             response = await aiClient.models.generateContent({

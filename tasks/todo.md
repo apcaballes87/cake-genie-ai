@@ -2520,3 +2520,58 @@
   - `npx vitest run src/app/api/ai/analyze/route.test.ts src/app/api/contact/route.test.ts src/app/api/newsletter/route.test.ts src/lib/security/__tests__/rateLimiter.test.ts src/components/ProductCard.test.tsx` passed with `20` tests.
   - Focused ESLint across the touched Turnstile-removal files completed with `0` errors and only the repo's existing warnings plus the stale Browserslist data warning.
   - `git diff --check -- src/app/api/ai/analyze/route.ts src/app/api/ai/analyze/route.test.ts src/app/api/contact/route.ts src/app/api/contact/route.test.ts src/app/api/newsletter/route.ts src/app/api/newsletter/route.test.ts src/app/customizing/CustomizingClient.tsx src/app/contact/ContactClient.tsx src/components/NewsletterPopup.tsx src/components/DiscountOfferBubble.tsx src/components/ChatModal.tsx src/contexts/ImageContext.tsx src/hooks/useImageManagement.ts src/services/geminiService.ts src/components/TurnstileWidget.tsx src/lib/security/turnstile.ts src/lib/security/__tests__/turnstile.test.ts tasks/todo.md` passed.
+
+# Cut Remaining Origin Transfer And Fluid Hotspots (2026-06-13)
+
+### Plan
+
+- [x] Stop re-serving Genie-owned Supabase public images through `/api/proxy-image` so those requests no longer burn Vercel origin transfer and proxy memory.
+- [x] Extend public AI abuse protection to the still-unlimited `/api/ai/edit-image` path and fail faster on long-running image-edit calls.
+- [x] Remove repeated per-request prompt/config/cache discovery work from `/api/ai/analyze` so hot analyze traffic does less database and Vertex setup work.
+- [x] Add focused regression coverage, rerun targeted verification, and document the next highest-ROI follow-ups from the live audit.
+
+### Review
+
+- Live audit evidence from the connected Vercel project showed `/api/proxy-image`, `/api/ai/analyze`, and `/api/ai/edit-image` all appearing frequently in production runtime logs over the last 7 days, which lined up with the current bill's largest remaining origin-transfer and Fluid Compute buckets.
+- Updated [src/app/api/proxy-image/route.ts](/Users/apcaballes/genieph-nextjs/src/app/api/proxy-image/route.ts:1) so Genie-owned public Supabase assets now short-circuit to a `307` redirect instead of being fetched, buffered, and re-served by the function. This preserves the proxy for third-party/CORS-sensitive sources, but removes Vercel origin-transfer and memory cost for the first-party public assets that were still unnecessarily passing through the route.
+- Updated [src/middleware.ts](/Users/apcaballes/genieph-nextjs/src/middleware.ts:1) so `/api/ai/edit-image` now shares the public AI rate-limit path instead of remaining effectively unlimited. This matters because production runtime logs still show frequent `POST /api/ai/edit-image` traffic and repeated 429/502 churn.
+- Updated [src/app/api/ai/edit-image/route.ts](/Users/apcaballes/genieph-nextjs/src/app/api/ai/edit-image/route.ts:1) to pass an explicit `AbortSignal.timeout(90_000)` into Gemini image-edit calls, which fails slow upstream edits sooner instead of letting them hold Fluid memory/runtime longer.
+- Updated [src/app/api/ai/analyze/route.ts](/Users/apcaballes/genieph-nextjs/src/app/api/ai/analyze/route.ts:1) to cache prompt details, dynamic pricing/type enums, and the prompt-cache resource name in module memory for hot instances. The cached-content path now also clears the local cache and retries uncached if the stored Vertex cache name goes stale. This removes repeated Supabase prompt/config reads and repeated Vertex cache discovery from hot analyze traffic.
+- Focused regression coverage now includes:
+  - [src/app/api/proxy-image/route.test.ts](/Users/apcaballes/genieph-nextjs/src/app/api/proxy-image/route.test.ts:1) for the first-party redirect path.
+  - [src/middleware.test.ts](/Users/apcaballes/genieph-nextjs/src/middleware.test.ts:1) for `/api/ai/edit-image` rate limiting.
+  - [src/app/api/ai/analyze/route.test.ts](/Users/apcaballes/genieph-nextjs/src/app/api/ai/analyze/route.test.ts:1) for hot-request reuse of prompt/enums/cache discovery.
+  - [src/app/api/ai/edit-image/route.test.ts](/Users/apcaballes/genieph-nextjs/src/app/api/ai/edit-image/route.test.ts:1) for the new abort-signal config on Gemini calls.
+- Verification:
+  - `npx vitest run src/app/api/proxy-image/route.test.ts src/middleware.test.ts src/app/api/ai/analyze/route.test.ts src/app/api/ai/edit-image/route.test.ts` passed with `20` tests.
+  - Focused ESLint passed on the touched files with `0` errors and only the stale Browserslist data warning.
+  - `git diff --check -- src/app/api/proxy-image/route.ts src/app/api/proxy-image/route.test.ts src/middleware.ts src/middleware.test.ts src/app/api/ai/analyze/route.ts src/app/api/ai/analyze/route.test.ts src/app/api/ai/edit-image/route.ts src/app/api/ai/edit-image/route.test.ts tasks/todo.md` passed.
+- Next highest-ROI follow-ups from the live audit:
+  - Production runtime logs also surfaced `[RateLimiter] Vercel KV environment variables ... are missing`, so the shared limiter is still falling back to per-instance memory in production. Wiring the project to real Vercel KV / Upstash env vars is still worth doing because it makes the AI abuse protection global instead of instance-local.
+  - The repo still has many `/api/proxy-image` call sites, but the highest-traffic remaining ones appear to be the public customizer/search experiences and a few related-design background-image surfaces. The next transfer pass should target those public call sites first and ignore low-traffic admin-only usage until later.
+
+# Trim Public Proxy Callers Further (2026-06-13)
+
+### Plan
+
+- [x] Audit remaining public `/api/proxy-image` callers in search and customizing to separate true third-party/CORS cases from first-party URLs that can bypass the proxy.
+- [x] Add a shared client helper so public image-fetch flows can use direct first-party URLs and fall back to the proxy only when needed.
+- [x] Patch the highest-traffic public callers in search/customizing plus the client-side image-edit helpers that still forced the proxy for first-party assets.
+- [x] Run focused verification and document what public proxy surfaces still remain after this pass.
+
+### Review
+
+- Added shared proxy-awareness helpers in [src/lib/utils/imageSelection.ts](/Users/apcaballes/genieph-nextjs/src/lib/utils/imageSelection.ts:1):
+  - `shouldBypassImageProxy(...)` recognizes data/blob URLs, test fixture URLs, and Genie-owned public Supabase assets.
+  - `getProxyAwareImageUrl(...)` returns the direct URL for those safe cases and only builds `/api/proxy-image` for the remaining third-party paths.
+- Updated the public Google search flows in [src/hooks/useSearchEngine.ts](/Users/apcaballes/genieph-nextjs/src/hooks/useSearchEngine.ts:1) and [src/components/collections/GoogleSearchSection.tsx](/Users/apcaballes/genieph-nextjs/src/components/collections/GoogleSearchSection.tsx:1) so they no longer assume every image must be proxied first. First-party/Supabase hits now go direct, and only then fall back to `/api/proxy-image` or the backup public proxy path if needed.
+- Updated the public customizer query-param restore flow in [src/app/customizing/CustomizingClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingClient.tsx:1) so `image_url` loads also use the direct-first helper instead of forcing the proxy immediately.
+- Updated the client-side image-edit helpers in [src/hooks/useIcingMask.ts](/Users/apcaballes/genieph-nextjs/src/hooks/useIcingMask.ts:1) and [src/hooks/useDesignUpdate.ts](/Users/apcaballes/genieph-nextjs/src/hooks/useDesignUpdate.ts:1) so first-party assets do not bounce through `/api/proxy-image` before being converted to base64 for recolor/edit flows.
+- Added focused regression coverage in [src/lib/utils/imageSelection.test.ts](/Users/apcaballes/genieph-nextjs/src/lib/utils/imageSelection.test.ts:1) for the new proxy-bypass rules.
+- Verification:
+  - `npx vitest run src/lib/utils/imageSelection.test.ts src/app/api/proxy-image/route.test.ts src/middleware.test.ts src/app/api/ai/analyze/route.test.ts src/app/api/ai/edit-image/route.test.ts` passed with `23` tests.
+  - Focused ESLint across the touched files completed with `0` errors and the same existing warnings plus the stale Browserslist data warning.
+  - `git diff --check -- src/lib/utils/imageSelection.ts src/lib/utils/imageSelection.test.ts src/hooks/useSearchEngine.ts src/components/collections/GoogleSearchSection.tsx src/hooks/useIcingMask.ts src/hooks/useDesignUpdate.ts src/app/customizing/CustomizingClient.tsx tasks/todo.md` passed.
+- Highest-value public proxy surfaces still left after this pass:
+  - Some related-design and SSR background-image paths, including parts of `/customizing/[slug]`, still emit proxied URLs. I left those alone in this pass because that file already has unrelated local user edits and should be handled carefully in a dedicated follow-up.
+  - Low-traffic admin/import screens still use `/api/proxy-image`, but they are much lower priority than the public customizer/search paths we just reduced.

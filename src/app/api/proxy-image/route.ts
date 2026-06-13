@@ -7,31 +7,6 @@ const CORS_HEADERS = {
     'Access-Control-Allow-Headers': 'Content-Type',
 };
 
-// Allowlisted hostname patterns for image sources
-const ALLOWED_HOSTNAME_PATTERNS = [
-    // Supabase storage
-    /\.supabase\.co$/,
-    /\.supabase\.in$/,
-    // Google
-    /\.gstatic\.com$/,
-    /\.googleusercontent\.com$/,
-    /\.googleapis\.com$/,
-    /\.ggpht\.com$/,
-    // Unsplash
-    /\.unsplash\.com$/,
-    /^images\.unsplash\.com$/,
-    // Facebook CDN
-    /\.fbcdn\.net$/,
-    /\.facebook\.com$/,
-    /\.fb\.com$/,
-    // Instagram
-    /\.cdninstagram\.com$/,
-    /\.instagram\.com$/,
-    // Pinterest
-    /\.pinimg\.com$/,
-    /\.pinterest\.com$/,
-];
-
 // Private IP ranges to block (SSRF protection)
 const PRIVATE_IP_PATTERNS = [
     /^localhost$/i,
@@ -49,10 +24,6 @@ const PRIVATE_IP_PATTERNS = [
 const TIMEOUT_MS = 10000; // 10 seconds
 const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 const SUPABASE_PUBLIC_PATH = '/storage/v1/object/public/';
-
-const isAllowedHostname = (hostname: string): boolean => {
-    return ALLOWED_HOSTNAME_PATTERNS.some(pattern => pattern.test(hostname));
-};
 
 const isPrivateIP = (hostname: string): boolean => {
     return PRIVATE_IP_PATTERNS.some(pattern => pattern.test(hostname));
@@ -107,6 +78,20 @@ export async function GET(request: NextRequest) {
             { error: 'Access to private networks is not allowed' },
             { status: 403, headers: CORS_HEADERS }
         );
+    }
+
+    // Genie-owned public Supabase assets do not need to transit through our
+    // proxy. Redirecting them to the public object URL cuts origin transfer
+    // and avoids buffering the bytes inside a Vercel function.
+    if (isSiteOwnedSupabaseAsset(parsedUrl)) {
+        return new NextResponse(null, {
+            status: 307,
+            headers: {
+                Location: parsedUrl.toString(),
+                'Cache-Control': 'public, max-age=31536000, s-maxage=31536000, immutable',
+                ...CORS_HEADERS,
+            },
+        });
     }
 
     // Note: We removed the hostname allowlist to support arbitrary image sources
@@ -191,9 +176,7 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        const cacheControl = isSiteOwnedSupabaseAsset(parsedUrl)
-            ? 'public, max-age=31536000, s-maxage=31536000, immutable'
-            : 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400';
+        const cacheControl = 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400';
 
         return new NextResponse(buffer, {
             headers: {

@@ -3,6 +3,8 @@ import { NextRequest } from 'next/server';
 
 const mockGenerateContent = vi.fn();
 const mockGetOrCreatePromptCache = vi.fn();
+const mockGetActivePromptDetails = vi.fn();
+const mockGetDynamicTypeEnums = vi.fn();
 
 vi.mock('@/lib/ai/client', () => ({
     getAI: vi.fn(() => ({
@@ -18,17 +20,11 @@ vi.mock('@/lib/supabase/client', () => ({
 }));
 
 vi.mock('@/services/prompts/promptLoader', () => ({
-    getActivePromptDetails: vi.fn().mockResolvedValue({
-        promptText: 'Analyze this cake',
-        version: '1.0',
-    }),
+    getActivePromptDetails: (...args: unknown[]) => mockGetActivePromptDetails(...args),
 }));
 
 vi.mock('@/lib/ai/utils', () => ({
-    getDynamicTypeEnums: vi.fn().mockResolvedValue({
-        styles: [],
-        icings: [],
-    }),
+    getDynamicTypeEnums: (...args: unknown[]) => mockGetDynamicTypeEnums(...args),
 }));
 
 describe('POST /api/ai/analyze', () => {
@@ -36,6 +32,16 @@ describe('POST /api/ai/analyze', () => {
         vi.resetModules();
         mockGenerateContent.mockReset();
         mockGetOrCreatePromptCache.mockReset();
+        mockGetActivePromptDetails.mockReset();
+        mockGetDynamicTypeEnums.mockReset();
+        mockGetActivePromptDetails.mockResolvedValue({
+            promptText: 'Analyze this cake',
+            version: '1.0',
+        });
+        mockGetDynamicTypeEnums.mockResolvedValue({
+            styles: [],
+            icings: [],
+        });
         mockGenerateContent.mockResolvedValue({
             text: JSON.stringify({
                 title: 'Ocean Mermaid Cake',
@@ -97,5 +103,28 @@ describe('POST /api/ai/analyze', () => {
 
         expect(response.status).toBe(200);
         expect(payload.title).toBe('Ocean Mermaid Cake');
+    });
+
+    it('reuses cached prompt details and enum config across hot requests', async () => {
+        mockGetOrCreatePromptCache.mockResolvedValue('mock-cache-name');
+
+        const { POST } = await import('./route');
+        const makeRequest = () =>
+            new NextRequest('http://localhost/api/ai/analyze', {
+                method: 'POST',
+                body: JSON.stringify({
+                    imageData: 'base64-data',
+                    mimeType: 'image/png',
+                }),
+            });
+
+        const firstResponse = await POST(makeRequest());
+        const secondResponse = await POST(makeRequest());
+
+        expect(firstResponse.status).toBe(200);
+        expect(secondResponse.status).toBe(200);
+        expect(mockGetActivePromptDetails).toHaveBeenCalledTimes(1);
+        expect(mockGetDynamicTypeEnums).toHaveBeenCalledTimes(1);
+        expect(mockGetOrCreatePromptCache).toHaveBeenCalledTimes(1);
     });
 });

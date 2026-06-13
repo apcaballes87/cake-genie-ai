@@ -1,16 +1,47 @@
-import { describe, expect, it } from 'vitest';
-import { firstNonBlankImageUrl, getPreferredProductImageUrl } from './imageSelection';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-describe('imageSelection', () => {
-  it('prefers the first non-blank image url', () => {
-    expect(firstNonBlankImageUrl('   ', null, 'https://example.com/studio.webp')).toBe('https://example.com/studio.webp');
+import {
+  getProxyAwareImageUrl,
+  isSiteOwnedSupabasePublicImageUrl,
+  shouldBypassImageProxy,
+} from './imageSelection';
+
+describe('imageSelection proxy helpers', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
-  it('prefers studio edited images over originals', () => {
-    expect(getPreferredProductImageUrl(' https://example.com/studio.webp ', 'https://example.com/original.webp')).toBe('https://example.com/studio.webp');
+  it('detects Genie-owned public Supabase assets', () => {
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://project.supabase.co');
+
+    expect(
+      isSiteOwnedSupabasePublicImageUrl('https://project.supabase.co/storage/v1/object/public/cakegenie/cake.webp')
+    ).toBe(true);
+    expect(
+      isSiteOwnedSupabasePublicImageUrl('https://images.example.com/cake.webp')
+    ).toBe(false);
   });
 
-  it('falls back to the original image when studio edited is blank', () => {
-    expect(getPreferredProductImageUrl(' ', 'https://example.com/original.webp')).toBe('https://example.com/original.webp');
+  it('bypasses the proxy for first-party, data, blob, and test fixture URLs', () => {
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://project.supabase.co');
+
+    expect(
+      shouldBypassImageProxy('https://project.supabase.co/storage/v1/object/public/cakegenie/cake.webp')
+    ).toBe(true);
+    expect(shouldBypassImageProxy('data:image/png;base64,abc')).toBe(true);
+    expect(shouldBypassImageProxy('blob:http://localhost/image')).toBe(true);
+    expect(shouldBypassImageProxy('https://example.com/cake.webp')).toBe(true);
+    expect(shouldBypassImageProxy('https://images.example.org/cake.webp')).toBe(false);
+  });
+
+  it('keeps third-party images on the proxy path', () => {
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://project.supabase.co');
+
+    expect(
+      getProxyAwareImageUrl('https://images.example.org/cake.webp')
+    ).toBe('/api/proxy-image?url=https%3A%2F%2Fimages.example.org%2Fcake.webp');
+    expect(
+      getProxyAwareImageUrl('https://project.supabase.co/storage/v1/object/public/cakegenie/cake.webp')
+    ).toBe('https://project.supabase.co/storage/v1/object/public/cakegenie/cake.webp');
   });
 });

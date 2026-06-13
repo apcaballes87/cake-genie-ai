@@ -4,7 +4,7 @@ import { middleware } from './middleware';
 
 const mockCheckRateLimit = vi.fn();
 vi.mock('@/lib/security/rateLimiter', () => ({
-    checkRateLimit: (...args: any[]) => mockCheckRateLimit(...args),
+    checkRateLimit: (...args: unknown[]) => mockCheckRateLimit(...args),
 }));
 
 // The middleware returns 403 for any request without a User-Agent (bot-block
@@ -84,6 +84,15 @@ describe('middleware', () => {
         const response = await middleware(request);
 
         expect(response).toBeInstanceOf(NextResponse);
+        expect(mockCheckRateLimit).toHaveBeenCalledWith('ai', expect.any(String));
+    });
+
+    it('should rate limit /api/ai/edit-image as an AI route', async () => {
+        const request = makeRequest('http://localhost/api/ai/edit-image');
+        const response = await middleware(request);
+
+        expect(response).toBeInstanceOf(NextResponse);
+        expect(response.status).toBe(200);
         expect(mockCheckRateLimit).toHaveBeenCalledWith('ai', expect.any(String));
     });
 });

@@ -38,6 +38,7 @@ import { ColorPalette } from '../../components/ColorPalette';
 import StickyAddToCartBar from '../../components/StickyAddToCartBar';
 import { FloatingImagePreview } from '../../components/FloatingImagePreview';
 import { showSuccess, showError, showInfo } from '../../lib/utils/toast';
+import { getProxyAwareImageUrl } from '@/lib/utils/imageSelection';
 import { reportCustomization, uploadReportImage, getAnalysisByExactHash, getRelatedProductsByKeywords, getCollectionsForDesign, getStudioImageAvailabilityByHash } from '../../services/supabaseService';
 import { trackViewItem } from '@/lib/analytics';
 import ReportModal from '../../components/ReportModal';
@@ -1892,12 +1893,26 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     return;
                 }
 
-                // Always use the proxy for cross-origin images to avoid CORS errors
-                const proxyResponse = await fetch(`/api/proxy-image?url=${encodeURIComponent(imageUrl)}`);
-                if (!proxyResponse.ok) {
-                    throw new Error(`Proxy fetch failed with status ${proxyResponse.status}`);
+                let blob: Blob | null = null;
+                try {
+                    const response = await fetch(getProxyAwareImageUrl(imageUrl));
+                    if (response.ok) {
+                        blob = await response.blob();
+                    }
+                } catch {
+                    blob = null;
                 }
-                const blob = await proxyResponse.blob();
+
+                if (!blob && getProxyAwareImageUrl(imageUrl) === imageUrl) {
+                    const proxyResponse = await fetch(`/api/proxy-image?url=${encodeURIComponent(imageUrl)}`);
+                    if (proxyResponse.ok) {
+                        blob = await proxyResponse.blob();
+                    }
+                }
+
+                if (!blob) {
+                    throw new Error('Failed to fetch product image');
+                }
 
                 const fileName = pendingImageName || 'cake-design.jpg';
                 const fileType = pendingImageType || blob.type || 'image/jpeg';

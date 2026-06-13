@@ -5,6 +5,7 @@ import { normalizeAiRouteError } from '@/lib/ai/routeError';
 export const maxDuration = 180;
 const DEFAULT_MODEL_NAME = 'gemini-3.1-flash-image-preview';
 const COLOR_ONLY_MODEL_NAME = 'gemini-3.1-flash-image-preview';
+const AI_EDIT_REQUEST_TIMEOUT_MS = 90_000;
 
 type EditImageModelName = typeof DEFAULT_MODEL_NAME | typeof COLOR_ONLY_MODEL_NAME;
 type ResponseModality = 'TEXT' | 'IMAGE';
@@ -203,6 +204,7 @@ export async function POST(req: NextRequest) {
                 config: {
                     systemInstruction: systemInstruction,
                     responseModalities: attempt.responseModalities,
+                    abortSignal: AbortSignal.timeout(AI_EDIT_REQUEST_TIMEOUT_MS),
                 },
             });
 
