@@ -146,7 +146,23 @@ export default function RootLayout({
                 window.gtag = function gtag(){window.dataLayer.push(arguments);}
                 window.gtag('js', new Date());
 
-                window.gtag('config', 'G-C28QNPRWFK');
+                var configOpts = {};
+                if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+                  var referrer = document.referrer || '';
+                  var path = window.location.pathname || '';
+                  
+                  // Ignore referrer if landing back from Xendit checkouts, Google confirmation/Pay,
+                  // or when on the order-confirmation page.
+                  var isXendit = referrer.indexOf('xendit.co') !== -1;
+                  var isGooglePay = referrer.indexOf('pay.google.com') !== -1 || referrer.indexOf('accounts.google.com') !== -1;
+                  var isOrderConfirmation = path.indexOf('/order-confirmation') !== -1;
+                  
+                  if (isXendit || isGooglePay || isOrderConfirmation) {
+                    configOpts['ignore_referrer'] = 'true';
+                  }
+                }
+
+                window.gtag('config', 'G-C28QNPRWFK', configOpts);
               `}
             </Script>
           </>

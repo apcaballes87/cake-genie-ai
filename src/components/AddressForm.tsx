@@ -422,6 +422,7 @@ const AddressForm: React.FC<AddressFormProps> = ({ userId, initialData, onSucces
         }
     }, [recipientName, recipientPhone, streetAddress, addressLabel, isDefault, latitude, longitude, city, isManualMode, onFormChange]);
 
+    // Initialize from initialData (edit mode) or localStorage draft (new address mode)
     useEffect(() => {
         if (initialData) {
             setRecipientName(initialData.recipient_name || '');
@@ -431,12 +432,61 @@ const AddressForm: React.FC<AddressFormProps> = ({ userId, initialData, onSucces
             setIsDefault(initialData.is_default || false);
             setLatitude(initialData.latitude || null);
             setLongitude(initialData.longitude || null);
+            setCity(initialData.city || '');
         } else {
-            // Reset for "add new" mode
-            setRecipientName(''); setRecipientPhone(''); setStreetAddress('');
-            setAddressLabel(''); setIsDefault(false); setLatitude(null); setLongitude(null);
+            // Retrieve draft from localStorage for a new address
+            if (typeof window !== 'undefined') {
+                const savedDraft = localStorage.getItem('address_form_draft');
+                if (savedDraft) {
+                    try {
+                        const draft = JSON.parse(savedDraft);
+                        setRecipientName(draft.recipientName || '');
+                        setRecipientPhone(draft.recipientPhone || '');
+                        setStreetAddress(draft.streetAddress || '');
+                        setAddressLabel(draft.addressLabel || '');
+                        setIsDefault(draft.isDefault || false);
+                        setLatitude(draft.latitude || null);
+                        setLongitude(draft.longitude || null);
+                        setCity(draft.city || '');
+                        return; // Load draft successfully, do not reset to empty
+                    } catch (e) {
+                        console.error('Failed to parse address draft:', e);
+                    }
+                }
+            }
+            // Reset for "add new" mode (no draft found)
+            setRecipientName('');
+            setRecipientPhone('');
+            setStreetAddress('');
+            setAddressLabel('');
+            setIsDefault(false);
+            setLatitude(null);
+            setLongitude(null);
+            setCity('');
         }
     }, [initialData]);
+
+    // Save draft for new address as the user fills the form
+    useEffect(() => {
+        if (isEditing) return;
+
+        const hasData = recipientName || recipientPhone || streetAddress || addressLabel || city || latitude || longitude;
+        if (hasData) {
+            const draft = {
+                recipientName,
+                recipientPhone,
+                streetAddress,
+                addressLabel,
+                isDefault,
+                latitude,
+                longitude,
+                city
+            };
+            localStorage.setItem('address_form_draft', JSON.stringify(draft));
+        } else {
+            localStorage.removeItem('address_form_draft');
+        }
+    }, [recipientName, recipientPhone, streetAddress, addressLabel, isDefault, latitude, longitude, city, isEditing]);
 
     const handleLocationSelect = useCallback((details: any) => {
         setLatitude(details.latitude);
@@ -482,6 +532,9 @@ const AddressForm: React.FC<AddressFormProps> = ({ userId, initialData, onSucces
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
             };
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('address_form_draft');
+            }
             onSuccess(guestAddress);
             return;
         }
@@ -498,6 +551,9 @@ const AddressForm: React.FC<AddressFormProps> = ({ userId, initialData, onSucces
             addAddressMutation.mutate({ userId, addressData: newAddressData }, {
                 onSuccess: (newAddress) => {
                     if (newAddress) {
+                        if (typeof window !== 'undefined') {
+                            localStorage.removeItem('address_form_draft');
+                        }
                         showSuccess("Address added successfully!");
                         onSuccess(newAddress);
                     }
@@ -605,7 +661,12 @@ const AddressForm: React.FC<AddressFormProps> = ({ userId, initialData, onSucces
 
                 {!hideActions && (
                     <div className="flex items-center justify-end gap-3 pt-4">
-                        <button type="button" onClick={onCancel} className="genie-btn-secondary font-bold py-2 px-4 rounded-lg transition-all text-sm">Cancel</button>
+                        <button type="button" onClick={() => {
+                            if (typeof window !== 'undefined') {
+                                localStorage.removeItem('address_form_draft');
+                            }
+                            onCancel();
+                        }} className="genie-btn-secondary font-bold py-2 px-4 rounded-lg transition-all text-sm">Cancel</button>
                         <button type="submit" disabled={isSubmitting} className="genie-btn-primary flex justify-center items-center font-bold py-2 px-4 rounded-lg transition-all text-sm disabled:opacity-75">
                             {isSubmitting && <Loader2 className="animate-spin mr-2 w-4 h-4" />}
                             {isEditing ? 'Save Changes' : 'Save Address'}

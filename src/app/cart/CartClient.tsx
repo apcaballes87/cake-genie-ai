@@ -1120,6 +1120,9 @@ function CartClient() {
                     setSelectedAddressId(newAddr.address_id); // Update state
                 }
                 setIsAddingAddress(false); // Close form
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('address_form_draft');
+                }
             }
 
 
@@ -1308,6 +1311,9 @@ function CartClient() {
                     setSelectedAddressId(newAddr.address_id);
                 }
                 setIsAddingAddress(false);
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('address_form_draft');
+                }
             }
 
             // For anonymous users, create a user record first
