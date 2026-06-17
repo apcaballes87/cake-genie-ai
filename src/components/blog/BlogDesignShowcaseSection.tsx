@@ -98,7 +98,7 @@ export function BlogDesignShowcaseSection({
                   {productTitle}
                 </h3>
                 <p className="text-xs text-gray-500">
-                  {formatStartingPrice(product.price)}
+                  {formatStartingPrice(product.price, product.analysis_json?.cakeType)}
                 </p>
               </div>
             </div>

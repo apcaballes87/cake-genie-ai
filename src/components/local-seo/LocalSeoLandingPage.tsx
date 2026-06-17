@@ -10,6 +10,7 @@ import { LandingFooter } from '@/components/landing/LandingFooter';
 import SameDayCutoffBanner from '@/components/SameDayCutoffBanner';
 import { ReviewCard } from '@/components/ReviewsDisplay';
 import { ProductCard } from '@/components/ProductCard';
+import { formatStartingPrice } from '@/lib/utils/currency';
 import type { LandingPageConfig } from './cebuLandingData';
 
 const ROOT_PAGE_EYEBROW = 'Best Online Cake Delivery for Rush Orders in Cebu';
@@ -25,6 +26,7 @@ type ProductPreview = {
   availability?: string | null;
   image_width?: number | null;
   image_height?: number | null;
+  analysis_json?: any;
 };
 
 async function getPageProducts(query: string): Promise<ProductPreview[]> {
@@ -91,7 +93,9 @@ function HeroSampleTile({ product }: { product: ProductPreview }) {
         <div className="absolute inset-x-0 bottom-0 p-3">
           <p className="line-clamp-2 text-sm font-semibold leading-tight text-white">{title}</p>
           {product.price ? (
-            <p className="mt-1 text-xs font-medium text-white/85">Starts at P{Math.round(product.price)}</p>
+            <p className="mt-1 text-xs font-medium text-white/85">
+              {formatStartingPrice(product.price, product.analysis_json?.cakeType)}
+            </p>
           ) : null}
         </div>
       </div>

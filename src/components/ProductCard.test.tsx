@@ -154,6 +154,18 @@ describe('ProductCard', () => {
         expect(screen.getByText('Hello Kitty Cupcakes')).toBeInTheDocument();
     });
 
+    it('displays cakeType in starting price when provided', () => {
+        render(
+            <ProductCard
+                {...baseProps}
+                slug="custom-cake"
+                analysis_json={{ cakeType: '1 Tier Fondant' }}
+            />
+        );
+
+        expect(screen.getByText('1 Tier Fondant starts at ₱1,299')).toBeInTheDocument();
+    });
+
     it('uses the direct first-party image URL for background-only cards when the image is Genie-owned', () => {
         const { getByRole } = render(
             <ProductCard

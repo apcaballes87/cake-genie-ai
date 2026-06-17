@@ -7,7 +7,7 @@ export const formatCurrency = (amount: number): string => {
     }).format(amount);
 };
 
-export const formatStartingPrice = (price?: number | null): string => {
+export const formatStartingPrice = (price?: number | null, cakeType?: string | null): string => {
     const amount = price || 1599;
     const formatted = new Intl.NumberFormat('en-PH', {
         style: 'currency',
@@ -16,5 +16,10 @@ export const formatStartingPrice = (price?: number | null): string => {
         maximumFractionDigits: 0,
     }).format(amount);
 
-    return `Starts at ${formatted}`;
+    if (!cakeType || !cakeType.trim()) {
+        return `Starts at ${formatted}`;
+    }
+
+    const cleanType = cakeType.trim();
+    return `${cleanType} starts at ${formatted}`;
 };

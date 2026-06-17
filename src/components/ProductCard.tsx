@@ -55,7 +55,7 @@ export interface ProductCardProps {
 
 type ProductCardContentProps = Pick<
     ProductCardProps,
-    'original_image_url' | 'studio_edited_image_url' | 'price' | 'availability' | 'priority' | 'image_width' | 'image_height' | 'backgroundOnly' | 'image_variants'
+    'original_image_url' | 'studio_edited_image_url' | 'price' | 'availability' | 'priority' | 'image_width' | 'image_height' | 'backgroundOnly' | 'image_variants' | 'analysis_json'
 > & {
     title: string;
 };
@@ -148,6 +148,7 @@ const ProductCardContent = ({
     backgroundOnly = false,
     title,
     image_variants,
+    analysis_json,
 }: ProductCardContentProps) => {
     const avail = availability || 'normal';
     const preferredImageUrl = getPreferredProductImageUrl(studio_edited_image_url, original_image_url);
@@ -212,7 +213,7 @@ const ProductCardContent = ({
                 <h3 className="font-bold text-gray-900 text-sm md:text-base leading-tight mb-1 line-clamp-2 group-hover:text-purple-600 transition-colors">
                     {title}
                 </h3>
-                <p className="text-xs text-gray-500 mb-1">{formatStartingPrice(price)}</p>
+                <p className="text-xs text-gray-500 mb-1">{formatStartingPrice(price, analysis_json?.cakeType)}</p>
             </div>
         </>
     );
