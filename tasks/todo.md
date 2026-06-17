@@ -2595,3 +2595,43 @@
 - Highest-value public proxy surfaces still left after this pass:
   - Some related-design and SSR background-image paths, including parts of `/customizing/[slug]`, still emit proxied URLs. I left those alone in this pass because that file already has unrelated local user edits and should be handled carefully in a dedicated follow-up.
   - Low-traffic admin/import screens still use `/api/proxy-image`, but they are much lower priority than the public customizer/search paths we just reduced.
+# Investigate GSC Crawled Currently Not Indexed Customizing Pages (2026-06-17)
+
+### Plan
+
+- [x] Sample the screenshot URLs against live HTML for status, canonical, robots, title/meta, rendered word count, schema, and obvious duplicate clusters.
+- [x] Inspect the repo path for `/customizing/[slug]` metadata, sitemap inclusion, IndexNow, structured data, and any noindex/canonical conditions.
+- [x] Check whether the sample pages are technically indexable versus likely being filtered for thin, redundant, or low-demand generated inventory.
+- [x] Recommend the simplest durable remediation: content changes, sitemap/indexability gates, consolidation/noindex rules, or GSC resubmission workflow.
+- [x] Document findings and verification evidence in this task section before calling the investigation complete.
+
+### Review
+
+- GSC property access is live for `https://genie.ph/`; `sitemap.xml` and `sitemap-images.xml` are valid with `0` sitemap errors.
+- GSC URL Inspection on 8 representative screenshot URLs found 7 already indexed and 1 still `Crawled - currently not indexed`: `butterfly-cake-sky-blue-1-tier-cake-ffc0`.
+- Live HTML sampling found 18/20 screenshot URLs returning `200`, self-canonical metadata, `robots: index, follow`, Product/ItemPage/Breadcrumb/FAQ JSON-LD, and roughly `1.5k-1.8k` raw HTML words.
+- Two short screenshot aliases, `bicycle-sky-blue-1-tier-8fe7` and `snake-plant-white-1-tier-ffbf`, currently return a weak empty `200` shell in live HTTP with no title, canonical, robots meta, H1, description, or product schema. Their modern sitemap URLs are `bicycle-sky-blue-1-tier-cake-8fe7` and `snake-plant-white-1-tier-cake-ffbf`.
+- The local repo already has slug-upgrade redirect logic in `src/app/customizing/[slug]/page.tsx` through `upgradeLegacySlug(...)`, and the modern URLs are present in live sitemap chunks with image entries. The empty alias behavior should be checked against the deployed version and fixed so missing/legacy aliases become `301`, `404/410`, or explicit `noindex`, not empty soft-200 pages.
+- The broader 5.61K issue is most likely Google quality/selectivity, not a blanket technical indexing block. The highest-risk content pattern is near-duplicate generated product pages, especially butterfly variants where differences are small and titles/descriptions are similar.
+- Recommended remediation: fix stale alias soft-200s first; then score `/customizing` pages for uniqueness and commercial/search demand, keep strongest unique pages indexable and in sitemaps, consolidate/noindex weak near-duplicates, and enrich priority clusters with more visibly distinct copy instead of trying to force all generated variants into Google.
+
+# Fix Legacy Customizer Alias Soft 200s (2026-06-17)
+
+### Plan
+
+- [x] Reproduce the alias-to-modern transformation locally for the screenshot examples.
+- [x] Add a request-level redirect so legacy `/customizing/...-<hash>` aliases cannot fall through to an empty 200 shell.
+- [x] Add focused regression tests for the two screenshot alias shapes and for non-legacy customizer URLs.
+- [x] Run focused verification and document the result.
+
+### Review
+
+- Added a middleware-level `308` redirect for `/customizing/<slug>-<4hex>` aliases when `upgradeLegacySlug(...)` produces a modern slug. This catches stale aliases before page metadata/rendering can produce an empty soft-200 shell.
+- Verified the two screenshot examples now canonicalize in tests:
+  - `/customizing/bicycle-sky-blue-1-tier-8fe7` -> `/customizing/bicycle-sky-blue-1-tier-cake-8fe7`
+  - `/customizing/snake-plant-white-1-tier-ffbf` -> `/customizing/snake-plant-white-1-tier-cake-ffbf`
+- Kept modern slugs unchanged, including `/customizing/bicycle-sky-blue-1-tier-cake-8fe7`.
+- Verification:
+  - `npx vitest run src/middleware.test.ts src/lib/utils/urlHelpers.test.ts` passed with `24` tests.
+  - `npx eslint src/middleware.ts src/middleware.test.ts` passed with only the existing stale Browserslist warning.
+  - `git diff --check -- src/middleware.ts src/middleware.test.ts tasks/todo.md` passed.

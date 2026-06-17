@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { upgradeLegacySlug } from '@/lib/utils/urlHelpers'
 
 // Known top-level routes that should never be treated as discount codes
 const KNOWN_ROUTES = new Set([
@@ -23,6 +24,7 @@ const BLOCKED_USER_AGENTS = [
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>()
 const RATE_LIMIT_WINDOW = 60 * 1000 // 1 minute
 const RATE_LIMIT_MAX = 60 // max requests per window
+const CUSTOMIZING_SHORT_HASH_ALIAS_RE = /^\/customizing\/([^/]*-[a-f0-9]{4})\/?$/i
 
 function checkIpRateLimit(ip: string): boolean {
     const now = Date.now()
@@ -39,6 +41,18 @@ function checkIpRateLimit(ip: string): boolean {
 
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
+
+    const customizerAliasMatch = pathname.match(CUSTOMIZING_SHORT_HASH_ALIAS_RE)
+    if (customizerAliasMatch) {
+        const slug = customizerAliasMatch[1]
+        const upgradedSlug = upgradeLegacySlug(slug)
+
+        if (upgradedSlug !== slug) {
+            const url = request.nextUrl.clone()
+            url.pathname = `/customizing/${upgradedSlug}`
+            return NextResponse.redirect(url, 308)
+        }
+    }
 
     // === BOT BLOCKING ===
     const userAgent = request.headers.get('user-agent')?.toLowerCase() || ''

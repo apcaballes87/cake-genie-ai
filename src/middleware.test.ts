@@ -95,4 +95,31 @@ describe('middleware', () => {
         expect(response.status).toBe(200);
         expect(mockCheckRateLimit).toHaveBeenCalledWith('ai', expect.any(String));
     });
+
+    it('redirects short legacy customizer aliases to their modern cake slug', async () => {
+        const request = makeRequest('http://localhost/customizing/bicycle-sky-blue-1-tier-8fe7');
+        const response = await middleware(request);
+
+        expect(response.status).toBe(308);
+        expect(response.headers.get('location')).toBe('http://localhost/customizing/bicycle-sky-blue-1-tier-cake-8fe7');
+        expect(mockCheckRateLimit).not.toHaveBeenCalled();
+    });
+
+    it('redirects another short legacy customizer alias from the GSC sample', async () => {
+        const request = makeRequest('http://localhost/customizing/snake-plant-white-1-tier-ffbf');
+        const response = await middleware(request);
+
+        expect(response.status).toBe(308);
+        expect(response.headers.get('location')).toBe('http://localhost/customizing/snake-plant-white-1-tier-cake-ffbf');
+        expect(mockCheckRateLimit).not.toHaveBeenCalled();
+    });
+
+    it('does not redirect modern customizer slugs that already contain the cake suffix', async () => {
+        const request = makeRequest('http://localhost/customizing/bicycle-sky-blue-1-tier-cake-8fe7');
+        const response = await middleware(request);
+
+        expect(response.status).toBe(200);
+        expect(response.headers.get('location')).toBeNull();
+        expect(mockCheckRateLimit).not.toHaveBeenCalled();
+    });
 });
