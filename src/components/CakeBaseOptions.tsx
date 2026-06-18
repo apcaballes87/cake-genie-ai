@@ -53,9 +53,14 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
     const cakeTypeScrollContainerRef = useRef<HTMLDivElement>(null);
     const cakeThicknessScrollContainerRef = useRef<HTMLDivElement>(null);
     const cakeSizeScrollContainerRef = useRef<HTMLDivElement>(null);
+    const icingGroupName = React.useId();
+    const cakeTypeGroupName = React.useId();
+    const cakeSizeGroupName = React.useId();
+    const cakeHeightGroupName = React.useId();
 
     // Helper to scroll selected item to center
-    const scrollToCenter = (container: HTMLDivElement, selector: string) => {
+    const scrollToCenter = (container: HTMLDivElement | null, selector: string) => {
+        if (!container) return;
         const element = container.querySelector(selector) as HTMLElement;
         if (element) {
             const containerRect = container.getBoundingClientRect();
@@ -117,16 +122,17 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
     const sectionGap = compact ? 'space-y-1.5' : 'space-y-3';
     const labelMargin = compact ? 'mb-1' : 'mb-1.5';
     const icingChoiceText = compact ? 'text-[11px]' : 'text-sm';
-    const renderSectionLabel = (label: string) => (
-        showSectionLabels ? <label className={`block ${labelSize} font-medium text-slate-700 ${labelMargin}`}>{label}</label> : null
+    const renderSectionLegend = (label: string) => (
+        <legend className={showSectionLabels ? `block ${labelSize} font-medium text-slate-700 ${labelMargin}` : 'sr-only'}>
+            {label}
+        </legend>
     );
-
     return (
         <div className={sectionGap}>
             {shouldShowSection('icing') && (
-                <div>
-                    {renderSectionLabel('Icing Type')}
-                <div className="grid grid-cols-2 gap-2">
+                <fieldset>
+                    {renderSectionLegend('Icing Type')}
+                <div className="grid grid-cols-2 gap-2" data-option-group="icing_base">
                     {([
                         { id: 'soft_icing', label: 'Soft Icing' },
                         { id: 'fondant', label: 'Fondant' },
@@ -134,47 +140,69 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                         const isSelected = resolvedIcingBase === option.id;
 
                         return (
-                            <button
+                            <label
                                 key={option.id}
-                                type="button"
-                                onClick={() => onIcingBaseChange?.(option.id)}
-                                className={`rounded-xl border px-4 py-3 text-left transition-all duration-200 genie-focus ${
-                                    isSelected
-                                        ? 'genie-control-selected'
-                                        : 'border-purple-100 bg-white hover:border-purple-300'
-                                }`}
-                                aria-pressed={isSelected}
+                                data-option-group="icing_base"
+                                data-option-value={option.id}
+                                data-selected={isSelected}
+                                className="block"
                             >
-                                <span className={`block ${icingChoiceText} font-semibold ${isSelected ? 'text-purple-800' : 'text-slate-700'}`}>
-                                    {option.label}
+                                <input
+                                    type="radio"
+                                    name={icingGroupName}
+                                    value={option.id}
+                                    checked={isSelected}
+                                    onChange={() => onIcingBaseChange?.(option.id)}
+                                    className="peer sr-only"
+                                />
+                                <span
+                                    className={`block rounded-xl border px-4 py-3 text-left transition-all duration-200 genie-focus peer-focus-visible:ring-2 peer-focus-visible:ring-purple-400 peer-focus-visible:ring-offset-2 ${
+                                        isSelected
+                                            ? 'genie-control-selected'
+                                            : 'border-purple-100 bg-white hover:border-purple-300'
+                                    }`}
+                                >
+                                    <span className={`block ${icingChoiceText} font-semibold ${isSelected ? 'text-purple-800' : 'text-slate-700'}`}>
+                                        {option.label}
+                                    </span>
+                                    <span className="mt-1 block text-[11px] text-slate-500">
+                                        {option.id === 'soft_icing' ? 'Bento, tiered, square, or rectangle cakes' : 'Tiered, square, and rectangle fondant cakes'}
+                                    </span>
                                 </span>
-                                <span className="mt-1 block text-[11px] text-slate-500">
-                                    {option.id === 'soft_icing' ? 'Bento, tiered, square, or rectangle cakes' : 'Tiered, square, and rectangle fondant cakes'}
-                                </span>
-                            </button>
+                            </label>
                         );
                     })}
                 </div>
-                </div>
+                </fieldset>
             )}
             {shouldShowSection('type') && (
-                <div>
-                    {renderSectionLabel('Cake Type')}
+                <fieldset>
+                    {renderSectionLegend('Cake Type')}
                 <div className="relative">
-                    <div ref={cakeTypeScrollContainerRef} className="flex gap-2 overflow-x-auto pb-3 -mb-3 scrollbar-hide px-1">
+                    <div ref={cakeTypeScrollContainerRef} className="flex gap-2 overflow-x-auto pb-3 -mb-3 scrollbar-hide px-1" data-option-group="cake_type">
                         {visibleCakeTypes.map(type => (
-                            <button
+                            <label
                                 key={type}
                                 data-caketype={type}
-                                type="button"
-                                onClick={(e) => {
-                                    onCakeInfoChange({ type });
-                                    const target = e.currentTarget;
-                                    setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }), 50);
+                                data-option-group="cake_type"
+                                data-option-value={type}
+                                data-selected={cakeInfo.type === type}
+                                className={`group shrink-0 ${thumbWidth} flex cursor-pointer flex-col items-center text-center rounded-lg`}
+                                onClick={() => {
+                                    setTimeout(() => {
+                                        scrollToCenter(cakeTypeScrollContainerRef.current, `[data-caketype="${type}"]`);
+                                    }, 50);
                                 }}
-                                className={`group shrink-0 ${thumbWidth} flex flex-col items-center text-center rounded-lg genie-focus`}
                             >
-                                <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.type === type ? 'genie-control-selected' : 'border-purple-100 bg-white group-hover:border-purple-400'}`}>
+                                <input
+                                    type="radio"
+                                    name={cakeTypeGroupName}
+                                    value={type}
+                                    checked={cakeInfo.type === type}
+                                    onChange={() => onCakeInfoChange({ type })}
+                                    className="peer sr-only"
+                                />
+                                <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 genie-focus peer-focus-visible:ring-2 peer-focus-visible:ring-purple-400 peer-focus-visible:ring-offset-2 ${cakeInfo.type === type ? 'genie-control-selected' : 'border-purple-100 bg-white group-hover:border-purple-400'}`}>
                                     <LazyImage
                                         src={CAKE_TYPE_THUMBNAILS[type]}
                                         alt=""
@@ -184,36 +212,54 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                     />
                                 </div>
                                 <span className={`mt-1.5 ${thumbText} font-medium text-slate-700 leading-tight`}>{cakeTypeDisplayMap[type]}</span>
-                            </button>
+                            </label>
                         ))}
                     </div>
                 </div>
-                </div>
+                </fieldset>
             )}
             {shouldShowSection('size') && basePriceOptions && basePriceOptions.length > 0 && (
-                <div>
-                    {renderSectionLabel('Size (Diameter)')}
+                <fieldset>
+                    {renderSectionLegend('Size (Diameter)')}
                     {basePriceOptions.length === 1 ? (
-                        <div className="p-3 genie-control-selected rounded-lg flex items-center justify-between">
+                        <div
+                            className="p-3 genie-control-selected rounded-lg flex items-center justify-between"
+                            data-option-group="cake_size"
+                            data-option-value={basePriceOptions[0].size}
+                            data-selected="true"
+                            data-base-price={basePriceOptions[0].price}
+                        >
                             <span className="text-sm font-semibold text-purple-800">{basePriceOptions[0].size}</span>
                             {!hidePrices && <span className="text-sm font-bold text-purple-800">₱{basePriceOptions[0].price.toLocaleString()}</span>}
                         </div>
                     ) : (
                         <div className="relative">
-                            <div ref={cakeSizeScrollContainerRef} className="flex gap-2 overflow-x-auto pb-3 -mb-3 scrollbar-hide px-1">
+                            <div ref={cakeSizeScrollContainerRef} className="flex gap-2 overflow-x-auto pb-3 -mb-3 scrollbar-hide px-1" data-option-group="cake_size">
                                 {basePriceOptions.map(option => (
-                                    <button
+                                    <label
                                         key={option.size}
                                         data-cakesize={option.size}
-                                        type="button"
-                                        onClick={(e) => {
-                                            onCakeInfoChange({ size: option.size });
-                                            const target = e.currentTarget;
-                                            setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }), 50);
+                                        data-option-group="cake_size"
+                                        data-option-value={option.size}
+                                        data-selected={cakeInfo.size === option.size}
+                                        data-base-price={option.price}
+                                        className={`group shrink-0 ${thumbWidth} flex cursor-pointer flex-col items-center text-center rounded-lg`}
+                                        onClick={() => {
+                                            setTimeout(() => {
+                                                const escapedSize = option.size.replace(/"/g, '\\"');
+                                                scrollToCenter(cakeSizeScrollContainerRef.current, `[data-cakesize="${escapedSize}"]`);
+                                            }, 50);
                                         }}
-                                        className={`group shrink-0 ${thumbWidth} flex flex-col items-center text-center rounded-lg genie-focus`}
                                     >
-                                        <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.size === option.size ? 'genie-control-selected' : 'border-purple-100 bg-white group-hover:border-purple-400'}`}>
+                                        <input
+                                            type="radio"
+                                            name={cakeSizeGroupName}
+                                            value={option.size}
+                                            checked={cakeInfo.size === option.size}
+                                            onChange={() => onCakeInfoChange({ size: option.size })}
+                                            className="peer sr-only"
+                                        />
+                                        <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 genie-focus peer-focus-visible:ring-2 peer-focus-visible:ring-purple-400 peer-focus-visible:ring-offset-2 ${cakeInfo.size === option.size ? 'genie-control-selected' : 'border-purple-100 bg-white group-hover:border-purple-400'}`}>
                                             <LazyImage
                                                 src={CAKE_SIZE_THUMBNAILS[option.size] || CAKE_TYPE_THUMBNAILS[cakeInfo.type]}
                                                 alt=""
@@ -256,32 +302,42 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                             <span className={`${thumbText} font-semibold text-slate-800 leading-tight`}>{option.size}</span>
                                             {!hidePrices && <span className={`${thumbText} font-bold text-purple-700 leading-tight`}>₱{roundDownToNearest99(option.price + addOnPricing, option.price).toLocaleString()}</span>}
                                         </div>
-                                    </button>
+                                    </label>
                                 ))}
                             </div>
                         </div>
                     )}
-                </div>
+                </fieldset>
             )}
 
             {shouldShowSection('height') && (
-                <div>
-                    {renderSectionLabel(cakeInfo.type.toLowerCase().includes('2 tier') || cakeInfo.type.toLowerCase().includes('3 tier') ? 'Height per Cake' : 'Cake Height (All tiers)')}
+                <fieldset>
+                    {renderSectionLegend(cakeInfo.type.toLowerCase().includes('2 tier') || cakeInfo.type.toLowerCase().includes('3 tier') ? 'Height per Cake' : 'Cake Height (All tiers)')}
                 <div className="relative">
-                    <div ref={cakeThicknessScrollContainerRef} className="flex gap-2 overflow-x-auto pb-3 -mb-3 scrollbar-hide px-1">
+                    <div ref={cakeThicknessScrollContainerRef} className="flex gap-2 overflow-x-auto pb-3 -mb-3 scrollbar-hide px-1" data-option-group="cake_thickness">
                         {currentThicknessOptions.map(thickness => (
-                            <button
+                            <label
                                 key={thickness}
                                 data-cakethickness={thickness}
-                                type="button"
-                                onClick={(e) => {
-                                    onCakeInfoChange({ thickness });
-                                    const target = e.currentTarget;
-                                    setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }), 50);
+                                data-option-group="cake_thickness"
+                                data-option-value={thickness}
+                                data-selected={cakeInfo.thickness === thickness}
+                                className={`group shrink-0 ${thumbWidth} flex cursor-pointer flex-col items-center text-center rounded-lg`}
+                                onClick={() => {
+                                    setTimeout(() => {
+                                        scrollToCenter(cakeThicknessScrollContainerRef.current, `[data-cakethickness="${thickness}"]`);
+                                    }, 50);
                                 }}
-                                className={`group shrink-0 ${thumbWidth} flex flex-col items-center text-center rounded-lg genie-focus`}
                             >
-                                <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${cakeInfo.thickness === thickness ? 'genie-control-selected' : 'border-purple-100 bg-white group-hover:border-purple-400'}`}>
+                                <input
+                                    type="radio"
+                                    name={cakeHeightGroupName}
+                                    value={thickness}
+                                    checked={cakeInfo.thickness === thickness}
+                                    onChange={() => onCakeInfoChange({ thickness })}
+                                    className="peer sr-only"
+                                />
+                                <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 genie-focus peer-focus-visible:ring-2 peer-focus-visible:ring-purple-400 peer-focus-visible:ring-offset-2 ${cakeInfo.thickness === thickness ? 'genie-control-selected' : 'border-purple-100 bg-white group-hover:border-purple-400'}`}>
                                     <LazyImage
                                         src={CAKE_THICKNESS_THUMBNAILS[thickness]}
                                         alt=""
@@ -291,11 +347,11 @@ export const CakeBaseOptions: React.FC<CakeBaseOptionsProps> = ({
                                     />
                                 </div>
                                 <span className={`mt-1.5 ${thumbText} font-semibold text-slate-800 leading-tight`}>{thickness}</span>
-                            </button>
+                            </label>
                         ))}
                     </div>
                 </div>
-                </div>
+                </fieldset>
             )}
 
         </div>

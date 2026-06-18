@@ -66,6 +66,17 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     isBlurred = false,
     hasPrintoutConversion = false,
 }) => {
+    const announcementStateRef = React.useRef<{
+        price: number | null;
+        availability: AvailabilityType | undefined;
+        error: string | null;
+        initialized: boolean;
+    }>({
+        price,
+        availability,
+        error,
+        initialized: false,
+    });
     const showAvailability = Boolean(availability && !isAnalyzing && !error);
     const showPrintoutNotification = Boolean(hasPrintoutConversion && !isAnalyzing && !error);
     const hasTopNotification = !error && (showAvailability || showPrintoutNotification);
@@ -91,6 +102,8 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     const [isCompact, setIsCompact] = React.useState(false);
     const [isDiscountApplied, setIsDiscountApplied] = React.useState(false);
     const [isMounted, setIsMounted] = React.useState(false);
+    const [statusAnnouncement, setStatusAnnouncement] = React.useState('');
+    const [errorAnnouncement, setErrorAnnouncement] = React.useState('');
     const buttonsRef = React.useRef<HTMLDivElement>(null);
 
     React.useEffect(() => {
@@ -101,6 +114,53 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
             setIsDiscountApplied(true);
         }
     }, []);
+
+    React.useEffect(() => {
+        const previous = announcementStateRef.current;
+
+        if (!previous.initialized) {
+            announcementStateRef.current = {
+                price,
+                availability,
+                error,
+                initialized: true,
+            };
+            return;
+        }
+
+        if (error && error !== previous.error) {
+            setErrorAnnouncement(error.includes('AI') ? 'Analysis error. Please review the current design state.' : error);
+        } else if (!error) {
+            setErrorAnnouncement('');
+        }
+
+        const statusParts: string[] = [];
+
+        if (price !== null && price !== previous.price) {
+            statusParts.push(`Price updated to ${price.toLocaleString()} pesos.`);
+        }
+
+        if (availability && availability !== previous.availability) {
+            if (availability === 'rush') {
+                statusParts.push('Rush fulfillment available. Ready in 60 minutes.');
+            } else if (availability === 'same-day') {
+                statusParts.push('Same-day fulfillment available. Ready in 3 hours.');
+            } else {
+                statusParts.push('Standard order selected. At least one day lead time applies.');
+            }
+        }
+
+        if (statusParts.length > 0) {
+            setStatusAnnouncement(statusParts.join(' '));
+        }
+
+        announcementStateRef.current = {
+            price,
+            availability,
+            error,
+            initialized: true,
+        };
+    }, [availability, error, price]);
 
     React.useEffect(() => {
         const currentRef = buttonsRef.current;
@@ -251,8 +311,20 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     return (
         <div
             data-sticky-add-to-cart-bar
+            data-agent-summary="sticky_add_to_cart"
+            data-availability-class={availability}
+            data-lead-time-label={availability === 'rush' ? 'Ready in 60 minutes' : availability === 'same-day' ? 'Ready in 3 hours' : availability === 'normal' ? 'Requires advance lead time' : undefined}
+            data-price={price ?? undefined}
             className={`fixed bottom-0 left-0 right-0 z-90 pointer-events-none transition-transform duration-300 ease-in-out ${show ? 'translate-y-0' : 'translate-y-full'} ${className || ''}`}
         >
+            <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+                {statusAnnouncement}
+            </p>
+            {errorAnnouncement ? (
+                <p className="sr-only" role="alert" aria-atomic="true">
+                    {errorAnnouncement}
+                </p>
+            ) : null}
             <div className={`pointer-events-auto transition-all duration-300 max-w-4xl mx-auto w-full ${isBlurred ? 'blur-[2px] opacity-50 pointer-events-none' : ''}`}>
                 {/* Red Bar Section: Printout Conversion Warning (placed behind availability, so it comes first in DOM) */}
                 <div className={`relative z-0 grid transition-[grid-template-rows,opacity] duration-500 ease-in-out ${showPrintoutNotification ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>

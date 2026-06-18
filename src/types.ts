@@ -311,6 +311,7 @@ export interface CommerceConstraintsSnapshot {
   deliveryZoneCompatible: boolean | null;
   blackoutDate: boolean | null;
   leadTimeLabel?: string | null;
+  minimumLeadTimeDays?: number | null;
 }
 
 export interface CommerceOrderSnapshot {

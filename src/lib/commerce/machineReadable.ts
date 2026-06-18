@@ -363,6 +363,7 @@ export function deriveConstraintSnapshot(input: {
   branchCompatible?: boolean | null;
   deliveryZoneCompatible?: boolean | null;
   blackoutDate?: boolean | null;
+  minimumLeadTimeDays?: number | null;
 }): CommerceConstraintsSnapshot {
   const availabilityClass = input.availabilityClass;
   const normalizedAvailability: CommerceConstraintsSnapshot['availabilityClass'] =
@@ -384,6 +385,7 @@ export function deriveConstraintSnapshot(input: {
     deliveryZoneCompatible: input.deliveryZoneCompatible ?? null,
     blackoutDate: input.blackoutDate ?? null,
     leadTimeLabel: getLeadTimeLabel(availabilityClass),
+    minimumLeadTimeDays: input.minimumLeadTimeDays ?? null,
   };
 }
 

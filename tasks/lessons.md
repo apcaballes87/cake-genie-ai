@@ -1,5 +1,6 @@
 # Lessons
 
+- When the user narrows a broad customizer strategy from “CRO plus agent readiness” down to “agent readiness only,” drop the conversion redesign scope completely. Keep the implementation centered on semantics, accessibility, and machine-readable state instead of sneaking UX optimization work back in.
 - When retiring an older SEO surface in Genie.ph, do not stop at `robots` or sitemap changes alone. Also check first-party discovery surfaces like `/customizing` theme chips and JSON-LD item lists so the deprecated hub is not still being promoted internally.
 
 - Cupcake-only uploads are accepted cake designs in the current analyzer. Do not explain cupcake analysis problems through a `cupcakes_only` rejection path; inspect the active schema/prompt contract for missing accepted-output fields instead.

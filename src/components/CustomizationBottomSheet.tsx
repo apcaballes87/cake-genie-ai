@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import { X } from 'lucide-react';
 
 interface CustomizationBottomSheetProps {
@@ -30,9 +30,15 @@ export const CustomizationBottomSheet: React.FC<CustomizationBottomSheetProps> =
     const touchStartY = React.useRef<number>(0);
     const contentRef = React.useRef<HTMLDivElement>(null);
     const startScrollTop = React.useRef<number>(0);
+    const headingRef = React.useRef<HTMLHeadingElement>(null);
+    const previouslyFocusedElementRef = React.useRef<HTMLElement | null>(null);
+    const titleId = useId();
 
     useEffect(() => {
         if (isOpen) {
+            previouslyFocusedElementRef.current = document.activeElement instanceof HTMLElement
+                ? document.activeElement
+                : null;
             setIsVisible(true);
             // Use setTimeout to ensure the browser paints the initial state before animating
             const timer = setTimeout(() => setIsAnimating(true), 50);
@@ -43,6 +49,19 @@ export const CustomizationBottomSheet: React.FC<CustomizationBottomSheetProps> =
             const timer = setTimeout(() => setIsVisible(false), 500);
             return () => clearTimeout(timer);
         }
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen) {
+            previouslyFocusedElementRef.current?.focus?.();
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            headingRef.current?.focus();
+        }, 100);
+
+        return () => clearTimeout(timer);
     }, [isOpen]);
 
     const handleTouchStart = (e: React.TouchEvent) => {
@@ -107,6 +126,9 @@ export const CustomizationBottomSheet: React.FC<CustomizationBottomSheetProps> =
                     flex flex-col max-h-[65vh] pointer-events-auto border-t border-purple-100
                     ${className}
                 `}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={titleId}
                 style={{
                     transform: isAnimating ? `translateY(${dragOffset}px)` : `translateY(calc(100% + ${resolvedBottomOffset}))`,
                     transition: isDragging && dragOffset > 0 ? 'none' : 'transform 500ms cubic-bezier(0.32, 0.72, 0, 1)',
@@ -123,9 +145,17 @@ export const CustomizationBottomSheet: React.FC<CustomizationBottomSheetProps> =
 
                     {/* Header */}
                     <div className="flex items-center justify-between px-3 pb-2 border-b border-purple-100 bg-white sticky top-0 z-10">
-                        <h2 className="text-sm font-bold text-slate-800">{title}</h2>
+                        <h2
+                            id={titleId}
+                            ref={headingRef}
+                            tabIndex={-1}
+                            className="text-sm font-bold text-slate-800 focus:outline-none"
+                        >
+                            {title}
+                        </h2>
                         <button
                             onClick={onClose}
+                            aria-label={`Close ${title}`}
                             className="p-1 genie-icon-button rounded-full transition-colors"
                         >
                             <X className="w-4 h-4" />

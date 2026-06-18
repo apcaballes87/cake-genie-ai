@@ -53,6 +53,15 @@
 - **Design Pattern**: `https://genie.ph/customizing/{slug}` - Resource-specific pages for individual cake designs with embedded AI analysis metadata.
 - **API Access**: Internal-only, contact support@genie.ph for integration inquiries.
 
+## /customizing/* Agent Notes
+
+- Use `/customizing/{slug}` for interactive cake configuration tied to a single analyzed design.
+- Prefer the page-level `customizer-agent-model` JSON payload over scraping button styling or reconstructing state from multiple DOM fragments.
+- Read these fields first: `selection`, `options`, `pricing.displayedPrice`, `constraints.availabilityClass`, `constraints.leadTimeLabel`, and `constraints.minimumLeadTimeDays`.
+- Required configuration fields before purchase are `cakeType`, `cakeSize`, `cakeThickness`, `flavors`, and `icingBase`.
+- When present, `customizer-capability-map` describes the `configure_custom_cake` contract. Use that schema instead of guessing request shape from the UI.
+- Do not infer delivery-slot availability from this route alone. Final delivery date, address, and slot validation still happens in cart and checkout.
+
 ## Updated
 
-2026-03-29
+2026-06-19

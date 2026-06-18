@@ -71,35 +71,50 @@ export const CakeFlavorBottomSheet: React.FC<CakeFlavorBottomSheetProps> = ({
                 {tierLabels.map((label, index) => {
                     const selectedFlavor = flavors[index] || flavors[0];
                     return (
-                        <div key={index}>
-                            {tierLabels.length > 1 && (
-                                <div className="flex items-center gap-3 mb-2">
-                                    <span className="text-sm font-medium text-slate-800">{label}</span>
-                                </div>
-                            )}
+                        <fieldset key={index}>
+                            <legend className={tierLabels.length > 1 ? 'mb-2 flex items-center gap-3 text-sm font-medium text-slate-800' : 'sr-only'}>
+                                {label}
+                            </legend>
                             <div className="relative">
-                                <div ref={flavorScrollContainerRef} className="flex gap-2 overflow-x-auto pb-3 -mb-3 scrollbar-hide">
+                                <div ref={flavorScrollContainerRef} className="flex gap-2 overflow-x-auto pb-3 -mb-3 scrollbar-hide" data-option-group={`cake_flavor_${index + 1}`}>
                                     {FLAVOR_OPTIONS.map(flavor => {
                                         const isFlavorDisabled =
                                             TEMPORARILY_DISABLED_FLAVORS.includes(flavor) ||
                                             (isBento && flavor === 'Ube Cake') ||
                                             ((cakeType.toLowerCase() === 'cupcake' || cakeType.toLowerCase().startsWith('cupcakes-')) && flavor !== 'Chocolate Cake' && flavor !== 'Vanilla Cake');
                                         const isSelected = selectedFlavor === flavor;
+                                        const disabledReason = TEMPORARILY_DISABLED_FLAVORS.includes(flavor)
+                                            ? 'Temporarily unavailable'
+                                            : isBento && flavor === 'Ube Cake'
+                                                ? 'Not available for bento cakes'
+                                                : (cakeType.toLowerCase() === 'cupcake' || cakeType.toLowerCase().startsWith('cupcakes-')) && flavor !== 'Chocolate Cake' && flavor !== 'Vanilla Cake'
+                                                    ? 'Only chocolate and vanilla are available for cupcakes'
+                                                    : null;
                                         return (
-                                            <button
+                                            <label
                                                 key={flavor}
                                                 data-flavor={flavor}
-                                                type="button"
-                                                disabled={isFlavorDisabled}
-                                                onClick={() => {
-                                                    if (isFlavorDisabled) return;
-                                                    const newFlavors = [...flavors];
-                                                    newFlavors[index] = flavor;
-                                                    onFlavorChange(newFlavors);
-                                                }}
-                                                className={`group shrink-0 w-16 flex flex-col items-center text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 transition-opacity ${isFlavorDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                data-option-group={`cake_flavor_${index + 1}`}
+                                                data-option-value={flavor}
+                                                data-selected={isSelected}
+                                                data-disabled-reason={disabledReason ?? undefined}
+                                                className={`group shrink-0 w-16 flex flex-col items-center text-center rounded-lg ${isFlavorDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                                             >
-                                                <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 ${isSelected ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
+                                                <input
+                                                    type="radio"
+                                                    name={`cake-flavor-${index}`}
+                                                    value={flavor}
+                                                    checked={isSelected}
+                                                    disabled={isFlavorDisabled}
+                                                    onChange={() => {
+                                                        if (isFlavorDisabled) return;
+                                                        const newFlavors = [...flavors];
+                                                        newFlavors[index] = flavor;
+                                                        onFlavorChange(newFlavors);
+                                                    }}
+                                                    className="peer sr-only"
+                                                />
+                                                <div className={`relative w-full aspect-5/4 rounded-lg border-2 overflow-hidden transition-all duration-200 peer-focus-visible:ring-2 peer-focus-visible:ring-purple-400 peer-focus-visible:ring-offset-2 ${isSelected ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' : 'border-slate-200 bg-white group-hover:border-purple-400'}`}>
                                                     <LazyImage
                                                         src={FLAVOR_THUMBNAILS[flavor]}
                                                         alt=""
@@ -109,12 +124,12 @@ export const CakeFlavorBottomSheet: React.FC<CakeFlavorBottomSheetProps> = ({
                                                     />
                                                 </div>
                                                 <span className="mt-2 text-[10px] font-medium text-slate-700 leading-tight">{flavor}</span>
-                                            </button>
+                                            </label>
                                         );
                                     })}
                                 </div>
                             </div>
-                        </div>
+                        </fieldset>
                     );
                 })}
             </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi, beforeAll } from 'vitest';
 import StickyAddToCartBar from './StickyAddToCartBar';
 import {
@@ -120,5 +120,14 @@ describe('StickyAddToCartBar', () => {
         const printoutWrapper = stickyBar?.querySelector('[data-printout-wrapper]');
 
         expect(printoutWrapper).toHaveStyle({ marginBottom: `-${STICKY_ADD_TO_CART_PRINTOUT_OVERLAP_PX}px` });
+    });
+
+    it('announces price changes through the polite status region', () => {
+        const props = buildProps();
+        const { rerender } = render(<StickyAddToCartBar {...props} />);
+
+        rerender(<StickyAddToCartBar {...props} price={999} />);
+
+        expect(screen.getByRole('status')).toHaveTextContent('Price updated to 999 pesos.');
     });
 });

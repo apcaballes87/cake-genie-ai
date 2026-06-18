@@ -78,11 +78,13 @@ describe('machine-readable commerce helpers', () => {
       branchCompatible: true,
       deliveryZoneCompatible: true,
       blackoutDate: false,
+      minimumLeadTimeDays: 0,
     });
 
     expect(constraints.availabilityClass).toBe('same-day');
     expect(constraints.cutoffEligible).toBe(true);
     expect(constraints.leadTimeLabel).toContain('Same-day');
+    expect(constraints.minimumLeadTimeDays).toBe(0);
   });
 
   it('builds custom cake additional properties for schema', () => {
@@ -169,6 +171,7 @@ describe('machine-readable commerce helpers', () => {
         branchCompatible: null,
         deliveryZoneCompatible: null,
         blackoutDate: null,
+        minimumLeadTimeDays: 0,
       },
       policyUrls: getCommercePolicyUrls(),
     });

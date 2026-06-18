@@ -1,5 +1,69 @@
 # Tasks
 
+## Add Agent Readiness To `/customizing/[slug]`
+
+### Plan
+
+- [x] Upgrade the primary customizer edit controls to native semantic groups without redesigning the existing UI.
+- [x] Expose one canonical page-level agent model and capability map sourced from the same commerce snapshot truth used by the customizer/cart path.
+- [x] Add the `/customizing/*` agent guidance to `public/llms.txt`.
+- [x] Run focused tests plus a full production build and record the proof here.
+
+### Review
+
+- Added semantic radio-group behavior to the primary edit surfaces in [src/components/CakeBaseOptions.tsx](/Users/apcaballes/genieph-nextjs/src/components/CakeBaseOptions.tsx:1) and [src/components/CakeFlavorBottomSheet.tsx](/Users/apcaballes/genieph-nextjs/src/components/CakeFlavorBottomSheet.tsx:1), while preserving the current card/grid presentation.
+- Upgraded the shared bottom-sheet shell in [src/components/CustomizationBottomSheet.tsx](/Users/apcaballes/genieph-nextjs/src/components/CustomizationBottomSheet.tsx:1) so the editor and flavor sheets now expose dialog semantics, stable labeling, open-focus targeting, and close-focus return.
+- Added a single machine-readable agent surface with [src/lib/commerce/customizerAgentModel.ts](/Users/apcaballes/genieph-nextjs/src/lib/commerce/customizerAgentModel.ts:1) and [src/app/customizing/CustomizingAgentProtocol.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingAgentProtocol.tsx:1). `CustomizingClient` now emits `customizer-agent-model` and `customizer-capability-map` JSON from live customizer state instead of a parallel static schema.
+- Extended the shared commerce constraint snapshot with `minimumLeadTimeDays` in [src/types.ts](/Users/apcaballes/genieph-nextjs/src/types.ts:306) and [src/lib/commerce/machineReadable.ts](/Users/apcaballes/genieph-nextjs/src/lib/commerce/machineReadable.ts:359), then reused that same field in both the add-to-cart commerce snapshot and the agent model.
+- Added the route-level AI guidance to [public/llms.txt](/Users/apcaballes/genieph-nextjs/public/llms.txt:1), telling agents to prefer the page-level JSON model and capability map over scraping styling state.
+- Verification:
+  - `npx vitest run src/components/CakeBaseOptions.test.tsx src/components/CakeFlavorBottomSheet.test.tsx src/components/StickyAddToCartBar.test.tsx src/lib/commerce/machineReadable.test.ts src/lib/commerce/customizerAgentModel.test.ts src/app/customizing/CustomizingAgentProtocol.test.tsx` passed with `40` tests.
+  - `git diff --check` passed.
+  - `npm run build` passed. Static generation still logged the repo’s existing Supabase `57014` keyword-fallback timeouts during page generation, but the build completed successfully.
+
+## Compare `/customizing` Agent Readiness With UCP
+
+### Plan
+
+- [x] Review the official UCP spec and Google’s current implementation guide.
+- [x] Audit the current `/customizing` agent-readiness surfaces in this repo.
+- [x] Map what is already aligned, what is missing, and what the sensible next step should be.
+
+### Review
+
+- Confirmed the current Genie implementation is not the same thing as Universal Commerce Protocol. Our current work is a page-level agent-readiness layer: semantic controls, accessible live state, `customizer-agent-model`, `customizer-capability-map`, and `/customizing/*` guidance in [public/llms.txt](/Users/apcaballes/genieph-nextjs/public/llms.txt:1).
+- Confirmed there is no UCP discovery or negotiation layer in the repo today. The codebase does not publish `/.well-known/ucp`, does not advertise UCP capability namespaces such as `dev.ucp.shopping.checkout`, does not implement `UCP-Agent` profile negotiation, and does not expose a UCP transport surface over REST/MCP/A2A.
+- Verified that Genie does already have a few useful prerequisites for eventual UCP adoption:
+  - A machine-readable commerce snapshot in [src/types.ts](/Users/apcaballes/genieph-nextjs/src/types.ts:317) and [src/lib/commerce/machineReadable.ts](/Users/apcaballes/genieph-nextjs/src/lib/commerce/machineReadable.ts:359).
+  - A page-level capability description in [src/lib/commerce/customizerAgentModel.ts](/Users/apcaballes/genieph-nextjs/src/lib/commerce/customizerAgentModel.ts:1).
+  - A live Google Merchant Center feed in [src/app/feed/google/route.ts](/Users/apcaballes/genieph-nextjs/src/app/feed/google/route.ts:1), which matches Google’s guidance that existing product feeds support discovery before native UCP checkout.
+- Recommendation: keep the current `/customizing` agent-readiness work as-is for immediate value, but do not describe it as “UCP support.” If we want real UCP alignment, the next implementation should be a separate protocol surface:
+  - Publish a stable business profile at `/.well-known/ucp`.
+  - Start with a read-only or low-risk capability set first, likely catalog lookup plus a Genie-specific custom-cake configuration bridge.
+  - Add native checkout/session endpoints only after the custom cake configuration contract is stable enough to materialize deterministic line items.
+  - Leave identity linking, payment handlers, signatures, and broader order lifecycle integration for a later phase.
+
+## Align Dashboard Cake Pricing With Storefront
+
+### Plan
+
+- [x] Audit storefront database pricing, fallback pricing, base-price selection, and rounding.
+- [x] Audit dashboard pricing service plus `CustomizationViewer` adapter inputs for drift.
+- [x] Patch only dashboard pricing/mapping code needed to mirror storefront customer-facing totals.
+- [x] Add focused regression coverage for the drift cases found.
+- [x] Run targeted dashboard tests/checks and document proof here.
+
+### Review
+
+- Confirmed the storefront customer-facing cache price contract in [src/services/supabaseService.ts](/Users/apcaballes/genieph-nextjs/src/services/supabaseService.ts:260): cached designs use the lowest base price for `cakeType`, database add-on pricing, then `roundDownToNearest99(total, basePrice)`.
+- Left storefront pricing code unchanged. The drift was in the dashboard viewer path, which had been using exact size lookup against cached `size = "Unknown"` and discarding preserved pricing inputs.
+- Patched `/Users/apcaballes/genie.ph-admin-dashboard` so the AI Cache Page viewer now mirrors storefront cache pricing: lowest base price by type, same nearest-99 base floor, preserved message type/position, support quantity fallback, and `soft_icing` normalization.
+- Verification in the dashboard repo:
+  - `node --experimental-strip-types test_pricing_alignment.mjs` passed.
+  - `npm run build` passed.
+  - `git diff --check` passed.
+  - `npm run lint` remains blocked by the pre-existing `check_db.ts` missing `dotenv` module/type issue.
+
 ## Improve Cake Size Height Ratio Prompt
 
 ### Plan

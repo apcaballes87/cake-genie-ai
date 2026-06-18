@@ -72,9 +72,16 @@ describe('CakeBaseOptions', () => {
 
         render(<CakeBaseOptions {...buildProps({ onIcingBaseChange })} />);
 
-        fireEvent.click(screen.getByRole('button', { name: /Fondant/i }));
+        fireEvent.click(screen.getByRole('radio', { name: /Fondant/i }));
 
         expect(onIcingBaseChange).toHaveBeenCalledWith('fondant');
+    });
+
+    it('exposes cake size choices as radios with the current selection checked', () => {
+        render(<CakeBaseOptions {...buildProps()} />);
+
+        expect(screen.getByRole('radio', { name: /6" Round/i })).toBeChecked();
+        expect(screen.getByRole('radio', { name: /8" Round/i })).not.toBeChecked();
     });
 
     it('can render only a single section for focused popup editing', () => {

@@ -72,6 +72,7 @@ import { CustomizingStepSummarySections } from './CustomizingStepSummarySections
 import { CustomizingEmptyLandingState } from './CustomizingEmptyLandingState';
 import { CustomizingAiChatPanel } from './CustomizingAiChatPanel';
 import { CustomizingToppersPanel } from './CustomizingToppersPanel';
+import { CustomizingAgentProtocol } from './CustomizingAgentProtocol';
 import { canConsumeDesktopSidebarWheel, shouldCaptureDesktopSidebarScroll } from './desktopSidebarScroll';
 import {
     buildRetryUploadUrl,
@@ -121,7 +122,9 @@ import {
     deriveConstraintSnapshot,
     deriveDeliveryZone,
     getCommercePolicyUrls,
+    getLeadTimeLabel,
 } from '@/lib/commerce/machineReadable';
+import { buildCustomizerAgentModel } from '@/lib/commerce/customizerAgentModel';
 
 interface AvailabilityInfo {
     type: AvailabilityType;
@@ -1250,6 +1253,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             branchCompatible: merchant ? true : null,
                             deliveryZoneCompatible: merchant?.city ? true : null,
                             blackoutDate: null,
+                            minimumLeadTimeDays: availabilityType === 'normal'
+                                ? (availabilitySettings?.minimum_lead_time_days ?? 1)
+                                : 0,
                         }),
                         policyUrls: getCommercePolicyUrls(),
                     }),
@@ -1303,6 +1309,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         recentSearchDesign?.p_hash,
         recentSearchDesign?.slug,
         availabilityType,
+        availabilitySettings?.minimum_lead_time_days,
         analysisId,
         router,
         slug,
@@ -3413,6 +3420,172 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     );
 
     const hasVisiblePageHeading = Boolean(product || recentSearchDesign);
+    const displayedStickyPrice = useMemo(() => {
+        if (hideStickyBar) return null;
+        const rawPrice = finalPrice ?? (useBasePriceAsFallback ? (basePrice ?? null) : null);
+        return rawPrice !== null ? rawPrice + ediblePhotoAddonPrice : null;
+    }, [basePrice, ediblePhotoAddonPrice, finalPrice, hideStickyBar, useBasePriceAsFallback]);
+    const minimumLeadTimeDays = useMemo(() => {
+        if (availabilityType === 'normal') {
+            return availabilitySettings?.minimum_lead_time_days ?? 1;
+        }
+
+        if (availabilityType === 'rush' || availabilityType === 'same-day') {
+            return 0;
+        }
+
+        return null;
+    }, [availabilitySettings?.minimum_lead_time_days, availabilityType]);
+    const canShareDesign = Boolean(analysisResult && isAnalysisCached && !isUpdatingDesign);
+    const activeStickyError = hideStickyBar ? null : (basePriceError || analysisError || null);
+    const canAddToCartNow = !hideStickyBar
+        && !isFetchingBasePrice
+        && !activeStickyError
+        && displayedStickyPrice !== null
+        && !isAddingToCart
+        && !isAnalyzing;
+    const currentCommerceSnapshot = useMemo(() => {
+        if (!cakeInfo) return null;
+
+        const effectivePrice = finalPrice ?? (useBasePriceAsFallback ? basePrice : null);
+
+        return buildCommerceOrderSnapshot({
+            product: {
+                productId: product?.product_id || null,
+                designSlug: persistedSlug || (typeof slug === 'string' ? slug : null) || seoMetadata?.slug || recentSearchDesign?.slug || null,
+                designPHash: currentPHash || product?.p_hash || recentSearchDesign?.p_hash || analysisId || null,
+                merchantId: merchant?.merchant_id || null,
+                canonicalUrl: product && merchant
+                    ? `https://genie.ph/shop/${merchant.slug}/${product.slug}`
+                    : ((persistedSlug || typeof slug === 'string')
+                        ? `https://genie.ph/customizing/${persistedSlug || slug}`
+                        : null),
+                sourceSurface: product ? 'merchant_product' : (recentSearchDesign ? 'customizing' : 'uploaded_image'),
+            },
+            variant: {
+                cakeType: cakeInfo.type,
+                cakeThickness: cakeInfo.thickness,
+                cakeSize: cakeInfo.size,
+                flavors: cakeInfo.flavors,
+            },
+            customization: {
+                mainToppers: mainToppers.filter(t => t.isEnabled).map(t => ({
+                    description: t.description,
+                    type: t.type,
+                    size: t.size,
+                })),
+                supportElements: supportElements.filter(e => e.isEnabled).map(e => ({
+                    description: e.description,
+                    type: e.type,
+                    coverage: e.size,
+                })),
+                cakeMessages: cakeMessages.filter(m => m.isEnabled).map(m => ({
+                    text: m.text,
+                    color: m.color,
+                })),
+                icingDesign: {
+                    base: icingDesign?.base,
+                    drip: icingDesign?.drip || false,
+                    gumpasteBaseBoard: icingDesign?.gumpasteBaseBoard || false,
+                    colors: (icingDesign?.colors as unknown as Record<string, string>) || {},
+                },
+                specialInstructions: additionalInstructions,
+                selectedDesignSource: product
+                    ? 'merchant_product'
+                    : (recentSearchDesign ? 'analysis_cache' : 'uploaded_image'),
+                referenceImageUrl: seoMetadata?.original_image_url || recentSearchDesign?.original_image_url || product?.image_url || null,
+                uploadedReferenceImage: Boolean(originalImagePreview || recentSearchDesign?.original_image_url || product?.image_url),
+            },
+            fulfillment: {
+                fulfillmentType: 'unspecified',
+                pickupBranchId: null,
+                deliveryCity: merchant?.city || null,
+                deliveryZone: deriveDeliveryZone(merchant?.city || null),
+                eventDate: null,
+                eventTimeSlot: null,
+            },
+            pricing: {
+                currency: 'PHP',
+                basePrice: basePrice || 0,
+                addOnPrice: ((effectivePrice || 0) - (basePrice || 0)) + ediblePhotoAddonPrice,
+                rushFee: 0,
+                finalPrice: (effectivePrice || 0) + ediblePhotoAddonPrice,
+                pricingVersion: 'pricing_rules:v1',
+            },
+            constraints: deriveConstraintSnapshot({
+                availabilityClass: availabilityType,
+                earliestFulfillmentDate: null,
+                cutoffEligible: availabilityType === 'rush' || availabilityType === 'same-day' ? true : null,
+                branchCompatible: merchant ? true : null,
+                deliveryZoneCompatible: merchant?.city ? true : null,
+                blackoutDate: null,
+                minimumLeadTimeDays,
+            }),
+            policyUrls: getCommercePolicyUrls(),
+        });
+    }, [
+        additionalInstructions,
+        analysisId,
+        availabilityType,
+        basePrice,
+        cakeInfo,
+        cakeMessages,
+        currentPHash,
+        ediblePhotoAddonPrice,
+        finalPrice,
+        icingDesign,
+        mainToppers,
+        merchant,
+        minimumLeadTimeDays,
+        originalImagePreview,
+        persistedSlug,
+        product,
+        recentSearchDesign,
+        seoMetadata?.original_image_url,
+        seoMetadata?.slug,
+        slug,
+        supportElements,
+        useBasePriceAsFallback,
+    ]);
+    const customizerAgentModel = useMemo(() => {
+        if (!cakeInfo || !currentCommerceSnapshot) return null;
+
+        return buildCustomizerAgentModel({
+            commerceSnapshot: currentCommerceSnapshot,
+            cakeInfo,
+            icingDesign,
+            basePriceOptions,
+            mainToppers,
+            supportElements,
+            cakeMessages,
+            additionalInstructions,
+            addOnPriceBreakdown: addOnPricing?.breakdown ?? [],
+            ediblePhotoAddonPrice,
+            displayedPrice: displayedStickyPrice,
+            canAddToCart: canAddToCartNow,
+            canShare: canShareDesign,
+            isAnalyzing,
+            isUpdatingDesign,
+            activeError: activeStickyError,
+        });
+    }, [
+        activeStickyError,
+        addOnPricing?.breakdown,
+        additionalInstructions,
+        basePriceOptions,
+        cakeInfo,
+        cakeMessages,
+        canAddToCartNow,
+        canShareDesign,
+        currentCommerceSnapshot,
+        displayedStickyPrice,
+        ediblePhotoAddonPrice,
+        icingDesign,
+        isAnalyzing,
+        isUpdatingDesign,
+        mainToppers,
+        supportElements,
+    ]);
 
     return (
         <>
@@ -3457,7 +3630,15 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 </div>
             </div>
 
-            <div className={`flex flex-col items-center gap-2 w-full max-w-7xl mx-auto px-4 transition-all duration-300 ${showStickyBar ? 'pb-2' : 'pb-4'}`}>
+            <main
+                aria-label="Cake customization workspace"
+                data-agent-surface="customizer"
+                data-availability-class={availabilityType}
+                data-lead-time-label={getLeadTimeLabel(availabilityType) ?? undefined}
+                data-min-lead-days={minimumLeadTimeDays ?? undefined}
+                className={`flex flex-col items-center gap-2 w-full max-w-7xl mx-auto px-4 transition-all duration-300 ${showStickyBar ? 'pb-2' : 'pb-4'}`}
+            >
+                {customizerAgentModel ? <CustomizingAgentProtocol model={customizerAgentModel} /> : null}
                 {isEmptyState && !isAnalyzing ? (
                     <CustomizingEmptyLandingState onImageSelect={handleImageSelect} reviewSummary={reviewSummary} />
                 ) : (
@@ -3474,7 +3655,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 {/* Two-column layout for desktop/tablet landscape */}
                 <div ref={desktopColumnsRef} className="w-full flex flex-col md:flex-row gap-2">
                     {/* LEFT COLUMN: Image and Update Design */}
-                    <div ref={desktopLeftColumnRef} className="flex flex-col gap-4 w-full md:w-[calc(50%-6px)]">
+                    <section ref={desktopLeftColumnRef} aria-label="Cake preview and primary controls" className="flex flex-col gap-4 w-full md:w-[calc(50%-6px)]">
                         <CustomizingHeroPanel
                             mainImageContainerRef={mainImageContainerRef}
                             editedImage={editedImage}
@@ -3702,15 +3883,16 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                             )}
                         </div>
 
-                    </div>
+                    </section>
                     {/* RIGHT COLUMN: Availability at top, then Feature List */}
                     <div className="flex flex-row md:flex-col gap-2 w-[calc(100%+2rem)] md:w-[calc(50%-6px)] -mx-4 md:mx-0 overflow-x-auto md:overflow-visible scrollbar-hide snap-x snap-mandatory scroll-pl-4 pb-60 md:pb-0 -mb-60 md:mb-0 px-4 md:px-0">
                         {/* Availability Section - at top of right column */}
 
 
 
-                        <div
+                        <aside
                             ref={desktopSidebarScrollRef}
+                            aria-label="Customization summary and advanced controls"
                             className="hidden md:flex md:flex-col md:w-full md:min-h-0 md:overflow-y-auto md:overscroll-auto md:pr-1 scrollbar-hide"
                             style={desktopSidebarTopOffset > 0 ? {
                                 maxHeight: `calc(100vh - ${desktopSidebarTopOffset}px)`,
@@ -3797,7 +3979,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                                         maskStatus: icingMaskStatus,
                                 }}
                             />
-                        </div>
+                        </aside>
                     </div>
                 </div>
 
@@ -3996,16 +4178,16 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 </div>
 
                 <StickyAddToCartBar
-                    price={hideStickyBar ? null : (() => { const raw = finalPrice ?? (useBasePriceAsFallback ? (basePrice ?? null) : null); return raw !== null ? raw + ediblePhotoAddonPrice : null; })()}
+                    price={displayedStickyPrice}
                     ediblePhotoAddonNote={!hideStickyBar && ediblePhotoAddonPrice > 0}
                     isLoading={hideStickyBar ? false : isFetchingBasePrice}
                     isAdding={isAddingToCart}
-                    error={hideStickyBar ? null : (basePriceError || analysisError || null)}
+                    error={activeStickyError}
                     onAddToCartClick={onAddToCart}
                     onShareClick={onShare}
                     onChatClick={handleChatClick}
                     isSharing={isSharing}
-                    canShare={!!analysisResult && isAnalysisCached}
+                    canShare={canShareDesign}
                     isAnalyzing={hideStickyBar ? false : isAnalyzing}
                     // DISABLED: Preselection modal disabled
                     // isBlurred={isPreSelectionModalOpen}
@@ -4053,7 +4235,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                     onClose={handlePreSelectionClose}
                     onApply={handlePreSelectionApply}
                 />
-            </div>
+            </main>
         </>
     );
 };
