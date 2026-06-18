@@ -47,14 +47,27 @@ const fromMock = vi.fn((table: string) => {
     update: vi.fn((payload: Record<string, unknown>) => {
       handler.onUpdate?.(payload);
 
-      return {
-        eq: async () => {
-          if (handler.onUpdateEq) {
-            return handler.onUpdateEq(payload);
+      const eqResult = {
+        select: vi.fn(() => ({
+          single: async () => {
+            if (handler.onUpdateEq) {
+              const res = await handler.onUpdateEq(payload);
+              return { data: res.data ?? null, error: res.error ?? null };
+            }
+            return { data: null, error: null };
           }
+        })),
+        then: (resolve: any) => {
+          if (handler.onUpdateEq) {
+            handler.onUpdateEq(payload).then((res: any) => resolve({ error: res?.error || null }));
+          } else {
+            resolve({ error: null });
+          }
+        }
+      };
 
-          return { error: null };
-        },
+      return {
+        eq: vi.fn(() => eqResult),
       };
     }),
   };
@@ -185,5 +198,127 @@ describe('POST /api/chat', () => {
       }),
     );
     expect(updatedConversationPayloads[0].last_customer_page_seen_at).toEqual(expect.any(String));
+  });
+
+  it('links and updates conversation when found via sessionId fallback', async () => {
+    const updatedConversationPayloads: Record<string, unknown>[] = [];
+
+    // Mock that user_id lookup fails (no conversation found)
+    // but sessionId lookup succeeds
+    let queryCount = 0;
+    tableHandlers.chat_conversations.onSingle = async () => {
+      queryCount++;
+      if (queryCount === 1) {
+        // First query is by user_id, returns empty
+        return { data: null, error: { message: 'Not found' } };
+      }
+      // Second query is by session_id, returns existing conversation
+      return {
+        data: {
+          id: 'existing-conversation-id',
+          user_id: null,
+          session_id: 'guest_123',
+          customer_email: null,
+          customer_name: null,
+        },
+        error: null,
+      };
+    };
+
+    tableHandlers.chat_conversations.onUpdate = (payload) => {
+      updatedConversationPayloads.push(payload);
+    };
+    tableHandlers.chat_conversations.onUpdateEq = async () => ({
+      data: { id: 'existing-conversation-id' },
+      error: null,
+    });
+
+    const { POST } = await import('./route');
+    const request = new NextRequest('http://localhost/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'start_conversation',
+        sessionId: 'guest_123',
+        userId: 'new-user-id',
+        email: 'guest@example.com',
+        name: 'Guest User',
+      }),
+    });
+
+    const response = await POST(request);
+    const payload = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(payload.success).toBe(true);
+    expect(updatedConversationPayloads).toHaveLength(1);
+    // Should link new userId, email, and name to the resolved conversation
+    expect(updatedConversationPayloads[0]).toEqual(
+      expect.objectContaining({
+        user_id: 'new-user-id',
+        customer_email: 'guest@example.com',
+        customer_name: 'Guest User',
+      }),
+    );
+  });
+
+  it('links and updates conversation when found via customer_email fallback', async () => {
+    const updatedConversationPayloads: Record<string, unknown>[] = [];
+
+    // First query (userId lookup) fails, second query (sessionId lookup) fails,
+    // third query (email lookup) succeeds
+    let queryCount = 0;
+    tableHandlers.chat_conversations.onSingle = async () => {
+      queryCount++;
+      if (queryCount === 3) {
+        return {
+          data: {
+            id: 'existing-conversation-id',
+            user_id: null,
+            session_id: null,
+            customer_email: 'guest@example.com',
+            customer_name: null,
+          },
+          error: null,
+        };
+      }
+      return { data: null, error: { message: 'Not found' } };
+    };
+
+    tableHandlers.chat_conversations.onUpdate = (payload) => {
+      updatedConversationPayloads.push(payload);
+    };
+    tableHandlers.chat_conversations.onUpdateEq = async () => ({
+      data: { id: 'existing-conversation-id' },
+      error: null,
+    });
+
+    const { POST } = await import('./route');
+    const request = new NextRequest('http://localhost/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'start_conversation',
+        sessionId: 'new-session-id',
+        userId: 'new-user-id',
+        email: 'guest@example.com',
+        name: 'Guest User',
+      }),
+    });
+
+    const response = await POST(request);
+    const payload = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(payload.success).toBe(true);
+    expect(updatedConversationPayloads).toHaveLength(1);
+    // Should link the new userId and sessionId to the resolved email-matching conversation
+    expect(updatedConversationPayloads[0]).toEqual(
+      expect.objectContaining({
+        user_id: 'new-user-id',
+        session_id: 'new-session-id',
+        customer_name: 'Guest User',
+      }),
+    );
   });
 });

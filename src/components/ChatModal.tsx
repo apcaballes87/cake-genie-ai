@@ -283,6 +283,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
     const [isTyping, setIsTyping] = useState(false);
     const [conversationId, setConversationId] = useState<string | null>(null);
     const [sessionId, setSessionId] = useState<string>('');
+    const [isLocalStorageLoaded, setIsLocalStorageLoaded] = useState(false);
     const [showEmailForm, setShowEmailForm] = useState(false);
     const [email, setEmail] = useState('');
     const [name, setName] = useState('');
@@ -308,6 +309,16 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
             localStorage.setItem('chat_session_id', storedSession);
         }
         setSessionId(storedSession);
+
+        const guestEmail = localStorage.getItem('cart_guest_email');
+        const guestName = localStorage.getItem('cart_pickup_name');
+        if (guestEmail) {
+            setEmail(guestEmail);
+        }
+        if (guestName) {
+            setName(guestName);
+        }
+        setIsLocalStorageLoaded(true);
     }, []);
 
     useEffect(() => {
@@ -372,7 +383,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
     }, [conversationId, supabase]);
 
     useEffect(() => {
-        if (isOpen && sessionId) {
+        if (isOpen && sessionId && isLocalStorageLoaded) {
             loadOrCreateConversation();
         } else if (!isOpen) {
             clearPendingImageFollowUps();
@@ -380,7 +391,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
             setConversationId(null);
             setIsLoading(true);
         }
-    }, [isOpen, sessionId, userId]);
+    }, [isOpen, sessionId, userId, isLocalStorageLoaded]);
 
     useEffect(() => {
         return () => {
@@ -396,7 +407,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     action: 'start_conversation',
-                    sessionId: userId ? undefined : sessionId,
+                    sessionId: sessionId || undefined,
                     userId: userId || undefined,
                     email: userEmail || email || undefined,
                     name: userName || name || undefined,
@@ -554,7 +565,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                         conversationId,
                         content: inputValue || '',
                         imageUrl,
-                        sessionId: userId ? undefined : sessionId,
+                        sessionId: sessionId || undefined,
                         userId: userId || undefined,
                         pageContext: getCurrentPageContext(),
                     }),
@@ -701,7 +712,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                     action: 'send_message',
                     conversationId,
                     content: inputValue,
-                    sessionId: userId ? undefined : sessionId,
+                    sessionId: sessionId || undefined,
                     userId: userId || undefined,
                     pageContext: getCurrentPageContext(),
                 }),
