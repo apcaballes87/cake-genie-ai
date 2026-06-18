@@ -1,5 +1,26 @@
 # Tasks
 
+## Improve Cake Size Height Ratio Prompt
+
+### Plan
+
+- [x] Trace the active `ai_prompts` loading path, fallback prompt, and latest prompt migration/version.
+- [x] Add ratio-based height guidance to the cake analysis prompt without changing unrelated schema or pricing behavior.
+- [x] Create the next prompt version as a new active `ai_prompts` row and keep the runtime fallback prompt in sync.
+- [x] Run focused prompt tests plus a repo verification check, then document the result here.
+
+### Review
+
+- Root cause: the active prompt only constrained `cakeThickness` to the allowed enum values, so the model had no explicit visual conversion rule for cake-body diameter-to-height ratio. The local fallback prompt had also drifted behind the live `3.17` prompt, which meant fallback behavior would not include the latest tier/platform rule.
+- Added a `cakeThickness Ratio Guide` to [src/services/prompts/fallback-prompt.txt](/Users/apcaballes/genieph-nextjs/src/services/prompts/fallback-prompt.txt:178). It tells the analyzer to keep `cakeType` as tier/form only, exclude toppers/boards/platforms from measurement, and map the guide ratios to heights: `2.00:1 -> 3 in`, `1.50:1 -> 4 in`, `1.20:1 -> 5 in`, and `1.00:1 -> 6 in`.
+- Added [supabase/migrations/20260618044302_insert_prompt_v3_18_height_ratio_guide.sql](/Users/apcaballes/genieph-nextjs/supabase/migrations/20260618044302_insert_prompt_v3_18_height_ratio_guide.sql:1) to derive prompt `3.18` from active/live `3.17`, preserving the platform-vs-tier guidance and activating the new prompt as a new row instead of overwriting history.
+- Applied the migration to live Supabase. Verification query showed active `ai_prompts` row `prompt_id = 27`, `version = 3.18`, one active prompt total, and the ratio guide present in the prompt text.
+- Added regression coverage in [src/services/prompts/analysisPromptRules.test.ts](/Users/apcaballes/genieph-nextjs/src/services/prompts/analysisPromptRules.test.ts:30) so future fallback prompt syncs must retain the ratio table.
+- Verification:
+  - `npx vitest run src/services/prompts/analysisPromptRules.test.ts` passed with `10` tests.
+  - `npm run build` passed. Static generation still logged existing Supabase `57014` fallback-query timeouts, but the build completed successfully.
+  - `git diff --check` passed.
+
 ## Fix Cart Discount Mismatch In Xendit Checkout
 
 ### Plan

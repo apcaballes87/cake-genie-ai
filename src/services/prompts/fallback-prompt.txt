@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.15 Version - Side Color Mandatory + Fallback Chain**
+**v3.18 Version - Cake Height Ratio Guide**
 ═══════════════════════════════════════════════════════════════════════════════
 
 ## ROLE
@@ -175,10 +175,74 @@ Visual indicators:
 
 Must be one of: `"2 in"`, `"3 in"`, `"4 in"`, `"5 in"`, `"6 in"`
 
+### cakeThickness Ratio Guide (Required for cake height)
+
+Use visual cake-body proportions to choose `cakeThickness`. Do not infer or output the cake diameter or serving size from the image. `cakeType` should stay as the form/tier label, such as `"1 Tier"`, while `cakeThickness` stores the estimated vertical cake height.
+
+Estimate the ratio of visible cake-body diameter or widest horizontal cake-body width to visible cake-body height. Exclude toppers, candles, flowers, platforms, cake boards, boxes, plates, shadows, and camera background. For multi-tier cakes, use the typical visible height of an actual cake tier, not the combined stack height.
+
+Choose the nearest guide value:
+
+| Visual diameter:height ratio | Example body proportion | Output `cakeThickness` |
+|------------------------------|-------------------------|-------------------------|
+| About 2.00:1 | 6 in diameter x 3 in tall | `"3 in"` |
+| About 1.50:1 | 6 in diameter x 4 in tall | `"4 in"` |
+| About 1.20:1 | 6 in diameter x 5 in tall | `"5 in"` |
+| About 1.00:1 | 6 in diameter x 6 in tall | `"6 in"` |
+
+If the cake is between two ratios, choose the closest height. If perspective makes the diameter uncertain, compare the front visible cake width to the visible side height and choose the nearest supported height. Keep cupcakes on their explicit cupcake rule of `"2 in"`.
+
 ### keyword (Required string)
 
 1-2 words describing the cake theme/recipient or color (e.g., "unicorn", "senior", "red minimalist", "BTS Kpop").
 Make the keyword all Title Case (all words are capitalized).
+
+
+### CAKE TIER VS TOPPER PLATFORM / PEDESTAL
+
+Count only actual cake bodies as tiers.
+
+A shallow round platform, pedestal, plinth, disc, riser, or fondant-covered
+base used to hold a figurine, message, flowers, or other decoration is NOT
+a cake tier.
+
+Classify the design as multi-tier only when each visible tier is a substantial
+cake body. A real upper cake tier should normally have meaningful cake depth
+and be approximately similar in thickness to the tier below, rather than
+appearing as a thin display platform.
+
+Indicators that an upper round section is a platform rather than a cake tier:
+- substantially thinner than the main cake body
+- primarily supports a figurine or topper
+- resembles a shallow disc, pedestal, riser, or plinth
+- contains lettering or decorations but little visible cake depth
+- functions visually as part of the topper arrangement
+
+Before assigning `2 Tier`, `2 Tier Fondant`, `3 Tier`, or `3 Tier Fondant`,
+compare the visible vertical height of every proposed cake tier.
+
+A real upper cake tier must have substantial cake depth.
+
+If the proposed upper section is less than approximately 40% of the visible
+height of the cake section directly below it, do NOT count it as a cake tier.
+Classify it as a topper platform, pedestal, plinth, riser, or decorative disc.
+
+Large diameter does not make a shallow section a cake tier. A wide but thin
+round section is still a platform when its height is substantially smaller
+than the main cake body.
+
+When uncertain between:
+- one tall cake with a shallow topper platform, and
+- a two-tier cake
+
+default to one tier if the upper section:
+- is less than 40% as tall as the lower cake body;
+- mainly supports a figurine or decorations;
+- has no clear substantial cake depth; or
+- resembles a thin drum, disc, riser, pedestal, or plinth.
+
+Count tiers using cake-body height, not visible circular layers, diameter,
+outlines, borders, lettering, or stacked fondant structures.
 
 ---
 
@@ -758,10 +822,10 @@ For this section we are talking about identifying the body of the cake, if it is
 
 **FONDANT:**
 - Surface: Very smooth and uniform, matte or satin-like finish, no visible cream texture
-- Edges: Modern style → very sharp edges (but we ignore this for now); Classic style → curved/rounded edges
+- Classic style → curved/rounded edges <- this is very important indicator of fondant
 - Key indicator: Surface looks like a "sheet covering" the cake
-- Texture: Uniform, porcelain-like appearance
-- CAKE EDGES: if the cake has sharp edges then 20% of the time we identify it as Fondant (classical fondant designs are rounded).
+- Texture: Uniform
+- CAKE EDGES: if the cake has classical rounded edge then its fondant.
 
 ### SIDE COLOR RULE (MANDATORY — v3.15)
 
@@ -792,6 +856,12 @@ For multi-tier cakes, describe each tier's icing:
 }
 ```
 
+### FINAL CAKE-TYPE VERIFICATION
+
+If `cakeType` is multi-tier, identify each actual cake body mentally and verify
+that every counted upper tier passes the mandatory height-ratio check.
+
+Never classify a shallow topper platform as a tier.
 ---
 
 ## APPROVED COLOR PALETTE
@@ -831,6 +901,7 @@ Use ONLY these exact hex codes:
 | Ivory | #FFFFF0 |
 
 ---
+
 
 ## EXAMPLE CLASSIFICATIONS
 

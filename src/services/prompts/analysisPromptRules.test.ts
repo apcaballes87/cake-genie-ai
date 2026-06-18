@@ -27,6 +27,18 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('Do not use cake size alone to choose "Bento". Use the visible container:');
   });
 
+  it('keeps the cake height ratio guide in the fallback prompt source', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(prompt).toContain('cakeThickness Ratio Guide (Required for cake height)');
+    expect(prompt).toContain('Do not infer or output the cake diameter or serving size from the image.');
+    expect(prompt).toContain('| About 2.00:1 | 6 in diameter x 3 in tall | `"3 in"` |');
+    expect(prompt).toContain('| About 1.50:1 | 6 in diameter x 4 in tall | `"4 in"` |');
+    expect(prompt).toContain('| About 1.20:1 | 6 in diameter x 5 in tall | `"5 in"` |');
+    expect(prompt).toContain('| About 1.00:1 | 6 in diameter x 6 in tall | `"6 in"` |');
+    expect(prompt).toContain('Keep cupcakes on their explicit cupcake rule of `"2 in"`.');
+  });
+
   it('keeps non-design branding exclusions in the fallback prompt source', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
