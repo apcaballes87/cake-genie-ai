@@ -889,7 +889,7 @@ export async function cacheAnalysisResult(
     const keywords = analysisResult.keyword || '';
 
     // Generate SEO-friendly slug: keyword + icing color + type + phash
-    const icingColor = analysisResult.icing_design?.colors?.side || analysisResult.icing_design?.colors?.top || null;
+    const icingColor = analysisResult.icing_design?.colors?.top || analysisResult.icing_design?.colors?.side || null;
     const slug = generateCakeAnalysisSlug({
       keyword: keywords,
       icingColor,
