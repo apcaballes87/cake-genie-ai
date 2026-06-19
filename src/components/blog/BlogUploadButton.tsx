@@ -69,7 +69,7 @@ export function BlogUploadButton({ className = '' }: BlogUploadButtonProps) {
             <button
                 onClick={() => setIsUploaderOpen(true)}
                 disabled={isUploading}
-                className="flex items-center justify-center gap-2 bg-[#9b80e3] hover:bg-[#8669cc] text-white px-5 py-3 lg:px-7 lg:py-3.5 rounded-[0.875rem] font-bold transition-all shadow-md active:scale-[0.98] text-sm lg:text-base whitespace-nowrap shrink-0 disabled:opacity-70 disabled:cursor-not-allowed"
+                className="flex items-center justify-center gap-2 bg-[#A956F8] hover:bg-[#953bf6] text-white px-5 py-3 lg:px-7 lg:py-3.5 rounded-[0.875rem] font-bold transition-all shadow-md active:scale-[0.98] text-sm lg:text-base whitespace-nowrap shrink-0 disabled:opacity-70 disabled:cursor-not-allowed"
             >
                 {isUploading ? (
                     <>
