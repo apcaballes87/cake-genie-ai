@@ -617,6 +617,8 @@ ${colorChanges.join('\n')}`;
         )
     );
 
+    const preferredModel = useInpaintingStyle && !isThreeTierReconstruction ? 'gemini-2.5-flash-image' : 'gemini-3.1-flash-image-preview';
+
     try {
         // 7. Call editCakeImage
         const editedImageResult: string | unknown = await Promise.race([
@@ -627,7 +629,7 @@ ${colorChanges.join('\n')}`;
                 supportElements,
                 isThreeTierReconstruction ? threeTierReferenceImage : null,
                 systemInstruction,
-                useInpaintingStyle && !isThreeTierReconstruction ? 'gemini-2.5-flash-image' : undefined,
+                preferredModel === 'gemini-2.5-flash-image' ? 'gemini-2.5-flash-image' : undefined,
                 effectiveTraceId,
                 requestSource
             ),
@@ -642,6 +644,7 @@ ${colorChanges.join('\n')}`;
         console.log(`[AI TRACE ${effectiveTraceId}] updateDesign:success`, {
             requestSource: requestSource ?? 'unknown',
             durationMs: Date.now() - startedAt,
+            model: preferredModel,
         });
 
         return { image: editedImageResult, prompt, systemInstruction };
@@ -651,6 +654,7 @@ ${colorChanges.join('\n')}`;
             requestSource: requestSource ?? 'unknown',
             durationMs: Date.now() - startedAt,
             errorMessage: err instanceof Error ? err.message : 'Unknown error',
+            model: preferredModel,
         });
         // Re-throw the caught error to be handled by the component
         throw err;

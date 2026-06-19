@@ -155,6 +155,7 @@ describe('/api/ai/edit-image', () => {
         await expect(response.json()).resolves.toEqual({
             imageData: 'fallback-image',
             mimeType: 'image/png',
+            model: 'gemini-3.1-flash-image-preview',
         });
     });
 
@@ -224,6 +225,7 @@ describe('/api/ai/edit-image', () => {
         await expect(response.json()).resolves.toEqual({
             imageData: 'generated-image-from-data',
             mimeType: 'image/jpeg',
+            model: 'gemini-3.1-flash-image-preview',
         });
     });
 
