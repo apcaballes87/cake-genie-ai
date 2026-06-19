@@ -51,7 +51,7 @@ describe('/api/ai/edit-image', () => {
             expect.objectContaining({
                 model: 'gemini-3.1-flash-image-preview',
                 config: expect.objectContaining({
-                    responseModalities: ['IMAGE'],
+                    responseModalities: ['TEXT', 'IMAGE'],
                     abortSignal: expect.any(AbortSignal),
                 }),
             })
@@ -148,7 +148,7 @@ describe('/api/ai/edit-image', () => {
             expect.objectContaining({
                 model: 'gemini-3.1-flash-image-preview',
                 config: expect.objectContaining({
-                    responseModalities: ['IMAGE'],
+                    responseModalities: ['TEXT', 'IMAGE'],
                 }),
             })
         );

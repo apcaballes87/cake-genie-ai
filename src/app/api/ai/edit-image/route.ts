@@ -57,11 +57,7 @@ function resolveModelName(preferredModel?: string): EditImageModelName {
 }
 
 function getResponseModalities(modelName: EditImageModelName): ResponseModality[] {
-    if (modelName === COLOR_ONLY_MODEL_NAME) {
-        return ['TEXT', 'IMAGE'];
-    }
-
-    return ['IMAGE'];
+    return ['TEXT', 'IMAGE'];
 }
 
 function extractGeneratedImage(response: AiGenerateContentResponse) {
