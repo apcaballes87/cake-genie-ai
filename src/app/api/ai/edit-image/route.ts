@@ -217,6 +217,7 @@ export async function POST(req: NextRequest) {
                 return NextResponse.json({
                     imageData: generatedImage.imageData,
                     mimeType: generatedImage.mimeType,
+                    model: attempt.modelName,
                 });
             }
 

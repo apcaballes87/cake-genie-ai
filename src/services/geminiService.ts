@@ -362,6 +362,7 @@ export async function editCakeImage(
             compressedBytes: compressedFile.size,
             maxSizeMB: compressionOptions.maxSizeMB,
             maxWidthOrHeight: compressionOptions.maxWidthOrHeight,
+            preferredModel: preferredModel ?? 'gemini-3.1-flash-image-preview (default)',
         });
 
         const response = await fetch('/api/ai/edit-image', {
@@ -385,6 +386,7 @@ export async function editCakeImage(
             status: response.status,
             ok: response.ok,
             durationMs: Date.now() - startedAt,
+            preferredModel: preferredModel ?? 'gemini-3.1-flash-image-preview (default)',
         });
 
         if (!response.ok) {
@@ -401,6 +403,7 @@ export async function editCakeImage(
                 status: response.status,
                 error: errorData?.error,
                 rawBodySnippet: rawErrorBody.slice(0, 500),
+                preferredModel: preferredModel ?? 'gemini-3.1-flash-image-preview (default)',
             });
             throw new Error(errorData?.error || `Image edit failed with status ${response.status}`);
         }
@@ -410,12 +413,18 @@ export async function editCakeImage(
             requestSource: requestSource ?? 'unknown',
             mimeType: result.mimeType,
             durationMs: Date.now() - startedAt,
+            model: result.model ?? preferredModel ?? 'gemini-3.1-flash-image-preview (default)',
         });
 
         // Return as data URI
         return `data:${result.mimeType};base64,${result.imageData}`;
 
     } catch (error) {
+        console.error(`[AI TRACE ${effectiveTraceId}] editCakeImage:error`, {
+            requestSource: requestSource ?? 'unknown',
+            preferredModel: preferredModel ?? 'gemini-3.1-flash-image-preview (default)',
+            errorMessage: error instanceof Error ? error.message : String(error),
+        });
         console.error("Error editing image:", error);
         throw error; // Re-throw the specific error
     }
