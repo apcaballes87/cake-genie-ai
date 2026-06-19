@@ -543,7 +543,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
         handleImageUpload: rawHookImageUpload, handleSave, uploadCartImages, clearImages,
         loadImageWithoutAnalysis, setCurrentSlug, currentSlug: persistedSlug,
         currentPHash, currentCacheId, seoMetadata, isAnalysisCached,
-        isComposingSelfie,
+        isComposingSelfie, loadedImageUrl,
     } = useImageManagement();
 
     const hookImageUpload = useCallback(async (
@@ -883,6 +883,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             setEditedImage(editedImageResult);
             setActiveTab('customized');
             setPreviousImageData(baseImageData);
+            setOriginalImageData(baseImageData); // Update originalImageData in sync
             syncAnalysisResultWithCurrentState();
             clearDirtyState();
         },
@@ -1650,6 +1651,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
             persistedSlug,
             hasLoadedImage: !!originalImageData,
             isLoadingDesign: isLoadingDesignRef.current,
+            loadedImageUrl,
         })) {
             return;
         }

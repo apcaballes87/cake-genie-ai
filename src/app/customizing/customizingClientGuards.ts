@@ -6,6 +6,7 @@ interface PropDesignLoadGuardArgs {
   persistedSlug: string | null | undefined
   hasLoadedImage: boolean
   isLoadingDesign: boolean
+  loadedImageUrl?: string | null | undefined
 }
 
 interface AutoRelatedDesignRequestArgs {
@@ -40,14 +41,16 @@ export function shouldLoadPropDesign({
   persistedSlug,
   hasLoadedImage,
   isLoadingDesign,
+  loadedImageUrl,
 }: PropDesignLoadGuardArgs): boolean {
   if (sourceParam === 'shopify_cse' || sourceParam === 'chrome_extension') return false
   if (isResetting) return false
   if (!targetImageUrl) return false
 
   const isNewItem = targetSlug !== persistedSlug
+  const isImageUrlChanged = targetImageUrl !== loadedImageUrl
 
-  if (!isNewItem && hasLoadedImage) return false
+  if (!isNewItem && hasLoadedImage && !isImageUrlChanged) return false
   if (isLoadingDesign) return false
 
   return true

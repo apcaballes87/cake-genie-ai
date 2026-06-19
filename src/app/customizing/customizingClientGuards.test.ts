@@ -50,7 +50,21 @@ describe('customizingClientGuards', () => {
       persistedSlug: 'cake-a',
       hasLoadedImage: true,
       isLoadingDesign: false,
+      loadedImageUrl: 'https://example.com/cake.jpg',
     })).toBe(false)
+  })
+
+  it('allows prop loading when the design has been updated with a new image URL', () => {
+    expect(shouldLoadPropDesign({
+      sourceParam: null,
+      isResetting: false,
+      targetImageUrl: 'https://example.com/studio-edited-cake.jpg',
+      targetSlug: 'cake-a',
+      persistedSlug: 'cake-a',
+      hasLoadedImage: true,
+      isLoadingDesign: false,
+      loadedImageUrl: 'https://example.com/cake.jpg',
+    })).toBe(true)
   })
 
   it('allows prop loading for a new or unloaded design with an image URL', () => {
@@ -62,6 +76,7 @@ describe('customizingClientGuards', () => {
       persistedSlug: 'cake-a',
       hasLoadedImage: false,
       isLoadingDesign: false,
+      loadedImageUrl: null,
     })).toBe(true)
 
     expect(shouldLoadPropDesign({
@@ -72,6 +87,7 @@ describe('customizingClientGuards', () => {
       persistedSlug: 'cake-a',
       hasLoadedImage: true,
       isLoadingDesign: false,
+      loadedImageUrl: 'https://example.com/cake.jpg',
     })).toBe(true)
   })
 

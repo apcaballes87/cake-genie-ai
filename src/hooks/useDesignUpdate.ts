@@ -211,11 +211,11 @@ export const useDesignUpdate = ({
             let currentBaseImageData: { data: string; mimeType: string } | null = parseDataUriImage(editedImage);
 
             try {
-                if (!currentBaseImageData && requestSource === 'icing-mask-fallback' && studioEditedImageUrl) {
+                if (!currentBaseImageData && studioEditedImageUrl) {
                     try {
                         currentBaseImageData = await fetchUrlAsBase64(studioEditedImageUrl);
                     } catch (studioImageError) {
-                        console.warn('Failed to resolve studio-edited image for icing fallback; using original upload instead.', studioImageError);
+                        console.warn('Failed to resolve studio-edited image; using original upload instead.', studioImageError);
                         currentBaseImageData = originalImageData;
                     }
                 } else if (!currentBaseImageData) {

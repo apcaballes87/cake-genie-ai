@@ -51,6 +51,7 @@ interface ImageContextType {
     currentSlug: string | null;
     currentPHash: string | null;
     currentCacheId: string | null;
+    loadedImageUrl: string | null;
     setEditedImage: (image: string | null) => void;
     setError: (error: string | null) => void;
     setIsLoading: (isLoading: boolean) => void;
@@ -118,6 +119,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
     const [currentSlug, setCurrentSlugState] = useState<string | null>(null);
     const [currentPHash, setCurrentPHash] = useState<string | null>(null);
     const [currentCacheId, setCurrentCacheId] = useState<string | null>(null);
+    const [loadedImageUrl, setLoadedImageUrl] = useState<string | null>(null);
     const [seoMetadata, setSeoMetadata] = useState<CacheSEOMetadata | null>(null);
     const [isAnalysisCached, setIsAnalysisCached] = useState<boolean>(false);
     const persistedImageStateRef = React.useRef<{
@@ -125,13 +127,15 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         source: string | null;
         edited: string | null;
         slug: string | null;
+        loadedImageUrl: string | null;
     }>({
         original: null,
         source: null,
         edited: null,
         slug: null,
+        loadedImageUrl: null,
     });
-    const hasInMemoryImageState = !!(originalImageData || sourceImageData || editedImage || currentSlug);
+    const hasInMemoryImageState = !!(originalImageData || sourceImageData || editedImage || currentSlug || loadedImageUrl);
 
     // Fetch 3-tier reference image on mount
     useEffect(() => {
@@ -160,6 +164,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         setSourceImageData(null);
         setPreviousImageData(null);
         setEditedImage(null);
+        setLoadedImageUrl(null);
         setError(null);
         setIsLoading(false);
         setCurrentSlugState(null);
@@ -173,6 +178,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             source: null,
             edited: null,
             slug: null,
+            loadedImageUrl: null,
         };
 
         // Clear IndexedDB
@@ -191,12 +197,14 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 setSourceImageData(null);
                 setPreviousImageData(null);
                 setEditedImage(null);
+                setLoadedImageUrl(null);
                 setCurrentCacheId(null);
                 persistedImageStateRef.current = {
                     original: null,
                     source: null,
                     edited: null,
                     slug: null,
+                    loadedImageUrl: null,
                 };
                 // Clear persistence
                 import('@/lib/utils/storage').then(({ clearIndexedDB }) => {
@@ -224,11 +232,12 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         const loadImages = async () => {
             try {
                 const { getFromIndexedDB } = await import('@/lib/utils/storage');
-                const [original, source, edited, storedSlug] = await Promise.all([
+                const [original, source, edited, storedSlug, storedLoadedImageUrl] = await Promise.all([
                     getFromIndexedDB('originalImageData'),
                     getFromIndexedDB('sourceImageData'),
                     getFromIndexedDB('editedImage'),
-                    getFromIndexedDB('imageSlug')
+                    getFromIndexedDB('imageSlug'),
+                    getFromIndexedDB('loadedImageUrl')
                 ]);
 
                 persistedImageStateRef.current = {
@@ -236,11 +245,16 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     source: source || null,
                     edited: edited || null,
                     slug: storedSlug || null,
+                    loadedImageUrl: storedLoadedImageUrl || null,
                 };
 
                 // Store the slug that was persisted so we can compare later
                 if (storedSlug) {
                     setCurrentSlugState(storedSlug);
+                }
+
+                if (storedLoadedImageUrl) {
+                    setLoadedImageUrl(storedLoadedImageUrl);
                 }
 
                 if (original) {
@@ -268,6 +282,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 source: serializedSource,
                 edited: editedImage,
                 slug: currentSlug,
+                loadedImageUrl: loadedImageUrl,
             };
             const operations: Promise<void>[] = [];
 
@@ -300,6 +315,14 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     nextPersistedState.slug
                         ? saveToIndexedDB('imageSlug', nextPersistedState.slug)
                         : removeFromIndexedDB('imageSlug')
+                );
+            }
+
+            if (nextPersistedState.loadedImageUrl !== persistedImageStateRef.current.loadedImageUrl) {
+                operations.push(
+                    nextPersistedState.loadedImageUrl
+                        ? saveToIndexedDB('loadedImageUrl', nextPersistedState.loadedImageUrl)
+                        : removeFromIndexedDB('loadedImageUrl')
                 );
             }
 
@@ -341,6 +364,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             const imageSrc = `data:${imageData.mimeType};base64,${imageData.data}`;
             setOriginalImageData(imageData);
             setSourceImageData(imageData); // Store the true original that will never be overwritten
+            setLoadedImageUrl(options?.imageUrl || null);
             setIsLoading(false); // File processing done
 
             const knownSeoMetadata = options?.knownSeoMetadata ?? null;
@@ -920,6 +944,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             const imageData = await fileToBase64(file);
             setOriginalImageData(imageData);
             setSourceImageData(imageData); // Store the true original that will never be overwritten
+            setLoadedImageUrl(imageUrl);
 
             if (options?.knownSeoMetadata) {
                 setSeoMetadata(options.knownSeoMetadata);
@@ -1102,6 +1127,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         currentSlug,
         currentPHash,
         currentCacheId,
+        loadedImageUrl,
         setEditedImage,
         setError,
         setIsLoading,
@@ -1128,6 +1154,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         currentSlug,
         currentPHash,
         currentCacheId,
+        loadedImageUrl,
         setCurrentSlug,
         handleImageUpload,
         loadImageWithoutAnalysis,
