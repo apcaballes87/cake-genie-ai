@@ -321,9 +321,9 @@ export async function editCakeImage(
     traceId?: string,
     requestSource?: string,
 ): Promise<string> {
+    const effectiveTraceId = traceId ?? `edit-image-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const startedAt = Date.now();
     try {
-        const effectiveTraceId = traceId ?? `edit-image-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        const startedAt = Date.now();
 
         console.log(`[AI TRACE ${effectiveTraceId}] editCakeImage:start`, {
             requestSource: requestSource ?? 'unknown',
