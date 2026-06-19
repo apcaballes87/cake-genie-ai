@@ -122,7 +122,7 @@ export function buildSearchAnalysisGenerationConfig(typeEnums: TypeEnums) {
     responseMimeType: 'application/json',
     responseSchema: buildSearchAnalysisResponseSchema(typeEnums),
     temperature: 0,
-    thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+    thinkingConfig: { thinkingLevel: ThinkingLevel.MEDIUM },
   };
 }
 
