@@ -332,6 +332,7 @@ export async function editCakeImage(
             topperCount: mainToppers.length,
             supportElementCount: supportElements.length,
             hasThreeTierReferenceImage: Boolean(threeTierReferenceImage),
+            preferredModel: preferredModel ?? 'gemini-3.1-flash-image-preview (default)',
         });
 
         // --- OPTIMIZATION START ---
@@ -354,7 +355,7 @@ export async function editCakeImage(
         // We use the local fileToBase64 helper or just read it here
         const compressedBase64Result = await fileToBase64(compressedFile);
 
-        console.log(`🚀 Designing Image: Compressed input from ${(imageFile.size / 1024 / 1024).toFixed(2)}MB to ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+        console.log(`🚀 Designing Image (${preferredModel ?? 'gemini-3.1-flash-image-preview'}): Compressed input from ${(imageFile.size / 1024 / 1024).toFixed(2)}MB to ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
         console.log(`[AI TRACE ${effectiveTraceId}] editCakeImage:compressed`, {
             requestSource: requestSource ?? 'unknown',
             originalBytes: imageFile.size,
