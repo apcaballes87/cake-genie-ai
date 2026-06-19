@@ -365,11 +365,15 @@ interface CustomizingClientProps {
     } | null;
 }
 
-const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant, recentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot, postEditorSlot, initialCaption, preloadSource, preloadImageUrl, hideAiChat = false, isCombining = false, clearMessageTexts = false, hideStickyBar = false, useBasePriceAsFallback = false, ediblePhotoAddonPrice = 0, separateIcingStep = false, hideBanner = false, hideStepOne = false, hideStepFour = false, photoStepNode = null, enableMobileHeroPan = false, reviewSummary: initialReviewSummary }) => {
+const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialProduct, merchant, recentSearchDesign: initialRecentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot, postEditorSlot, initialCaption, preloadSource, preloadImageUrl, hideAiChat = false, isCombining = false, clearMessageTexts = false, hideStickyBar = false, useBasePriceAsFallback = false, ediblePhotoAddonPrice = 0, separateIcingStep = false, hideBanner = false, hideStepOne = false, hideStepFour = false, photoStepNode = null, enableMobileHeroPan = false, reviewSummary: initialReviewSummary }) => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const params = useParams();
-    const slug = params?.slug || currentSlug;
+    const [hasNewUpload, setHasNewUpload] = useState(false);
+    const product = hasNewUpload ? undefined : initialProduct;
+    const recentSearchDesign = hasNewUpload ? undefined : initialRecentSearchDesign;
+    const routeSlug = params?.slug || currentSlug;
+    const slug = hasNewUpload ? null : routeSlug;
     const supabase = useMemo(() => createClient(), []);
 
     const [reviewSummary, setReviewSummary] = useState<{ total: number; averageRating: number } | null>(initialReviewSummary || null);
@@ -602,6 +606,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
     }, []);
 
     const handleImageSelect = useCallback((file: File) => {
+        // Reset associations with original design/slug
+        setHasNewUpload(true);
+        if (typeof window !== 'undefined') {
+            window.history.replaceState(null, '', '/customizing');
+        }
+
         // Clear previous state to avoid mixing old analysis with new one
         clearCustomization();
         clearImages();
@@ -630,7 +640,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product, merchant
                 // setIsPreSelectionModalOpen(false);
             }
         );
-    }, [clearCustomization, clearImages, setAnalysisError, setIsAnalyzing, hookImageUpload, setPendingAnalysisData]);
+    }, [clearCustomization, clearImages, setAnalysisError, setIsAnalyzing, hookImageUpload, setPendingAnalysisData, setHasNewUpload]);
 
     const handlePreSelectionApply = useCallback((preSelectedCakeInfo: CakeInfoUI) => {
         handleCakeInfoChange(preSelectedCakeInfo);

@@ -36,6 +36,9 @@ export type QueueItem = {
 };
 
 type JsonlResponse = {
+  customId?: string;
+  custom_id?: string;
+  id?: string;
   request?: { contents?: Array<{ parts?: Array<{ fileData?: { fileUri?: string } | null }> }> };
   status?: string;
   response?: { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
@@ -95,6 +98,9 @@ export function buildSearchAnalysisBatchGenerationConfig(requestConfig: Record<s
 export function buildSearchAnalysisBatchInputLine(item: QueueItem, activePrompt: string, requestConfig: Record<string, unknown>) {
   const { systemInstruction } = requestConfig;
   return JSON.stringify({
+    customId: item.id,
+    custom_id: item.id,
+    id: item.id,
     request: {
       contents: [{ role: 'user', parts: [{ fileData: { fileUri: item.normalized_image_url, mimeType: 'image/jpeg' } }, { text: activePrompt }] }],
       ...(typeof systemInstruction === 'string' ? { systemInstruction: { parts: [{ text: systemInstruction }] } } : {}),
@@ -104,12 +110,16 @@ export function buildSearchAnalysisBatchInputLine(item: QueueItem, activePrompt:
 }
 
 export function correlateSearchAnalysisOutputs(items: QueueItem[], lines: JsonlResponse[]) {
+  const byId = new Map(items.map((item) => [item.id, item]));
   const byUri = new Map(items.map((item) => [item.normalized_image_url, item]));
-  const fallbackItems = items.slice().sort((left, right) => (left.submission_ordinal ?? 0) - (right.submission_ordinal ?? 0));
-  return lines.map((output, index) => ({
-    item: byUri.get(extractOutputRequestFileUri(output) ?? '') ?? fallbackItems[index],
-    output,
-  })).filter((entry): entry is { item: QueueItem; output: JsonlResponse } => Boolean(entry.item));
+  return lines.map((output) => {
+    const id = output.customId || output.custom_id || output.id;
+    const item = id ? byId.get(id) : byUri.get(extractOutputRequestFileUri(output) ?? '');
+    return {
+      item,
+      output,
+    };
+  }).filter((entry): entry is { item: QueueItem; output: JsonlResponse } => Boolean(entry.item));
 }
 
 export function resolveSearchAnalysisIntake(existingCacheId?: string | null, existingItem?: QueueItem | null) {
@@ -387,43 +397,40 @@ export async function reconcileSearchAnalysisBatch(runId: string, requestContext
   const { data: rows, error: itemsError } = await admin.from('cakegenie_search_analysis_batch_items').select('*').eq('run_id', runId).order('submission_ordinal');
   if (itemsError) throw itemsError;
   const items = rows as QueueItem[];
+  const itemsById = new Map(items.map((item) => [item.id, item]));
   const itemsByUri = new Map(items.map((item) => [item.normalized_image_url, item]));
-  const fallbackItems = items.slice().sort((left, right) => (left.submission_ordinal ?? 0) - (right.submission_ordinal ?? 0));
   const lines = readline.createInterface({ input: outputFile.createReadStream() });
   let imported = 0;
-  let index = 0;
   for await (const rawLine of lines) {
     if (imported >= MAX_IMPORTS_PER_REQUEST) break;
     let output: JsonlResponse | null = null;
     try {
       output = JSON.parse(rawLine) as JsonlResponse;
     } catch {
-      const fallbackItem = fallbackItems[index];
-      index += 1;
-      if (fallbackItem) {
-        await admin.from('cakegenie_search_analysis_batch_items').update({ status: 'failed', error: 'Vertex output was not valid JSON.' }).eq('id', fallbackItem.id);
-      }
+      console.warn(`[Batch Import] Failed to parse output line in run ${runId} as JSON.`);
       continue;
     }
+    const echoedId = output?.customId || output?.custom_id || output?.id;
     const echoedUri = extractOutputRequestFileUri(output);
     let item: QueueItem | undefined;
-    const currentOrdinal = index;
 
-    if (echoedUri) {
+    if (echoedId) {
+      item = itemsById.get(echoedId);
+      if (!item) {
+        console.warn(`[Batch Import] Echoed ID "${echoedId}" does not map to any item in run ${runId}. Skipping.`);
+        continue;
+      }
+    } else if (echoedUri) {
       item = itemsByUri.get(echoedUri);
       if (!item) {
-        console.warn(`[Batch Import] Echoed URI "${echoedUri}" does not map to any item in run ${runId}. Skipping to prevent cross-contamination.`);
-        index += 1;
+        console.warn(`[Batch Import] Echoed URI "${echoedUri}" does not map to any item in run ${runId}. Skipping.`);
         continue;
       }
     } else {
-      item = fallbackItems[currentOrdinal];
-      if (item) {
-        console.warn(`[Batch Import] Output line at index ${currentOrdinal} has no echoed URI. Falling back to ordinal matching for item ${item.id} (p_hash: ${item.p_hash}).`);
-      }
+      console.warn(`[Batch Import] Output line has no echoed ID or URI in run ${runId}. Skipping to prevent cross-contamination.`);
+      continue;
     }
-    index += 1;
-    if (!item) continue;
+
     if (item.status !== 'submitted') continue;
     imported += 1;
     const text = extractText(output);
@@ -444,6 +451,22 @@ export async function reconcileSearchAnalysisBatch(runId: string, requestContext
     } catch (importError) {
       await admin.from('cakegenie_search_analysis_batch_items').update({ status: 'failed', error: importError instanceof Error ? importError.message : 'Import failed.' }).eq('id', item.id);
     }
+  }
+
+  // If we processed the entire file (i.e. did not break due to MAX_IMPORTS_PER_REQUEST)
+  // and we are done reading, then any remaining 'submitted' items are missing.
+  const reachedEndOfFile = imported < MAX_IMPORTS_PER_REQUEST;
+  if (reachedEndOfFile) {
+    const { error: cleanupError } = await admin
+      .from('cakegenie_search_analysis_batch_items')
+      .update({
+        status: 'retryable',
+        error: 'Batch job completed but this item was not returned in the output.',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('run_id', runId)
+      .eq('status', 'submitted');
+    if (cleanupError) console.error('Failed to clean up remaining submitted items:', cleanupError);
   }
   const counts = await Promise.all(['completed', 'failed', 'retryable', 'submitted'].map(async (status) => {
     const { count, error: countError } = await admin.from('cakegenie_search_analysis_batch_items')

@@ -164,6 +164,9 @@ describe('search analysis batch helpers', () => {
       temperature: 0,
     }));
     expect(line).toEqual({
+      customId: 'b',
+      custom_id: 'b',
+      id: 'b',
       request: {
         contents: [{ role: 'user', parts: [{ fileData: { fileUri: 'https://cdn.example/cake.jpg', mimeType: 'image/jpeg' } }, { text: 'analyze exactly' }] }],
         systemInstruction: { parts: [{ text: 'be exact' }] },
@@ -396,7 +399,7 @@ describe('search analysis batch run submission and reconciliation regression tes
     expect(itemsUpdateSpy).toHaveBeenCalledWith('cakegenie_search_analysis_batch_runs');
   });
 
-  it('reconcile matching matches shuffled outputs by request URI and prevents unknown URI contamination', async () => {
+  it('reconcile matching matches shuffled outputs by request ID or URI and prevents unknown contamination', async () => {
     const runId = 'test-reconcile-run';
     mockSupabase.from = vi.fn((table: string) => {
       const chain = createFluentChain();
@@ -420,7 +423,6 @@ describe('search analysis batch run submission and reconciliation regression tes
       }
 
       if (table === 'cakegenie_search_analysis_batch_items') {
-        // Override order to return the list of items
         chain.order = vi.fn(() => Promise.resolve({
           data: [
             item({ id: 'item-1', normalized_image_url: 'uri-1', p_hash: 'ph1', status: 'submitted', submission_ordinal: 0 }),
@@ -440,9 +442,9 @@ describe('search analysis batch run submission and reconciliation regression tes
 
     // Mock output predictions.jsonl content (shuffled!)
     const jsonlContent = [
-      JSON.stringify({ request: { contents: [{ parts: [{ fileData: { fileUri: 'uri-2' } }] }] }, response: { candidates: [{ content: { parts: [{ text: '{"cakeType": "1 Tier", "icing_design": {"base": "fondant"}}' }] } }] } }),
-      JSON.stringify({ request: { contents: [{ parts: [{ fileData: { fileUri: 'uri-unknown' } }] }] }, response: { candidates: [{ content: { parts: [{ text: '{"cakeType": "2 Tier"}' }] } }] } }),
-      JSON.stringify({ request: { contents: [{ parts: [{ fileData: { fileUri: 'uri-1' } }] }] }, response: { candidates: [{ content: { parts: [{ text: '{"cakeType": "1 Tier", "icing_design": {"base": "soft_icing"}}' }] } }] } }),
+      JSON.stringify({ customId: 'item-2', request: { contents: [{ parts: [{ fileData: { fileUri: 'uri-2' } }] }] }, response: { candidates: [{ content: { parts: [{ text: '{"cakeType": "1 Tier", "icing_design": {"base": "fondant"}}' }] } }] } }),
+      JSON.stringify({ customId: 'unknown-id', request: { contents: [{ parts: [{ fileData: { fileUri: 'uri-unknown' } }] }] }, response: { candidates: [{ content: { parts: [{ text: '{"cakeType": "2 Tier"}' }] } }] } }),
+      JSON.stringify({ customId: 'item-1', request: { contents: [{ parts: [{ fileData: { fileUri: 'uri-1' } }] }] }, response: { candidates: [{ content: { parts: [{ text: '{"cakeType": "1 Tier", "icing_design": {"base": "soft_icing"}}' }] } }] } }),
     ].join('\n');
 
     mockBucket.getFiles.mockResolvedValue([[ { name: 'predictions.jsonl', createReadStream: () => Readable.from([jsonlContent]) } ]]);
@@ -460,7 +462,7 @@ describe('search analysis batch run submission and reconciliation regression tes
     expect(mockCacheAnalysisResult).toHaveBeenCalledWith('ph2', expect.any(Object), 'uri-2', undefined, expect.any(Object));
   });
 
-  it('reconcile matching falls back to line index ordinal matching only when echoed URI is missing', async () => {
+  it('reconcile matching skips output lines with missing echoed URI and ID, preventing cross-contamination', async () => {
     const runId = 'test-reconcile-run-ordinal';
     mockSupabase.from = vi.fn((table: string) => {
       const chain = createFluentChain();
@@ -501,7 +503,9 @@ describe('search analysis batch run submission and reconciliation regression tes
       return chain as any;
     });
 
-    // Mock output: line has NO echoed request URI
+    const itemsUpdateSpy = vi.spyOn(mockSupabase, 'from');
+
+    // Mock output: line has NO echoed request ID or URI
     const jsonlContent = [
       JSON.stringify({ response: { candidates: [{ content: { parts: [{ text: '{"cakeType": "1 Tier"}' }] } }] } }),
     ].join('\n');
@@ -512,8 +516,10 @@ describe('search analysis batch run submission and reconciliation regression tes
     const result = await reconcileSearchAnalysisBatch(runId);
     expect(result).toBeDefined();
 
-    // Verify it matched item-1 by index index 0 since request URI was missing
-    expect(mockCacheAnalysisResult).toHaveBeenCalledTimes(1);
-    expect(mockCacheAnalysisResult).toHaveBeenCalledWith('ph1', expect.any(Object), 'uri-1', undefined, expect.any(Object));
+    // Verify it skipped and did NOT match or call cacheAnalysisResult
+    expect(mockCacheAnalysisResult).not.toHaveBeenCalled();
+
+    // Verify that we ran cleanup to mark remaining submitted items as retryable
+    expect(itemsUpdateSpy).toHaveBeenCalledWith('cakegenie_search_analysis_batch_items');
   });
 });
