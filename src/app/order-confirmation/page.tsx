@@ -320,18 +320,30 @@ const OrderConfirmationContent: React.FC = () => {
                 )}
 
                 {paymentStatus === 'partial' && (
-                    <div className="flex items-center gap-3 text-green-600 bg-green-50 p-4 rounded-lg text-left">
-                        <svg className="w-8 h-8 shrink-0 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                        <div>
-                            <p className="font-semibold text-lg text-green-800">Downpayment Confirmed! 🎉</p>
-                            <p className="text-sm text-green-700 mt-1">
-                                Your 50% downpayment has been successfully processed
-                                {paymentMethod && ` via ${paymentMethod}`}.
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-3 text-green-600 bg-green-50 p-4 rounded-lg text-left">
+                            <svg className="w-8 h-8 shrink-0 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <div>
+                                <p className="font-semibold text-lg text-green-800">Downpayment Confirmed! 🎉</p>
+                                <p className="text-sm text-green-700 mt-1">
+                                    Your 50% downpayment has been successfully processed
+                                    {paymentMethod && ` via ${paymentMethod}`}.
+                                </p>
+                                <p className="text-sm text-green-700 mt-2">
+                                    We will start preparing your custom cake. The remaining balance of <strong>₱{remainingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> must be paid before your scheduled delivery or pickup time.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-left">
+                            <p className="text-sm font-semibold text-amber-900">Important before delivery</p>
+                            <p className="mt-2 text-sm text-amber-800">
+                                Delivery or release of your order will only proceed after full payment has been received.
                             </p>
-                            <p className="text-sm text-green-700 mt-2">
-                                We will start preparing your custom cake! The remaining balance of <strong>₱{remainingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> is due on or before delivery/pickup.
+                            <p className="mt-2 text-sm text-amber-800">
+                                To complete your payment, go to <strong>My Orders</strong> and tap <strong>Pay Remaining Balance</strong>.
                             </p>
                         </div>
                     </div>

@@ -1,5 +1,40 @@
 # Tasks
 
+## Create Admin Dashboard Downpayment Handoff Prompt
+
+### Plan
+
+- [x] Gather the final 50% downpayment implementation details from the storefront checkout flow, database routines, migrations, and edge functions.
+- [x] Draft a reusable developer-facing prompt that explains the flow end to end and tells the Genie admin dashboard team what they need to adjust.
+- [x] Review the prompt for accuracy and hand it back in a copy-ready format.
+
+### Review
+
+- Wrote a copy-ready handoff prompt in [tasks/admin-dashboard-downpayment-handoff-prompt.md](/Users/apcaballes/genieph-nextjs/tasks/admin-dashboard-downpayment-handoff-prompt.md:1).
+- The prompt explains:
+  - how `downpayment_50` orders are identified
+  - how checkout, contribution creation, verification, and state transitions work
+  - which storefront files and SQL routines implement the feature
+  - which admin-dashboard files likely need updates
+  - what dashboard behaviors should change for partial vs fully paid downpayment orders
+  - why direct manual `payment_status` editing in the admin dashboard is now risky without reconciling `amount_collected` and `order_contributions`
+
+## Clarify Downpayment Confirmation Copy
+
+### Plan
+
+- [x] Update the partial-payment confirmation state in `/order-confirmation` to clearly explain that the remaining balance must be paid before delivery or pickup.
+- [x] Add explicit guidance that delivery/release only happens after full payment is received, and point customers to `My Orders` / `Pay Remaining Balance`.
+- [x] Run a quick production build check and record the result.
+
+### Review
+
+- Updated the `paymentStatus === 'partial'` confirmation state in [src/app/order-confirmation/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/order-confirmation/page.tsx:1) so the success copy now says the remaining balance must be paid before the scheduled delivery or pickup time.
+- Added a second highlighted note card for partial payments that explicitly states delivery or release only proceeds after full payment is received and tells the customer to go to `My Orders` and tap `Pay Remaining Balance`.
+- Verification:
+  - `npm run build`
+  - Build completed successfully. The usual repo warnings still appeared for `baseline-browser-mapping`, the deprecated `middleware` convention, and one familiar static-generation timeout log during page generation, but the production build finished cleanly.
+
 ## Fix Split Order Cart Item Cast Regression
 
 ### Plan
