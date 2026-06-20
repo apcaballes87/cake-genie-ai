@@ -1,5 +1,110 @@
 # Tasks
 
+## Implement GA4 Cleanup V1
+
+### Plan
+
+- [ ] Replace the inline root-layout GA4 config with a dedicated client analytics boundary that controls readiness, route suppression, manual pageviews, and internal-user tagging.
+- [ ] Update the shared GA4 helper so all app analytics flow through one gated API, including replacing direct `gtag(...)` event calls.
+- [ ] Rename custom analytics `source` params to `ui_source` and migrate internal `/customizing` handoff URLs from `source` to `entry_source` while keeping backward-compatible reads.
+- [ ] Set the internal-traffic cookie from middleware for `/admin/*` and `/similarity-debugger`, then add focused tests for middleware, analytics gating, and URL migration.
+- [ ] Run targeted tests plus a production build, then document verification and the GA4 admin follow-ups in this task entry.
+
+### Review
+
+- In progress.
+
+## Audit GSC And GA4 Last 30 Days
+
+### Plan
+
+- [x] Confirm live access paths for Google Search Console and GA4 from this environment.
+- [x] Pull last-30-day GSC data for `https://genie.ph/`, focusing on queries, landing pages, countries, devices, and search trends.
+- [x] Pull last-30-day GA4 data for the full site, focusing on acquisition, landing pages, engagement, geography, device mix, and conversion behavior.
+- [x] Synthesize what users were doing across the whole website, then call out green flags, red flags, and the highest-leverage actions.
+- [x] Record verification details and the final review in this task entry.
+
+### Review
+
+- Audit window used for both sources: `2026-05-20` through `2026-06-18` inclusive, which is the last 30 complete days relative to today (`2026-06-19`, Asia/Manila). GA4 data for the newest 24-48 hours can still settle slightly; GSC was pulled live with `data_state=all`.
+- Live access paths verified:
+  - GSC MCP access is active for both `sc-domain:genie.ph` and `https://genie.ph/`.
+  - GA4 property access is live on `properties/510070439` via the service-account path documented in [.agent/rules/ga4-access.md](/Users/apcaballes/genieph-nextjs/.agent/rules/ga4-access.md:1). The first sandboxed probe failed on DNS resolution, then the same `run_report` call succeeded outside the sandbox and returned real rows.
+- Whole-site GA4 picture:
+  - `11,063` users, `12,507` sessions, `4,086` engaged sessions, `17,779` page views, and `9` tracked purchases/conversions in the window.
+  - Versus the prior 30-day window (`2026-04-20` to `2026-05-19`), traffic more than doubled: users rose from `4,769` to `11,063`, sessions from `5,497` to `12,507`, and page views from `9,357` to `17,779`.
+  - Acquisition is dominated by Organic Search (`7,051` sessions, `45.8%` engagement rate), then Direct (`4,366` sessions, only `10.4%` engagement), then Organic Social (`477`) and Referral (`261`).
+  - Source detail confirms Google organic is carrying the site (`6,887` sessions). The next largest identifiable external sources are TikTok referral (`279`), `cakesandmemories.com` referral (`139`), Facebook/mobile Facebook referral (`151` combined), Bing organic (`83`), and AI-assistant/referral traffic from ChatGPT and Gemini (`103` combined across surfaced rows).
+  - Devices are still mobile-first: `6,837` mobile sessions, `5,337` desktop, `223` tablet. Mobile also drove `8` of the `9` tracked conversions.
+  - Geography is broader than Cebu-only demand. The Philippines led with `6,063` sessions and all `9` tracked conversions, but the next largest country rows were Singapore (`1,785` sessions, `4.7%` engagement), United States (`1,130`), and India (`389`). Top cities with meaningful engagement include Cebu City (`926` sessions, `52.3%` engagement, `3` conversions), Manila (`803`, `47.9%`), and Quezon City (`582`, `47.9%`).
+  - New-user acquisition is very strong but retention is shallow: `11,043` new-user sessions versus `1,111` returning-user sessions. Returning-user engagement (`42.1%`) is healthier than new-user engagement (`33.1%`), but the site is still mostly acquiring rather than bringing people back.
+- What people were doing:
+  - Blogs are the main front door. Blog landings accounted for `3,532` sessions, more than any other section, and blog pages produced `4,059` page views.
+  - The dominant behavior was reading the Jollibee-vs-McDo comparison. It was the top GSC landing page (`2,392` web clicks, `89,860` impressions, position `5.7`) and the top GA4 landing page (`2,627` sessions, `47.7%` engagement, `120.6s` average session duration).
+  - Visitors were also using the commercial stack in material volume. `/customizing` was the third most-viewed page (`952` views), `/search` was fourth (`904` views), and `/cart` reached `262` views.
+  - Customizer intent is real. As a landing section, `/customizing*` accounted for `1,945` sessions and `2` tracked conversions. As a consumption section, `/customizing*` produced `3,525` page views and `9,757` events, second only to the blog cluster.
+  - Search and upload behavior shows active shopping work, not just passive reading. GA4 recorded `198` `search` events from `77` users, `189` `image_upload` events from `50` users, `104` `add_to_cart` events from `70` users, `31` `begin_checkout` events from `18` users, and `9` `purchase` events.
+- GSC picture:
+  - Web search produced `4,894` clicks from `439,302` impressions overall, with mobile driving `4,057` clicks versus `783` on desktop.
+  - Search demand is highly concentrated in event-planning comparison intent, especially the Jollibee/McDo theme. The top web queries were variants of `jollibee party package 2026`, `mcdo party package price list 2026`, `jollibee birthday package 2026`, and related terms. This content cluster is doing real demand capture, not vanity ranking.
+  - Brand search is tiny by comparison. `genie ph` only surfaced `23` clicks in the top-query table, which means most discovery is still non-brand and top-of-funnel.
+  - The homepage is not yet a major Google landing surface (`55` web clicks, `1,315` impressions), and the base `/customizing` page is even smaller in Google web search (`8` clicks, `920` impressions). Search demand is finding specific blog and product/design pages first.
+  - Google Image Search is surfacing customizer/design pages, but mostly with low CTR. For example, image-search top rows included multiple `/customizing/*` pages with good impression counts but `0.08%` to `0.33%` CTR, suggesting more upside in image-title, alt, and preview-image refinement.
+  - GSC countries confirm overseas demand from gift senders or researchers: the Philippines led (`3,869` clicks), followed by the United States (`225`), India (`95`), Canada (`64`), Australia (`56`), and the UAE (`49`).
+- Green flags:
+  - Organic search is working at scale and is the clear engine behind the recent traffic step-up.
+  - The strongest content has real dwell, not empty clicks. Several top blog landings sustain roughly 2-3 minutes of average session duration.
+  - Customizing is not niche background traffic. It is one of the most-used sections on the site and does convert.
+  - The audience is broader than Cebu itself, which supports messaging for remote buyers arranging Cebu deliveries from elsewhere in the Philippines or overseas.
+  - AI-assistant and referral traffic are still small, but they are already present. That channel is worth nurturing early with machine-readable, citation-friendly, and comparison-friendly pages.
+- Red flags:
+  - The site is heavily dependent on one content winner. The Jollibee-vs-McDo page dominates both GSC and GA4. That is a growth asset, but it is also concentration risk.
+  - Direct traffic quality is poor at scale: `4,366` sessions but only a `10.4%` engagement rate. Some of that is likely polluted by payment returns, internal traffic, dark social, or unattributed links.
+  - GA4 data quality has visible pollution. `Singapore` is still the second-largest country with only `4.7%` engagement, and `(not set)` is the second-largest landing page bucket with `591` sessions and almost no engagement. Internal/admin routes also appear in landing-page and page-path tables.
+  - The blog is better at attracting traffic than sending it into revenue. Blog landing groups produced `3,532` sessions and `0` tracked conversions in the window, while the homepage alone accounted for `4` tracked conversions from only `456` landing sessions.
+  - Search demand is still mostly non-brand informational comparison traffic. That is good for reach, but it means brand pull and direct commercial intent are still underdeveloped.
+  - GSC shows many customizer pages earning impressions with weak CTR. Discovery exists, but the result snippets and preview images are not yet winning enough clicks.
+- Highest-leverage actions:
+  1. Treat the top planning/comparison blogs as deliberate funnel pages, not only SEO pages. Add stronger in-content CTA modules, sticky mid-article commercial blocks, relevant customizer/theme links, and “ordering for Cebu from outside Cebu” language on the biggest winners.
+  2. Build a second and third content winner around adjacent high-intent event-planning comparisons so the site is not over-dependent on one breakout page.
+  3. Strengthen customizer search-result CTR: better `title`/meta tuning, stronger hero/OG images that also work as Google thumbnails, clearer cake-theme naming, and tighter image-alt/image-legend consistency on `/customizing/*`.
+  4. Clean the measurement layer before over-interpreting source and geography tables: exclude admin/internal traffic, investigate the lingering Singapore low-engagement traffic, and reduce `(not set)` landing pages/source buckets.
+  5. Work the homepage and `/customizing` as conversion hubs. They already convert better than the blog. Push more internal links, curated “start here” modules, and comparison-page exit CTAs toward those surfaces.
+  6. Double down on mobile speed and mobile flow polish because mobile is the largest traffic segment and also the main conversion device.
+
+## Review Microsoft Clarity Sitewide Last 30 Days
+
+### Plan
+
+- [x] Confirm the live Clarity access path available from this environment and note any MCP limitations.
+- [x] Pull the last 30 days of Clarity data for `https://genie.ph`, focusing on traffic distribution, engagement, friction, and error signals.
+- [x] Compare the strongest behavior patterns across landing, content, and commercial paths so the summary reflects what people were actually doing.
+- [x] Summarize red flags, green flags, and the highest-leverage actions to improve and double down on the site.
+
+### Review
+
+- Clarity is configured locally in `/Users/apcaballes/.codex/config.toml` but the MCP server is currently `enabled = false`, so I used the same live Clarity bearer token against the official MCP-backed endpoints directly: `https://clarity.microsoft.com/mcp/dashboard/query` and `https://clarity.microsoft.com/mcp/recordings/sample`.
+- Audit window: Clarity’s last-30-day window resolved to `2026-05-20 00:00:00` through `2026-06-19 23:59:59` in the `Asia/Manila` timezone.
+- Traffic shape: the site is overwhelmingly top-of-funnel and SEO-led. Top visited pages by unique sessions were `/blog/jollibee-vs-mcdonalds-kids-party-packages-2026` (`2,691`), `/` (`1,399`), `/customizing` (`386`), `/blog/how-to-get-marriage-license-metro-cebu` (`334`), `/blog/red-ribbon-vs-goldilocks-birthday-cake-2026` (`170`), `/blog` (`138`), `/search` (`135`), and `/cart` (`118`).
+- Entry behavior confirms that pattern. The Jollibee-vs-McDo page was also the top landing page (`2,695` sessions), while `/customizing` was only the fourth-largest entry page (`201`). This means the biggest growth lever is improving how informational traffic graduates into commercial paths, not just polishing the funnel in isolation.
+- Device mix is strongly mobile: `6,821` mobile sessions, `2,539` desktop, `437` tablet. Acquisition is dominated by Google organic (`6,799` sessions), followed by direct/other (`2,073`), TikTok referral (`294`), `genie.ph` direct (`217`), `cakesandmemories.com` referral (`144`), and `chatgpt.com` (`78`).
+- Geography is broader than “people physically in Cebu.” Top Clarity country/state combinations were Philippines / Metro Manila (`2,099`), Philippines / Central Visayas (`1,159`), Philippines / Calabarzon (`905`), Philippines / Central Luzon (`479`), and United States / Virginia (`355`). The public site should assume many buyers are arranging Cebu deliveries from outside Cebu.
+- Green flag: the best-performing pages hold real attention. Total active time was led by the Jollibee-vs-McDo guide (`295,361s`), homepage (`59,045s`), marriage-license guide (`47,484s`), and `/customizing` (`36,697s`). That is not empty traffic; people are reading and exploring.
+- Green flag: `/customizing` users are intentful. The base `/customizing` page had `387` sessions with `123.04s` average page duration, while search averaged `67.65s` and cart averaged `85.66s`. Recordings showed real upload, message-editing, pricing, and buy-now behavior rather than low-effort bounces.
+- Red flag: conversion measurement is incomplete in Clarity. Smart events for the window only showed `Checkout = 242`, `Upload = 148`, `OrderSuccess = 11`, and `BeginCheckout = 7`, with no `AddToCart`, `Search`, or `Purchase` events surfaced. In the repo, [src/lib/analytics.ts](/Users/apcaballes/genieph-nextjs/src/lib/analytics.ts:1) only emits GA4 events, and [src/app/layout.tsx](/Users/apcaballes/genieph-nextjs/src/app/layout.tsx:131) loads the Clarity tag without paired `window.clarity("event", ...)` instrumentation.
+- Red flag: the biggest traffic page also has the biggest friction surface. `/blog/jollibee-vs-mcdonalds-kids-party-packages-2026` logged `938` dead clicks and `164` quick backs. Because this page is the main SEO door, any confusing UI, weak CTA placement, or “answer found, then leave” pattern there has outsized impact on commercial growth.
+- Red flag: the commercial funnel still has meaningful friction. `/customizing` logged `107` dead clicks, `8` rage clicks, and `21` quick backs. `/cart` logged `80` dead clicks and `3` JavaScript errors across `238` page views. `/search` logged `19` quick backs on only `136` traffic units, suggesting result mismatch or weak landing clarity.
+- Red flag: performance on commercial pages is still soft. Base `/customizing` averaged `2,604ms` load time, but several customizer slug pages were much slower, commonly `4.1s` to `5.1s` average load with `~4.7s` to `5.7s` p75 load times. `/search` averaged `3,221ms` load time with `P75_LCP = 3,908ms` and `P75_INP = 400ms`.
+- Red flag from recordings: cart dead clicks were not random. Sample recordings repeatedly showed users clicking date cells like `23` on `/cart`, with Clarity marking those taps as dead clicks before subsequent retries. That points to a concrete calendar/date-picker interaction problem rather than generic impatience.
+- Red flag from recordings: customizer dead clicks cluster around message editing and preview affordances. Sample sessions showed dead clicks on text like `Edit Top Message...`, `Customized cake design`, and repeated `Apply All Changes` attempts after message edits. That suggests ambiguous tap targets or state transitions that are not obvious enough once users start fine-tuning designs.
+- Measurement hygiene red flag: internal admin routes are present in public Clarity traffic/engagement tables (`/admin/search-analysis` and `/admin/image-studio`). Even if those are your own sessions, they pollute top-page engagement rankings, so Clarity should be segmented or filtered for internal/admin usage before using sitewide engagement tables as growth truth.
+- Recommended action order:
+  1. Add explicit Clarity custom events alongside the existing GA4 wrappers for `image_upload`, `search`, `add_to_cart`, `begin_checkout`, successful order completion, and key customizer edits.
+  2. Fix the cart date-picker dead-click path first; it is a clear commercial-flow blocker with repeated evidence in recordings.
+  3. Tighten customizer interaction clarity around message editing, preview toggles, and `Apply All Changes`, especially on mobile.
+  4. Improve the top blog-to-funnel bridge on the Jollibee-vs-McDo page and other event-planning winners: stronger in-content CTA modules, relevant cake-theme links, and clearer “order for Cebu delivery even if you’re outside Cebu” language.
+  5. Keep publishing adjacent high-intent planning/comparison content because SEO is already proving demand, but make each winner push harder into `/customizing`, relevant collections, or curated theme galleries.
+
 ## Add Agent Readiness To `/customizing/[slug]`
 
 ### Plan

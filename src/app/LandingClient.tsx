@@ -910,7 +910,7 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
     const [showTypingCursor, setShowTypingCursor] = useState(false);
     const [showPriceBadge, setShowPriceBadge] = useState(false);
     const [highlightedOption, setHighlightedOption] = useState<string | null>('Bento');
-    const [annotation, setAnnotation] = useState<string | null>('Bento — ₱399');
+    const [annotation, setAnnotation] = useState<string | null>('Bento — ₱499');
     const [annotationKey, setAnnotationKey] = useState(0);
 
     // Trigger annotation animation on mount
@@ -1049,7 +1049,7 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
             // Step 1: Show Bento (already selected on start, just annotate)
             scheduleStep(() => {
                 setHighlightedOption('Bento');
-                setAnnotation('Bento — ₱399');
+                setAnnotation('Bento — ₱499');
                 setAnnotationKey(prev => prev + 1);
 
                 // Step 2: Switch to 1 Tier
@@ -2096,7 +2096,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                         const TIERS = [
                             { label: '1 Tier', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/1-tier-ribbon-cake.webp', price: 1499, size: '8" Round 4 in height' },
                             { label: '2 Tier', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/2-tier-ribbon-cake.webp', price: 2499, size: '6"9" 4 in height per tier' },
-                            { label: 'Bento', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/bento-ribbon-cake.png.webp', price: 399, size: '4" Round 2 in height' },
+                            { label: 'Bento', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/bento-ribbon-cake.png.webp', price: 499, size: '4" Round 2 in height' },
                         ];
                         const FLAVORS = [
                             { label: 'Vanilla', src: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cakevanilla.webp' },
