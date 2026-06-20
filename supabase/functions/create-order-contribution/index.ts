@@ -50,12 +50,16 @@ serve(async (req) => {
             throw new Error('This is not a split order');
         }
 
-        if (order.order_status === 'confirmed' || order.order_status === 'cancelled') {
-            throw new Error(`Order is already ${order.order_status}`);
+        if (order.order_status === 'cancelled') {
+            throw new Error(`Order is cancelled`);
         }
 
         const currentCollected = order.amount_collected || 0;
         const remaining = order.total_amount - currentCollected;
+
+        if (remaining <= 0) {
+            throw new Error('Order is already fully funded');
+        }
 
         if (amount > remaining) {
             throw new Error(`Contribution amount (${amount}) exceeds remaining balance (${remaining})`);

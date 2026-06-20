@@ -102,15 +102,19 @@ serve(async (req) => {
           const totalCollected = contributions.reduce((sum, c) => sum + (c.amount || 0), 0);
           const { data: order } = await supabaseAdmin
             .from('cakegenie_orders')
-            .select('total_amount')
+            .select('total_amount, split_message')
             .eq('order_id', contribution.order_id)
             .single();
 
           if (order) {
             const isFullyFunded = totalCollected >= order.total_amount;
+            const isDownpayment = order.split_message === 'downpayment_50';
             const updates: any = { amount_collected: totalCollected };
             if (isFullyFunded) {
               updates.payment_status = 'paid';
+              updates.order_status = 'confirmed';
+            } else if (isDownpayment && totalCollected >= (order.total_amount * 0.49)) {
+              updates.payment_status = 'partial';
               updates.order_status = 'confirmed';
             }
             await supabaseAdmin.from('cakegenie_orders').update(updates).eq('order_id', contribution.order_id);

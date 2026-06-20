@@ -5,14 +5,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart, useCartActions, readFromLocalStorage, batchSaveToLocalStorage, batchRemoveFromLocalStorage } from '@/contexts/CartContext';
 import { useAddresses, useAddAddress } from '@/hooks/useAddresses';
-import { showSuccess, showError } from '@/lib/utils/toast';
+import { showSuccess, showError, showInfo } from '@/lib/utils/toast';
 import { Loader2, CloseIcon } from '@/components/icons';
-import { MapPin, Users, User, ChevronDown, CalendarDays } from 'lucide-react';
+import { MapPin, Users, User, ChevronDown, CalendarDays, CreditCard } from 'lucide-react';
 import { CartItem, CartItemDetails } from '@/types';
 import { CakeGenieAddress } from '@/lib/database.types';
 import { CartSkeleton } from '@/components/LoadingSkeletons';
 import { getDeliveryFeeByCity } from '@/constants';
-import { createOrderFromCart, createSplitOrderFromCart, getAvailableDeliveryDates, getBlockedDatesInRange, AvailableDate, BlockedDateInfo, createGuestUser } from '@/services/supabaseService';
+import { createOrderFromCart, createSplitOrderFromCart, getAvailableDeliveryDates, getBlockedDatesInRange, AvailableDate, BlockedDateInfo, createGuestUser, createOrderContribution } from '@/services/supabaseService';
 import { upgradeAnonymousToEmailAccount } from '@/services/accountActivation';
 import { createXenditPayment } from '@/services/xenditService';
 import { trackBeginCheckout, trackAddPaymentInfo } from '@/lib/analytics';
@@ -31,6 +31,7 @@ import { useSmartBack, useRecordNavigation } from '@/hooks/useSmartBack';
 import { usePendingOrderRecovery } from '@/hooks/usePendingOrderRecovery';
 import { useCancelOrder } from '@/hooks/useOrders';
 import PaymentErrorBoundary from '@/components/PaymentErrorBoundary';
+import CartDateOption from './CartDateOption';
 
 const getErrorMessage = (error: unknown, fallback: string) => (
     error instanceof Error ? error.message : fallback
@@ -188,6 +189,115 @@ function PendingOrderRecoveryBanner({
     );
 }
 
+interface DownpaymentModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+    totalAmount: number;
+    eventDate: string;
+    isLoading: boolean;
+}
+
+const DownpaymentModal: React.FC<DownpaymentModalProps> = ({
+    isOpen,
+    onClose,
+    onConfirm,
+    totalAmount,
+    eventDate,
+    isLoading
+}) => {
+    if (!isOpen) return null;
+
+    const downpayment = totalAmount / 2;
+    const balance = totalAmount / 2;
+    const formattedDate = eventDate
+        ? new Date(eventDate + 'T00:00:00').toLocaleDateString('en-US', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+          })
+        : '';
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in">
+            <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-xl animate-scale-in border border-slate-100">
+                {/* Header */}
+                <div className="flex justify-between items-center p-4 border-b border-purple-50">
+                    <div className="flex items-center gap-2">
+                        <div className="p-2 bg-purple-50 text-purple-600 rounded-full">
+                            <CreditCard size={20} />
+                        </div>
+                        <h2 className="text-lg font-bold text-slate-800">50% Downpayment Option</h2>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-colors"
+                        aria-label="Close modal"
+                    >
+                        <CloseIcon />
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 space-y-6">
+                    <div className="space-y-3">
+                        <div className="flex justify-between items-center text-sm text-slate-600">
+                            <span>Total Order Value:</span>
+                            <span className="font-semibold text-slate-800">₱{totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                        <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100/50 space-y-2">
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm font-semibold text-purple-800">Pay Now (50% Downpayment):</span>
+                                <span className="text-lg font-black text-purple-900">₱{downpayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            </div>
+                            <div className="flex justify-between items-center pt-2 border-t border-purple-200/50 text-xs text-purple-700">
+                                <span>Remaining Balance (50%):</span>
+                                <span className="font-bold">₱{balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="text-sm text-slate-650 space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <p className="font-medium text-slate-800 text-xs sm:text-sm">Payment Terms:</p>
+                        <ul className="list-disc pl-4 space-y-1 text-xs">
+                            <li>To secure your order, a 50% non-refundable downpayment is required today.</li>
+                            <li>The remaining balance of <strong>₱{balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> must be paid on or before your scheduled fulfillment date of <strong>{formattedDate}</strong>.</li>
+                        </ul>
+                    </div>
+
+                    <div className="space-y-3">
+                        <button
+                            onClick={onConfirm}
+                            disabled={isLoading}
+                            className="w-full genie-btn-primary py-3.5 px-4 font-bold rounded-full transition-all active:scale-[0.98] disabled:opacity-75 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                    <span>Processing Order...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <CreditCard size={18} />
+                                    <span>Pay Downpayment Now</span>
+                                </>
+                            )}
+                        </button>
+                        <button
+                            onClick={onClose}
+                            disabled={isLoading}
+                            className="w-full py-3 text-slate-500 hover:text-slate-700 font-semibold text-sm transition-colors text-center"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 function CartClient() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -290,7 +400,7 @@ function CartClient() {
     const [isCreatingPayment, setIsCreatingPayment] = useState(false);
     const [isRedirecting, setIsRedirecting] = useState(false);
     const [partiallyBlockedSlots, setPartiallyBlockedSlots] = useState<BlockedDateInfo[]>([]);
-    const [tooltip, setTooltip] = useState<{ date: string; reason: string; } | null>(null);
+    const [unavailableDateFeedback, setUnavailableDateFeedback] = useState<{ date: string; reason: string; } | null>(null);
 
     // --- Pending order recovery (Xendit browser-back) ---
     // The hook reads the sessionStorage snapshot written by
@@ -470,6 +580,7 @@ function CartClient() {
     // Split with Friends State
     const [isSplitModalOpen, setIsSplitModalOpen] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+    const [isDownpaymentModalOpen, setIsDownpaymentModalOpen] = useState(false);
     const [splitOrderDetails, setSplitOrderDetails] = useState<{
         shareLink: string;
         orderNumber: string;
@@ -871,10 +982,26 @@ function CartClient() {
 
     const handleDateSelect = useCallback((date: string) => {
         setEventDate(date);
+        setUnavailableDateFeedback(null);
         const blocks = blockedDatesMap?.[date] || [];
         const partials = blocks.filter(b => !b.is_all_day);
         setPartiallyBlockedSlots(partials);
     }, [setEventDate, blockedDatesMap]);
+
+    const showUnavailableDateFeedback = useCallback((date: string, reason: string, options?: { announce?: boolean }) => {
+        setUnavailableDateFeedback({ date, reason });
+
+        if (options?.announce) {
+            showInfo(reason, {
+                id: `cart-date-unavailable-${date}`,
+                duration: 3500,
+            });
+        }
+    }, []);
+
+    const clearUnavailableDateFeedback = useCallback(() => {
+        setUnavailableDateFeedback(null);
+    }, []);
 
     const getDateStatus = useCallback((dateInfo: AvailableDate) => {
         const date = dateInfo.available_date;
@@ -1248,6 +1375,210 @@ function CartClient() {
         } catch (error: unknown) {
             console.error('Checkout error:', error);
             showError(getErrorMessage(error, 'An error occurred during checkout.'));
+        } finally {
+            setIsPlacingOrder(false);
+            setIsCreatingPayment(false);
+        }
+    };
+
+    const getLeadTimeDays = (): number => {
+        if (!eventDate) return 0;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const selectedDate = new Date(eventDate + 'T00:00:00');
+        selectedDate.setHours(0, 0, 0, 0);
+        const diffTime = selectedDate.getTime() - today.getTime();
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    };
+
+    const handleDownpaymentClick = () => {
+        if (!isAuthenticated) {
+            showError('Please sign in or continue as guest to place an order.');
+            return;
+        }
+
+        const missing = getMissingRequirements();
+        if (missing.length > 0) {
+            showError(`Please fill in: ${missing.map(m => m.label).join(', ')}`);
+            return;
+        }
+
+        const leadTimeDays = getLeadTimeDays();
+        if (leadTimeDays < 3) {
+            showError('A minimum of 3 days lead time is required for 50% downpayments.');
+            return;
+        }
+
+        setIsDownpaymentModalOpen(true);
+    };
+
+    const handleConfirmDownpayment = async () => {
+        setIsDownpaymentModalOpen(false);
+        setIsPlacingOrder(true);
+        try {
+            // Handle Address Saving/Creation if needed
+            let effectiveDeliveryAddressId = isAnonymous ? null : selectedAddress?.address_id || null;
+            let effectiveGuestAddress = isAnonymous ? guestAddress : undefined;
+
+            if (fulfillmentType === 'pickup') {
+                // For pickup orders, use the selected bakeshop's address as the delivery location
+                effectiveDeliveryAddressId = null;
+                effectiveGuestAddress = {
+                    ...PICKUP_LOCATIONS[selectedPickupIndex],
+                    recipient_name: pickupRecipientName,
+                    recipient_phone: pickupRecipientPhone,
+                    address_id: 'pickup',
+                    user_id: user?.id || '',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                } as unknown as CakeGenieAddress;
+            } else if (isAddingAddress || (isAnonymous && !guestAddress)) {
+                if (!isPendingAddressValid || !pendingAddressData) {
+                    throw new Error("Invalid address data.");
+                }
+
+                if (isAnonymous) {
+                    // Create temporary guest address object
+                    effectiveGuestAddress = {
+                        ...pendingAddressData,
+                        address_id: `guest-${Date.now()}`,
+                        user_id: user?.id || '',
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    } as unknown as CakeGenieAddress;
+                    setGuestAddress(effectiveGuestAddress);
+                } else {
+                    // Save new address for registered user
+                    if (!user?.id) throw new Error("User ID missing.");
+                    const newAddr = await addAddressMutation.mutateAsync({
+                        userId: user.id,
+                        addressData: pendingAddressData as AddressCreateInput
+                    });
+                    if (!newAddr) throw new Error("Failed to save address.");
+                    effectiveDeliveryAddressId = newAddr.address_id;
+                    setSelectedAddressId(newAddr.address_id);
+                }
+                setIsAddingAddress(false);
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('address_form_draft');
+                }
+            }
+
+            // For anonymous users, create a user record first
+            if (isAnonymous && user) {
+                let emailToRegister = guestEmail.trim();
+
+                // Fix for potential double email issue (e.g. test@example.comtest@example.com)
+                if (emailToRegister.length > 10 && emailToRegister.includes('@')) {
+                    const parts = emailToRegister.split('@');
+                    if (parts.length > 2) {
+                        const half = emailToRegister.substring(0, emailToRegister.length / 2);
+                        if (half + half === emailToRegister) {
+                            console.warn('Detected duplicated email, fixing:', emailToRegister);
+                            emailToRegister = half;
+                            setGuestEmail(half);
+                        }
+                    }
+                }
+
+                const { success: userCreated, error: userError, emailAlreadyExists } = await createGuestUser({
+                    userId: user.id,
+                    email: emailToRegister,
+                    firstName: effectiveGuestAddress?.recipient_name || guestAddress?.recipient_name,
+                    phoneNumber: effectiveGuestAddress?.recipient_phone || guestAddress?.recipient_phone,
+                });
+
+                if (!userCreated) {
+                    if (emailAlreadyExists) {
+                        showError('This email is already registered. Please sign in to continue.');
+                        setIsPlacingOrder(false);
+                        router.push('/login');
+                        return;
+                    }
+                    throw new Error(userError?.message || 'Failed to create user account');
+                }
+            }
+
+            // GA4: downpayment checkout commitment
+            trackBeginCheckout(total, cartItems.length);
+
+            // Create split order
+            const { success, order, error } = await createSplitOrderFromCart({
+                cartItems,
+                eventDate,
+                eventTime,
+                deliveryAddressId: effectiveDeliveryAddressId,
+                deliveryInstructions,
+                deliveryFee,
+                discountAmount: appliedDiscount?.discountAmount,
+                discountCodeId: appliedDiscount?.codeId,
+                isSplitOrder: true,
+                splitMessage: 'downpayment_50',
+                splitCount: 2,
+                guestAddress: effectiveGuestAddress ? {
+                    recipientName: effectiveGuestAddress.recipient_name,
+                    recipientPhone: effectiveGuestAddress.recipient_phone,
+                    streetAddress: effectiveGuestAddress.street_address,
+                    city: effectiveGuestAddress.city,
+                    latitude: effectiveGuestAddress.latitude,
+                    longitude: effectiveGuestAddress.longitude
+                } : undefined
+            });
+
+            if (!success || !order) {
+                throw error || new Error('Failed to create order.');
+            }
+
+            // Create Payment/Contribution for downpayment (50%)
+            setIsCreatingPayment(true);
+            const emailToUse = isAnonymous ? guestEmail : user?.email || 'customer@example.com';
+            const nameToUse = isAnonymous ? effectiveGuestAddress?.recipient_name : user?.user_metadata?.first_name || selectedAddress?.recipient_name || 'Customer';
+
+            trackAddPaymentInfo(order.total_amount / 2, 'xendit-downpayment');
+
+            const { paymentUrl, error: paymentError } = await createOrderContribution({
+                orderId: order.order_id,
+                amount: order.total_amount / 2,
+                contributorName: nameToUse || 'Customer',
+                contributorEmail: emailToUse
+            });
+
+            if (paymentError) throw new Error(paymentError);
+
+            if (paymentUrl) {
+                // For anonymous users, upgrade to email account and send activation email
+                if (isAnonymous && user && guestEmail) {
+                    try {
+                        const { success: upgraded, error: upgradeError } = await upgradeAnonymousToEmailAccount({
+                            email: guestEmail.trim(),
+                            firstName: effectiveGuestAddress?.recipient_name,
+                        });
+
+                        if (!upgraded) {
+                            console.error('Failed to upgrade account:', upgradeError);
+                        } else {
+                            console.log('Account upgraded successfully, activation email sent to:', guestEmail);
+                        }
+                    } catch (upgradeErr) {
+                        console.error('Error during account upgrade:', upgradeErr);
+                    }
+                }
+
+                // Save cart state to sessionStorage as backup before redirect
+                if (typeof window !== 'undefined') {
+                    sessionStorage.setItem('pending_payment_cart', JSON.stringify(cartItems));
+                    sessionStorage.setItem('pending_payment_order_id', order.order_id);
+                    sessionStorage.setItem('pending_payment_guest_email', guestEmail || '');
+                }
+
+                setIsRedirecting(true);
+                window.location.href = paymentUrl;
+            } else {
+                throw new Error('Payment URL not generated.');
+            }
+        } catch (error: unknown) {
+            console.error('Downpayment checkout error:', error);
+            showError(getErrorMessage(error, 'An error occurred during downpayment checkout.'));
         } finally {
             setIsPlacingOrder(false);
             setIsCreatingPayment(false);
@@ -1677,31 +2008,35 @@ function CartClient() {
                                                             }
 
                                                             return (
-                                                                <div key={dateInfo.available_date} className="relative shrink-0">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => !isDisabled && handleDateSelect(dateInfo.available_date)}
-                                                                        onMouseEnter={() => isDisabled && reason && setTooltip({ date: dateInfo.available_date, reason })}
-                                                                        onMouseLeave={() => setTooltip(null)}
-                                                                        className={`w-16 text-center rounded-lg p-2 border-2 transition-all duration-200
-                                                                    ${isSelected ? 'genie-control-selected text-purple-900' : 'border-purple-100 bg-white'}
-                                                                    ${isDisabled ? 'opacity-50 bg-slate-50 cursor-not-allowed' : 'hover:border-purple-300'}
-    `}
-                                                                    >
-                                                                        <span className="block text-xs font-semibold text-slate-500">{month}</span>
-                                                                        <span className="block text-xl font-bold text-slate-800">{day}</span>
-                                                                        <span className="block text-[10px] font-medium text-slate-500">{dateInfo.day_of_week.substring(0, 3)}</span>
-                                                                    </button>
-                                                                    {tooltip && tooltip.date === dateInfo.available_date && (
-                                                                        <div className={`absolute bottom-full mb-2 ${tooltipPositionClass} w-max max-w-[200px] px-3 py-1.5 bg-slate-800 text-white text-xs text-center font-semibold rounded-md z-100 animate-fade-in-fast shadow-lg pointer-events-none whitespace-normal`}>
-                                                                            {tooltip.reason}
-                                                                            <div className={`absolute ${arrowPositionClass} top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-slate-800`}></div>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
+                                                                <CartDateOption
+                                                                    key={dateInfo.available_date}
+                                                                    date={dateInfo.available_date}
+                                                                    day={day}
+                                                                    month={month}
+                                                                    dayOfWeek={dateInfo.day_of_week}
+                                                                    isSelected={isSelected}
+                                                                    isDisabled={isDisabled}
+                                                                    reason={reason}
+                                                                    isTooltipVisible={unavailableDateFeedback?.date === dateInfo.available_date}
+                                                                    tooltipPositionClass={tooltipPositionClass}
+                                                                    arrowPositionClass={arrowPositionClass}
+                                                                    onSelect={handleDateSelect}
+                                                                    onUnavailableInteract={(date, unavailableReason) => showUnavailableDateFeedback(date, unavailableReason, { announce: true })}
+                                                                    onUnavailableHoverStart={(date, unavailableReason) => showUnavailableDateFeedback(date, unavailableReason)}
+                                                                    onUnavailableHoverEnd={clearUnavailableDateFeedback}
+                                                                />
                                                             )
                                                         })}
                                                     </div>
+                                                    {unavailableDateFeedback && (
+                                                        <div
+                                                            className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 animate-fade-in"
+                                                            role="status"
+                                                            aria-live="polite"
+                                                        >
+                                                            <strong>Date unavailable:</strong> {unavailableDateFeedback.reason}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
@@ -2199,7 +2534,7 @@ function CartClient() {
                                     )}
 
                                     <PaymentErrorBoundary>
-                                        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                                        <div className="flex flex-col gap-3 pt-2">
                                             <button
                                                 onClick={handleSubmitOrder}
                                                 disabled={
@@ -2207,7 +2542,7 @@ function CartClient() {
                                                     isCreatingPayment ||
                                                     getMissingRequirements().length > 0
                                                 }
-                                                className="flex-1 genie-btn-primary py-4 rounded-full font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                                                className="w-full genie-btn-primary py-4 rounded-full font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                                             >
                                                 {isCreatingPayment ? (
                                                     <span className="flex items-center justify-center gap-2">
@@ -2223,12 +2558,22 @@ function CartClient() {
                                                     `Place Order - ₱${total.toFixed(2)} `
                                                 )}
                                             </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={handleDownpaymentClick}
+                                                disabled={
+                                                    isPlacingOrder ||
+                                                    isCreatingPayment ||
+                                                    getMissingRequirements().length > 0
+                                                }
+                                                className="w-full genie-btn-secondary py-4 px-4 font-bold rounded-full transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                <CreditCard className="w-5 h-5" />
+                                                <span>Place Order with 50% Downpayment</span>
+                                            </button>
                                         </div>
                                     </PaymentErrorBoundary>
-
-                                    <p className="text-xs text-center text-slate-500 mt-2">
-                                        Send payment link to your friends, pay with GCash
-                                    </p>
 
                                     {/* Payment method logos moved under the button */}
                                     <div className="flex flex-col gap-4 items-center justify-center pt-2">
@@ -2258,27 +2603,14 @@ function CartClient() {
                 </div>
             </div>
 
-            <SplitWithFriendsModal
-                isOpen={isSplitModalOpen}
-                onClose={() => setIsSplitModalOpen(false)}
-                onConfirm={handleSplitWithFriends}
+            <DownpaymentModal
+                isOpen={isDownpaymentModalOpen}
+                onClose={() => setIsDownpaymentModalOpen(false)}
+                onConfirm={handleConfirmDownpayment}
                 totalAmount={total}
+                eventDate={eventDate}
                 isLoading={isPlacingOrder}
             />
-
-            {splitOrderDetails && (
-                <SplitOrderShareModal
-                    isOpen={isShareModalOpen}
-                    onClose={() => {
-                        setIsShareModalOpen(false);
-                        handleClose(); // Close cart
-                    }}
-                    shareLink={splitOrderDetails.shareLink}
-                    orderNumber={splitOrderDetails.orderNumber}
-                    splitCount={splitOrderDetails.splitCount}
-                    totalAmount={splitOrderDetails.totalAmount}
-                />
-            )}
         </>
     );
 }

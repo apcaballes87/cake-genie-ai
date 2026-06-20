@@ -6,9 +6,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import type { CakeGenieOrder, CakeGenieOrderItem } from '@/lib/database.types';
 import { getPaymentStatus, verifyXenditPayment } from '@/services/xenditService';
-
-// Declare gtag for Google Analytics event tracking
-declare const gtag: (...args: any[]) => void;
+import { trackPurchase } from '@/lib/analytics';
 
 const OrderConfirmationContent: React.FC = () => {
     const searchParams = useSearchParams();
@@ -19,7 +17,7 @@ const OrderConfirmationContent: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const supabase = getSupabaseClient();
 
-    const [paymentStatus, setPaymentStatus] = useState<'loading' | 'paid' | 'pending' | 'expired' | 'failed'>('loading');
+    const [paymentStatus, setPaymentStatus] = useState<'loading' | 'paid' | 'partial' | 'pending' | 'expired' | 'failed'>('loading');
     const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
 
     // Deduplication key — prevents re-firing the purchase event on page refresh
@@ -104,41 +102,45 @@ const OrderConfirmationContent: React.FC = () => {
         return () => clearInterval(intervalId);
     }, [orderId, paymentStatus]);
 
-    // Fire the GA4 purchase event exactly once when payment is confirmed as 'paid'.
+    // Fire the GA4 purchase event exactly once when payment is confirmed as 'paid' or 'partial'.
     // The sessionStorage guard prevents duplicate events on page refresh.
     useEffect(() => {
-        if (paymentStatus !== 'paid' || !order || !purchaseEventKey) return;
-        if (sessionStorage.getItem(purchaseEventKey)) return;
+        if ((paymentStatus !== 'paid' && paymentStatus !== 'partial') || !order || !purchaseEventKey) return;
 
-        if (typeof gtag === 'function') {
-            const orderItems = (order.cakegenie_order_items || []).map((item: CakeGenieOrderItem) => ({
-                item_id: `${item.cake_type}_${item.cake_size}`,
-                item_name: `Custom Cake - ${item.cake_type}`,
-                item_category: item.cake_type,
-                price: item.final_price,
-                quantity: item.quantity,
-            }));
+        try {
+            if (sessionStorage.getItem(purchaseEventKey)) return;
+        } catch (error) {
+            console.warn(
+                '[OrderConfirmationPage] sessionStorage.getItem failed:',
+                error,
+            );
+        }
 
-            gtag('event', 'purchase', {
-                transaction_id: order.order_number,
-                value: order.total_amount,
-                currency: 'PHP',
-                coupon: order.discount_code_id ?? undefined,
-                items: orderItems,
-            });
+        const orderItems = (order.cakegenie_order_items || []).map((item: CakeGenieOrderItem) => ({
+            item_id: `${item.cake_type}_${item.cake_size}`,
+            item_name: `Custom Cake - ${item.cake_type}`,
+            item_category: item.cake_type,
+            price: item.final_price,
+            quantity: item.quantity,
+        }));
 
-            // Mark as fired so refreshing the page doesn't re-send the event.
-            // Guarded with try/catch — sessionStorage.setItem can throw
-            // in Safari Private Browsing / cross-origin iframes, and we
-            // must never block the success path on analytics dedup.
-            try {
-                sessionStorage.setItem(purchaseEventKey, '1');
-            } catch (error) {
-                console.warn(
-                    '[OrderConfirmationPage] sessionStorage.setItem failed:',
-                    error,
-                );
-            }
+        trackPurchase({
+            transactionId: order.order_number,
+            value: order.total_amount,
+            coupon: order.discount_code_id ?? undefined,
+            items: orderItems,
+        });
+
+        // Mark as fired so refreshing the page doesn't re-send the event.
+        // Guarded with try/catch because sessionStorage access can fail,
+        // but analytics dedup should never block the confirmation page.
+        try {
+            sessionStorage.setItem(purchaseEventKey, '1');
+        } catch (error) {
+            console.warn(
+                '[OrderConfirmationPage] sessionStorage.setItem failed:',
+                error,
+            );
         }
 
         // Clear cart state from sessionStorage after successful payment.
@@ -147,23 +149,21 @@ const OrderConfirmationContent: React.FC = () => {
         // and a thrown exception here would prevent the user from
         // seeing the "Order Placed Successfully!" confirmation —
         // strictly worse than leaving the snapshot in storage.
-        if (typeof window !== 'undefined') {
-            try {
-                sessionStorage.removeItem('pending_payment_cart');
-                sessionStorage.removeItem('pending_payment_order_id');
-                sessionStorage.removeItem('pending_payment_guest_email');
-                // Also clear the dismissed-flag for THIS order so a
-                // future abandoned order (different order_id) can
-                // show its banner fresh.
-                sessionStorage.removeItem(
-                    `pending_payment_dismissed_for_${orderId}`,
-                );
-            } catch (error) {
-                console.warn(
-                    '[OrderConfirmationPage] sessionStorage.removeItem failed:',
-                    error,
-                );
-            }
+        try {
+            sessionStorage.removeItem('pending_payment_cart');
+            sessionStorage.removeItem('pending_payment_order_id');
+            sessionStorage.removeItem('pending_payment_guest_email');
+            // Also clear the dismissed-flag for THIS order so a
+            // future abandoned order (different order_id) can
+            // show its banner fresh.
+            sessionStorage.removeItem(
+                `pending_payment_dismissed_for_${orderId}`,
+            );
+        } catch (error) {
+            console.warn(
+                '[OrderConfirmationPage] sessionStorage.removeItem failed:',
+                error,
+            );
         }
     }, [paymentStatus, order, purchaseEventKey, orderId]);
 
@@ -234,6 +234,24 @@ const OrderConfirmationContent: React.FC = () => {
                             </p>
                             <p className="text-sm text-green-700 mt-1">
                                 We'll start preparing your custom cake right away!
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                {paymentStatus === 'partial' && (
+                    <div className="flex items-center gap-3 text-green-600 bg-green-50 p-4 rounded-lg text-left">
+                        <svg className="w-8 h-8 shrink-0 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <div>
+                            <p className="font-semibold text-lg text-green-800">Downpayment Confirmed! 🎉</p>
+                            <p className="text-sm text-green-750 mt-1">
+                                Your 50% downpayment has been successfully processed
+                                {paymentMethod && ` via ${paymentMethod}`}.
+                            </p>
+                            <p className="text-sm text-green-750 mt-2">
+                                We will start preparing your custom cake! The remaining 50% balance of <strong>₱{(order.total_amount / 2).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> is due on or before delivery/pickup.
                             </p>
                         </div>
                     </div>

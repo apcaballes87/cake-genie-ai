@@ -208,6 +208,75 @@ const PayOrderButton: React.FC<{ order: EnrichedOrder }> = ({ order }) => {
     );
 };
 
+const PayBalanceButton: React.FC<{ order: EnrichedOrder }> = ({ order }) => {
+    const { user } = useAuth();
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    const handlePayBalance = async () => {
+        if (!user) {
+            showError("Please sign in to pay the remaining balance.");
+            return;
+        }
+
+        setIsProcessing(true);
+        try {
+            const recipientName = order.cakegenie_addresses?.recipient_name || user.user_metadata?.first_name || 'Customer';
+            const customerEmail = user.email || 'customer@example.com';
+            
+            const remainingBalance = Number(order.total_amount) - (Number(order.amount_collected) || 0);
+
+            // Import and call createOrderContribution from supabaseService
+            const { createOrderContribution } = await import('@/services/supabaseService');
+
+            const { paymentUrl, error: paymentError } = await createOrderContribution({
+                orderId: order.order_id,
+                amount: remainingBalance,
+                contributorName: recipientName || 'Customer',
+                contributorEmail: customerEmail
+            });
+
+            if (paymentError) throw new Error(paymentError);
+
+            if (paymentUrl) {
+                window.location.href = paymentUrl;
+            } else {
+                throw new Error('Payment URL not generated.');
+            }
+        } catch (error: any) {
+            console.error('Payment error:', error);
+            showError(error.message || 'Failed to create payment. Please try again.');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    const remainingBalance = Number(order.total_amount) - (Number(order.amount_collected) || 0);
+
+    return (
+        <div className="p-4 bg-purple-50/50 border border-purple-100 rounded-lg">
+            <h4 className="text-sm font-semibold text-slate-800 mb-2">Pay Remaining Balance</h4>
+            <p className="text-xs text-slate-500 mb-3">Pay your remaining balance securely online.</p>
+            <button
+                onClick={handlePayBalance}
+                disabled={isProcessing || remainingBalance <= 0}
+                className="genie-btn-primary w-full py-3.5 px-4 rounded-xl shadow-lg active:scale-[0.99] transition-transform text-sm"
+            >
+                {isProcessing ? (
+                    <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Redirecting to Payment...
+                    </>
+                ) : (
+                    <>
+                        <CreditCard className="w-5 h-5 mr-2" />
+                        Pay Balance ₱{remainingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </>
+                )}
+            </button>
+        </div>
+    );
+};
+
 
 // --- Order Details Expansion ---
 
@@ -349,6 +418,12 @@ const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrde
                     </div>
                 )}
 
+                {details.payment_status === 'partial' && details.split_message === 'downpayment_50' && (
+                    <div className="space-y-4">
+                        <PayBalanceButton order={details} />
+                    </div>
+                )}
+
 
                 {details.payment_status === 'verifying' && (
                     <div className="p-3 text-center bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800">
@@ -437,7 +512,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onOrderUpdate }) => {
     };
 
     // Split Order Calculations
-    const isSplitOrder = order.is_split_order;
+    const isSplitOrder = order.is_split_order && order.split_message !== 'downpayment_50';
     const collected = order.amount_collected || 0;
     const total = order.total_amount;
     const progress = Math.min((collected / total) * 100, 100);
