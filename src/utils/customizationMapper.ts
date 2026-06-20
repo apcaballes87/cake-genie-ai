@@ -42,7 +42,7 @@ export function mapAnalysisToState(rawData: HybridAnalysisResult): Customization
     // 2. Main Toppers
     state.mainToppers = (rawData.main_toppers || []).map((t): MainTopperUI => {
         let initialType = t.type;
-        const canBePrintout = ['edible_3d', 'toy', 'figurine', 'plastic_ball', 'edible_photo_top'].includes(t.type);
+        const canBePrintout = ['edible_3d', 'toy', 'figurine', 'plastic_ball'].includes(t.type);
         const isCharacterOrLogo = /character|figure|logo|brand/i.test(t.description);
 
         if (canBePrintout && isCharacterOrLogo) {

@@ -64,7 +64,7 @@ export const TopperCard: React.FC<{
     const isNumberTopper = isTopper && descriptionString.toLowerCase().includes('number') && ['edible_3d_complex', 'edible_3d_ordinary', 'candle', 'printout'].includes(item.original_type);
     const is3DFlower = isTopper && ['edible_3d_complex', 'edible_3d_ordinary'].includes(item.original_type) && descriptionString.toLowerCase().includes('flower');
     const isOriginalPrintoutTopper = isTopper && item.original_type === 'printout' && !isNumberTopper;
-    const canBeSwitchedToPrintoutTopper = isTopper && ['edible_3d_complex', 'edible_3d_ordinary', 'edible_photo_top'].includes(item.original_type) && !is3DFlower && !isNumberTopper;
+    const canBeSwitchedToPrintoutTopper = isTopper && ['edible_3d_complex', 'edible_3d_ordinary'].includes(item.original_type) && !is3DFlower && !isNumberTopper;
     const isCardstock = isTopper && item.original_type === 'cardstock';
     const isToyOrFigurine = isTopper && ['toy', 'figurine', 'plastic_ball'].includes(item.original_type);
     const isWrapSwitchable = !isTopper && item.original_type === 'edible_photo_side';
