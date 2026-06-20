@@ -1,5 +1,22 @@
 # Tasks
 
+## Fix Split Order Cart Item Cast Regression
+
+### Plan
+
+- [x] Confirm the reported downpayment checkout failure against the live `create_split_order_from_cart` definition and local migration history.
+- [x] Patch the RPC so `p_cart_item_ids text[]` still compares against `cakegenie_cart.cart_item_id` using the required `::text` casts, then apply the fix live.
+- [x] Verify the repaired live function definition, commit the scoped regression fix, and push the existing audit branch update.
+
+### Review
+
+- Root cause: the June 20 downpayment hardening rewrite preserved the RPC signature `p_cart_item_ids text[]` but accidentally removed the established `cart_item_id::text` casts inside the `INSERT ... SELECT` and `DELETE` filters. That changed the live predicate to `uuid = text`, which fails immediately during split-order checkout with `42883 operator does not exist: uuid = text`.
+- Added the corrective migration [supabase/migrations/20260620073000_fix_split_order_cart_item_cast.sql](/Users/apcaballes/genieph-nextjs/supabase/migrations/20260620073000_fix_split_order_cart_item_cast.sql:1), which restores the two `::text` casts while keeping the server-side Manila lead-time guard from the previous audit work intact.
+- Applied the same `CREATE OR REPLACE FUNCTION` patch live through Supabase MCP, then verified the production function body with `pg_get_functiondef(...)`. The live definition now uses:
+  - `cart.cart_item_id::text = any(p_cart_item_ids)`
+  - `cart_item_id::text = any(p_cart_item_ids)`
+- Follow-up lesson added in [tasks/lessons.md](/Users/apcaballes/genieph-nextjs/tasks/lessons.md:1): when rewriting existing RPCs, preserve predicate-level type compatibility and not just the function signature.
+
 ## Audit 50% Downpayment Feature
 
 ### Plan
