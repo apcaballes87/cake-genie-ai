@@ -2524,7 +2524,8 @@ export async function createSplitOrderFromCart(params: {
       p_delivery_longitude: guestAddress?.longitude || null,
       p_is_split_order: isSplitOrder,
       p_split_message: splitMessage,
-      p_split_count: splitCount
+      p_split_count: splitCount,
+      p_cart_item_ids: cartItems.map(item => item.cart_item_id)
     });
 
     if (error) throw error;
