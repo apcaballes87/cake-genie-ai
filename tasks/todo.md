@@ -1,5 +1,29 @@
 # Tasks
 
+## Create "Is Genie.ph a Scam?" Trust Page
+
+### Plan
+
+- [x] Audit the existing Genie.ph trust assets, current About/reviews/support copy, and the public links we can safely cite for the new legitimacy page.
+- [x] Build a new static marketing page targeting the keyword `is genie.ph a scam?` with direct, source-backed trust sections, external proof links, and clear customer next steps.
+- [x] Add the new route to sitemap discovery, run verification on the touched files, and document the outcome in the review notes.
+
+### Review
+
+- Added the new static trust page at [src/app/is-genie-ph-a-scam/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/is-genie-ph-a-scam/page.tsx:1), targeting the keyword `is genie.ph a scam?` with direct copy that answers the question head on and then backs it up with public proof.
+- The page combines four trust layers:
+  - external/public proof links: StartupHub PH founder spotlight, Genie.ph's public Startup Innovation Summit award post, a StellarPH/DOST Central Visayas mention, and the additional public Facebook summit post you shared
+  - visible business identity: DTI and BIR permit links already used by Genie.ph
+  - operational trust: support email, phone, published address, reviews, terms, return policy, and secure checkout link
+  - customer guidance: a plain-language checklist explaining how cautious buyers can verify Genie.ph before ordering
+- Added the route to [src/app/sitemap.ts](/Users/apcaballes/genieph-nextjs/src/app/sitemap.ts:143) so search engines can discover `/is-genie-ph-a-scam` through the core static-route sitemap.
+- Verification:
+  - `npm run build`
+  - `git diff --check -- src/app/is-genie-ph-a-scam/page.tsx src/app/sitemap.ts tasks/todo.md`
+- Verification result:
+  - Build completed successfully and the route list includes `/is-genie-ph-a-scam`.
+  - The usual repo warnings still appeared for `baseline-browser-mapping`, the deprecated `middleware` convention, and familiar static-generation timeout logs during fallback keyword fetches, but they were non-fatal and the production build finished cleanly.
+
 ## Move Icing Section Below Cake Message
 
 ### Plan

@@ -162,6 +162,7 @@ export default async function sitemap({ id }: { id: SitemapParam }): Promise<Met
             '/blog',
             '/about',
             '/services',
+            '/is-genie-ph-a-scam',
             '/cake-price-calculator',
             '/chatgpt-cake-design-quote',
             '/best-cake-shops-cebu',
