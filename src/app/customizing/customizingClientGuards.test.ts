@@ -3,6 +3,7 @@ import {
   buildRetryUploadUrl,
   buildRelatedCollectionsRequestKey,
   getAutoRelatedDesignRequest,
+  resolveEntrySourceParam,
   shouldLoadPropDesign,
   shouldHydrateImageFromExistingAnalysis,
   shouldLogShopifyCseMount,
@@ -97,6 +98,12 @@ describe('customizingClientGuards', () => {
     expect(shouldLogShopifyCseMount(null, 'https://example.com/cake.jpg')).toBe(true)
   })
 
+  it('prefers entry_source while remaining backward-compatible with legacy source params', () => {
+    expect(resolveEntrySourceParam(new URLSearchParams('entry_source=landing&source=blog'))).toBe('landing')
+    expect(resolveEntrySourceParam(new URLSearchParams('source=blog'))).toBe('blog')
+    expect(resolveEntrySourceParam(new URLSearchParams(''))).toBeNull()
+  })
+
   it('reuses existing analysis only when SSR or cached analysis is already available', () => {
     expect(shouldHydrateImageFromExistingAnalysis({
       hasSsrData: true,
@@ -152,7 +159,7 @@ describe('customizingClientGuards', () => {
   it('removes stale handoff params before opening the retry uploader', () => {
     expect(buildRetryUploadUrl(
       '/customizing',
-      '?ref=https%3A%2F%2Fold.example%2Fcake.jpg&source=shopify_cse&image_url=https%3A%2F%2Fold.example%2Fcake.jpg&keep=1&fromSaved=true'
+      '?ref=https%3A%2F%2Fold.example%2Fcake.jpg&source=shopify_cse&entry_source=landing&image_url=https%3A%2F%2Fold.example%2Fcake.jpg&keep=1&fromSaved=true'
     )).toBe('/customizing?keep=1')
 
     expect(buildRetryUploadUrl('/customizing', '')).toBe('/customizing')

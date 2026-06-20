@@ -26,12 +26,17 @@ interface ExistingAnalysisHydrationArgs {
 const RETRY_UPLOAD_QUERY_PARAMS = [
   'ref',
   'source',
+  'entry_source',
   'image_url',
   'image_name',
   'image_type',
   'fromSaved',
   'fromMerchant',
 ] as const
+
+export function resolveEntrySourceParam(urlParams: URLSearchParams): string | null {
+  return urlParams.get('entry_source') || urlParams.get('source')
+}
 
 export function shouldLoadPropDesign({
   sourceParam,

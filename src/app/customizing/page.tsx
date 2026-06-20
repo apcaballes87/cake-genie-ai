@@ -74,7 +74,12 @@ export default async function CustomizingPage(props: CustomizingPageProps) {
     // Await searchParams for Next.js 15+ compatibility
     const searchParams = await props.searchParams;
     const imageUrl = typeof searchParams.image_url === 'string' ? searchParams.image_url : null;
-    const source = typeof searchParams.source === 'string' ? searchParams.source : null;
+    const source =
+        typeof searchParams.entry_source === 'string'
+            ? searchParams.entry_source
+            : typeof searchParams.source === 'string'
+                ? searchParams.source
+                : null;
 
     const supabase = await createClient();
     const [{ data: ratingRows }, popularDesignsResult] = await Promise.all([
