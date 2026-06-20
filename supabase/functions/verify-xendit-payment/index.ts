@@ -6,6 +6,45 @@ declare const Deno: any;
 
 const XENDIT_API_URL = 'https://api.xendit.co';
 
+const roundCurrency = (value: number) =>
+  Math.round((value + Number.EPSILON) * 100) / 100;
+
+const toCurrencyCents = (value: number) => Math.round(Number(value) * 100);
+
+const amountsMatch = (left: number, right: number) =>
+  Math.abs(toCurrencyCents(left) - toCurrencyCents(right)) <= 1;
+
+const mapStatus = (status: string): string => {
+  switch (status) {
+    case 'PAID':
+      return 'PAID';
+    case 'EXPIRED':
+      return 'EXPIRED';
+    case 'FAILED':
+    case 'CANCELED':
+      return 'FAILED';
+    case 'PENDING':
+      return 'PENDING';
+    default:
+      return status;
+  }
+};
+
+async function clearCartForOrder(supabaseAdmin: ReturnType<typeof createClient>, orderId: string) {
+  try {
+    const { data: clearedCount, error: clearError } = await supabaseAdmin
+      .rpc('clear_cart_for_paid_order', { p_order_id: orderId });
+
+    if (clearError) {
+      console.error('⚠️  clear_cart_for_paid_order failed (non-fatal):', clearError);
+    } else {
+      console.log(`🛒 Cleared ${clearedCount ?? 0} cart row(s) for funded order ${orderId}`);
+    }
+  } catch (error) {
+    console.error('⚠️  clear_cart_for_paid_order threw (non-fatal):', error);
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -37,7 +76,6 @@ serve(async (req) => {
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
     const xenditAuthHeader = 'Basic ' + btoa(XENDIT_SECRET_KEY + ':');
 
-    // --- Helper: Fetch invoice from Xendit ---
     const fetchInvoice = async (invoiceId: string) => {
       const response = await fetch(`${XENDIT_API_URL}/v2/invoices/${invoiceId}`, {
         method: 'GET',
@@ -52,19 +90,20 @@ serve(async (req) => {
       return await response.json();
     };
 
-    // --- HANDLE CONTRIBUTION PAYMENT ---
     if (contributionId) {
       const { data: contribution, error: dbError } = await supabaseAdmin
         .from('order_contributions')
-        .select('xendit_payment_request_id, xendit_invoice_id, status')
+        .select('order_id, amount, status, xendit_payment_request_id, xendit_invoice_id')
         .eq('contribution_id', contributionId)
         .single();
 
-      if (dbError) throw dbError;
-      
+      if (dbError || !contribution) {
+        throw dbError || new Error(`No contribution record found for ID: ${contributionId}`);
+      }
+
       const invoiceId = contribution.xendit_invoice_id || contribution.xendit_payment_request_id;
-      if (!contribution || !invoiceId) {
-        throw new Error(`No contribution record found for ID: ${contributionId}`);
+      if (!invoiceId) {
+        throw new Error(`No contribution payment record found for ID: ${contributionId}`);
       }
 
       if (contribution.status === 'paid') {
@@ -75,49 +114,94 @@ serve(async (req) => {
       }
 
       const invoice = await fetchInvoice(invoiceId);
-      const latestStatus = invoice.status;
+      const latestStatus = mapStatus(invoice.status);
 
-      if (latestStatus === 'PAID' && contribution.status !== 'paid') {
-        console.log(`Status for invoice ${invoiceId} is PAID. Updating database.`);
+      if (latestStatus !== 'PAID') {
+        if (contribution.status !== latestStatus.toLowerCase()) {
+          await supabaseAdmin
+            .from('order_contributions')
+            .update({
+              status: latestStatus.toLowerCase(),
+              updated_at: new Date().toISOString()
+            })
+            .eq('contribution_id', contributionId)
+            .neq('status', 'paid');
+        }
 
-        const { error: updateError } = await supabaseAdmin
-          .from('order_contributions')
+        return new Response(JSON.stringify({ success: true, status: latestStatus }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        });
+      }
+
+      const paidAmount = Number(invoice.paid_amount ?? invoice.amount ?? 0);
+      if (!amountsMatch(paidAmount, Number(contribution.amount ?? 0))) {
+        await supabaseAdmin
+          .from('cakegenie_orders')
           .update({
-            status: 'paid',
-            paid_at: invoice.paid_at || new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            order_notes: `Contribution amount mismatch (verification): Paid ${paidAmount}, Expected ${contribution.amount}`
           })
-          .eq('contribution_id', contributionId);
+          .eq('order_id', contribution.order_id);
 
-        if (updateError) throw updateError;
+        return new Response(JSON.stringify({
+          success: true,
+          status: 'PAYMENT_MISMATCH',
+          message: 'Contribution amount mismatch detected.'
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        });
+      }
 
-        // Force update order totals
-        const { data: contributions, error: sumError } = await supabaseAdmin
-          .from('order_contributions')
-          .select('amount')
+      const { error: updateError } = await supabaseAdmin
+        .from('order_contributions')
+        .update({
+          status: 'paid',
+          paid_at: invoice.paid_at || new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('contribution_id', contributionId);
+
+      if (updateError) throw updateError;
+
+      const { data: contributions, error: sumError } = await supabaseAdmin
+        .from('order_contributions')
+        .select('amount')
+        .eq('order_id', contribution.order_id)
+        .eq('status', 'paid');
+
+      if (!sumError && contributions) {
+        const totalCollected = roundCurrency(
+          contributions.reduce((sum, item) => sum + Number(item.amount || 0), 0)
+        );
+        const { data: order } = await supabaseAdmin
+          .from('cakegenie_orders')
+          .select('total_amount, split_message')
           .eq('order_id', contribution.order_id)
-          .eq('status', 'paid');
+          .single();
 
-        if (!sumError && contributions) {
-          const totalCollected = contributions.reduce((sum, c) => sum + (c.amount || 0), 0);
-          const { data: order } = await supabaseAdmin
+        if (order) {
+          const requiredDownpayment = roundCurrency(Number(order.total_amount) / 2);
+          const updates: Record<string, unknown> = { amount_collected: totalCollected };
+
+          if (totalCollected >= Number(order.total_amount)) {
+            updates.payment_status = 'paid';
+            updates.order_status = 'confirmed';
+          } else if (
+            order.split_message === 'downpayment_50' &&
+            totalCollected >= requiredDownpayment
+          ) {
+            updates.payment_status = 'partial';
+            updates.order_status = 'confirmed';
+          }
+
+          await supabaseAdmin
             .from('cakegenie_orders')
-            .select('total_amount, split_message')
-            .eq('order_id', contribution.order_id)
-            .single();
+            .update(updates)
+            .eq('order_id', contribution.order_id);
 
-          if (order) {
-            const isFullyFunded = totalCollected >= order.total_amount;
-            const isDownpayment = order.split_message === 'downpayment_50';
-            const updates: any = { amount_collected: totalCollected };
-            if (isFullyFunded) {
-              updates.payment_status = 'paid';
-              updates.order_status = 'confirmed';
-            } else if (isDownpayment && totalCollected >= (order.total_amount * 0.49)) {
-              updates.payment_status = 'partial';
-              updates.order_status = 'confirmed';
-            }
-            await supabaseAdmin.from('cakegenie_orders').update(updates).eq('order_id', contribution.order_id);
+          if (updates.payment_status === 'paid' || updates.payment_status === 'partial') {
+            await clearCartForOrder(supabaseAdmin, contribution.order_id);
           }
         }
       }
@@ -128,7 +212,6 @@ serve(async (req) => {
       });
     }
 
-    // --- HANDLE STANDARD ORDER PAYMENT ---
     const { data: paymentRecord, error: dbError } = await supabaseAdmin
       .from('xendit_payments')
       .select('xendit_payment_request_id, xendit_invoice_id, status')
@@ -137,10 +220,12 @@ serve(async (req) => {
       .limit(1)
       .single();
 
-    if (dbError) throw dbError;
-    
+    if (dbError || !paymentRecord) {
+      throw dbError || new Error(`No payment record found for orderId: ${orderId}`);
+    }
+
     const invoiceId = paymentRecord.xendit_invoice_id || paymentRecord.xendit_payment_request_id;
-    if (!paymentRecord || !invoiceId) {
+    if (!invoiceId) {
       throw new Error(`No payment record found for orderId: ${orderId}`);
     }
 
@@ -152,13 +237,15 @@ serve(async (req) => {
     }
 
     const invoice = await fetchInvoice(invoiceId);
-    const latestStatus = invoice.status;
+    const latestStatus = mapStatus(invoice.status);
 
     if (latestStatus === 'PAID' && paymentRecord.status !== 'PAID') {
-      console.log(`Status for invoice ${invoiceId} is PAID. Updating database.`);
-
       const paymentMethod = invoice.payment_method || null;
-      const paidAmount = invoice.paid_amount || invoice.amount;
+      const paidAmount = Number(invoice.paid_amount ?? invoice.amount ?? 0);
+      const paymentIdColumn =
+        paymentRecord.xendit_payment_request_id === invoiceId
+          ? 'xendit_payment_request_id'
+          : 'xendit_invoice_id';
 
       const { error: updatePaymentError } = await supabaseAdmin
         .from('xendit_payments')
@@ -169,10 +256,9 @@ serve(async (req) => {
           paid_at: invoice.paid_at || new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
-        .eq('xendit_invoice_id', invoiceId);
+        .eq(paymentIdColumn, invoiceId);
       if (updatePaymentError) throw updatePaymentError;
 
-      // --- SECURITY CHECK: VERIFY AMOUNT ---
       const { data: order, error: orderError } = await supabaseAdmin
         .from('cakegenie_orders')
         .select('total_amount')
@@ -183,8 +269,7 @@ serve(async (req) => {
         throw new Error(`Could not fetch order to verify amount for orderId: ${orderId}`);
       }
 
-      if (Math.abs(paidAmount - order.total_amount) > 1.0) {
-        console.error(`❌ Payment Mismatch! Received: ${paidAmount}, Expected: ${order.total_amount}`);
+      if (!amountsMatch(paidAmount, Number(order.total_amount))) {
         await supabaseAdmin
           .from('cakegenie_orders')
           .update({
@@ -193,7 +278,11 @@ serve(async (req) => {
           })
           .eq('order_id', orderId);
 
-        return new Response(JSON.stringify({ success: true, status: 'PAYMENT_MISMATCH', message: 'Payment amount mismatch detected.' }), {
+        return new Response(JSON.stringify({
+          success: true,
+          status: 'PAYMENT_MISMATCH',
+          message: 'Payment amount mismatch detected.'
+        }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200,
         });
@@ -209,24 +298,7 @@ serve(async (req) => {
         .eq('order_id', orderId);
       if (updateOrderError) throw updateOrderError;
 
-      // Defer cart clear: the RPC that created the order leaves the
-      // cart intact on the server so abandoned checkouts can be
-      // recovered. Clear it now that the order is paid. The helper is
-      // idempotent (returns 0 on a second call) so it's safe even if
-      // xendit-webhook also fires.
-      try {
-        const { data: clearedCount, error: clearError } = await supabaseAdmin
-          .rpc('clear_cart_for_paid_order', { p_order_id: orderId });
-
-        if (clearError) {
-          console.error('⚠️  clear_cart_for_paid_order failed (non-fatal):', clearError);
-        } else {
-          console.log(`🛒 Cleared ${clearedCount ?? 0} cart row(s) for paid order ${orderId}`);
-        }
-      } catch (e) {
-        // Never let a cart-clear hiccup roll back the order flip.
-        console.error('⚠️  clear_cart_for_paid_order threw (non-fatal):', e);
-      }
+      await clearCartForOrder(supabaseAdmin, orderId);
     }
 
     return new Response(JSON.stringify({ success: true, status: latestStatus }), {
@@ -234,7 +306,10 @@ serve(async (req) => {
       status: 200,
     })
   } catch (error) {
-    return new Response(JSON.stringify({ success: false, error: error.message }), {
+    return new Response(JSON.stringify({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to verify payment status.'
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
     })

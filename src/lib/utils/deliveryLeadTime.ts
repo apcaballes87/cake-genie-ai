@@ -45,6 +45,39 @@ function formatWallClockDate(ms: number): string {
   return `${year}-${month}-${day}`;
 }
 
+function parseIsoCalendarDate(date: string): number {
+  const [year, month, day] = date.split('-').map(Number);
+  return Date.UTC(year, month - 1, day, 0, 0, 0, 0);
+}
+
+export function getManilaCalendarDate(now: Date = new Date()): string {
+  const manilaNow = getManilaWallClockDate(now);
+  return formatWallClockDate(
+    Date.UTC(
+      manilaNow.getUTCFullYear(),
+      manilaNow.getUTCMonth(),
+      manilaNow.getUTCDate(),
+      0,
+      0,
+      0,
+      0
+    )
+  );
+}
+
+export function getLeadTimeDaysFromManilaToday(
+  targetDate: string,
+  now: Date = new Date()
+): number {
+  if (!targetDate) {
+    return 0;
+  }
+
+  const todayInManila = getManilaCalendarDate(now);
+  const diffMs = parseIsoCalendarDate(targetDate) - parseIsoCalendarDate(todayInManila);
+  return Math.round(diffMs / DAY_MS);
+}
+
 function getLeadTimeDurationMs(
   availability: AvailabilityType,
   minimumLeadTimeDays: number

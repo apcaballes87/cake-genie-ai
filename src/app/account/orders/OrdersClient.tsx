@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, ChangeEvent, FormEvent, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks';
 import { showSuccess, showError } from '@/lib/utils/toast';
 import { CakeGenieOrder, CakeGenieOrderItem, PaymentStatus, OrderStatus } from '@/lib/database.types';
@@ -232,7 +232,9 @@ const PayBalanceButton: React.FC<{ order: EnrichedOrder }> = ({ order }) => {
                 orderId: order.order_id,
                 amount: remainingBalance,
                 contributorName: recipientName || 'Customer',
-                contributorEmail: customerEmail
+                contributorEmail: customerEmail,
+                successRedirectUrl: `${window.location.origin}/order-confirmation?order_id=${order.order_id}`,
+                failureRedirectUrl: `${window.location.origin}/account/orders?payment_failed=true&order_id=${order.order_id}`
             });
 
             if (paymentError) throw new Error(paymentError);
@@ -518,10 +520,32 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onOrderUpdate }) => {
     const progress = Math.min((collected / total) * 100, 100);
     const remaining = Math.max(total - collected, 0);
     const isFullyFunded = remaining <= 0;
+    const detailsRegionId = `order-details-${order.order_id}`;
+
+    const handleToggleExpand = () => {
+        setIsExpanded((prev) => !prev);
+    };
+
+    const handleToggleExpandKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+        if (event.key !== 'Enter' && event.key !== ' ') {
+            return;
+        }
+
+        event.preventDefault();
+        handleToggleExpand();
+    };
 
     return (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="p-4 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+            <div
+                role="button"
+                tabIndex={0}
+                aria-expanded={isExpanded}
+                aria-controls={detailsRegionId}
+                className="p-4 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
+                onClick={handleToggleExpand}
+                onKeyDown={handleToggleExpandKeyDown}
+            >
                 <div className="flex justify-between items-start">
                     <div>
                         <div className="flex items-center gap-2">
@@ -631,7 +655,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onOrderUpdate }) => {
             </div>
 
             {isExpanded && (
-                <div className="px-4 pb-4 border-t border-slate-200 animate-fade-in">
+                <div id={detailsRegionId} className="px-4 pb-4 border-t border-slate-200 animate-fade-in">
                     <style>{`.animate-fade-in { animation: fadeIn 0.3s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
 
                     {/* Expanded Split Order Details */}
@@ -693,8 +717,10 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onOrderUpdate }) => {
 // --- Main Page Component ---
 export default function OrdersClient() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { user, loading: authLoading } = useAuth();
     const userId = user?.id;
+    const paymentFailed = searchParams.get('payment_failed') === 'true';
     const [currentPage, setCurrentPage] = useState(1);
     const [allOrders, setAllOrders] = useState<EnrichedOrder[]>([]);
     const [billShareDesigns, setBillShareDesigns] = useState<any[]>([]);
@@ -711,6 +737,12 @@ export default function OrdersClient() {
             showError(error instanceof Error ? error.message : "Could not fetch your orders.");
         }
     }, [error]);
+
+    useEffect(() => {
+        if (paymentFailed) {
+            showError('Payment failed. Please try again.');
+        }
+    }, [paymentFailed]);
 
     const totalOrderCount = pageData?.totalOrderCount || 0;
     const totalItemCount = (pageData?.totalOrderCount || 0) + (pageData?.designs?.length || 0);

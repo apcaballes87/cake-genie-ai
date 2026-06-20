@@ -1,18 +1,132 @@
 # Tasks
 
+## Audit 50% Downpayment Feature
+
+### Plan
+
+- [x] Trace the full 50% downpayment flow across checkout UI, order rendering, confirmation, SQL RPCs/triggers, and Supabase Edge Functions.
+- [x] Compare the repo implementation with the live Supabase project state, including current function bodies, advisors, and recent edge-function logs, to catch production drift.
+- [x] Fix any confirmed server-side validation, payment-state, authorization, or accessibility issues with minimal scoped changes.
+- [x] Run targeted verification for the downpayment checkout path, webhook/verification reconciliation, and remaining-balance payment path.
+- [x] Record findings by severity plus the verification proof in the review section below.
+
+### Review
+
+- High-risk issues confirmed in the original implementation:
+  - The 3-day downpayment eligibility check lived only in [src/app/cart/CartClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/cart/CartClient.tsx:1), while the live `create_split_order_from_cart` RPC had no server-side enforcement. A caller could bypass the UI and create a `downpayment_50` order directly.
+  - The live Supabase edge functions had drifted behind the repo. `create-order-contribution` did not verify organizer ownership for downpayment or balance invoices, `verify-xendit-payment` did not enforce the exact expected contribution amount, and `xendit-webhook` accepted unauthenticated callbacks without checking Xendit's callback token.
+  - The original confirmation flow in [src/app/order-confirmation/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/order-confirmation/page.tsx:1) did not actually verify contribution payments, ignored `contribution_id`, and hardcoded the remaining balance as half the order total instead of `total_amount - amount_collected`.
+- Medium-risk issues confirmed:
+  - The frontend lead-time calculation was browser-local and could drift from Manila dates near midnight or for users outside Philippine time.
+  - The downpayment modal and order-history expanders were not fully keyboard accessible, which made the new flow harder to complete without a mouse/touchscreen.
+  - The client helper in [src/services/supabaseService.ts](/Users/apcaballes/genieph-nextjs/src/services/supabaseService.ts:1) still pointed contribution success/failure redirects to `/#/contribute/...`, which no longer matches the live Next.js routing.
+  - The paid-order cart-clear function could wipe unrelated active cart rows after a downpayment payment. The order's selected cart rows are already removed when the split order is created, so a later webhook clear should not touch any newly added or unrelated cart items.
+  - Repeated clicks on downpayment or balance payment could mint multiple pending invoices for the same exact amount, increasing the risk of duplicate payable links and accidental over-collection.
+- Low-risk / follow-up findings:
+  - Supabase security advisors reported an unrelated but critical platform issue: multiple public tables currently have RLS disabled. This is outside the downpayment scope but should be addressed separately because it weakens the production security posture.
+  - Downpayment orders still remove the selected cart rows at order creation before payment is completed. That behavior now avoids post-payment cart loss, but it still means abandoned downpayment attempts rely on the pending-order recovery path instead of leaving the items in cart.
+- Applied fixes:
+  - Added Manila-safe lead-time helpers in [src/lib/utils/deliveryLeadTime.ts](/Users/apcaballes/genieph-nextjs/src/lib/utils/deliveryLeadTime.ts:1), wired them into [src/app/cart/CartClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/cart/CartClient.tsx:1), and disabled the downpayment CTA with inline guidance when the delivery date is too soon.
+  - Hardened the downpayment modal and order-history interactions for keyboard users in [src/app/cart/CartClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/cart/CartClient.tsx:1) and [src/app/account/orders/OrdersClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/account/orders/OrdersClient.tsx:1).
+  - Fixed contribution redirect handling and session forwarding in [src/services/supabaseService.ts](/Users/apcaballes/genieph-nextjs/src/services/supabaseService.ts:1), then updated both cart and order-history callers to send real success/failure routes.
+  - Hardened [supabase/functions/create-order-contribution/index.ts](/Users/apcaballes/genieph-nextjs/supabase/functions/create-order-contribution/index.ts:1) to reuse an existing pending downpayment invoice for the same exact stage amount instead of creating a second payable invoice on repeated clicks.
+  - Reworked [src/app/order-confirmation/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/order-confirmation/page.tsx:1) so contribution confirmations verify against `contribution_id`, poll the right payment source, and compute the remaining balance from live collected amounts.
+  - Applied live SQL hardening in [supabase/migrations/20260620053357_harden_downpayment_flow.sql](/Users/apcaballes/genieph-nextjs/supabase/migrations/20260620053357_harden_downpayment_flow.sql:1): server-side Manila lead-time enforcement, serialized contribution-trigger state updates, partial-payment aware cart-clearing, and uniqueness guards for Xendit contribution IDs.
+  - Applied the follow-up live SQL guard in [supabase/migrations/20260620065000_skip_downpayment_cart_clear.sql](/Users/apcaballes/genieph-nextjs/supabase/migrations/20260620065000_skip_downpayment_cart_clear.sql:1) so `clear_cart_for_paid_order(...)` becomes a no-op for `downpayment_50` orders and cannot erase unrelated active cart rows after payment.
+  - Deployed hardened live edge functions from [supabase/functions/create-order-contribution/index.ts](/Users/apcaballes/genieph-nextjs/supabase/functions/create-order-contribution/index.ts:1), [supabase/functions/verify-xendit-payment/index.ts](/Users/apcaballes/genieph-nextjs/supabase/functions/verify-xendit-payment/index.ts:1), and [supabase/functions/xendit-webhook/index.ts](/Users/apcaballes/genieph-nextjs/supabase/functions/xendit-webhook/index.ts:1). The new versions enforce organizer authorization for downpayment invoices, exact 50% / remaining-balance amounts, contribution amount verification during reconciliation, and optional Xendit callback-token verification for webhooks.
+- Verification:
+  - `npx vitest run src/lib/utils/deliveryLeadTime.test.ts src/hooks/usePendingOrderRecovery.test.ts src/app/cart/__tests__/CartClient.recovery.test.tsx`
+  - `npm run build`
+  - Live Supabase verification with `pg_get_functiondef(...)`, deployed edge-function metadata checks, and successful `apply_migration(...)` / `deploy_edge_function(...)` runs against the production project.
+- Remaining operational follow-up:
+  - Ensure one of `XENDIT_WEBHOOK_CALLBACK_TOKEN`, `XENDIT_CALLBACK_TOKEN`, or `XENDIT_PAYMENT_CALLBACK_TOKEN` is configured in the live Supabase function environment. The webhook now verifies the header when a token is configured, but the MCP tools used in this audit do not expose the current secret state.
+
+## Fix Cart Date Picker Dead Click Path
+
+### Plan
+
+- [x] Inspect the `/cart` date-picker interaction and confirm why disabled dates produce dead clicks on mobile.
+- [x] Replace the current no-op disabled-date interaction with an accessible date-cell component that keeps unavailable dates visibly disabled while still surfacing the reason on tap/focus.
+- [x] Add focused tests for enabled vs unavailable date-cell behavior, then run targeted verification and a production build.
+
+### Review
+
+- The dead-click root cause was the old date strip in [src/app/cart/CartClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/cart/CartClient.tsx:1599): unavailable dates still rendered as ordinary-looking buttons, their click path was a silent no-op, and the only explanation lived behind `onMouseEnter` / `onMouseLeave` hover tooltip handlers. On mobile, that meant users could tap a blocked date and get no visible response.
+- Extracted the date-cell rendering into [src/app/cart/CartDateOption.tsx](/Users/apcaballes/genieph-nextjs/src/app/cart/CartDateOption.tsx:1). Available dates still use the main button for selection, while unavailable dates now render a real disabled button for correct semantics plus a separate transparent reason trigger that exposes the unavailability message on tap, focus, or hover.
+- Updated [src/app/cart/CartClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/cart/CartClient.tsx:291) so unavailable-date feedback is shared across the strip:
+  - valid date selections clear the unavailable-date message,
+  - unavailable date taps announce the reason with `showInfo(...)`,
+  - and the cart now shows an inline `Date unavailable:` helper under the date rail for touch/mobile visibility instead of relying on desktop hover only.
+- The visual state for unavailable dates is also stronger now: the date cell stays visibly disabled with muted text/background and no fake selectable hover behavior, which should reduce the “this looks tappable” ambiguity that Clarity was catching.
+- Verification:
+  - `npx vitest run src/app/cart/__tests__/CartDateOption.test.tsx src/app/cart/__tests__/CartClient.recovery.test.tsx`
+  - `npm run build`
+  - `git diff --check -- src/app/cart/CartClient.tsx src/app/cart/CartDateOption.tsx src/app/cart/__tests__/CartDateOption.test.tsx tasks/todo.md`
+- Notes from verification:
+  - Repo-wide `git diff --check` still reports an unrelated existing `new blank line at EOF` issue in `src/app/api/admin/cake-cache-images/route.ts`. I left that file untouched because it is outside this cart fix scope.
+
 ## Implement GA4 Cleanup V1
 
 ### Plan
 
-- [ ] Replace the inline root-layout GA4 config with a dedicated client analytics boundary that controls readiness, route suppression, manual pageviews, and internal-user tagging.
-- [ ] Update the shared GA4 helper so all app analytics flow through one gated API, including replacing direct `gtag(...)` event calls.
-- [ ] Rename custom analytics `source` params to `ui_source` and migrate internal `/customizing` handoff URLs from `source` to `entry_source` while keeping backward-compatible reads.
-- [ ] Set the internal-traffic cookie from middleware for `/admin/*` and `/similarity-debugger`, then add focused tests for middleware, analytics gating, and URL migration.
-- [ ] Run targeted tests plus a production build, then document verification and the GA4 admin follow-ups in this task entry.
+- [x] Replace the inline root-layout GA4 config with a dedicated client analytics boundary that controls readiness, route suppression, manual pageviews, and internal-user tagging.
+- [x] Update the shared GA4 helper so all app analytics flow through one gated API, including replacing direct `gtag(...)` event calls.
+- [x] Rename custom analytics `source` params to `ui_source` and migrate internal `/customizing` handoff URLs from `source` to `entry_source` while keeping backward-compatible reads.
+- [x] Set the internal-traffic cookie from middleware for `/admin/*` and `/similarity-debugger`, then add focused tests for middleware, analytics gating, and URL migration.
+- [x] Run targeted tests plus a production build, then document verification and the GA4 admin follow-ups in this task entry.
 
 ### Review
 
-- In progress.
+- Replaced the old inline GA config in [src/app/layout.tsx](/Users/apcaballes/genieph-nextjs/src/app/layout.tsx:1) with a dedicated client [src/components/AnalyticsBoundary.tsx](/Users/apcaballes/genieph-nextjs/src/components/AnalyticsBoundary.tsx:1), plus an earlier bootstrap stub and manual `page_view` control. The boundary now suppresses `/admin/*` and `/similarity-debugger`, sets `send_page_view: false`, preserves the Xendit/Google Pay `ignore_referrer` behavior, and only marks analytics ready after route gating and user-property setup.
+- Centralized GA event handling in [src/lib/analytics.ts](/Users/apcaballes/genieph-nextjs/src/lib/analytics.ts:1) and [src/lib/analyticsRoutes.ts](/Users/apcaballes/genieph-nextjs/src/lib/analyticsRoutes.ts:1). App-level analytics events now queue until GA is ready, drop on excluded routes, and flush only on allowed public routes. The remaining direct `gtag(...)` calls are limited to the analytics boundary, the shared helper internals, and the bootstrap stub in the root layout.
+- Renamed the custom GA param from `source` to `ui_source` in the shared event wrappers, and migrated internal `/customizing` writers to `entry_source` in [src/app/LandingClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/LandingClient.tsx:1), [src/app/chatgpt-cake-design-quote/ChatGptCakeDesignQuoteClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/chatgpt-cake-design-quote/ChatGptCakeDesignQuoteClient.tsx:1), [src/app/cake-price-calculator/CakePriceCalculatorClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/cake-price-calculator/CakePriceCalculatorClient.tsx:1), and [src/components/blog/BlogUploadButton.tsx](/Users/apcaballes/genieph-nextjs/src/components/blog/BlogUploadButton.tsx:1). The customizer keeps backward-compatible reads through [src/app/customizing/customizingClientGuards.ts](/Users/apcaballes/genieph-nextjs/src/app/customizing/customizingClientGuards.ts:1) and [src/app/customizing/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/page.tsx:1), and strips legacy `source` after consuming it.
+- Added middleware-based internal-user tagging in [src/middleware.ts](/Users/apcaballes/genieph-nextjs/src/middleware.ts:1). Browsers that hit `/admin/*` or `/similarity-debugger` now receive the `genie_internal_traffic=1` cookie with the requested path, age, same-site, and production-secure defaults, and public-page hits from those browsers are tagged as `internal_user=true` before the first manual public `page_view`.
+- Replaced the remaining direct app call sites in [src/hooks/useSearchEngine.ts](/Users/apcaballes/genieph-nextjs/src/hooks/useSearchEngine.ts:1), [src/hooks/useDesignUpdate.ts](/Users/apcaballes/genieph-nextjs/src/hooks/useDesignUpdate.ts:1), and [src/app/order-confirmation/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/order-confirmation/page.tsx:1) so purchase, design-update, and start-design events all go through the shared GA gate.
+- Verification:
+  - `npx vitest run src/lib/analytics.test.ts src/components/AnalyticsBoundary.test.tsx src/middleware.test.ts src/app/customizing/customizingClientGuards.test.ts src/app/chatgpt-cake-design-quote/ChatGptCakeDesignQuoteClient.test.tsx`
+  - `npm run build`
+  - `git diff --check`
+- Notes from verification:
+  - The first post-change build exposed a real Next.js requirement: a client component using `useSearchParams()` under the root layout needs `Suspense`. Wrapping `AnalyticsBoundary` in `Suspense` resolved that cleanly.
+  - The build still emits pre-existing warnings about `baseline-browser-mapping` staleness, the deprecated `middleware` file convention, and a few data-fetch timeout logs during static generation, but the production build completes successfully.
+- Manual GA4/property rollout still required after deploy:
+  - Disable Enhanced Measurement page-change tracking for the GA4 web stream.
+  - Create the GA4 custom definitions for `internal_user` (user-scoped) and `ui_source` (event-scoped).
+  - Create the clean saved views/explorations for `Sitewide Clean` and `Singapore Watch`.
+  - Validate in Real-time/DebugView immediately after deploy, then recheck attribution buckets after 24-48 hours and Singapore/report quality after 7-14 days before considering edge blocking.
+
+## Add Clarity Funnel Event Bridge
+
+### Plan
+
+- [x] Route key funnel and customizer events into Clarity through the shared analytics helper instead of adding ad hoc `window.clarity(...)` calls across the app.
+- [x] Bootstrap the Clarity client early enough that queued event/tag calls survive the lazy external script load.
+- [x] Tag internal-user sessions in Clarity using the existing cookie-based internal-traffic classification so admin/staff sessions are filterable.
+- [x] Run focused tests and a full production build, then document the remaining Clarity-side verification steps.
+
+### Review
+
+- Added a shared Clarity bridge in [src/lib/analytics.ts](/Users/apcaballes/genieph-nextjs/src/lib/analytics.ts:1). The existing analytics queue now forwards selected app events to Clarity after route gating and analytics readiness, so the bridge stays aligned with the GA4 cleanup work instead of introducing a parallel event path.
+- Clarity event names are intentionally prefixed with `API ` to avoid ambiguous overlap with Clarity's built-in auto events. The current code-driven event set is:
+  - `API Search`
+  - `API Image Upload`
+  - `API Sign Up`
+  - `API Start Design`
+  - `API Update Design`
+  - `API Add to Cart`
+  - `API Begin Checkout`
+  - `API Add Payment Info`
+  - `API Purchase`
+- Added an earlier Clarity bootstrap stub and centralized project ID in [src/app/layout.tsx](/Users/apcaballes/genieph-nextjs/src/app/layout.tsx:1) and [src/lib/analyticsRoutes.ts](/Users/apcaballes/genieph-nextjs/src/lib/analyticsRoutes.ts:1). The external Clarity script still loads with `lazyOnload`, but app events and custom tags can now queue safely before that script finishes loading.
+- [src/components/AnalyticsBoundary.tsx](/Users/apcaballes/genieph-nextjs/src/components/AnalyticsBoundary.tsx:1) now sets the Clarity custom tag `internal_user=true` whenever the browser already has the internal-traffic cookie, including on admin routes where GA pageviews are suppressed. That gives Clarity a stable session-level filter for staff/internal browsing without weakening the GA route suppression logic.
+- Verification:
+  - `npx vitest run src/lib/analytics.test.ts src/components/AnalyticsBoundary.test.tsx src/middleware.test.ts src/app/customizing/customizingClientGuards.test.ts src/app/chatgpt-cake-design-quote/ChatGptCakeDesignQuoteClient.test.tsx`
+  - `npm run build`
+  - `git diff --check`
+- Manual Clarity follow-up after deploy:
+  - In Clarity, confirm the new API event names start appearing under Smart Events / Filters after fresh traffic lands.
+  - Build saved filters or segments for `internal_user=true` so staff/admin sessions can be excluded from decision-making views.
+  - If you want cleaner executive-facing event labels, use Clarity Settings -> Smart Events to create or edit higher-level smart events that group the `API ...` events into the names you want to monitor.
 
 ## Audit GSC And GA4 Last 30 Days
 

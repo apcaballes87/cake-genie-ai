@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, Suspense } from 'react';
+import React, { useCallback, useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -8,16 +8,47 @@ import type { CakeGenieOrder, CakeGenieOrderItem } from '@/lib/database.types';
 import { getPaymentStatus, verifyXenditPayment } from '@/services/xenditService';
 import { trackPurchase } from '@/lib/analytics';
 
+type ConfirmationPaymentStatus = 'loading' | 'paid' | 'partial' | 'pending' | 'expired' | 'failed';
+
+function normalizeConfirmationPaymentStatus(status: string | null | undefined): ConfirmationPaymentStatus | null {
+    const normalized = status?.toLowerCase();
+
+    if (!normalized) {
+        return null;
+    }
+
+    if (normalized === 'verifying') {
+        return 'pending';
+    }
+
+    if (normalized === 'payment_mismatch') {
+        return 'failed';
+    }
+
+    if (
+        normalized === 'paid' ||
+        normalized === 'partial' ||
+        normalized === 'pending' ||
+        normalized === 'expired' ||
+        normalized === 'failed'
+    ) {
+        return normalized;
+    }
+
+    return null;
+}
+
 const OrderConfirmationContent: React.FC = () => {
     const searchParams = useSearchParams();
     const router = useRouter();
     const orderId = searchParams.get('order_id');
+    const contributionId = searchParams.get('contribution_id');
 
     const [order, setOrder] = useState<(CakeGenieOrder & { cakegenie_order_items: CakeGenieOrderItem[] }) | null>(null);
     const [loading, setLoading] = useState(true);
     const supabase = getSupabaseClient();
 
-    const [paymentStatus, setPaymentStatus] = useState<'loading' | 'paid' | 'partial' | 'pending' | 'expired' | 'failed'>('loading');
+    const [paymentStatus, setPaymentStatus] = useState<ConfirmationPaymentStatus>('loading');
     const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
 
     // Deduplication key — prevents re-firing the purchase event on page refresh
@@ -26,50 +57,68 @@ const OrderConfirmationContent: React.FC = () => {
     const onContinueShopping = () => router.push('/');
     const onGoToOrders = () => router.push('/account/orders');
 
-    useEffect(() => {
-        const fetchOrder = async () => {
-            if (!orderId) {
-                setLoading(false);
-                return;
-            };
+    const fetchOrder = useCallback(async () => {
+        if (!orderId) {
+            setLoading(false);
+            return null;
+        }
 
-            setLoading(true);
-            try {
-                const { data, error } = await supabase
-                    .from('cakegenie_orders')
-                    .select('*, cakegenie_order_items(*)')
-                    .eq('order_id', orderId)
-                    .single();
+        setLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('cakegenie_orders')
+                .select('*, cakegenie_order_items(*)')
+                .eq('order_id', orderId)
+                .single();
 
-                if (error) throw error;
-                setOrder(data);
-            } catch (error) {
-                console.error('[OrderConfirmationPage] Error fetching order:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
-                setOrder(null);
-            } finally {
-                setLoading(false);
+            if (error) throw error;
+
+            setOrder(data);
+            setPaymentMethod(data.payment_method || null);
+
+            const normalizedStatus = normalizeConfirmationPaymentStatus(data.payment_status);
+            if (normalizedStatus) {
+                setPaymentStatus((currentStatus) => {
+                    if (normalizedStatus !== 'pending' || currentStatus === 'loading') {
+                        return normalizedStatus;
+                    }
+                    return currentStatus;
+                });
             }
-        };
 
-        fetchOrder();
+            return data;
+        } catch (error) {
+            console.error('[OrderConfirmationPage] Error fetching order:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+            setOrder(null);
+            return null;
+        } finally {
+            setLoading(false);
+        }
     }, [orderId, supabase]);
+
+    useEffect(() => {
+        void fetchOrder();
+    }, [fetchOrder]);
 
     // Proactive verification on page load
     useEffect(() => {
         const verifyOnLoad = async () => {
             if (!orderId) return;
 
-            const result = await verifyXenditPayment(orderId);
+            const result = await verifyXenditPayment(orderId, contributionId || undefined);
 
             if (result.success && result.status) {
-                setPaymentStatus(result.status.toLowerCase() as any);
-            } else {
-                // If verification fails, the polling mechanism below will take over.
+                const normalizedStatus = normalizeConfirmationPaymentStatus(result.status);
+                if (normalizedStatus) {
+                    setPaymentStatus(normalizedStatus);
+                }
             }
+
+            await fetchOrder();
         };
 
-        verifyOnLoad();
-    }, [orderId]);
+        void verifyOnLoad();
+    }, [contributionId, fetchOrder, orderId]);
 
     // Polling mechanism as a fallback
     useEffect(() => {
@@ -77,17 +126,30 @@ const OrderConfirmationContent: React.FC = () => {
             if (!orderId) return;
 
             try {
+                if (contributionId) {
+                    const verificationResult = await verifyXenditPayment(orderId, contributionId);
+                    const normalizedStatus = normalizeConfirmationPaymentStatus(verificationResult.status);
+                    if (normalizedStatus) {
+                        setPaymentStatus(normalizedStatus);
+                    }
+                    await fetchOrder();
+                    return;
+                }
+
                 const paymentData = await getPaymentStatus(orderId);
 
                 if (paymentData) {
-                    setPaymentStatus(paymentData.status.toLowerCase() as any);
+                    const normalizedStatus = normalizeConfirmationPaymentStatus(paymentData.status);
+                    if (normalizedStatus) {
+                        setPaymentStatus(normalizedStatus);
+                    }
                     setPaymentMethod(paymentData.payment_method);
                 } else {
-                    setPaymentStatus('pending');
+                    await fetchOrder();
                 }
             } catch (error) {
                 console.error('Error checking payment status during poll:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
-                setPaymentStatus('pending');
+                await fetchOrder();
             }
         };
 
@@ -95,12 +157,12 @@ const OrderConfirmationContent: React.FC = () => {
         // The interval will start after a short delay.
         const intervalId = setInterval(() => {
             if (paymentStatus === 'pending' || paymentStatus === 'loading') {
-                checkPayment();
+                void checkPayment();
             }
         }, 5000);
 
         return () => clearInterval(intervalId);
-    }, [orderId, paymentStatus]);
+    }, [contributionId, fetchOrder, orderId, paymentStatus]);
 
     // Fire the GA4 purchase event exactly once when payment is confirmed as 'paid' or 'partial'.
     // The sessionStorage guard prevents duplicate events on page refresh.
@@ -191,14 +253,32 @@ const OrderConfirmationContent: React.FC = () => {
     }
 
     const displayId = order.order_number || (typeof order.order_id === 'string' ? order.order_id.split('-')[0].toUpperCase() : 'N/A');
+    const remainingBalance = Math.max(
+        Number(order.total_amount) - Number(order.amount_collected || 0),
+        0
+    );
+    const headlineText = paymentStatus === 'partial'
+        ? 'Downpayment Received'
+        : paymentStatus === 'paid'
+            ? 'Order Placed Successfully!'
+            : 'Order Placed';
+    const subtitleText = paymentStatus === 'partial'
+        ? 'Your booking is confirmed after the 50% downpayment.'
+        : 'Your order is now being processed.';
 
     return (
         <div className="w-full max-w-md mx-auto bg-white/70 backdrop-blur-lg p-8 rounded-2xl shadow-lg border border-slate-200 text-center animate-fade-in mt-10">
             <div className="mx-auto w-16 h-16 flex items-center justify-center bg-green-100 rounded-full">
                 <svg className="w-10 h-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
             </div>
-            <h1 className="text-2xl font-bold text-slate-900 mt-4">Order Placed <span className="text-purple-400">Successfully!</span></h1>
-            <p className="text-slate-600 mt-2">Your order is now being processed.</p>
+            <h1 className="text-2xl font-bold text-slate-900 mt-4">
+                {headlineText === 'Order Placed Successfully!' ? (
+                    <>Order Placed <span className="text-purple-400">Successfully!</span></>
+                ) : (
+                    <>{headlineText}<span className="text-purple-400">.</span></>
+                )}
+            </h1>
+            <p className="text-slate-600 mt-2">{subtitleText}</p>
 
             <div className="mt-4 bg-slate-100 p-3 rounded-lg">
                 <p className="text-sm text-slate-500">Your Order Number is:</p>
@@ -246,12 +326,12 @@ const OrderConfirmationContent: React.FC = () => {
                         </svg>
                         <div>
                             <p className="font-semibold text-lg text-green-800">Downpayment Confirmed! 🎉</p>
-                            <p className="text-sm text-green-750 mt-1">
+                            <p className="text-sm text-green-700 mt-1">
                                 Your 50% downpayment has been successfully processed
                                 {paymentMethod && ` via ${paymentMethod}`}.
                             </p>
-                            <p className="text-sm text-green-750 mt-2">
-                                We will start preparing your custom cake! The remaining 50% balance of <strong>₱{(order.total_amount / 2).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> is due on or before delivery/pickup.
+                            <p className="text-sm text-green-700 mt-2">
+                                We will start preparing your custom cake! The remaining balance of <strong>₱{remainingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> is due on or before delivery/pickup.
                             </p>
                         </div>
                     </div>

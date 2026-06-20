@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   getDisabledTimeSlotsForLeadTime,
+  getLeadTimeDaysFromManilaToday,
   getLeadTimeReadyAt,
+  getManilaCalendarDate,
   isDateAvailableForLeadTime,
   type DeliveryTimeSlot,
 } from '@/lib/utils/deliveryLeadTime';
@@ -61,5 +63,15 @@ describe('delivery lead time', () => {
       minimumLeadTimeDays: 1,
       now: new Date('2026-04-23T07:00:00.000Z'),
     })).toEqual(['10AM - 12NN', '12NN - 2PM']);
+  });
+
+  it('derives the current calendar date in Asia/Manila instead of the browser timezone', () => {
+    expect(getManilaCalendarDate(new Date('2026-06-19T16:30:00.000Z'))).toBe('2026-06-20');
+    expect(getManilaCalendarDate(new Date('2026-06-20T15:59:59.000Z'))).toBe('2026-06-20');
+  });
+
+  it('measures lead-time days from the Manila calendar day', () => {
+    expect(getLeadTimeDaysFromManilaToday('2026-06-23', new Date('2026-06-19T16:30:00.000Z'))).toBe(3);
+    expect(getLeadTimeDaysFromManilaToday('2026-06-22', new Date('2026-06-19T16:30:00.000Z'))).toBe(2);
   });
 });

@@ -3064,18 +3064,31 @@ export async function createOrderContribution(params: {
   amount: number;
   contributorName: string;
   contributorEmail?: string;
+  successRedirectUrl?: string;
+  failureRedirectUrl?: string;
 }): Promise<{ success: boolean; paymentUrl?: string; error?: string }> {
   try {
     const domain = window.location.origin;
     const paymentMode = (typeof window !== 'undefined' && localStorage.getItem('xendit_payment_mode')) || 'live';
+    const { data: { session } } = await supabase.auth.getSession();
+    const successRedirectUrl =
+      params.successRedirectUrl || `${domain}/contribute/${params.orderId}?payment=success`;
+    const failureRedirectUrl =
+      params.failureRedirectUrl || `${domain}/contribute/${params.orderId}?payment=failed`;
 
     const { data, error } = await supabase.functions.invoke('create-order-contribution', {
       body: {
-        ...params,
+        orderId: params.orderId,
+        amount: params.amount,
+        contributorName: params.contributorName,
+        contributorEmail: params.contributorEmail,
         payment_mode: paymentMode,
-        success_redirect_url: `${domain}/#/contribute/${params.orderId}?payment=success`,
-        failure_redirect_url: `${domain}/#/contribute/${params.orderId}?payment=failed`
-      }
+        success_redirect_url: successRedirectUrl,
+        failure_redirect_url: failureRedirectUrl
+      },
+      headers: session ? {
+        Authorization: `Bearer ${session.access_token}`
+      } : {}
     });
 
     if (error) throw error;

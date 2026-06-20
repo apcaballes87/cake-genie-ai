@@ -21,7 +21,7 @@ import { SplitWithFriendsModal } from '@/components/SplitWithFriendsModal';
 import { SplitOrderShareModal } from '@/components/SplitOrderShareModal';
 import { useGoogleMapsLoader, GoogleMapsLoaderProvider } from '@/contexts/GoogleMapsLoaderContext';
 import { calculateCartAvailability } from '@/lib/utils/availability';
-import { getDisabledTimeSlotsForLeadTime, isDateAvailableForLeadTime } from '@/lib/utils/deliveryLeadTime';
+import { getDisabledTimeSlotsForLeadTime, getLeadTimeDaysFromManilaToday, isDateAvailableForLeadTime } from '@/lib/utils/deliveryLeadTime';
 import CartItemCard from '@/components/CartItemCard';
 import { useQuery } from '@tanstack/react-query';
 import { useAvailabilitySettings } from '@/hooks/useAvailabilitySettings';
@@ -206,12 +206,70 @@ const DownpaymentModal: React.FC<DownpaymentModalProps> = ({
     eventDate,
     isLoading
 }) => {
-    if (!isOpen) return null;
+    const dialogRef = useRef<HTMLDivElement>(null);
+    const confirmButtonRef = useRef<HTMLButtonElement>(null);
+
+    useEffect(() => {
+        if (!isOpen) {
+            return;
+        }
+
+        const previousActiveElement = document.activeElement instanceof HTMLElement
+            ? document.activeElement
+            : null;
+        const previousOverflow = document.body.style.overflow;
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                if (!isLoading) {
+                    onClose();
+                }
+                return;
+            }
+
+            if (event.key !== 'Tab' || !dialogRef.current) {
+                return;
+            }
+
+            const focusableElements = Array.from(
+                dialogRef.current.querySelectorAll<HTMLElement>(
+                    'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+                )
+            );
+
+            if (focusableElements.length === 0) {
+                return;
+            }
+
+            const firstElement = focusableElements[0];
+            const lastElement = focusableElements[focusableElements.length - 1];
+
+            if (event.shiftKey && document.activeElement === firstElement) {
+                event.preventDefault();
+                lastElement.focus();
+            } else if (!event.shiftKey && document.activeElement === lastElement) {
+                event.preventDefault();
+                firstElement.focus();
+            }
+        };
+
+        document.body.style.overflow = 'hidden';
+        confirmButtonRef.current?.focus();
+        document.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            document.body.style.overflow = previousOverflow;
+            document.removeEventListener('keydown', handleKeyDown);
+            previousActiveElement?.focus();
+        };
+    }, [isOpen, isLoading, onClose]);
 
     const downpayment = totalAmount / 2;
     const balance = totalAmount / 2;
     const formattedDate = eventDate
-        ? new Date(eventDate + 'T00:00:00').toLocaleDateString('en-US', {
+        ? new Date(`${eventDate}T00:00:00+08:00`).toLocaleDateString('en-US', {
+              timeZone: 'Asia/Manila',
               weekday: 'long',
               year: 'numeric',
               month: 'long',
@@ -219,18 +277,38 @@ const DownpaymentModal: React.FC<DownpaymentModalProps> = ({
           })
         : '';
 
+    if (!isOpen) return null;
+
+    const handleBackdropClick = () => {
+        if (!isLoading) {
+            onClose();
+        }
+    };
+
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in">
-            <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-xl animate-scale-in border border-slate-100">
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in"
+            onClick={handleBackdropClick}
+        >
+            <div
+                ref={dialogRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="downpayment-modal-title"
+                aria-describedby="downpayment-modal-description"
+                className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-xl animate-scale-in border border-slate-100"
+                onClick={(event) => event.stopPropagation()}
+            >
                 {/* Header */}
                 <div className="flex justify-between items-center p-4 border-b border-purple-50">
                     <div className="flex items-center gap-2">
                         <div className="p-2 bg-purple-50 text-purple-600 rounded-full">
                             <CreditCard size={20} />
                         </div>
-                        <h2 className="text-lg font-bold text-slate-800">50% Downpayment Option</h2>
+                        <h2 id="downpayment-modal-title" className="text-lg font-bold text-slate-800">50% Downpayment Option</h2>
                     </div>
                     <button
+                        type="button"
                         onClick={onClose}
                         className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-colors"
                         aria-label="Close modal"
@@ -258,7 +336,7 @@ const DownpaymentModal: React.FC<DownpaymentModalProps> = ({
                         </div>
                     </div>
 
-                    <div className="text-sm text-slate-650 space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <div id="downpayment-modal-description" className="text-sm text-slate-600 space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-100">
                         <p className="font-medium text-slate-800 text-xs sm:text-sm">Payment Terms:</p>
                         <ul className="list-disc pl-4 space-y-1 text-xs">
                             <li>To secure your order, a 50% non-refundable downpayment is required today.</li>
@@ -268,6 +346,8 @@ const DownpaymentModal: React.FC<DownpaymentModalProps> = ({
 
                     <div className="space-y-3">
                         <button
+                            ref={confirmButtonRef}
+                            type="button"
                             onClick={onConfirm}
                             disabled={isLoading}
                             className="w-full genie-btn-primary py-3.5 px-4 font-bold rounded-full transition-all active:scale-[0.98] disabled:opacity-75 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -285,6 +365,7 @@ const DownpaymentModal: React.FC<DownpaymentModalProps> = ({
                             )}
                         </button>
                         <button
+                            type="button"
                             onClick={onClose}
                             disabled={isLoading}
                             className="w-full py-3 text-slate-500 hover:text-slate-700 font-semibold text-sm transition-colors text-center"
@@ -1383,12 +1464,7 @@ function CartClient() {
 
     const getLeadTimeDays = (): number => {
         if (!eventDate) return 0;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const selectedDate = new Date(eventDate + 'T00:00:00');
-        selectedDate.setHours(0, 0, 0, 0);
-        const diffTime = selectedDate.getTime() - today.getTime();
-        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return getLeadTimeDaysFromManilaToday(eventDate);
     };
 
     const handleDownpaymentClick = () => {
@@ -1540,7 +1616,9 @@ function CartClient() {
                 orderId: order.order_id,
                 amount: order.total_amount / 2,
                 contributorName: nameToUse || 'Customer',
-                contributorEmail: emailToUse
+                contributorEmail: emailToUse,
+                successRedirectUrl: `${window.location.origin}/order-confirmation?order_id=${order.order_id}`,
+                failureRedirectUrl: `${window.location.origin}/cart?payment_failed=true&order_id=${order.order_id}`
             });
 
             if (paymentError) throw new Error(paymentError);
@@ -1584,6 +1662,8 @@ function CartClient() {
             setIsCreatingPayment(false);
         }
     };
+
+    const canUseDownpayment = getLeadTimeDays() >= 3;
 
     const handleSplitWithFriends = async (splitCount: number, splitMessage: string) => {
         if (!isAuthenticated) {
@@ -2503,7 +2583,7 @@ function CartClient() {
 
                                     {fulfillmentType === 'pickup' && (
                                         <p className="text-xs text-center text-slate-500 pt-1">
-                                            Pick-up is available at <strong>Cakes and Memories Bakeshop – Treehouse</strong>. Please come within the selected time slot.
+                                            Pick-up is available at <strong>{PICKUP_LOCATIONS[selectedPickupIndex].branchName}</strong>. Please come within the selected time slot.
                                         </p>
                                     )}
 
@@ -2565,13 +2645,19 @@ function CartClient() {
                                                 disabled={
                                                     isPlacingOrder ||
                                                     isCreatingPayment ||
-                                                    getMissingRequirements().length > 0
+                                                    getMissingRequirements().length > 0 ||
+                                                    !canUseDownpayment
                                                 }
                                                 className="w-full genie-btn-secondary py-4 px-4 font-bold rounded-full transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed max-[413px]:text-[11px] max-[413px]:px-2 max-[413px]:gap-1"
                                             >
                                                 <CreditCard className="w-5 h-5 max-[413px]:w-4 max-[413px]:h-4 shrink-0" />
                                                 <span className="whitespace-nowrap">Place Order with 50% Downpayment</span>
                                             </button>
+                                            {eventDate && !canUseDownpayment && (
+                                                <p className="text-xs text-center text-slate-500 px-2">
+                                                    50% downpayment is available only for fulfillment dates at least 3 calendar days away in the Philippines.
+                                                </p>
+                                            )}
                                         </div>
                                     </PaymentErrorBoundary>
 
