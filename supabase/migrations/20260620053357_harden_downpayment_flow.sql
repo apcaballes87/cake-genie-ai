@@ -192,11 +192,11 @@ BEGIN
 
     v_required_downpayment := round(v_order_total / 2.0, 2);
 
-    IF v_total_collected >= v_order_total THEN
+    IF round(v_total_collected, 2) >= round(v_order_total, 2) THEN
         v_next_payment_status := 'paid';
         v_next_order_status := 'confirmed';
     ELSIF v_split_message = 'downpayment_50'
-      AND v_total_collected >= v_required_downpayment THEN
+      AND round(v_total_collected, 2) >= v_required_downpayment THEN
         v_next_payment_status := 'partial';
         v_next_order_status := 'confirmed';
     END IF;
