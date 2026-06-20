@@ -1,5 +1,37 @@
 # Tasks
 
+## Move Icing Section Below Cake Message
+
+### Plan
+
+- [x] Inspect the current customizer editor-sheet panel order and confirm where the icing and cake message sections are rendered.
+- [x] Reorder the customizer panels so the icing options section appears below the cake message section without changing any section behavior.
+- [x] Run a focused verification for the touched file and capture the result in the review notes.
+
+### Review
+
+- Updated [src/app/customizing/CustomizingClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingClient.tsx:4064) so the editor-sheet section order is now `options -> messages -> icing -> toppers`, which places the icing options below the cake message section as requested.
+- Kept the change layout-only: the `CustomizingIcingEditorPanel` props and behavior are unchanged, and only its render position moved.
+- Verification:
+  - `git diff --check -- src/app/customizing/CustomizingClient.tsx tasks/todo.md`
+  - Confirmed the new local render order directly in `CustomizingClient.tsx`.
+
+## Move AI Chat Above Cake Type In Advanced Customization
+
+### Plan
+
+- [x] Inspect the current Advanced Customization render order and confirm where the AI chat card sits relative to the cake type controls.
+- [x] Reorder the Advanced Customization cards so AI chat appears above cake type while remaining inside the same expandable section.
+- [x] Run focused verification on the touched customizer files and document the result below.
+
+### Review
+
+- Updated [src/app/customizing/CustomizingStepSummarySections.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingStepSummarySections.tsx:1041) so the AI chat card now renders first inside `advanced-customization-steps`, which places it above the cake type controls while keeping it inside the same Advanced Customization accordion.
+- Kept the change layout-only within the Advanced Customization stack: the existing AI chat node and cake type controls are unchanged, and only their order moved.
+- Verification:
+  - `npx vitest run src/app/customizing/CustomizingStepSummarySections.test.tsx`
+  - `git diff --check -- src/app/customizing/CustomizingStepSummarySections.tsx src/app/customizing/CustomizingStepSummarySections.test.tsx tasks/todo.md`
+
 ## Create Admin Dashboard Downpayment Handoff Prompt
 
 ### Plan

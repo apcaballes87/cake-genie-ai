@@ -4070,6 +4070,18 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                         addOnPricing={addOnPricing?.addOnPrice ?? 0}
                     />
 
+                    <CustomizingMessagesPanel
+                        isVisible={activeCustomization === 'messages'}
+                        cakeMessages={cakeMessages}
+                        markerMap={markerMap}
+                        selectedMessageId={selectedItem && 'itemCategory' in selectedItem && selectedItem.itemCategory === 'message' ? selectedItem.id : undefined}
+                        cakeType={cakeInfo?.type}
+                        onItemClick={handleListItemClick}
+                        addCakeMessage={addCakeMessage}
+                        updateCakeMessage={updateCakeMessage}
+                        removeCakeMessage={removeCakeMessage}
+                    />
+
                     <CustomizingIcingEditorPanel
                         isVisible={activeCustomization === 'icing'}
                         hasIcingChanges={hasIcingChanges}
@@ -4100,18 +4112,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                 setSelectedItem(null);
                             }
                         }}
-                    />
-
-                    <CustomizingMessagesPanel
-                        isVisible={activeCustomization === 'messages'}
-                        cakeMessages={cakeMessages}
-                        markerMap={markerMap}
-                        selectedMessageId={selectedItem && 'itemCategory' in selectedItem && selectedItem.itemCategory === 'message' ? selectedItem.id : undefined}
-                        cakeType={cakeInfo?.type}
-                        onItemClick={handleListItemClick}
-                        addCakeMessage={addCakeMessage}
-                        updateCakeMessage={updateCakeMessage}
-                        removeCakeMessage={removeCakeMessage}
                     />
 
                     <CustomizingToppersPanel

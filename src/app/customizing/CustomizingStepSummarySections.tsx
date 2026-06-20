@@ -1044,6 +1044,14 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                     showAdvanced ? 'max-h-[2000px] opacity-100 overflow-visible' : 'max-h-0 opacity-0 pointer-events-none overflow-hidden'
                 }`}
             >
+                {cakeInfo && !isAnalyzing && !isRejectionError && aiChatNode && (
+                    <div className={cardClassName}>
+                        <div className="mt-1">
+                            {aiChatNode}
+                        </div>
+                    </div>
+                )}
+
                 {cakeInfo && !isCupcake && !isAnalyzing && !isRejectionError && cakeTypeSelectorNode && (
                     <div className={cardClassName}>
                         <div className="flex flex-col gap-2 px-1 pb-2">
@@ -1125,13 +1133,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                     </div>
                 )}
 
-                {cakeInfo && !isAnalyzing && !isRejectionError && aiChatNode && (
-                    <div className={cardClassName}>
-                        <div className="mt-1">
-                            {aiChatNode}
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );

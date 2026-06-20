@@ -263,6 +263,7 @@ describe('CustomizingStepSummarySections', () => {
 
     it('renders the main color swatches above the cake options and outside advanced customization', () => {
         const props = buildProps();
+        props.aiChatNode = <div>AI Cake Assistant</div>;
 
         render(<CustomizingStepSummarySections {...props} />);
 
@@ -282,8 +283,10 @@ describe('CustomizingStepSummarySections', () => {
         expect(advancedToggle).toHaveAttribute('aria-expanded', 'true');
         expect(advancedSection).toHaveClass('max-h-[2000px]', 'opacity-100');
         const advancedScope = within(advancedSection as HTMLElement);
+        const aiChatTitle = advancedScope.getByText('AI Cake Assistant');
         const cakeTypeLabel = advancedScope.getByText('Cake Type');
 
+        expect(aiChatTitle.compareDocumentPosition(cakeTypeLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         expect(advancedScope.getByRole('button', { name: /2 Tier/i })).toBeInTheDocument();
         expect(advancedScope.getByRole('button', { name: /3 Tier/i })).toBeInTheDocument();
         expect(cakeTypeLabel).toBeInTheDocument();
