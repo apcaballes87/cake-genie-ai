@@ -78,6 +78,7 @@ import {
     buildRetryUploadUrl,
     buildRelatedCollectionsRequestKey,
     getAutoRelatedDesignRequest,
+    resolveEntrySourceParam,
     shouldHydrateImageFromExistingAnalysis,
     shouldLoadPropDesign,
     shouldLogShopifyCseMount,
@@ -471,6 +472,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     const committedStateRef = useRef<CustomizationState | null>(null);
     const addToCartInFlightRef = useRef(false);
     const addToCartResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Kept in sync with `hasPendingVisualChanges` (declared later via useMemo) so that
+    // onAddToCart can read it without a forward-reference TypeScript error.
+    const hasPendingVisualChangesRef = useRef(false);
 
 
     const {
@@ -1145,13 +1149,30 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                 throw new Error('Your cart session is still loading. Please try again in a moment.');
             }
 
-            // 1. Prepare Base64 placeholders for immediate optimistic display
-            const optimisticOriginal = originalImagePreview || '';
-            const optimisticCustomized = editedImage || '';
+            // 1. Auto-apply pending design changes (e.g. unapplied message edits) before
+            //    adding to cart. handleUpdateDesign returns the freshly-generated image URI,
+            //    which we use as the optimistic thumbnail so the cart shows the correct design.
+            let freshEditedImage = editedImage;
+            if (hasPendingVisualChangesRef.current && originalImageData) {
+                try {
+                    isDraftApplied.current = true;
+                    const updatedImageResult = await handleUpdateDesign();
+                    if (updatedImageResult) {
+                        freshEditedImage = updatedImageResult;
+                    }
+                } catch (designUpdateErr) {
+                    // Non-fatal: if auto-apply fails, proceed with the current image
+                    console.warn('[onAddToCart] Auto-apply design changes failed, proceeding with current image:', designUpdateErr);
+                }
+            }
 
-            // 2. Start Upload in Background (Do NOT await)
+            // 2. Prepare Base64 placeholders for immediate optimistic display
+            const optimisticOriginal = originalImagePreview || '';
+            const optimisticCustomized = freshEditedImage || '';
+
+            // 3. Start Upload in Background (Do NOT await)
             const uploadPromise = uploadCartImages({
-                editedImageDataUri: editedImage,
+                editedImageDataUri: freshEditedImage,
                 userId: cartUser.id,
                 slug: typeof slug === 'string' ? slug : undefined
             });
@@ -1325,6 +1346,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         router,
         slug,
         supabase,
+        handleUpdateDesign,
+        originalImageData,
     ]);
 
     const submitAiChatPrompt = useCallback(async (prompt: string) => {
@@ -1641,7 +1664,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     // AND recent search designs (from /customizing/[slug])
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
-        const sourceParam = urlParams.get('source');
+        const sourceParam = resolveEntrySourceParam(urlParams);
 
         // Unify the data source (Product Page vs Customizing Page)
         const targetSlug = product?.slug || recentSearchDesign?.slug || recentSearchDesign?.p_hash;
@@ -1862,7 +1885,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
             try {
                 // Read directly from the browser URL bar — avoids Next.js searchParams caching
                 const urlParams = new URLSearchParams(window.location.search);
-                const sourceParam = urlParams.get('source');
+                const sourceParam = resolveEntrySourceParam(urlParams);
                 const imageUrlParam = urlParams.get('image_url');
 
                 // Not an external source handoff — bail
@@ -1939,6 +1962,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
 
                 // Clean up URL params using history API directly (avoids Next.js router cache issues)
                 urlParams.delete('source');
+                urlParams.delete('entry_source');
                 urlParams.delete('image_url');
                 urlParams.delete('image_name');
                 urlParams.delete('image_type');
@@ -2854,6 +2878,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     const hasPendingVisualChanges = useMemo(() => {
         return hasIcingChanges || hasMessageChanges || hasToppersChanges || hasPhotoChanges || hasTypeChanges || additionalInstructions.trim().length > 0;
     }, [hasIcingChanges, hasMessageChanges, hasToppersChanges, hasPhotoChanges, hasTypeChanges, additionalInstructions]);
+
+    // Ref kept in sync so onAddToCart (declared earlier) can read the latest value without
+    // triggering a "used before declaration" TypeScript error from the useMemo above.
+    hasPendingVisualChangesRef.current = hasPendingVisualChanges;
 
     const hasToyTopper = useMemo(() => {
         if (!mainToppers || !supportElements) return false;

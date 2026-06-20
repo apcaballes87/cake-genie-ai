@@ -390,7 +390,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                                 className="flex-1 min-w-0 h-12 genie-btn-primary font-bold py-3 px-4 rounded-xl text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-md whitespace-nowrap"
                             >
                                 {isAdding ? (
-                                    <><Loader2 className="w-5 h-5 animate-spin" /> {!isCompact && 'Processing...'}</>
+                                    <><Loader2 className="w-5 h-5 animate-spin" /> {!isCompact && (isApplyingChanges ? 'Applying changes...' : 'Processing...')}</>
                                 ) : (
                                     <>
                                         <ShoppingBag className="w-5 h-5 shrink-0" />
