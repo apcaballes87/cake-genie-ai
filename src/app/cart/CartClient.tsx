@@ -2567,10 +2567,10 @@ function CartClient() {
                                                     isCreatingPayment ||
                                                     getMissingRequirements().length > 0
                                                 }
-                                                className="w-full genie-btn-secondary py-4 px-4 font-bold rounded-full transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                className="w-full genie-btn-secondary py-4 px-4 font-bold rounded-full transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed max-[413px]:text-[11px] max-[413px]:px-2 max-[413px]:gap-1"
                                             >
-                                                <CreditCard className="w-5 h-5" />
-                                                <span>Place Order with 50% Downpayment</span>
+                                                <CreditCard className="w-5 h-5 max-[413px]:w-4 max-[413px]:h-4 shrink-0" />
+                                                <span className="whitespace-nowrap">Place Order with 50% Downpayment</span>
                                             </button>
                                         </div>
                                     </PaymentErrorBoundary>
