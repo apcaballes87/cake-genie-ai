@@ -1149,33 +1149,49 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                 throw new Error('Your cart session is still loading. Please try again in a moment.');
             }
 
-            // 1. Auto-apply pending design changes (e.g. unapplied message edits) before
-            //    adding to cart. handleUpdateDesign returns the freshly-generated image URI,
-            //    which we use as the optimistic thumbnail so the cart shows the correct design.
-            let freshEditedImage = editedImage;
+            // 1. Decide the upload task.
+            //    • If there are pending visual changes (e.g. unapplied message edits), kick off
+            //      the AI image edit in the background.  The cart item is added immediately with
+            //      the current image as a placeholder (CartItemCard renders a spinner overlay),
+            //      and when Gemini + upload both finish the cart swaps in the final image.
+            //    • Otherwise just upload what we already have.
+            let uploadPromise: Promise<{ originalImageUrl: string; finalImageUrl: string }>;
+
             if (hasPendingVisualChangesRef.current && originalImageData) {
-                try {
-                    isDraftApplied.current = true;
-                    const updatedImageResult = await handleUpdateDesign();
-                    if (updatedImageResult) {
-                        freshEditedImage = updatedImageResult;
-                    }
-                } catch (designUpdateErr) {
-                    // Non-fatal: if auto-apply fails, proceed with the current image
-                    console.warn('[onAddToCart] Auto-apply design changes failed, proceeding with current image:', designUpdateErr);
-                }
+                isDraftApplied.current = true;
+
+                // Start AI edit without awaiting — navigation happens instantly below
+                const aiEditPromise = handleUpdateDesign();
+
+                // Chain: wait for AI → then upload the freshly-generated image
+                uploadPromise = aiEditPromise
+                    .then((freshEditedImage) =>
+                        uploadCartImages({
+                            editedImageDataUri: freshEditedImage ?? editedImage,
+                            userId: cartUser!.id,
+                            slug: typeof slug === 'string' ? slug : undefined,
+                        })
+                    )
+                    .catch(() =>
+                        // If AI edit fails, fall back to uploading the current image
+                        uploadCartImages({
+                            editedImageDataUri: editedImage,
+                            userId: cartUser!.id,
+                            slug: typeof slug === 'string' ? slug : undefined,
+                        })
+                    );
+            } else {
+                // No pending changes — upload immediately as before
+                uploadPromise = uploadCartImages({
+                    editedImageDataUri: editedImage,
+                    userId: cartUser!.id,
+                    slug: typeof slug === 'string' ? slug : undefined,
+                });
             }
 
-            // 2. Prepare Base64 placeholders for immediate optimistic display
+            // 2. Prepare optimistic placeholders (current image, may be old — spinner covers it)
             const optimisticOriginal = originalImagePreview || '';
-            const optimisticCustomized = freshEditedImage || '';
-
-            // 3. Start Upload in Background (Do NOT await)
-            const uploadPromise = uploadCartImages({
-                editedImageDataUri: freshEditedImage,
-                userId: cartUser.id,
-                slug: typeof slug === 'string' ? slug : undefined
-            });
+            const optimisticCustomized = editedImage || '';
 
             const cartItem: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'> = {
                 user_id: cartUser.is_anonymous ? null : cartUser.id,

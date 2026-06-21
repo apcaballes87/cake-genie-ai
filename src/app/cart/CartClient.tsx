@@ -447,20 +447,26 @@ function CartClient() {
     const isCartLoading = false;
 
     const allItems = useMemo<CartItem[]>(() => {
-        const mappedSupabaseItems: CartItem[] = cartItems.map(item => ({
-            id: item.cart_item_id,
-            image: item.customized_image_url,
-            status: 'complete',
-            type: item.cake_type,
-            thickness: item.cake_thickness,
-            size: item.cake_size,
-            totalPrice: item.final_price * item.quantity,
-            details: item.customization_details as CartItemDetails,
-            merchant_id: item.merchant_id,
-            merchant_name: item.merchant?.business_name,
-        }));
+        const mappedSupabaseItems: CartItem[] = cartItems.map(item => {
+            // If the image is still a base64 data URI the background AI edit + upload is
+            // still in flight. Show a 'pending' spinner overlay until it resolves.
+            const isImagePending = item.customized_image_url?.startsWith('data:') ?? false;
+            return {
+                id: item.cart_item_id,
+                image: item.customized_image_url,
+                status: isImagePending ? 'pending' : 'complete',
+                type: item.cake_type,
+                thickness: item.cake_thickness,
+                size: item.cake_size,
+                totalPrice: item.final_price * item.quantity,
+                details: item.customization_details as CartItemDetails,
+                merchant_id: item.merchant_id,
+                merchant_name: item.merchant?.business_name,
+            };
+        });
         return [...pendingItems, ...mappedSupabaseItems];
     }, [pendingItems, cartItems]);
+
 
     // Group items by merchant
     const groupedItems = useMemo(() => {
