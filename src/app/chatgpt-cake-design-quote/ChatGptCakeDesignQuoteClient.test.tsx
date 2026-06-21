@@ -99,7 +99,7 @@ describe('ChatGptCakeDesignQuoteClient', () => {
 
     await waitFor(() => {
       expect(pushMock).toHaveBeenCalledWith(
-        '/customizing?ref=https%3A%2F%2Fcdn.example.com%2Fcustomizations%2Fmock-upload.png&source=landing',
+        '/customizing?ref=https%3A%2F%2Fcdn.example.com%2Fcustomizations%2Fmock-upload.png&entry_source=landing',
       );
     });
 

@@ -1602,7 +1602,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                     // doesn't briefly show a previously-uploaded image from IndexedDB.
                     const { clearIndexedDB } = await import('@/lib/utils/storage');
                     await clearIndexedDB();
-                    router.push(`/customizing?ref=${encodedUrl}&source=landing`);
+                    router.push(`/customizing?ref=${encodedUrl}&entry_source=landing`);
                 }
             } finally {
                 setIsUploading(false);

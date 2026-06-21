@@ -345,7 +345,6 @@ export interface CacheWriteResult {
 export interface FingerprintHashLookup {
   pHash?: string | null;
   pipeline?: string | null;
-  legacyPHashes?: string[];
 }
 
 const HEX_PHASH_PATTERN = /^[0-9a-f]{16}$/i;
@@ -367,26 +366,11 @@ function uniqueHashCandidates(candidates: Array<string | null | undefined>) {
   return [...new Set(validCandidates)];
 }
 
-function normalizeHashLookup(input: string | string[] | FingerprintHashLookup) {
-  if (typeof input === 'object' && !Array.isArray(input)) {
-    const canonicalHash = normalizeHexPHash(input.pHash);
-    const legacyHashes = uniqueHashCandidates(input.legacyPHashes || [])
-      .filter((candidate) => candidate !== canonicalHash);
-
-    return {
-      canonicalHash,
-      pipeline: input.pipeline || null,
-      legacyHashes,
-      allCandidates: uniqueHashCandidates([canonicalHash, ...legacyHashes]),
-    };
-  }
-
-  const legacyHashes = uniqueHashCandidates(Array.isArray(input) ? input : [input]);
+function normalizeHashLookup(input: FingerprintHashLookup) {
+  const canonicalHash = normalizeHexPHash(input.pHash);
   return {
-    canonicalHash: null,
-    pipeline: null,
-    legacyHashes,
-    allCandidates: legacyHashes,
+    canonicalHash,
+    pipeline: input.pipeline || null,
   };
 }
 
@@ -406,7 +390,7 @@ function getHexHashHammingDistance(left: string, right: string): number | null {
   return distance;
 }
 
-const WRITE_TIME_DUPLICATE_DISTANCE_THRESHOLD = 2;
+const WRITE_TIME_DUPLICATE_DISTANCE_THRESHOLD = 1;
 
 async function resolveExistingWriteHash(
   incomingHash: string,
@@ -421,7 +405,6 @@ async function resolveExistingWriteHash(
     const { data, error } = await client.rpc('find_similar_analysis_by_fingerprint', {
       new_hash: incomingHash,
       new_pipeline: fingerprintPipeline,
-      legacy_hashes: [],
     });
 
     if (error || !data || data.length === 0) {
@@ -500,38 +483,41 @@ function mapCacheHitResult(result: AnalysisCacheLookupRow, id: string | null): C
   return { id, pHash: result.p_hash, analysisResult, seoMetadata };
 }
 
-async function findSimilarAnalysisByLegacyHashes(
-  hashCandidates: string[],
-  imageUrl?: string
-): Promise<CacheHitResult | null> {
-  for (let i = 0; i < hashCandidates.length; i++) {
-    const candidate = hashCandidates[i];
-    console.log(`🔍 Starting legacy pHash cache lookup for hash ${i + 1}/${hashCandidates.length}: ${candidate}`);
-    console.log('🔍 Calling find_similar_analysis RPC with pHash:', candidate);
+export async function findSimilarAnalysisByHash(pHash: FingerprintHashLookup, imageUrl?: string): Promise<CacheHitResult | null> {
+  try {
+    const lookup = normalizeHashLookup(pHash);
 
-    const { data, error } = await supabase.rpc('find_similar_analysis', {
-      new_hash: candidate,
-    });
-
-    if (data) {
-      console.log(`📡 RPC 'find_similar_analysis' returned ${data.length} potential hash matches.`);
+    if (pHash.pHash && !lookup.canonicalHash) {
+      console.warn('⚠️ Dropping invalid non-hex fingerprint before cache lookup.', { pHash: pHash.pHash });
     }
 
+    if (!lookup.canonicalHash || !lookup.pipeline) {
+      console.log('⚫️ Cache MISS. No valid canonical pHash + pipeline available.');
+      return null;
+    }
+
+    console.log('🔍 Calling pipeline-matched fingerprint lookup RPC:', {
+      canonicalHash: lookup.canonicalHash,
+      pipeline: lookup.pipeline,
+    });
+
+    const { data, error } = await supabase.rpc('find_similar_analysis_by_fingerprint', {
+      new_hash: lookup.canonicalHash,
+      new_pipeline: lookup.pipeline,
+    });
+
     if (error) {
-      console.error('❌ Analysis cache lookup error:', error);
-      console.error('Error details:', { code: error.code, message: error.message, hint: error.hint });
+      console.warn('⚠️ Fingerprint lookup RPC failed:', error.message);
       return null;
     }
 
     if (!data || data.length === 0) {
-      continue;
+      console.log('⚫️ Cache MISS. No matching fingerprint found in database.');
+      return null;
     }
 
     const result = data[0];
-    const hitLabel = hashCandidates.length > 1 && candidate !== hashCandidates[0]
-      ? '✅ Cache HIT! Found matching analysis via compatibility pHash:'
-      : '✅ Cache HIT! Found matching analysis for pHash:';
-    console.log(hitLabel, candidate);
+    console.log('✅ Cache HIT! Found matching analysis via pipeline fingerprint lookup:', lookup.canonicalHash);
 
     const needsBackfill = result.price === null || result.keywords === null || (result.original_image_url === null && imageUrl);
 
@@ -541,69 +527,6 @@ async function findSimilarAnalysisByLegacyHashes(
 
     const cacheId = await resolveCacheHitId(result);
     return mapCacheHitResult(result, cacheId);
-  }
-
-  return null;
-}
-
-export async function findSimilarAnalysisByHash(pHash: string | string[] | FingerprintHashLookup, imageUrl?: string): Promise<CacheHitResult | null> {
-  try {
-    const lookup = normalizeHashLookup(pHash);
-
-    if (typeof pHash === 'object' && !Array.isArray(pHash)) {
-      const droppedCanonical = pHash.pHash && !lookup.canonicalHash;
-      const droppedLegacyCount = (pHash.legacyPHashes || []).length - lookup.legacyHashes.length;
-
-      if (droppedCanonical || droppedLegacyCount > 0) {
-        console.warn('⚠️ Dropping invalid non-hex fingerprint candidates before cache lookup.', {
-          droppedCanonical,
-          droppedLegacyCount,
-        });
-      }
-    }
-
-    if (lookup.allCandidates.length === 0) {
-      console.log('⚫️ Cache MISS. No pHash candidates were available.');
-      return null;
-    }
-
-    if (lookup.canonicalHash || lookup.legacyHashes.length > 0) {
-      console.log('🔍 Calling canonical fingerprint lookup RPC:', {
-        canonicalHash: lookup.canonicalHash,
-        pipeline: lookup.pipeline,
-        legacyCandidates: lookup.legacyHashes.length,
-      });
-
-      const { data, error } = await supabase.rpc('find_similar_analysis_by_fingerprint', {
-        new_hash: lookup.canonicalHash,
-        new_pipeline: lookup.pipeline,
-        legacy_hashes: lookup.legacyHashes,
-      });
-
-      if (error) {
-        console.warn('⚠️ Canonical fingerprint lookup unavailable, falling back to legacy pHash RPC:', error.message);
-      } else if (data && data.length > 0) {
-        const result = data[0];
-        console.log('✅ Cache HIT! Found matching analysis via canonical fingerprint lookup:', lookup.canonicalHash || lookup.legacyHashes[0]);
-
-        const needsBackfill = result.price === null || result.keywords === null || (result.original_image_url === null && imageUrl);
-
-        if (needsBackfill) {
-          backfillCacheFields(result.p_hash, result.analysis_json, imageUrl);
-        }
-
-        const cacheId = await resolveCacheHitId(result);
-        return mapCacheHitResult(result, cacheId);
-      }
-    }
-
-    const legacyHit = await findSimilarAnalysisByLegacyHashes(lookup.legacyHashes, imageUrl);
-    if (legacyHit) {
-      return legacyHit;
-    }
-
-    console.log('⚫️ Cache MISS. No matching fingerprint found in database.');
-    return null;
   } catch (err) {
     console.error('❌ Exception during analysis cache lookup:', err);
     return null;

@@ -158,7 +158,6 @@ export async function POST(req: NextRequest) {
             .rpc('find_similar_analysis_by_fingerprint', {
                 new_hash: pHash,
                 new_pipeline: fingerprint.pipeline,
-                legacy_hashes: [],
             });
 
         if (!existingCache.error && existingCache.data && existingCache.data.length > 0) {

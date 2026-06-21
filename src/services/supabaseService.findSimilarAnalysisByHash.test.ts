@@ -49,14 +49,16 @@ describe('findSimilarAnalysisByHash', () => {
     });
 
     const { findSimilarAnalysisByHash } = await import('./supabaseService');
-    const result = await findSimilarAnalysisByHash('abc123def4567890');
+    const result = await findSimilarAnalysisByHash({
+      pHash: 'abc123def4567890',
+      pipeline: 'v1-sharp-0.34-autoOrient-srgb-512-contain-white-lanczos3-gray-ahash8',
+    });
 
     expect(result?.seoMetadata.slug).toBe('lavender-cake-abc123de');
     expect(result?.id).toBe('cache-row-1');
     expect(rpcMock).toHaveBeenCalledWith('find_similar_analysis_by_fingerprint', {
-      new_hash: null,
-      new_pipeline: null,
-      legacy_hashes: ['abc123def4567890'],
+      new_hash: 'abc123def4567890',
+      new_pipeline: 'v1-sharp-0.34-autoOrient-srgb-512-contain-white-lanczos3-gray-ahash8',
     });
     expect(mockClient.from).not.toHaveBeenCalled();
     expect(updateMock).not.toHaveBeenCalled();
@@ -87,7 +89,6 @@ describe('findSimilarAnalysisByHash', () => {
     const result = await findSimilarAnalysisByHash({
       pHash: 'deadbeef1234abcd',
       pipeline: 'v1-test',
-      legacyPHashes: ['feedface5678dcba'],
     });
 
     expect(rpcMock).toHaveBeenCalledTimes(1);
@@ -95,52 +96,8 @@ describe('findSimilarAnalysisByHash', () => {
     expect(rpcMock).toHaveBeenCalledWith('find_similar_analysis_by_fingerprint', {
       new_hash: 'deadbeef1234abcd',
       new_pipeline: 'v1-test',
-      legacy_hashes: ['feedface5678dcba'],
     });
     expect(result?.seoMetadata.slug).toBe('server-cake-deadbeef');
-  });
-
-  it('retries compatibility hashes until one matches', async () => {
-    rpcMock
-      .mockResolvedValueOnce({
-        data: null,
-        error: { message: 'function not found' },
-      })
-      .mockResolvedValueOnce({
-        data: [],
-        error: null,
-      })
-      .mockResolvedValueOnce({
-        data: [
-          {
-            id: 'cache-row-3',
-            p_hash: 'facefeed9876abcd',
-            analysis_json: { cakeType: 'Bento', keyword: 'compat' },
-            seo_title: 'Compat Cake',
-            seo_description: 'Found via compatibility hash',
-            keywords: 'compat',
-            alt_text: 'Compat cake',
-            slug: 'compat-cake-facefeed',
-            original_image_url: 'https://example.com/compat.webp',
-            price: 1299,
-            availability: 'made_to_order',
-          },
-        ],
-        error: null,
-      });
-
-    const { findSimilarAnalysisByHash } = await import('./supabaseService');
-    const result = await findSimilarAnalysisByHash(['1234567890abcdef', 'facefeed9876abcd']);
-
-    expect(rpcMock).toHaveBeenNthCalledWith(1, 'find_similar_analysis_by_fingerprint', {
-      new_hash: null,
-      new_pipeline: null,
-      legacy_hashes: ['1234567890abcdef', 'facefeed9876abcd'],
-    });
-    expect(rpcMock).toHaveBeenNthCalledWith(2, 'find_similar_analysis', { new_hash: '1234567890abcdef' });
-    expect(rpcMock).toHaveBeenNthCalledWith(3, 'find_similar_analysis', { new_hash: 'facefeed9876abcd' });
-    expect(result?.seoMetadata.slug).toBe('compat-cake-facefeed');
-    expect(result?.id).toBe('cache-row-3');
   });
 
   it('drops malformed non-hex hashes before calling the RPCs', async () => {
@@ -150,20 +107,12 @@ describe('findSimilarAnalysisByHash', () => {
     });
 
     const { findSimilarAnalysisByHash } = await import('./supabaseService');
-    await findSimilarAnalysisByHash({
+    const result = await findSimilarAnalysisByHash({
       pHash: 'not-a-real-phash',
       pipeline: 'v1-test',
-      legacyPHashes: ['p123', 'abcdef1234567890'],
     });
 
-    expect(rpcMock).toHaveBeenCalledTimes(2);
-    expect(rpcMock).toHaveBeenNthCalledWith(1, 'find_similar_analysis_by_fingerprint', {
-      new_hash: null,
-      new_pipeline: 'v1-test',
-      legacy_hashes: ['abcdef1234567890'],
-    });
-    expect(rpcMock).toHaveBeenNthCalledWith(2, 'find_similar_analysis', {
-      new_hash: 'abcdef1234567890',
-    });
+    expect(rpcMock).toHaveBeenCalledTimes(0);
+    expect(result).toBeNull();
   });
 });

@@ -9,7 +9,7 @@ import { HybridAnalysisResult } from '@/types';
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils';
 import {
-    generateImageFingerprintWithLegacyCandidates,
+    generateServerImageFingerprint,
     toFingerprintLookup,
 } from '@/lib/utils/serverFingerprint.client';
 import Link from 'next/link';
@@ -215,21 +215,20 @@ async function analyzeImageWithCache(
     const file = new File([imageBlob], 'chat-image.webp', { type: imageData.mimeType });
     const compressedFile = await compressImage(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1024, fileType: 'image/webp' });
     const compressedData = await fileToBase64(new File([compressedFile], 'chat-image.webp', { type: 'image/webp' }));
-    const fingerprint = await generateImageFingerprintWithLegacyCandidates(compressedFile, imageSrc);
+    const fingerprint = await generateServerImageFingerprint(compressedFile);
     const cacheKey = fingerprint.pHash
-        ?? fingerprint.legacyPHashCandidates[0]
         ?? await generateStableFallbackHash(imageData.data);
     console.log(
         `🖼️ Chat hash result: ${
             fingerprint.pHash
                 ? `${fingerprint.pHash} (server)`
                 : cacheKey
-                    ? `${cacheKey} (${fingerprint.legacyPHashCandidates.length > 0 ? 'legacy hint' : 'stable fallback'})`
+                    ? `${cacheKey} (stable fallback)`
                     : 'FAILED (null)'
         }`
     );
 
-    if (fingerprint.pHash || fingerprint.legacyPHashCandidates.length > 0) {
+    if (fingerprint.pHash) {
         const cacheHit = await findSimilarAnalysisByHash(toFingerprintLookup(fingerprint), imageUrl);
         if (cacheHit) {
             console.log('⚡ Chat: pHash Cache Hit! Using cached analysis.');

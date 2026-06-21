@@ -122,4 +122,23 @@ describe('middleware', () => {
         expect(response.headers.get('location')).toBeNull();
         expect(mockCheckRateLimit).not.toHaveBeenCalled();
     });
+
+    it('marks admin page visits as internal traffic with a persistent cookie', async () => {
+        const request = makeRequest('http://localhost/admin/search-analysis');
+        const response = await middleware(request);
+
+        expect(response.status).toBe(200);
+        expect(response.cookies.get('genie_internal_traffic')?.value).toBe('1');
+        expect(response.cookies.get('genie_internal_traffic')?.maxAge).toBe(2592000);
+    });
+
+    it('marks similarity debugger visits as internal traffic but not ordinary public pages', async () => {
+        const internalRequest = makeRequest('http://localhost/similarity-debugger');
+        const internalResponse = await middleware(internalRequest);
+        expect(internalResponse.cookies.get('genie_internal_traffic')?.value).toBe('1');
+
+        const publicRequest = makeRequest('http://localhost/customizing');
+        const publicResponse = await middleware(publicRequest);
+        expect(publicResponse.cookies.get('genie_internal_traffic')).toBeUndefined();
+    });
 });

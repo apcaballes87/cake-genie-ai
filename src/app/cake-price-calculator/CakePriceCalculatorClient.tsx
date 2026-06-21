@@ -130,7 +130,7 @@ const CakePriceCalculatorClient: React.FC = () => {
         if (countdown === 0 && uploadedImageUrl) {
             // Redirect to customizing page
             const encodedUrl = encodeURIComponent(uploadedImageUrl);
-            router.push(`/customizing?ref=${encodedUrl}&source=shopify`);
+            router.push(`/customizing?ref=${encodedUrl}&entry_source=shopify`);
             return;
         }
 

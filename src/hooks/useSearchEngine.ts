@@ -4,6 +4,7 @@ import { trackSearchTerm } from '@/services/supabaseService';
 import { AppState } from './useAppNavigation';
 import { GoogleCSE, GoogleCSEElement } from '@/types';
 import { getProxyAwareImageUrl } from '@/lib/utils/imageSelection';
+import { trackStartDesign } from '@/lib/analytics';
 
 // Global window type extension from App.tsx
 declare global {
@@ -15,9 +16,6 @@ declare global {
     google?: GoogleCSE;
   }
 }
-
-// Declare gtag for Google Analytics event tracking
-declare const gtag: (...args: unknown[]) => void;
 
 interface UseSearchEngineProps {
   appState: AppState;
@@ -392,12 +390,7 @@ export const useSearchEngine = ({
     }
 
     // Analytics: Track when a user starts the design process via search
-    if (typeof gtag === 'function') {
-      gtag('event', 'start_design', {
-        'event_category': 'ecommerce_funnel',
-        'event_label': 'search'
-      });
-    }
+    trackStartDesign('search');
 
     trackSearchTerm(searchQueryValue).catch(() => {});
     if (typeof query === 'string') setSearchInput(searchQueryValue);

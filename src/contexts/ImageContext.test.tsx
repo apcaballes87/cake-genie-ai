@@ -13,7 +13,7 @@ const {
   compressImageMock,
   findSimilarAnalysisByHashMock,
   cacheAnalysisResultMock,
-  generateImageFingerprintWithLegacyCandidatesMock,
+  generateServerImageFingerprintMock,
   generatePerceptualHashCandidatesMock,
   findOrbCacheHitMock,
   showErrorMock,
@@ -26,7 +26,7 @@ const {
   compressImageMock: vi.fn(),
   findSimilarAnalysisByHashMock: vi.fn(),
   cacheAnalysisResultMock: vi.fn(),
-  generateImageFingerprintWithLegacyCandidatesMock: vi.fn(),
+  generateServerImageFingerprintMock: vi.fn(),
   generatePerceptualHashCandidatesMock: vi.fn(),
   findOrbCacheHitMock: vi.fn(),
   showErrorMock: vi.fn(),
@@ -83,7 +83,7 @@ vi.mock('@/lib/utils/urlHelpers', () => ({
 }));
 
 vi.mock('@/lib/utils/serverFingerprint.client', () => ({
-  generateImageFingerprintWithLegacyCandidates: generateImageFingerprintWithLegacyCandidatesMock,
+  generateServerImageFingerprint: generateServerImageFingerprintMock,
   toFingerprintLookup: vi.fn(),
 }));
 
@@ -123,10 +123,9 @@ describe('ImageContext', () => {
     findOrbCacheHitMock.mockResolvedValue(null);
     generatePerceptualHashCandidatesMock.mockResolvedValue([]);
     findSimilarAnalysisByHashMock.mockResolvedValue(null);
-    generateImageFingerprintWithLegacyCandidatesMock.mockResolvedValue({
+    generateServerImageFingerprintMock.mockResolvedValue({
       pHash: 'abc123def4567890',
       pipeline: 'v1-test-pipeline',
-      legacyPHashCandidates: [],
       error: null,
     });
     analyzeCakeFeaturesOnlyMock.mockResolvedValue({

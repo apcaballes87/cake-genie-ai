@@ -245,3 +245,44 @@ export const PATCH = async (req: NextRequest) => {
     );
   }
 };
+
+export const DELETE = async (req: NextRequest) => {
+  if (!isAuthorized(req)) {
+    return unauthorizedResponse();
+  }
+
+  try {
+    const url = new URL(req.url);
+    const pHash = url.searchParams.get('pHash')?.trim();
+
+    if (!pHash) {
+      return NextResponse.json(
+        { error: 'Missing required parameter: pHash' },
+        { status: 400 }
+      );
+    }
+
+    const supabase = createPublicServerSupabaseClient();
+    const { error } = await supabase
+      .from('cakegenie_analysis_cache')
+      .delete()
+      .eq('p_hash', pHash);
+
+    if (error) {
+      console.error('Failed to delete cake cache image:', error);
+      return NextResponse.json(
+        { error: `Database deletion failed: ${error.message}` },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error: unknown) {
+    console.error('Delete route failed:', error);
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 500 }
+    );
+  }
+};
+

@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
 import { Inter } from 'next/font/google'
+import { Suspense } from 'react'
 import './globals.css'
 import { Providers } from '@/components/Providers'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { AnalyticsBoundary } from '@/components/AnalyticsBoundary'
 
 import ClientHashRedirect from '@/components/ClientHashRedirect'
 import FloatingChatBubble from '@/components/FloatingChatBubble'
@@ -13,12 +15,16 @@ import {
   buildGenieWebsiteSchema,
   genieBusinessProfile,
 } from '@/lib/seo/genieBusinessProfile'
+import { CLARITY_PROJECT_ID, GA4_MEASUREMENT_ID } from '@/lib/analyticsRoutes'
 
 const inter = Inter({ subsets: ['latin'], display: 'optional' })
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
 }
 
 export const metadata: Metadata = {
@@ -107,9 +113,8 @@ export default function RootLayout({
           Setting up DNS + TLS in advance saves ~50-150ms on the first image
           request (especially on cold cellular connections).
 
-          We do NOT preconnect to Google Tag Manager / Clarity / GA — they're
-          loaded with strategy="lazyOnload" so they should never sit on the
-          critical path.
+          We do NOT preconnect to Google Tag Manager or Clarity. These scripts
+          are intentionally kept off the critical rendering path.
         */}
         <link
           rel="preconnect"
@@ -121,6 +126,14 @@ export default function RootLayout({
         <OrganizationSchema />
         <Providers>
           <ErrorBoundary>
+            {shouldLoadAnalytics && (
+              <Suspense fallback={null}>
+                <AnalyticsBoundary
+                  enabled={shouldLoadAnalytics}
+                  measurementId={GA4_MEASUREMENT_ID}
+                />
+              </Suspense>
+            )}
             <ClientHashRedirect />
             {children}
             <FloatingChatBubble />
@@ -128,43 +141,28 @@ export default function RootLayout({
           </ErrorBoundary>
         </Providers>
 
-        <Script id="microsoft-clarity" strategy="lazyOnload">
-          {`
-            (function(c,l,a,r,i,t,y){
-                c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-                t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-                y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-            })(window, document, "clarity", "script", "te894qldzn");
-          `}
-        </Script>
         {shouldLoadAnalytics && (
           <>
-            <Script src="https://www.googletagmanager.com/gtag/js?id=G-C28QNPRWFK" strategy="lazyOnload" />
-            <Script id="google-analytics" strategy="lazyOnload">
+            <Script id="microsoft-clarity-bootstrap" strategy="beforeInteractive">
+              {`
+                window.clarity = window.clarity || function clarity(){(window.clarity.q = window.clarity.q || []).push(arguments);}
+              `}
+            </Script>
+            <Script
+              src={`https://www.clarity.ms/tag/${CLARITY_PROJECT_ID}`}
+              strategy="lazyOnload"
+            />
+            <Script id="google-analytics-bootstrap" strategy="beforeInteractive">
               {`
                 window.dataLayer = window.dataLayer || [];
                 window.gtag = function gtag(){window.dataLayer.push(arguments);}
                 window.gtag('js', new Date());
-
-                var configOpts = {};
-                if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-                  var referrer = document.referrer || '';
-                  var path = window.location.pathname || '';
-                  
-                  // Ignore referrer if landing back from Xendit checkouts, Google confirmation/Pay,
-                  // or when on the order-confirmation page.
-                  var isXendit = referrer.indexOf('xendit.co') !== -1;
-                  var isGooglePay = referrer.indexOf('pay.google.com') !== -1 || referrer.indexOf('accounts.google.com') !== -1;
-                  var isOrderConfirmation = path.indexOf('/order-confirmation') !== -1;
-                  
-                  if (isXendit || isGooglePay || isOrderConfirmation) {
-                    configOpts['ignore_referrer'] = 'true';
-                  }
-                }
-
-                window.gtag('config', 'G-C28QNPRWFK', configOpts);
               `}
             </Script>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA4_MEASUREMENT_ID}`}
+              strategy="afterInteractive"
+            />
           </>
         )}
       </body>

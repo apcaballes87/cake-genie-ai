@@ -6,7 +6,7 @@ import { cacheAnalysisResult } from '@/services/supabaseService';
 import { fileToBase64 } from '@/services/geminiService';
 import { Upload, Download, Play, CheckCircle2, Pause, Square } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { generateImageFingerprintWithLegacyCandidates } from '@/lib/utils/serverFingerprint.client';
+import { generateServerImageFingerprint } from '@/lib/utils/serverFingerprint.client';
 import { compressImage } from '@/lib/utils/imageOptimization';
 
 const ADMIN_PIN = '231323';
@@ -152,7 +152,7 @@ export default function BulkAnalysisAdminPage() {
                     maxWidthOrHeight: 1024,
                     fileType: 'image/webp',
                 });
-                const fingerprint = await generateImageFingerprintWithLegacyCandidates(fingerprintInput, imageSrc, { crossOrigin: 'anonymous' });
+                const fingerprint = await generateServerImageFingerprint(fingerprintInput);
                 const pHash = fingerprint.pHash;
                 if (!pHash) {
                     throw new Error(fingerprint.error || 'Failed to generate server image hash.');

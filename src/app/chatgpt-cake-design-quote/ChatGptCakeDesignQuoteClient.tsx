@@ -197,7 +197,7 @@ export default function ChatGptCakeDesignQuoteClient() {
 
           if (publicUrl) {
             await clearIndexedDB();
-            router.push(`/customizing?ref=${encodeURIComponent(publicUrl)}&source=landing`);
+            router.push(`/customizing?ref=${encodeURIComponent(publicUrl)}&entry_source=landing`);
           }
         } finally {
           setIsUploading(false);

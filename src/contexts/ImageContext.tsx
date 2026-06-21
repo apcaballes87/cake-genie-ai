@@ -14,11 +14,10 @@ import { hasBoundingBoxData } from '@/lib/utils/analysisUtils'
 import { COMMON_ASSETS } from '@/constants'
 import { generateCakeAnalysisSlug } from '@/lib/utils/urlHelpers'
 import {
-    generateImageFingerprintWithLegacyCandidates,
+    generateServerImageFingerprint,
     toFingerprintLookup,
     type ClientImageFingerprint,
 } from '@/lib/utils/serverFingerprint.client'
-import { generatePerceptualHashCandidates } from '@/lib/utils/perceptualHash.client'
 import { findOrbCacheHit } from '@/services/orbMatchingService'
 import { FEATURE_FLAGS } from '@/config/features'
 
@@ -485,39 +484,13 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     `\nLatency: ${orbCacheHit.executionTimeMs?.toFixed(0) ?? 'n/a'}ms`,
                 );
             } else {
-                // --- FAST PATH: client-side legacy pHash lookup before paying for server fingerprint ---
-                // generatePerceptualHashCandidates runs entirely on the client (canvas + ahash, ~5-20ms)
-                // and returns hashes in the same legacy pipeline that find_similar_analysis_by_fingerprint
-                // already accepts as `legacy_hashes`. If those bit-collide with an existing row we can
-                // skip the 5-8s server fingerprint round-trip on cache-hit. On miss we fall through to
-                // the canonical server fingerprint so cache writes still get the v1-sharp pipeline hash.
-                if (!knownSeoMetadata) {
-                    try {
-                        const fastClientCandidates = await generatePerceptualHashCandidates(imageSrc);
-                        if (fastClientCandidates.length > 0) {
-                            const cacheHitRaw = await findSimilarAnalysisByHash(
-                                { pHash: null, pipeline: null, legacyPHashes: fastClientCandidates },
-                                options?.imageUrl
-                            );
-                            if (cacheHitRaw) {
-                                showProgressToast('We found your cake photo! 🎉', 3000);
-                                cacheHit = cacheHitRaw;
-                                pHash = cacheHitRaw.pHash || null;
-                                console.log(`✅ Fast pHash Cache HIT (client-side) for hash: ${pHash} — skipped server fingerprint`);
-                            }
-                        }
-                    } catch (fastErr) {
-                        console.warn('Fast client-side pHash lookup failed; falling through to server fingerprint:', fastErr);
-                    }
-                }
-
-                if (cacheHit) {
-                    // Cache hit landed on the fast path — skip the server fingerprint entirely.
-                } else {
-                    // Generate canonical server fingerprint when crop-resistant ORB and fast client pHash both missed.
-                    fingerprint = await generateImageFingerprintWithLegacyCandidates(
-                        finalImageBlobToCache ?? file,
-                        imageSrc
+                if (!cacheHit) {
+                    // Generate canonical server fingerprint using the Sharp pipeline.
+                    // This is the sole fingerprinting path — client-side canvas hashing
+                    // has been removed because browser rendering differences caused
+                    // false cache matches between unrelated cake images.
+                    fingerprint = await generateServerImageFingerprint(
+                        finalImageBlobToCache ?? file
                     );
                     pHash = fingerprint.pHash;
                     console.log(
@@ -528,9 +501,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
 
                     if (orbBackendOfflineOrFailed) {
                         // Case B: FastAPI is offline/errored. Fallback to standard pHash lookup in Supabase
-                        const shouldUseSimilarCacheLookup = !knownSeoMetadata && (
-                            pHash !== null || fingerprint.legacyPHashCandidates.length > 0
-                        );
+                        const shouldUseSimilarCacheLookup = !knownSeoMetadata && pHash !== null;
 
                         if (shouldUseSimilarCacheLookup) {
                             console.log('🔍 Starting legacy pHash cache lookup for offline/failed ORB backend...');

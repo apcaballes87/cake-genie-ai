@@ -12,7 +12,7 @@ import { COMMON_ASSETS } from '@/constants';
 import { findSimilarAnalysisByHash, cacheAnalysisResult } from '@/services/supabaseService';
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils';
 import {
-    generateImageFingerprintWithLegacyCandidates,
+    generateServerImageFingerprint,
     toFingerprintLookup,
     type ClientImageFingerprint,
 } from '@/lib/utils/serverFingerprint.client';
@@ -134,9 +134,8 @@ export const useImageManagement = () => {
             // --- STEP 1: CHECK pHash CACHE (FASTEST FALLBACK) ---
             let fingerprint: ClientImageFingerprint | null = null;
             if (!cachedAnalysis) {
-                fingerprint = await generateImageFingerprintWithLegacyCandidates(
-                    finalImageBlobToCache ?? file,
-                    imageSrc
+                fingerprint = await generateServerImageFingerprint(
+                    finalImageBlobToCache ?? file
                 );
                 pHash = fingerprint.pHash || '';
 
@@ -147,7 +146,7 @@ export const useImageManagement = () => {
                             : `FAILED (${fingerprint.error || 'unknown error'}) — new cache writes will be skipped`}`
                     );
 
-                    cacheHit = pHash || fingerprint.legacyPHashCandidates.length > 0
+                    cacheHit = pHash
                         ? await findSimilarAnalysisByHash(toFingerprintLookup(fingerprint), uploadedImageUrl)
                         : null;
 

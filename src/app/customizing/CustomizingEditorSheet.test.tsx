@@ -74,7 +74,7 @@ describe('CustomizingEditorSheet', () => {
 
     it('keeps the visual apply action visible but disabled with no pending changes', () => {
         const props = buildProps();
-        props.activeCustomization = 'messages';
+        props.activeCustomization = 'icing';
         props.hasCakeInfoChanges = false;
         props.hasPendingVisualChanges = false;
 

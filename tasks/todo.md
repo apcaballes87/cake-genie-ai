@@ -3047,3 +3047,24 @@
   - `npx vitest run src/middleware.test.ts src/lib/utils/urlHelpers.test.ts` passed with `24` tests.
   - `npx eslint src/middleware.ts src/middleware.test.ts` passed with only the existing stale Browserslist warning.
   - `git diff --check -- src/middleware.ts src/middleware.test.ts tasks/todo.md` passed.
+
+# Tighten Mobile Page Gestures And Zoom (2026-06-21)
+
+### Plan
+
+- [x] Lock the mobile page viewport against accidental browser zoom by default, while still allowing the shared image-zoom modal to temporarily re-enable zoom when it is intentionally open.
+- [x] Stop the mobile document from drifting sideways at the root overflow layer without breaking intentional component-level horizontal scrollers.
+- [x] Add focused regression coverage for the shared zoom/modal behavior and the new mobile gesture guard.
+- [x] Run targeted verification plus a full build check before closing the task.
+
+### Review
+
+- Tightened the shared mobile viewport policy in `src/app/layout.tsx` so mobile browsers start from a locked, app-like scale, then added a shared `MobileGestureGuard` in `src/components/Providers.tsx` to block multi-touch browser zoom gestures unless the body is in the shared image-zoom state.
+- Updated `src/components/ImageZoomModal.tsx` so opening the shared zoom modal temporarily relaxes the mobile viewport meta tag and closing it restores the locked page-level viewport. That keeps image zoom as the only intentional zoom path.
+- Added a mobile-only root overflow clamp in `src/app/globals.css` so the document itself cannot drift sideways, while nested component scrollers can still own their own horizontal scrolling.
+- Added focused regression coverage in `src/components/ImageZoomModal.test.tsx` and `src/components/MobileGestureGuard.test.tsx` for the viewport unlock/restore path and the mobile multi-touch guard behavior.
+- Verification:
+  - `npx vitest run src/components/ImageZoomModal.test.tsx src/components/MobileGestureGuard.test.tsx` passed with `4` tests.
+  - `npx eslint src/app/layout.tsx src/components/Providers.tsx src/components/ImageZoomModal.tsx src/components/ImageZoomModal.test.tsx src/components/MobileGestureGuard.tsx src/components/MobileGestureGuard.test.tsx` completed without lint errors and only the existing stale Browserslist warning.
+  - `git diff --check -- src/app/layout.tsx src/app/globals.css src/components/Providers.tsx src/components/ImageZoomModal.tsx src/components/ImageZoomModal.test.tsx src/components/MobileGestureGuard.tsx src/components/MobileGestureGuard.test.tsx tasks/todo.md` passed.
+  - `npm run build` is still blocked by a pre-existing unrelated TypeScript error in `src/components/ChatModal.tsx:497` (`findSimilarAnalysisByHash(cacheKey)` type mismatch), so the repo-wide build could not be used as the final green signal for this task.

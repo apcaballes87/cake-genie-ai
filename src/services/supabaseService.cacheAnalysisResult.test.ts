@@ -244,7 +244,6 @@ describe('cacheAnalysisResult', () => {
     expect(rpcMock).toHaveBeenCalledWith('find_similar_analysis_by_fingerprint', {
       new_hash: 'ff4f040c0703c7bf',
       new_pipeline: 'v1-sharp-0.34-autoOrient-srgb-512-contain-white-lanczos3-gray-ahash8',
-      legacy_hashes: [],
     });
     expect(upsertMock).toHaveBeenCalledWith(
       expect.objectContaining({

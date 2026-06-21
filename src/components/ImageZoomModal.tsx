@@ -5,6 +5,9 @@ import LazyImage from './LazyImage';
 
 type ImageTab = 'original' | 'customized';
 
+const MOBILE_VIEWPORT_QUERY = '(max-width: 767px)';
+const UNLOCKED_VIEWPORT_CONTENT = 'width=device-width, initial-scale=1, viewport-fit=cover';
+
 interface ImageZoomModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -41,12 +44,26 @@ const ImageZoomModalContent = React.memo<ImageZoomModalContentProps>(({
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
+    const viewportMeta = document.querySelector('meta[name="viewport"]');
+    const previousViewportContent = viewportMeta?.getAttribute('content') ?? null;
+    const canRelaxViewport = Boolean(
+      viewportMeta && window.matchMedia(MOBILE_VIEWPORT_QUERY).matches,
+    );
+
     document.body.style.overflow = 'hidden';
     document.body.classList.add('genie-image-zoom-open');
+
+    if (canRelaxViewport) {
+      viewportMeta?.setAttribute('content', UNLOCKED_VIEWPORT_CONTENT);
+    }
 
     return () => {
       document.body.style.overflow = previousOverflow;
       document.body.classList.remove('genie-image-zoom-open');
+
+      if (canRelaxViewport && previousViewportContent) {
+        viewportMeta?.setAttribute('content', previousViewportContent);
+      }
     };
   }, []);
 

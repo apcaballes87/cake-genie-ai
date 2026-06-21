@@ -244,6 +244,20 @@ body.genie-image-zoom-open [data-sticky-add-to-cart-bar] {
   pointer-events: none !important;
 }
 
+@media (max-width: 767px) {
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+  }
+
+  body {
+    position: relative;
+    touch-action: manipulation;
+  }
+}
+
 /* --- Progress Bar Animation --- */
 .progress-bar-fill {
   width: 0%;

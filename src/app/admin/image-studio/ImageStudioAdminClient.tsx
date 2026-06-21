@@ -16,6 +16,7 @@ import {
   Search,
   Sparkles,
   Square,
+  Trash2,
   WandSparkles,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -137,6 +138,7 @@ export default function ImageStudioAdminClient() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sizeFilter, setSizeFilter] = useState<SizeFilter>('all');
   const [processingHash, setProcessingHash] = useState<string | null>(null);
+  const [deletingHash, setDeletingHash] = useState<string | null>(null);
   const [autoProcessing, setAutoProcessing] = useState(false);
   const [batchProgress, setBatchProgress] = useState<{
     current: number;
@@ -640,6 +642,53 @@ export default function ImageStudioAdminClient() {
       toast.success('Hash copied');
     } catch {
       toast.error('Could not copy hash');
+    }
+  };
+
+  const handleDelete = async (record: CakeCacheImageRecord) => {
+    const label = record.seo_title || record.slug || record.p_hash;
+    if (
+      !window.confirm(
+        `Are you sure you want to delete "${label}"? This action cannot be undone and will delete any associated customized icing masks.`
+      )
+    ) {
+      return;
+    }
+
+    setDeletingHash(record.p_hash);
+    try {
+      const response = await fetch(
+        `/api/admin/cake-cache-images?pHash=${encodeURIComponent(record.p_hash)}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'x-admin-pin': ADMIN_IMAGE_STUDIO_PIN,
+          },
+        }
+      );
+
+      const payload = (await response.json()) as { success?: boolean; error?: string };
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || 'Failed to delete record.');
+      }
+
+      toast.success(`Successfully deleted "${label}"`);
+
+      if (selectedHashes.has(record.p_hash)) {
+        setSelectedHashes((prev) => {
+          const next = new Set(prev);
+          next.delete(record.p_hash);
+          return next;
+        });
+      }
+
+      setRecords((currentRecords) => currentRecords.filter((r) => r.p_hash !== record.p_hash));
+      refreshRecords();
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error) || 'Failed to delete record.');
+    } finally {
+      setDeletingHash(null);
     }
   };
 
@@ -1240,6 +1289,20 @@ export default function ImageStudioAdminClient() {
                         >
                           <Copy className="size-4" />
                           Copy hash
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleDelete(record)}
+                          disabled={deletingHash === record.p_hash || isBusy || autoProcessing}
+                          className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-300 disabled:border-slate-200"
+                          aria-label={`Delete cake ${record.seo_title || record.slug || record.p_hash}`}
+                        >
+                          {deletingHash === record.p_hash ? (
+                            <LoaderCircle className="size-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="size-4" />
+                          )}
+                          Delete item
                         </button>
                       </div>
                     </div>

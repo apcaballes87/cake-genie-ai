@@ -1,5 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { upgradeLegacySlug } from '@/lib/utils/urlHelpers'
+import {
+    INTERNAL_TRAFFIC_COOKIE_MAX_AGE_SECONDS,
+    INTERNAL_TRAFFIC_COOKIE_NAME,
+    INTERNAL_TRAFFIC_COOKIE_VALUE,
+    shouldMarkInternalTraffic,
+} from '@/lib/analyticsRoutes'
 
 // Known top-level routes that should never be treated as discount codes
 const KNOWN_ROUTES = new Set([
@@ -25,6 +31,23 @@ const rateLimitStore = new Map<string, { count: number; resetTime: number }>()
 const RATE_LIMIT_WINDOW = 60 * 1000 // 1 minute
 const RATE_LIMIT_MAX = 60 // max requests per window
 const CUSTOMIZING_SHORT_HASH_ALIAS_RE = /^\/customizing\/([^/]*-[a-f0-9]{4})\/?$/i
+
+function withInternalTrafficCookie(pathname: string, response: NextResponse): NextResponse {
+    if (!shouldMarkInternalTraffic(pathname)) {
+        return response
+    }
+
+    response.cookies.set({
+        name: INTERNAL_TRAFFIC_COOKIE_NAME,
+        value: INTERNAL_TRAFFIC_COOKIE_VALUE,
+        path: '/',
+        maxAge: INTERNAL_TRAFFIC_COOKIE_MAX_AGE_SECONDS,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+    })
+
+    return response
+}
 
 function checkIpRateLimit(ip: string): boolean {
     const now = Date.now()
@@ -129,10 +152,10 @@ export async function middleware(request: NextRequest) {
     // Only handle single-segment paths like /NEW20, /ALAN99
     // Skip anything with multiple segments, file extensions, or known routes
     const match = pathname.match(/^\/([A-Za-z0-9]+)$/)
-    if (!match) return NextResponse.next()
+    if (!match) return withInternalTrafficCookie(pathname, NextResponse.next())
 
     const segment = match[1]
-    if (KNOWN_ROUTES.has(segment.toLowerCase())) return NextResponse.next()
+    if (KNOWN_ROUTES.has(segment.toLowerCase())) return withInternalTrafficCookie(pathname, NextResponse.next())
 
     // Check if this segment is a valid active discount code in Supabase.
     //
@@ -172,7 +195,7 @@ export async function middleware(request: NextRequest) {
         // If Supabase check fails, fall through to normal routing
     }
 
-    return NextResponse.next()
+    return withInternalTrafficCookie(pathname, NextResponse.next())
 }
 
 // Matcher excludes:

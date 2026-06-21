@@ -7,7 +7,7 @@ import { cacheAnalysisResult, findSimilarAnalysisByHash } from '@/services/supab
 import { fileToBase64 } from '@/services/geminiService';
 import type { GoogleCSE, GoogleCSEElement } from '@/types';
 import {
-    generateImageFingerprintWithLegacyCandidates,
+    generateServerImageFingerprint,
     toFingerprintLookup,
 } from '@/lib/utils/serverFingerprint.client';
 
@@ -500,7 +500,7 @@ export default function SearchAnalysisAdminPage() {
                 const sourceFile = new File([blob], 'search-image-source', { type: blob.type || 'image/jpeg' });
                 const sourceImageData = await fileToBase64(sourceFile);
                 const sourceImageSrc = `data:${sourceImageData.mimeType};base64,${sourceImageData.data}`;
-                const fingerprint = await generateImageFingerprintWithLegacyCandidates(normalizedFile, sourceImageSrc, { crossOrigin: 'anonymous' });
+                const fingerprint = await generateServerImageFingerprint(normalizedFile);
                 const pHash = fingerprint.pHash;
                 if (!pHash) {
                     throw new Error(fingerprint.error || 'Failed to generate server image hash.');

@@ -53,7 +53,7 @@ export function BlogUploadButton({ className = '' }: BlogUploadButtonProps) {
             // Redirect to customizing page with the uploaded image
             const encodedUrl = encodeURIComponent(publicUrl);
             toast.dismiss(toastId);
-            router.push(`/customizing?ref=${encodedUrl}&source=blog`);
+            router.push(`/customizing?ref=${encodedUrl}&entry_source=blog`);
 
         } catch (err) {
             console.error('Upload failed:', err);

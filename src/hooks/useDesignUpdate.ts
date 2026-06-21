@@ -5,6 +5,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
 import { getProxyAwareImageUrl } from '@/lib/utils/imageSelection';
 import { fileToBase64 } from '@/services/geminiService';
+import { trackUpdateDesign } from '@/lib/analytics';
 import type {
     HybridAnalysisResult,
     MainTopperUI,
@@ -13,9 +14,6 @@ import type {
     IcingDesignUI,
     CakeInfoUI
 } from '@/types';
-
-// Declare gtag for Google Analytics event tracking
-declare const gtag: (...args: unknown[]) => void;
 
 const createAiTraceId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -183,11 +181,7 @@ export const useDesignUpdate = ({
 
 
         // Analytics: Track when a user completes a customization by updating the design
-        if (typeof gtag === 'function') {
-            gtag('event', 'update_design', {
-                'event_category': 'ecommerce_funnel'
-            });
-        }
+        trackUpdateDesign();
 
         // Guard against missing critical data which is checked in the service, but good to have here too.
         const syncEditedImageData = parseDataUriImage(editedImage);
