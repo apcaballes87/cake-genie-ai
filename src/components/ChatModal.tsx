@@ -209,7 +209,7 @@ async function generateStableFallbackHash(base64Data: string): Promise<string | 
 async function analyzeImageWithCache(
     imageData: { data: string; mimeType: string },
     imageUrl?: string
-): Promise<{ analysis: HybridAnalysisResult | null; slug: string | null; title: string | null; price: number | null; imageUrl: string | null; cacheKey: string | null }> {
+): Promise<{ analysis: HybridAnalysisResult | null; slug: string | null; title: string | null; price: number | null; imageUrl: string | null; cacheKey: string | null; pipeline?: string | null }> {
     const imageSrc = `data:${imageData.mimeType};base64,${imageData.data}`;
     const imageBlob = dataURItoBlob(imageSrc);
     const file = new File([imageBlob], 'chat-image.webp', { type: imageData.mimeType });
@@ -239,6 +239,7 @@ async function analyzeImageWithCache(
                 price: cacheHit.seoMetadata.price,
                 imageUrl: cacheHit.seoMetadata.original_image_url,
                 cacheKey,
+                pipeline: fingerprint.pipeline,
             };
         }
     } else {
@@ -247,7 +248,7 @@ async function analyzeImageWithCache(
 
     console.log('🔄 Chat: Cache miss, running AI analysis...');
     const fastResult = await analyzeCakeFeaturesOnly(compressedData.data, compressedData.mimeType);
-    if (!fastResult) return { analysis: null, slug: null, title: null, price: null, imageUrl: null, cacheKey };
+    if (!fastResult) return { analysis: null, slug: null, title: null, price: null, imageUrl: null, cacheKey, pipeline: fingerprint.pipeline };
     let finalResult = fastResult;
     const hasBbox = hasBoundingBoxData(fastResult);
     if (!hasBbox) {
@@ -269,11 +270,12 @@ async function analyzeImageWithCache(
                 price: cached.price,
                 imageUrl: cached.original_image_url,
                 cacheKey,
+                pipeline: fingerprint.pipeline,
             };
         }
     }
 
-    return { analysis: finalResult, slug: null, title: null, price: null, imageUrl: null, cacheKey };
+    return { analysis: finalResult, slug: null, title: null, price: null, imageUrl: null, cacheKey, pipeline: fingerprint.pipeline };
 }
 
 const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmail, userName }) => {
@@ -486,7 +488,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
         return urlData.publicUrl;
     };
 
-    const queueImageLinkFollowUp = (analysisId: number, cacheKey: string) => {
+    const queueImageLinkFollowUp = (analysisId: number, cacheKey: string, pipeline?: string | null) => {
         pendingImageHashRef.current = cacheKey;
 
         const followUpTimeout = window.setTimeout(async () => {
@@ -494,7 +496,10 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                 return;
             }
 
-            const recheck = await findSimilarAnalysisByHash(cacheKey);
+            const recheck = await findSimilarAnalysisByHash({
+                pHash: cacheKey,
+                pipeline: pipeline || 'v1-sharp-0.34-autoOrient-srgb-512-contain-white-lanczos3-gray-ahash8'
+            });
 
             if (analysisId !== activeImageAnalysisIdRef.current || pendingImageHashRef.current !== cacheKey) {
                 return;
@@ -656,7 +661,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                     }
 
                     if (analysisResult.analysis && !analysisResult.slug && analysisResult.cacheKey) {
-                        queueImageLinkFollowUp(analysisId, analysisResult.cacheKey);
+                        queueImageLinkFollowUp(analysisId, analysisResult.cacheKey, analysisResult.pipeline);
                     }
                 } catch (analysisErr) {
                     console.error('Error analyzing image:', analysisErr);
