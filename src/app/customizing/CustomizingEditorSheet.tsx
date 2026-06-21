@@ -69,7 +69,7 @@ export const CustomizingEditorSheet = memo(function CustomizingEditorSheet({
           + (showPrintoutOffset ? STICKY_ADD_TO_CART_PRINTOUT_OFFSET_PX : 0);
 
     const isOptionsSheet = activeCustomization === 'options';
-    const isVisualSheet = activeCustomization === 'icing' || activeCustomization === 'messages' || activeCustomization === 'toppers' || activeCustomization === 'photos';
+    const isVisualSheet = activeCustomization === 'icing' || activeCustomization === 'toppers' || activeCustomization === 'photos';
     const disableOptionsAction = !hasCakeInfoChanges;
     const disableVisualAction = isUpdatingDesign || !hasOriginalImageData || !hasPendingVisualChanges || Boolean(isEmpty);
 
