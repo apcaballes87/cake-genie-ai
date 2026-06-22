@@ -1,5 +1,20 @@
 # Tasks
 
+## Update Landing Page Key Facts Copy (2026-06-22)
+
+### Plan
+
+- [x] Locate the homepage key facts section that renders the current founder year, bento starting price, and summit label.
+- [x] Update the three requested landing-page details with the exact new copy.
+- [x] Run a scoped verification check and record the result.
+
+### Review
+
+- Updated [src/components/seo/HomepageAeoSections.tsx](/Users/apcaballes/genieph-nextjs/src/components/seo/HomepageAeoSections.tsx:1) so the homepage key facts section now shows `2025 Founded in Cebu`, `₱499 Starting price bento`, and `1st Startup Innovation Summit 2025`.
+- This was a copy-only change inside the existing landing-page key facts grid; layout and behavior are unchanged.
+- Verification:
+  - `git diff --check -- src/components/seo/HomepageAeoSections.tsx tasks/todo.md`
+
 ## Audit Client Error Logs (2026-06-22)
 
 ### Plan
