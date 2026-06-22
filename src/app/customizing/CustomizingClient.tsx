@@ -139,6 +139,7 @@ interface AvailabilityInfo {
 }
 
 const AI_CHAT_USER_REQUEST_REGEX = /\[USER REQUEST\]:\s*(.*)/;
+const subscribeToHydration = () => () => { };
 
 const AI_CHAT_IMAGE_PROMPT_GENERATOR: DesignPromptGenerator = (
     _originalAnalysis,
@@ -1029,6 +1030,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     // --- Derived State ---
     const isLoading = useMemo(() => isImageManagementLoading || isUpdatingDesign, [isImageManagementLoading, isUpdatingDesign]);
     const itemCount = useMemo(() => supabaseItemCount + pendingCartItems.length, [supabaseItemCount, pendingCartItems]);
+    const isHydrated = React.useSyncExternalStore(subscribeToHydration, () => true, () => false);
+    const visibleItemCount = isHydrated ? itemCount : 0;
 
     const calculatedAvailability = useMemo(() => {
         if (!availabilitySettings || !baseAvailability) return baseAvailability;
@@ -3674,11 +3677,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                 inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-purple-100 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
                             />
                         </div>
-                        <button onClick={() => setAppState('cart')} className="relative p-2 genie-icon-button rounded-full shrink-0" aria-label={`View cart with ${itemCount} items`}>
+                        <button onClick={() => setAppState('cart')} className="relative p-2 genie-icon-button rounded-full shrink-0" aria-label={`View cart with ${visibleItemCount} items`}>
                             <ShoppingBag size={24} />
-                            {itemCount > 0 && (
+                            {isHydrated && visibleItemCount > 0 && (
                                 <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-xs font-bold">
-                                    {itemCount}
+                                    {visibleItemCount}
                                 </span>
                             )}
                         </button>

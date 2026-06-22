@@ -247,30 +247,11 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const pathname = usePathname();
     const shouldDeferCartSync = pathname === '/';
 
-    // INSTANT LOAD: Initialize cart from localStorage immediately (0ms)
-    const [cartItems, setCartItems] = useState<(CakeGenieCartItem & { merchant?: CakeGenieMerchant })[]>(() => {
-        const cached = readFromLocalStorage('cart_items_cache');
-        if (cached) {
-            try {
-                return JSON.parse(cached);
-            } catch (e) {
-                // Silently ignore cache parsing errors
-            }
-        }
-        return [];
-    });
-
-    const [addresses, setAddresses] = useState<CakeGenieAddress[]>(() => {
-        const cached = readFromLocalStorage('addresses_cache');
-        if (cached) {
-            try {
-                return JSON.parse(cached);
-            } catch (e) {
-                // Silently ignore cache parsing errors
-            }
-        }
-        return [];
-    });
+    // Keep the first client render identical to SSR. Browser cache hydration
+    // happens after mount so cart badges cannot trigger React hydration #418.
+    const [cartItems, setCartItems] = useState<(CakeGenieCartItem & { merchant?: CakeGenieMerchant })[]>([]);
+    const [addresses, setAddresses] = useState<CakeGenieAddress[]>([]);
+    const [hasLoadedStorageCache, setHasLoadedStorageCache] = useState(false);
 
     const [isLoading, setIsLoading] = useState<boolean>(true); // Start as true until auth resolves
     // Removed local currentUser state, rely on useAuth
@@ -292,21 +273,36 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         cartItemsRef.current = cartItems;
     }, [cartItems]);
 
-    const [eventDate, setEventDateState] = useState<string>(() => {
-        return readFromLocalStorage('cart_event_date') || '';
-    });
+    const [eventDate, setEventDateState] = useState<string>('');
+    const [eventTime, setEventTimeState] = useState<string>('');
+    const [deliveryInstructions, setDeliveryInstructionsState] = useState<string>('');
+    const [selectedAddressId, setSelectedAddressIdState] = useState<string>('');
 
-    const [eventTime, setEventTimeState] = useState<string>(() => {
-        return readFromLocalStorage('cart_event_time') || '';
-    });
+    useEffect(() => {
+        const cachedCartItems = readFromLocalStorage('cart_items_cache');
+        if (cachedCartItems) {
+            try {
+                setCartItems(JSON.parse(cachedCartItems));
+            } catch (e) {
+                // Silently ignore cache parsing errors
+            }
+        }
 
-    const [deliveryInstructions, setDeliveryInstructionsState] = useState<string>(() => {
-        return readFromLocalStorage('cart_delivery_instructions') || '';
-    });
+        const cachedAddresses = readFromLocalStorage('addresses_cache');
+        if (cachedAddresses) {
+            try {
+                setAddresses(JSON.parse(cachedAddresses));
+            } catch (e) {
+                // Silently ignore cache parsing errors
+            }
+        }
 
-    const [selectedAddressId, setSelectedAddressIdState] = useState<string>(() => {
-        return readFromLocalStorage('cart_selected_address_id') || '';
-    });
+        setEventDateState(readFromLocalStorage('cart_event_date') || '');
+        setEventTimeState(readFromLocalStorage('cart_event_time') || '');
+        setDeliveryInstructionsState(readFromLocalStorage('cart_delivery_instructions') || '');
+        setSelectedAddressIdState(readFromLocalStorage('cart_selected_address_id') || '');
+        setHasLoadedStorageCache(true);
+    }, []);
 
     const setEventDate = useCallback((date: string) => {
         batchSaveToLocalStorage('cart_event_date', date);
@@ -487,6 +483,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Auto-cache cart items whenever they change (for instant load on next visit)
     // Strip base64 image data to prevent localStorage quota exceeded errors
     useEffect(() => {
+        if (!hasLoadedStorageCache) return;
+
         if (cartItems.length > 0) {
             // Strip base64 data before caching to save space
             const cacheableItems = stripBase64FromCartItems(cartItems);
@@ -505,14 +503,16 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         } else {
             batchRemoveFromLocalStorage('cart_items_cache');
         }
-    }, [cartItems]);
+    }, [cartItems, hasLoadedStorageCache]);
 
     // Auto-cache addresses whenever they change
     useEffect(() => {
+        if (!hasLoadedStorageCache) return;
+
         if (addresses.length > 0) {
             batchSaveToLocalStorage('addresses_cache', JSON.stringify(addresses));
         }
-    }, [addresses]);
+    }, [addresses, hasLoadedStorageCache]);
 
     const addToCartOptimistic = useCallback(async (
         itemParams: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'>,

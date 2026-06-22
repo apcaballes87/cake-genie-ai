@@ -1,5 +1,48 @@
 # Tasks
 
+## Audit Client Error Logs (2026-06-22)
+
+### Plan
+
+- [x] Inspect the live `client_errors` table shape, volume, and most recent rows.
+- [x] Group errors by message, page path, user agent, viewport, session, and time window to separate product bugs from third-party/browser noise.
+- [x] Trace the highest-volume or highest-risk signatures back to the current frontend/server code path.
+- [x] Produce a prioritized fix plan with evidence, risk level, and verification steps before making implementation changes.
+
+### Review
+
+- Live `client_errors` currently has `2,691` rows from `2026-02-03 14:41 UTC` through `2026-06-21 22:13 UTC`; recent volume is modest (`135` rows in 7 days, `464` in 30 days, `11` in the last 24 hours).
+- Top all-time noise is cookie/storage related: `Cookies are blocked or unavailable` has `1,246` rows, and old `Unable to store cookie` has `268` rows but has not appeared in the last 30 days. Treat current cookie rows as environment telemetry unless they correlate with checkout/auth failures.
+- Highest-priority active app-owned issue: React hydration mismatch `#418` has `121` rows in the last 30 days (`24` in 7 days). It is concentrated on `/customizing/[slug]` (`94` rows in 30 days) plus `/` (`21` rows in 30 days), across Android, iOS/Safari, Gemini iOS WebView, and desktop. Stack samples point to the current React runtime chunk, so this is likely an SSR/client markup mismatch, not one stale URL.
+- Second active product issue: AI image-edit failures are customer-visible. In 30 days: quota message `50` rows, authorization message `28` rows, empty-image response `20` rows, plus smaller `Too many requests`, abort, and missing-input clusters. Recent authorization rows stopped on `2026-06-18`, but quota rows continued through `2026-06-20`.
+- Low-priority logging hygiene issue: homepage-only `window.webkit.messageHandlers` errors have `7` rows in 30 days, all `/`, tied to Facebook/iOS in-app browser paid-ad URLs. Source search found no repo-owned `webkit.messageHandlers` code, so this is likely injected WebView instrumentation and should be filtered/suppressed from `client_errors`.
+- Third-party/old noise: `Script error.`, old chunk-load failures, MetaMask failures, and Tawk errors exist but are not the main current risk. Many chunk-load rows are bot-like or deployment-stale.
+- Supabase platform check also surfaced the existing critical RLS advisory on unrelated public tables (`cakegenie_search_analytics`, `shopify_customization_requests`, `user_referrals`, `user_profiles`, `order_items`, `discount_code_usage`, `platform_settings`, `cakegenie_collections`, `blogs`, `cakegenie_analysis_cache_seo_title_backup`). Do not auto-enable RLS without policies; handle as a separate security task.
+
+### Fix Plan
+
+- [x] Probe the React `#418` hydration mismatch locally in production mode for `/` and representative `/customizing/[slug]` pages. Start with SSR/client review-summary text, `CustomizingClient` initial state, `SSRCakeDetails` handoff, and any client component that renders dates, current time, browser-specific branches, or mutable text during the first render.
+- [x] Fix the hydration boundary with deterministic first render: move browser-only differences into effects, keep initial server/client text identical, and add focused regression tests around the suspected cart/customizer components.
+- [ ] Audit AI edit failure handling end to end: `/api/ai/edit-image`, `/api/ai/chat-edit`, `normalizeAiRouteError`, `useDesignUpdate`, and UI copy. Confirm whether current provider authorization/quota state is fixed; if not, repair provider config or fail over before customer actions hit the broken path.
+- [ ] Make AI failures less noisy and more actionable: log route/source/status/trace ID internally, keep customer copy generic, and prevent unhandled promise rejections from being the primary telemetry for expected quota/rate-limit states.
+- [ ] Tighten `ErrorLogger` classification and filters: suppress known injected WebView bridge errors, classify cookie-blocked as telemetry rather than app errors, add bot/source labels, and consider retention/aggregation so old deployment chunks do not dominate future audits.
+- [ ] Open a separate RLS remediation plan for the ten advised tables, mapping required anon/auth/service access before enabling RLS.
+- [ ] Verification for fixes should include: focused Vitest for changed components/helpers, `npm run build`, production-mode browser checks on `/`, `/customizing`, and several `/customizing/[slug]` pages, plus a post-deploy query confirming the top signatures fall over 24-72 hours.
+
+### Hydration Fix Review
+
+- Identified cached cart state as the highest-probability SSR/client mismatch source. `CartProvider` was reading `localStorage` in lazy state initializers, so the first client render could show cached cart counts or delivery fields while SSR rendered empty values.
+- Updated `CartProvider` so its first client render is SSR-safe: cart items, addresses, and delivery fields start empty, then load cached browser state after mount. Cache-writing effects now wait until that cache load completes so the initial empty render does not erase a real cached cart.
+- Updated the customizer cart button to hide cart-count text/badge until hydration using `useSyncExternalStore`, matching the homepage pattern that already guarded visible cart count.
+- Added `src/contexts/CartContext.hydration.test.tsx` to prove the first render stays at `0` with cached cart data, then updates to the cached count after mount.
+- Verification passed:
+  - `npx vitest run src/contexts/CartContext.hydration.test.tsx --exclude '.claude/**'`
+  - `npx vitest run src/contexts/CartContext.hydration.test.tsx src/contexts/NavigationContext.test.tsx src/app/customizing/customizingClientGuards.test.ts --exclude '.claude/**'`
+  - `git diff --check -- src/contexts/CartContext.tsx src/contexts/CartContext.hydration.test.tsx src/app/customizing/CustomizingClient.tsx tasks/todo.md`
+  - `npm run build`
+- Production-mode browser checks on `http://localhost:3002/` and `http://localhost:3002/customizing/50th-birthday-white-1-tier-cake-1e02` showed no warning/error console logs and no hydration signatures. A direct browser-side seeded `localStorage` repro was blocked by the browser automation URL policy, so the seeded cached-cart case is covered by the unit regression instead.
+- Remaining verification after deploy: query `client_errors` for `#418` over the next 24-72 hours and confirm the `/customizing/[slug]` and homepage signatures fall.
+
 ## Back Button Home Fallback
 
 ### Plan
