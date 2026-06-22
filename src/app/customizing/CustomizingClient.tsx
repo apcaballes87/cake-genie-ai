@@ -118,6 +118,8 @@ import {
     requestMentionsPrintoutConversion,
 } from '@/utils/printoutConversionPrompt';
 import { buildDecorLocalizationHint } from '@/utils/editImageTuning';
+import { fileToBase64 } from '@/services/geminiService';
+import type { EditImageReferenceImage } from '@/services/geminiService';
 import {
     buildCommerceOrderSnapshot,
     deriveConstraintSnapshot,
@@ -139,7 +141,13 @@ interface AvailabilityInfo {
 }
 
 const AI_CHAT_USER_REQUEST_REGEX = /\[USER REQUEST\]:\s*(.*)/;
+const AI_CHAT_REFERENCE_LABEL = 'Chat reference 1';
 const subscribeToHydration = () => () => { };
+
+type AiChatReferenceAttachment = {
+    fileName: string;
+    image: { data: string; mimeType: string };
+};
 
 const AI_CHAT_IMAGE_PROMPT_GENERATOR: DesignPromptGenerator = (
     _originalAnalysis,
@@ -577,6 +585,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     const [searchInput, setSearchInput] = useState('');
     const [chatInput, setChatInput] = useState('');
     const [isAiProcessing, setIsAiProcessing] = useState(false);
+    const [aiChatReferenceAttachment, setAiChatReferenceAttachment] = useState<AiChatReferenceAttachment | null>(null);
+    const [isAiChatAttachmentUploading, setIsAiChatAttachmentUploading] = useState(false);
     const [showAiPromptSuggestions, setShowAiPromptSuggestions] = useState(false);
     const [selectedAiPromptIndex, setSelectedAiPromptIndex] = useState(-1);
     const [selectedAiPromptTemplate, setSelectedAiPromptTemplate] = useState<ParsedAiChatPromptTemplate | null>(null);
@@ -624,6 +634,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         setActiveTab('original');
         setAnalysisError(null);
         setLiveStudioEditedImageUrl(null);
+        setAiChatReferenceAttachment(null);
         setPreloadedHeroImage(null);
         setIsAnalyzing(true);
         // DISABLED: Preselection modal disabled
@@ -868,6 +879,17 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                     .includes(normalizedQuery));
         });
     }, [aiChatPromptSuggestionItems, chatInput]);
+
+    const aiChatReferenceImages = useMemo<EditImageReferenceImage[]>(() => {
+        if (!aiChatReferenceAttachment) return [];
+
+        return [{
+            label: AI_CHAT_REFERENCE_LABEL,
+            targetDescription: aiChatReferenceAttachment.fileName,
+            targetType: 'design reference',
+            image: aiChatReferenceAttachment.image,
+        }];
+    }, [aiChatReferenceAttachment]);
 
     const effectiveCacheId = recentSearchDesign?.id || currentCacheId || null;
 
@@ -1375,6 +1397,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         if (!currentPrompt || !analysisResult || isAiProcessing || isUpdatingDesign) return;
 
         const traceId = `ai-chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const referenceImages = aiChatReferenceImages;
         let resolveMergedAnalysis: ((value: HybridAnalysisResult) => void) | undefined;
         let rejectMergedAnalysis: ((reason?: unknown) => void) | undefined;
 
@@ -1396,6 +1419,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                 traceId,
                 source: 'ai-chat-image-edit',
                 promptGenerator: AI_CHAT_IMAGE_PROMPT_GENERATOR,
+                referenceImages,
             });
 
             imageUpdatePromise.catch(err => {
@@ -1424,6 +1448,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                 cakeMessages: mappedState.cakeMessages ?? [],
                                 icingDesign: mappedState.icingDesign,
                             },
+                            referenceImages,
                         });
                     } catch (retryErr) {
                         // Image generation failed in background
@@ -1442,6 +1467,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                 body: JSON.stringify({
                     prompt: currentPrompt,
                     currentAnalysis: syncedAnalysis,
+                    referenceImages,
                 }),
             });
 
@@ -1498,6 +1524,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
 
             // Notify user while image is still spinning
             showSuccess('AI applied changes! Image is generating...');
+            setAiChatReferenceAttachment(null);
 
             // 3. Handle extra actions (add to cart, update instructions)
             if (aiResponse.actions && Array.isArray(aiResponse.actions)) {
@@ -1534,6 +1561,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         isUpdatingDesign,
         setPendingAnalysisData,
         additionalInstructions,
+        aiChatReferenceImages,
         onAdditionalInstructionsChange,
         onAddToCart,
     ]);
@@ -1617,6 +1645,27 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         setShowAiPromptSuggestions(hasAiChatPromptSuggestions);
         setSelectedAiPromptIndex(-1);
     }, [hasAiChatPromptSuggestions]);
+
+    const handleAiChatReferenceImageSelect = useCallback(async (file: File) => {
+        setIsAiChatAttachmentUploading(true);
+
+        try {
+            const attachmentImage = await fileToBase64(file);
+            setAiChatReferenceAttachment({
+                fileName: file.name,
+                image: attachmentImage,
+            });
+            showSuccess('Reference image attached.');
+        } catch (error) {
+            showError('Could not process the reference image. Please try another file.');
+        } finally {
+            setIsAiChatAttachmentUploading(false);
+        }
+    }, []);
+
+    const handleAiChatReferenceImageClear = useCallback(() => {
+        setAiChatReferenceAttachment(null);
+    }, []);
 
     const handleAiChatInputInteract = useCallback(() => {
         if (hasAiChatPromptSuggestions) {
@@ -3825,7 +3874,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                                 selectedAiPromptIndex={selectedAiPromptIndex}
                                                 isAiProcessing={isAiProcessing}
                                                 isUpdatingDesign={isUpdatingDesign}
+                                                attachedImageName={aiChatReferenceAttachment?.fileName ?? null}
+                                                isAttachmentUploading={isAiChatAttachmentUploading}
                                                 onSubmit={handleChatSubmit}
+                                                onAttachmentSelect={handleAiChatReferenceImageSelect}
+                                                onAttachmentClear={handleAiChatReferenceImageClear}
                                                 onTemplateColorPickerToggle={handleAiPromptColorPickerToggle}
                                                 onTemplateClear={handleAiPromptTemplateClear}
                                                 onTemplateColorChange={handleAiPromptTemplateColorChange}
@@ -3900,7 +3953,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                             selectedAiPromptIndex={selectedAiPromptIndex}
                                             isAiProcessing={isAiProcessing}
                                             isUpdatingDesign={isUpdatingDesign}
+                                            attachedImageName={aiChatReferenceAttachment?.fileName ?? null}
+                                            isAttachmentUploading={isAiChatAttachmentUploading}
                                             onSubmit={handleChatSubmit}
+                                            onAttachmentSelect={handleAiChatReferenceImageSelect}
+                                            onAttachmentClear={handleAiChatReferenceImageClear}
                                             onTemplateColorPickerToggle={handleAiPromptColorPickerToggle}
                                             onTemplateClear={handleAiPromptTemplateClear}
                                             onTemplateColorChange={handleAiPromptTemplateColorChange}
@@ -4017,7 +4074,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                             selectedAiPromptIndex={selectedAiPromptIndex}
                                             isAiProcessing={isAiProcessing}
                                             isUpdatingDesign={isUpdatingDesign}
+                                            attachedImageName={aiChatReferenceAttachment?.fileName ?? null}
+                                            isAttachmentUploading={isAiChatAttachmentUploading}
                                             onSubmit={handleChatSubmit}
+                                            onAttachmentSelect={handleAiChatReferenceImageSelect}
+                                            onAttachmentClear={handleAiChatReferenceImageClear}
                                             onTemplateColorPickerToggle={handleAiPromptColorPickerToggle}
                                             onTemplateClear={handleAiPromptTemplateClear}
                                             onTemplateColorChange={handleAiPromptTemplateColorChange}

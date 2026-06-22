@@ -28,7 +28,11 @@ const buildProps = () => ({
     selectedAiPromptIndex: 0,
     isAiProcessing: false,
     isUpdatingDesign: false,
+    attachedImageName: null as string | null,
+    isAttachmentUploading: false,
     onSubmit: vi.fn(),
+    onAttachmentSelect: vi.fn(),
+    onAttachmentClear: vi.fn(),
     onTemplateColorPickerToggle: vi.fn(),
     onTemplateClear: vi.fn(),
     onTemplateColorChange: vi.fn(),
@@ -55,6 +59,30 @@ describe('CustomizingAiChatPanel', () => {
         expect(props.onInputChange).toHaveBeenCalledWith('make it pastel blue');
         expect(props.onSuggestionSelect).toHaveBeenCalledWith('add butterflies');
         expect(props.onSubmit).toHaveBeenCalledTimes(1);
+    });
+
+    it('supports attaching and removing a reference image', () => {
+        const props = buildProps();
+        props.attachedImageName = 'sample-inspo.png';
+
+        const { container, rerender } = render(<CustomizingAiChatPanel {...props} />);
+
+        const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+        const file = new File(['image'], 'reference.png', { type: 'image/png' });
+
+        fireEvent.change(fileInput, { target: { files: [file] } });
+
+        expect(props.onAttachmentSelect).toHaveBeenCalledTimes(1);
+        expect(props.onAttachmentSelect).toHaveBeenCalledWith(file);
+        expect(screen.getByText('sample-inspo.png')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Remove attached image' }));
+
+        expect(props.onAttachmentClear).toHaveBeenCalledTimes(1);
+
+        props.isAttachmentUploading = true;
+        rerender(<CustomizingAiChatPanel {...props} />);
+        expect(screen.getByRole('button', { name: 'Attach reference image' })).toBeDisabled();
     });
 
     it('renders template mode with color picker actions', () => {

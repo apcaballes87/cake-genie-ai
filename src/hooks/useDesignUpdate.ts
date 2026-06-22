@@ -5,6 +5,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
 import { getProxyAwareImageUrl } from '@/lib/utils/imageSelection';
 import { fileToBase64 } from '@/services/geminiService';
+import type { EditImageReferenceImage } from '@/services/geminiService';
 import { trackUpdateDesign } from '@/lib/analytics';
 import type {
     HybridAnalysisResult,
@@ -43,6 +44,7 @@ export interface HandleDesignUpdateOptions {
     promptGenerator?: DesignPromptGenerator;
     stateOverrides?: DesignUpdateStateOverrides;
     colorMeta?: { hex: string; name: string }; // ADDED
+    referenceImages?: EditImageReferenceImage[];
 }
 
 interface UseDesignUpdateProps {
@@ -174,6 +176,7 @@ export const useDesignUpdate = ({
         const resolvedAdditionalInstructions = options?.stateOverrides?.additionalInstructions ?? additionalInstructions;
         const resolvedPromptGenerator = options?.promptGenerator ?? promptGenerator;
         const colorMeta = options?.colorMeta;
+        const referenceImages = options?.referenceImages ?? [];
 
         if (inFlightPromiseRef.current) {
             return inFlightPromiseRef.current;
@@ -247,6 +250,7 @@ export const useDesignUpdate = ({
                     traceId,
                     requestSource,
                     promptGenerator: resolvedPromptGenerator,
+                    referenceImages,
                 });
 
                 lastGenerationInfoRef.current = { prompt, systemInstruction };

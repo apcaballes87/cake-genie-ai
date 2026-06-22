@@ -313,7 +313,7 @@ export async function generateShareableTexts(
 export type EditImageReferenceImage = {
     label: string;
     targetDescription: string;
-    targetType: 'main topper' | 'support element';
+    targetType: string;
     image: { data: string; mimeType: string; };
 };
 

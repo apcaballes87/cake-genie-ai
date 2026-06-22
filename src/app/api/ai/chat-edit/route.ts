@@ -14,7 +14,12 @@ export async function POST(req: NextRequest) {
 
     try {
         const body = await req.json();
-        const { prompt, currentAnalysis } = body;
+        const { prompt, currentAnalysis, referenceImages } = body;
+        const validReferenceImages = Array.isArray(referenceImages)
+            ? referenceImages.filter((reference) =>
+                Boolean(reference?.image?.data && reference?.image?.mimeType)
+            )
+            : [];
 
         console.log(`[AI TRACE ${traceId}] /api/ai/chat-edit:start`, {
             requestSource,
@@ -22,6 +27,7 @@ export async function POST(req: NextRequest) {
             mainTopperCount: Array.isArray(currentAnalysis?.main_toppers) ? currentAnalysis.main_toppers.length : 0,
             supportElementCount: Array.isArray(currentAnalysis?.support_elements) ? currentAnalysis.support_elements.length : 0,
             cakeMessageCount: Array.isArray(currentAnalysis?.cake_messages) ? currentAnalysis.cake_messages.length : 0,
+            referenceImageCount: validReferenceImages.length,
         });
 
         if (!prompt || !currentAnalysis) {
@@ -240,12 +246,31 @@ Current Cake Design JSON:
 ${JSON.stringify(currentAnalysis, null, 2)}
 `;
 
+        const parts: Array<
+            | { text: string }
+            | { inlineData: { data: string; mimeType: string } }
+        > = [];
+
+        validReferenceImages.forEach((reference) => {
+            parts.push({
+                inlineData: {
+                    data: reference.image.data,
+                    mimeType: reference.image.mimeType,
+                },
+            });
+            parts.push({
+                text: `${reference.label || 'Reference image'} is an additional ${reference.targetType || 'design reference'} labeled "${reference.targetDescription || 'unnamed reference'}". Use it to interpret the user's requested change, but preserve all other cake details unless the user explicitly asks for them to change.`,
+            });
+        });
+
+        parts.push({ text: promptText });
+
         const response = await aiClient.models.generateContent({
             model: "gemini-2.5-flash",
             contents: [
                 {
                     role: 'user',
-                    parts: [{ text: promptText }],
+                    parts,
                 },
             ],
             config: {

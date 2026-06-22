@@ -134,6 +134,39 @@ describe('useDesignUpdate', () => {
         expect(onSuccess).toHaveBeenCalledWith('override-image', baseProps.originalImageData);
     });
 
+    it('passes reference images through to updateDesign', async () => {
+        vi.mocked(updateDesign).mockResolvedValueOnce({
+            image: 'reference-image-result',
+            prompt: 'reference-prompt',
+            systemInstruction: 'reference-system',
+        });
+        const onSuccess = vi.fn();
+        const referenceImages = [{
+            label: 'Chat reference 1',
+            targetDescription: 'moodboard.png',
+            targetType: 'design reference',
+            image: {
+                data: 'reference-base64',
+                mimeType: 'image/png',
+            },
+        }];
+
+        const { result } = renderHook(() => useDesignUpdate({ ...baseProps, onSuccess }));
+
+        await act(async () => {
+            await result.current.handleUpdateDesign('[USER REQUEST]: make it like this', {
+                source: 'ai-chat-image-edit',
+                referenceImages,
+            });
+        });
+
+        expect(updateDesign).toHaveBeenCalledWith(expect.objectContaining({
+            requestSource: 'ai-chat-image-edit',
+            referenceImages,
+        }));
+        expect(onSuccess).toHaveBeenCalledWith('reference-image-result', baseProps.originalImageData);
+    });
+
     it('uses the latest edited image as the base for the next design update', async () => {
         vi.mocked(updateDesign).mockResolvedValueOnce({
             image: 'next-image',

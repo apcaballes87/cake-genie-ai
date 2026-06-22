@@ -95,6 +95,18 @@ const collectReplacementReferenceImages = (
     return references;
 };
 
+const buildExternalReferenceGuide = (referenceImages: EditImageReferenceImage[]): string => {
+    if (referenceImages.length === 0) {
+        return '';
+    }
+
+    const guide = referenceImages
+        .map((reference) => `- ${reference.label}: use this ${reference.targetType} "${reference.targetDescription}" only when applying the user's request.`)
+        .join('\n');
+
+    return `\n\n### **Additional Reference Images**\n---\n${guide}`;
+};
+
 
 const EDIT_CAKE_PROMPT_TEMPLATE = (
     originalAnalysis: HybridAnalysisResult | null,
@@ -517,6 +529,7 @@ export async function updateDesign({
     traceId,
     requestSource,
     promptGenerator, // ADDED
+    referenceImages = [],
 }: {
     originalImageData: { data: string; mimeType: string } | null;
     analysisResult: HybridAnalysisResult | null;
@@ -529,6 +542,7 @@ export async function updateDesign({
     threeTierReferenceImage: { data: string; mimeType: string } | null;
     traceId?: string;
     requestSource?: string;
+    referenceImages?: EditImageReferenceImage[];
     // ADDED: Optional prompt generator function
     promptGenerator?: (
         originalAnalysis: HybridAnalysisResult | null,
@@ -662,8 +676,10 @@ ${colorChanges.join('\n')}`;
         )
     );
 
-    const preferredModel = useInpaintingStyle && !isThreeTierReconstruction ? 'gemini-2.5-flash-image' : 'gemini-3.1-flash-image-preview';
     const replacementReferenceImages = collectReplacementReferenceImages(mainToppers, supportElements);
+    const allReferenceImages = [...referenceImages, ...replacementReferenceImages];
+    prompt += buildExternalReferenceGuide(referenceImages);
+    const preferredModel = useInpaintingStyle && !isThreeTierReconstruction ? 'gemini-2.5-flash-image' : 'gemini-3.1-flash-image-preview';
 
     try {
         // 7. Call editCakeImage
@@ -678,7 +694,7 @@ ${colorChanges.join('\n')}`;
                 preferredModel === 'gemini-2.5-flash-image' ? 'gemini-2.5-flash-image' : undefined,
                 effectiveTraceId,
                 requestSource,
-                replacementReferenceImages,
+                allReferenceImages,
             ),
             timeoutPromise
         ]);
