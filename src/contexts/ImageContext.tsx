@@ -18,10 +18,7 @@ import {
     toFingerprintLookup,
     type ClientImageFingerprint,
 } from '@/lib/utils/serverFingerprint.client'
-import { findOrbCacheHit } from '@/services/orbMatchingService'
 import { FEATURE_FLAGS } from '@/config/features'
-
-const USER_UPLOAD_ORB_MATCH_MODE = 'strict'
 
 const fetchImageAsBase64 = async (url: string): Promise<{ data: string; mimeType: string }> => {
     const response = await fetch(url);
@@ -428,11 +425,11 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 // Silently handle compression failure — continue with original imageData
             }
 
-            // --- STEP 2: ORB/pHash LOOKUP ---
-            // Crop-resistant ORB match runs first. The standalone Gemini validate call has been
-            // removed because the analyzer in STEP 3 already returns `rejection.isRejected` with
-            // the same labels and human-readable messages, and cache hits come from rows that
-            // were already validated when they were first analyzed. Saves ~4-8s per upload.
+            // --- STEP 2: SINGLE SERVER FINGERPRINT LOOKUP ---
+            // The standalone Gemini validate call has been removed because the analyzer in
+            // STEP 3 already returns `rejection.isRejected` with the same labels and
+            // human-readable messages, and cache hits come from rows that were already
+            // validated when they were first analyzed.
             // Single in-place updating toast — feels faster than 3 dismiss+show cycles.
             const uploadToastId = 'upload-progress';
             const showProgressToast = (message: string, durationMs?: number) => {
@@ -440,89 +437,35 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             };
             showProgressToast('Checking your image…');
 
-            let orbCacheHit = null;
-            let orbBackendOfflineOrFailed = false;
-
-            try {
-                orbCacheHit = await findOrbCacheHit(file, { mode: USER_UPLOAD_ORB_MATCH_MODE });
-            } catch (orbError) {
-                console.warn('FastAPI backend offline or error during ORB match, falling back to legacy pHash cache:', orbError);
-                orbBackendOfflineOrFailed = true;
-
-                showProgressToast('Verifying your image…', 8000);
-            }
-
             let cacheHit = null;
             let fingerprint: ClientImageFingerprint | null = null;
             let pHash: string | null = null;
 
-            if (orbCacheHit) {
-                // Case A: Crop-resistant match found in FastAPI database
-                showProgressToast('We found your cake photo! 🎉', 3000);
-                cacheHit = {
-                    id: orbCacheHit.matchedImageId ?? null,
-                    pHash: orbCacheHit.pHash ?? '',
-                    analysisResult: orbCacheHit.analysisResult,
-                    seoMetadata: orbCacheHit.seoMetadata ?? {
-                        seo_title: null,
-                        seo_description: null,
-                        keywords: null,
-                        alt_text: null,
-                        slug: null,
-                        original_image_url: orbCacheHit.matchedImageUrl,
-                        price: null,
-                        availability: null,
-                    },
-                };
-                console.log(
-                    '%c🎯 CACHE HIT (ORB+RANSAC)',
-                    'color: #22c55e; font-weight: bold;',
-                    `\nSlug: ${cacheHit.seoMetadata?.slug ? `"${cacheHit.seoMetadata.slug}"` : '(no slug)'}`,
-                    `\nMatched ID: ${orbCacheHit.matchedImageId ?? 'n/a'}`,
-                    `\nMatched URL: ${orbCacheHit.matchedImageUrl ?? cacheHit.seoMetadata?.original_image_url ?? 'n/a'}`,
-                    `\nConfidence: ${(orbCacheHit.confidence * 100).toFixed(1)}%`,
-                    `\nLatency: ${orbCacheHit.executionTimeMs?.toFixed(0) ?? 'n/a'}ms`,
-                );
-            } else {
-                if (!cacheHit) {
-                    // Generate canonical server fingerprint using the Sharp pipeline.
-                    // This is the sole fingerprinting path — client-side canvas hashing
-                    // has been removed because browser rendering differences caused
-                    // false cache matches between unrelated cake images.
-                    fingerprint = await generateServerImageFingerprint(
-                        finalImageBlobToCache ?? file
-                    );
-                    pHash = fingerprint.pHash;
-                    console.log(
-                        `🔍 Server pHash result: ${pHash
-                            ? pHash
-                            : `FAILED (${fingerprint.error || 'unknown error'}) — new cache writes will be skipped`}`
-                    );
+            // Generate canonical server fingerprint using the Sharp dHash pipeline.
+            fingerprint = await generateServerImageFingerprint(
+                finalImageBlobToCache ?? file
+            );
+            pHash = fingerprint.pHash;
+            console.log(
+                `🔍 Server pHash result: ${pHash
+                    ? pHash
+                    : `FAILED (${fingerprint.error || 'unknown error'}) — new cache writes will be skipped`}`
+            );
 
-                    if (orbBackendOfflineOrFailed) {
-                        // Case B: FastAPI is offline/errored. Fallback to standard pHash lookup in Supabase
-                        const shouldUseSimilarCacheLookup = !knownSeoMetadata && pHash !== null;
+            const shouldUseSimilarCacheLookup = !knownSeoMetadata && pHash !== null;
 
-                        if (shouldUseSimilarCacheLookup) {
-                            console.log('🔍 Starting legacy pHash cache lookup for offline/failed ORB backend...');
-                            const cacheHitRaw = await findSimilarAnalysisByHash(toFingerprintLookup(fingerprint), options?.imageUrl);
-                            if (cacheHitRaw) {
-                                showProgressToast('We found your cake photo! 🎉', 3000);
-                                cacheHit = cacheHitRaw;
-                                console.log(`✅ pHash Cache HIT! Found matching analysis for hash: ${pHash}`);
-                            } else {
-                                showProgressToast('Analyzing your design with AI…', 15000);
-                                console.log('⚫️ Cache MISS. No matching pHash found in database.');
-                            }
-                        } else {
-                            showProgressToast('Analyzing your design with AI…', 15000);
-                        }
-                    } else {
-                        // Case C: FastAPI online and returned match = false. Authoritative Cache MISS. Skip pHash database lookup entirely!
-                        showProgressToast('Analyzing your design with AI…', 15000);
-                        console.log('%c⚫ CACHE MISS (ORB+RANSAC)', 'color: #94a3b8; font-weight: bold;', '— skipping pHash database lookup');
-                    }
+            if (shouldUseSimilarCacheLookup) {
+                const cacheHitRaw = await findSimilarAnalysisByHash(toFingerprintLookup(fingerprint), options?.imageUrl);
+                if (cacheHitRaw) {
+                    showProgressToast('We found your cake photo! 🎉', 3000);
+                    cacheHit = cacheHitRaw;
+                    console.log(`✅ pHash Cache HIT! Found matching analysis for hash: ${pHash}`);
+                } else {
+                    showProgressToast('Analyzing your design with AI…', 15000);
+                    console.log('⚫️ Cache MISS. No matching pHash found in database.');
                 }
+            } else {
+                showProgressToast('Analyzing your design with AI…', 15000);
             }
 
             // --- PROCESS CACHE HIT (IF ANY) ---

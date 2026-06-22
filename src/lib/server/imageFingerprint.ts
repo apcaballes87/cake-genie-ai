@@ -1,12 +1,13 @@
 import sharp from 'sharp';
 
 export const FINGERPRINT_PIPELINE =
-  'v1-sharp-0.34-autoOrient-srgb-512-contain-white-lanczos3-gray-ahash8';
+  'v2-sharp-0.34-autoOrient-srgb-512-contain-white-lanczos3-gray-dhash8';
 
 export const MAX_FINGERPRINT_INPUT_BYTES = 10 * 1024 * 1024;
 
 const CANONICAL_SIZE = 512;
 const HASH_SIZE = 8;
+const DIFFERENCE_HASH_WIDTH = HASH_SIZE + 1;
 const WHITE_BACKGROUND = { r: 255, g: 255, b: 255 };
 
 export interface ImageFingerprint {
@@ -35,18 +36,16 @@ export async function canonicalizeImageForFingerprint(input: Buffer): Promise<Bu
     .toBuffer();
 }
 
-export function hashGrayscalePixels(pixels: Uint8Array): string {
-  const expectedLength = HASH_SIZE * HASH_SIZE;
+export function hashHorizontalGradientPixels(pixels: Uint8Array): string {
+  const expectedLength = DIFFERENCE_HASH_WIDTH * HASH_SIZE;
   if (pixels.length !== expectedLength) {
     throw new Error(`Expected ${expectedLength} grayscale pixels, received ${pixels.length}.`);
   }
 
-  let total = 0;
   let min = Infinity;
   let max = -Infinity;
 
   for (const value of pixels) {
-    total += value;
     if (value < min) min = value;
     if (value > max) max = value;
   }
@@ -55,12 +54,16 @@ export function hashGrayscalePixels(pixels: Uint8Array): string {
     throw new Error('Image has too little visual detail to fingerprint reliably.');
   }
 
-  const average = total / pixels.length;
   let hash = 0n;
+  let bitIndex = 0;
 
-  for (let i = 0; i < pixels.length; i++) {
-    if (pixels[i] > average) {
-      hash |= 1n << BigInt(i);
+  for (let y = 0; y < HASH_SIZE; y += 1) {
+    const rowOffset = y * DIFFERENCE_HASH_WIDTH;
+    for (let x = 0; x < HASH_SIZE; x += 1) {
+      if (pixels[rowOffset + x] > pixels[rowOffset + x + 1]) {
+        hash |= 1n << BigInt(bitIndex);
+      }
+      bitIndex += 1;
     }
   }
 
@@ -69,7 +72,7 @@ export function hashGrayscalePixels(pixels: Uint8Array): string {
 
 export async function computeCanonicalImageHash(input: Buffer): Promise<string> {
   const { data, info } = await createCanonicalPipeline(input)
-    .resize(HASH_SIZE, HASH_SIZE, {
+    .resize(DIFFERENCE_HASH_WIDTH, HASH_SIZE, {
       fit: 'fill',
       kernel: sharp.kernel.lanczos3,
       fastShrinkOnLoad: false,
@@ -81,7 +84,7 @@ export async function computeCanonicalImageHash(input: Buffer): Promise<string> 
     throw new Error(`Expected grayscale image with 1 channel, received ${info.channels}.`);
   }
 
-  return hashGrayscalePixels(data);
+  return hashHorizontalGradientPixels(data);
 }
 
 export async function computeImageFingerprint(input: Buffer): Promise<ImageFingerprint> {

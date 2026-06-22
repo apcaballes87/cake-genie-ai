@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { CloseIcon, MessageCircle, Loader2, SendIcon, ImageIcon } from './icons';
 import { createClient } from '@/lib/supabase/client';
 import { fileToBase64, analyzeCakeFeaturesOnly, enrichAnalysisWithRoboflow, validateCakeImage } from '@/services/geminiService';
-import { findSimilarAnalysisByHash, cacheAnalysisResult } from '@/services/supabaseService';
+import { findAnalysisByExactHash, findSimilarAnalysisByHash, cacheAnalysisResult } from '@/services/supabaseService';
 import { HybridAnalysisResult } from '@/types';
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils';
@@ -496,10 +496,9 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                 return;
             }
 
-            const recheck = await findSimilarAnalysisByHash({
-                pHash: cacheKey,
-                pipeline: pipeline || 'v1-sharp-0.34-autoOrient-srgb-512-contain-white-lanczos3-gray-ahash8'
-            });
+            const recheck = pipeline
+                ? await findSimilarAnalysisByHash({ pHash: cacheKey, pipeline })
+                : await findAnalysisByExactHash(cacheKey);
 
             if (analysisId !== activeImageAnalysisIdRef.current || pendingImageHashRef.current !== cacheKey) {
                 return;

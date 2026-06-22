@@ -11,7 +11,7 @@
     "check:schema": "tsx scripts/check-required-columns.ts",
     "cleanup:abandoned-orders": "tsx scripts/test-cleanup-abandoned-orders.ts",
     "backfill:variants": "tsx scripts/backfill-image-variants.ts",
-    "backfill:phash": "tsx scripts/backfill-phash.ts",
+    "backfill:phash": "tsx scripts/backfill-server-phashes.ts",
     "reconcile:local": "tsx scripts/reconcile-batch-local.ts"
   },
   "dependencies": {

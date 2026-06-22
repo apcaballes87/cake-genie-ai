@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
+import { pathToFileURL } from 'url';
 import {
   computeImageFingerprint,
   FINGERPRINT_PIPELINE,
@@ -44,6 +45,39 @@ function getConcurrency() {
   const raw = getArg('--concurrency');
   const parsed = raw ? Number.parseInt(raw, 10) : 4;
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 4;
+}
+
+interface BackfillFilterOptions {
+  retryFailed?: boolean;
+}
+
+export function getBackfillRowFilter(
+  currentPipeline = FINGERPRINT_PIPELINE,
+  options: BackfillFilterOptions = {}
+) {
+  if (currentPipeline.includes(',')) {
+    throw new Error('Fingerprint pipeline cannot contain commas for PostgREST OR filters.');
+  }
+
+  const filters = [
+    'fingerprint_pipeline.is.null',
+    `fingerprint_pipeline.neq.${currentPipeline}`,
+    'fingerprint_status.eq.missing',
+  ];
+
+  if (options.retryFailed) {
+    filters.push('fingerprint_status.eq.failed');
+  }
+
+  return filters.join(',');
+}
+
+export function getBackfillStatusFilter(options: BackfillFilterOptions = {}) {
+  if (options.retryFailed) {
+    return 'fingerprint_status.is.null,fingerprint_status.neq.aliased';
+  }
+
+  return 'fingerprint_status.is.null,fingerprint_status.not.in.(aliased,failed)';
 }
 
 function formatErrorMessage(error: unknown) {
@@ -248,10 +282,11 @@ async function fetchImageBuffer(url: string) {
   }
 }
 
-async function main() {
+export async function main() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const dryRun = process.argv.includes('--dry-run');
+  const retryFailed = process.argv.includes('--retry-failed');
   const limit = getLimit();
   const concurrency = getConcurrency();
 
@@ -266,7 +301,8 @@ async function main() {
   const { data, error } = await supabase
     .from('cakegenie_analysis_cache')
     .select('id, p_hash, original_image_url')
-    .or('fingerprint_pipeline.is.null,fingerprint_status.eq.missing,fingerprint_status.eq.failed')
+    .or(getBackfillRowFilter(FINGERPRINT_PIPELINE, { retryFailed }))
+    .or(getBackfillStatusFilter({ retryFailed }))
     .not('original_image_url', 'is', null)
     .neq('original_image_url', '')
     .order('created_at', { ascending: true })
@@ -311,7 +347,9 @@ async function main() {
   console.log(`Done. Updated: ${updated}, aliased: ${aliased}, skipped: ${skipped}, failed: ${failed}.`);
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}

@@ -9,7 +9,7 @@ import MobileBottomNav from '@/components/MobileBottomNav';
 import { useSavedItems } from '@/contexts/SavedItemsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { CakeGenieSavedItem } from '@/lib/database.types';
-import { findSimilarAnalysisByHash } from '@/services/supabaseService';
+import { findAnalysisByExactHash } from '@/services/supabaseService';
 import toast from 'react-hot-toast';
 
 const SavedClient: React.FC = () => {
@@ -42,7 +42,7 @@ const SavedClient: React.FC = () => {
             // Try to fetch cached analysis from database using pHash
             let cachedAnalysis = null;
             if (item.analysis_p_hash) {
-                cachedAnalysis = await findSimilarAnalysisByHash({ pHash: item.analysis_p_hash, pipeline: 'v1-sharp-0.34-autoOrient-srgb-512-contain-white-lanczos3-gray-ahash8' }, imageUrl);
+                cachedAnalysis = await findAnalysisByExactHash(item.analysis_p_hash, imageUrl);
                 if (cachedAnalysis) {
                     console.log('✅ Found cached analysis for saved item');
                 }

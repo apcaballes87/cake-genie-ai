@@ -96,7 +96,6 @@ vi.mock('./indexNowService', () => ({
 
 describe('cacheAnalysisResult', () => {
   beforeEach(() => {
-    process.env.NEXT_PUBLIC_ORB_BACKEND_URL = 'https://orb.genie.ph';
     vi.stubGlobal('fetch', fetchMock);
     fetchMock.mockReset().mockResolvedValue({
       ok: true,
@@ -146,7 +145,7 @@ describe('cacheAnalysisResult', () => {
       'https://example.com/basketball.webp',
       undefined,
       {
-        fingerprintPipeline: 'v1-test-pipeline',
+        fingerprintPipeline: 'v2-test-pipeline',
         triggerStudioEdit: false,
       },
     );
@@ -191,7 +190,7 @@ describe('cacheAnalysisResult', () => {
       'https://example.com/lavender.webp',
       undefined,
       {
-        fingerprintPipeline: 'v1-test-pipeline',
+        fingerprintPipeline: 'v2-test-pipeline',
         triggerStudioEdit: false,
       }
     );
@@ -200,9 +199,8 @@ describe('cacheAnalysisResult', () => {
     expect(upsertMock).toHaveBeenCalledWith(
       expect.objectContaining({
         p_hash: 'deadc0de1234beef',
-        fingerprint_pipeline: 'v1-test-pipeline',
+        fingerprint_pipeline: 'v2-test-pipeline',
         fingerprint_status: 'ready',
-        orb_index_status: 'pending',
       }),
       expect.objectContaining({
         onConflict: 'p_hash',
@@ -210,16 +208,16 @@ describe('cacheAnalysisResult', () => {
     );
   });
 
-  it('reuses an existing near-identical canonical hash before upsert', async () => {
+  it('reuses an existing one-bit canonical hash before upsert', async () => {
     rpcMock.mockResolvedValue({
-      data: [{ p_hash: 'ff4f040c070347bf' }],
+      data: [{ p_hash: '0000000000000000' }],
       error: null,
     });
 
     const { cacheAnalysisResult } = await import('./supabaseService');
 
     const result = await cacheAnalysisResult(
-      'ff4f040c0703c7bf',
+      '0000000000000001',
       {
         cakeType: 'Bento',
         cakeThickness: '4 in',
@@ -235,19 +233,19 @@ describe('cacheAnalysisResult', () => {
       'https://example.com/roblox.webp',
       undefined,
       {
-        fingerprintPipeline: 'v1-sharp-0.34-autoOrient-srgb-512-contain-white-lanczos3-gray-ahash8',
+        fingerprintPipeline: 'v2-sharp-0.34-autoOrient-srgb-512-contain-white-lanczos3-gray-dhash8',
         triggerStudioEdit: false,
       }
     );
 
-    expect(result?.storedPHash).toBe('ff4f040c070347bf');
+    expect(result?.storedPHash).toBe('0000000000000000');
     expect(rpcMock).toHaveBeenCalledWith('find_similar_analysis_by_fingerprint', {
-      new_hash: 'ff4f040c0703c7bf',
-      new_pipeline: 'v1-sharp-0.34-autoOrient-srgb-512-contain-white-lanczos3-gray-ahash8',
+      new_hash: '0000000000000001',
+      new_pipeline: 'v2-sharp-0.34-autoOrient-srgb-512-contain-white-lanczos3-gray-dhash8',
     });
     expect(upsertMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        p_hash: 'ff4f040c070347bf',
+        p_hash: '0000000000000000',
       }),
       expect.objectContaining({
         onConflict: 'p_hash',
@@ -255,7 +253,7 @@ describe('cacheAnalysisResult', () => {
     );
   });
 
-  it('does not collapse writes when the matched hash is more than two bits away', async () => {
+  it('does not collapse writes when the matched hash is two bits away', async () => {
     rpcMock.mockResolvedValue({
       data: [{ p_hash: '0000000000000000' }],
       error: null,
@@ -264,7 +262,7 @@ describe('cacheAnalysisResult', () => {
     const { cacheAnalysisResult } = await import('./supabaseService');
 
     const result = await cacheAnalysisResult(
-      '0000000000000007',
+      '0000000000000003',
       {
         cakeType: 'Bento',
         cakeThickness: '4 in',
@@ -280,15 +278,15 @@ describe('cacheAnalysisResult', () => {
       'https://example.com/separate.webp',
       undefined,
       {
-        fingerprintPipeline: 'v1-sharp-0.34-autoOrient-srgb-512-contain-white-lanczos3-gray-ahash8',
+        fingerprintPipeline: 'v2-sharp-0.34-autoOrient-srgb-512-contain-white-lanczos3-gray-dhash8',
         triggerStudioEdit: false,
       }
     );
 
-    expect(result?.storedPHash).toBe('0000000000000007');
+    expect(result?.storedPHash).toBe('0000000000000003');
     expect(upsertMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        p_hash: '0000000000000007',
+        p_hash: '0000000000000003',
       }),
       expect.objectContaining({
         onConflict: 'p_hash',
@@ -296,7 +294,7 @@ describe('cacheAnalysisResult', () => {
     );
   });
 
-  it('triggers ORB indexing when a source image blob is available', async () => {
+  it('does not write ORB indexing state or trigger ORB indexing when a source image blob is available', async () => {
     const { cacheAnalysisResult } = await import('./supabaseService');
     const originalWindow = globalThis.window;
 
@@ -323,7 +321,7 @@ describe('cacheAnalysisResult', () => {
         'https://example.com/indexed-design.webp',
         new Blob(['orb-image-bytes'], { type: 'image/webp' }),
         {
-          fingerprintPipeline: 'v1-test-pipeline',
+          fingerprintPipeline: 'v2-test-pipeline',
           triggerStudioEdit: false,
         }
       );
@@ -336,29 +334,19 @@ describe('cacheAnalysisResult', () => {
 
     await Promise.resolve();
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://orb.genie.ph/api/index',
-      expect.objectContaining({
-        method: 'POST',
-        body: expect.any(FormData),
-      })
-    );
+    const [payload] = upsertMock.mock.calls[0] ?? [];
+    expect(payload).toBeTruthy();
+    expect(payload).not.toHaveProperty('orb_index_status');
+    expect(payload).not.toHaveProperty('orb_index_error');
+    expect(payload).not.toHaveProperty('orb_index_attempted_at');
+    expect(payload).not.toHaveProperty('orb_indexed_at');
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('does not wait for ORB indexing before resolving the cache write', async () => {
+  it('resolves cache writes without waiting on any ORB indexing request', async () => {
     const { cacheAnalysisResult } = await import('./supabaseService');
     const originalWindow = globalThis.window;
-    let resolveIndexFetch!: (value: {
-      ok: boolean;
-      json: () => Promise<{ success: boolean }>;
-    }) => void;
-
-    fetchMock.mockReset().mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          resolveIndexFetch = resolve;
-        })
-    );
+    fetchMock.mockReset().mockRejectedValue(new Error('ORB should not be called'));
 
     Object.defineProperty(globalThis, 'window', {
       value: undefined,
@@ -384,7 +372,7 @@ describe('cacheAnalysisResult', () => {
           'https://example.com/non-blocking-index.webp',
           new Blob(['orb-image-bytes'], { type: 'image/webp' }),
           {
-            fingerprintPipeline: 'v1-test-pipeline',
+            fingerprintPipeline: 'v2-test-pipeline',
             triggerStudioEdit: false,
           }
         ),
@@ -398,16 +386,14 @@ describe('cacheAnalysisResult', () => {
         })
       );
     } finally {
-      resolveIndexFetch({
-        ok: true,
-        json: async () => ({ success: true }),
-      });
       await Promise.resolve();
       Object.defineProperty(globalThis, 'window', {
         value: originalWindow,
         configurable: true,
       });
     }
+
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('can refresh analysis fields without resetting stored source asset coverage', async () => {
@@ -430,7 +416,7 @@ describe('cacheAnalysisResult', () => {
       'https://example.com/already-stored.webp',
       undefined,
       {
-        fingerprintPipeline: 'v1-test-pipeline',
+        fingerprintPipeline: 'v2-test-pipeline',
         triggerStudioEdit: false,
         persistSourceAsset: false,
       }
@@ -466,7 +452,7 @@ describe('cacheAnalysisResult', () => {
       'https://example.com/source.webp',
       undefined,
       {
-        fingerprintPipeline: 'v1-test-pipeline',
+        fingerprintPipeline: 'v2-test-pipeline',
         triggerStudioEdit: false,
         persistSourceAsset: 'if_missing',
       }
@@ -475,7 +461,7 @@ describe('cacheAnalysisResult', () => {
     const [payload] = upsertMock.mock.calls[0] ?? [];
     expect(payload).toBeTruthy();
     expect(payload.original_image_url).toBe('https://example.com/source.webp');
-    expect(payload.orb_index_status).toBe('pending');
+    expect(payload).not.toHaveProperty('orb_index_status');
   });
 
   it("does not write original_image_url if persistSourceAsset is 'if_missing' and the record already has an image", async () => {
@@ -499,7 +485,7 @@ describe('cacheAnalysisResult', () => {
       'https://example.com/source.webp',
       undefined,
       {
-        fingerprintPipeline: 'v1-test-pipeline',
+        fingerprintPipeline: 'v2-test-pipeline',
         triggerStudioEdit: false,
         persistSourceAsset: 'if_missing',
       }

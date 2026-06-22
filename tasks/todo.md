@@ -1,5 +1,42 @@
 # Tasks
 
+## Single Fingerprint Pipeline Refresh
+
+### Plan
+
+- [x] Replace the weak server aHash implementation with one v2 dHash8 fingerprint pipeline.
+- [x] Disable ORB from live customer cache matching and new cache-write indexing while keeping historical ORB data untouched.
+- [x] Remove stale v1 pipeline fallbacks from saved/chat cache lookups.
+- [x] Update the pHash backfill flow so it targets every non-v2 eligible cache row and preserves fingerprint status fields.
+- [x] Add the database migration needed for safe `p_hash` reference updates during rehashing.
+- [x] Add focused tests for dHash collision resistance, cache de-dupe boundaries, ORB disablement, and backfill selection behavior.
+- [x] Run focused Vitest coverage plus `npm run build`, then record the review and verification results.
+
+### Review
+
+- Replaced the old average-hash implementation in [src/lib/server/imageFingerprint.ts](/Users/apcaballes/genieph-nextjs/src/lib/server/imageFingerprint.ts:1) with the single server-side `dHash8` pipeline `v2-sharp-0.34-autoOrient-srgb-512-contain-white-lanczos3-gray-dhash8`. The code now canonicalizes through Sharp, resizes to `9x8`, compares adjacent grayscale pixels, and returns one 16-character hex hash.
+- Removed the live ORB path from customer uploads and cache writes while leaving historical ORB code/data available for admin/debug tooling. Uploads now generate a server fingerprint, perform one pipeline-matched pHash lookup, and otherwise run fresh AI analysis.
+- Removed stale v1 fallback lookups in saved/chat follow-up paths by adding exact-hash lookup support for existing saved pHash references and keeping new cache lookup pipeline-matched only.
+- Updated `npm run backfill:phash` to use the server backfill flow in [scripts/backfill-server-phashes.ts](/Users/apcaballes/genieph-nextjs/scripts/backfill-server-phashes.ts:1). Default batches now skip rows already marked `aliased` or `failed`; `--retry-failed` is available when intentionally rechecking fixed source images.
+- Added and applied [supabase/migrations/20260622010754_cascade_analysis_cache_phash_references.sql](/Users/apcaballes/genieph-nextjs/supabase/migrations/20260622010754_cascade_analysis_cache_phash_references.sql:1). Live FK verification shows `cakegenie_merchant_products.p_hash` and `cakegenie_pinterest_pins.p_hash` now reference `cakegenie_analysis_cache(p_hash)` with `ON UPDATE CASCADE`.
+- Ran the live backfill. Final production counts:
+  - `13,178` rows refreshed to the v2 dHash pipeline
+  - `0` usable rows remaining outside v2
+  - `24` rows marked `aliased` for duplicate v2 hashes
+  - `12` rows marked `failed` because their source images could not be fetched/processed
+- Verified the reported collision example after backfill: `60th-birthday-cake-0000` is now `8316b2a2c28ad89e`, and the nearest pickleball candidate among `113` pickleball rows is Hamming distance `18`, well outside the `<= 1` reuse threshold.
+- Verification:
+  - `npm run backfill:phash -- --dry-run --limit 50 --concurrency 4`
+  - `npm run backfill:phash -- --limit 1000 --concurrency 8`
+  - repeated bounded live backfill batches until usable remaining reached `0`
+  - `npx vitest run src/lib/server/imageFingerprint.test.ts src/app/api/image/fingerprint/route.test.ts src/services/supabaseService.cacheAnalysisResult.test.ts src/services/supabaseService.findSimilarAnalysisByHash.test.ts src/contexts/ImageContext.test.tsx scripts/backfill-server-phashes.test.ts --exclude '.claude/**'`
+  - `git diff --check`
+  - `npm run build`
+- Notes from verification:
+  - Focused Vitest passed: 6 files, 31 tests.
+  - `npm run build` completed successfully. Existing warnings still appeared for `baseline-browser-mapping`, inferred Next workspace root, deprecated `middleware`, and static-generation Supabase statement timeouts in keyword fallback queries.
+  - Supabase table inspection surfaced an unrelated critical RLS advisory for several public tables. This was not changed in this fingerprint pass and should be handled separately.
+
 ## Create "Is Genie.ph a Scam?" Trust Page
 
 ### Plan

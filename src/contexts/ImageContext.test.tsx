@@ -14,8 +14,7 @@ const {
   findSimilarAnalysisByHashMock,
   cacheAnalysisResultMock,
   generateServerImageFingerprintMock,
-  generatePerceptualHashCandidatesMock,
-  findOrbCacheHitMock,
+  toFingerprintLookupMock,
   showErrorMock,
   showStatusMock,
 } = vi.hoisted(() => ({
@@ -27,8 +26,7 @@ const {
   findSimilarAnalysisByHashMock: vi.fn(),
   cacheAnalysisResultMock: vi.fn(),
   generateServerImageFingerprintMock: vi.fn(),
-  generatePerceptualHashCandidatesMock: vi.fn(),
-  findOrbCacheHitMock: vi.fn(),
+  toFingerprintLookupMock: vi.fn(),
   showErrorMock: vi.fn(),
   showStatusMock: vi.fn(),
 }));
@@ -84,15 +82,7 @@ vi.mock('@/lib/utils/urlHelpers', () => ({
 
 vi.mock('@/lib/utils/serverFingerprint.client', () => ({
   generateServerImageFingerprint: generateServerImageFingerprintMock,
-  toFingerprintLookup: vi.fn(),
-}));
-
-vi.mock('@/lib/utils/perceptualHash.client', () => ({
-  generatePerceptualHashCandidates: generatePerceptualHashCandidatesMock,
-}));
-
-vi.mock('@/services/orbMatchingService', () => ({
-  findOrbCacheHit: findOrbCacheHitMock,
+  toFingerprintLookup: toFingerprintLookupMock,
 }));
 
 vi.mock('@/config/features', () => ({
@@ -120,13 +110,15 @@ describe('ImageContext', () => {
       mimeType: 'image/png',
     });
     compressImageMock.mockImplementation(async (file: File) => file);
-    findOrbCacheHitMock.mockResolvedValue(null);
-    generatePerceptualHashCandidatesMock.mockResolvedValue([]);
     findSimilarAnalysisByHashMock.mockResolvedValue(null);
     generateServerImageFingerprintMock.mockResolvedValue({
       pHash: 'abc123def4567890',
-      pipeline: 'v1-test-pipeline',
+      pipeline: 'v2-test-pipeline',
       error: null,
+    });
+    toFingerprintLookupMock.mockReturnValue({
+      pHash: 'abc123def4567890',
+      pipeline: 'v2-test-pipeline',
     });
     analyzeCakeFeaturesOnlyMock.mockResolvedValue({
       cakeType: 'Bento',
@@ -169,6 +161,10 @@ describe('ImageContext', () => {
     });
 
     expect(result.current.currentPHash).toBe('abc123def4567890');
+    expect(findSimilarAnalysisByHashMock).toHaveBeenCalledWith({
+      pHash: 'abc123def4567890',
+      pipeline: 'v2-test-pipeline',
+    }, undefined);
     expect(onSuccess).toHaveBeenCalledWith(expect.objectContaining({
       keyword: 'purple cake',
     }));

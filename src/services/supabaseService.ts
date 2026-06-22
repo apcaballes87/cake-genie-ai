@@ -24,7 +24,6 @@ import {
   normalizeRelatedSearchPhrase,
   rankRelatedProducts,
 } from './relatedProductSearch';
-import { getOrbBackendUrl } from './orbBackendConfig';
 
 // The default client (uses @supabase/ssr browser client)
 const supabase: SupabaseClient = getSupabaseClient();
@@ -533,6 +532,54 @@ export async function findSimilarAnalysisByHash(pHash: FingerprintHashLookup, im
   }
 }
 
+export async function findAnalysisByExactHash(pHash: string, imageUrl?: string): Promise<CacheHitResult | null> {
+  try {
+    const canonicalHash = normalizeHexPHash(pHash);
+
+    if (!canonicalHash) {
+      console.warn('⚠️ Dropping invalid non-hex fingerprint before exact cache lookup.', { pHash });
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from('cakegenie_analysis_cache')
+      .select(`
+        id,
+        p_hash,
+        analysis_json,
+        seo_title,
+        seo_description,
+        keywords,
+        alt_text,
+        slug,
+        original_image_url,
+        price,
+        availability
+      `)
+      .eq('p_hash', canonicalHash)
+      .maybeSingle();
+
+    if (error || !data) {
+      if (error) {
+        console.warn('⚠️ Exact cache lookup failed:', error.message);
+      }
+      return null;
+    }
+
+    const result = data as AnalysisCacheLookupRow;
+    const needsBackfill = result.price === null || result.keywords === null || (result.original_image_url === null && imageUrl);
+
+    if (needsBackfill) {
+      backfillCacheFields(result.p_hash, result.analysis_json, imageUrl);
+    }
+
+    return mapCacheHitResult(result, result.id ?? null);
+  } catch (err) {
+    console.error('❌ Exception during exact analysis cache lookup:', err);
+    return null;
+  }
+}
+
 
 /**
  * Fetches analysis directly by exact p_hash string match.
@@ -631,138 +678,6 @@ export async function convertToWebP(blob: Blob): Promise<Blob> {
     img.onerror = () => reject(new Error('Failed to load image for WebP conversion'));
     img.src = URL.createObjectURL(blob);
   });
-}
-
-type AnalysisCacheCoverageUpdate = {
-  fingerprint_status?: string;
-  fingerprint_error?: string | null;
-  fingerprinted_at?: string | null;
-  orb_index_status?: string;
-  orb_index_error?: string | null;
-  orb_index_attempted_at?: string | null;
-  orb_indexed_at?: string | null;
-};
-
-function getInitialOrbIndexCoverage(imageUrl?: string | null, imageBlob?: Blob) {
-  if (imageBlob || (typeof imageUrl === 'string' && imageUrl.trim().length > 0)) {
-    return {
-      orb_index_status: 'pending',
-      orb_index_error: null,
-    };
-  }
-
-  return {
-    orb_index_status: 'missing_source',
-    orb_index_error: 'No cached image source available for ORB indexing.',
-  };
-}
-
-async function updateAnalysisCacheCoverage(
-  client: SupabaseClient,
-  cacheId: string,
-  fields: AnalysisCacheCoverageUpdate
-): Promise<void> {
-  const { error } = await client
-    .from('cakegenie_analysis_cache')
-    .update(fields)
-    .eq('id', cacheId);
-
-  if (error) {
-    console.warn('⚠️ Failed to update analysis cache coverage state:', {
-      cacheId,
-      fields,
-      error: error.message,
-    });
-  }
-}
-
-async function triggerOrbFeatureIndexing(
-  client: SupabaseClient,
-  cacheId: string,
-  imageBlob: Blob
-): Promise<void> {
-  const indexUrl = getOrbBackendUrl('/api/index');
-  const attemptedAt = new Date().toISOString();
-
-  if (!indexUrl) {
-    console.warn('⚠️ ORB backend is not configured; skipping feature indexing trigger.');
-    await updateAnalysisCacheCoverage(client, cacheId, {
-      orb_index_status: 'failed',
-      orb_index_error: 'ORB backend is not configured for this environment.',
-      orb_index_attempted_at: attemptedAt,
-    });
-    return;
-  }
-
-  try {
-    await updateAnalysisCacheCoverage(client, cacheId, {
-      orb_index_status: 'indexing',
-      orb_index_error: null,
-      orb_index_attempted_at: attemptedAt,
-    });
-
-    const formData = new FormData();
-    formData.append('cache_id', cacheId);
-    formData.append('skip_if_exists', 'true');
-
-    const fileName = typeof File !== 'undefined' && imageBlob instanceof File
-      ? imageBlob.name
-      : 'orb-index-source.webp';
-
-    formData.append('file', imageBlob, fileName);
-
-    const response = await fetch(indexUrl, {
-      method: 'POST',
-      body: formData,
-    });
-
-    let payload: { already_indexed?: boolean; detail?: string; message?: string } | null = null;
-    try {
-      payload = await response.json() as { already_indexed?: boolean; detail?: string; message?: string };
-    } catch {
-      payload = null;
-    }
-
-    if (!response.ok) {
-      const detail = payload?.detail || payload?.message || 'Unknown error';
-      console.warn('⚠️ ORB feature indexing failed:', {
-        status: response.status,
-        detail,
-      });
-      await updateAnalysisCacheCoverage(client, cacheId, {
-        orb_index_status: 'failed',
-        orb_index_error: detail,
-        orb_index_attempted_at: attemptedAt,
-      });
-      return;
-    }
-
-    if (payload?.already_indexed) {
-      console.log('ℹ️ ORB features already existed for cache row:', cacheId);
-      await updateAnalysisCacheCoverage(client, cacheId, {
-        orb_index_status: 'ready',
-        orb_index_error: null,
-        orb_index_attempted_at: attemptedAt,
-        orb_indexed_at: attemptedAt,
-      });
-      return;
-    }
-
-    console.log('✅ ORB features indexed for cache row:', cacheId);
-    await updateAnalysisCacheCoverage(client, cacheId, {
-      orb_index_status: 'ready',
-      orb_index_error: null,
-      orb_index_attempted_at: attemptedAt,
-      orb_indexed_at: attemptedAt,
-    });
-  } catch (err) {
-    console.warn('⚠️ Failed to trigger ORB feature indexing:', err);
-    await updateAnalysisCacheCoverage(client, cacheId, {
-      orb_index_status: 'failed',
-      orb_index_error: err instanceof Error ? err.message : 'Failed to trigger ORB feature indexing.',
-      orb_index_attempted_at: attemptedAt,
-    });
-  }
 }
 
 /**
@@ -939,15 +854,6 @@ export async function cacheAnalysisResult(
       }
     }
 
-    const sourceInfoWasProvided = (persistSourceAsset === true || (persistSourceAsset === 'if_missing' && shouldWriteImageUrl)) && (imageUrl !== undefined || imageBlob !== undefined);
-    const initialOrbCoverage = sourceInfoWasProvided
-      ? {
-        ...getInitialOrbIndexCoverage(finalImageUrl, imageBlob),
-        orb_index_attempted_at: null,
-        orb_indexed_at: null,
-      }
-      : {};
-
     const upsertPayload: Record<string, unknown> = {
       p_hash: resolvedPHash,
       fingerprint_pipeline: fingerprintPipeline,
@@ -963,7 +869,6 @@ export async function cacheAnalysisResult(
       seo_description: seoDescription,
       availability: availability,
       tags: tags,
-      ...initialOrbCoverage,
       ...imageDimensions,
     };
 
@@ -1036,12 +941,6 @@ export async function cacheAnalysisResult(
           body: JSON.stringify({ pHash: resolvedPHash })
         }).catch(err => console.warn('Background trigger fetch error:', err));
       }
-    }
-
-    if (persistSourceAsset && returnedId && imageBlob) {
-      // Keep ORB indexing in the shared write path, but don't block the
-      // customizer's cache-write completion on a slow/offline ORB backend.
-      void triggerOrbFeatureIndexing(client, returnedId, imageBlob);
     }
 
     return {

@@ -90,8 +90,8 @@ export async function findOrbCacheHit(
   }
 
   // Skip the network round-trip and 2s timeout if we recently learned the
-  // backend is unreachable. The caller's catch-block treats this exactly like
-  // a real failure and falls through to the legacy pHash cache lookup.
+  // backend is unreachable. Historical/admin callers can treat this as a
+  // plain miss without blocking the rest of their workflow.
   if (isOrbKnownOffline()) {
     throw new Error('ORB backend recently unavailable; skipping fetch.');
   }

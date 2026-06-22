@@ -16,13 +16,6 @@ import {
     toFingerprintLookup,
     type ClientImageFingerprint,
 } from '@/lib/utils/serverFingerprint.client';
-import {
-    getOrbBackendUrl,
-    getOrbBackendUnavailableMessage,
-} from '@/services/orbBackendConfig';
-export { generatePerceptualHash } from '@/lib/utils/perceptualHash.client';
-
-const USER_UPLOAD_ORB_MATCH_MODE = 'strict';
 
 export const useImageManagement = () => {
     const supabase = getSupabaseClient();
@@ -91,47 +84,8 @@ export const useImageManagement = () => {
             let cachedAnalysis: HybridAnalysisResult | null = null;
             let pHash = '';
             let cacheHit = null;
-            let orbBackendOfflineOrFailed = false;
 
-            try {
-                // Try crop-resistant backend ORB matching first
-                const matchUrl = getOrbBackendUrl('/api/match');
-                if (!matchUrl) {
-                    throw new Error(getOrbBackendUnavailableMessage());
-                }
-
-                const formData = new FormData();
-                formData.append('file', file);
-                
-                const matchResponse = await fetch(`${matchUrl}?mode=${USER_UPLOAD_ORB_MATCH_MODE}&visualize=false`, {
-                    method: 'POST',
-                    body: formData,
-                });
-                
-                if (matchResponse.ok) {
-                    const matchData = await matchResponse.json();
-                    if (matchData.match && matchData.analysis_json) {
-                        console.log('🎯 Crop-resistant match found! Latency:', matchData.execution_time_ms, 'ms');
-                        cachedAnalysis = matchData.analysis_json as HybridAnalysisResult;
-                        cacheHit = {
-                            analysisResult: cachedAnalysis,
-                            seoMetadata: {
-                                original_image_url: matchData.matched_image_url || null
-                            }
-                        };
-                    } else {
-                        console.log('🔍 Crop-resistant backend successfully verified NO match. Skipping pHash fallback.');
-                    }
-                } else {
-                    console.warn(`FastAPI backend returned status ${matchResponse.status}. Falling back to pHash.`);
-                    orbBackendOfflineOrFailed = true;
-                }
-            } catch (err) {
-                console.warn('FastAPI backend offline or error, falling back to standard whole-image pHash matching:', err);
-                orbBackendOfflineOrFailed = true;
-            }
-
-            // --- STEP 1: CHECK pHash CACHE (FASTEST FALLBACK) ---
+            // --- STEP 1: CHECK pHash CACHE (SINGLE SERVER FINGERPRINT PATH) ---
             let fingerprint: ClientImageFingerprint | null = null;
             if (!cachedAnalysis) {
                 fingerprint = await generateServerImageFingerprint(
@@ -139,21 +93,19 @@ export const useImageManagement = () => {
                 );
                 pHash = fingerprint.pHash || '';
 
-                if (orbBackendOfflineOrFailed) {
-                    console.log(
-                        `🖼️ Server pHash result: ${pHash
-                            ? pHash
-                            : `FAILED (${fingerprint.error || 'unknown error'}) — new cache writes will be skipped`}`
-                    );
+                console.log(
+                    `🖼️ Server pHash result: ${pHash
+                        ? pHash
+                        : `FAILED (${fingerprint.error || 'unknown error'}) — new cache writes will be skipped`}`
+                );
 
-                    cacheHit = pHash
-                        ? await findSimilarAnalysisByHash(toFingerprintLookup(fingerprint), uploadedImageUrl)
-                        : null;
+                cacheHit = pHash
+                    ? await findSimilarAnalysisByHash(toFingerprintLookup(fingerprint), uploadedImageUrl)
+                    : null;
 
-                    if (cacheHit) {
-                        console.log('⚡ pHash Cache Hit! Skipping AI analysis.');
-                        cachedAnalysis = cacheHit.analysisResult;
-                    }
+                if (cacheHit) {
+                    console.log('⚡ pHash Cache Hit! Skipping AI analysis.');
+                    cachedAnalysis = cacheHit.analysisResult;
                 }
             }
 

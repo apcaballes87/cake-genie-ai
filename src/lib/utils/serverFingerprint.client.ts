@@ -1,5 +1,3 @@
-import type { HashOptions } from './perceptualHash.client';
-
 export interface ClientImageFingerprint {
   pHash: string | null;
   pipeline: string | null;
@@ -67,6 +65,3 @@ export function toFingerprintLookup(
     pipeline: fingerprint.pipeline,
   };
 }
-
-// Re-export HashOptions so callers don't need a separate import
-export type { HashOptions };

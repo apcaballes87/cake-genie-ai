@@ -3,13 +3,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const rpcMock = vi.fn();
 const updateMock = vi.fn();
 const eqMock = vi.fn();
+const selectMock = vi.fn();
+const maybeSingleMock = vi.fn();
+
+const queryMock = {
+  update: updateMock,
+  select: selectMock,
+  eq: eqMock,
+  maybeSingle: maybeSingleMock,
+};
 
 const mockClient = {
   rpc: rpcMock,
-  from: vi.fn(() => ({
-    update: updateMock,
-    eq: eqMock,
-  })),
+  from: vi.fn(() => queryMock),
 };
 
 vi.mock('@/lib/supabase/client', () => ({
@@ -24,7 +30,10 @@ describe('findSimilarAnalysisByHash', () => {
   beforeEach(() => {
     rpcMock.mockReset();
     updateMock.mockReset();
+    selectMock.mockReset().mockReturnValue(queryMock);
     eqMock.mockReset();
+    eqMock.mockReturnValue(queryMock);
+    maybeSingleMock.mockReset();
     mockClient.from.mockClear();
   });
 
@@ -51,14 +60,14 @@ describe('findSimilarAnalysisByHash', () => {
     const { findSimilarAnalysisByHash } = await import('./supabaseService');
     const result = await findSimilarAnalysisByHash({
       pHash: 'abc123def4567890',
-      pipeline: 'v1-sharp-0.34-autoOrient-srgb-512-contain-white-lanczos3-gray-ahash8',
+      pipeline: 'v2-sharp-0.34-autoOrient-srgb-512-contain-white-lanczos3-gray-dhash8',
     });
 
     expect(result?.seoMetadata.slug).toBe('lavender-cake-abc123de');
     expect(result?.id).toBe('cache-row-1');
     expect(rpcMock).toHaveBeenCalledWith('find_similar_analysis_by_fingerprint', {
       new_hash: 'abc123def4567890',
-      new_pipeline: 'v1-sharp-0.34-autoOrient-srgb-512-contain-white-lanczos3-gray-ahash8',
+      new_pipeline: 'v2-sharp-0.34-autoOrient-srgb-512-contain-white-lanczos3-gray-dhash8',
     });
     expect(mockClient.from).not.toHaveBeenCalled();
     expect(updateMock).not.toHaveBeenCalled();
@@ -114,5 +123,33 @@ describe('findSimilarAnalysisByHash', () => {
 
     expect(rpcMock).toHaveBeenCalledTimes(0);
     expect(result).toBeNull();
+  });
+
+  it('looks up saved hashes by exact p_hash without a legacy pipeline fallback', async () => {
+    maybeSingleMock.mockResolvedValue({
+      data: {
+        id: 'cache-row-exact',
+        p_hash: 'abc123def4567890',
+        analysis_json: { cakeType: 'Bento', keyword: 'exact' },
+        seo_title: 'Exact Cake',
+        seo_description: 'Found exactly',
+        keywords: 'exact',
+        alt_text: 'Exact cake',
+        slug: 'exact-cake-abc123',
+        original_image_url: 'https://example.com/exact.webp',
+        price: 1200,
+        availability: 'made_to_order',
+      },
+      error: null,
+    });
+
+    const { findAnalysisByExactHash } = await import('./supabaseService');
+    const result = await findAnalysisByExactHash('ABC123DEF4567890');
+
+    expect(result?.id).toBe('cache-row-exact');
+    expect(result?.seoMetadata.slug).toBe('exact-cake-abc123');
+    expect(rpcMock).not.toHaveBeenCalled();
+    expect(mockClient.from).toHaveBeenCalledWith('cakegenie_analysis_cache');
+    expect(eqMock).toHaveBeenCalledWith('p_hash', 'abc123def4567890');
   });
 });
