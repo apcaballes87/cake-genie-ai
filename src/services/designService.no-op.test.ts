@@ -136,4 +136,65 @@ describe('designService: no-op fast path', () => {
         expect(prompt).toContain('upper-center area of the cake');
         expect(systemInstruction).toContain('TOY TO PRINTOUT CONVERSIONS');
     });
+
+    it('passes topper replacement images through with stable reference labels', async () => {
+        (geminiService.editCakeImage as any).mockResolvedValueOnce('replacement-image-result');
+
+        await updateDesign({
+            originalImageData: mockOriginalImage,
+            analysisResult: {
+                ...mockAnalysisResult,
+                main_toppers: [{
+                    type: 'printout',
+                    description: 'graduation topper',
+                    quantity: 1,
+                    size: 'medium',
+                    material: 'paper',
+                    group_id: 'topper-1',
+                    classification: 'hero',
+                }],
+            } as any,
+            cakeInfo: { type: '1 Tier', flavor: ['Chocolate Cake'], size: '6" Round', thickness: 'Standard' } as any,
+            mainToppers: [{
+                id: 'topper-1',
+                type: 'printout',
+                original_type: 'printout',
+                description: 'graduation topper',
+                quantity: 1,
+                size: 'medium',
+                material: 'paper',
+                group_id: 'topper-1',
+                classification: 'hero',
+                isEnabled: true,
+                price: 0,
+                replacementImage: {
+                    data: 'replacement-base64',
+                    mimeType: 'image/png',
+                },
+            }] as any,
+            supportElements: [],
+            cakeMessages: [],
+            icingDesign: mockAnalysisResult.icing_design,
+            additionalInstructions: '',
+            threeTierReferenceImage: null,
+            traceId: 'replacement-image-trace',
+        });
+
+        const [prompt, , , , , , , , , referenceImages] = (geminiService.editCakeImage as any).mock.calls[0];
+
+        expect(prompt).toContain('### **Replacement Reference Images**');
+        expect(prompt).toContain('Replacement reference 1');
+        expect(prompt).toContain('replace its image with Replacement reference 1');
+        expect(referenceImages).toEqual([
+            {
+                label: 'Replacement reference 1',
+                targetDescription: 'graduation topper',
+                targetType: 'main topper',
+                image: {
+                    data: 'replacement-base64',
+                    mimeType: 'image/png',
+                },
+            },
+        ]);
+    });
 });

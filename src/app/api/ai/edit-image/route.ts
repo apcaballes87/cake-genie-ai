@@ -44,6 +44,15 @@ type EditImageRequestBody = {
         data?: string;
         mimeType?: string;
     } | null;
+    referenceImages?: Array<{
+        label?: string;
+        targetDescription?: string;
+        targetType?: string;
+        image?: {
+            data?: string;
+            mimeType?: string;
+        };
+    }>;
     systemInstruction?: string;
     preferredModel?: EditImageModelName;
 };
@@ -109,14 +118,23 @@ export async function POST(req: NextRequest) {
 
     try {
         const body = (await req.json()) as EditImageRequestBody;
-        const { prompt, originalImage, threeTierReferenceImage, systemInstruction, preferredModel } = body;
+        const { prompt, originalImage, threeTierReferenceImage, referenceImages, systemInstruction, preferredModel } = body;
         const modelName = resolveModelName(preferredModel);
+        const validReferenceImages = Array.isArray(referenceImages)
+            ? referenceImages.filter((reference) =>
+                Boolean(
+                    reference?.image?.data &&
+                    reference?.image?.mimeType
+                )
+            )
+            : [];
 
         console.log(`[AI TRACE ${traceId}] /api/ai/edit-image:start`, {
             requestSource,
             promptLength: typeof prompt === 'string' ? prompt.length : 0,
             hasOriginalImage: Boolean(originalImage?.data && originalImage?.mimeType),
             hasThreeTierReferenceImage: Boolean(threeTierReferenceImage?.data && threeTierReferenceImage?.mimeType),
+            referenceImageCount: validReferenceImages.length,
             hasSystemInstruction: Boolean(systemInstruction),
             preferredModel,
             resolvedModel: modelName,
@@ -163,6 +181,18 @@ export async function POST(req: NextRequest) {
                 text: "The second image provided is a REFERENCE GUIDE for standard 3-tier structure. Use it only to understand proper tier proportions."
             });
         }
+
+        validReferenceImages.forEach((reference) => {
+            parts.push({
+                inlineData: {
+                    mimeType: reference.image!.mimeType!,
+                    data: reference.image!.data!,
+                }
+            });
+            parts.push({
+                text: `${reference.label || 'Replacement reference'} is for the ${reference.targetType || 'decor item'} "${reference.targetDescription || 'unnamed item'}". Use it only for that specific target and preserve all other decorations.`
+            });
+        });
 
         // Add the main edit prompt
         parts.push({ text: prompt });

@@ -229,6 +229,75 @@ describe('/api/ai/edit-image', () => {
         });
     });
 
+    it('includes uploaded replacement reference images in the model input', async () => {
+        generateContent.mockResolvedValueOnce({
+            candidates: [
+                {
+                    content: {
+                        parts: [
+                            {
+                                inlineData: {
+                                    data: 'generated-image',
+                                    mimeType: 'image/png',
+                                },
+                            },
+                        ],
+                    },
+                },
+            ],
+        });
+
+        const response = await POST(
+            new Request('http://localhost/api/ai/edit-image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt: 'Replace the topper using Replacement reference 1',
+                    originalImage: { data: 'abc123', mimeType: 'image/png' },
+                    referenceImages: [
+                        {
+                            label: 'Replacement reference 1',
+                            targetDescription: 'graduation topper',
+                            targetType: 'main topper',
+                            image: { data: 'ref-image-1', mimeType: 'image/jpeg' },
+                        },
+                    ],
+                }),
+            }) as never
+        );
+
+        expect(response.status).toBe(200);
+        expect(generateContent).toHaveBeenCalledWith(
+            expect.objectContaining({
+                contents: [
+                    {
+                        role: 'user',
+                        parts: expect.arrayContaining([
+                            {
+                                inlineData: {
+                                    data: 'abc123',
+                                    mimeType: 'image/png',
+                                },
+                            },
+                            {
+                                inlineData: {
+                                    data: 'ref-image-1',
+                                    mimeType: 'image/jpeg',
+                                },
+                            },
+                            {
+                                text: 'Replacement reference 1 is for the main topper "graduation topper". Use it only for that specific target and preserve all other decorations.',
+                            },
+                            {
+                                text: 'Replace the topper using Replacement reference 1',
+                            },
+                        ]),
+                    },
+                ],
+            })
+        );
+    });
+
     it('returns the model text when Gemini responds without image data', async () => {
         // The default path now also runs the color-only retry scaffolding,
         // so `generateContent` can be called twice. We use `mockResolvedValue`

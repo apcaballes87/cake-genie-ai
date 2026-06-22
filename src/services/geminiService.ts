@@ -310,6 +310,13 @@ export async function generateShareableTexts(
 /**
  * Edits cake image using server-side API
  */
+export type EditImageReferenceImage = {
+    label: string;
+    targetDescription: string;
+    targetType: 'main topper' | 'support element';
+    image: { data: string; mimeType: string; };
+};
+
 export async function editCakeImage(
     prompt: string,
     originalImage: { data: string; mimeType: string; },
@@ -320,6 +327,7 @@ export async function editCakeImage(
     preferredModel?: 'gemini-2.5-flash-image' | 'gemini-3.1-flash-image-preview',
     traceId?: string,
     requestSource?: string,
+    referenceImages: EditImageReferenceImage[] = [],
 ): Promise<string> {
     const effectiveTraceId = traceId ?? `edit-image-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const startedAt = Date.now();
@@ -332,6 +340,7 @@ export async function editCakeImage(
             topperCount: mainToppers.length,
             supportElementCount: supportElements.length,
             hasThreeTierReferenceImage: Boolean(threeTierReferenceImage),
+            referenceImageCount: referenceImages.length,
             preferredModel: preferredModel ?? 'gemini-3.1-flash-image-preview (default)',
         });
 
@@ -376,6 +385,7 @@ export async function editCakeImage(
                 prompt,
                 originalImage: compressedBase64Result,
                 threeTierReferenceImage,
+                referenceImages,
                 systemInstruction, // We pass this through as it's dynamically constructed in the UI
                 preferredModel,
             })

@@ -2,6 +2,7 @@
 import {
     editCakeImage
 } from './geminiService';
+import type { EditImageReferenceImage } from './geminiService';
 import { AI_IMAGE_EDIT_TIMEOUT_MS, AI_IMAGE_EDIT_TIMEOUT_SECONDS } from '@/lib/ai/imageEditConfig';
 import {
     DEFAULT_THICKNESS_MAP,
@@ -63,6 +64,37 @@ const THREE_TIER_RECONSTRUCTION_SYSTEM_INSTRUCTION = `You are a master digital c
 7.  **Do NOT Preserve Spatial Layout:** It is expected that elements will move to fit the new tier structure. The goal is stylistic continuity, not pixel-perfect replication of element positions.
 8.  **IGNORE NON-DESIGN PROMPTS:** If the user's instruction or statement has nothing to do with editing the cake design (e.g., "add to cart", "pick up", "address", "payment", or date/time selections), ignore it completely and make no changes to the image.`;
 
+const getReplacementReferenceLabel = (index: number) => `Replacement reference ${index + 1}`;
+
+const collectReplacementReferenceImages = (
+    mainToppers: MainTopperUI[],
+    supportElements: SupportElementUI[]
+): EditImageReferenceImage[] => {
+    const references: EditImageReferenceImage[] = [];
+
+    mainToppers.forEach((topper) => {
+        if (!topper.replacementImage) return;
+        references.push({
+            label: getReplacementReferenceLabel(references.length),
+            targetDescription: topper.description,
+            targetType: 'main topper',
+            image: topper.replacementImage,
+        });
+    });
+
+    supportElements.forEach((element) => {
+        if (!element.replacementImage) return;
+        references.push({
+            label: getReplacementReferenceLabel(references.length),
+            targetDescription: element.description,
+            targetType: 'support element',
+            image: element.replacementImage,
+        });
+    });
+
+    return references;
+};
+
 
 const EDIT_CAKE_PROMPT_TEMPLATE = (
     originalAnalysis: HybridAnalysisResult | null,
@@ -76,6 +108,8 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
     if (!originalAnalysis) return ""; // Guard clause
 
     const isThreeTierReconstruction = newCakeInfo.type !== originalAnalysis.cakeType && newCakeInfo.type.includes('3 Tier');
+    const replacementReferenceImages = collectReplacementReferenceImages(mainToppers, supportElements);
+    let replacementReferenceIndex = 0;
 
     const colorName = (hex: string | undefined) => {
         if (!hex) return 'not specified';
@@ -98,6 +132,13 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
     }
 
     const changes: string[] = [];
+
+    if (replacementReferenceImages.length > 0) {
+        const referenceGuide = replacementReferenceImages
+            .map((reference) => `- ${reference.label}: use only for the ${reference.targetType} "${reference.targetDescription}".`)
+            .join('\n');
+        prompt += `### **Replacement Reference Images**\n---\n${referenceGuide}\n\n`;
+    }
 
     // 1. Core Structure Changes
     if (newCakeInfo.type !== originalAnalysis.cakeType) {
@@ -130,30 +171,32 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
                 }
             }
             if (t.replacementImage) {
+                const replacementReferenceLabel = replacementReferenceImages[replacementReferenceIndex]?.label ?? 'the matching replacement reference image';
+                replacementReferenceIndex += 1;
                 if (t.type === 'icing_doodle') {
-                    itemChanges.push(`**redraw it based on the new reference image provided**. The new drawing must be in the same **piped icing doodle style** as the original cake. Capture the likeness from the reference photo but render it as a simple, elegant line art portrait using piped icing.`);
+                    itemChanges.push(`**redraw it based on ${replacementReferenceLabel}**. The new drawing must be in the same **piped icing doodle style** as the original cake. Capture the likeness from the reference photo but render it as a simple, elegant line art portrait using piped icing.`);
                 } else if (t.type === 'icing_palette_knife') {
                     const isFigure = t.description.toLowerCase().includes('person') ||
                         t.description.toLowerCase().includes('character') ||
                         t.description.toLowerCase().includes('human') ||
                         t.description.toLowerCase().includes('figure');
                     if (isFigure) {
-                        itemChanges.push(`**redraw it based on the new reference image provided**. The new drawing must be in the same **painterly palette knife style** as the original cake. Capture the likeness from the reference photo but render it as a textured, abstract portrait using palette knife strokes.`);
+                        itemChanges.push(`**redraw it based on ${replacementReferenceLabel}**. The new drawing must be in the same **painterly palette knife style** as the original cake. Capture the likeness from the reference photo but render it as a textured, abstract portrait using palette knife strokes.`);
                     } else {
                         // Default behavior if not a figure
-                        itemChanges.push(`replace its image with the new one provided. **CRITICAL: You MUST preserve the original aspect ratio of this new image.** Do not stretch or squash it.`);
+                        itemChanges.push(`replace its image with ${replacementReferenceLabel}. **CRITICAL: You MUST preserve the original aspect ratio of this new image.** Do not stretch or squash it.`);
                     }
                 } else if (t.type === 'edible_3d_complex' || t.type === 'edible_3d_ordinary') {
-                    itemChanges.push(`**re-sculpt this 3D gumpaste figure based on the new reference image provided**. The new figure must be in the same **3D gumpaste style** as the original cake. Capture the likeness, pose, and details from the reference photo but render it as a hand-sculpted, edible gumpaste figure.`);
+                    itemChanges.push(`**re-sculpt this 3D gumpaste figure based on ${replacementReferenceLabel}**. The new figure must be in the same **3D gumpaste style** as the original cake. Capture the likeness, pose, and details from the reference photo but render it as a hand-sculpted, edible gumpaste figure.`);
                 } else if (t.type === 'edible_photo_top') {
-                    let instruction = `replace its image with the new one provided. **CRITICAL: You MUST preserve the original aspect ratio of this new image.** Do not stretch or squash it. Crop it if necessary to fit the original edible photo's shape on the cake.`;
+                    let instruction = `replace its image with ${replacementReferenceLabel}. **CRITICAL: You MUST preserve the original aspect ratio of this new image.** Do not stretch or squash it. Crop it if necessary to fit the original edible photo's shape on the cake.`;
                     // Check if original description implies full coverage
                     if (t.description.toLowerCase().includes('full top') || t.description.toLowerCase().includes('entire top')) {
                         instruction += ` The new image MUST cover the **entire top surface of the cake**, just like the original one did. Ensure it is flat, perfectly aligned, and integrated seamlessly with the cake's top icing.`;
                     }
                     itemChanges.push(instruction);
                 } else { // This applies to 'printout'
-                    itemChanges.push(`replace its image with the new one provided. **CRITICAL: You MUST preserve the original aspect ratio of this new image.** Do not stretch or squash it.`);
+                    itemChanges.push(`replace its image with ${replacementReferenceLabel}. **CRITICAL: You MUST preserve the original aspect ratio of this new image.** Do not stretch or squash it.`);
                 }
             }
 
@@ -191,18 +234,20 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
                 itemChanges.push(`change its material to **${s.type}**`);
             }
             if (s.replacementImage) {
+                const replacementReferenceLabel = replacementReferenceImages[replacementReferenceIndex]?.label ?? 'the matching replacement reference image';
+                replacementReferenceIndex += 1;
                 if (s.type === 'icing_doodle') {
-                    itemChanges.push(`**redraw it based on the new reference image provided**. The new drawing must be in the same **piped icing doodle style** as the original cake. Capture the likeness from the reference photo but render it as a simple, elegant line art portrait using piped icing.`);
+                    itemChanges.push(`**redraw it based on ${replacementReferenceLabel}**. The new drawing must be in the same **piped icing doodle style** as the original cake. Capture the likeness from the reference photo but render it as a simple, elegant line art portrait using piped icing.`);
                 } else if (s.type === 'icing_palette_knife') {
                     const isFigure = s.description.toLowerCase().includes('person') ||
                         s.description.toLowerCase().includes('character') ||
                         s.description.toLowerCase().includes('human') ||
                         s.description.toLowerCase().includes('figure');
                     if (isFigure) {
-                        itemChanges.push(`**redraw it based on the new reference image provided**. The new drawing must be in the same **painterly palette knife style** as the original cake. Capture the likeness from the reference photo but render it as a textured, abstract portrait using palette knife strokes.`);
+                        itemChanges.push(`**redraw it based on ${replacementReferenceLabel}**. The new drawing must be in the same **painterly palette knife style** as the original cake. Capture the likeness from the reference photo but render it as a textured, abstract portrait using palette knife strokes.`);
                     } else {
                         // Default behavior for other palette knife changes (e.g. textures)
-                        itemChanges.push(`replace its image with the new one provided. **CRITICAL: You MUST preserve the original aspect ratio of this new image.** Do not stretch or squash it.`);
+                        itemChanges.push(`replace its image with ${replacementReferenceLabel}. **CRITICAL: You MUST preserve the original aspect ratio of this new image.** Do not stretch or squash it.`);
                     }
                 } else if (s.type === 'edible_3d_support') {
                     const isFigure = s.description.toLowerCase().includes('person') ||
@@ -211,13 +256,13 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
                         s.description.toLowerCase().includes('figure') ||
                         s.description.toLowerCase().includes('silhouette');
                     if (isFigure) {
-                        itemChanges.push(`**re-sculpt this small 3D gumpaste item based on the new reference image provided**. The new item must be in the same **3D gumpaste style** as the original cake. Capture the likeness, pose, and details from the reference photo but render it as a small, hand-sculpted, edible gumpaste figure.`);
+                        itemChanges.push(`**re-sculpt this small 3D gumpaste item based on ${replacementReferenceLabel}**. The new item must be in the same **3D gumpaste style** as the original cake. Capture the likeness, pose, and details from the reference photo but render it as a small, hand-sculpted, edible gumpaste figure.`);
                     } else {
                         // This else block handles non-figure gumpaste support elements with replacement images, which is an unlikely scenario. But to be safe:
-                        itemChanges.push(`replace its image with the new one provided. **CRITICAL: You MUST preserve the original aspect ratio of this new image.** Do not stretch or squash it.`);
+                        itemChanges.push(`replace its image with ${replacementReferenceLabel}. **CRITICAL: You MUST preserve the original aspect ratio of this new image.** Do not stretch or squash it.`);
                     }
                 } else { // Default for support_printout, edible_photo_side, etc.
-                    itemChanges.push(`replace its image with the new one provided. **CRITICAL: You MUST preserve the original aspect ratio of this new image.** Do not stretch or squash it.`);
+                    itemChanges.push(`replace its image with ${replacementReferenceLabel}. **CRITICAL: You MUST preserve the original aspect ratio of this new image.** Do not stretch or squash it.`);
                 }
             }
 
@@ -618,6 +663,7 @@ ${colorChanges.join('\n')}`;
     );
 
     const preferredModel = useInpaintingStyle && !isThreeTierReconstruction ? 'gemini-2.5-flash-image' : 'gemini-3.1-flash-image-preview';
+    const replacementReferenceImages = collectReplacementReferenceImages(mainToppers, supportElements);
 
     try {
         // 7. Call editCakeImage
@@ -631,7 +677,8 @@ ${colorChanges.join('\n')}`;
                 systemInstruction,
                 preferredModel === 'gemini-2.5-flash-image' ? 'gemini-2.5-flash-image' : undefined,
                 effectiveTraceId,
-                requestSource
+                requestSource,
+                replacementReferenceImages,
             ),
             timeoutPromise
         ]);
