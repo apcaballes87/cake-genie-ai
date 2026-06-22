@@ -81,7 +81,7 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
 
         // If we have a valid previous page, use it
         if (previousPage !== 'unknown' && previousPage !== currentPage) {
-            return getPathForPage(previousPage);
+            return getBackPathForPage(previousPage);
         }
 
         // Fall back to page-specific defaults
@@ -112,14 +112,14 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     );
 }
 
-function getPathForPage(page: PageType): string {
+function getBackPathForPage(page: PageType): string {
     switch (page) {
         case 'home':
             return '/';
         case 'search':
             return '/search';
         case 'customizing':
-            return '/customizing';
+            return '/';
         case 'cart':
             return '/cart';
         case 'saved':

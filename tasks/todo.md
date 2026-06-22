@@ -1,5 +1,24 @@
 # Tasks
 
+## Back Button Home Fallback
+
+### Plan
+
+- [x] Confirm the shared in-app back-button fallback path for recorded `customizing` destinations.
+- [x] Change that fallback so it resolves to Home (`/`) instead of `/customizing`.
+- [x] Add focused coverage and run verification for the touched navigation files.
+
+### Review
+
+- Updated [src/contexts/NavigationContext.tsx](/Users/apcaballes/genieph-nextjs/src/contexts/NavigationContext.tsx:84) so recorded `customizing` back destinations now resolve to Home (`/`) instead of `/customizing`.
+- Renamed the internal mapper to `getBackPathForPage(...)` to make it clear this is the in-app back destination rule, not a canonical route registry.
+- Added [src/contexts/NavigationContext.test.tsx](/Users/apcaballes/genieph-nextjs/src/contexts/NavigationContext.test.tsx:1), which records `customizing -> cart` and asserts the computed back destination is `/`.
+- Verification:
+  - `npx vitest run src/contexts/NavigationContext.test.tsx --exclude '.claude/**'` passed.
+  - `git diff --check -- src/contexts/NavigationContext.tsx tasks/todo.md` passed.
+  - `npx eslint src/contexts/NavigationContext.test.tsx` passed with the existing Browserslist staleness warning.
+  - `npx eslint src/contexts/NavigationContext.tsx src/contexts/NavigationContext.test.tsx` still reports the pre-existing `react-hooks/set-state-in-effect` warning/error on the provider's sessionStorage hydration effect. This fallback change did not touch that effect.
+
 ## Single Fingerprint Pipeline Refresh
 
 ### Plan
