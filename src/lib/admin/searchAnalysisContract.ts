@@ -1,11 +1,25 @@
 import { ThinkingLevel, Type } from '@google/genai';
 
 import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
+import { CAKE_MESSAGE_TYPES } from '@/constants/pricingEnums';
 
 type TypeEnums = {
   mainTopperTypes: string[];
   supportElementTypes: string[];
 };
+
+export const SEARCH_ANALYSIS_REJECTION_REASONS = [
+  'not_a_cake',
+  'multiple_cakes',
+  'cake_slice_only',
+  'complex_sculpture',
+  'large_wedding_cake',
+  'selfie',
+  'payment_receipt',
+] as const;
+
+export const SEARCH_ANALYSIS_ICING_BASES = ['soft_icing', 'fondant'] as const;
+export const SEARCH_ANALYSIS_COLOR_TYPES = ['single', 'gradient', 'multicolor'] as const;
 
 export function buildSearchAnalysisResponseSchema(typeEnums: TypeEnums) {
   return {
@@ -18,7 +32,6 @@ export function buildSearchAnalysisResponseSchema(typeEnums: TypeEnums) {
         items: {
           type: Type.OBJECT,
           properties: {
-            x: { type: Type.NUMBER }, y: { type: Type.NUMBER },
             type: { type: Type.STRING, enum: typeEnums.mainTopperTypes },
             material: { type: Type.STRING }, group_id: { type: Type.STRING },
             classification: { type: Type.STRING, enum: ['hero', 'support'] },
@@ -26,7 +39,7 @@ export function buildSearchAnalysisResponseSchema(typeEnums: TypeEnums) {
             quantity: { type: Type.INTEGER }, digits: { type: Type.INTEGER },
             description: { type: Type.STRING },
           },
-          required: ['x', 'y', 'type', 'material', 'group_id', 'classification', 'size', 'quantity', 'description'],
+          required: ['type', 'material', 'group_id', 'classification', 'size', 'quantity', 'description'],
         },
       },
       support_elements: {
@@ -34,14 +47,13 @@ export function buildSearchAnalysisResponseSchema(typeEnums: TypeEnums) {
         items: {
           type: Type.OBJECT,
           properties: {
-            x: { type: Type.NUMBER }, y: { type: Type.NUMBER },
             type: { type: Type.STRING, enum: typeEnums.supportElementTypes },
             material: { type: Type.STRING }, group_id: { type: Type.STRING },
             color: { type: Type.STRING }, colors: { type: Type.ARRAY, items: { type: Type.STRING } },
             size: { type: Type.STRING, enum: ['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge'] },
             quantity: { type: Type.INTEGER }, description: { type: Type.STRING },
           },
-          required: ['x', 'y', 'type', 'material', 'group_id', 'color', 'size', 'quantity', 'description'],
+          required: ['type', 'material', 'group_id', 'color', 'size', 'quantity', 'description'],
         },
       },
       cake_messages: {
@@ -49,16 +61,19 @@ export function buildSearchAnalysisResponseSchema(typeEnums: TypeEnums) {
         items: {
           type: Type.OBJECT,
           properties: {
-            x: { type: Type.NUMBER }, y: { type: Type.NUMBER }, text: { type: Type.STRING },
-            type: { type: Type.STRING }, color: { type: Type.STRING }, position: { type: Type.STRING },
+            text: { type: Type.STRING },
+            type: { type: Type.STRING, enum: [...CAKE_MESSAGE_TYPES] },
+            color: { type: Type.STRING },
+            position: { type: Type.STRING, enum: ['top', 'side', 'base_board'] },
           },
-          required: ['x', 'y', 'text', 'type', 'color', 'position'],
+          required: ['text', 'type', 'color', 'position'],
         },
       },
       icing_design: {
         type: Type.OBJECT,
         properties: {
-          base: { type: Type.STRING }, color_type: { type: Type.STRING },
+          base: { type: Type.STRING, enum: [...SEARCH_ANALYSIS_ICING_BASES] },
+          color_type: { type: Type.STRING, enum: [...SEARCH_ANALYSIS_COLOR_TYPES] },
           colors: {
             type: Type.OBJECT,
             properties: {
@@ -92,13 +107,12 @@ export function buildSearchAnalysisResponseSchema(typeEnums: TypeEnums) {
           isRejected: { type: Type.BOOLEAN },
           reason: {
             type: Type.STRING,
-            enum: ['not_a_cake', 'multiple_cakes', 'cake_slice_only', 'complex_sculpture', 'large_wedding_cake', 'selfie'],
+            enum: [...SEARCH_ANALYSIS_REJECTION_REASONS],
           },
           message: { type: Type.STRING },
         },
         required: ['isRejected', 'message'],
       },
-      is_tall_proportion: { type: Type.BOOLEAN },
     },
     required: [
       'cakeType',
@@ -122,20 +136,17 @@ export function buildSearchAnalysisGenerationConfig(typeEnums: TypeEnums) {
     responseMimeType: 'application/json',
     responseSchema: buildSearchAnalysisResponseSchema(typeEnums),
     temperature: 0,
-    thinkingConfig: { thinkingLevel: ThinkingLevel.MEDIUM },
+    thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
   };
 }
 
-export function postProcessSearchAnalysisResult(result: Record<string, unknown>) {
-  if (result.is_tall_proportion) result.cakeThickness = '6 in';
-  else if (result.cakeThickness === '6 in') result.cakeThickness = '5 in';
-  else if (result.cakeThickness === '5 in') result.cakeThickness = '4 in';
-  else if (result.cakeThickness === '4 in') result.cakeThickness = '3 in';
-  delete result.is_tall_proportion;
+export function postProcessSearchAnalysisResult<T extends object>(result: T): T {
+  const mutableResult = result as T & Record<string, unknown>;
+  delete mutableResult.is_tall_proportion;
 
   for (const key of ['main_toppers', 'support_elements', 'cake_messages']) {
-    if (Array.isArray(result[key])) {
-      (result[key] as Array<Record<string, unknown>>).forEach((item) => { item.x = 0; item.y = 0; });
+    if (Array.isArray(mutableResult[key])) {
+      (mutableResult[key] as Array<Record<string, unknown>>).forEach((item) => { item.x = 0; item.y = 0; });
     }
   }
   return result;

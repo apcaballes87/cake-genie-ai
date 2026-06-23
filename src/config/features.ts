@@ -7,7 +7,7 @@ export const FEATURE_FLAGS = {
      * Use Roboflow for coordinate detection instead of Gemini
      * Default: false (use Gemini)
      */
-    USE_ROBOFLOW_COORDINATES: process.env.NEXT_PUBLIC_USE_ROBOFLOW === 'true',
+    USE_ROBOFLOW_COORDINATES: false,
 
     /**
      * Minimum confidence threshold for Roboflow detections

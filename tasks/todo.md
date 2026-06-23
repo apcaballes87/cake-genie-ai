@@ -218,9 +218,49 @@
 - Root cause: the June 20 downpayment hardening rewrite preserved the RPC signature `p_cart_item_ids text[]` but accidentally removed the established `cart_item_id::text` casts inside the `INSERT ... SELECT` and `DELETE` filters. That changed the live predicate to `uuid = text`, which fails immediately during split-order checkout with `42883 operator does not exist: uuid = text`.
 - Added the corrective migration [supabase/migrations/20260620073000_fix_split_order_cart_item_cast.sql](/Users/apcaballes/genieph-nextjs/supabase/migrations/20260620073000_fix_split_order_cart_item_cast.sql:1), which restores the two `::text` casts while keeping the server-side Manila lead-time guard from the previous audit work intact.
 - Applied the same `CREATE OR REPLACE FUNCTION` patch live through Supabase MCP, then verified the production function body with `pg_get_functiondef(...)`. The live definition now uses:
+
+## Audit Customizer Topper Replacement AI Input (2026-06-22)
+
+### Plan
+
+- [x] Trace the `/customizing` topper replacement flow from the uploader UI through local state and the `Apply all changes` action.
+- [x] Confirm whether uploaded replacement images are included in the AI edit inputs/prompts used for topper-related edits, and patch the narrowest broken seam if not.
+- [x] Add focused regression coverage, run scoped verification, and document the confirmed behavior below.
+
+### Review
+
+- Root cause: uploaded topper/support replacement images were stored in customizer state (`replacementImage`) and mentioned in the generated edit prompt, but they were never included in the `/api/ai/edit-image` payload. The model only received the base cake image plus the optional 3-tier reference, so “replace its image with the new one provided” had no actual replacement image bytes behind it.
+- Updated [src/services/designService.ts](/Users/apcaballes/genieph-nextjs/src/services/designService.ts:1) to collect every replacement image from main toppers and support elements, assign deterministic labels like `Replacement reference 1`, add a prompt legend that maps each label to its target item, and pass those reference images into the image-edit service call.
+- Updated [src/services/geminiService.ts](/Users/apcaballes/genieph-nextjs/src/services/geminiService.ts:313) so the client request to `/api/ai/edit-image` now includes the replacement-reference image payload alongside the original cake image.
+- Updated [src/app/api/ai/edit-image/route.ts](/Users/apcaballes/genieph-nextjs/src/app/api/ai/edit-image/route.ts:31) so the server forwards each uploaded replacement image to Gemini as its own inline image part plus a matching text instruction identifying the exact topper/support element it belongs to.
+- Added regression coverage in [src/services/designService.no-op.test.ts](/Users/apcaballes/genieph-nextjs/src/services/designService.no-op.test.ts:1) and [src/app/api/ai/edit-image/route.test.ts](/Users/apcaballes/genieph-nextjs/src/app/api/ai/edit-image/route.test.ts:1) to prove both seams: prompt labeling and API transport.
+- Verification:
+  - `npx vitest run src/services/designService.no-op.test.ts src/app/api/ai/edit-image/route.test.ts --exclude '.claude/**'`
+  - `npm run build`
+  - `git diff --check -- src/services/designService.ts src/services/geminiService.ts src/app/api/ai/edit-image/route.ts src/services/designService.no-op.test.ts src/app/api/ai/edit-image/route.test.ts tasks/todo.md`
   - `cart.cart_item_id::text = any(p_cart_item_ids)`
   - `cart_item_id::text = any(p_cart_item_ids)`
 - Follow-up lesson added in [tasks/lessons.md](/Users/apcaballes/genieph-nextjs/tasks/lessons.md:1): when rewriting existing RPCs, preserve predicate-level type compatibility and not just the function signature.
+
+## Add Image Upload To Advanced Customization AI Chat (2026-06-22)
+
+### Plan
+
+- [x] Trace the Advanced Customization AI chat UI and submit flow to find the narrowest place to add an image attachment.
+- [x] Add an upload-image affordance to the AI chat panel and pipe the attached image into the AI edit request so the model can use it while applying chat-driven changes.
+- [x] Add focused tests, run scoped verification, and document the final behavior below.
+
+### Review
+
+- Added an upload-image button directly inside the Advanced Customization AI chat panel in [src/app/customizing/CustomizingAiChatPanel.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingAiChatPanel.tsx:1). The panel now supports selecting one reference image, shows the attached filename as a removable chip, and disables the attach button while the file is being processed or while the AI is already busy.
+- Wired the new attachment state into [src/app/customizing/CustomizingClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingClient.tsx:1). The customizer stores one chat reference image, sends it through both AI chat tracks on submit, clears it after a successful AI apply, and resets it when the user uploads a different base cake image.
+- Extended [src/hooks/useDesignUpdate.ts](/Users/apcaballes/genieph-nextjs/src/hooks/useDesignUpdate.ts:1) and [src/services/designService.ts](/Users/apcaballes/genieph-nextjs/src/services/designService.ts:1) so chat-originated reference images can travel through the same shared design-update pipeline as topper replacement images, including prompt context for non-targeted design references.
+- Extended [src/app/api/ai/chat-edit/route.ts](/Users/apcaballes/genieph-nextjs/src/app/api/ai/chat-edit/route.ts:1) so the JSON state-edit model also receives the attached image as a multimodal input, not just the visual image-edit route. That keeps the edited image and the returned customizer state aligned more closely.
+- Added focused coverage in [src/app/customizing/CustomizingAiChatPanel.test.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingAiChatPanel.test.tsx:1), [src/hooks/useDesignUpdate.test.ts](/Users/apcaballes/genieph-nextjs/src/hooks/useDesignUpdate.test.ts:1), and [src/app/api/ai/chat-edit/route.test.ts](/Users/apcaballes/genieph-nextjs/src/app/api/ai/chat-edit/route.test.ts:1).
+- Verification:
+  - `npx vitest run src/app/customizing/CustomizingAiChatPanel.test.tsx src/hooks/useDesignUpdate.test.ts src/app/api/ai/chat-edit/route.test.ts --exclude '.claude/**'`
+  - `npm run build`
+  - `git diff --check -- src/app/customizing/CustomizingAiChatPanel.tsx src/app/customizing/CustomizingAiChatPanel.test.tsx src/app/customizing/CustomizingClient.tsx src/hooks/useDesignUpdate.ts src/hooks/useDesignUpdate.test.ts src/services/designService.ts src/services/geminiService.ts src/app/api/ai/chat-edit/route.ts src/app/api/ai/chat-edit/route.test.ts tasks/todo.md`
 
 ## Audit 50% Downpayment Feature
 
@@ -3182,3 +3222,36 @@
   - `npx eslint src/app/layout.tsx src/components/Providers.tsx src/components/ImageZoomModal.tsx src/components/ImageZoomModal.test.tsx src/components/MobileGestureGuard.tsx src/components/MobileGestureGuard.test.tsx` completed without lint errors and only the existing stale Browserslist warning.
   - `git diff --check -- src/app/layout.tsx src/app/globals.css src/components/Providers.tsx src/components/ImageZoomModal.tsx src/components/ImageZoomModal.test.tsx src/components/MobileGestureGuard.tsx src/components/MobileGestureGuard.test.tsx tasks/todo.md` passed.
   - `npm run build` is still blocked by a pre-existing unrelated TypeScript error in `src/components/ChatModal.tsx:497` (`findSimilarAnalysisByHash(cacheKey)` type mismatch), so the repo-wide build could not be used as the final green signal for this task.
+
+# AI Cake Analysis Prompt Contract Cleanup (2026-06-22)
+
+### Plan
+
+- [x] Audit the active prompt, fallback prompt, schema contract, analyze/analyze-url routes, and runtime enum sources for drift against the accepted output shape.
+- [x] Clean up the shared schema contract and runtime post-processing so the analyzer output matches stored app fields, including `payment_receipt`, canonical enum names, and direct `cakeThickness` preservation.
+- [x] Update the fallback prompt and add a new versioned Supabase prompt migration for v3.19 instead of overwriting the active v3.18 row.
+- [x] Apply the v3.19 prompt row live, then sync-check the active prompt text against the fallback prompt contract.
+- [x] Run targeted prompt/schema tests plus `npm run build`, fix any fallout, and document the result.
+
+### Review
+
+- Prompt/schema contract cleanup:
+  - Added shared canonical rejection, icing-base, and analyzer color-type enums in `src/lib/admin/searchAnalysisContract.ts`, including `payment_receipt`, canonical message enums, and removal of `is_tall_proportion` from the schema contract.
+  - Removed the hidden `cakeThickness` downgrade path by making shared post-processing preserve the model’s chosen height and only normalize coordinates.
+  - Switched `/api/ai/analyze-url` onto the same shared generation config and post-processing used by the main analyzer route so the accepted-output contract does not drift.
+- Runtime enum alignment:
+  - Updated `src/lib/ai/utils.ts` so active `pricing_rules` rows with `item_type = null` can still contribute canonical analyzer enums through `item_key` / `sub_item_type` aliases such as `icing_doodle` and `support_printout`.
+  - Expanded the local enum/type compatibility layer in `src/constants/pricingEnums.ts`, `src/types.ts`, `src/components/TopperCard.tsx`, and `src/app/customizing/CustomizingStepSummarySections.tsx` so canonical analyzer values and legacy cached rows both remain renderable and type-safe.
+- Prompt sources:
+  - Updated `src/services/prompts/fallback-prompt.txt` to v3.19 with one authoritative accepted skeleton, full rejection skeleton, canonical enum names, precedence ordering, and the customer-safe `payment_receipt` rejection message.
+  - Added migration `supabase/migrations/20260622143000_insert_prompt_v3_19_contract_cleanup.sql`, fixed its delimiter/replacement bugs, and applied it live as a new active `ai_prompts` row instead of overwriting v3.18.
+  - Verified the active live prompt is now version `3.19`, prompt id `28`, with the canonical message/base/color enums present and the stale `All keys lowercase` / rejection-only wording absent.
+- Tests and verification:
+  - Added `src/lib/admin/searchAnalysisContract.test.ts` coverage for canonical enums, `payment_receipt`, and no thickness downgrade.
+  - Added `src/lib/ai/utils.test.ts` coverage proving null-`item_type` pricing rows still recover canonical analyzer enums from aliases.
+  - Updated prompt/schema tests to assert the accepted skeleton, `payment_receipt`, and removal of stale aliases like `soft-icing`, `icing_text`, `edible_print_text`, and `cardstock_text`.
+  - `npx vitest run src/services/prompts/analysisPromptRules.test.ts src/lib/admin/searchAnalysisContract.test.ts src/lib/ai/utils.test.ts src/lib/admin/searchAnalysisBatch.test.ts src/lib/seo/analysisCopy.test.ts` passed with `36` tests.
+  - `npm run build` passed after fixing two integration regressions surfaced by the stricter typing:
+    - explicit `HybridAnalysisResult` handoff in `/api/ai/analyze-url`
+    - missing exhaustive topper/support label map entries after widening the local type unions
+  - The build still logs the existing workspace-root, middleware deprecation, and `baseline-browser-mapping` freshness warnings, plus non-fatal prerender fallback query timeouts during static generation. The build completed successfully despite those logs.

@@ -8,6 +8,7 @@ import { Heart, ShieldCheck, Wand2 } from 'lucide-react';
 import { ErrorIcon, ImageIcon, ResetIcon, SaveIcon, Loader2, ReportIcon } from '../../components/icons';
 import MagicGlitter from '@/components/MagicGlitter';
 import { getCustomerFacingAnalysisError } from './analysisErrorDisplay';
+import { useDynamicLoadingPhrase } from '@/hooks/useDynamicLoadingPhrase';
 
 
 type ImageTab = 'original' | 'customized';
@@ -189,6 +190,7 @@ export const CustomizingHeroPanel = memo(({
 }: CustomizingHeroPanelProps) => {
     const [originalImageDimensions, setOriginalImageDimensions] = useState<{ width: number, height: number } | null>(null);
     const [isHeroImageZoomOpen, setIsHeroImageZoomOpen] = useState(false);
+    const { phrase: dynamicAnalysisPhrase, isVisible: isAnalysisPhraseVisible } = useDynamicLoadingPhrase(isAnalyzing);
     const mobileHeroScrollRef = useRef<HTMLDivElement | null>(null);
     const baseOriginalImageUrl = originalImagePreview || preferredOriginalImageUrl || null;
     const incomingStudioImageUrl = (
@@ -383,7 +385,7 @@ export const CustomizingHeroPanel = memo(({
                         <div className="w-full bg-slate-200 rounded-full h-1.5 relative overflow-hidden">
                             <div className="h-full bg-linear-to-r from-pink-400 via-purple-400 to-indigo-400 progress-bar-fill" />
                         </div>
-                        <p className="text-[10px] text-slate-500 mt-1.5 font-medium tracking-tight">Analyzing design elements & pricing...</p>
+                        <p className={`text-[10px] text-slate-500 mt-1.5 font-medium tracking-tight transition-opacity duration-300 ${isAnalysisPhraseVisible ? 'opacity-100' : 'opacity-0'}`}>{dynamicAnalysisPhrase}</p>
                     </div>
                 ) : null}
 

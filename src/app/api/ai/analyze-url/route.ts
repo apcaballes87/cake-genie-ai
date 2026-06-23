@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse, after } from 'next/server';
-import { ThinkingLevel, Type } from "@google/genai";
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getAI } from '@/lib/ai/client';
-import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
+import { buildSearchAnalysisGenerationConfig, postProcessSearchAnalysisResult } from '@/lib/admin/searchAnalysisContract';
 import { cacheAnalysisResult } from '@/services/supabaseService';
 import { computeImageFingerprint } from '@/lib/server/imageFingerprint';
 import { convertToWebPBuffer } from '@/lib/utils/imageHash';
+import type { HybridAnalysisResult } from '@/types';
 import { getAnalysisPromptWithFallback } from '@/services/prompts/promptLoader';
 
 export const runtime = 'nodejs';
@@ -87,11 +87,6 @@ function isPrivateIP(hostname: string): boolean {
 }
 
 import { getDynamicTypeEnums } from '@/lib/ai/utils';
-
-type PositionedAnalysisItem = {
-    x?: number;
-    y?: number;
-};
 
 export async function POST(req: NextRequest) {
     let supabase: SupabaseClient;
@@ -202,116 +197,7 @@ export async function POST(req: NextRequest) {
                 { status: 500 }
             );
         }
-
-        const hybridAnalysisResponseSchema = {
-            type: Type.OBJECT,
-            properties: {
-                cakeType: { type: Type.STRING },
-                cakeThickness: { type: Type.STRING },
-                main_toppers: {
-                    type: Type.ARRAY,
-                    items: {
-                        type: Type.OBJECT,
-                        properties: {
-                            x: { type: Type.NUMBER },
-                            y: { type: Type.NUMBER },
-                            type: { type: Type.STRING, enum: typeEnums.mainTopperTypes },
-                            material: { type: Type.STRING },
-                            group_id: { type: Type.STRING },
-                            classification: { type: Type.STRING, enum: ['hero', 'support'] },
-                            size: { type: Type.STRING, enum: ['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge'] },
-                            quantity: { type: Type.INTEGER },
-                            digits: { type: Type.INTEGER },
-                            description: { type: Type.STRING },
-                        },
-                        required: ['x', 'y', 'type', 'material', 'group_id', 'classification', 'size', 'quantity', 'description'],
-                    },
-                },
-                support_elements: {
-                    type: Type.ARRAY,
-                    items: {
-                        type: Type.OBJECT,
-                        properties: {
-                            x: { type: Type.NUMBER },
-                            y: { type: Type.NUMBER },
-                            type: { type: Type.STRING, enum: typeEnums.supportElementTypes },
-                            material: { type: Type.STRING },
-                            group_id: { type: Type.STRING },
-                            color: { type: Type.STRING },
-                            colors: { type: Type.ARRAY, items: { type: Type.STRING } },
-                            size: { type: Type.STRING, enum: ['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge'] },
-                            quantity: { type: Type.INTEGER },
-                            description: { type: Type.STRING },
-                        },
-                        required: ['x', 'y', 'type', 'material', 'group_id', 'color', 'size', 'quantity', 'description'],
-                    },
-                },
-                cake_messages: {
-                    type: Type.ARRAY,
-                    items: {
-                        type: Type.OBJECT,
-                        properties: {
-                            x: { type: Type.NUMBER },
-                            y: { type: Type.NUMBER },
-                            text: { type: Type.STRING },
-                            type: { type: Type.STRING },
-                            color: { type: Type.STRING },
-                            position: { type: Type.STRING },
-                        },
-                        required: ['x', 'y', 'text', 'type', 'color', 'position'],
-                    },
-                },
-                icing_design: {
-                    type: Type.OBJECT,
-                    properties: {
-                        base: { type: Type.STRING },
-                        color_type: { type: Type.STRING },
-                        colors: {
-                            type: Type.OBJECT,
-                            properties: {
-                                top: { type: Type.STRING },
-                                side: { type: Type.STRING },
-                                gumpasteBaseBoardColor: { type: Type.STRING },
-                            },
-                        },
-                        drip: { type: Type.BOOLEAN },
-                        border_top: { type: Type.BOOLEAN },
-                        border_base: { type: Type.BOOLEAN },
-                        gumpasteBaseBoard: { type: Type.BOOLEAN },
-                    },
-                    required: ['base', 'color_type', 'colors'],
-                },
-                keyword: { type: Type.STRING },
-                alt_text: { type: Type.STRING },
-                seo_title: { type: Type.STRING },
-                seo_description: { type: Type.STRING },
-                rejection: {
-                    type: Type.OBJECT,
-                    properties: {
-                        isRejected: { type: Type.BOOLEAN },
-                        reason: {
-                            type: Type.STRING,
-                            enum: [
-                                'not_a_cake',
-                                'multiple_cakes',
-                                'cake_slice_only',
-                                'complex_sculpture',
-                                'large_wedding_cake',
-                            ],
-                        },
-                        message: { type: Type.STRING },
-                    },
-                    // `message` required so rejected images always carry a user-facing string;
-                    // `reason` stays optional (its enum only holds rejection labels).
-                    required: ['isRejected', 'message'],
-                },
-                is_tall_proportion: { type: Type.BOOLEAN },
-            },
-            // Only `rejection` is required so the model can "output ONLY rejection" per the prompt.
-            // Requiring cake fields forces them to be emitted even for non-cakes, biasing the model
-            // toward acceptance (isRejected:false). Accepted cakes still get all fields via the prompt.
-            required: ['rejection'],
-        };
+        const baseConfig = buildSearchAnalysisGenerationConfig(typeEnums);
 
         const base64Image = webpBuffer.toString('base64');
 
@@ -326,41 +212,15 @@ export async function POST(req: NextRequest) {
                 ],
             }],
             config: {
-                systemInstruction: SYSTEM_INSTRUCTION,
-                responseMimeType: 'application/json',
-                responseSchema: hybridAnalysisResponseSchema,
-                temperature: 0,
-                thinkingConfig: {
-                    thinkingLevel: ThinkingLevel.MEDIUM,
-                },
+                ...baseConfig,
             },
         });
 
         const jsonText = (response.text || '').trim();
-        let result;
+        let result: HybridAnalysisResult;
         try {
-            result = JSON.parse(jsonText);
-
-            if (result.is_tall_proportion) {
-                result.cakeThickness = '6 in';
-            } else {
-                switch(result.cakeThickness) {
-                    case '6 in': result.cakeThickness = '5 in'; break;
-                    case '5 in': result.cakeThickness = '4 in'; break;
-                    case '4 in': result.cakeThickness = '3 in'; break;
-                }
-            }
-            delete result.is_tall_proportion;
-
-            if (result.main_toppers) {
-                result.main_toppers.forEach((t: PositionedAnalysisItem) => { t.x = 0; t.y = 0; });
-            }
-            if (result.support_elements) {
-                result.support_elements.forEach((t: PositionedAnalysisItem) => { t.x = 0; t.y = 0; });
-            }
-            if (result.cake_messages) {
-                result.cake_messages.forEach((t: PositionedAnalysisItem) => { t.x = 0; t.y = 0; });
-            }
+            const parsed = JSON.parse(jsonText) as HybridAnalysisResult;
+            result = postProcessSearchAnalysisResult(parsed);
 
         } catch {
             console.error("Failed to parse AI response:", jsonText);

@@ -201,7 +201,7 @@ interface DeliveryDetails {
 // --- NEW SPLIT CONTEXT TYPES ---
 
 interface CartDataType {
-    cartItems: (CakeGenieCartItem & { merchant?: CakeGenieMerchant })[];
+    cartItems: (CakeGenieCartItem & { merchant?: CakeGenieMerchant; isPending?: boolean })[];
     addresses: CakeGenieAddress[];
     cartTotal: number;
     itemCount: number;
@@ -249,7 +249,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Keep the first client render identical to SSR. Browser cache hydration
     // happens after mount so cart badges cannot trigger React hydration #418.
-    const [cartItems, setCartItems] = useState<(CakeGenieCartItem & { merchant?: CakeGenieMerchant })[]>([]);
+    const [cartItems, setCartItems] = useState<(CakeGenieCartItem & { merchant?: CakeGenieMerchant; isPending?: boolean })[]>([]);
     const [addresses, setAddresses] = useState<CakeGenieAddress[]>([]);
     const [hasLoadedStorageCache, setHasLoadedStorageCache] = useState(false);
 
@@ -590,12 +590,13 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         expiresAt.setDate(expiresAt.getDate() + 7);
 
         // 1. Optimistic Update with Initial Item (Base64) - INSTANT
-        const tempItem: CakeGenieCartItem = {
+        const tempItem: CakeGenieCartItem & { merchant?: CakeGenieMerchant; isPending?: boolean } = {
             ...initialItem,
             cart_item_id: tempId,
             created_at: now,
             updated_at: now,
             expires_at: expiresAt.toISOString(),
+            isPending: true,
         };
 
         setCartItems(prevItems => [tempItem, ...prevItems]);

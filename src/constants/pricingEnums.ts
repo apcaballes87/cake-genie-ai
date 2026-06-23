@@ -57,6 +57,7 @@ export const SUPPORT_ELEMENT_TYPES = [
     'edible_2d_support',
     'chocolates',
     'sprinkles',
+    'premium_sprinkles',
     'support_printout',
     'isomalt',
     'dragees',
@@ -68,17 +69,24 @@ export const SUPPORT_ELEMENT_TYPES = [
     'icing_brush_stroke',
     'icing_splatter',
     'icing_minimalist_spread',
-    // Legacy types from database for backward compatibility
-    'gumpaste_panel',
+    'plastic_ball',
+    'macarons',
+    'meringue',
     'gumpaste_bundle',
+    'candy',
+    'gumpaste_panel',
+    'icing_decorations',
+    'gumpaste_creations',
+    'fresh_flowers',
+    'artificial_flowers',
+    'satin_ribbon',
+    // Legacy types from database for backward compatibility
     'edible_lollipops',
     'marshmallows',
     'plastic_ball_regular',
     'plastic_ball_disco',
-    'icing_decorations',
     'edible_3d_ordinary',
     'printout',
-    'satin_ribbon',
 ] as const;
 export type SupportElementTypeEnum = typeof SUPPORT_ELEMENT_TYPES[number];
 

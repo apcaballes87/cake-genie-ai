@@ -44,7 +44,7 @@ describe('enrichStoredSeoDescription', () => {
     ],
     cake_messages: [],
     icing_design: {
-      base: 'soft-icing',
+      base: 'soft_icing',
       color_type: 'single',
       colors: { side: '#FFFFFF', top: '#FFFFFF' },
       border_top: true,

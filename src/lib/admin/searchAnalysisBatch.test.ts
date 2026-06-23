@@ -131,7 +131,7 @@ describe('search analysis batch helpers', () => {
       }],
       cake_messages: [],
       icing_design: {
-        base: 'soft-icing',
+        base: 'soft_icing',
         color_type: 'single',
         colors: { side: '#87CEEB' },
       },

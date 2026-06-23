@@ -1,0 +1,521 @@
+version: 1
+plan:
+  name: 'cart-persists-during-pending-payment (Xendit cart-loss fix)'
+  max_concurrency: 4
+  max_consecutive_failures: 2
+  max_cycles: 10
+  verifier_config:
+    default_verifiers: [verifier]
+    audit_sample_rate: 0.0
+tasks:
+  # =============================================================
+  # Track 1 — Data layer: stop deleting cart items at order creation
+  # =============================================================
+  - id: data-layer-defer-cart-clear
+    title: 'data layer — defer cart row deletion until payment confirmed'
+    prompt: |
+      ROOT CAUSE: `supabase/migrations/20260109_secure_create_order.sql` (the
+      `create_order_from_cart` RPC) DELETES rows from `cakegenie_cart` at
+      order-creation time (lines 184-191), and inserts the `cakegenie_orders`
+      row with `order_status='pending', payment_status='pending'` (lines
+      139-140). Result: when a user clicks "Place Order" then bails at Xendit
+      (browser back, X close, payment failure), the cart is gone from the
+      server, the React state has the items but they get clobbered on remount
+      by `loadCartData` returning `[]`, and the user sees an empty cart with
+      no recovery path other than digging into "My Orders" to find the orphan
+      pending order. This is a known revenue-loss vector.
+
+      DELIVERABLE: a new migration that, on a fresh `create_order_from_cart`
+      call, does NOT delete from `cakegenie_cart`. The order gets a
+      `payment_status='pending'` (or 'awaiting_payment') and the cart stays
+      intact so a later abandonment returns the user to a populated cart.
+      The actual cart-row deletion + order `confirmed` transition must move
+      to the `xendit-webhook` handler (and `verify-xendit-payment` edge
+      function) on `PAID`. Also: `create-bux-payment` webhook needs the same
+      treatment if it exists.
+
+      WORK:
+      1. Read `supabase/migrations/20260109_secure_create_order.sql` lines
+         1-220 in full. Read
+         `supabase/functions/xendit-webhook/index.ts` lines 1-279 in full.
+         Read `supabase/functions/verify-xendit-payment/index.ts` lines
+         1-219. Read `supabase/functions/bux-webhook/` if it exists.
+         Read `supabase/functions/create-xendit-payment/index.ts` lines
+         1-209. Skim `src/app/cart/CartClient.tsx` `handleSubmitOrder`
+         (around line 858-1044) to understand the client flow.
+      2. Create a NEW migration file named
+         `supabase/migrations/YYYYMMDDHHMMSS_defer_cart_clear_to_payment.sql`
+         (pick a timestamp after 2026-06-12) that:
+         - Wraps the existing `create_order_from_cart` body so the
+           DELETE-from-`cakegenie_cart` step at the end is GATED on a
+           server-side helper `is_order_paid(p_order_id)`. The simplest
+           correct shape: keep the cart row insertion order but
+           conditionally skip the DELETE based on a new RPC parameter
+           `p_clear_cart BOOLEAN DEFAULT FALSE`. On the existing client
+           call path, set `p_clear_cart := FALSE`. Document this in a
+           header comment in the new migration.
+         - Adds a new public function `public.clear_cart_for_paid_order(
+           p_order_id uuid)` that the webhook/verify callers invoke after
+           flipping the order to `paid`. This function should:
+             * verify the order is actually `payment_status='paid'`
+               (defense in depth — don't clear cart on partial events),
+             * delete `cakegenie_cart` rows for the order's user/session
+               (use the same user_id/session_id pattern the RPC uses),
+             * be `SECURITY DEFINER` with `auth.uid()`-style access
+               check, and
+             * return the number of cart rows removed.
+         - DO NOT drop or rewrite the existing RPC. Add the parameter
+           and the new helper function. The old function with the old
+           default behavior must still exist for backward compatibility
+           (no breaking change to other callers in the codebase).
+      3. Update `supabase/functions/xendit-webhook/index.ts` line 246-253
+         (the `cakegenie_orders` update to `confirmed`/`paid`): after the
+         update, call the new `clear_cart_for_paid_order` RPC. Use the
+         same `supabaseAdmin` client. Log the cart-row count for
+         observability.
+      4. Update `supabase/functions/verify-xendit-payment/index.ts` line
+         198-206 (the order `confirmed`/`paid` update): same — call
+         `clear_cart_for_paid_order` after the update. (This is the
+         browser-polls-the-API path; both webhook AND verify must clear
+         so the cart is consistent whichever fires first.)
+      5. If `bux-webhook` exists and has a similar order-confirmed path,
+         apply the same change there.
+      6. Do NOT update `src/services/supabaseService.ts` `createOrderFromCart`
+         or `src/app/cart/CartClient.tsx` yet — that's the recovery-UI
+         track. The data-layer track is server-only.
+      7. Update `scripts/check-required-columns.ts` if the new migration
+         added any required columns. (It shouldn't — this is a function
+         change, not a schema change. But double-check.)
+      8. Run `npx tsc --noEmit` and `npm run lint` to make sure the
+         webhook/verify function edits type-check.
+      9. Write a unit test at
+         `src/services/__tests__/cart-clear-deferred.test.ts` (or
+         appropriate location — find the existing test dir for the
+         webhook if one exists) that:
+         - Mocks the supabase client at the call boundary.
+         - Asserts: when `createOrderFromCart` is called with the new
+           `p_clear_cart: false` default, the generated RPC call does
+           NOT include a cart-deletion step OR the cart row remains
+           intact (whichever is more direct to assert in the existing
+           test harness).
+         - Asserts: the new `clear_cart_for_paid_order` RPC is
+           reachable in the public schema.
+         If there is NO existing test harness for the webhook, add
+         a focused unit test for the new helper function
+         (`clear_cart_for_paid_order` body) and skip the integration
+         test. Do not invent a new test framework.
+      10. Update `package.json` to add the new test to the test script
+          command if needed (most likely it auto-discovers).
+      11. Run `npm test` and confirm 0 failures (the new test may add
+          to the count, the rest must stay green).
+      12. Commit with message:
+          `fix(orders): defer cart clear to payment-confirmed to prevent
+           abandoned-checkout cart loss`
+          Push to origin/main.
+      13. Write a `deliverable.md` summarizing:
+          - Files changed (paths + line numbers)
+          - Migration SQL diff (old vs new `create_order_from_cart`
+            signature, plus the new `clear_cart_for_paid_order`
+            definition)
+          - Why cart-no-longer-deletes on order creation
+          - Why both webhook AND verify-xendit-payment call the new
+            helper (idempotency)
+          - Test names that were added
+          - Commit hash
+          - Any decisions/assumptions you made
+    assigned_to: coder
+    verified_by: verifier
+    verify_prompt: |
+      INDEPENDENT VERIFICATION — do NOT re-read the producer's
+      `deliverable.md` as the basis for your verdict. Re-derive.
+
+      1. Re-read the new migration file
+         (`supabase/migrations/*defer_cart_clear_to_payment.sql`) and
+         confirm:
+         - The `create_order_from_cart` function still exists (not
+           dropped).
+         - The DELETE-from-`cakegenie_cart` step is GATED on the
+           `p_clear_cart` parameter — find the line and quote the
+           conditional.
+         - The new `clear_cart_for_paid_order` function exists, is
+           `SECURITY DEFINER`, has a body that checks
+           `payment_status='paid'` before deleting cart rows, and
+           returns the deleted-row count.
+         - The migration is forward-only (no DROP/CASCADE for the
+           old RPC).
+      2. `git log -p` the new migration and the webhook change.
+         Confirm the producer did NOT remove the
+         `cakegenie_cart` DELETE from the original
+         `create_order_from_cart` — it should still execute when
+         called with `p_clear_cart := TRUE` (defensive
+         backward-compat path). If the producer broke that path,
+         FAIL.
+      3. `git log -p` `supabase/functions/xendit-webhook/index.ts`
+         and confirm a new `clear_cart_for_paid_order` call exists
+         AFTER the `cakegenie_orders` update to `confirmed`/`paid`,
+         not before.
+      4. `git log -p` `supabase/functions/verify-xendit-payment/`
+         and confirm the same call exists in the right place.
+      5. If `bux-webhook` exists, confirm the same change.
+      6. Run `npm test` from a clean state. Confirm 0 failures
+         (skipping or pending counts may rise; failures must be 0).
+         If the project uses vitest, run
+         `npx vitest run --reporter=verbose` and tail the output.
+      7. Run `npx tsc --noEmit` and confirm no NEW type errors
+         attributable to this change. (Pre-existing errors not
+         introduced by this change are acceptable — call them out
+         separately.)
+      8. Run `npm run check:schema` and confirm it still passes
+         (this script was just added in a previous commit and is
+         a regression guard).
+      9. Verify the migration applies cleanly to a fresh
+         `supabase db reset` if you can do so safely. If a
+         full reset is risky, at minimum check the SQL parses:
+         `npx supabase db lint` or
+         `psql -f <migration> --variable ON_ERROR_STOP=on` against
+         a scratch DB.
+      10. FAIL with a precise list of gaps if any of the above
+          fails. PASS only if all green.
+    timeout_ms: 1800000
+
+  # =============================================================
+  # Track 2 — Client recovery: pageshow handler + sessionStorage
+  # restoration that works on browser-back, not just ?payment_failed
+  # =============================================================
+  - id: client-recovery-on-back
+    title: 'client recovery — restore pending cart on browser back from Xendit'
+    prompt: |
+      ROOT CAUSE (continuation of the data-layer task): the data layer
+      now preserves cart rows on order creation. The client ALSO has a
+      `sessionStorage`-based cart snapshot at
+      `src/app/cart/CartClient.tsx` lines 1023-1027, written before the
+      Xendit redirect. BUT the recovery block at lines 99-127 only
+      fires when the URL has `?payment_failed=true&order_id=...`. If
+      the user uses the browser back button (no query params), the
+      cart page remounts, the React state is empty, the React
+      useEffect with the search-param gate does nothing, and the user
+      sees an empty cart.
+
+      DELIVERABLE: a recovery path that fires on plain browser-back
+      navigation, so a user who returns from Xendit via the back
+      button sees a cart banner offering to resume the pending order
+      (or discard and start fresh).
+
+      WORK:
+      1. Read `src/app/cart/CartClient.tsx` lines 1-150 in full and
+         the `handleSubmitOrder` block lines 858-1044. Read
+         `src/contexts/CartContext.tsx` `clearCart` (line 731),
+         `loadCartData` (around line 331), and the localStorage
+         cart-cache writer (lines 489-508). Read
+         `src/app/order-confirmation/page.tsx` lines 1-160 in full.
+      2. Add a new top-level effect in `CartClient.tsx` that runs on
+         mount and on `pageshow`. The effect:
+            a) Reads `sessionStorage.getItem('pending_payment_order_id')`
+               and `pending_payment_cart` (if present).
+            b) Reads `sessionStorage.getItem('pending_payment_dismissed_for_<order_id>')`
+               — if the user has already dismissed this recovery
+               banner for this order in the current session, do
+               nothing.
+            c) Sets a `recoveryBanner` state object:
+               `{ orderId, itemCount, totalAmount, dismissed: false }`.
+         Do NOT auto-restore the cart items without user consent —
+         the user may have intentionally abandoned the order.
+         Instead, render a banner above the cart list that says
+         something like:
+            "You have an incomplete order from {N minutes ago} —
+             {itemCount} item(s) totaling ₱{totalAmount}.
+             [Resume payment]  [Discard]"
+         "Resume payment" calls the existing
+         `createXenditPayment({ orderId, ... })` flow (look at
+         `PayOrderButton` in `src/app/account/orders/OrdersClient.tsx`
+         lines 149-209 for the reference pattern — DO NOT re-fetch
+         the cart, just re-create the invoice and redirect).
+         "Discard" calls `cancelOrder` (already exists, see
+         `useCancelOrder` in `src/hooks/useOrders.ts`) and clears
+         the sessionStorage snapshot. After dismiss, set the
+         dismissed-flag so the banner doesn't re-appear.
+      3. Make the existing `?payment_failed=true` recovery block
+         (lines 99-127) ALSO populate the new banner state instead
+         of auto-restoring + reloading. This unifies the two paths.
+         Keep the auto-restore behavior ONLY for the
+         `payment_failed=true` case (where the user's intent to
+         pay is clear) — render a smaller inline toast: "Your
+         previous order did not complete — items restored."
+      4. On the order confirmation page
+         (`src/app/order-confirmation/page.tsx`), on
+         `paymentStatus === 'paid'` (around line 109-141), also
+         clear the dismissed-flag sessionStorage key so a future
+         abandoned order can show its banner fresh. The existing
+         snapshot clear logic at line 134-140 stays.
+      5. Add unit tests:
+         - `src/app/cart/__tests__/CartClient.recovery.test.tsx`:
+           render `CartClient` with sessionStorage pre-populated to
+           a fake pending order, mock `useSearchParams` to return
+           no query params, and assert the recovery banner appears.
+           Click "Discard" and assert the sessionStorage is cleared
+           and the cancelOrder mutation is called.
+         - Same test file: render with `?payment_failed=true` and
+           assert the inline-restore toast appears AND the cart
+           items end up in the React state.
+         - If the test harness is hard to set up (CartClient is
+           2036 lines and tightly coupled), prefer a focused unit
+           test on the recovery-state hook you extract. Extract a
+           small `usePendingOrderRecovery()` hook under
+           `src/hooks/` that encapsulates the sessionStorage +
+           banner-state logic. Test the hook in isolation. Wire
+           CartClient to use the hook.
+      6. Do NOT modify the data layer. The data-layer task is
+         separate. Assume the new `create_order_from_cart` does NOT
+         delete cart rows. (If that task lands AFTER this, the
+         banner will still work because the snapshot is in
+         sessionStorage; the DB cart will additionally be preserved
+         — that's fine, no conflict.)
+      7. Run `npm test` and confirm 0 failures. Run `npx tsc
+         --noEmit` and `npm run lint`. Commit:
+         `fix(cart): surface pending-order recovery banner on
+          browser-back from Xendit`
+         Push to origin/main.
+      8. Write `deliverable.md` with: files changed, new hook
+         name, banner copy (exact text you used), commit hash, and
+         a screenshot or DOM snapshot of the banner (if you can
+         produce one; otherwise describe its layout).
+    assigned_to: coder
+    verified_by: verifier
+    verify_prompt: |
+      INDEPENDENT VERIFICATION — re-derive, do not re-read the
+      producer's deliverable.
+
+      1. `git log -p` the change. Confirm:
+         - A new recovery banner is rendered when sessionStorage
+           has `pending_payment_order_id` AND no `?payment_failed`
+           query param is present.
+         - The banner does NOT auto-restore cart items to React
+           state without user click on "Resume payment".
+         - The existing `?payment_failed=true` path still works
+           (or was deliberately unified — confirm the change is
+           coherent, not just deleted).
+         - The "Discard" path calls `cancelOrder` (not a silent
+           dismiss) — verify by reading the mutation.
+         - The dismissed-flag prevents the banner from
+           re-appearing for the same order id in the same session.
+      2. Render the cart page in your head: simulate a user who
+         clicked Place Order, went to Xendit, then hit browser
+         back. Walk through CartClient's useEffect chain and
+         confirm the banner shows. If you can run a real browser
+         test (the project uses Next.js — `npm run dev` then a
+         manual click-through) and it works, that's ideal.
+      3. `npm test` — 0 failures, new tests are listed in the
+         output. If vitest, run `npx vitest run --reporter=verbose`
+         and grep for the new test names.
+      4. `npx tsc --noEmit` — no NEW type errors. `npm run lint`
+         — no NEW errors.
+      5. Adversarial: what if sessionStorage is full / disabled?
+         What if `JSON.parse` throws? What if the order has
+         already been paid by the time the banner is shown? The
+         code should handle these gracefully (catch + log, not
+         crash). FAIL if it crashes.
+      6. FAIL with the exact gap. PASS only if all green.
+    timeout_ms: 1800000
+
+  # =============================================================
+  # Track 3 — Hygiene: auto-expire abandoned PENDING orders
+  # =============================================================
+  - id: abandon-cleanup-cron
+    title: 'cleanup — auto-cancel abandoned PENDING orders after 24h'
+    prompt: |
+      BACKGROUND: with cart-persistence fixed, abandoned
+      `payment_status='pending'` orders will now pile up cleanly in
+      `cakegenie_orders` until the user pays or the Xendit invoice
+      expires. But Xendit invoices do expire (default 24h) and the
+      user may never come back. Stale pending orders:
+      - Skew admin dashboards.
+      - Hold the `discount_codes.times_used` counter (the
+        `create_order_from_cart` RPC already increments that — see
+        `20260109_secure_create_order.sql` line 211-213 — and
+        re-paying uses a new invoice but the discount may have
+        already been burned on the first attempt).
+      - Confuse the user when they re-visit My Orders and see
+        multiple pending entries from abandoned attempts.
+
+      DELIVERABLE: a Supabase scheduled function (pg_cron + Edge
+      Function or pg_cron SQL directly) that runs every hour and
+      cancels `cakegenie_orders` rows that have been
+      `payment_status='pending'` (or `'awaiting_payment'`) for
+      more than 24 hours AND have not been touched. The cancel
+      logic:
+      - sets `order_status='cancelled', payment_status='expired'`,
+      - does NOT delete the row (preserve the audit trail),
+      - decrements `discount_codes.times_used` if a discount was
+        applied (mirror the increment path),
+      - is idempotent (safe to run multiple times — use a
+        `WHERE payment_status='pending' AND updated_at < now()
+         - interval '24 hours'` guard).
+
+      WORK:
+      1. Read `supabase/migrations/20260109_secure_create_order.sql`
+         in full (to see the discount increment path) and look
+         for any existing cron migrations in `supabase/migrations/`
+         (the project uses Supabase — pg_cron is the right tool).
+      2. Choose the simpler of the two approaches:
+         (a) A pure-SQL migration that creates a pg_cron job to
+             run an UPDATE statement directly, OR
+         (b) A new edge function `cleanup-abandoned-orders/` that
+             is invoked by pg_cron.
+         Prefer (a) — it's a one-shot file, no new function
+         surface area, and the logic is simple.
+      3. Create the migration
+         `supabase/migrations/YYYYMMDDHHMMSS_cleanup_abandoned_orders.sql`
+         with:
+         - The UPDATE statement (gated on `payment_status='pending'
+           AND updated_at < now() - interval '24 hours'`).
+         - A decrement to `discount_codes.times_used` for any
+           cancelled order that used a discount (use a single
+           UPDATE with a subquery — avoid correlated subquery
+           mistakes; do it in two steps if needed).
+         - A `cron.schedule('cleanup-abandoned-orders', '0 * * * *', $$ ... $$)`
+           call.
+         - A `-- down` section in a SQL comment that documents how
+           to undo the schedule (Supabase migration history is
+           one-way but document the unschedule for ops).
+         - `RAISE NOTICE` statements that print the row count.
+      4. Add a small test script at
+         `scripts/test-cleanup-abandoned-orders.ts` (or .sql — your
+         choice) that:
+         - Inserts two fake orders (one pending older than 24h,
+           one pending younger).
+         - Runs the cleanup logic in a transaction and rolls back
+           after asserting exactly the old one was cancelled.
+         - Asserts `discount_codes.times_used` was decremented
+           correctly.
+         Use the same pattern as
+         `scripts/check-required-columns.ts` for the env-loading
+         and exit-code discipline.
+      5. Add a `cleanup:abandoned-orders` script entry in
+         `package.json` that runs the test script.
+      6. Add the new column(s) to
+         `scripts/check-required-columns.ts` if needed (the
+         existing schema should suffice; verify by running
+         `npm run check:schema`).
+      7. `npm test` and `npm run check:schema` — both green.
+      8. Commit:
+         `chore(orders): schedule hourly cleanup of abandoned
+          pending orders + discount refund`
+         Push to origin/main.
+      9. Write `deliverable.md` with: migration path, cron
+         expression, test output (paste the exit code + summary
+         line), commit hash.
+    assigned_to: coder
+    verified_by: verifier
+    verify_prompt: |
+      INDEPENDENT VERIFICATION — re-derive.
+
+      1. Read the new migration. Confirm:
+         - The UPDATE has a `WHERE payment_status='pending' AND
+           updated_at < now() - interval '24 hours'` guard.
+         - The discount decrement logic is mathematically
+           correct (cross-check with the increment path in
+           `20260109_secure_create_order.sql`).
+         - The cron schedule is registered via `cron.schedule(...)`.
+         - Idempotency: running the UPDATE twice on the same
+           rowset does not double-decrement the discount counter.
+      2. Run the test script: `npx tsx
+         scripts/test-cleanup-abandoned-orders.ts`. Confirm
+         exit 0 and that the assertions hold.
+      3. `npm test` — 0 failures.
+      4. `npm run check:schema` — passes.
+      5. `npx tsc --noEmit` — no new errors.
+      6. Adversarial: what if the cron runs while a user is
+         mid-checkout? Their order is `payment_status='pending'`
+         but they may have just submitted. The 24h guard means
+         this is fine. Confirm by reading the code. What if
+         the order is already paid and the webhook hasn't
+         landed yet? Same — 24h is conservative. If you find
+         a tighter race condition, FAIL.
+      7. FAIL with the gap. PASS only if all green.
+    timeout_ms: 1800000
+
+  # =============================================================
+  # Gate — end-to-end integration check
+  # =============================================================
+  - id: integration-check
+    title: 'integration — full abandoned-checkout recovery flow'
+    prompt: |
+      You are verifying the end-to-end story across all three
+      tracks. Re-derive by running the test suite + reading the
+      final state of the three deliverable files.
+
+      1. Pull origin/main. Confirm commits from all three
+         tracks are present. Note commit hashes.
+      2. `npm install` (in case any new deps landed).
+      3. `npm test` — must be 0 failures. Record total test
+         count.
+      4. `npm run check:schema` — must pass.
+      5. `npx tsc --noEmit` — no new errors.
+      6. `npm run lint` — no new errors.
+      7. Read the three deliverable.md files in the worktree
+         (or the producer reports) and confirm the file paths
+         and commit hashes all reconcile with `git log --stat
+         origin/main | head -50`.
+      8. End-to-end manual trace (do this in writing, not in a
+         browser):
+         a. User configures a cake, adds to cart, clicks
+            "Place Order".
+            - `handleSubmitOrder` (CartClient.tsx) creates the
+              order via the RPC.
+            - The RPC inserts the `cakegenie_orders` row
+              (`payment_status='pending'`) AND does NOT delete
+              the `cakegenie_cart` rows (data-layer track).
+            - Cart is snapshot to sessionStorage
+              (client-recovery track).
+            - User is redirected to Xendit.
+         b. User clicks browser back.
+            - Cart page remounts.
+            - The new useEffect detects sessionStorage
+              `pending_payment_order_id` (no `?payment_failed`
+              query param) and shows the recovery banner
+              (client-recovery track).
+            - User clicks "Resume payment" → re-creates Xendit
+              invoice for the existing order, redirects.
+         c. User pays on Xendit.
+            - Webhook fires → updates order to
+              `order_status='confirmed', payment_status='paid'`
+              AND calls `clear_cart_for_paid_order` (data-layer
+              track).
+            - User lands on `/order-confirmation`. Cart is
+              finally empty.
+         d. Alternative: user never comes back.
+            - After 24h, pg_cron job cancels the pending order
+              and refunds the discount counter
+              (abandon-cleanup track).
+         Walk through the code paths and confirm each step
+         actually happens at the line numbers claimed. FAIL
+         any step you can't verify.
+      9. Re-run `npm run check:schema` once more as a smoke
+         test.
+      10. Write `deliverable.md` with:
+         - PASS/FAIL verdict
+         - All commit hashes
+         - Total test count
+         - End-to-end trace confirmation
+         - Any gaps found (e.g. "the banner copy mentions
+           'ago' but doesn't show a relative timestamp — minor
+           UX gap, not blocking").
+    assigned_to: verifier
+    depends_on: [data-layer-defer-cart-clear, client-recovery-on-back, abandon-cleanup-cron]
+    verified_by: verifier
+    verify_prompt: |
+      Spot-check the gate task. The gate task IS the integration
+      verdict — do not run it again. Re-read the deliverable.md
+      and confirm:
+      1. The three upstream commit hashes are real and on
+         origin/main.
+      2. The `npm test` / `npm run check:schema` / `npx tsc
+         --noEmit` / `npm run lint` commands were actually run
+         (look for the output capture).
+      3. The end-to-end trace is consistent with the actual
+         code (spot-check 3 of the line-number claims).
+      4. The verdict matches the evidence.
+      If the gate task PASSed on weak evidence (e.g. didn't
+      actually run npm test), FAIL it and ask the producer to
+      re-run with output captured.
+    timeout_ms: 1800000

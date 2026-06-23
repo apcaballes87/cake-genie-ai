@@ -158,4 +158,13 @@ describe('LazyImage', () => {
         expect(img!.className).toContain('opacity-100');
         expect(img!.className).toContain('duration-0');
     });
+
+    it('uses transparent placeholder fallback when src is an empty string', () => {
+        const { container } = render(
+            <LazyImage src="" alt="cake" />,
+        );
+        const img = container.querySelector('img');
+        expect(img).not.toBeNull();
+        expect(img!.getAttribute('src')).toBe('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
+    });
 });

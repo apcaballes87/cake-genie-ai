@@ -85,7 +85,8 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   // the original `src` as the absolute floor so the <img> always has a
   // value even if `pickFallbackSrc` somehow returns null.
   const variantFallbackSrc = hasVariants ? pickFallbackSrc(variants, 1200) : null;
-  const effectiveSrc = variantFallbackSrc ?? src;
+  const transparentPlaceholder = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+  const effectiveSrc = variantFallbackSrc ?? (src || transparentPlaceholder);
 
   const sizes = props.sizes || '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw';
   const shouldShowImage = showBeforeLoad || priority || isLoaded;

@@ -1,39 +1,50 @@
-import { createClient } from '@/lib/supabase/client';
+import { MAIN_TOPPER_TYPES, SUPPORT_ELEMENT_TYPES } from '@/constants/pricingEnums';
+
+const ITEM_KEY_TYPE_ALIASES: Record<string, string> = {
+    icing_brush_stroke: 'icing_brush_stroke',
+    icing_doodle: 'icing_doodle',
+    icing_doodle_intricate: 'icing_doodle',
+    icing_minimalist_spread: 'icing_minimalist_spread',
+    icing_palette_knife: 'icing_palette_knife',
+    icing_palette_knife_intricate: 'icing_palette_knife',
+    icing_splatter: 'icing_splatter',
+    support_printout: 'support_printout',
+};
 
 export async function getDynamicTypeEnums(supabase: any) {
     const { data, error } = await supabase
         .from('pricing_rules')
-        .select('item_type, category, sub_item_type')
-        .eq('is_active', true)
-        .not('item_type', 'is', null);
+        .select('item_type, item_key, category, sub_item_type')
+        .eq('is_active', true);
 
     if (error || !data) {
         console.warn('Failed to fetch dynamic enums from database, using fallbacks');
         return {
-            mainTopperTypes: ['edible_3d_complex', 'edible_3d_ordinary', 'printout', 'toy', 'figurine', 'cardstock', 'edible_photo_top', 'candle', 'icing_doodle', 'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread', 'meringue_pop', 'plastic_ball'],
-            supportElementTypes: ['edible_3d_support', 'edible_2d_support', 'chocolates', 'sprinkles', 'premium_sprinkles', 'support_printout', 'isomalt', 'dragees', 'edible_flowers', 'edible_photo_side', 'icing_doodle', 'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread', 'macarons', 'meringue', 'gumpaste_bundle', 'candy', 'gumpaste_panel', 'icing_decorations', 'gumpaste_creations', 'satin_ribbon'],
+            mainTopperTypes: [...MAIN_TOPPER_TYPES],
+            supportElementTypes: [...SUPPORT_ELEMENT_TYPES],
             subtypesByType: {} as Record<string, string[]>
         };
     }
 
-    const mainTopperTypes = new Set<string>();
-    const supportElementTypes = new Set<string>();
+    const mainTopperTypes = new Set<string>(MAIN_TOPPER_TYPES);
+    const supportElementTypes = new Set<string>(SUPPORT_ELEMENT_TYPES);
     const subtypesByType: Record<string, string[]> = {};
 
     data.forEach((rule: any) => {
-        if (rule.item_type) {
+        const resolvedItemType = rule.item_type || ITEM_KEY_TYPE_ALIASES[rule.sub_item_type] || ITEM_KEY_TYPE_ALIASES[rule.item_key];
+        if (resolvedItemType) {
             if (rule.category === 'main_topper') {
-                mainTopperTypes.add(rule.item_type);
+                mainTopperTypes.add(resolvedItemType);
             } else if (rule.category === 'support_element') {
-                supportElementTypes.add(rule.item_type);
+                supportElementTypes.add(resolvedItemType);
             }
 
             if (rule.sub_item_type) {
-                if (!subtypesByType[rule.item_type]) {
-                    subtypesByType[rule.item_type] = [];
+                if (!subtypesByType[resolvedItemType]) {
+                    subtypesByType[resolvedItemType] = [];
                 }
-                if (!subtypesByType[rule.item_type].includes(rule.sub_item_type)) {
-                    subtypesByType[rule.item_type].push(rule.sub_item_type);
+                if (!subtypesByType[resolvedItemType].includes(rule.sub_item_type)) {
+                    subtypesByType[resolvedItemType].push(rule.sub_item_type);
                 }
             }
         }

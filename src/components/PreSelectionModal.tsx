@@ -8,6 +8,7 @@ import { usePricing } from '@/hooks/usePricing';
 import { DEFAULT_THICKNESS_MAP, DEFAULT_SIZE_MAP, FLAVOR_OPTIONS, FLAVOR_THUMBNAILS, TEMPORARILY_DISABLED_FLAVORS } from '@/constants';
 import LazyImage from '@/components/LazyImage';
 import type { CakeInfoUI, CakeType, CakeFlavor } from '@/types';
+import { useDynamicLoadingPhrase } from '@/hooks/useDynamicLoadingPhrase';
 
 interface PreSelectionModalProps {
     isOpen: boolean;
@@ -33,6 +34,7 @@ export const PreSelectionModal: React.FC<PreSelectionModalProps> = ({ isOpen, is
     const [show, setShow] = useState(false);
     const [localCakeInfo, setLocalCakeInfo] = useState<CakeInfoUI>(getDefaultCakeInfo);
     const [isFlavorSheetOpen, setIsFlavorSheetOpen] = useState(false);
+    const { phrase: dynamicAnalysisPhrase, isVisible: isAnalysisPhraseVisible } = useDynamicLoadingPhrase(isAnalyzing);
 
     // Reset local state when modal opens
     useEffect(() => {
@@ -136,7 +138,7 @@ export const PreSelectionModal: React.FC<PreSelectionModalProps> = ({ isOpen, is
                                 <div className="w-full bg-slate-200 rounded-full h-2 relative overflow-hidden">
                                     <div className="h-full bg-linear-to-r from-pink-500 to-purple-600 progress-bar-fill" />
                                 </div>
-                                <p className="text-[9px] text-slate-500 mt-1 font-medium">Analyzing design elements & pricing...</p>
+                                <p className={`text-[9px] text-slate-500 mt-1 font-medium transition-opacity duration-300 ${isAnalysisPhraseVisible ? 'opacity-100' : 'opacity-0'}`}>{dynamicAnalysisPhrase}</p>
                             </div>
                         )}
                     </div>

@@ -133,12 +133,16 @@ const topperMaterialLabelMap: Record<MainTopperType, string> = {
     edible_photo_top: 'Printout (Edible)',
     edible_photo_print: 'Printout (Edible)',
     candle: 'Candle',
+    edible_2d_shapes: 'Gumpaste (2D)',
     edible_flowers: 'Edible Flowers',
     icing_doodle: 'Piped Doodles',
+    icing_doodle_intricate: 'Piped Doodles',
     icing_palette_knife: 'Palette Knife Finish',
+    icing_palette_knife_intricate: 'Palette Knife Finish',
     icing_brush_stroke: 'Brush Stroke Finish',
     icing_splatter: 'Splatter Finish',
     icing_minimalist_spread: 'Minimalist Spread',
+    icing_decorations: 'Icing Decorations',
     meringue_pop: 'Meringue Pop',
     plastic_ball: 'Plastic Ball',
 };
@@ -175,6 +179,8 @@ const supportMaterialLabelMap: Record<SupportElementType, string> = {
     fresh_flowers: 'Fresh Flowers',
     artificial_flowers: 'Artificial Flowers',
     satin_ribbon: 'Satin/Organza Ribbon',
+    edible_lollipops: 'Edible Lollipops',
+    printout: 'Printout',
 };
 
 export const THEME_COLORS = [

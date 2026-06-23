@@ -71,6 +71,31 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('Use `edible_photo_print` only for smaller edible printed cutouts or printed pieces placed on the side of the cake');
   });
 
+  it('keeps the accepted output skeleton and payment receipt rejection in the fallback prompt source', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(prompt).toContain('"rejection": {');
+    expect(prompt).toContain('"isRejected": false');
+    expect(prompt).toContain('"alt_text": "..."');
+    expect(prompt).toContain('"seo_title": "..."');
+    expect(prompt).toContain('"seo_description": "..."');
+    expect(prompt).toContain('| `payment_receipt` | "This looks like a payment receipt or screenshot. Please upload a cake design image instead." |');
+  });
+
+  it('uses canonical prompt enums and removes stale aliases from the fallback prompt source', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(prompt).toContain('"type": "gumpaste_letters|icing_script|printout|cardstock"');
+    expect(prompt).toContain('"base": "soft_icing|fondant"');
+    expect(prompt).toContain('"color_type": "single|gradient|multicolor"');
+    expect(prompt).not.toContain('All keys lowercase');
+    expect(prompt).not.toContain('output ONLY the rejection object');
+    expect(prompt).not.toContain('soft-icing');
+    expect(prompt).not.toContain('icing_text');
+    expect(prompt).not.toContain('edible_print_text');
+    expect(prompt).not.toContain('cardstock_text');
+  });
+
   it('loads the fallback prompt used when Supabase prompt fetch fails', () => {
     const prompt = loadFallbackAnalysisPrompt();
 

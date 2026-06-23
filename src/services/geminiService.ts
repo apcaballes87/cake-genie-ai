@@ -27,6 +27,7 @@ const REJECTION_FALLBACK_MESSAGES: Record<string, string> = {
     cake_slice_only: "We can't price cakes that are 1 slice only. Please upload a whole cake design image.",
     complex_sculpture: "This cake design is too complex for online pricing. Please contact us for a custom quote.",
     large_wedding_cake: "Large wedding cakes require in-store consultation for accurate pricing.",
+    payment_receipt: "This looks like a payment receipt or screenshot. Please upload a cake design image instead.",
 };
 
 const DEFAULT_REJECTION_MESSAGE =

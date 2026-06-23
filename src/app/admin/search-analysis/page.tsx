@@ -522,6 +522,7 @@ export default function SearchAnalysisAdminPage() {
                     complex_sculpture: "Too complex",
                     large_wedding_cake: "Large wedding cake",
                     selfie: "Selfie",
+                    payment_receipt: "Payment receipt",
                 };
 
                 // --- GATE 1: CACHE CHECK ---

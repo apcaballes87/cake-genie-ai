@@ -6,8 +6,8 @@ export type CakeThickness = '2 in' | '3 in' | '4 in' | '5 in' | '6 in';
 export type CakeSize = string; // e.g., '6" Round', '6"/8" Round'
 export type CakeFlavor = 'Chocolate Cake' | 'Ube Cake' | 'Vanilla Cake' | 'Mocha Cake';
 
-export type MainTopperType = 'edible_3d_complex' | 'edible_3d_ordinary' | 'printout' | 'toy' | 'figurine' | 'cardstock' | 'edible_photo_top' | 'edible_photo_print' | 'candle' | 'edible_flowers' | 'icing_doodle' | 'icing_palette_knife' | 'icing_brush_stroke' | 'icing_splatter' | 'icing_minimalist_spread' | 'meringue_pop' | 'plastic_ball';
-export type SupportElementType = 'edible_3d_support' | 'edible_2d_support' | 'chocolates' | 'sprinkles' | 'premium_sprinkles' | 'support_printout' | 'isomalt' | 'dragees' | 'edible_flowers' | 'edible_photo_side' | 'edible_photo_print' | 'icing_doodle' | 'icing_palette_knife' | 'icing_brush_stroke' | 'icing_splatter' | 'icing_minimalist_spread' | 'plastic_ball_regular' | 'plastic_ball_disco' | 'plastic_ball' | 'macarons' | 'meringue' | 'gumpaste_bundle' | 'candy' | 'gumpaste_panel' | 'icing_decorations' | 'gumpaste_creations' | 'marshmallows' | 'edible_3d_ordinary' | 'fresh_flowers' | 'artificial_flowers' | 'satin_ribbon';
+export type MainTopperType = 'edible_3d_complex' | 'edible_3d_ordinary' | 'printout' | 'toy' | 'figurine' | 'cardstock' | 'edible_photo_top' | 'edible_photo_print' | 'candle' | 'edible_2d_shapes' | 'edible_flowers' | 'icing_doodle' | 'icing_doodle_intricate' | 'icing_palette_knife' | 'icing_palette_knife_intricate' | 'icing_brush_stroke' | 'icing_splatter' | 'icing_minimalist_spread' | 'icing_decorations' | 'meringue_pop' | 'plastic_ball';
+export type SupportElementType = 'edible_3d_support' | 'edible_2d_support' | 'chocolates' | 'sprinkles' | 'premium_sprinkles' | 'support_printout' | 'isomalt' | 'dragees' | 'edible_flowers' | 'edible_photo_side' | 'edible_photo_print' | 'icing_doodle' | 'icing_palette_knife' | 'icing_brush_stroke' | 'icing_splatter' | 'icing_minimalist_spread' | 'plastic_ball_regular' | 'plastic_ball_disco' | 'plastic_ball' | 'macarons' | 'meringue' | 'gumpaste_bundle' | 'candy' | 'gumpaste_panel' | 'icing_decorations' | 'gumpaste_creations' | 'marshmallows' | 'edible_3d_ordinary' | 'fresh_flowers' | 'artificial_flowers' | 'satin_ribbon' | 'edible_lollipops' | 'printout';
 export type CakeMessageType = 'gumpaste_letters' | 'icing_script' | 'printout' | 'cardstock';
 
 export type Size = 'small' | 'medium' | 'large' | 'tiny' | 'xsmall' | 'xlarge' | 'mixed';
@@ -90,7 +90,7 @@ export interface IcingColorDetails {
 
 export interface IcingDesign {
   base: 'soft_icing' | 'fondant';
-  color_type: 'single' | 'gradient_2' | 'gradient_3' | 'abstract';
+  color_type: 'single' | 'gradient' | 'multicolor' | 'gradient_2' | 'gradient_3' | 'abstract';
   colors: IcingColorDetails;
   border_top: boolean;
   border_base: boolean;
