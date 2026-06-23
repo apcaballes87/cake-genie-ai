@@ -164,6 +164,8 @@ const ColdCakingClient: React.FC = () => {
     useEffect(() => { setIsMounted(true); }, []);
 
     const [isScrolled, setIsScrolled] = useState(false);
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
+    const searchInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         const updateScrollState = () => {
@@ -399,7 +401,7 @@ const ColdCakingClient: React.FC = () => {
             </div>
 
             {/* Header */}
-            <nav className={`sticky top-0 z-80 w-full border-b transition-all duration-200 ${isScrolled ? 'border-purple-100 bg-white/90 shadow-sm backdrop-blur-lg' : 'border-transparent bg-transparent'}`}>
+            <nav className={`sticky top-0 z-80 w-full border-b transition-all duration-200 ${(isScrolled || isSearchFocused) ? 'border-purple-100 bg-white/90 shadow-sm backdrop-blur-lg' : 'border-transparent bg-transparent'}`}>
                 <div className="max-w-7xl mx-auto px-4">
                     <div className="w-full flex items-center gap-2 md:gap-4 py-[11px] md:py-[14px]">
                         <button
@@ -414,7 +416,7 @@ const ColdCakingClient: React.FC = () => {
                             {/* Logo - visible when not scrolled on mobile, always visible on desktop */}
                             <Link 
                                 href="/" 
-                                className={`shrink-0 transition-all duration-300 ${isScrolled ? 'opacity-0 pointer-events-none absolute -translate-x-4 md:opacity-0 md:pointer-events-none' : 'opacity-100 translate-x-0'}`}
+                                className={`shrink-0 transition-all duration-300 ${(isScrolled || isSearchFocused) ? 'opacity-0 pointer-events-none absolute -translate-x-4 md:opacity-0 md:pointer-events-none' : 'opacity-100 translate-x-0'}`}
                             >
                                 <img
                                     src={COMMON_ASSETS.logo}
@@ -426,8 +428,11 @@ const ColdCakingClient: React.FC = () => {
                             </Link>
 
                             {/* Standard Search Bar - visible when scrolled on mobile, always visible on desktop */}
-                            <div className={`flex-1 transition-all duration-300 ${isScrolled ? 'opacity-100 translate-x-0' : 'hidden md:block md:opacity-100 md:translate-x-0 opacity-0 translate-x-4 pointer-events-none'}`}>
+                            <div className={`flex-1 transition-all duration-300 ${(isScrolled || isSearchFocused) ? 'opacity-100 translate-x-0' : 'hidden md:block md:opacity-100 md:translate-x-0 opacity-0 translate-x-4 pointer-events-none'}`}>
                                 <SearchAutocomplete
+                                    inputRef={searchInputRef}
+                                    onFocus={() => setIsSearchFocused(true)}
+                                    onBlur={() => setIsSearchFocused(false)}
                                     onSearch={handleSearch}
                                     onUploadClick={() => setIsUploaderOpen(true)}
                                     placeholder="Search for other designs..."
@@ -441,11 +446,15 @@ const ColdCakingClient: React.FC = () => {
 
                         {/* Right Area: Actions */}
                         <div className="flex items-center gap-1 md:gap-2 shrink-0">
-                            {/* Mobile Search Icon - visible only when NOT scrolled */}
-                            {!isScrolled && (
+                            {/* Mobile Search Icon - visible only when NOT scrolled and NOT focused */}
+                            {!(isScrolled || isSearchFocused) && (
                                 <button
                                     onClick={() => {
+                                        setIsSearchFocused(true);
                                         window.scrollTo({ top: 50, behavior: 'smooth' });
+                                        setTimeout(() => {
+                                            searchInputRef.current?.focus();
+                                        }, 50);
                                     }}
                                     className="md:hidden p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors"
                                     aria-label="Search"

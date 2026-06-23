@@ -20,6 +20,9 @@ interface SearchAutocompleteProps {
   showUploadButton?: boolean;
   className?: string;
   autoFocus?: boolean;
+  inputRef?: React.RefObject<HTMLInputElement | null>;
+  onFocus?: React.FocusEventHandler<HTMLInputElement>;
+  onBlur?: React.FocusEventHandler<HTMLInputElement>;
 }
 
 // Static site links configuration
@@ -69,6 +72,9 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
   showUploadButton = true,
   className,
   autoFocus = false,
+  inputRef,
+  onFocus,
+  onBlur,
 }) => {
   const router = useRouter();
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -320,6 +326,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
     <div className={`relative w-full ${className || ''}`} ref={containerRef}>
       <div className="relative">
         <input
+          ref={inputRef}
           type="text"
           autoFocus={autoFocus}
           value={query}
@@ -328,7 +335,11 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
             if (!showSuggestions) setShowSuggestions(true);
             setSelectedIndex(-1);
           }}
-          onFocus={handleFocus}
+          onFocus={(e) => {
+            handleFocus();
+            onFocus?.(e);
+          }}
+          onBlur={onBlur}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           className={inputClassName}

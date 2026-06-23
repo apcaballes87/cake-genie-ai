@@ -1550,6 +1550,8 @@ const LandingClient: React.FC<LandingClientProps> = ({
         { id: 'Baptismal', name: 'Baptismal' },
     ];
     const [searchQuery, setSearchQuery] = useState('');
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
+    const searchInputRef = useRef<HTMLInputElement>(null);
 
     const handleSearch = (query: string) => {
         recordNavigation('search', 'home');
@@ -1670,7 +1672,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
               hit during scroll. Solid bg-white/[0.95] looks visually identical
               over the page gradient and avoids the layer thrash.
             */}
-            <nav className={`sticky top-0 z-80 w-full border-b transition-all duration-200 ${isScrolled ? 'border-purple-100 bg-white/[0.95] shadow-sm' : 'border-transparent bg-transparent'}`}>
+            <nav className={`sticky top-0 z-80 w-full border-b transition-all duration-200 ${(isScrolled || isSearchFocused) ? 'border-purple-100 bg-white/[0.95] shadow-sm' : 'border-transparent bg-transparent'}`}>
                 <div className="max-w-7xl mx-auto px-4">
                     <div className="w-full flex items-center justify-between py-[11px] md:py-[14px] relative">
                         {/* Left Side: Menu & Desktop Logo */}
@@ -1699,7 +1701,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                         </div>
 
                         {/* Mobile Centered Logo - only visible when not scrolled */}
-                        <div className={`md:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-300 ${isScrolled ? 'opacity-0 pointer-events-none scale-90' : 'opacity-100 scale-100'}`}>
+                        <div className={`md:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-300 ${(isScrolled || isSearchFocused) ? 'opacity-0 pointer-events-none scale-90' : 'opacity-100 scale-100'}`}>
                             <Link href="/" className="flex items-center">
                                 <img
                                     src={COMMON_ASSETS.logo}
@@ -1712,8 +1714,11 @@ const LandingClient: React.FC<LandingClientProps> = ({
                         </div>
 
                         {/* Search Bar - transition between states */}
-                        <div className={`flex-1 mx-2 md:mx-4 transition-all duration-300 ${isScrolled ? 'opacity-100 translate-x-0' : 'hidden md:block md:opacity-100 md:translate-x-0 opacity-0 translate-x-4 pointer-events-none md:pointer-events-auto'}`}>
+                        <div className={`flex-1 mx-2 md:mx-4 transition-all duration-300 ${(isScrolled || isSearchFocused) ? 'opacity-100 translate-x-0' : 'hidden md:block md:opacity-100 md:translate-x-0 opacity-0 translate-x-4 pointer-events-none md:pointer-events-auto'}`}>
                             <SearchAutocomplete
+                                inputRef={searchInputRef}
+                                onFocus={() => setIsSearchFocused(true)}
+                                onBlur={() => setIsSearchFocused(false)}
                                 onSearch={handleSearch}
                                 onUploadClick={() => setIsUploaderOpen(true)}
                                 placeholder="Search for other designs..."
@@ -1726,11 +1731,15 @@ const LandingClient: React.FC<LandingClientProps> = ({
 
                         {/* Right Side: Actions & Cart */}
                         <div className="flex items-center gap-1 md:gap-2 shrink-0">
-                            {/* Mobile Search Icon - visible only when NOT scrolled */}
-                            {!isScrolled && (
+                            {/* Mobile Search Icon - visible only when NOT scrolled and NOT focused */}
+                            {!(isScrolled || isSearchFocused) && (
                                 <button
                                     onClick={() => {
+                                        setIsSearchFocused(true);
                                         window.scrollTo({ top: 50, behavior: 'smooth' });
+                                        setTimeout(() => {
+                                            searchInputRef.current?.focus();
+                                        }, 50);
                                     }}
                                     className="md:hidden p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors"
                                     aria-label="Search"
