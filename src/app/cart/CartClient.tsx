@@ -15,7 +15,16 @@ import { getDeliveryFeeByCity } from '@/constants';
 import { createOrderFromCart, createSplitOrderFromCart, getAvailableDeliveryDates, getBlockedDatesInRange, AvailableDate, BlockedDateInfo, createGuestUser, createOrderContribution } from '@/services/supabaseService';
 import { upgradeAnonymousToEmailAccount } from '@/services/accountActivation';
 import { createXenditPayment } from '@/services/xenditService';
-import { trackBeginCheckout, trackAddPaymentInfo } from '@/lib/analytics';
+import {
+    getAnalyticsValueBucket,
+    trackBeginCheckout,
+    trackAddPaymentInfo,
+    trackCartRequirementMissing,
+    trackCheckoutCreateOrderFailed,
+    trackCheckoutPaymentHandoffFailed,
+    trackCheckoutPlaceOrderClicked,
+    trackCheckoutRedirectStarted,
+} from '@/lib/analytics';
 import { AddressForm, StaticMap } from '@/components/AddressForm';
 import { SplitWithFriendsModal } from '@/components/SplitWithFriendsModal';
 import { SplitOrderShareModal } from '@/components/SplitOrderShareModal';
@@ -1277,7 +1286,18 @@ function CartClient() {
         return missing;
     };
 
+    const getCheckoutAnalyticsBase = (flowType: 'full_payment' | 'downpayment_50' | 'split_with_friends') => ({
+        flowType,
+        fulfillmentType,
+        itemCount: cartItems.length,
+        valueBucket: getAnalyticsValueBucket(total),
+        isGuest: isAnonymous,
+    });
+
     const handleSubmitOrder = async () => {
+        const analyticsBase = getCheckoutAnalyticsBase('full_payment');
+        trackCheckoutPlaceOrderClicked(analyticsBase);
+
         if (!isAuthenticated) {
             showError('Please sign in or continue as guest to place an order.');
             return;
@@ -1285,6 +1305,10 @@ function CartClient() {
 
         const missing = getMissingRequirements();
         if (missing.length > 0) {
+            trackCartRequirementMissing({
+                ...analyticsBase,
+                missingLabels: missing.map(m => m.label),
+            });
             showError(`Please fill in: ${missing.map(m => m.label).join(', ')}`);
             return;
         }
@@ -1401,6 +1425,7 @@ function CartClient() {
             });
 
             if (!success || !order) {
+                trackCheckoutCreateOrderFailed(analyticsBase);
                 throw error || new Error('Failed to create order.');
             }
 
@@ -1419,7 +1444,10 @@ function CartClient() {
                 customerName: nameToUse || 'Customer'
             });
 
-            if (paymentError) throw new Error(paymentError);
+            if (paymentError) {
+                trackCheckoutPaymentHandoffFailed(analyticsBase);
+                throw new Error(paymentError);
+            }
 
             if (paymentUrl) {
                 // For anonymous users, upgrade to email account and send activation email
@@ -1453,9 +1481,11 @@ function CartClient() {
 
                 // Redirect to payment - don't clear cart yet
                 // Cart will be cleared after payment confirmation on order-confirmation page
+                trackCheckoutRedirectStarted(analyticsBase);
                 setIsRedirecting(true);
                 window.location.href = paymentUrl;
             } else {
+                trackCheckoutPaymentHandoffFailed(analyticsBase);
                 throw new Error('Payment URL not generated.');
             }
 
@@ -1474,6 +1504,9 @@ function CartClient() {
     };
 
     const handleDownpaymentClick = () => {
+        const analyticsBase = getCheckoutAnalyticsBase('downpayment_50');
+        trackCheckoutPlaceOrderClicked(analyticsBase);
+
         if (!isAuthenticated) {
             showError('Please sign in or continue as guest to place an order.');
             return;
@@ -1481,6 +1514,10 @@ function CartClient() {
 
         const missing = getMissingRequirements();
         if (missing.length > 0) {
+            trackCartRequirementMissing({
+                ...analyticsBase,
+                missingLabels: missing.map(m => m.label),
+            });
             showError(`Please fill in: ${missing.map(m => m.label).join(', ')}`);
             return;
         }
@@ -1497,6 +1534,7 @@ function CartClient() {
     const handleConfirmDownpayment = async () => {
         setIsDownpaymentModalOpen(false);
         setIsPlacingOrder(true);
+        const analyticsBase = getCheckoutAnalyticsBase('downpayment_50');
         try {
             // Handle Address Saving/Creation if needed
             let effectiveDeliveryAddressId = isAnonymous ? null : selectedAddress?.address_id || null;
@@ -1608,6 +1646,7 @@ function CartClient() {
             });
 
             if (!success || !order) {
+                trackCheckoutCreateOrderFailed(analyticsBase);
                 throw error || new Error('Failed to create order.');
             }
 
@@ -1627,7 +1666,10 @@ function CartClient() {
                 failureRedirectUrl: `${window.location.origin}/cart?payment_failed=true&order_id=${order.order_id}`
             });
 
-            if (paymentError) throw new Error(paymentError);
+            if (paymentError) {
+                trackCheckoutPaymentHandoffFailed(analyticsBase);
+                throw new Error(paymentError);
+            }
 
             if (paymentUrl) {
                 // For anonymous users, upgrade to email account and send activation email
@@ -1655,9 +1697,11 @@ function CartClient() {
                     sessionStorage.setItem('pending_payment_guest_email', guestEmail || '');
                 }
 
+                trackCheckoutRedirectStarted(analyticsBase);
                 setIsRedirecting(true);
                 window.location.href = paymentUrl;
             } else {
+                trackCheckoutPaymentHandoffFailed(analyticsBase);
                 throw new Error('Payment URL not generated.');
             }
         } catch (error: unknown) {
@@ -1672,6 +1716,9 @@ function CartClient() {
     const canUseDownpayment = getLeadTimeDays() >= 3;
 
     const handleSplitWithFriends = async (splitCount: number, splitMessage: string) => {
+        const analyticsBase = getCheckoutAnalyticsBase('split_with_friends');
+        trackCheckoutPlaceOrderClicked(analyticsBase);
+
         if (!isAuthenticated) {
             showError('Please sign in or continue as guest to place an order.');
             return;
@@ -1679,6 +1726,10 @@ function CartClient() {
 
         const missing = getMissingRequirements();
         if (missing.length > 0) {
+            trackCartRequirementMissing({
+                ...analyticsBase,
+                missingLabels: missing.map(m => m.label),
+            });
             showError(`Please fill in: ${missing.map(m => m.label).join(', ')}`);
             return;
         }
@@ -1794,6 +1845,7 @@ function CartClient() {
             });
 
             if (!success || !order) {
+                trackCheckoutCreateOrderFailed(analyticsBase);
                 throw error || new Error('Failed to create split order.');
             }
 

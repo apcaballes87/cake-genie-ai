@@ -40,7 +40,13 @@ import { FloatingImagePreview } from '../../components/FloatingImagePreview';
 import { showSuccess, showError, showInfo } from '../../lib/utils/toast';
 import { getProxyAwareImageUrl } from '@/lib/utils/imageSelection';
 import { reportCustomization, uploadReportImage, getAnalysisByExactHash, getRelatedProductsByKeywords, getCollectionsForDesign, getStudioImageAvailabilityByHash } from '../../services/supabaseService';
-import { trackViewItem } from '@/lib/analytics';
+import {
+    getAnalyticsValueBucket,
+    trackCustomizerAddToCartBlocked,
+    trackCustomizerAddToCartClicked,
+    trackCustomizerCartRedirectStarted,
+    trackViewItem,
+} from '@/lib/analytics';
 import ReportModal from '../../components/ReportModal';
 import ShareModal from '../../components/ShareModal';
 import ChatModal from '../../components/ChatModal';
@@ -374,6 +380,19 @@ interface CustomizingClientProps {
         averageRating: number;
     } | null;
 }
+
+type CustomizerAnalyticsSourceSurface = 'merchant_product' | 'analysis_cache' | 'uploaded_image' | 'unknown';
+
+const getCustomizerAnalyticsSourceSurface = (
+    product: CakeGenieMerchantProduct | undefined,
+    recentSearchDesign: RecentSearchDesignProp | undefined,
+    originalImageData: unknown,
+): CustomizerAnalyticsSourceSurface => {
+    if (product) return 'merchant_product';
+    if (recentSearchDesign) return 'analysis_cache';
+    if (originalImageData) return 'uploaded_image';
+    return 'unknown';
+};
 
 const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialProduct, merchant, recentSearchDesign: initialRecentSearchDesign, productDetails, initialPrices, relatedDesigns, currentKeywords, currentSlug, seoContentSlot, postEditorSlot, initialCaption, preloadSource, preloadImageUrl, hideAiChat = false, isCombining = false, clearMessageTexts = false, hideStickyBar = false, useBasePriceAsFallback = false, ediblePhotoAddonPrice = 0, separateIcingStep = false, hideBanner = false, hideStepOne = false, hideStepFour = false, photoStepNode = null, enableMobileHeroPan = false, reviewSummary: initialReviewSummary }) => {
     const router = useRouter();
@@ -1153,10 +1172,35 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
 
     // --- AI Chat Customization Handler ---
     const onAddToCart = useCallback(async () => {
-        if (addToCartInFlightRef.current) return;
-
+        const sourceSurface = getCustomizerAnalyticsSourceSurface(product, recentSearchDesign, originalImageData);
+        const designSlug = persistedSlug || (typeof slug === 'string' ? slug : null) || seoMetadata?.slug || recentSearchDesign?.slug || product?.slug || null;
         const effectivePrice = finalPrice ?? (useBasePriceAsFallback ? basePrice : null);
-        if (!effectivePrice || !cakeInfo) return;
+        const analyticsBase = {
+            sourceSurface,
+            designSlug,
+            hasPendingDesignChanges: hasPendingVisualChangesRef.current,
+        };
+
+        if (addToCartInFlightRef.current) {
+            trackCustomizerAddToCartBlocked({
+                ...analyticsBase,
+                reason: 'add_to_cart_in_flight',
+            });
+            return;
+        }
+
+        if (!effectivePrice || !cakeInfo) {
+            trackCustomizerAddToCartBlocked({
+                ...analyticsBase,
+                reason: !effectivePrice ? 'price_missing' : 'cake_info_missing',
+            });
+            return;
+        }
+
+        trackCustomizerAddToCartClicked({
+            ...analyticsBase,
+            priceBucket: getAnalyticsValueBucket(effectivePrice + ediblePhotoAddonPrice),
+        });
 
         addToCartInFlightRef.current = true;
         setIsAddingToCart(true);
@@ -1340,6 +1384,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
             void addToCartWithBackgroundUpload(cartItem, uploadPromise);
 
             showSuccess('Added to cart!');
+            trackCustomizerCartRedirectStarted({
+                ...analyticsBase,
+                priceBucket: getAnalyticsValueBucket((effectivePrice || 0) + ediblePhotoAddonPrice),
+            });
             router.push('/cart');
         } catch (err) {
             addToCartInFlightRef.current = false;
@@ -1389,6 +1437,22 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         supabase,
         handleUpdateDesign,
         originalImageData,
+    ]);
+
+    const handleAddToCartBlockedVisible = useCallback((reason: string) => {
+        trackCustomizerAddToCartBlocked({
+            sourceSurface: getCustomizerAnalyticsSourceSurface(product, recentSearchDesign, originalImageData),
+            designSlug: persistedSlug || (typeof slug === 'string' ? slug : null) || seoMetadata?.slug || recentSearchDesign?.slug || product?.slug || null,
+            reason,
+            hasPendingDesignChanges: hasPendingVisualChangesRef.current,
+        });
+    }, [
+        originalImageData,
+        persistedSlug,
+        product,
+        recentSearchDesign,
+        seoMetadata?.slug,
+        slug,
     ]);
 
     const submitAiChatPrompt = useCallback(async (prompt: string) => {
@@ -4321,6 +4385,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                     onApplyChangesClick={handleApplyPendingDesignChanges}
                     isApplyingChanges={hideStickyBar ? false : isUpdatingDesign}
                     applyChangesLabel="Apply Design Changes"
+                    onAddToCartBlockedVisible={handleAddToCartBlockedVisible}
                 />
                     </>
                 )}

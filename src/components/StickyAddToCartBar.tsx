@@ -40,6 +40,7 @@ interface StickyAddToCartBarProps {
     ediblePhotoAddonNote?: boolean;
     isBlurred?: boolean;
     hasPrintoutConversion?: boolean;
+    onAddToCartBlockedVisible?: (reason: string) => void;
 }
 
 const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
@@ -65,6 +66,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     ediblePhotoAddonNote = false,
     isBlurred = false,
     hasPrintoutConversion = false,
+    onAddToCartBlockedVisible,
 }) => {
     const announcementStateRef = React.useRef<{
         price: number | null;
@@ -105,6 +107,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     const [statusAnnouncement, setStatusAnnouncement] = React.useState('');
     const [errorAnnouncement, setErrorAnnouncement] = React.useState('');
     const buttonsRef = React.useRef<HTMLDivElement>(null);
+    const lastVisibleBlockReasonRef = React.useRef<string | null>(null);
 
     React.useEffect(() => {
         setIsMounted(true);
@@ -114,6 +117,12 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
             setIsDiscountApplied(true);
         }
     }, []);
+
+    React.useEffect(() => {
+        if (!addToCartDisabledReason || lastVisibleBlockReasonRef.current === addToCartDisabledReason) return;
+        lastVisibleBlockReasonRef.current = addToCartDisabledReason;
+        onAddToCartBlockedVisible?.(addToCartDisabledReason);
+    }, [addToCartDisabledReason, onAddToCartBlockedVisible]);
 
     React.useEffect(() => {
         const previous = announcementStateRef.current;

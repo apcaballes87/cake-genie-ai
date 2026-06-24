@@ -1,5 +1,35 @@
 # Tasks
 
+## Online Funnel Leak Instrumentation (2026-06-24)
+
+### Plan
+
+- [x] Add non-sensitive funnel event wrappers to the existing analytics helper.
+- [x] Instrument customizer add-to-cart intent, blocked states, and successful handoff to cart.
+- [x] Instrument cart checkout intent, missing requirements, order creation failures, payment handoff failures, and redirect starts across full-payment, downpayment, and split-order flows.
+- [x] Add focused analytics tests and run verification.
+- [x] Record the implementation review and verification results.
+
+### Review
+
+- Added funnel-specific wrappers in [src/lib/analytics.ts](/Users/apcaballes/genieph-nextjs/src/lib/analytics.ts:1) that continue using the existing GA4/Clarity queue instead of introducing a second analytics path.
+- Customizer instrumentation now records:
+  - add-to-cart click intent
+  - visible disabled add-to-cart reasons, such as analysis still running or price still calculating
+  - successful redirect handoff from customizer to cart
+- Cart instrumentation now records:
+  - checkout button intent for full payment, 50% downpayment, and split-with-friends
+  - missing checkout requirements by label only
+  - order creation failures
+  - payment handoff failures
+  - redirect start to payment
+- Privacy guardrails: events use aggregate fields such as source surface, design slug, value bucket, item count, fulfillment type, guest-vs-account, and missing requirement labels. They do not send names, phone numbers, addresses, customer message text, additional instructions, or payment details.
+- Verification:
+  - `npx vitest run src/lib/analytics.test.ts --exclude '.claude/**'`
+  - `git diff --check -- src/lib/analytics.ts src/lib/analytics.test.ts src/app/cart/CartClient.tsx src/app/customizing/CustomizingClient.tsx src/components/StickyAddToCartBar.tsx tasks/todo.md`
+  - `npm run build`
+- Build completed successfully. Existing warnings still appeared for stale `baseline-browser-mapping`, inferred Next workspace root, deprecated `middleware`, and familiar Supabase statement timeouts while prerendering fallback keyword pages.
+
 ## Update Landing Page Key Facts Copy (2026-06-22)
 
 ### Plan
