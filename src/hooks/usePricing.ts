@@ -156,12 +156,20 @@ export const usePricing = ({
                 const isNewAnalysis = analysisId && analysisId !== lastProcessedAnalysisId.current;
                 const currentSizeIsValid = options.some(r => r.size === cakeInfo.size);
 
-                if (isNewAnalysis) {
+                const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+                const hasUrlSize = urlParams?.has('size');
+
+                if (isNewAnalysis && !hasUrlSize) {
                     const sortedOptions = [...options].sort((a, b) => a.price - b.price);
                     updates.size = sortedOptions[0].size;
                     lastProcessedAnalysisId.current = analysisId;
-                } else if (!currentSizeIsValid) {
-                    updates.size = options[0].size;
+                } else {
+                    if (isNewAnalysis) {
+                        lastProcessedAnalysisId.current = analysisId;
+                    }
+                    if (!currentSizeIsValid) {
+                        updates.size = options[0].size;
+                    }
                 }
 
                 if (Object.keys(updates).length > 0) {
