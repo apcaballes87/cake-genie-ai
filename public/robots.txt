@@ -17,6 +17,8 @@ Disallow: /account/
 Disallow: /cart
 Disallow: /login
 Disallow: /signup
+Disallow: /customizing?*
+Disallow: /customizing/*?*
 
 # Google Extended - Allow for Google AI features
 User-agent: Google-Extended
@@ -29,6 +31,8 @@ Disallow: /account/
 Disallow: /cart
 Disallow: /login
 Disallow: /signup
+Disallow: /customizing?*
+Disallow: /customizing/*?*
 
 # OAI-SearchBot - OpenAI Search crawler
 User-agent: OAI-SearchBot
@@ -37,6 +41,8 @@ Disallow: /account/
 Disallow: /cart
 Disallow: /login
 Disallow: /signup
+Disallow: /customizing?*
+Disallow: /customizing/*?*
 
 # ClaudeBot - Anthropic crawler (for Claude)
 User-agent: ClaudeBot
@@ -45,6 +51,8 @@ Disallow: /account/
 Disallow: /cart
 Disallow: /login
 Disallow: /signup
+Disallow: /customizing?*
+Disallow: /customizing/*?*
 
 # Bytespider - Apple/TikTok crawler
 User-agent: Bytespider
@@ -53,6 +61,8 @@ Disallow: /admin/
 Disallow: /api/
 Disallow: /account/
 Disallow: /_next/
+Disallow: /customizing?*
+Disallow: /customizing/*?*
 
 # Meta sharing crawlers
 User-agent: facebookexternalhit
@@ -61,6 +71,8 @@ Disallow: /admin/
 Disallow: /api/
 Disallow: /account/
 Disallow: /_next/
+Disallow: /customizing?*
+Disallow: /customizing/*?*
 
 User-agent: Facebot
 Allow: /
@@ -68,6 +80,8 @@ Disallow: /admin/
 Disallow: /api/
 Disallow: /account/
 Disallow: /_next/
+Disallow: /customizing?*
+Disallow: /customizing/*?*
 
 User-agent: FacebookBot
 Allow: /
@@ -75,6 +89,8 @@ Disallow: /admin/
 Disallow: /api/
 Disallow: /account/
 Disallow: /_next/
+Disallow: /customizing?*
+Disallow: /customizing/*?*
 
 User-agent: meta-externalagent
 Allow: /
@@ -82,6 +98,8 @@ Disallow: /admin/
 Disallow: /api/
 Disallow: /account/
 Disallow: /_next/
+Disallow: /customizing?*
+Disallow: /customizing/*?*
 
 # Pinterest crawler
 User-agent: Pinterestbot
