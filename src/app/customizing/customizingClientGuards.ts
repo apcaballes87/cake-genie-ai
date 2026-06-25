@@ -32,6 +32,11 @@ const RETRY_UPLOAD_QUERY_PARAMS = [
   'image_type',
   'fromSaved',
   'fromMerchant',
+  'type',
+  'caketype',
+  'size',
+  'height',
+  'thickness',
 ] as const
 
 export function resolveEntrySourceParam(urlParams: URLSearchParams): string | null {

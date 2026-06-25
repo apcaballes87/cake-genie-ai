@@ -33,6 +33,8 @@ import {
     getEquivalentCakeTypeForIcingBase,
     inferIcingBaseFromCakeType,
     EDIBLE_PHOTO_MASK_URL,
+    CAKE_TYPES,
+    CAKE_THICKNESSES,
 } from '@/constants';
 import { ColorPalette } from '../../components/ColorPalette';
 import StickyAddToCartBar from '../../components/StickyAddToCartBar';
@@ -832,6 +834,92 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         }
     }, [isCustomizationDirty, cakeInfo, mainToppers, supportElements, cakeMessages,
         icingDesign, additionalInstructions, analysisResult, analysisId]);
+
+    const hasInitializedFromUrlRef = useRef(false);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        if (!cakeInfo) {
+            hasInitializedFromUrlRef.current = false;
+            
+            const currentUrlParams = new URLSearchParams(window.location.search);
+            let urlChanged = false;
+            const paramsToClear = ['caketype', 'type', 'size', 'height', 'thickness'];
+            paramsToClear.forEach(p => {
+                if (currentUrlParams.has(p)) {
+                    currentUrlParams.delete(p);
+                    urlChanged = true;
+                }
+            });
+            if (urlChanged) {
+                const currentPath = window.location.pathname;
+                const cleanUrl = currentUrlParams.toString() ? `${currentPath}?${currentUrlParams.toString()}` : currentPath;
+                window.history.replaceState({}, '', cleanUrl);
+            }
+            return;
+        }
+
+        const currentUrlParams = new URLSearchParams(window.location.search);
+
+        if (!hasInitializedFromUrlRef.current) {
+            hasInitializedFromUrlRef.current = true;
+
+            const urlType = currentUrlParams.get('caketype') || currentUrlParams.get('type');
+            const urlSize = currentUrlParams.get('size');
+            const urlHeight = currentUrlParams.get('height') || currentUrlParams.get('thickness');
+
+            const updates: Partial<CakeInfoUI> = {};
+
+            if (urlType) {
+                const decodedType = decodeURIComponent(urlType);
+                if (CAKE_TYPES.includes(decodedType as CakeType)) {
+                    updates.type = decodedType as CakeType;
+                }
+            }
+            if (urlSize) {
+                updates.size = decodeURIComponent(urlSize);
+            }
+            if (urlHeight) {
+                const decodedHeight = decodeURIComponent(urlHeight);
+                if (CAKE_THICKNESSES.includes(decodedHeight as CakeThickness)) {
+                    updates.thickness = decodedHeight as CakeThickness;
+                }
+            }
+
+            const hasChanges = (updates.type && updates.type !== cakeInfo.type) ||
+                               (updates.size && updates.size !== cakeInfo.size) ||
+                               (updates.thickness && updates.thickness !== cakeInfo.thickness);
+
+            if (hasChanges) {
+                handleCakeInfoChange(updates);
+                return;
+            }
+        }
+
+        let urlChanged = false;
+
+        if (cakeInfo.type && currentUrlParams.get('caketype') !== cakeInfo.type) {
+            currentUrlParams.set('caketype', cakeInfo.type);
+            currentUrlParams.delete('type');
+            urlChanged = true;
+        }
+        if (cakeInfo.size && currentUrlParams.get('size') !== cakeInfo.size) {
+            currentUrlParams.set('size', cakeInfo.size);
+            urlChanged = true;
+        }
+        if (cakeInfo.thickness && currentUrlParams.get('height') !== cakeInfo.thickness) {
+            currentUrlParams.set('height', cakeInfo.thickness);
+            currentUrlParams.delete('thickness');
+            urlChanged = true;
+        }
+
+        if (urlChanged) {
+            const currentPath = window.location.pathname;
+            const cleanUrl = currentUrlParams.toString() ? `${currentPath}?${currentUrlParams.toString()}` : currentPath;
+            window.history.replaceState({}, '', cleanUrl);
+        }
+    }, [cakeInfo, handleCakeInfoChange]);
 
 
     const getActiveChatContainer = () => {

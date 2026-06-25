@@ -156,10 +156,10 @@ describe('customizingClientGuards', () => {
     expect(buildRelatedCollectionsRequestKey([], '')).toBeNull()
   })
 
-  it('removes stale handoff params before opening the retry uploader', () => {
+  it('removes stale handoff and customization params before opening the retry uploader', () => {
     expect(buildRetryUploadUrl(
       '/customizing',
-      '?ref=https%3A%2F%2Fold.example%2Fcake.jpg&source=shopify_cse&entry_source=landing&image_url=https%3A%2F%2Fold.example%2Fcake.jpg&keep=1&fromSaved=true'
+      '?ref=https%3A%2F%2Fold.example%2Fcake.jpg&source=shopify_cse&entry_source=landing&image_url=https%3A%2F%2Fold.example%2Fcake.jpg&keep=1&fromSaved=true&caketype=2+Tier&size=6%22%2F8%22+Round&height=4+in&thickness=4+in&type=Bento'
     )).toBe('/customizing?keep=1')
 
     expect(buildRetryUploadUrl('/customizing', '')).toBe('/customizing')
