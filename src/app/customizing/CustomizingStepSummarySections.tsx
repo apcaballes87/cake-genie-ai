@@ -61,7 +61,7 @@ interface CustomizingStepSummarySectionsProps {
     /** When provided, the main color swatch row uses the mask-based instant recolor
      *  instead of calling onUpdateDesign (Gemini) for icing body color changes. */
     onIcingColorRecolor?: (hex: string, name: string) => void;
-    /** When provided, a "Fix Mask" button is shown at the end of the color swatch row
+    /** When provided, a "Recolor Icing" button is shown at the end of the color swatch row
      *  to let users regenerate the icing mask for better quality. */
     onRegenerateMask?: () => void;
     /** Disables the mask overlay, reverting to the original un-recolored image.
@@ -600,7 +600,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                 onClick={onRegenerateMask}
                                 disabled={isUpdatingDesign || isStudioBackgroundEditingPending || maskStatus === 'generating'}
                                 className={`group relative flex flex-col items-center gap-1 shrink-0 transition-transform active:scale-95 ${isUpdatingDesign || isStudioBackgroundEditingPending || maskStatus === 'generating' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                title="Regenerate icing mask for better quality"
+                                title="Recolor icing"
                             >
                                 <div className="md:w-8 md:h-8 w-[27px] h-[27px] rounded-full border border-dashed border-slate-300 shadow-sm flex items-center justify-center bg-slate-50 group-hover:border-purple-300 group-hover:bg-purple-50 transition-all">
                                     <svg className="w-3.5 h-3.5 text-slate-400 group-hover:text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -608,7 +608,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                     </svg>
                                 </div>
                                 <span className="text-[7px] font-medium text-slate-500 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
-                                    Fix
+                                    Recolor Icing
                                 </span>
                             </button>
                         )}
@@ -752,7 +752,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                         role={showError ? 'alert' : undefined}
                     >
                         {showError
-                            ? '⚠️ Couldn\'t load different icing colors. Tap the Fix button to retry.'
+                            ? '⚠️ Couldn\'t load different icing colors. Tap Recolor Icing to retry.'
                             : '✨ Loading Different Icing Colors'}
                     </p>
                 );
@@ -1029,7 +1029,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                 <Wand2 className="w-5 h-5" />
                             </div>
                             <div className="text-left">
-                                <span className="block text-sm font-bold leading-tight">Advanced Customization</span>
+                                <span className="block text-sm font-bold leading-tight">Edit Design Details</span>
                                 <span className="block text-[10px] font-medium text-slate-500 mt-0.5">
                                     {showAdvanced ? 'Hide additional options' : 'Cake type, decorations, AI chat and more'}
                                 </span>

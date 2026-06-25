@@ -178,7 +178,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
         const observer = new ResizeObserver((entries) => {
             for (const entry of entries) {
                 // If width is less than ~280px, we switch to compact mode (icons only)
-                // This value is based on: Share Button (~90px) + Chat Button (~90px) + "Buy This Now" (~130px) + gaps.
+                // This value is based on: Share Button (~90px) + Chat Button (~90px) + "Add to Cart" (~130px) + gaps.
                 setIsCompact(entry.contentRect.width < 280);
             }
         });
@@ -395,7 +395,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                                 onClick={onAddToCartClick}
                                 disabled={isLoading || !!error || price === null || isAdding || isAnalyzing}
                                 title={addToCartDisabledReason}
-                                aria-label={addToCartDisabledReason || 'Buy this cake now'}
+                                aria-label={addToCartDisabledReason || 'Add this cake to cart'}
                                 className="flex-1 min-w-0 h-12 genie-btn-primary font-bold py-3 px-4 rounded-xl text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-md whitespace-nowrap"
                             >
                                 {isAdding ? (
@@ -403,7 +403,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                                 ) : (
                                     <>
                                         <ShoppingBag className="w-5 h-5 shrink-0" />
-                                        {!isCompact && 'Buy This Now'}
+                                        {!isCompact && 'Add to Cart'}
                                     </>
                                 )}
                             </button>

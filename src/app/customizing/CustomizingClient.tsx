@@ -999,7 +999,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         onFallback: handleIcingMaskFallback,
     });
 
-    // "Fix Mask" handler: clears the cached mask and immediately regenerates it
+    // "Recolor Icing" handler: clears the cached mask and immediately regenerates it
     // with the current icing color, showing the hero loading animation during generation.
     const handleRegenerateMask = useCallback(async () => {
         await regenerateMask();

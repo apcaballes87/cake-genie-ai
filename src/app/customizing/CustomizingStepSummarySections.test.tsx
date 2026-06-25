@@ -113,7 +113,7 @@ describe('CustomizingStepSummarySections', () => {
 
         expect(screen.queryByRole('button', { name: /3 Tier/i })).not.toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', { name: /Advanced Customization/i }));
+        fireEvent.click(screen.getByRole('button', { name: /Edit Design Details/i }));
         fireEvent.click(screen.getByRole('button', { name: /3 Tier/i }));
         fireEvent.click(screen.getByText('Happy Birthday'));
         fireEvent.click(screen.getByRole('button', { name: 'Delete message' }));
@@ -160,7 +160,7 @@ describe('CustomizingStepSummarySections', () => {
         render(<CustomizingStepSummarySections {...props} />);
 
         fireEvent.click(screen.getByRole('button', { name: /Add a cake message/i }));
-        fireEvent.click(screen.getByRole('button', { name: /Advanced Customization/i }));
+        fireEvent.click(screen.getByRole('button', { name: /Edit Design Details/i }));
         fireEvent.click(screen.getByRole('button', { name: /1x\s*Toy topper\s*\(Toy\)/i }));
 
         expect(props.setActiveCustomization).toHaveBeenCalledWith('messages');
@@ -229,7 +229,7 @@ describe('CustomizingStepSummarySections', () => {
 
         render(<CustomizingStepSummarySections {...props} />);
 
-        fireEvent.click(screen.getByRole('button', { name: /Advanced Customization/i }));
+        fireEvent.click(screen.getByRole('button', { name: /Edit Design Details/i }));
 
         expect(screen.getByRole('button', { name: /1x\s*Toy topper\s*\(Toy\)/i })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /1x\s*Butterfly topper\s*\(Figurine \(Simpler\)\)/i })).toBeInTheDocument();
@@ -267,7 +267,7 @@ describe('CustomizingStepSummarySections', () => {
 
         render(<CustomizingStepSummarySections {...props} />);
 
-        const advancedToggle = screen.getByRole('button', { name: /Advanced Customization/i });
+        const advancedToggle = screen.getByRole('button', { name: /Edit Design Details/i });
         const advancedSection = document.getElementById('advanced-customization-steps');
         const icingTypeLabel = screen.getByText('Icing Type');
         const mainLabel = screen.getByText('Main');
@@ -349,7 +349,7 @@ describe('CustomizingStepSummarySections', () => {
 
         vi.clearAllMocks();
 
-        fireEvent.click(screen.getByRole('button', { name: /Advanced Customization/i }));
+        fireEvent.click(screen.getByRole('button', { name: /Edit Design Details/i }));
 
         await waitFor(() => {
             expect(HTMLElement.prototype.scrollTo).toHaveBeenCalledWith({

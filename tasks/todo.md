@@ -1,5 +1,61 @@
 # Tasks
 
+## Customizer CTA And Label Tuning (2026-06-25)
+
+### Plan
+
+- [x] Change the sticky customizer purchase CTA from `Buy This Now` to `Add to Cart`.
+- [x] Rename the `Advanced Customization` section to `Edit Design Details`.
+- [x] Replace customer-facing `Fix Mask` wording with `Recolor Icing`.
+- [x] Update focused customizer tests and run scoped verification.
+
+### Review
+
+- Updated the sticky customizer purchase CTA in [src/components/StickyAddToCartBar.tsx](/Users/apcaballes/genieph-nextjs/src/components/StickyAddToCartBar.tsx:395) so the primary action now reads `Add to Cart`, with matching accessibility copy.
+- Renamed the expandable advanced section in [src/app/customizing/CustomizingStepSummarySections.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingStepSummarySections.tsx:1032) from `Advanced Customization` to `Edit Design Details`.
+- Replaced the customer-facing `Fix Mask` wording in [src/app/customizing/CustomizingStepSummarySections.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingStepSummarySections.tsx:597) with `Recolor Icing`, and updated the related retry message.
+- Kept the behavior scoped to the approved items only; no pending-edit CTA changes or sheet behavior changes were bundled in.
+- Verification:
+  - `npx vitest run src/app/customizing/CustomizingStepSummarySections.test.tsx src/components/StickyAddToCartBar.test.tsx --exclude '.claude/**'`
+  - `git diff --check -- src/components/StickyAddToCartBar.tsx src/app/customizing/CustomizingStepSummarySections.tsx src/app/customizing/CustomizingStepSummarySections.test.tsx src/app/customizing/CustomizingClient.tsx tasks/todo.md tasks/lessons.md`
+
+## Customizer Ecommerce CRO Audit (2026-06-25)
+
+### Plan
+
+- [x] Inspect the current `/customizing` UI structure, primary actions, mobile/desktop layout, and existing friction evidence.
+- [x] Research proven ecommerce product-page patterns from Shopee, Lazada, and broader PDP/CRO sources.
+- [x] Compare those patterns against Genie.ph's customizer page and identify points of confusion for first-time users.
+- [x] Prioritize recommended fixes by likely conversion/customer-experience impact and implementation risk.
+- [x] Record the audit review, evidence, and suggested verification path.
+
+### Review
+
+- Shopee's own help flow trains users to choose `Buy Now` or `Add to Cart`, select a variation if needed, then verify delivery address, shipping option, vouchers/coins, and payment before placing the order. Lazada and Shopee both emphasize vouchers/free shipping, recommendations, reviews, secure payment, and order tracking as core shopping signals.
+- Baymard/NNG product-page research reinforces the same baseline: product pages need recognizable images, price, clear option selectors, availability, clear add-to-cart feedback, shipping/total-cost context, reviews, save/wishlist support, and easy image inspection before asking the buyer to commit.
+- Genie.ph already has strong assets: large cake preview, price guarantee badge, live review summary, free Cebu City delivery message, sticky price/CTA, saved design, related designs, and customization controls.
+- Main gap: the current page reads more like a custom design workspace than a familiar marketplace product page. First-time users may not instantly understand the purchase sequence: choose size/flavor/message -> apply visual edits if any -> buy/add to cart -> checkout.
+- Highest-risk confusion points found in code:
+  - `Buy This Now` is the only primary sticky purchase CTA, while the actual cart action is `onAddToCartClick`; familiar Shopee/Lazada muscle memory expects `Add to Cart` and optionally `Buy Now`.
+  - Pending visual edits require a separate `Apply All Changes` action in the editor sheet, which can compete with the sticky buy CTA and make users wonder whether the order includes their latest edits.
+  - `Advanced Customization` hides AI chat, cake type, and decoration editing even though those are likely common user goals after landing on a design.
+  - Mobile stacks multiple bottom surfaces: availability/printout notice, sticky price/actions, and the editor sheet with its own apply action.
+  - Disabled `Apply Changes` / `Apply All Changes` buttons do not explain why they are disabled inside the sheet.
+  - Some labels are production-accurate but customer-heavy: `Support Elements`, `Gumpaste`, `Printout`, `Fix Mask`, and sometimes `Icing` / `Height per Cake`.
+- Recommended implementation direction:
+  - Make the sticky bar mirror ecommerce conventions: price + selected size/flavor summary + `Add to Cart` primary, with `Buy Now` only if it truly goes directly to checkout.
+  - Add a visible "Selected options" block near the top of the buy area: cake size, height, flavor, message, delivery promise, and edit links.
+  - Rename/reframe `Advanced Customization` to a buyer-friendly section such as `Edit Design Details`, and expose AI chat/decorations as clear edit rows instead of hidden expert options.
+  - When edits are pending, replace or gate the buy CTA with a clear state: `Apply changes to continue` / `Update preview first`, then return to `Add to Cart`.
+  - Add inline disabled reasons to editor-sheet apply buttons.
+  - Make delivery/fees/lead time feel as concrete as Shopee/Lazada shipping context: show free Cebu City delivery conditions, service-area caveat, and link to delivery rates near price.
+  - Keep review proof close to the hero, but add photo/review snippets lower on the page to reduce the need for users to leave and research elsewhere.
+- Suggested verification path before shipping changes:
+  - Mobile-first Playwright pass on `/customizing` and a representative `/customizing/[slug]`.
+  - Check first-screen comprehension: price, selected options, delivery promise, and next action visible without reading instructions.
+  - Regression checks for sticky bar, editor sheet offsets, pending visual changes, and add-to-cart telemetry.
+  - Compare event changes after deploy: add-to-cart intent, blocked add-to-cart reason, successful handoff to cart, and begin checkout.
+
 ## Online Funnel Leak Instrumentation (2026-06-24)
 
 ### Plan
