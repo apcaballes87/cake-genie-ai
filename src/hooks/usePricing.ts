@@ -88,6 +88,7 @@ export const usePricing = ({
         data: queryResult,
         isLoading: isFetchingBasePrice,
         error: queryError,
+        isPlaceholderData,
     } = useQuery({
         queryKey: pricingKeys.basePrice(cakeInfo?.type, cakeInfo?.thickness),
         queryFn: async () => {
@@ -136,6 +137,12 @@ export const usePricing = ({
             return;
         }
 
+        // Avoid performing corrections using stale/placeholder data (from previous query keys)
+        // while the new base price options for the selected cake type/thickness are being fetched.
+        if (isPlaceholderData) {
+            return;
+        }
+
         if (queryResult && cakeInfo) {
             const { options, effectiveThickness } = queryResult;
 
@@ -162,7 +169,7 @@ export const usePricing = ({
                 }
             }
         }
-    }, [queryResult, cakeInfo, onCakeInfoCorrection, analysisId, initialPriceInfo]);
+    }, [queryResult, cakeInfo, onCakeInfoCorrection, analysisId, initialPriceInfo, isPlaceholderData]);
 
     const uiStateForQuery = useMemo<PricingUiState | null>(() => {
         if (!icingDesign || !cakeInfo) return null;
