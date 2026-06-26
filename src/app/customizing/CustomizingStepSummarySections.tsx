@@ -723,29 +723,33 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                 {isColorPickerOpen && cakeInfo && (
                                     <div 
                                         ref={colorPickerRef}
-                                        className="absolute bottom-full left-0 right-0 mb-2 z-50 bg-white border border-purple-100/90 rounded-2xl shadow-xl p-3 max-md:p-2.5 animate-in fade-in slide-in-from-bottom-2 duration-200"
+                                        className={`absolute left-0 right-0 z-50 bg-white border border-purple-100/90 rounded-2xl shadow-xl p-3 max-md:p-2.5 animate-in fade-in duration-200 ${
+                                            isDesktop
+                                                ? 'top-full mt-2 slide-in-from-top-2'
+                                                : 'bottom-full mb-2 slide-in-from-bottom-2'
+                                        }`}
                                     >
                                         <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-100">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Icing Colors</span>
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Icing Colors</span>
+                                            <div className="flex items-center gap-3.5">
                                                 <button
                                                     type="button"
                                                     onClick={handleFixIcingColor}
                                                     disabled={isUpdatingDesign || isStudioBackgroundEditingPending || maskStatus === 'generating'}
-                                                    className="px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider bg-purple-600 text-white hover:bg-purple-700 transition-all shadow-xs hover:shadow-sm disabled:opacity-50 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed active:scale-95"
+                                                    className="px-4 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider bg-purple-600 text-white hover:bg-purple-700 transition-all shadow-md hover:shadow-lg shadow-purple-600/25 hover:shadow-purple-600/35 disabled:opacity-50 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed active:scale-95"
                                                     title="Permanently recolor using AI image edit"
                                                 >
                                                     Fix Icing Color
                                                 </button>
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setIsColorPickerOpen(false)}
+                                                    className="p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-50 transition-colors"
+                                                    aria-label="Close color picker"
+                                                >
+                                                    <X className="w-3.5 h-3.5" />
+                                                </button>
                                             </div>
-                                            <button 
-                                                type="button"
-                                                onClick={() => setIsColorPickerOpen(false)}
-                                                className="p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-50 transition-colors"
-                                                aria-label="Close color picker"
-                                            >
-                                                <X className="w-3.5 h-3.5" />
-                                            </button>
                                         </div>
                                         <div className="flex items-center gap-2 px-1 pb-0.5 md:gap-3">
                                             {/* Color toggle switch — ON shows chosen color, OFF shows gray */}

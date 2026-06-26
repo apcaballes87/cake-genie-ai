@@ -2863,12 +2863,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
 
 
     const handleReport = useCallback(async (userFeedback: string) => {
-        if (!editedImage || !lastGenerationInfoRef.current) {
-            showError("Missing critical data for report.");
-            return;
-        }
-
-        const originalToUpload = previousImageData || sourceImageData;
+        const originalToUpload = sourceImageData || originalImageData || previousImageData;
         if (!originalToUpload?.data) {
             showError("Missing original image for report.");
             return;
@@ -2876,18 +2871,20 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
 
         setIsReporting(true); setReportStatus(null);
         try {
-            const { prompt, systemInstruction } = lastGenerationInfoRef.current;
-            const fullPrompt = `--- SYSTEM PROMPT ---\n${systemInstruction}\n\n--- USER PROMPT ---\n${prompt}\n`;
+            const genInfo = lastGenerationInfoRef.current;
+            const fullPrompt = genInfo
+                ? `--- SYSTEM PROMPT ---\n${genInfo.systemInstruction}\n\n--- USER PROMPT ---\n${genInfo.prompt}\n`
+                : "No active generation info available (reporting loaded design, client-side recolor, or initial analysis).";
 
             showInfo("Uploading images...");
             const [originalImageUrl, customizedImageUrl] = await Promise.all([
                 uploadReportImage(originalToUpload.data, 'original'),
-                uploadReportImage(editedImage, 'customized')
+                editedImage ? uploadReportImage(editedImage, 'customized') : Promise.resolve('')
             ]);
 
             await reportCustomization({
                 original_image: originalImageUrl,
-                customized_image: customizedImageUrl,
+                customized_image: customizedImageUrl || originalImageUrl,
                 prompt_sent_gemini: fullPrompt.trim(),
                 maintoppers: JSON.stringify(mainToppers.filter(t => t.isEnabled)),
                 supportelements: JSON.stringify(supportElements.filter(s => s.isEnabled)),
@@ -2903,7 +2900,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
             setIsReporting(false);
             setTimeout(() => setReportStatus(null), 5000);
         }
-    }, [editedImage, previousImageData, sourceImageData, lastGenerationInfoRef, mainToppers, supportElements, cakeMessages, icingDesign, addOnPricing]);
+    }, [editedImage, originalImageData, previousImageData, sourceImageData, lastGenerationInfoRef, mainToppers, supportElements, cakeMessages, icingDesign, addOnPricing]);
 
 
     const onShare = () => {
