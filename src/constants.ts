@@ -121,10 +121,26 @@ export const getEquivalentCakeSizeForIcingBase = (
   cakeSize: CakeSize,
   base: IcingDesign['base']
 ): CakeSize => {
-  if (base === 'fondant') {
-    return cakeSize.toLowerCase().includes('fondant') ? cakeSize : `${cakeSize} Fondant`;
+  // Square and Rectangle numeric format sizes are identical for both soft icing and fondant in DB
+  const isNumericSquareOrRect = /^(8x8|10x10|8x12|10x14|12x16)$/i.test(cakeSize.trim());
+  if (isNumericSquareOrRect) {
+    return cakeSize.trim();
   }
 
+  if (base === 'fondant') {
+    if (cakeSize.toLowerCase().includes('fondant')) {
+      return cakeSize;
+    }
+    // 3 Tier 5"8"10" Fondant has no space in DB
+    if (cakeSize === '5"8"10"') {
+      return '5"8"10"Fondant';
+    }
+    return `${cakeSize} Fondant`;
+  }
+
+  if (cakeSize === '5"8"10"Fondant') {
+    return '5"8"10"';
+  }
   return cakeSize.replace(/\s+Fondant$/i, '');
 };
 
@@ -402,7 +418,7 @@ export const DEFAULT_SIZE_MAP: Record<CakeType, CakeSize> = {
   '3 Tier': '5"8"10"',
   'Square': '8x8',
   'Rectangle': '8x12',
-  '1 Tier Fondant': '6" Round',
+  '1 Tier Fondant': '6" Round Fondant',
   '2 Tier Fondant': '6"9" Fondant',
   '3 Tier Fondant': '5"8"10"Fondant',
   'Bento': '4" Round',
