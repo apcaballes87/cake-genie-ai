@@ -161,7 +161,7 @@ describe('CustomizingStepSummarySections', () => {
 
         fireEvent.click(screen.getByRole('button', { name: /Add a cake message/i }));
         fireEvent.click(screen.getByRole('button', { name: /Edit Design Details/i }));
-        fireEvent.click(screen.getByRole('button', { name: /1x\s*Toy topper\s*\(Toy\)/i }));
+        fireEvent.click(screen.getByRole('button', { name: /Toy topper\s*\(Toy\)/i }));
 
         expect(props.setActiveCustomization).toHaveBeenCalledWith('messages');
         expect(props.setSelectedItem).toHaveBeenCalledWith(expect.objectContaining({
@@ -170,7 +170,7 @@ describe('CustomizingStepSummarySections', () => {
             description: 'Toy topper',
         }));
         expect(props.openTopperSheet).toHaveBeenCalledWith('main');
-        expect(screen.getByRole('button', { name: /1x\s*Toy topper\s*\(Toy\)/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Toy topper\s*\(Toy\)/i })).toBeInTheDocument();
         expect(screen.getByText(/Switch from toy toppers to edible or printed toppers/i)).toBeInTheDocument();
     });
 
@@ -231,10 +231,10 @@ describe('CustomizingStepSummarySections', () => {
 
         fireEvent.click(screen.getByRole('button', { name: /Edit Design Details/i }));
 
-        expect(screen.getByRole('button', { name: /1x\s*Toy topper\s*\(Toy\)/i })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /1x\s*Butterfly topper\s*\(Figurine \(Simpler\)\)/i })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /2x\s*Pink flowers\s*\(Fresh Flowers\)/i })).toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: /1x\s*Sugar pearls\s*\(Dragees \(Pearls\)\)/i })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Toy topper\s*\(Toy\)/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Butterfly topper\s*\(Figurine \(Simpler\)\)/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Pink flowers\s*\(Fresh Flowers\)/i })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Sugar pearls\s*\(Dragees \(Pearls\)\)/i })).not.toBeInTheDocument();
 
         fireEvent.click(screen.getByRole('button', { name: /Show more/i }));
 

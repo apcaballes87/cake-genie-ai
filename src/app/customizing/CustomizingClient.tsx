@@ -1113,17 +1113,15 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
 
     // Editor panel mask toggle: mirror the sidebar "Icing" toggle behavior — if the
     // mask is currently active, turning it off reverts to the original image; if
-    // the mask is off, turning it on recolors using the current icing color. When
-    // the current color is the analyzed default, `handleIcingColorToggle` itself
-    // routes through `disableMask` to keep the toggle and the displayed image in sync.
+    // the mask is off, turning it on recolors using the current icing color.
     const handleToggleMask = useCallback(() => {
         if (isMaskOverlayActive) {
             disableMask();
             return;
         }
         const currentHex = icingDesign?.colors?.top || icingDesign?.colors?.side || '#FFFFFF';
-        handleIcingColorToggle(currentHex, getIcingBucketName(currentHex));
-    }, [isMaskOverlayActive, disableMask, icingDesign?.colors?.top, icingDesign?.colors?.side, handleIcingColorToggle]);
+        void recolorIcing(currentHex, getIcingBucketName(currentHex));
+    }, [isMaskOverlayActive, disableMask, icingDesign?.colors?.top, icingDesign?.colors?.side, recolorIcing]);
 
 
     const { isShareModalOpen, shareData, isSavingDesign, handleShare, createShareLink, closeShareModal } = useDesignSharing({
@@ -4128,6 +4126,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                     onIcingColorRecolor={handleIcingColorToggle}
                                     onRegenerateMask={handleRegenerateMask}
                                     onDisableMask={disableMask}
+                                    onToggleMask={handleToggleMask}
                                     isMaskActive={isMaskOverlayActive}
                                     isGeneratingMask={icingMaskStatus === 'generating'}
                                     isStudioBackgroundEditingPending={isStudioBackgroundEditingPending}

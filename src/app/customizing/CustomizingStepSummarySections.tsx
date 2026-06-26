@@ -67,6 +67,7 @@ interface CustomizingStepSummarySectionsProps {
     /** Disables the mask overlay, reverting to the original un-recolored image.
      *  Called when the user clicks the same color again (toggle), the main circle, or the default color. */
     onDisableMask?: () => void;
+    onToggleMask?: () => void;
     /** Whether the mask recolor overlay is currently active (showing a recolored image). */
     isMaskActive?: boolean;
     /** When true, shows a pulsing 'Loading Different Icing Colors' hint below the color swatches
@@ -274,6 +275,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     onIcingColorRecolor,
     onRegenerateMask,
     onDisableMask,
+    onToggleMask,
     isMaskActive = false,
     isGeneratingMask = false,
     isStudioBackgroundEditingPending = false,
@@ -750,13 +752,15 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                             {onIcingColorRecolor || onDisableMask ? (() => {
                                                 const activeColor = icingDesign?.colors?.side || icingDesign?.colors?.top || '#FFFFFF';
                                                 const handleToggle = () => {
-                                                    if (isMaskActive) {
-                                                        onDisableMask?.();
-                                                    } else {
-                                                        const colorName = getIcingBucketName(activeColor);
-                                                        onIcingColorRecolor?.(activeColor, colorName);
-                                                    }
-                                                };
+                                                     if (onToggleMask) {
+                                                         onToggleMask();
+                                                     } else if (isMaskActive) {
+                                                         onDisableMask?.();
+                                                     } else {
+                                                         const colorName = getIcingBucketName(activeColor);
+                                                         onIcingColorRecolor?.(activeColor, colorName);
+                                                     }
+                                                 };
                                                 const isToggleDisabled = isUpdatingDesign || isStudioBackgroundEditingPending || maskStatus === 'generating';
                                                 return (
                                                     <div className="flex flex-col items-center gap-0.5 shrink-0">
@@ -1159,11 +1163,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-purple-100 bg-white/90 hover:bg-purple-50/70 transition-colors text-left"
                                     >
                                         <div className="min-w-0 flex-1 flex items-center gap-2 text-[11px] leading-5">
-                                            {!isCupcake && (
-                                                <span className="shrink-0 font-semibold text-slate-700">
-                                                    {item.quantity && item.quantity > 1 ? `${item.quantity}x` : '1x'}
-                                                </span>
-                                            )}
                                             <span className="truncate text-slate-500">
                                                 {item.description}{' '}
                                                 <span className="text-slate-400">
