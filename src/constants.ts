@@ -385,12 +385,12 @@ export const CAKE_SIZE_THUMBNAILS: Record<string, string> = {
 export const SQUARE_RECT_SIZE_PATTERN = /\d+\s*[xX×]\s*\d+/g;
 
 export const DEFAULT_SIZE_MAP: Record<CakeType, CakeSize> = {
-  '1 Tier': '8" Round',
+  '1 Tier': '6" Round',
   '2 Tier': '6"/8" Round',
   '3 Tier': '6"/8"/10" Round',
   'Square': '8" Square',
   'Rectangle': '9"x13" Rectangle',
-  '1 Tier Fondant': '8" Round',
+  '1 Tier Fondant': '6" Round',
   '2 Tier Fondant': '6"/8" Round',
   '3 Tier Fondant': '6"/8"/10" Round',
   'Bento': '4" Round',
