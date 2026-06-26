@@ -296,8 +296,8 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
         onDisableMask?.();
         const currentColorName = getIcingBucketName(currentColorHex);
         const instruction = currentColorName
-            ? `Change the dominant icing color of the cake from original to ${currentColorName}.`
-            : `Change the dominant icing color of the cake.`;
+            ? `Apply color shading AI editing to recolor the icing of the cake to ${currentColorName}.`
+            : `Apply color shading AI editing to recolor the icing of the cake.`;
         onUpdateDesign?.(instruction, { hex: currentColorHex, name: currentColorName || '' });
         setIsColorPickerOpen(false);
     };
@@ -736,7 +736,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                                 <button
                                                     type="button"
                                                     onClick={handleFixIcingColor}
-                                                    disabled={isUpdatingDesign || isStudioBackgroundEditingPending || maskStatus === 'generating'}
+                                                    disabled={isUpdatingDesign || isStudioBackgroundEditingPending || maskStatus === 'generating' || !isMaskActive}
                                                     className="px-4 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider bg-purple-600 text-white hover:bg-purple-700 transition-all shadow-md hover:shadow-lg shadow-purple-600/25 hover:shadow-purple-600/35 disabled:opacity-50 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed active:scale-95"
                                                     title="Permanently recolor using AI image edit"
                                                 >

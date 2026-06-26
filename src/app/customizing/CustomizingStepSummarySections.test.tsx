@@ -300,6 +300,7 @@ describe('CustomizingStepSummarySections', () => {
         const props = buildProps();
         props.onDisableMask = vi.fn();
         props.onUpdateDesign = vi.fn();
+        props.isMaskActive = true;
 
         render(<CustomizingStepSummarySections {...props} />);
 
@@ -313,7 +314,7 @@ describe('CustomizingStepSummarySections', () => {
 
         expect(props.onDisableMask).toHaveBeenCalled();
         expect(props.onUpdateDesign).toHaveBeenCalledWith(
-            expect.stringContaining('Change the dominant icing color of the cake'),
+            expect.stringContaining('Apply color shading AI editing to recolor the icing'),
             expect.objectContaining({ hex: '#f5deb3' })
         );
     });
