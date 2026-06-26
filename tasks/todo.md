@@ -1,5 +1,30 @@
 # Tasks
 
+## Add Edible 2D Logo Craft Type (2026-06-26)
+
+### Plan
+
+- [x] Add local schema, pricing enum, and display support for `edible_logo_2d`.
+- [x] Add fallback prompt guidance for matte hand-cut gumpaste/fondant logo panels versus glossy printouts.
+- [x] Create new Supabase `ai_prompts` row from the active prompt without overwriting the previous version.
+- [x] Add active pricing rules for small, medium, and large edible logo craft toppers.
+- [x] Run focused verification.
+
+### Review
+
+- Added `edible_logo_2d` as a main topper type for flat or shallow-relief edible logo/name/brand panels made from gumpaste/fondant craft.
+- Created active Supabase prompt version `3.21` from `3.20`; `3.20` remains preserved and inactive.
+- Added pricing rules:
+  - `edible_logo_2d_small`: 40
+  - `edible_logo_2d_medium`: 70
+  - `edible_logo_2d_large`: 100
+- Verification:
+  - Supabase active prompt check returned `prompt_id = 30`, version `3.21`, with the `EDIBLE 2D LOGO CRAFT TOPPERS` section present.
+  - Supabase pricing check returned active rules `182`, `183`, and `184` for small, medium, and large `edible_logo_2d`.
+  - `npx vitest run src/services/prompts/analysisPromptRules.test.ts src/lib/ai/utils.test.ts --exclude '.claude/**'` passed with 14 tests.
+  - `git diff --check` passed.
+  - `npm run build` passed; existing non-fatal warnings appeared for stale browser data, inferred Next workspace root, deprecated middleware, and unrelated Supabase statement timeouts during static generation.
+
 ## Custom Cake Googlebot Reachability Audit (2026-06-26)
 
 ### Plan

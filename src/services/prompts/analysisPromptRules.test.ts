@@ -19,12 +19,13 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('Fondant/gumpaste tongue, ears, bow, nose, or eyes should be `edible_3d_ordinary`');
   });
 
-  it('keeps the Bento visible-container rule in the fallback prompt source', () => {
+  it('keeps the Bento cake-board priority rule in the fallback prompt source', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('Bento vs 1 Tier — Visible Container Rule');
-    expect(prompt).toContain('A flat white square/round cake board, baseboard, cardboard cake pad, plate, tray, or flat surface is NOT a bento box.');
-    expect(prompt).toContain('Do not use cake size alone to choose "Bento". Use the visible container:');
+    expect(prompt).toContain('Bento vs 1 Tier — Cake Board Priority Rule');
+    expect(prompt).toContain('Do NOT classify a cake as `Bento` just because it is inside a box.');
+    expect(prompt).toContain('cake board inside box -> NOT Bento.');
+    expect(prompt).not.toContain('raised clamshell/container walls around cake -> "Bento"');
   });
 
   it('keeps the cake height ratio guide in the fallback prompt source', () => {
@@ -71,6 +72,15 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('Use `edible_photo_print` only for smaller edible printed cutouts or printed pieces placed on the side of the cake');
   });
 
+  it('keeps edible 2D logo craft classification in the fallback prompt source', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(prompt).toContain('EDIBLE 2D LOGO CRAFT TOPPERS');
+    expect(prompt).toContain('Use `edible_logo_2d` for flat or shallow-relief edible logo/name/brand panels made from gumpaste or fondant craft');
+    expect(prompt).toContain('matte fondant Yonex logo letters on a side panel -> `edible_logo_2d`');
+    expect(prompt).toContain('"type": "candle|toy|cardstock|edible_photo_top|edible_logo_2d|printout');
+  });
+
   it('keeps the accepted output skeleton and payment receipt rejection in the fallback prompt source', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
@@ -100,7 +110,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = loadFallbackAnalysisPrompt();
 
     expect(prompt).toContain('GENIE.PH MASTER CAKE ANALYSIS PROMPT');
-    expect(prompt).toContain('Bento vs 1 Tier — Visible Container Rule');
+    expect(prompt).toContain('Bento vs 1 Tier — Cake Board Priority Rule');
   });
 
   it('returns the fallback prompt when the active Supabase prompt cannot be fetched', async () => {
@@ -119,7 +129,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = await getAnalysisPromptWithFallback(supabase);
 
     expect(prompt).toContain('GENIE.PH MASTER CAKE ANALYSIS PROMPT');
-    expect(prompt).toContain('Bento vs 1 Tier — Visible Container Rule');
+    expect(prompt).toContain('Bento vs 1 Tier — Cake Board Priority Rule');
   });
 
   it('does not keep a stale root prompt snapshot beside the fallback prompt', () => {

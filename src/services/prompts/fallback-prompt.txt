@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.19 Version - Prompt Contract Cleanup**
+**v3.21 Version - Edible 2D Logo Craft Classification**
 ═══════════════════════════════════════════════════════════════════════════════
 
 ## ROLE
@@ -122,6 +122,34 @@ Use `edible_photo_print` only for smaller edible printed cutouts or printed piec
 
 If the image is the main flat printed design on the cake top, choose `edible_photo_top`, not `edible_photo_print` and not `printout`.
 
+### EDIBLE 2D LOGO CRAFT TOPPERS
+
+Use `edible_logo_2d` for flat or shallow-relief edible logo/name/brand panels made from gumpaste or fondant craft, not printed photopaper.
+
+This type is for logos or lettering panels that look hand-cut, molded, layered, embossed, or assembled from edible fondant/gumpaste pieces.
+
+Visual cues for `edible_logo_2d`:
+- matte or satin edible surface, not glossy photo paper
+- raised or layered letters/icons
+- thick cut edges or hand-cut shapes
+- logo panel follows the cake curve or sits as edible gumpaste/fondant on the side/top
+- looks like edible craftwork rather than inkjet printing
+
+Do NOT classify these as `printout` unless the surface is clearly glossy paper, photopaper, waferpaper, or inkjet edible print.
+
+Do NOT classify a brand/logo as `cake_messages` unless it is a customer-editable greeting, name, age, or phrase. A decorative brand logo panel stays as a topper.
+
+Examples:
+- matte fondant Yonex logo letters on a side panel -> `edible_logo_2d`
+- layered fondant sports brand mark -> `edible_logo_2d`
+- glossy printed logo cutout on paper -> `printout`
+- edible ink logo printed flat on waferpaper -> `edible_photo_print` or `edible_photo_side` depending placement
+
+Size `edible_logo_2d` by how much visual area the edible logo/panel covers on its tier:
+- `small`: small badge or logo mark, less than 25% of the visible tier width/face
+- `medium`: noticeable logo panel or wordmark, about 25-50% of the visible tier width/face
+- `large`: dominant logo panel or wordmark, more than 50% of the visible tier width/face
+
 ### CANDLES ARE ALWAYS CANDLE TYPE
 
 If an item is a wax birthday candle, number candle, heart candle, spiral candle, taper candle, or any lit candle with wick/flame, classify it as `candle` with material `wax`.
@@ -193,17 +221,33 @@ If the image contains cupcakes (usually a tray, box, or close-up of individual c
 - Classify `cakeThickness` as `"2 in"`.
 - Do NOT reject the image; return `"isRejected": false` under `rejection`.
 
-### Bento vs 1 Tier — Visible Container Rule
+### Bento vs 1 Tier — Cake Board Priority Rule
 
-Classify cakeType as "Bento" ONLY when the cake is visibly inside a bento clamshell box, lunchbox-style container, takeout container, or box with raised walls around the cake.
+Do NOT classify a cake as `Bento` just because it is inside a box.
 
-A flat white square/round cake board, baseboard, cardboard cake pad, plate, tray, or flat surface is NOT a bento box.
+Many regular 1-tier cakes are photographed inside delivery boxes or cake boxes.
+If the cake sits on its own cake board, baseboard, scalloped board, cardboard
+cake pad, gold board, white board, or round/square cake base, classify it by
+the cake itself, usually `1 Tier`, `1 Tier Fondant`, `Square`, or `Rectangle`.
 
-If the cake sits on a cake board/baseboard/pad/plate/tray/flat surface, classify it as "1 Tier" or "1 Tier Fondant", even if the cake is very small, 4 inches, heart-shaped, round, cute, minimalist, or visually similar to common bento cakes.
+A cake on a cake board inside a box is NOT a Bento cake.
 
-Do not use cake size alone to choose "Bento". Use the visible container:
-- raised clamshell/container walls around cake -> "Bento"
-- flat cake board/baseboard/pad/plate/tray/surface -> "1 Tier" or "1 Tier Fondant"
+Classify as `Bento` only when the cake appears to be placed directly inside a
+small bento/clamshell/sugarcane bagasse food container, usually:
+- no separate cake board/baseboard under the cake
+- cake sits directly on paper, liner, or the bottom of the clamshell container
+- small low-profile cake fitted into a takeout-style bento box
+- container is part of the serving/presentation, not just outer packaging
+
+If both a cake board and a box are visible, prioritize the cake board:
+cake board inside box -> NOT Bento.
+
+Examples:
+- round cake on scalloped cake board inside a cake box -> `1 Tier`
+- round cake on white cake board inside a delivery box -> `1 Tier`
+- small cake directly on liner inside sugarcane clamshell container -> `Bento`
+- heart cake on flat cake board inside a box -> `1 Tier`
+- tiny round cake on cake base/pad -> `1 Tier`, not Bento
 
 ### Bento Cupcake Set Classification Rule
 
@@ -766,7 +810,7 @@ Classify as PRINTOUT if ANY of these are true:
 {
   "x": 45,
   "y": 30,
-  "type": "candle|toy|cardstock|edible_photo_top|printout|edible_2d_shapes|edible_flowers|edible_3d_ordinary|edible_3d_complex|figurine|icing_doodle|icing_palette_knife|icing_brush_stroke|icing_splatter|icing_minimalist_spread|meringue_pop|plastic_ball",
+  "type": "candle|toy|cardstock|edible_photo_top|edible_logo_2d|printout|edible_2d_shapes|edible_flowers|edible_3d_ordinary|edible_3d_complex|figurine|icing_doodle|icing_palette_knife|icing_brush_stroke|icing_splatter|icing_minimalist_spread|meringue_pop|plastic_ball",
   "material": "wax|plastic|cardstock|photopaper|waferpaper|edible_fondant",
   "group_id": "descriptive_snake_case_id",
   "classification": "hero",
