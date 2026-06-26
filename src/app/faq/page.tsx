@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { buildMarketingPageMetadata } from '@/lib/utils/metadata'
 import { buildFAQPageSchema } from '@/lib/seo/schema'
+import { PUBLIC_ORDER_FACTS } from '@/lib/seo/publicOrderFacts'
 
 export const metadata = buildMarketingPageMetadata({
     title: 'Frequently Asked Questions',
@@ -14,19 +15,19 @@ const faqs = [
         questions: [
             {
                 q: 'How does Genie.ph pricing work?',
-                a: 'Genie.ph prices custom cakes using AI-powered image analysis that evaluates complexity, size, decorations, and icing style to generate instant quotes from partner bakeries in Cebu. Bento cakes start at ₱350, standard 1-tier cakes from ₱800, and multi-tier cakes from ₱1,500. Upload a photo to the Cake Price Calculator for a free estimate with no commitment required.'
+                a: `${PUBLIC_ORDER_FACTS.pricingSummary} Upload a photo on Genie.ph to get a starting price estimate with no commitment required.`
             },
             {
                 q: 'What payment methods do you accept?',
-                a: 'Genie.ph accepts GCash, Maya (formerly PayMaya), bank transfers (BDO, BPI, Metrobank), and all major credit/debit cards processed securely via Xendit. All transactions are PCI-DSS compliant and encrypted end-to-end. Choose your preferred method at checkout.'
+                a: `${PUBLIC_ORDER_FACTS.paymentSummary} All transactions are processed through secure Xendit-powered checkout.`
             },
             {
                 q: 'Can I get a price estimate before placing an order?',
-                a: 'Yes — upload any cake design photo to the Cake Price Calculator and receive an instant AI-generated price estimate in under 10 seconds. No account or commitment required. After estimating, you can customize the design and compare quotes from multiple bakeries before ordering.'
+                a: 'Yes. Upload any cake design photo on Genie.ph and receive an AI-generated starting price before checkout. After estimating, you can customize the design before ordering.'
             },
             {
                 q: 'Is there a minimum order amount?',
-                a: 'Minimum order amounts vary by merchant. Bento cakes typically start at ₱350 (serves 1–2), standard round cakes from ₱800 (serves 4–6), and multi-tier event cakes from ₱1,500. Each bakery sets its own minimums based on design complexity and ingredients.'
+                a: 'Minimums vary by design and baker. Bento cakes start at ₱499, while larger or more detailed cakes are priced after AI analysis based on size and complexity.'
             },
         ]
     },
@@ -43,7 +44,7 @@ const faqs = [
             },
             {
                 q: 'What cake sizes are available?',
-                a: 'Genie.ph offers bento cakes (4 inches, serves 1–2, from ₱350), round cakes (6–12 inches, serves 4–20+), square cakes, rectangle cakes, and multi-tier cakes (2–3 tiers for weddings and large events). Cupcake sets of 12 pieces start at ₱499. Each baker may have slightly different size offerings.'
+                a: 'Genie.ph offers bento cakes, round cakes, square cakes, rectangle cakes, and multi-tier cakes. Bento cakes start at ₱499, while larger cake pricing depends on size, tier count, and design complexity after AI analysis.'
             },
         ]
     },
@@ -52,11 +53,11 @@ const faqs = [
         questions: [
             {
                 q: 'Where does Genie.ph deliver?',
-                a: 'Genie.ph delivers throughout Metro Cebu: Cebu City, Mandaue City, Lapu-Lapu City (Mactan), Talisay City, and select areas in Liloan, Consolacion, and Minglanilla. Free delivery is available within Cebu City proper. Delivery coverage depends on the specific baker — check the delivery rates page for exact zones and fees.'
+                a: `${PUBLIC_ORDER_FACTS.deliverySummary} Check the delivery rates page for exact zones and fees.`
             },
             {
                 q: 'How long does delivery take?',
-                a: 'Custom cakes require 1–3 days lead time for the baker to craft your design, plus same-day or next-day delivery within Metro Cebu. Order by 3 PM for next-day delivery slots. Rush orders may be available from select merchants for an additional fee — contact the baker directly through the platform.'
+                a: PUBLIC_ORDER_FACTS.leadTimeSummary
             },
             {
                 q: 'Can I pick up my order instead?',
@@ -167,8 +168,8 @@ export default function FAQPage() {
                         <Link href="/cake-price-calculator" className="flex items-center gap-3 p-4 bg-white/70 rounded-xl border border-slate-200 hover:border-purple-300 transition-colors group">
                             <span className="text-2xl">🎂</span>
                             <div>
-                                <p className="font-medium text-slate-800 group-hover:text-purple-600 transition-colors">Cake Price Calculator</p>
-                                <p className="text-sm text-slate-500">Get instant AI pricing</p>
+                                <p className="font-medium text-slate-800 group-hover:text-purple-600 transition-colors">Cake Pricing Guide</p>
+                                <p className="text-sm text-slate-500">Pricing, delivery, and checkout facts</p>
                             </div>
                         </Link>
                         <Link href="/contact" className="flex items-center gap-3 p-4 bg-white/70 rounded-xl border border-slate-200 hover:border-purple-300 transition-colors group">

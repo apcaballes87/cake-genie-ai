@@ -205,9 +205,9 @@ const CategoryClient: React.FC<CategoryClientProps> = ({
                                     <Link href="/customizing" className="font-semibold text-purple-700 hover:text-purple-800">
                                         the AI cake customizer
                                     </Link>
-                                    {' '}or use the{' '}
+                                    {' '}or check the{' '}
                                     <Link href="/cake-price-calculator" className="font-semibold text-purple-700 hover:text-purple-800">
-                                        cake price calculator
+                                        cake pricing guide
                                     </Link>
                                     .
                                 </p>

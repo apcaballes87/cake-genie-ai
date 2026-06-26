@@ -353,7 +353,7 @@ export default async function CategoryPage({ params }: Props) {
                             Looking for the perfect {category.coreNameLower} cake? Genie.ph makes it easy to find and order custom {category.productLabelLower} from the best bakers in Cebu City, Mandaue, Lapu-Lapu, and Talisay. Simply choose a design you love, customize it with our AI-powered tools, and get an instant price. You can also <Link href="/" className="text-purple-600 hover:underline">upload your own {category.coreNameLower} cake image</Link> to get started.
                         </p>
                         <div className="mt-6 flex flex-wrap gap-3">
-                            <Link href="/cake-price-calculator" className="text-sm text-purple-600 hover:underline">Cake Price Calculator</Link>
+                            <Link href="/cake-price-calculator" className="text-sm text-purple-600 hover:underline">Cake Pricing Guide</Link>
                             <span className="text-slate-300">|</span>
                             <Link href="/how-to-order" className="text-sm text-purple-600 hover:underline">How to Order</Link>
                             <span className="text-slate-300">|</span>

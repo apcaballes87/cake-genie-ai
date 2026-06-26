@@ -100,7 +100,7 @@ export default function ComparePage() {
 
                 <nav className="mt-12 pt-8 border-t border-slate-200" aria-label="Related pages">
                     <p className="text-slate-600">
-                        Ready to order? <Link href="/cake-price-calculator" className="text-pink-600 hover:text-pink-700 underline font-medium">Try our AI Cake Price Calculator</Link> to get instant pricing, or <Link href="/shop" className="text-pink-600 hover:text-pink-700 underline font-medium">browse our cake shop</Link> for designs available today.
+                        Ready to order? <Link href="/cake-price-calculator" className="text-pink-600 hover:text-pink-700 underline font-medium">Review our cake pricing guide</Link> for official pricing, delivery, and checkout facts, or <Link href="/shop" className="text-pink-600 hover:text-pink-700 underline font-medium">browse our cake shop</Link> for designs available today.
                     </p>
                 </nav>
             </div>

@@ -225,7 +225,7 @@ export default function ChatGptCakeDesignQuoteClient() {
               Customize a Cake
             </Link>
             <Link href="/cake-price-calculator" className="text-sm font-medium text-slate-600 transition-colors hover:text-purple-700">
-              Cake Price Calculator
+              Pricing Guide
             </Link>
             <Link href="/how-to-order" className="text-sm font-medium text-slate-600 transition-colors hover:text-purple-700">
               How to Order
@@ -469,7 +469,7 @@ export default function ChatGptCakeDesignQuoteClient() {
                     Open customizer
                   </Link>
                   <Link href="/cake-price-calculator" className="rounded-2xl border border-purple-200 bg-white px-5 py-4 text-center text-sm font-semibold text-purple-750 text-purple-700 transition-colors hover:bg-purple-50">
-                    Cake price calculator
+                    Pricing guide
                   </Link>
                   <Link href="/how-to-order" className="rounded-2xl border border-purple-200 bg-white px-5 py-4 text-center text-sm font-semibold text-purple-750 text-purple-700 transition-colors hover:bg-purple-50">
                     How to order

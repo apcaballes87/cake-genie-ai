@@ -14,6 +14,7 @@ import { genieBusinessProfile, buildGenieLocalBusinessSchema } from '@/lib/seo/g
 import { HOMEPAGE_ASSETS } from '@/constants';
 import AnimatedBlobs from '@/components/UI/AnimatedBlobs';
 import { buildFAQPageSchema } from '@/lib/seo/schema';
+import { PUBLIC_ORDER_FACTS } from '@/lib/seo/publicOrderFacts';
 
 // The newsletter popup is gated on a 25s timer or 40% scroll, so it never
 // affects the initial render. Lazy-loading it keeps its bundle (and the auth
@@ -88,7 +89,7 @@ function WebSiteSchema() {
                     },
                     {
                         '@type': 'CreativeWork',
-                        name: 'Cake Price Calculator',
+                        name: 'Cake Pricing and Ordering Guide',
                         url: 'https://genie.ph/cake-price-calculator'
                     },
                     {
@@ -142,19 +143,19 @@ function HomepageFAQSchema() {
     const homepageFaqs = [
         {
             question: 'What is Genie.ph?',
-            answer: 'Genie.ph is the Philippines\' first AI-powered marketplace for custom cakes, founded in 2024 in Cebu City. Genie.ph connects customers with vetted local bakers, provides instant AI pricing from cake photos, and offers a visual customization tool. Genie.ph has served thousands of custom cake orders across Metro Cebu with a 4.9/5 average customer rating.',
+            answer: 'Genie.ph is an AI-powered custom cake marketplace in Cebu. Customers can upload a cake design, review an AI-generated starting price, customize the cake details, and place an order with Metro Cebu delivery or pickup support.',
         },
         {
             question: 'How much do custom cakes cost on Genie.ph?',
-            answer: 'Custom cakes on Genie.ph start at ₱350 for bento cakes, ₱800 for standard 1-tier cakes, and ₱1,500 for multi-tier event cakes. Cupcake sets of 12 pieces start at ₱499. Upload a photo to the Cake Price Calculator for a free instant estimate.',
+            answer: PUBLIC_ORDER_FACTS.pricingSummary,
         },
         {
             question: 'Where does Genie.ph deliver?',
-            answer: 'Genie.ph delivers throughout Metro Cebu including Cebu City, Mandaue City, Lapu-Lapu City (Mactan), Talisay City, and select areas in Liloan, Consolacion, and Minglanilla. Free delivery is available within Cebu City proper.',
+            answer: PUBLIC_ORDER_FACTS.deliverySummary,
         },
         {
             question: 'How do I order a custom cake on Genie.ph?',
-            answer: 'Order a custom cake in 3 steps: 1) Upload a design photo to the Cake Price Calculator for instant AI pricing, 2) Customize colors, flavors, size, and toppers using the visual editor, 3) Place your order with secure payment via GCash, Maya, or credit card. Orders placed by 3 PM qualify for next-day delivery.',
+            answer: `Order a custom cake in 3 steps: 1) upload a design on Genie.ph, 2) customize the cake after the AI-generated starting price appears, 3) place the order with secure online checkout. ${PUBLIC_ORDER_FACTS.paymentSummary} ${PUBLIC_ORDER_FACTS.leadTimeSummary}`,
         },
     ];
 

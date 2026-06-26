@@ -633,10 +633,9 @@ export function DesignSchema({
         // Link to the AI engine that analyzed this design
         subjectOf: [
             {
-                '@type': 'SoftwareApplication',
-                name: 'Genie.ph AI Cake Price Calculator',
+                '@type': 'WebPage',
+                name: 'Genie.ph cake pricing and ordering guide',
                 url: 'https://genie.ph/cake-price-calculator',
-                applicationCategory: 'BusinessApplication'
             },
             { '@type': 'WebPage', name: 'Delivery rates', url: policyUrls.deliveryRates },
             { '@type': 'WebPage', name: 'Return policy', url: policyUrls.returnPolicy },

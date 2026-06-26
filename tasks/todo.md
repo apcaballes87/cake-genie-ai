@@ -1,5 +1,76 @@
 # Tasks
 
+## Canonical Pricing Facts Page Repurpose (2026-06-25)
+
+### Plan
+
+- [x] Add one shared public support-facts source for pricing, delivery, payment, lead-time, and trust/support copy.
+- [x] Repurpose `/cake-price-calculator` into a server-rendered pricing and ordering facts page with matching metadata and visible FAQ/schema.
+- [x] Convert `/how-to-order` and `/payment-options` into server-rendered support pages that reuse the shared facts source.
+- [x] Standardize stale public pricing and service-area copy on the homepage FAQ and other touched support pages.
+- [x] Update key internal links that point to `/cake-price-calculator` so they treat it as the canonical facts page, not a duplicate uploader.
+- [x] Run focused metadata/render verification plus `npm run build`, then record the review.
+
+### Review
+
+- Added [src/lib/seo/publicOrderFacts.ts](/Users/apcaballes/genieph-nextjs/src/lib/seo/publicOrderFacts.ts:1) as the shared support-facts source for the canonical public pricing summary, delivery summary, payment summary, lead-time wording, support fallback, and payment-method group definitions.
+- Repurposed [src/app/cake-price-calculator/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/cake-price-calculator/page.tsx:1) into a server-rendered pricing and ordering facts page. It now explains that the real upload flow lives on `/customizing`, exposes visible support facts in HTML, links to the supporting pages, and emits only breadcrumb plus visible FAQ schema.
+- Replaced the thin wrapper routes at [src/app/how-to-order/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/how-to-order/page.tsx:1) and [src/app/payment-options/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/payment-options/page.tsx:1) with server-rendered support pages that reuse the shared facts source instead of relying on client-only content.
+- Standardized the homepage FAQ schema and FAQ page copy in [src/app/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/page.tsx:1) and [src/app/faq/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/faq/page.tsx:1) so the public pricing story now centers on `₱499` bento starting price plus “larger cakes are priced after AI analysis,” instead of the older `₱350` / `₱800` / `₱1,500` ladder and example ranges.
+- Updated key discovery/support links so `/cake-price-calculator` is treated as a pricing guide rather than a duplicate uploader in [src/app/compare/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/compare/page.tsx:103), [src/app/customizing/category/[keyword]/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/category/[keyword]/page.tsx:356), [src/app/collections/[category]/CategoryClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/collections/[category]/CategoryClient.tsx:209), [src/app/chatgpt-cake-design-quote/ChatGptCakeDesignQuoteClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/chatgpt-cake-design-quote/ChatGptCakeDesignQuoteClient.tsx:227), and [src/app/sitemap-html/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/sitemap-html/page.tsx:67).
+- Also updated the structured-data reference in [src/app/customizing/[slug]/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/[slug]/page.tsx:637) so the design page now points to the pricing-guide web page instead of describing `/cake-price-calculator` as a standalone `SoftwareApplication`.
+- Verification:
+  - `npx vitest run src/app/cake-price-calculator/page.test.tsx src/app/how-to-order/page.test.tsx src/app/payment-options/page.test.tsx src/app/delivery-rates/page.test.tsx src/app/reviews/page.metadata.test.ts --exclude '.claude/**'`
+  - `git diff --check`
+  - `npm run build`
+- Verification result:
+  - Focused Vitest passed: 5 files, 5 tests.
+  - `git diff --check` passed.
+  - `npm run build` completed successfully. The usual non-fatal warnings still appeared for stale `baseline-browser-mapping`, inferred Next workspace root, deprecated `middleware`, and existing Supabase statement timeouts while generating unrelated fallback keyword pages.
+
+## ChatGPT Source Selection SEO/AEO Plan (2026-06-25)
+
+### Plan
+
+- [x] Read the referenced Suganthan article and separate structural takeaways from directional sample-size claims.
+- [x] Inspect Genie.ph's current public SEO/AEO surfaces for crawlable official facts: homepage key facts, delivery rates, price calculator, how-to-order, reviews, trust page, business profile schema, and sitemap discovery.
+- [x] Map the article's mechanics to Genie.ph opportunities without creating thin duplicate pages.
+- [x] Prioritize the smallest high-impact improvements and define verification steps before implementation.
+
+### Review
+
+- Article mechanics that matter for Genie.ph:
+  - ChatGPT can fetch official pages for facts, but only if the facts are readable as plain HTML. JavaScript-only pricing/spec data can cause it to cite third-party pages instead.
+  - For commercial queries, a single user question can fan out into direct `site:` probes for official pages and exact fact checks such as prices, currency symbols, fees, and availability.
+  - Fetched, cited, and mentioned are separate outcomes. Genie.ph can own official facts, but recommendation or legitimacy claims often need third-party/public proof surfaces.
+  - Domain dedupe makes "one strong page per claim" better than many thin near-duplicate pages.
+  - Local results can be very selective, so official service-area, address, delivery, and review signals should be easy to parse.
+- Current Genie.ph strengths found in code:
+  - `src/lib/seo/genieBusinessProfile.ts` centralizes legal name, support channels, service areas, trust links, Organization/WebSite/LocalBusiness schema, and knows-about services.
+  - `src/components/seo/HomepageAeoSections.tsx` already exposes key facts in visible HTML: founded year, 4.9 rating, ₱499 bento starting price, summit award, Metro Cebu coverage, and 3-step ordering.
+  - `src/app/delivery-rates/page.tsx` exposes city-level delivery fees in SSR/plain HTML and pulls from the same helper used by checkout.
+  - `src/app/reviews/page.tsx` has a dedicated reviews URL with schema and server-loaded public reviews.
+  - `src/app/is-genie-ph-a-scam/page.tsx` already answers a high-risk trust query directly and links out to public proof.
+  - `src/app/sitemap.ts` includes the main support/trust/comparison surfaces, including `/is-genie-ph-a-scam`, `/cake-price-calculator`, `/how-to-order`, `/contact`, `/reviews`, and comparison pages.
+- Main gaps/opportunities:
+  - The price calculator route is mostly a client app. It has metadata and SoftwareApplication schema, but it does not appear to expose a crawlable official price table or "starting prices by cake type/size" answer that AI systems can quote.
+  - `/how-to-order` and `/payment-options` are thin server wrappers around client components, so their critical facts may be harder to quote if the rendered content depends heavily on client JavaScript.
+  - The homepage has useful key facts, but AI systems may probe more specific official URLs such as `/pricing`, `/delivery-rates`, `/payment-options`, `/how-to-order`, or `/reviews`. Genie.ph lacks a dedicated crawlable pricing/facts page.
+  - Some facts are split across pages: starting price on homepage, fee table on delivery rates, payment methods on payment options, process on how-to-order, legitimacy on scam/trust page. That is fine for humans, but an AI fact-checker benefits from a compact official facts hub with links to source pages.
+  - Third-party proof exists for trust, but there is no ongoing plan to earn text-based mentions on local Cebu directories, startup/news sites, Reddit/forum answers, or review/listicle pages where ChatGPT may source recommendations from outside Genie.ph.
+- Recommended implementation sequence:
+  - Phase 1: Add an official crawlable "Genie.ph facts and pricing" page or strengthen `/cake-price-calculator` with SSR-visible text tables for starting prices, delivery fee range, service cities, accepted payment methods, turnaround caveats, support contacts, and links to the canonical detail pages. Keep this as one strong fact page, not many cloned pages.
+  - Phase 2: Ensure `/how-to-order` and `/payment-options` expose their key facts server-side in plain HTML, even if the interactive UI remains client-rendered. Add FAQ/Breadcrumb schema only where accurate and policy-safe.
+  - Phase 3: Add/standardize internal links from homepage key facts, delivery rates, reviews, trust page, comparison pages, footer/sitemap HTML, and product/customizer pages to the official facts/pricing page using plain descriptive anchor text.
+  - Phase 4: Create a small "AI answer verification" checklist: test likely prompts in ChatGPT/Perplexity/Google AI Mode, record whether Genie.ph is fetched/cited/mentioned, and inspect whether cited facts match the official pages.
+  - Phase 5: Build third-party citation support for recommendation/trust queries: founder/startup profiles, Cebu/local business directories, customer review platforms, relevant Reddit/community answers where useful, and text-based comparison/listicle mentions. Avoid video-only proof as the primary citation surface.
+- Verification before shipping:
+  - Run focused route tests or snapshot checks for emitted metadata/schema on the changed pages.
+  - Run `npm run build` because these pages are SEO/static-generation surfaces.
+  - Fetch built/live HTML for the changed URLs and confirm the key facts appear in raw HTML, not only after hydration.
+  - Validate sitemap discovery for the new or changed URL.
+  - After deploy, manually run 5-10 representative AI/search prompts and log whether Genie.ph is fetched, cited, or merely mentioned.
+
 ## Customizer CTA And Label Tuning (2026-06-25)
 
 ### Plan
