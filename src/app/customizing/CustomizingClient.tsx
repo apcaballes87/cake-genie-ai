@@ -4306,10 +4306,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                     }
                     onClose={() => {
                         if (!isDraftApplied.current && draftSnapshot) {
-                            onIcingDesignChange(draftSnapshot.icingDesign!);
+                            baseOnIcingDesignChange(draftSnapshot.icingDesign!);
                             // Messages are auto-saved on every edit — do NOT revert them on close.
                             if (activeCustomization !== 'messages') {
-                                onCakeMessageChange(draftSnapshot.cakeMessages);
+                                baseOnCakeMessageChange(draftSnapshot.cakeMessages);
                             }
                             onMainTopperChange(draftSnapshot.mainToppers);
                             onSupportElementChange(draftSnapshot.supportElements);

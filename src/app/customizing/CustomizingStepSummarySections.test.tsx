@@ -267,12 +267,16 @@ describe('CustomizingStepSummarySections', () => {
 
         render(<CustomizingStepSummarySections {...props} />);
 
+        // Open the floating color picker
+        const softIcingBtn = screen.getByRole('button', { name: /Soft Icing/i });
+        fireEvent.click(softIcingBtn);
+
         const advancedToggle = screen.getByRole('button', { name: /Edit Design Details/i });
         const advancedSection = document.getElementById('advanced-customization-steps');
         const icingTypeLabel = screen.getByText('Icing Type');
         const mainLabel = screen.getByText('Main');
 
-        expect(mainLabel.compareDocumentPosition(icingTypeLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(icingTypeLabel.compareDocumentPosition(mainLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         expect(screen.getByTitle('red')).toBeInTheDocument();
         expect(advancedToggle).toHaveAttribute('aria-expanded', 'false');
         expect(advancedSection).toHaveClass('max-h-0', 'opacity-0', 'pointer-events-none');
@@ -290,6 +294,28 @@ describe('CustomizingStepSummarySections', () => {
         expect(advancedScope.getByRole('button', { name: /2 Tier/i })).toBeInTheDocument();
         expect(advancedScope.getByRole('button', { name: /3 Tier/i })).toBeInTheDocument();
         expect(cakeTypeLabel).toBeInTheDocument();
+    });
+
+    it('calls onDisableMask and onUpdateDesign when (fix icing color) button is clicked', () => {
+        const props = buildProps();
+        props.onDisableMask = vi.fn();
+        props.onUpdateDesign = vi.fn();
+
+        render(<CustomizingStepSummarySections {...props} />);
+
+        // Open the floating color picker
+        const softIcingBtn = screen.getByRole('button', { name: /Soft Icing/i });
+        fireEvent.click(softIcingBtn);
+
+        // Click the "Fix Icing Color" button
+        const fixBtn = screen.getByRole('button', { name: /Fix Icing Color/i });
+        fireEvent.click(fixBtn);
+
+        expect(props.onDisableMask).toHaveBeenCalled();
+        expect(props.onUpdateDesign).toHaveBeenCalledWith(
+            expect.stringContaining('Change the dominant icing color of the cake'),
+            expect.objectContaining({ hex: '#f5deb3' })
+        );
     });
 
     it('scrolls the desktop sidebar container to reveal advanced cards when opened', async () => {

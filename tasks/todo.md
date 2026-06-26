@@ -1,5 +1,27 @@
 # Tasks
 
+## Custom Cake Googlebot Reachability Audit (2026-06-26)
+
+### Plan
+
+- [x] Confirm the sitemap routes that expose individual custom cake product URLs to Googlebot.
+- [x] Count current sitemap-eligible custom cake rows and identify quality gates that exclude rows.
+- [x] Compare collection page matching against search matching for a known mismatch theme: `pickleball`.
+- [x] Check whether collection pages expose enough product links/pagination for Googlebot to traverse matched inventory.
+- [x] Record findings, risks, and any scoped fix/backfill recommendation.
+
+### Review
+
+- Production `https://genie.ph/sitemap-index.xml` exposes `sitemap-customized-cakes-0.xml` through `sitemap-customized-cakes-13.xml`, plus the shared-design sitemap. Chunk `13` currently returns an empty `<urlset>`, which is harmless but shows the chunk hint count is a little higher than the final JS-filtered URL count.
+- Live `cakegenie_analysis_cache` currently has `13,248` rows, `13,246` rows with slugs, and `13,206` rows older than the 2-day customizer sitemap age gate.
+- The sitemap server-side database filters leave `13,067` candidates before JavaScript-level exclusions. SQL approximation of the final gates gives about `12,393` indexable rows; the public sitemap chunk count observed from production is about `12,356` product URLs because chunk `0` through `11` each expose `1,000` URLs and chunk `12` exposes `356`.
+- Main sitemap exclusions found: `669` legacy hash-like slugs, `139` tiny or missing measured image dimensions, `29` adult-term matches, and `6` generic title/alt-text matches. No rows failed the basic text-present gate in the SQL check.
+- Individual custom cake URLs are therefore not dependent on collection pages alone. Googlebot can discover most custom cakes directly from the customized-cake sitemap chunks, including recent pickleball product URLs verified in `sitemap-customized-cakes-0.xml`.
+- The collection mismatch is real. The live `pickleball-cake` collection row is published/indexable but still says `item_count = 97`; production metadata and page copy say `Browse 97 pickleball cake designs`.
+- Live search counts are higher: `search_products_count('pickleball') = 131` and `search_products_count('pickleball cake') = 184`. A direct collection-filter approximation finds `125` matching pickleball rows. The gap explains why `/search?q=pickleball...` can show more results than `/collections/pickleball-cake`.
+- The collection page server-renders the first `30` designs from `getDesignsByKeyword(...)`. Additional designs require the client `Load More Designs` button, so collection pages are not the best proof that every product is crawlable. They are topical hubs, while sitemap chunks are the bulk discovery surface.
+- Recommended next fix: refresh/sync `cakegenie_collections.item_count` and sample images from the current collection matching logic, then consider adding crawlable paginated collection URLs or server-rendered next-page links if collection hubs need to expose deep inventory beyond the first 30 without JavaScript interaction.
+
 ## Canonical Pricing Facts Page Repurpose (2026-06-25)
 
 ### Plan
