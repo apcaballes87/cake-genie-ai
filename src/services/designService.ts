@@ -386,16 +386,22 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
     const topColorChanged = newIcing.colors.top !== undefined &&
         newIcing.colors.top.toUpperCase() !== originalIcingColors.top?.toUpperCase();
 
-    if (sideColorChanged && !topColorChanged) {
-        const instruction = `- **Re-hue the side icing shade ONLY** to shades of**${colorName(newIcing.colors.side)}**.`;
-        icingChanges.push(instruction);
-    } else if (topColorChanged && !sideColorChanged) {
-        const instruction = `- **Re-hue the top icing shade ONLY** to shades of**${colorName(newIcing.colors.top)}**.`;
-        icingChanges.push(instruction);
-    } else if (sideColorChanged && topColorChanged) {
-        // Both colors changed, so no preservation needed, but remove "ONLY"
-        icingChanges.push(`- **Re-hue the side icing shade** to shades of **${colorName(newIcing.colors.side)}**.`);
-        icingChanges.push(`- **Re-hue the top icing shade** to shades of**${colorName(newIcing.colors.top)}**.`);
+    // Skip the generic Re-hue instructions if there's a specialized icing recolor instruction
+    const isSpecialIcingRecolor = additionalInstructions.toLowerCase().includes('color shading') ||
+                                  additionalInstructions.toLowerCase().includes('recolor the icing');
+
+    if (!isSpecialIcingRecolor) {
+        if (sideColorChanged && !topColorChanged) {
+            const instruction = `- **Re-hue the side icing shade ONLY** to shades of**${colorName(newIcing.colors.side)}**.`;
+            icingChanges.push(instruction);
+        } else if (topColorChanged && !sideColorChanged) {
+            const instruction = `- **Re-hue the top icing shade ONLY** to shades of**${colorName(newIcing.colors.top)}**.`;
+            icingChanges.push(instruction);
+        } else if (sideColorChanged && topColorChanged) {
+            // Both colors changed, so no preservation needed, but remove "ONLY"
+            icingChanges.push(`- **Re-hue the side icing shade** to shades of **${colorName(newIcing.colors.side)}**.`);
+            icingChanges.push(`- **Re-hue the top icing shade** to shades of**${colorName(newIcing.colors.top)}**.`);
+        }
     }
 
     changes.push(...icingChanges);
