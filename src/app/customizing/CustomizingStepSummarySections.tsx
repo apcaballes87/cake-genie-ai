@@ -296,10 +296,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     const handleFixIcingColor = () => {
         onDisableMask?.();
         const currentColorName = getIcingBucketName(currentColorHex);
-        const instruction = currentColorName
-            ? `Apply color shading AI editing to recolor the icing of the cake to ${currentColorName}.`
-            : `Apply color shading AI editing to recolor the icing of the cake.`;
-        onUpdateDesign?.(instruction, { hex: currentColorHex, name: currentColorName || '' });
+        onUpdateDesign?.(undefined, { hex: currentColorHex, name: currentColorName || '' });
         setIsColorPickerOpen(false);
     };
 

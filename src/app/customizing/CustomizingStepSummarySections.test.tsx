@@ -314,7 +314,7 @@ describe('CustomizingStepSummarySections', () => {
 
         expect(props.onDisableMask).toHaveBeenCalled();
         expect(props.onUpdateDesign).toHaveBeenCalledWith(
-            expect.stringContaining('Apply color shading AI editing to recolor the icing'),
+            undefined,
             expect.objectContaining({ hex: '#f5deb3' })
         );
     });
