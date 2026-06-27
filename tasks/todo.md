@@ -1,5 +1,28 @@
 # Tasks
 
+## Add Edible Lego Brick Support Type (2026-06-27)
+
+### Plan
+
+- [x] Add local schema, pricing enum, and display support for `edible_lego_bricks`.
+- [x] Add fallback prompt guidance so Lego-style edible bricks are not classified as generic `edible_3d_ordinary`.
+- [x] Create new Supabase `ai_prompts` row from the active prompt without overwriting the previous version.
+- [x] Add active pricing rule for edible Lego bricks at 10 per piece.
+- [x] Run focused verification.
+
+### Review
+
+- Added `edible_lego_bricks` as a support element type for small edible fondant/gumpaste Lego-style brick or building-block decorations with visible studs.
+- Created active Supabase prompt version `3.22` from `3.21`; `3.21` remains preserved and inactive.
+- Added pricing rule `185`: `edible_lego_bricks`, category `support_element`, classification `non-gumpaste`, price `10`, quantity rule `per_piece`.
+- Verification:
+  - Supabase active prompt check returned `prompt_id = 31`, version `3.22`, with the `EDIBLE LEGO BRICKS / BUILDING BLOCKS` section present.
+  - Supabase pricing check returned active rule `185` for `edible_lego_bricks` at `10.00` per piece.
+  - `npx vitest run src/services/prompts/analysisPromptRules.test.ts src/lib/ai/utils.test.ts --exclude '.claude/**'` passed with 15 tests.
+  - `git diff --check` passed.
+  - Focused `npx eslint` passed with existing warnings only in touched UI files.
+  - `npm run build` passed; existing non-fatal warnings appeared for stale browser data, inferred Next workspace root, deprecated middleware, and unrelated Supabase statement timeouts during static generation.
+
 ## Add Edible 2D Logo Craft Type (2026-06-26)
 
 ### Plan

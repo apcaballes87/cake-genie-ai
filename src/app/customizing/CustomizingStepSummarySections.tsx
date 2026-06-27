@@ -178,6 +178,7 @@ const supportMaterialLabelMap: Record<SupportElementType, string> = {
     gumpaste_creations: 'Gumpaste Creations',
     marshmallows: 'Marshmallows',
     edible_3d_ordinary: 'Gumpaste (3D Ordinary)',
+    edible_lego_bricks: 'Edible Lego Bricks',
     fresh_flowers: 'Fresh Flowers',
     artificial_flowers: 'Artificial Flowers',
     satin_ribbon: 'Satin/Organza Ribbon',

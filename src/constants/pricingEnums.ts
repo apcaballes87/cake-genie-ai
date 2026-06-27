@@ -78,6 +78,7 @@ export const SUPPORT_ELEMENT_TYPES = [
     'gumpaste_panel',
     'icing_decorations',
     'gumpaste_creations',
+    'edible_lego_bricks',
     'fresh_flowers',
     'artificial_flowers',
     'satin_ribbon',

@@ -81,6 +81,15 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('"type": "candle|toy|cardstock|edible_photo_top|edible_logo_2d|printout');
   });
 
+  it('keeps edible Lego brick classification in the fallback prompt source', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(prompt).toContain('EDIBLE LEGO BRICKS / BUILDING BLOCKS');
+    expect(prompt).toContain('Use `edible_lego_bricks` for small edible fondant/gumpaste toy-brick or building-block decorations with visible studs.');
+    expect(prompt).toContain('Do NOT classify edible Lego-style bricks as generic `edible_3d_ordinary`');
+    expect(prompt).toContain('| `edible_lego_bricks` | edible_fondant | Small edible Lego-style brick or building-block pieces with studs. Count per piece |');
+  });
+
   it('keeps the accepted output skeleton and payment receipt rejection in the fallback prompt source', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
