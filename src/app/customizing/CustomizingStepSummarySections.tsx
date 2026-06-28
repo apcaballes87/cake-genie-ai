@@ -648,29 +648,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     return (
         <div className={containerClassName}>
 
-            {/* Pulsing hint shown while AI icing mask generates silently in background,
-                or a red error banner when the mask generation fails. */}
-            {cakeInfo && !isAnalyzing && !isRejectionError && (() => {
-                const showPulse = isGeneratingMask || maskStatus === 'generating';
-                const showError = maskStatus === 'error';
-                const isVisible = showPulse || showError;
-                if (!isVisible) return null;
-                return (
-                    <p
-                        className={`text-center text-[10px] font-medium tracking-wide transition-opacity duration-700 ${
-                            showError
-                                ? 'text-red-600'
-                                : 'text-purple-600 animate-pulse'
-                        } ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none h-0 overflow-hidden'}`}
-                        aria-live={showError ? 'assertive' : 'polite'}
-                        role={showError ? 'alert' : undefined}
-                    >
-                        {showError
-                            ? '⚠️ Couldn\'t load different icing colors. Tap Recolor Icing to retry.'
-                            : '✨ Loading Different Icing Colors'}
-                    </p>
-                );
-            })()}
+            {/* Pulsing hint for AI icing mask is disabled/hidden since the mask is disabled */}
 
             {cakeInfo && !isAnalyzing && !isRejectionError && !hideStepOne && (
                 <div 

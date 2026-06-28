@@ -131,7 +131,7 @@ describe('CustomizingIcingEditorPanel', () => {
         expect(screen.getByRole('button', { name: 'Body Icing' })).toBeInTheDocument();
     });
 
-    it('shows a pulsing text status below the body icing color palette while the AI mask is generating', () => {
+    it('does not show a pulsing text status for icing edits since the mask is disabled', () => {
         const props = buildProps();
         props.selectedItem = {
             id: 'icing-edit-side',
@@ -143,7 +143,7 @@ describe('CustomizingIcingEditorPanel', () => {
 
         render(<CustomizingIcingEditorPanel {...props} />);
 
-        expect(screen.getByText('ai is editing your icing...')).toBeInTheDocument();
+        expect(screen.queryByText('ai is editing your icing...')).not.toBeInTheDocument();
     });
 
     it('shows the magic glitter animation over the body icing swatches while the AI mask is generating', () => {
@@ -208,7 +208,7 @@ describe('CustomizingIcingEditorPanel', () => {
         expect(firstSwatch).toBeDisabled();
     });
 
-    it('shows a red error banner when the mask lifecycle is in error state (M3)', () => {
+    it('does not show a red error banner when the mask lifecycle is in error state since the mask is disabled', () => {
         const props = buildProps();
         props.selectedItem = {
             id: 'icing-edit-side',
@@ -220,7 +220,7 @@ describe('CustomizingIcingEditorPanel', () => {
 
         render(<CustomizingIcingEditorPanel {...props} />);
 
-        expect(screen.getByText(/Recolor unavailable/i)).toBeInTheDocument();
+        expect(screen.queryByText(/Recolor unavailable/i)).not.toBeInTheDocument();
     });
 
     it('routes the mask toggle through the provided handler (m9)', () => {

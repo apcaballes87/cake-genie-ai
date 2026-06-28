@@ -168,48 +168,21 @@ const IcingToolbar = memo(function IcingToolbar({
                 );
             })}
             </div>
-            {/* Pulsing label shown while the AI icing mask is being generated */}
-            <p
-                className={`text-[10px] font-medium text-purple-600 tracking-wide text-center transition-opacity duration-700 ${
-                    isGeneratingMask ? 'animate-pulse opacity-100' : 'opacity-0 pointer-events-none'
-                }`}
-                aria-live="polite"
-                aria-label="Loading different icing colors"
-            >
-                Loading Different Icing Colors
-            </p>
         </div>
     );
 });
 
 const VisibleStatusMessage = memo(function VisibleStatusMessage({
     isStudioBackgroundEditingPending,
-    isGeneratingMask,
-    maskStatus,
 }: {
     isStudioBackgroundEditingPending: boolean;
-    isGeneratingMask: boolean;
-    maskStatus: 'idle' | 'generating' | 'ready' | 'error' | undefined;
 }) {
-    if (maskStatus === 'error') {
-        return (
-            <div className="mt-2.5 flex items-center justify-center gap-2 text-[9px] font-bold text-red-600 animate-pulse bg-red-50/50 py-1.5 px-3 rounded-lg border border-red-100/60 transition-all duration-300">
-                <AlertCircle className="h-3 w-3" />
-                <span>Recolor unavailable — retrying with AI…</span>
-            </div>
-        );
-    }
-
-    if (!isStudioBackgroundEditingPending && !isGeneratingMask) return null;
-
-    const message = isStudioBackgroundEditingPending
-        ? 'ai is editing your background...'
-        : 'ai is editing your icing...';
+    if (!isStudioBackgroundEditingPending) return null;
 
     return (
         <div className="mt-2.5 flex items-center justify-center gap-2 text-[9px] font-bold text-purple-600 animate-pulse bg-purple-50/50 py-1.5 px-3 rounded-lg border border-purple-100/60 transition-all duration-300">
             <Loader2 className="h-3 w-3 animate-spin" />
-            <span>{message}</span>
+            <span>ai is editing your background...</span>
         </div>
     );
 });
@@ -323,8 +296,6 @@ export const CustomizingIcingEditorPanel = memo(function CustomizingIcingEditorP
                 )}
                 <VisibleStatusMessage
                     isStudioBackgroundEditingPending={isStudioBackgroundEditingPending}
-                    isGeneratingMask={isGeneratingMask}
-                    maskStatus={maskStatus}
                 />
             </div>
         );
