@@ -181,6 +181,7 @@ const supportMaterialLabelMap: Record<SupportElementType, string> = {
     edible_lego_bricks: 'Edible Lego Bricks',
     fresh_flowers: 'Fresh Flowers',
     artificial_flowers: 'Artificial Flowers',
+    thin_fabric_ribbon_bows: 'Thin Fabric Ribbon Bows',
     satin_ribbon: 'Satin/Organza Ribbon',
     edible_lollipops: 'Edible Lollipops',
     printout: 'Printout',

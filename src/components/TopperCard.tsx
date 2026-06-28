@@ -27,7 +27,7 @@ export const supportTypeDisplayMap: Record<SupportElementType, string> = {
     'macarons': 'Macarons', 'meringue': 'Meringue', 'gumpaste_bundle': 'Gumpaste Bundle', 'candy': 'Candy',
     'gumpaste_panel': 'Gumpaste Panel', 'icing_decorations': 'Icing Decorations', 'gumpaste_creations': 'Gumpaste Creations',
     'marshmallows': 'Marshmallows', 'edible_3d_ordinary': 'Gumpaste (3D Ordinary)', 'edible_lego_bricks': 'Edible Lego Bricks', 'fresh_flowers': 'Fresh Flowers', 'artificial_flowers': 'Artificial Flowers',
-    'satin_ribbon': 'Satin/Organza Ribbon', 'edible_lollipops': 'Edible Lollipops', 'printout': 'Printout',
+    'thin_fabric_ribbon_bows': 'Thin Fabric Ribbon Bows', 'satin_ribbon': 'Satin/Organza Ribbon', 'edible_lollipops': 'Edible Lollipops', 'printout': 'Printout',
 };
 export const COLORABLE_ITEM_TYPES: Array<MainTopperType | SupportElementType> = [
     'edible_3d_complex', 'edible_3d_ordinary', 'edible_logo_2d', 'edible_3d_support', 'edible_2d_support', 'edible_flowers', 'icing_doodle',

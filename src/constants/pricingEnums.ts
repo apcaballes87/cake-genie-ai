@@ -81,6 +81,7 @@ export const SUPPORT_ELEMENT_TYPES = [
     'edible_lego_bricks',
     'fresh_flowers',
     'artificial_flowers',
+    'thin_fabric_ribbon_bows',
     'satin_ribbon',
     // Legacy types from database for backward compatibility
     'edible_lollipops',

@@ -461,15 +461,26 @@ Classify as `edible_3d_ordinary` if ALL of these are true:
 - Basic roses without fine detail
 
 
-#### satin_ribbon / organza ribbon (FLAT PRICE FABRIC DECOR):
+#### satin_ribbon / organza ribbon (PAID LARGE FABRIC WRAP):
 
-Classify non-edible fabric wraps, bows, and structured ruffles as `satin_ribbon`.
+Classify only substantial non-edible fabric wraps, large organza wraps, large sheer ruffles, or full/near-full ribbon bands as `satin_ribbon`.
 - Includes organza: sheer, crisp, translucent fabric with a matte to slightly shimmery finish, stiff enough to hold voluminous bows and structured ruffles while letting the cake underneath show through.
-- Includes satin ribbon: smooth, shiny or lightly shimmery polyester fabric used as a side wrap, bow, or ribbon band.
+- Includes satin ribbon when it forms a large side wrap, full/near-full circumference band, or major fabric feature around the cake body.
 - Use material: `non-edible`.
-- Use quantity: `1` for the whole ribbon/bow/wrap set on one cake.
+- Use quantity: `1` for the whole large ribbon/wrap feature on one cake.
+- Do NOT use `satin_ribbon` for thin decorative side bows, small bow knots, dangling ribbon strands, or small ribbon streamers placed around the side of the cake.
 - Do NOT classify thin sheer fabric bows, translucent ruffles, or fabric side wraps as `edible_3d_ordinary`, `icing_decorations`, `gumpaste_panel`, or `edible_2d_support`.
 - Only use `edible_3d_ordinary` for thick fondant/gumpaste bows and ribbons that are clearly edible and clay-like.
+
+#### thin_fabric_ribbon_bows (FREE THIN FABRIC ACCENTS):
+
+Use `thin_fabric_ribbon_bows` for small or thin non-edible satin, organza, or sheer ribbon bow accents that are attached to the cake side or top edge.
+- Includes thin side bows, small bow knots, dangling ribbon tails, hanging ribbon strands, and narrow ribbon streamers.
+- Use when the ribbon is decorative and does NOT wrap around most of the cake body.
+- Use material: `non-edible`.
+- Use quantity: `1` for the whole set of matching thin ribbon bows/streamers on one cake.
+- Do NOT use `satin_ribbon` for these small/thin ribbon accents.
+- Do NOT create both `thin_fabric_ribbon_bows` and `satin_ribbon` for the same ribbon decoration unless the cake clearly has both a large wrap and separate thin bow accents.
 
 #### Cardstock Glitter Toppers:
 
@@ -488,14 +499,14 @@ Classify non-edible fabric wraps, bows, and structured ruffles as `satin_ribbon`
 
 ### FABRIC BOW / RIBBON DEDUPLICATION
 
-If a visible bow is made from thin fabric, satin, organza, or sheer ribbon, classify it as one `satin_ribbon` item with material `non-edible`.
+If a visible bow is made from thin fabric, satin, organza, or sheer ribbon, classify it as one `thin_fabric_ribbon_bows` item with material `non-edible`, unless it is part of a large wrap or near-full cake-body band.
 
 Do NOT also create a separate `edible_3d_ordinary` fondant bow for the same bow.
 
 Only classify a bow as `edible_3d_ordinary` when it is clearly thick fondant/gumpaste: clay-like, matte, molded, edible, and structurally part of the cake decoration.
 
 Do NOT create `satin_ribbon_wrap` unless there is an actual ribbon band wrapping around the cake side.
-A standalone bow on top or side is just one `satin_ribbon` bow item.
+A standalone thin bow on top or side is just one `thin_fabric_ribbon_bows` item.
 ---
 
 ### 🆕 MULTIPLE FIGURE COUNTING (v3.3 - CRITICAL)
@@ -891,7 +902,8 @@ A unique item that has no duplicates should still have its own unique group_id.
 | `plastic_ball_regular` | plastic | Round smooth plastic spheres (gold, silver, colored). Count individually |
 | `fresh_flowers` | non-edible | Real flowers (not counted for pricing) |
 | `artificial_flowers` | non-edible | Silk/cloth flowers (not counted for pricing) |
-| `satin_ribbon` | non-edible | Satin or organza fabric ribbon, bow, side wrap, or structured translucent ruffle. Use quantity 1 for the whole ribbon set. |
+| `thin_fabric_ribbon_bows` | non-edible | Small/thin satin, organza, or sheer fabric bow accents, dangling ribbon tails, and narrow streamers. Free decorative accent. Use quantity 1 for the set. |
+| `satin_ribbon` | non-edible | Large satin or organza fabric wrap, full/near-full side band, or substantial structured translucent ruffle. Paid large fabric feature. Use quantity 1 for the whole wrap. |
 
 ### SUPPORT ELEMENT JSON FORMAT
 

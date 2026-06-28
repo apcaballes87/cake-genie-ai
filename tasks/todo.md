@@ -1,5 +1,29 @@
 # Tasks
 
+## Add Free Thin Fabric Ribbon Bow Type (2026-06-28)
+
+### Plan
+
+- [x] Add local schema, pricing enum, and display support for `thin_fabric_ribbon_bows`.
+- [x] Update fallback prompt guidance so thin side bows/streamers are free and large wraps remain `satin_ribbon`.
+- [x] Create a new Supabase `ai_prompts` row from the active prompt without overwriting the previous version.
+- [x] Add active free pricing rule for thin fabric ribbon bows.
+- [x] Run focused verification.
+
+### Review
+
+- Added `thin_fabric_ribbon_bows` as a support element type for small or thin non-edible satin/organza/sheer bow accents, dangling ribbon tails, and narrow streamers.
+- Kept `satin_ribbon` as the paid large fabric wrap/large organza wrap/full-band type.
+- Created active Supabase prompt version `3.23` from `3.22`; `3.22` remains preserved and inactive.
+- Added pricing rule `186`: `thin_fabric_ribbon_bows`, category `support_element`, classification `support`, price `0`, quantity rule `flat`.
+- Verification:
+  - Supabase active prompt check returned `prompt_id = 32`, version `3.23`, with the `thin_fabric_ribbon_bows` guidance present.
+  - Supabase pricing check returned active rule `186` for `thin_fabric_ribbon_bows` at `0.00`; existing `satin_ribbon` rule `179` remains active at `100.00`.
+  - `npx vitest run src/services/prompts/analysisPromptRules.test.ts src/lib/ai/utils.test.ts --exclude '.claude/**'` passed with 15 tests.
+  - `git diff --check` passed.
+  - Focused `npx eslint` passed with existing warnings only in touched UI files.
+  - `npm run build` passed; existing non-fatal warnings appeared for stale browser data, inferred Next workspace root, and deprecated middleware.
+
 ## Add Edible Lego Brick Support Type (2026-06-27)
 
 ### Plan
