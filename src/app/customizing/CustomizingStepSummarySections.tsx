@@ -808,6 +808,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                                                             : `Change the dominant color theme of the cake to ${color.name}.`;
                                                                         onUpdateDesign?.(instruction, { hex: color.hex, name: color.name });
                                                                     }
+                                                                    setIsColorPickerOpen(false);
                                                                 }}
                                                                 disabled={isSwatchDisabled}
                                                                 className={`group relative flex flex-col items-center gap-1 shrink-0 transition-transform active:scale-95 ${isSwatchDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}

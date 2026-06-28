@@ -407,6 +407,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     const slug = hasNewUpload ? null : routeSlug;
     const supabase = useMemo(() => createClient(), []);
 
+    const [activeCustomization, setActiveCustomization] = useState<string | null>(null);
     const [reviewSummary, setReviewSummary] = useState<{ total: number; averageRating: number } | null>(initialReviewSummary || null);
 
     useEffect(() => {
@@ -1122,8 +1123,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                 icingDesign: resolvedIcingDesign,
             }
         });
+        setActiveCustomization(null);
         scrollToHero();
-    }, [disableMask, icingDesign, handleUpdateDesign, scrollToHero]);
+    }, [disableMask, icingDesign, handleUpdateDesign, setActiveCustomization, scrollToHero]);
 
     // Editor panel mask toggle: mirror the sidebar "Icing" toggle behavior — if the
     // mask is currently active, turning it off reverts to the original image; if
@@ -2985,7 +2987,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     const [showMessagesPanel, setShowMessagesPanel] = useState(false); // Messages panel visibility
     const [wasUpdating, setWasUpdating] = useState(false);
     // --- UI State ---
-    const [activeCustomization, setActiveCustomization] = useState<string | null>(null);
     const [activeTopperSection, setActiveTopperSection] = useState<'main' | 'support' | null>(null);
 
     // Draft state snapshot for Step 2, 3, 4
