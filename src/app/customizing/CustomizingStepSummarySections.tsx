@@ -752,7 +752,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                         </div>
                                         <div className="flex items-center gap-2 px-1 pb-0.5 md:gap-3">
                                             {/* Color toggle switch — ON shows chosen color, OFF shows gray */}
-                                            {onIcingColorRecolor || onDisableMask ? (() => {
+                                            {onDisableMask && onIcingColorRecolor ? (() => {
                                                 const activeColor = icingDesign?.colors?.side || icingDesign?.colors?.top || '#FFFFFF';
                                                 const handleToggle = () => {
                                                      if (onToggleMask) {

@@ -1038,8 +1038,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     // mask once per design, then recolors client-side with no Gemini round trip.
     // Wired alongside useDesignUpdate and shares the same cacheId source.
     // Tracks whether the mask-recolored image is currently displayed (for toggle logic).
-    const maskOverlayActiveRef = useRef(true);
-    const [isMaskOverlayActive, setIsMaskOverlayActive] = useState(true);
+    const maskOverlayActiveRef = useRef(false);
+    const [isMaskOverlayActive, setIsMaskOverlayActive] = useState(false);
 
     const handleIcingMaskRecolored = useCallback((recoloredDataUrl: string, _hex: string) => {
         // Special signal from disableMask — revert to original image
@@ -1097,19 +1097,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     }, [regenerateMask, recolorIcing, icingDesign?.colors?.top, icingDesign?.colors?.side]);
 
     // Toggle wrapper for color swatch clicks:
-    // - If the clicked color is the default icing color analyzed from the original image,
-    //   we toggle the mask OFF and revert to the original image (the toggle switch goes OFF).
-    // - Otherwise, we apply the recolored mask and show the customized image.
+    // We now bypass the mask recolor flow completely and call the AI image edit directly.
     const handleIcingColorToggle = useCallback((hex: string, name: string) => {
-        const defaultColorHex = (analysisResult?.icing_design?.colors?.top || analysisResult?.icing_design?.colors?.side || '#FFFFFF').toLowerCase();
-        const isDefaultColor = hex.toLowerCase() === defaultColorHex;
-
-        if (isDefaultColor) {
-            disableMask();
-        } else {
-            void recolorIcing(hex, name);
-        }
-    }, [analysisResult, recolorIcing, disableMask]);
+        disableMask();
+        void onUpdateDesign(undefined, { hex, name });
+    }, [disableMask, onUpdateDesign]);
 
     // Editor panel mask toggle: mirror the sidebar "Icing" toggle behavior — if the
     // mask is currently active, turning it off reverts to the original image; if
@@ -4040,8 +4032,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                         ) : null,
                                         onIcingColorRecolor: handleIcingColorToggle,
                                         onRegenerateMask: handleRegenerateMask,
-                                        onDisableMask: disableMask,
-                                        isMaskActive: isMaskOverlayActive,
                                     }}
                                 />
                             ) : analysisError ? (
@@ -4122,9 +4112,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                     originalCakeType={analysisResult?.cakeType}
                                     onIcingColorRecolor={handleIcingColorToggle}
                                     onRegenerateMask={handleRegenerateMask}
-                                    onDisableMask={disableMask}
-                                    onToggleMask={handleToggleMask}
-                                    isMaskActive={isMaskOverlayActive}
                                     isGeneratingMask={icingMaskStatus === 'generating'}
                                     isStudioBackgroundEditingPending={isStudioBackgroundEditingPending}
                                     maskStatus={icingMaskStatus}
@@ -4239,12 +4226,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                         />
                                     ) : null,
                                     onIcingColorRecolor: handleIcingColorToggle,
-                                        onRegenerateMask: handleRegenerateMask,
-                                        onDisableMask: disableMask,
-                                        isMaskActive: isMaskOverlayActive,
-                                        isGeneratingMask: icingMaskStatus === 'generating',
-                                        isStudioBackgroundEditingPending: isStudioBackgroundEditingPending,
-                                        maskStatus: icingMaskStatus,
+                                    onRegenerateMask: handleRegenerateMask,
+                                    isGeneratingMask: icingMaskStatus === 'generating',
+                                    isStudioBackgroundEditingPending: isStudioBackgroundEditingPending,
+                                    maskStatus: icingMaskStatus,
                                 }}
                             />
                         </aside>
@@ -4354,8 +4339,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                         isGeneratingMask={icingMaskStatus === 'generating'}
                         isStudioBackgroundEditingPending={isStudioBackgroundEditingPending}
                         maskStatus={icingMaskStatus}
-                        onToggleMask={handleToggleMask}
-                        isMaskActive={isMaskOverlayActive}
                         onRevert={() => {
                             const revertTo = committedStateRef.current?.icingDesign ?? analysisResult?.icing_design;
                             if (revertTo && icingDesign) {
