@@ -686,7 +686,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                             >
                                                 {isSelected && (
                                                     <span 
-                                                        className="w-3.5 h-3.5 rounded-full border border-white shadow-xs shrink-0 mr-1.5"
+                                                        className="w-3.5 h-3.5 rounded-full border border-slate-300 shadow-xs shrink-0 mr-1.5"
                                                         style={{ backgroundColor: currentColorHex }}
                                                     />
                                                 )}
