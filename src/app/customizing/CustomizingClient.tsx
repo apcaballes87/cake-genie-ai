@@ -1033,6 +1033,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         },
     });
 
+    const onUpdateDesign = useCallback((instruction?: string, colorMeta?: { hex: string; name: string }) => {
+        handleUpdateDesign(instruction, { colorMeta });
+        scrollToHero();
+    }, [handleUpdateDesign, scrollToHero]);
+
 
     // Mask-based instant icing recolor (persistent, cross-user). Generates the icing
     // mask once per design, then recolors client-side with no Gemini round trip.
@@ -2653,11 +2658,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         goBack();
     };
     const onOpenReportModal = () => setIsReportModalOpen(true);
-
-    const onUpdateDesign = useCallback((instruction?: string, colorMeta?: { hex: string; name: string }) => {
-        handleUpdateDesign(instruction, { colorMeta });
-        scrollToHero();
-    }, [handleUpdateDesign, scrollToHero]);
 
     const onSave = handleSave;
     const isSaving = false;
