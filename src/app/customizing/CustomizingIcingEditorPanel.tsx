@@ -28,7 +28,7 @@ interface CustomizingIcingEditorPanelProps {
      * The icing design state still updates via onIcingDesignChange to keep the data
      * model (icingDesign.colors.top/side) in sync — this only changes the image.
      */
-    onIcingColorRecolor?: (hex: string, name: string) => void;
+    onIcingColorRecolor?: (hex: string, name: string, nextDesign?: IcingDesignUI) => void;
     /**
      * When true, a loading spinner is shown over the affected icing color group while
      * the one-time mask is generated. All other controls stay enabled and responsive.
@@ -243,7 +243,7 @@ export const CustomizingIcingEditorPanel = memo(function CustomizingIcingEditorP
             onIcingDesignChange(nextDesign);
             // Body / top / side groups drive the mask-based instant recolor.
             if (!isToggle && onIcingColorRecolor) {
-                onIcingColorRecolor(newHex, getIcingBucketName(newHex));
+                onIcingColorRecolor(newHex, getIcingBucketName(newHex), nextDesign);
             }
         };
 

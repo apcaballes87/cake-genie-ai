@@ -1102,11 +1102,28 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     }, [regenerateMask, recolorIcing, icingDesign?.colors?.top, icingDesign?.colors?.side]);
 
     // Toggle wrapper for color swatch clicks:
-    // We now bypass the mask recolor flow completely and call the AI image edit directly.
-    const handleIcingColorToggle = useCallback((hex: string, name: string) => {
+    // We now bypass the mask recolor flow completely and call the AI image edit directly,
+    // passing the nextDesign state override to avoid React stale-state issues.
+    const handleIcingColorToggle = useCallback((hex: string, name: string, nextDesign?: IcingDesignUI) => {
         disableMask();
-        void onUpdateDesign(undefined, { hex, name });
-    }, [disableMask, onUpdateDesign]);
+
+        const resolvedIcingDesign = nextDesign || (icingDesign ? {
+            ...icingDesign,
+            colors: {
+                ...icingDesign.colors,
+                top: hex,
+                side: hex,
+            }
+        } : undefined);
+
+        handleUpdateDesign(undefined, {
+            colorMeta: { hex, name },
+            stateOverrides: {
+                icingDesign: resolvedIcingDesign,
+            }
+        });
+        scrollToHero();
+    }, [disableMask, icingDesign, handleUpdateDesign, scrollToHero]);
 
     // Editor panel mask toggle: mirror the sidebar "Icing" toggle behavior — if the
     // mask is currently active, turning it off reverts to the original image; if

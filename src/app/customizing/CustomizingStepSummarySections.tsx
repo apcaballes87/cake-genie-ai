@@ -60,7 +60,7 @@ interface CustomizingStepSummarySectionsProps {
     originalCakeType?: string | null;
     /** When provided, the main color swatch row uses the mask-based instant recolor
      *  instead of calling onUpdateDesign (Gemini) for icing body color changes. */
-    onIcingColorRecolor?: (hex: string, name: string) => void;
+    onIcingColorRecolor?: (hex: string, name: string, nextDesign?: IcingDesignUI) => void;
     /** When provided, a "Recolor Icing" button is shown at the end of the color swatch row
      *  to let users regenerate the icing mask for better quality. */
     onRegenerateMask?: () => void;
@@ -788,18 +788,20 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                                                 key={color.name}
                                                                 onClick={() => {
                                                                     if (isSwatchDisabled) return;
-                                                                    if (icingDesign && onIcingDesignChange) {
-                                                                        onIcingDesignChange({
+                                                                    let nextDesign: IcingDesignUI | undefined = undefined;
+                                                                    if (icingDesign) {
+                                                                        nextDesign = {
                                                                             ...icingDesign,
                                                                             colors: {
                                                                                 ...icingDesign.colors,
                                                                                 top: color.hex,
                                                                                 side: color.hex,
                                                                             },
-                                                                        });
+                                                                        };
+                                                                        onIcingDesignChange?.(nextDesign);
                                                                     }
                                                                     if (onIcingColorRecolor) {
-                                                                        onIcingColorRecolor(color.hex, color.name);
+                                                                        onIcingColorRecolor(color.hex, color.name, nextDesign);
                                                                     } else {
                                                                         const instruction = currentColorName
                                                                             ? `Change the dominant color of the cake from ${currentColorName} to ${color.name}.`
