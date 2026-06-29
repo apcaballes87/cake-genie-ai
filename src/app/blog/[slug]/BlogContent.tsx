@@ -25,6 +25,50 @@ function normalizeInternalHref(href: string) {
   }
 }
 
+function ensureImageAttribute(attributes: string, name: string, value: string) {
+  const attributePattern = new RegExp(`\\s${name}=`, 'i');
+  if (attributePattern.test(attributes)) {
+    return attributes;
+  }
+
+  return `${attributes} ${name}="${value}"`;
+}
+
+function getImageAttribute(attributes: string, name: string) {
+  const match = attributes.match(new RegExp(`\\s${name}=(["'])(.*?)\\1`, 'i'));
+  return match?.[2] || null;
+}
+
+function getKnownBlogImageDimensions(src: string | null) {
+  if (!src) {
+    return { width: '800', height: '450' };
+  }
+
+  if (src.includes('jolibeeparty2026.jpg')) {
+    return { width: '735', height: '490' };
+  }
+
+  if (src.includes('mcdoparty2026.jpg')) {
+    return { width: '950', height: '633' };
+  }
+
+  return { width: '800', height: '450' };
+}
+
+function normalizeBlogImages(html: string) {
+  return html.replace(/<img\b([^>]*)>/gi, (_, rawAttributes: string) => {
+    let attributes = rawAttributes;
+    const dimensions = getKnownBlogImageDimensions(getImageAttribute(attributes, 'src'));
+
+    attributes = ensureImageAttribute(attributes, 'width', dimensions.width);
+    attributes = ensureImageAttribute(attributes, 'height', dimensions.height);
+    attributes = ensureImageAttribute(attributes, 'loading', 'lazy');
+    attributes = ensureImageAttribute(attributes, 'decoding', 'async');
+
+    return `<img${attributes}>`;
+  });
+}
+
 export function parseMarkdownToHtml(markdown: string): string {
   let html = markdown;
 
@@ -172,10 +216,10 @@ export function parseMarkdownToHtml(markdown: string): string {
   }
 
   // Remove empty paragraphs
-  return result
+  return normalizeBlogImages(result
     .join('\n')
     .replace(/<p><\/p>/g, '')
-    .replace(/<p>\s*<\/p>/g, '');
+    .replace(/<p>\s*<\/p>/g, ''));
 }
 
 export function BlogContent({ content }: BlogContentProps) {

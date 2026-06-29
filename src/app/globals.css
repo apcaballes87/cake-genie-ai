@@ -764,6 +764,13 @@ div.gs-image-box div.gs-image {
    margin-bottom: 0.25rem;
  }
 
+.blog-content img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  background-color: #f8fafc;
+}
+
 /* Price Change Animation */
 @keyframes priceUp {
    from {
