@@ -207,7 +207,7 @@ export default function CreatorsLandingPage() {
                         </div>
 
                         {/* Right Side: Actions & Links */}
-                        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
                             {/* Mobile Search Icon - visible only when NOT scrolled and NOT focused */}
                             {!(isScrolled || isSearchFocused) && (
                                 <button
@@ -221,13 +221,13 @@ export default function CreatorsLandingPage() {
                                     className="md:hidden p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors"
                                     aria-label="Search"
                                 >
-                                    <Search size={24} />
+                                    <Search size={20} />
                                 </button>
                             )}
-                            <Link href="/collections" className="text-sm font-bold text-slate-600 hover:text-purple-650 transition-colors shrink-0">
+                            <Link href="/collections" className="hidden md:inline-block text-sm font-bold text-slate-600 hover:text-purple-650 transition-colors shrink-0">
                                 Browse Cakes
                             </Link>
-                            <Link href="/" className="genie-btn-secondary px-4 py-2 rounded-xl text-xs font-bold shadow-sm shrink-0">
+                            <Link href="/" className="genie-btn-secondary px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs font-bold shadow-sm shrink-0">
                                 Order Now
                             </Link>
                         </div>
