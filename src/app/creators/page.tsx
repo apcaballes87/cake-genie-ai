@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { submitCreatorApplication, type CreatorSubmission } from './actions';
 import { isAppError, getErrorMessage } from '@/lib/errors';
 import { Camera, Gift, Percent, Video } from 'lucide-react';
-import { Footer } from '@/components/Footer';
+import { LandingFooter } from '@/components/landing/LandingFooter';
 
 export default function CreatorsLandingPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -200,8 +200,8 @@ export default function CreatorsLandingPage() {
                                 <li className="flex gap-3">
                                     <div className="mt-0.5 shrink-0 w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-700 font-bold text-sm">3</div>
                                     <div>
-                                        <h4 className="font-semibold text-gray-900">20% Commission</h4>
-                                        <p className="text-sm text-gray-600">Earn 20% commission on cakes sold through your unique promo code. Plus, your audience gets 20% off!</p>
+                                        <h4 className="font-semibold text-gray-900">15% Commission</h4>
+                                        <p className="text-sm text-gray-650">Earn 15% commission on cakes sold through your unique promo code. Plus, your audience gets 10% off!</p>
                                     </div>
                                 </li>
                             </ul>
@@ -389,7 +389,7 @@ export default function CreatorsLandingPage() {
                                     <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Custom Promo Code</h3>
                                     <div className="bg-purple-50/50 p-5 rounded-2xl border border-purple-100">
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Your unique 20% off promo code (automatically generated) *
+                                            Your unique 10% off promo code (automatically generated) *
                                         </label>
                                         <div className="flex gap-2">
                                             <input
@@ -405,8 +405,8 @@ export default function CreatorsLandingPage() {
                                         <div className="mt-4 space-y-2">
                                             <p className="text-sm font-bold text-purple-700">How it works:</p>
                                             <ul className="text-xs text-gray-650 space-y-1.5 list-disc pl-4">
-                                                <li>Your audience gets <strong>20% OFF</strong> when they use your code at checkout.</li>
-                                                <li>You get <strong>20% COMMISSION</strong> for every successful order using your code.</li>
+                                                <li>Your audience gets <strong>10% OFF</strong> when they use your code at checkout.</li>
+                                                <li>You get <strong>15% COMMISSION</strong> for every successful order using your code.</li>
                                                 <li>Share your unique link: <code className="bg-purple-100 px-1.5 py-0.5 rounded text-purple-700 font-mono">genie.ph/YOURCODE</code></li>
                                             </ul>
                                         </div>
@@ -463,7 +463,7 @@ export default function CreatorsLandingPage() {
                     </div>
                 </div>
             </main>
-            <Footer />
+            <LandingFooter />
         </div>
     );
 }
