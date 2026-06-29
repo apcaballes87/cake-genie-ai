@@ -148,14 +148,16 @@ export default function CreatorsLandingPage() {
             </nav>
 
             <main className="flex-grow pb-12">
-                {/* Hero Image */}
-                <div className="w-full relative h-[30vh] sm:h-[40vh] md:h-[50vh] lg:h-[60vh] max-h-[600px] mb-12 overflow-hidden shadow-sm">
-                    <img 
-                        src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/creators-collab-ugc-hero-image.webp" 
-                        alt="Genie.ph Creator Collaboration" 
-                        className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent to-purple-50/20 opacity-30 pointer-events-none" />
+                {/* Hero Image Container (smaller, rounded frame, not full edge-to-edge) */}
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 mb-12">
+                    <div className="relative h-[25vh] sm:h-[35vh] md:h-[40vh] lg:h-[45vh] max-h-[450px] rounded-3xl overflow-hidden shadow-md border border-purple-100/50">
+                        <img 
+                            src="https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/creators-collab-ugc-hero-image.webp" 
+                            alt="Genie.ph Creator Collaboration" 
+                            className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-purple-50/20 opacity-30 pointer-events-none" />
+                    </div>
                 </div>
 
                 {/* Header Section */}
@@ -200,13 +202,6 @@ export default function CreatorsLandingPage() {
                                     <div>
                                         <h4 className="font-semibold text-gray-900">20% Commission</h4>
                                         <p className="text-sm text-gray-600">Earn 20% commission on cakes sold through your unique promo code. Plus, your audience gets 20% off!</p>
-                                    </div>
-                                </li>
-                                <li className="flex gap-3">
-                                    <div className="mt-0.5 shrink-0 w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-700 font-bold text-sm">4</div>
-                                    <div>
-                                        <h4 className="font-semibold text-gray-900">Monthly Cake Giveaway</h4>
-                                        <p className="text-sm text-gray-600">One lucky creator wins a free custom cake of their choice (up to ₱3,000 value) every single month!</p>
                                     </div>
                                 </li>
                             </ul>
