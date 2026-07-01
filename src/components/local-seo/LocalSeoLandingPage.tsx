@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronDown, Clock3, MapPin, ShieldCheck, Sparkles, Star, Truck, Upload, ArrowRight, Cake } from 'lucide-react';
+import { ChevronDown, Clock3, MapPin, ShieldCheck, Sparkles, Truck, Upload, ArrowRight, Cake } from 'lucide-react';
 import { COMMON_ASSETS } from '@/constants';
 import { createClient } from '@/lib/supabase/server';
 import { normalizePublicReviews, REVIEW_SELECT } from '@/lib/reviews';
@@ -12,6 +12,7 @@ import { ReviewCard } from '@/components/ReviewsDisplay';
 import { ProductCard } from '@/components/ProductCard';
 import { formatStartingPrice } from '@/lib/utils/currency';
 import type { LandingPageConfig } from './cebuLandingData';
+import { buildFAQPageSchema } from '@/lib/seo/schema';
 
 const ROOT_PAGE_EYEBROW = 'Best Online Cake Delivery for Rush Orders in Cebu';
 const ROOT_PAGE_HERO_IMAGE =
@@ -26,7 +27,10 @@ type ProductPreview = {
   availability?: string | null;
   image_width?: number | null;
   image_height?: number | null;
-  analysis_json?: any;
+  analysis_json?: {
+    cakeType?: string;
+    [key: string]: unknown;
+  } | null;
 };
 
 async function getPageProducts(query: string): Promise<ProductPreview[]> {
@@ -143,6 +147,7 @@ export async function LocalSeoLandingPage({ config }: { config: LandingPageConfi
   const galleryProducts = products.slice(0, 8);
   const sampleCount = Math.max(galleryProducts.length, 4);
   const pageUrl = `https://genie.ph/${config.slug}`;
+  const faqSchema = buildFAQPageSchema(config.faqs, pageUrl);
 
   const jsonLd = [
     {
@@ -184,6 +189,7 @@ export async function LocalSeoLandingPage({ config }: { config: LandingPageConfi
         { '@type': 'ListItem', position: 2, name: config.h1, item: pageUrl },
       ],
     },
+    ...(faqSchema ? [faqSchema] : []),
   ];
 
   return (
@@ -285,6 +291,22 @@ export async function LocalSeoLandingPage({ config }: { config: LandingPageConfi
                   <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
                     {config.heroBody}
                   </p>
+
+                  <div className="mt-5 rounded-2xl border border-purple-100 bg-white p-5 shadow-sm">
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-purple-600">Answer first</p>
+                    <h2 className="mt-2 text-xl font-extrabold tracking-tight text-slate-900">{config.h1}</h2>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">
+                      {config.heroBody}
+                    </p>
+                    <ul className="mt-4 grid gap-2 text-sm leading-6 text-slate-700 sm:grid-cols-3">
+                      {config.heroHighlights.map((highlight) => (
+                        <li key={`answer-${highlight}`} className="flex gap-2">
+                          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-purple-500" />
+                          <span>{highlight}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
 
                   <div className="mt-5 grid gap-3 sm:grid-cols-3">
                     {config.heroHighlights.map((highlight) => (

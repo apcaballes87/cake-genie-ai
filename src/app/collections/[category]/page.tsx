@@ -5,6 +5,7 @@ import CategoryClient from '@/app/collections/[category]/CategoryClient'
 import { getAI } from '@/lib/ai/client'
 import { generateDynamicCollectionDescription } from '@/utils/designContentUtils'
 import { cache } from 'react'
+import { buildFAQPageSchema } from '@/lib/seo/schema'
 
 export const revalidate = 3600; // ISR: revalidate every hour
 
@@ -171,6 +172,25 @@ function buildItemListName(design: CategoryDesign, readableTitle: string): strin
     return `${normalizedKeyword} in ${normalizeCollectionBaseName(readableTitle)}`;
 }
 
+function buildCollectionFaqItems(readableTitle: string) {
+    const title = readableTitle.toLowerCase();
+
+    return [
+        {
+            question: `Can I customize the colors, message, or size for these ${title} designs?`,
+            answer: `Yes. Each design in this collection can be used as a starting point, then adjusted for size, color palette, message, toppers, and delivery timing inside the Genie.ph customizer.`,
+        },
+        {
+            question: `Do you deliver ${title} orders in Cebu?`,
+            answer: 'Yes. Genie.ph connects you with Cebu bakers and delivery options, so you can compare designs, see pricing, and place an order for delivery or pickup in Metro Cebu.',
+        },
+        {
+            question: `How do I order a ${title} cake faster?`,
+            answer: 'Start with a design that already matches the look you want, keep the edits focused, and check the available delivery timing during customization. Simpler changes usually move faster than fully custom builds.',
+        },
+    ];
+}
+
 const getCachedCollectionDescription = cache(async (category: string, title: string, collection: CollectionRecord | null) => {
     let description = collection?.description || COLLECTION_SEO_FALLBACKS[category]?.description || null;
 
@@ -305,6 +325,7 @@ export default async function CategoryPage({ params }: Props) {
 
     const pageUrl = `https://genie.ph/collections/${canonicalCategory}`;
     const topDesigns = designs.slice(0, 12);
+    const faqSchema = buildFAQPageSchema(buildCollectionFaqItems(readableTitle), pageUrl);
 
     const jsonLd = [
         {
@@ -354,6 +375,7 @@ export default async function CategoryPage({ params }: Props) {
                 { '@type': 'ListItem', position: 3, name: collectionHeading, item: pageUrl },
             ],
         },
+        ...(faqSchema ? [faqSchema] : []),
     ];
 
     return (

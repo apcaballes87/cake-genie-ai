@@ -1,5 +1,76 @@
 # Tasks
 
+## GA4 June 27 Session Spike Diagnosis (2026-06-29)
+
+### Plan
+
+- [x] Verify live GA4 access for `properties/510070439` using the documented service-account path.
+- [x] Compare daily sessions around June 27, 2026 against nearby dates.
+- [x] Break June 27 traffic down by source/medium, landing page, geography, device, and engagement quality.
+- [x] Check key funnel/event behavior to distinguish real buyer activity from low-quality or bot/referral traffic.
+- [x] Summarize the likely cause and recommended follow-up checks.
+
+### Review
+
+- Live GA4 access worked through `GOOGLE_APPLICATION_CREDENTIALS=/Users/apcaballes/ga4-service-account.json` against `properties/510070439`.
+- June 27, 2026 was the local spike: `1,018` sessions and `992` users, versus `737` sessions on June 26 and `585` on June 28.
+- The spike was mostly Direct / none: `710` sessions on June 27, compared with `215` on June 26 and `295` on June 28. Google organic stayed normal/healthy at `262` sessions on June 27 with `67.6%` engagement.
+- The low-quality segment was concentrated in Direct Philippines mobile Safari traffic: `513` PH mobile Safari sessions with `1.36%` engagement and `2.59s` average session duration; Direct iOS mobile Safari overall was `538` sessions with `4.28%` engagement and `3.57s` average session duration.
+- Device/browser quality confirmed the same pattern: Safari had `673` sessions sitewide on June 27 but only `11.1%` engagement, while Chrome had `305` sessions with `61.3%` engagement.
+- Funnel quality did not rise with the session spike. June 27 had only `9` image uploads, `2` add-to-cart events, and `2` cart redirects; Direct traffic contributed only `3` image uploads, `1` add-to-cart, and `1` cart redirect.
+- Likely cause: a short-lived burst of unattributed/Direct iOS Safari mobile traffic, probably social-app/private-browser/link-preview or bot-like traffic being bucketed as Direct, not a real buyer-demand jump. The useful traffic that day remained normal Google organic, led by the Jollibee vs McDonald's blog page.
+- Recommended follow-up: compare Vercel/CDN logs for June 27 by user-agent/IP/ASN around the Direct Safari burst, and consider a GA4 exploration/filter for Direct + iOS Safari + engagement under 10 seconds to keep this segment from distorting growth reads.
+
+## Mobile CLS Audit for Jollibee vs McDonald's Blog (2026-06-29)
+
+### Plan
+
+- [x] Trace the affected GSC URL through the blog route and components.
+- [x] Identify likely mobile layout-shift sources in the rendered article.
+- [x] Implement the smallest durable fix for unstable layout boxes.
+- [x] Verify with focused tests, lint/build checks, and local mobile browser measurement where practical.
+
+### Review
+
+- Root cause found: the affected blog post includes raw HTML `<img>` tags in article content. Those images were rendered without stable `width`/`height` attributes, so mobile layout could shift when the images decoded.
+- Updated [src/app/blog/[slug]/BlogContent.tsx](/Users/apcaballes/genieph-nextjs/src/app/blog/[slug]/BlogContent.tsx:1) to normalize every blog image with dimensions, lazy loading, and async decoding while preserving explicit dimensions when present.
+- Added known intrinsic dimensions for the two party-package images used on `/blog/jollibee-vs-mcdonalds-kids-party-packages-2026`: Jollibee `735x490`, McDonald's `950x633`.
+- Added [src/app/globals.css](/Users/apcaballes/genieph-nextjs/src/app/globals.css:1) blog-image CSS so article images remain block-level, responsive, and visually stable.
+- Added regression coverage in [src/app/blog/[slug]/BlogContent.test.tsx](/Users/apcaballes/genieph-nextjs/src/app/blog/[slug]/BlogContent.test.tsx:1) for raw HTML image normalization, explicit-dimension preservation, and known party-package dimensions.
+- Verification:
+  - `npx vitest run 'src/app/blog/[slug]/BlogContent.test.tsx' --exclude '.claude/**'` passed: 5 tests.
+  - `npx eslint 'src/app/blog/[slug]/BlogContent.tsx' 'src/app/blog/[slug]/BlogContent.test.tsx'` passed with the existing stale Browserslist warning only.
+  - `git diff --check` passed.
+  - `npm run build` passed with existing non-fatal warnings for stale baseline browser data, inferred workspace root, and deprecated `middleware`.
+  - Local production server on port `3003`, mobile viewport `390x844`, confirmed the exact affected URL renders both raw blog images with reserved height matching final rendered height: `356x237` for both article images.
+
+## AIO/GEO Owned Surface Hardening (2026-06-29)
+
+### Plan
+
+- [x] Create a read-only AIO/GEO audit report for retrieval, source preference, and selection tracking.
+- [x] Expand the homepage AEO section with an answer-first Genie.ph facts block.
+- [x] Add FAQ schema and answer-first copy to local SEO landing pages.
+- [x] Add reusable FAQ schema and answer-first copy to `/collections/[category]`.
+- [x] Add blog answer-summary and freshness signals.
+- [x] Update `public/llms.txt` with current AI-agent facts and audit guidance.
+- [x] Run focused tests, `git diff --check`, and `npm run build`.
+
+### Review
+
+- Added [docs/seo/2026-06-29-aio-geo-audit-sprint.md](/Users/apcaballes/genieph-nextjs/docs/seo/2026-06-29-aio-geo-audit-sprint.md:1) as the read-only retrieval, source-preference, selection, external-footprint, and verification tracker.
+- Expanded [src/components/seo/HomepageAeoSections.tsx](/Users/apcaballes/genieph-nextjs/src/components/seo/HomepageAeoSections.tsx:1) with a direct-answer `What is Genie.ph?` block that reuses centralized pricing, delivery, payment, and trust facts.
+- Updated [src/components/local-seo/LocalSeoLandingPage.tsx](/Users/apcaballes/genieph-nextjs/src/components/local-seo/LocalSeoLandingPage.tsx:1) with an answer-first block and FAQ schema generated from each page config.
+- Updated [src/app/collections/[category]/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/collections/[category]/page.tsx:1) and [src/app/collections/[category]/CategoryClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/collections/[category]/CategoryClient.tsx:1) with matching FAQ schema and crawlable answer-first collection copy while leaving `/customizing/category/[keyword]` noindex behavior untouched.
+- Updated [src/app/blog/[slug]/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/blog/[slug]/page.tsx:1) with a reusable answer-summary block, `Last reviewed` display, and modified-time fallback.
+- Refreshed [public/llms.txt](/Users/apcaballes/genieph-nextjs/public/llms.txt:1) with current pricing, priority public pages, AIO audit prompts, and the non-automated community-footprint guardrail.
+- Verification:
+  - `npx vitest run 'src/app/blog/[slug]/BlogContent.test.tsx' 'src/app/customizing/category/[keyword]/page.test.tsx' src/app/page.metadata.test.tsx src/app/sitemap.test.ts --exclude '.claude/**'` passed: 4 files, 8 tests.
+  - Focused `npx eslint` on changed TS/TSX files passed with the existing stale Browserslist warning only.
+  - `git diff --check` passed.
+  - `npm run build` passed. Existing non-fatal warnings appeared for stale baseline browser data, inferred workspace root, deprecated `middleware`, and unrelated Supabase statement timeouts during static generation.
+  - Raw HTML checks against a temporary production server on port `3003` confirmed markers on `/`, `/cake-delivery-cebu`, `/birthday-cake-delivery-cebu-city`, `/collections/bento-cake`, `/blog/custom-cake-cebu-guide-2026`, `/faq`, and `/llms.txt`.
+
 ## Add Free Thin Fabric Ribbon Bow Type (2026-06-28)
 
 ### Plan

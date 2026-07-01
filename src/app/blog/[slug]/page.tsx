@@ -13,6 +13,7 @@ import {
   getBlogDesignShowcaseConfigs,
   splitBlogContentByShowcasePlaceholders,
 } from '@/components/blog/getBlogDesignShowcase';
+import { SUPPORT_PAGE_PATHS } from '@/lib/seo/publicOrderFacts';
 
 export const revalidate = 3600; // Rebuild cached post pages every 1 hour
 
@@ -30,7 +31,24 @@ interface BlogRelatedProduct {
   alt_text?: string | null;
   image_width?: number | null;
   image_height?: number | null;
-  analysis_json?: any;
+  analysis_json?: Record<string, unknown> | null;
+}
+
+function formatBlogDisplayDate(value?: string | null): string | null {
+  if (!value) return null;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
+function getBlogModifiedTime(post: { updated_at?: string | null; date?: string | null }) {
+  return post.updated_at || post.date || null;
 }
 
 export async function generateStaticParams() {
@@ -69,7 +87,7 @@ export async function generateMetadata({
       url: `https://genie.ph/blog/${post.slug}`,
       type: 'article',
       publishedTime: post.date,
-      modifiedTime: post.updated_at,
+      modifiedTime: getBlogModifiedTime(post) || undefined,
       authors: [post.author],
       tags: keywords.length > 0 ? keywords : undefined,
       images: post.image ? [{ url: post.image, width: 1200, height: 630, alt: post.title }] : [],
@@ -143,7 +161,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       <BlogPostingSchema
         headline={post.title}
         datePublished={post.date}
-        dateModified={post.updated_at}
+        dateModified={getBlogModifiedTime(post) || post.date}
         authorName={post.author}
         authorUrl={post.author_url}
         image={post.image}
@@ -173,11 +191,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           <div className="flex items-center gap-2 text-xs text-gray-400 mb-3">
             <Calendar size={14} />
             <time dateTime={post.date}>
-              {new Date(post.date).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
+              {formatBlogDisplayDate(post.date)}
             </time>
             <span className="text-gray-300">|</span>
             <span>{post.author}</span>
@@ -185,6 +199,17 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 leading-tight">
             {post.title}
           </h1>
+          <div className="mt-5 rounded-2xl border border-purple-100 bg-white/90 p-5 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-purple-600">Answer first</p>
+            <p className="mt-2 text-base leading-7 text-slate-700">{post.excerpt}</p>
+            <div className="mt-4 flex flex-wrap gap-3 text-xs font-semibold text-slate-500">
+              <span>Published: {formatBlogDisplayDate(post.date)}</span>
+              <span>Last reviewed: {formatBlogDisplayDate(getBlogModifiedTime(post))}</span>
+              <Link href={SUPPORT_PAGE_PATHS.facts} className="text-purple-700 hover:text-purple-800">
+                Official pricing and ordering facts
+              </Link>
+            </div>
+          </div>
         </header>
 
         {/* Featured Image */}

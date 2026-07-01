@@ -153,6 +153,12 @@ const CategoryClient: React.FC<CategoryClientProps> = ({
                     <p className="mt-3 text-sm text-slate-500">
                         {designCount.toLocaleString()} designs available to browse, customize, and price online.
                     </p>
+                    <div className="mt-5 rounded-xl border border-purple-100 bg-purple-50/70 p-4">
+                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-purple-600">Answer first</p>
+                        <p className="mt-2 text-sm leading-6 text-slate-700">
+                            This is a crawlable Genie.ph collection for {heading.toLowerCase()} in Cebu, with {designCount.toLocaleString()} real design options that buyers can open, customize, and price before ordering from Cebu bakers.
+                        </p>
+                    </div>
                     {tagHighlights.length > 0 && (
                         <p className="mt-2 text-sm text-slate-500">
                             Popular themes: {tagHighlights.join(', ')}.
