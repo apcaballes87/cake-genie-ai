@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization'
 import { showSuccess, showError, showLoading, showStatus } from '@/lib/utils/toast'
 import { HybridAnalysisResult, CacheSEOMetadata } from '@/types'
-import { findSimilarAnalysisByHash, cacheAnalysisResult } from '@/services/supabaseService'
+import { findSimilarAnalysisByHash, cacheAnalysisResult, prepareStudioEditCacheRow } from '@/services/supabaseService'
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils'
 import { COMMON_ASSETS } from '@/constants'
 import { generateCakeAnalysisSlug } from '@/lib/utils/urlHelpers'
@@ -537,9 +537,31 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
 
 
             try {
+                const earlyStudioRowPromise =
+                    pHash && fingerprint
+                        ? prepareStudioEditCacheRow(pHash, {
+                            fingerprintPipeline: fingerprint.pipeline,
+                            originalImageUrl: uploadedImageUrl || null,
+                        }).then(preparedRow => {
+                            if (preparedRow) {
+                                setCurrentCacheId(preparedRow.id ?? null);
+                                setCurrentPHash(preparedRow.storedPHash);
+                            }
+                            return preparedRow;
+                        })
+                        : Promise.resolve(null);
+
                 const parallelStudioTriggerPromise =
                     pHash
-                        ? triggerStudioEditFromUpload(pHash, compressedImageData)
+                        ? earlyStudioRowPromise
+                            .catch(() => null)
+                            .then(preparedRow => {
+                                if (preparedRow?.studioTriggerHandled || preparedRow?.shouldTriggerStudioEdit === false) {
+                                    return true;
+                                }
+
+                                return triggerStudioEditFromUpload(preparedRow?.storedPHash || pHash, compressedImageData);
+                            })
                         : null;
 
                 // PHASE 1: Fast feature-only analysis with v3.2 prompt (coordinates all 0,0)
@@ -680,7 +702,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     setCurrentSlugState(generatedSlug);
                 }
 
-                const studioTriggerStarted = parallelStudioTriggerPromise
+                const studioTriggerHandled = parallelStudioTriggerPromise
                     ? await parallelStudioTriggerPromise
                     : false;
 
@@ -688,7 +710,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     pHash && fingerprint
                         ? cacheAnalysisResult(pHash, fastResult, uploadedImageUrl, finalImageBlobToCache, {
                             fingerprintPipeline: fingerprint.pipeline,
-                            triggerStudioEdit: !studioTriggerStarted,
+                            triggerStudioEdit: !studioTriggerHandled,
                         })
                         : null;
 

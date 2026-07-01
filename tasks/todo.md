@@ -1,5 +1,30 @@
 # Tasks
 
+## Parallel Customizer Studio Edit Start (2026-07-01)
+
+### Plan
+
+- [x] Record the desired upload timing: after pHash, start AI cake analysis and studio image edit as sibling work.
+- [x] Add an early studio-processing cache insert-ignore flow that does not require completed analysis fields.
+- [x] Make cache-hit lookups ignore placeholder rows whose `analysis_json` is not ready.
+- [x] Wire fresh `/customizing` uploads to prepare the studio row and trigger the studio edit before awaiting cake analysis.
+- [x] Add focused regression tests for ordering and placeholder behavior.
+- [x] Run focused verification and document results.
+
+### Review
+
+- Reworked `prepareStudioEditCacheRow(...)` in [src/services/supabaseService.ts](/Users/apcaballes/genieph-nextjs/src/services/supabaseService.ts:1) so fresh uploads insert the placeholder row with `ignoreDuplicates: true`, fetch the row afterward, and only run a narrow status/update retry when Studio should start.
+- Live Supabase schema check confirmed `cakegenie_analysis_cache.analysis_json` is `NOT NULL`, so the early row writes a small internal `__studio_edit_placeholder` marker instead of `null`.
+- The prepare helper never rewrites completed analysis fields after the insert attempt: no `analysis_json`, `price`, `keywords`, slug, SEO fields, or availability are touched by the retry update.
+- Added the Studio trigger policy for new placeholders, `not_started`, `failed`, missing-image completed rows, and `processing` rows older than 15 minutes, while suppressing duplicates for completed-with-image and active-processing rows.
+- Updated cache-hit lookups, including `getAnalysisByExactHash(...)`, to ignore placeholder rows so an in-flight studio job cannot be reused as a completed cake analysis.
+- Updated [src/contexts/ImageContext.tsx](/Users/apcaballes/genieph-nextjs/src/contexts/ImageContext.tsx:1) so the early studio row preparation and `/api/ai/trigger-studio-edit` chain starts before awaiting `/api/ai/analyze`, and `cacheAnalysisResult(...)` only schedules the delayed trigger if the early Studio trigger failed.
+- Added regression coverage proving the studio trigger fires while cake analysis is still unresolved, completed analysis rows are not overwritten, trigger retries/suppression follow policy, exact-hash placeholders return `null`, and ImageContext suppresses/permits the delayed trigger correctly.
+- Verification:
+  - `npx vitest run src/contexts/ImageContext.test.tsx src/services/supabaseService.cacheAnalysisResult.test.ts src/services/supabaseService.findSimilarAnalysisByHash.test.ts src/app/api/ai/trigger-studio-edit/route.test.ts --exclude '.claude/**'` passed: 4 files, 33 tests.
+  - `git diff --check` passed.
+  - `npm run build` passed with existing non-fatal warnings for stale browser data, inferred workspace root, and deprecated `middleware`.
+
 ## GA4 June 27 Session Spike Diagnosis (2026-06-29)
 
 ### Plan

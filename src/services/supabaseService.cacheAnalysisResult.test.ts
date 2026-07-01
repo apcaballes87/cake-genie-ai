@@ -5,10 +5,13 @@ const upsertMock = vi.fn();
 const updateMock = vi.fn();
 const selectAfterUpsertMock = vi.fn();
 const singleAfterUpsertMock = vi.fn();
+const maybeSingleAfterUpsertMock = vi.fn();
 const selectFromAnalysisCacheMock = vi.fn();
 const eqAfterAnalysisCacheSelectMock = vi.fn();
 const singleAfterAnalysisCacheSelectMock = vi.fn();
 const eqAfterUpdateMock = vi.fn();
+const selectAfterUpdateMock = vi.fn();
+const maybeSingleAfterUpdateMock = vi.fn();
 const maybeSingleMock = vi.fn();
 const fromMock = vi.fn();
 const rpcMock = vi.fn();
@@ -35,6 +38,7 @@ productSizesQuery.maybeSingle = maybeSingleMock;
 const analysisCacheUpsertQuery = {
   select: selectAfterUpsertMock,
   single: singleAfterUpsertMock,
+  maybeSingle: maybeSingleAfterUpsertMock,
 };
 
 const analysisCacheQuery = {
@@ -47,6 +51,14 @@ const analysisCacheSelectQuery = {
   eq: eqAfterAnalysisCacheSelectMock,
   single: singleAfterAnalysisCacheSelectMock,
   maybeSingle: maybeSingleMock,
+};
+
+const analysisCacheUpdateSelectQuery = {
+  maybeSingle: maybeSingleAfterUpdateMock,
+};
+
+const analysisCacheUpdateEqQuery = {
+  select: selectAfterUpdateMock,
 };
 
 const analysisCacheUpdateQuery = {
@@ -106,12 +118,15 @@ describe('cacheAnalysisResult', () => {
       data: { publicUrl: 'https://example.com/uploaded.webp' },
     });
     singleAfterUpsertMock.mockReset().mockResolvedValue({ data: { id: 'cache-row-id' }, error: null });
+    maybeSingleAfterUpsertMock.mockReset().mockResolvedValue({ data: { id: 'cache-row-id' }, error: null });
     selectAfterUpsertMock.mockReset().mockReturnValue(analysisCacheUpsertQuery);
     upsertMock.mockReset().mockReturnValue(analysisCacheUpsertQuery);
     singleAfterAnalysisCacheSelectMock.mockReset().mockResolvedValue({ data: { id: 'cache-row-id' }, error: null });
     eqAfterAnalysisCacheSelectMock.mockReset().mockReturnValue(analysisCacheSelectQuery);
     selectFromAnalysisCacheMock.mockReset().mockReturnValue(analysisCacheSelectQuery);
-    eqAfterUpdateMock.mockReset().mockResolvedValue({ error: null });
+    selectAfterUpdateMock.mockReset().mockReturnValue(analysisCacheUpdateSelectQuery);
+    maybeSingleAfterUpdateMock.mockReset().mockResolvedValue({ data: { id: 'cache-row-id' }, error: null });
+    eqAfterUpdateMock.mockReset().mockReturnValue(analysisCacheUpdateEqQuery);
     updateMock.mockReset().mockReturnValue(analysisCacheUpdateQuery);
     maybeSingleMock.mockReset().mockResolvedValue({ data: { price: 999 }, error: null });
     rpcMock.mockReset().mockResolvedValue({ data: [], error: null });
@@ -206,6 +221,228 @@ describe('cacheAnalysisResult', () => {
         onConflict: 'p_hash',
       })
     );
+  });
+
+  it('prepares a new studio-processing cache row before full analysis is available', async () => {
+    const { prepareStudioEditCacheRow } = await import('./supabaseService');
+    maybeSingleAfterUpsertMock.mockResolvedValue({
+      data: { id: 'new-cache-row-id' },
+      error: null,
+    });
+    maybeSingleMock.mockResolvedValue({
+      data: {
+        id: 'new-cache-row-id',
+        analysis_json: {
+          __studio_edit_placeholder: true,
+          status: 'studio_processing',
+        },
+        studio_edit_status: 'processing',
+        studio_edited_image_url: null,
+        studio_edit_started_at: new Date().toISOString(),
+      },
+      error: null,
+    });
+    maybeSingleAfterUpdateMock.mockResolvedValue({
+      data: { id: 'new-cache-row-id' },
+      error: null,
+    });
+
+    const result = await prepareStudioEditCacheRow('deadc0de1234beef', {
+      client: mockClient as never,
+      fingerprintPipeline: 'v2-test-pipeline',
+      originalImageUrl: 'https://example.com/uploaded-source.webp',
+    });
+
+    expect(result).toEqual({
+      id: 'new-cache-row-id',
+      storedPHash: 'deadc0de1234beef',
+      shouldTriggerStudioEdit: true,
+      studioTriggerHandled: false,
+    });
+    expect(upsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        p_hash: 'deadc0de1234beef',
+        analysis_json: expect.objectContaining({
+          __studio_edit_placeholder: true,
+          status: 'studio_processing',
+        }),
+        fingerprint_pipeline: 'v2-test-pipeline',
+        fingerprint_status: 'ready',
+        original_image_url: 'https://example.com/uploaded-source.webp',
+        studio_edit_status: 'processing',
+        studio_edit_error: null,
+        studio_edit_started_at: expect.any(String),
+      }),
+      expect.objectContaining({
+        onConflict: 'p_hash',
+        ignoreDuplicates: true,
+      })
+    );
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fingerprint_pipeline: 'v2-test-pipeline',
+        fingerprint_status: 'ready',
+        original_image_url: 'https://example.com/uploaded-source.webp',
+        studio_edit_status: 'processing',
+        studio_edit_error: null,
+        studio_edit_started_at: expect.any(String),
+      })
+    );
+
+    const [[updatePayload]] = updateMock.mock.calls;
+    expect(updatePayload).not.toHaveProperty('analysis_json');
+    expect(updatePayload).not.toHaveProperty('price');
+    expect(updatePayload).not.toHaveProperty('keywords');
+    expect(updatePayload).not.toHaveProperty('slug');
+    expect(updatePayload).not.toHaveProperty('seo_title');
+    expect(updatePayload).not.toHaveProperty('seo_description');
+    expect(updatePayload).not.toHaveProperty('availability');
+  });
+
+  it('does not overwrite an existing completed analysis row while preparing Studio', async () => {
+    const { prepareStudioEditCacheRow } = await import('./supabaseService');
+    maybeSingleAfterUpsertMock.mockResolvedValue({ data: null, error: null });
+    maybeSingleMock.mockResolvedValue({
+      data: {
+        id: 'completed-cache-row-id',
+        analysis_json: {
+          cakeType: 'Bento',
+          keyword: 'real completed analysis',
+        },
+        studio_edit_status: 'completed',
+        studio_edited_image_url: 'https://example.com/studio.webp',
+        studio_edit_started_at: '2026-07-01T00:00:00.000Z',
+      },
+      error: null,
+    });
+
+    const result = await prepareStudioEditCacheRow('deadc0de1234beef', {
+      client: mockClient as never,
+      fingerprintPipeline: 'v2-test-pipeline',
+      originalImageUrl: 'https://example.com/uploaded-source.webp',
+    });
+
+    expect(result).toEqual({
+      id: 'completed-cache-row-id',
+      storedPHash: 'deadc0de1234beef',
+      shouldTriggerStudioEdit: false,
+      studioTriggerHandled: true,
+    });
+    expect(upsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        analysis_json: expect.objectContaining({
+          __studio_edit_placeholder: true,
+        }),
+      }),
+      expect.objectContaining({
+        onConflict: 'p_hash',
+        ignoreDuplicates: true,
+      })
+    );
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      label: 'completed row with a studio image',
+      row: {
+        studio_edit_status: 'completed',
+        studio_edited_image_url: 'https://example.com/studio.webp',
+        studio_edit_started_at: '2026-07-01T00:00:00.000Z',
+      },
+      shouldTriggerStudioEdit: false,
+    },
+    {
+      label: 'active processing row',
+      row: {
+        studio_edit_status: 'processing',
+        studio_edited_image_url: null,
+        studio_edit_started_at: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+      },
+      shouldTriggerStudioEdit: false,
+    },
+    {
+      label: 'failed row',
+      row: {
+        studio_edit_status: 'failed',
+        studio_edited_image_url: null,
+        studio_edit_started_at: '2026-07-01T00:00:00.000Z',
+      },
+      shouldTriggerStudioEdit: true,
+    },
+    {
+      label: 'completed row missing its studio image',
+      row: {
+        studio_edit_status: 'completed',
+        studio_edited_image_url: null,
+        studio_edit_started_at: '2026-07-01T00:00:00.000Z',
+      },
+      shouldTriggerStudioEdit: true,
+    },
+    {
+      label: 'stale processing row',
+      row: {
+        studio_edit_status: 'processing',
+        studio_edited_image_url: null,
+        studio_edit_started_at: new Date(Date.now() - 16 * 60 * 1000).toISOString(),
+      },
+      shouldTriggerStudioEdit: true,
+    },
+  ])('applies Studio retry policy for $label', async ({ row, shouldTriggerStudioEdit }) => {
+    const { prepareStudioEditCacheRow } = await import('./supabaseService');
+    maybeSingleAfterUpsertMock.mockResolvedValue({ data: null, error: null });
+    maybeSingleMock.mockResolvedValue({
+      data: {
+        id: 'existing-cache-row-id',
+        analysis_json: {
+          cakeType: 'Bento',
+          keyword: 'existing analysis',
+        },
+        ...row,
+      },
+      error: null,
+    });
+    maybeSingleAfterUpdateMock.mockResolvedValue({
+      data: { id: 'existing-cache-row-id' },
+      error: null,
+    });
+
+    const result = await prepareStudioEditCacheRow('deadc0de1234beef', {
+      client: mockClient as never,
+      fingerprintPipeline: 'v2-test-pipeline',
+      originalImageUrl: 'https://example.com/uploaded-source.webp',
+    });
+
+    expect(result).toEqual({
+      id: 'existing-cache-row-id',
+      storedPHash: 'deadc0de1234beef',
+      shouldTriggerStudioEdit,
+      studioTriggerHandled: !shouldTriggerStudioEdit,
+    });
+    if (shouldTriggerStudioEdit) {
+      expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({
+        studio_edit_status: 'processing',
+        studio_edit_error: null,
+        studio_edit_started_at: expect.any(String),
+      }));
+    } else {
+      expect(updateMock).not.toHaveBeenCalled();
+    }
+  });
+
+  it('does not return placeholder rows from getAnalysisByExactHash', async () => {
+    const { getAnalysisByExactHash } = await import('./supabaseService');
+    singleAfterAnalysisCacheSelectMock.mockResolvedValue({
+      data: {
+        analysis_json: {
+          __studio_edit_placeholder: true,
+          status: 'studio_processing',
+        },
+      },
+      error: null,
+    });
+
+    await expect(getAnalysisByExactHash('deadc0de1234beef')).resolves.toBeNull();
   });
 
   it('reuses an existing one-bit canonical hash before upsert', async () => {

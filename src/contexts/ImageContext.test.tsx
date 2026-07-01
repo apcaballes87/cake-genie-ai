@@ -13,6 +13,7 @@ const {
   compressImageMock,
   findSimilarAnalysisByHashMock,
   cacheAnalysisResultMock,
+  prepareStudioEditCacheRowMock,
   generateServerImageFingerprintMock,
   toFingerprintLookupMock,
   showErrorMock,
@@ -25,6 +26,7 @@ const {
   compressImageMock: vi.fn(),
   findSimilarAnalysisByHashMock: vi.fn(),
   cacheAnalysisResultMock: vi.fn(),
+  prepareStudioEditCacheRowMock: vi.fn(),
   generateServerImageFingerprintMock: vi.fn(),
   toFingerprintLookupMock: vi.fn(),
   showErrorMock: vi.fn(),
@@ -70,6 +72,7 @@ vi.mock('@/lib/utils/toast', () => ({
 vi.mock('@/services/supabaseService', () => ({
   findSimilarAnalysisByHash: findSimilarAnalysisByHashMock,
   cacheAnalysisResult: cacheAnalysisResultMock,
+  prepareStudioEditCacheRow: prepareStudioEditCacheRowMock,
 }));
 
 vi.mock('@/lib/utils/analysisUtils', () => ({
@@ -132,7 +135,13 @@ describe('ImageContext', () => {
       support_elements: [],
       cake_messages: [],
     });
-    triggerStudioEditFromUploadMock.mockResolvedValue(false);
+    triggerStudioEditFromUploadMock.mockResolvedValue(true);
+    prepareStudioEditCacheRowMock.mockResolvedValue({
+      id: 'early-cache-row-123',
+      storedPHash: 'abc123def4567890',
+      shouldTriggerStudioEdit: true,
+      studioTriggerHandled: false,
+    });
     cacheAnalysisResultMock.mockResolvedValue({
       id: 'cache-row-123',
       storedPHash: 'abc123def4567890',
@@ -141,6 +150,151 @@ describe('ImageContext', () => {
       price: 999,
       original_image_url: 'https://example.com/original.webp',
     });
+  });
+
+  it('starts the studio edit trigger while cake analysis is still running', async () => {
+    const onSuccess = vi.fn();
+    const onError = vi.fn();
+    const { result } = renderHook(() => useImageManagement(), { wrapper });
+    let resolveAnalysis: (value: unknown) => void = () => { /* replaced below */ };
+
+    analyzeCakeFeaturesOnlyMock.mockReturnValue(new Promise(resolve => {
+      resolveAnalysis = resolve;
+    }));
+    triggerStudioEditFromUploadMock.mockResolvedValue(true);
+
+    let uploadPromise: Promise<void> = Promise.resolve();
+    await act(async () => {
+      uploadPromise = result.current.handleImageUpload(
+        new File(['image-bytes'], 'cake.png', { type: 'image/png' }),
+        onSuccess,
+        onError
+      );
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(prepareStudioEditCacheRowMock).toHaveBeenCalledWith('abc123def4567890', {
+        fingerprintPipeline: 'v2-test-pipeline',
+        originalImageUrl: null,
+      });
+      expect(triggerStudioEditFromUploadMock).toHaveBeenCalledWith(
+        'abc123def4567890',
+        expect.objectContaining({
+          data: 'uploaded-base64',
+          mimeType: 'image/png',
+        })
+      );
+    });
+
+    expect(onSuccess).not.toHaveBeenCalled();
+
+    resolveAnalysis({
+      cakeType: 'Bento',
+      cakeThickness: '4 in',
+      keyword: 'purple cake',
+      icing_design: {
+        base: 'soft_icing',
+        colors: { side: '#FFFFFF', top: '#FFFFFF' },
+      },
+      main_toppers: [],
+      support_elements: [],
+      cake_messages: [],
+    });
+
+    await act(async () => {
+      await uploadPromise;
+    });
+
+    expect(onSuccess).toHaveBeenCalledWith(expect.objectContaining({
+      keyword: 'purple cake',
+    }));
+    expect(cacheAnalysisResultMock).toHaveBeenCalledWith(
+      'abc123def4567890',
+      expect.objectContaining({ keyword: 'purple cake' }),
+      undefined,
+      expect.any(Blob),
+      expect.objectContaining({
+        fingerprintPipeline: 'v2-test-pipeline',
+        triggerStudioEdit: false,
+      })
+    );
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('does not schedule a delayed cache-write studio trigger when prepare already handled Studio', async () => {
+    const onSuccess = vi.fn();
+    const onError = vi.fn();
+    const { result } = renderHook(() => useImageManagement(), { wrapper });
+
+    prepareStudioEditCacheRowMock.mockResolvedValue({
+      id: 'already-handled-cache-row',
+      storedPHash: 'abc123def4567890',
+      shouldTriggerStudioEdit: false,
+      studioTriggerHandled: true,
+    });
+
+    await act(async () => {
+      await result.current.handleImageUpload(
+        new File(['image-bytes'], 'cake.png', { type: 'image/png' }),
+        onSuccess,
+        onError
+      );
+    });
+
+    expect(triggerStudioEditFromUploadMock).not.toHaveBeenCalled();
+    expect(cacheAnalysisResultMock).toHaveBeenCalledWith(
+      'abc123def4567890',
+      expect.objectContaining({ keyword: 'purple cake' }),
+      undefined,
+      expect.any(Blob),
+      expect.objectContaining({
+        fingerprintPipeline: 'v2-test-pipeline',
+        triggerStudioEdit: false,
+      })
+    );
+    expect(onSuccess).toHaveBeenCalledWith(expect.objectContaining({
+      keyword: 'purple cake',
+    }));
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('allows the cache-write studio trigger only when the early upload trigger fails', async () => {
+    const onSuccess = vi.fn();
+    const onError = vi.fn();
+    const { result } = renderHook(() => useImageManagement(), { wrapper });
+
+    triggerStudioEditFromUploadMock.mockResolvedValue(false);
+
+    await act(async () => {
+      await result.current.handleImageUpload(
+        new File(['image-bytes'], 'cake.png', { type: 'image/png' }),
+        onSuccess,
+        onError
+      );
+    });
+
+    expect(triggerStudioEditFromUploadMock).toHaveBeenCalledWith(
+      'abc123def4567890',
+      expect.objectContaining({
+        data: 'uploaded-base64',
+        mimeType: 'image/png',
+      })
+    );
+    expect(cacheAnalysisResultMock).toHaveBeenCalledWith(
+      'abc123def4567890',
+      expect.objectContaining({ keyword: 'purple cake' }),
+      undefined,
+      expect.any(Blob),
+      expect.objectContaining({
+        fingerprintPipeline: 'v2-test-pipeline',
+        triggerStudioEdit: true,
+      })
+    );
+    expect(onSuccess).toHaveBeenCalledWith(expect.objectContaining({
+      keyword: 'purple cake',
+    }));
+    expect(onError).not.toHaveBeenCalled();
   });
 
   it('stores the live cache row id after a fresh upload cache write resolves', async () => {

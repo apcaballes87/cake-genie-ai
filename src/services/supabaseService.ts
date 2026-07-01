@@ -390,6 +390,23 @@ function getHexHashHammingDistance(left: string, right: string): number | null {
 }
 
 const WRITE_TIME_DUPLICATE_DISTANCE_THRESHOLD = 1;
+const STUDIO_PLACEHOLDER_ANALYSIS_MARKER = '__studio_edit_placeholder';
+const STUDIO_PROCESSING_STALE_MS = 15 * 60 * 1000;
+
+interface StudioEditPrepareRow {
+  id?: string | null;
+  analysis_json?: unknown;
+  studio_edit_status?: string | null;
+  studio_edited_image_url?: string | null;
+  studio_edit_started_at?: string | null;
+}
+
+export interface StudioEditPrepareResult {
+  id?: string;
+  storedPHash: string;
+  shouldTriggerStudioEdit: boolean;
+  studioTriggerHandled: boolean;
+}
 
 async function resolveExistingWriteHash(
   incomingHash: string,
@@ -432,7 +449,7 @@ async function resolveExistingWriteHash(
 interface AnalysisCacheLookupRow {
   id?: string | null;
   p_hash: string;
-  analysis_json: HybridAnalysisResult;
+  analysis_json: HybridAnalysisResult | null;
   seo_title?: string | null;
   seo_description?: string | null;
   keywords?: string | null;
@@ -441,6 +458,54 @@ interface AnalysisCacheLookupRow {
   original_image_url?: string | null;
   price?: number | string | null;
   availability?: CacheSEOMetadata['availability'] | null;
+}
+
+function isStudioPlaceholderAnalysis(analysis: unknown): boolean {
+  return Boolean(
+    analysis
+    && typeof analysis === 'object'
+    && (analysis as unknown as Record<string, unknown>)[STUDIO_PLACEHOLDER_ANALYSIS_MARKER] === true
+  );
+}
+
+function hasNonBlankText(value: string | null | undefined): boolean {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function isStudioProcessingStale(startedAt: string | null | undefined, nowMs = Date.now()): boolean {
+  if (!startedAt) {
+    return true;
+  }
+
+  const startedAtMs = Date.parse(startedAt);
+  if (!Number.isFinite(startedAtMs)) {
+    return true;
+  }
+
+  return nowMs - startedAtMs > STUDIO_PROCESSING_STALE_MS;
+}
+
+function shouldTriggerStudioEditForRow(
+  row: StudioEditPrepareRow | null,
+  insertedPlaceholder: boolean,
+  nowMs = Date.now()
+): boolean {
+  if (insertedPlaceholder || !row) {
+    return true;
+  }
+
+  const status = row.studio_edit_status || 'not_started';
+  const hasStudioImage = hasNonBlankText(row.studio_edited_image_url);
+
+  if (status === 'completed' && hasStudioImage) {
+    return false;
+  }
+
+  if (status === 'processing' && !isStudioProcessingStale(row.studio_edit_started_at, nowMs)) {
+    return false;
+  }
+
+  return true;
 }
 
 async function resolveCacheHitId(result: AnalysisCacheLookupRow): Promise<string | null> {
@@ -467,6 +532,10 @@ async function resolveCacheHitId(result: AnalysisCacheLookupRow): Promise<string
 }
 
 function mapCacheHitResult(result: AnalysisCacheLookupRow, id: string | null): CacheHitResult {
+  if (!result.analysis_json) {
+    throw new Error('Cannot map an incomplete analysis cache row.');
+  }
+
   const analysisResult: HybridAnalysisResult = result.analysis_json;
   const seoMetadata: CacheSEOMetadata = {
     seo_title: result.seo_title || null,
@@ -516,6 +585,11 @@ export async function findSimilarAnalysisByHash(pHash: FingerprintHashLookup, im
     }
 
     const result = data[0];
+    if (!result.analysis_json || isStudioPlaceholderAnalysis(result.analysis_json)) {
+      console.log('⚫️ Cache MISS. Matching fingerprint row is still waiting for analysis.');
+      return null;
+    }
+
     console.log('✅ Cache HIT! Found matching analysis via pipeline fingerprint lookup:', lookup.canonicalHash);
 
     const needsBackfill = result.price === null || result.keywords === null || (result.original_image_url === null && imageUrl);
@@ -567,6 +641,11 @@ export async function findAnalysisByExactHash(pHash: string, imageUrl?: string):
     }
 
     const result = data as AnalysisCacheLookupRow;
+    if (!result.analysis_json || isStudioPlaceholderAnalysis(result.analysis_json)) {
+      console.log('⚫️ Exact cache row is still waiting for analysis.');
+      return null;
+    }
+
     const needsBackfill = result.price === null || result.keywords === null || (result.original_image_url === null && imageUrl);
 
     if (needsBackfill) {
@@ -598,7 +677,12 @@ export async function getAnalysisByExactHash(pHash: string): Promise<HybridAnaly
       return null;
     }
 
-    return data?.analysis_json || null;
+    const analysis = data?.analysis_json || null;
+    if (isStudioPlaceholderAnalysis(analysis)) {
+      return null;
+    }
+
+    return analysis;
   } catch (err) {
     console.error('Exception fetching analysis by hash:', err);
     return null;
@@ -629,6 +713,122 @@ export async function getStudioImageAvailabilityByHash(
     return data ?? null;
   } catch (err) {
     console.error('Exception fetching studio image availability by hash:', err);
+    return null;
+  }
+}
+
+export async function prepareStudioEditCacheRow(
+  pHash: string,
+  options?: {
+    client?: SupabaseClient;
+    fingerprintPipeline?: string | null;
+    originalImageUrl?: string | null;
+  }
+): Promise<StudioEditPrepareResult | null> {
+  try {
+    const canonicalHash = normalizeHexPHash(pHash);
+    if (!canonicalHash) {
+      console.warn('⚠️ Skipping early studio cache row for invalid pHash.', { pHash });
+      return null;
+    }
+
+    const client = options?.client || (typeof window === 'undefined' ? publicSupabaseClient : supabase);
+    const fingerprintPipeline = options?.fingerprintPipeline || null;
+    const resolvedPHash = await resolveExistingWriteHash(canonicalHash, fingerprintPipeline, client);
+    const now = new Date().toISOString();
+    const placeholderPayload: Record<string, unknown> = {
+      p_hash: resolvedPHash,
+      analysis_json: {
+        [STUDIO_PLACEHOLDER_ANALYSIS_MARKER]: true,
+        status: 'studio_processing',
+      },
+      fingerprint_pipeline: fingerprintPipeline,
+      fingerprint_status: 'ready',
+      fingerprint_error: null,
+      fingerprinted_at: now,
+      studio_edit_status: 'processing',
+      studio_edit_error: null,
+      studio_edit_started_at: now,
+    };
+
+    if (options?.originalImageUrl) {
+      placeholderPayload.original_image_url = options.originalImageUrl;
+    }
+
+    const { data: insertData, error: insertError } = await client
+      .from('cakegenie_analysis_cache')
+      .upsert(placeholderPayload, {
+        onConflict: 'p_hash',
+        ignoreDuplicates: true,
+      })
+      .select('id')
+      .maybeSingle();
+
+    if (insertError) {
+      console.warn('⚠️ Failed to insert early studio cache row:', insertError.message);
+      return null;
+    }
+
+    const insertedPlaceholder = Boolean(insertData?.id);
+    const { data: selectedRow, error: selectError } = await client
+      .from('cakegenie_analysis_cache')
+      .select('id, studio_edit_status, studio_edited_image_url, studio_edit_started_at, analysis_json')
+      .eq('p_hash', resolvedPHash)
+      .maybeSingle();
+
+    if (selectError || !selectedRow) {
+      if (selectError) {
+        console.warn('⚠️ Failed to fetch prepared studio cache row:', selectError.message);
+      }
+      return null;
+    }
+
+    const row = selectedRow as StudioEditPrepareRow;
+    const shouldTriggerStudioEdit = shouldTriggerStudioEditForRow(row, insertedPlaceholder);
+
+    if (!shouldTriggerStudioEdit) {
+      return {
+        id: typeof row.id === 'string' ? row.id : undefined,
+        storedPHash: resolvedPHash,
+        shouldTriggerStudioEdit: false,
+        studioTriggerHandled: true,
+      };
+    }
+
+    const updatePayload: Record<string, unknown> = {
+      fingerprint_pipeline: fingerprintPipeline,
+      fingerprint_status: 'ready',
+      fingerprint_error: null,
+      fingerprinted_at: now,
+      studio_edit_status: 'processing',
+      studio_edit_error: null,
+      studio_edit_started_at: now,
+    };
+
+    if (options?.originalImageUrl) {
+      updatePayload.original_image_url = options.originalImageUrl;
+    }
+
+    const { data: updateData, error: updateError } = await client
+      .from('cakegenie_analysis_cache')
+      .update(updatePayload)
+      .eq('p_hash', resolvedPHash)
+      .select('id')
+      .maybeSingle();
+
+    if (updateError) {
+      console.warn('⚠️ Failed to mark studio cache row as processing:', updateError.message);
+      return null;
+    }
+
+    return {
+      id: typeof updateData?.id === 'string' ? updateData.id : typeof row.id === 'string' ? row.id : undefined,
+      storedPHash: resolvedPHash,
+      shouldTriggerStudioEdit: true,
+      studioTriggerHandled: false,
+    };
+  } catch (err) {
+    console.warn('⚠️ Exception preparing early studio cache row:', err);
     return null;
   }
 }
