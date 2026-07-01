@@ -223,7 +223,7 @@ async function recordFailedMaskMarker(
  *
  * Behaviour:
  * - Calls `editCakeImage(ICING_CONVERSION_PROMPT, baseImage, [], [], null,
- *   ICING_LAYER_SYSTEM_INSTRUCTION, 'gemini-2.5-flash-image', traceId,
+ *   ICING_LAYER_SYSTEM_INSTRUCTION, 'gemini-3.1-flash-lite-image', traceId,
  *   'customizing-icing-mask')` to produce the red-icing / black-everything mask.
  * - Re-encodes the returned mask as a lossless PNG (never lossy WebP) so the black
  *   keying stays bit-accurate (Requirement 10.1–10.3), capturing its pixel dimensions.
@@ -265,7 +265,7 @@ export async function generateAndPersistIcingMask(
       [],
       null,
       ICING_LAYER_SYSTEM_INSTRUCTION,
-      'gemini-2.5-flash-image',
+      'gemini-3.1-flash-lite-image',
       createMaskTraceId(),
       'customizing-icing-mask'
     );
@@ -306,7 +306,7 @@ export async function generateAndPersistIcingMask(
       [],
       null,
       ICING_LAYER_SYSTEM_INSTRUCTION,
-      'gemini-2.5-flash-image',
+      'gemini-3.1-flash-lite-image',
       createMaskTraceId(),
       'customizing-icing-mask'
     );

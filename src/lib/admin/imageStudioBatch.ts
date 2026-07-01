@@ -9,8 +9,8 @@ import { buildIcingConversionPrompt } from '@/lib/icingConversionPrompt';
 import { ICING_LAYER_SYSTEM_INSTRUCTION, CURRENT_MASK_VERSION } from '@/services/icingMaskService';
 import { createAdminServerSupabaseClient } from '@/lib/supabase/adminServer';
 
-const STUDIO_MODEL = 'gemini-3.1-flash-image-preview';
-const MASK_MODEL = 'gemini-3.1-flash-image-preview';
+const STUDIO_MODEL = 'gemini-3.1-flash-lite-image';
+const MASK_MODEL = 'gemini-3.1-flash-lite-image';
 const STORAGE_BUCKET = 'cakegenie';
 
 type Stage = 'studio' | 'mask';

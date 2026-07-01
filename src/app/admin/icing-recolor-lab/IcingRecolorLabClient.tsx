@@ -132,7 +132,7 @@ export default function IcingRecolorLabClient() {
       [],
       null,
       ICING_LAYER_SYSTEM_INSTRUCTION,
-      'gemini-2.5-flash-image',
+      'gemini-3.1-flash-lite-image',
       `icing-layer-${Date.now()}`,
       'icing-recolor-lab'
     );

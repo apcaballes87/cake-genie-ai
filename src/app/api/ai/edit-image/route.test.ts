@@ -49,7 +49,7 @@ describe('/api/ai/edit-image', () => {
         expect(response.status).toBe(200);
         expect(generateContent).toHaveBeenCalledWith(
             expect.objectContaining({
-                model: 'gemini-3.1-flash-image-preview',
+                model: 'gemini-3.1-flash-lite-image',
                 config: expect.objectContaining({
                     responseModalities: ['TEXT', 'IMAGE'],
                     abortSignal: expect.any(AbortSignal),
@@ -146,7 +146,7 @@ describe('/api/ai/edit-image', () => {
         expect(generateContent).toHaveBeenNthCalledWith(
             2,
             expect.objectContaining({
-                model: 'gemini-3.1-flash-image-preview',
+                model: 'gemini-3.1-flash-lite-image',
                 config: expect.objectContaining({
                     responseModalities: ['TEXT', 'IMAGE'],
                 }),
@@ -155,7 +155,7 @@ describe('/api/ai/edit-image', () => {
         await expect(response.json()).resolves.toEqual({
             imageData: 'fallback-image',
             mimeType: 'image/png',
-            model: 'gemini-3.1-flash-image-preview',
+            model: 'gemini-3.1-flash-lite-image',
         });
     });
 
@@ -225,7 +225,7 @@ describe('/api/ai/edit-image', () => {
         await expect(response.json()).resolves.toEqual({
             imageData: 'generated-image-from-data',
             mimeType: 'image/jpeg',
-            model: 'gemini-3.1-flash-image-preview',
+            model: 'gemini-3.1-flash-lite-image',
         });
     });
 

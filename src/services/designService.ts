@@ -679,7 +679,7 @@ ${colorChanges.join('\n')}`;
     const replacementReferenceImages = collectReplacementReferenceImages(mainToppers, supportElements);
     const allReferenceImages = [...referenceImages, ...replacementReferenceImages];
     prompt += buildExternalReferenceGuide(referenceImages);
-    const preferredModel = useInpaintingStyle && !isThreeTierReconstruction ? 'gemini-2.5-flash-image' : 'gemini-3.1-flash-image-preview';
+    const preferredModel = useInpaintingStyle && !isThreeTierReconstruction ? 'gemini-2.5-flash-image' : 'gemini-3.1-flash-lite-image';
 
     try {
         // 7. Call editCakeImage
@@ -691,7 +691,7 @@ ${colorChanges.join('\n')}`;
                 supportElements,
                 isThreeTierReconstruction ? threeTierReferenceImage : null,
                 systemInstruction,
-                preferredModel === 'gemini-2.5-flash-image' ? 'gemini-2.5-flash-image' : undefined,
+                preferredModel,
                 effectiveTraceId,
                 requestSource,
                 allReferenceImages,

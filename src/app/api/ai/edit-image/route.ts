@@ -3,11 +3,11 @@ import { getAI } from '@/lib/ai/client';
 import { normalizeAiRouteError } from '@/lib/ai/routeError';
 
 export const maxDuration = 180;
-const DEFAULT_MODEL_NAME = 'gemini-3.1-flash-image-preview';
+const DEFAULT_MODEL_NAME = 'gemini-3.1-flash-lite-image';
 const COLOR_ONLY_MODEL_NAME = 'gemini-2.5-flash-image';
 const AI_EDIT_REQUEST_TIMEOUT_MS = 90_000;
 
-type EditImageModelName = typeof DEFAULT_MODEL_NAME | typeof COLOR_ONLY_MODEL_NAME;
+type EditImageModelName = typeof DEFAULT_MODEL_NAME | typeof COLOR_ONLY_MODEL_NAME | 'gemini-3.1-flash-image-preview';
 type ResponseModality = 'TEXT' | 'IMAGE';
 type EditImageAttempt = {
     modelName: EditImageModelName;
@@ -60,6 +60,9 @@ type EditImageRequestBody = {
 function resolveModelName(preferredModel?: string): EditImageModelName {
     if (preferredModel === COLOR_ONLY_MODEL_NAME) {
         return COLOR_ONLY_MODEL_NAME;
+    }
+    if (preferredModel === 'gemini-3.1-flash-image-preview') {
+        return 'gemini-3.1-flash-lite-image';
     }
 
     return DEFAULT_MODEL_NAME;

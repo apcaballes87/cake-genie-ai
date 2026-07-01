@@ -325,7 +325,7 @@ export async function editCakeImage(
     supportElements: SupportElementUI[],
     threeTierReferenceImage: { data: string; mimeType: string; } | null,
     systemInstruction: string,
-    preferredModel?: 'gemini-2.5-flash-image' | 'gemini-3.1-flash-image-preview',
+    preferredModel?: 'gemini-2.5-flash-image' | 'gemini-3.1-flash-image-preview' | 'gemini-3.1-flash-lite-image',
     traceId?: string,
     requestSource?: string,
     referenceImages: EditImageReferenceImage[] = [],
@@ -342,7 +342,7 @@ export async function editCakeImage(
             supportElementCount: supportElements.length,
             hasThreeTierReferenceImage: Boolean(threeTierReferenceImage),
             referenceImageCount: referenceImages.length,
-            preferredModel: preferredModel ?? 'gemini-3.1-flash-image-preview (default)',
+            preferredModel: preferredModel ?? 'gemini-3.1-flash-lite-image (default)',
         });
 
         // --- OPTIMIZATION START ---
@@ -365,14 +365,14 @@ export async function editCakeImage(
         // We use the local fileToBase64 helper or just read it here
         const compressedBase64Result = await fileToBase64(compressedFile);
 
-        console.log(`🚀 Designing Image (${preferredModel ?? 'gemini-3.1-flash-image-preview'}): Compressed input from ${(imageFile.size / 1024 / 1024).toFixed(2)}MB to ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+        console.log(`🚀 Designing Image (${preferredModel ?? 'gemini-3.1-flash-lite-image'}): Compressed input from ${(imageFile.size / 1024 / 1024).toFixed(2)}MB to ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
         console.log(`[AI TRACE ${effectiveTraceId}] editCakeImage:compressed`, {
             requestSource: requestSource ?? 'unknown',
             originalBytes: imageFile.size,
             compressedBytes: compressedFile.size,
             maxSizeMB: compressionOptions.maxSizeMB,
             maxWidthOrHeight: compressionOptions.maxWidthOrHeight,
-            preferredModel: preferredModel ?? 'gemini-3.1-flash-image-preview (default)',
+            preferredModel: preferredModel ?? 'gemini-3.1-flash-lite-image (default)',
         });
 
         const response = await fetch('/api/ai/edit-image', {
@@ -397,7 +397,7 @@ export async function editCakeImage(
             status: response.status,
             ok: response.ok,
             durationMs: Date.now() - startedAt,
-            preferredModel: preferredModel ?? 'gemini-3.1-flash-image-preview (default)',
+            preferredModel: preferredModel ?? 'gemini-3.1-flash-lite-image (default)',
         });
 
         if (!response.ok) {
@@ -414,7 +414,7 @@ export async function editCakeImage(
                 status: response.status,
                 error: errorData?.error,
                 rawBodySnippet: rawErrorBody.slice(0, 500),
-                preferredModel: preferredModel ?? 'gemini-3.1-flash-image-preview (default)',
+                preferredModel: preferredModel ?? 'gemini-3.1-flash-lite-image (default)',
             });
             throw new Error(errorData?.error || `Image edit failed with status ${response.status}`);
         }
@@ -424,7 +424,7 @@ export async function editCakeImage(
             requestSource: requestSource ?? 'unknown',
             mimeType: result.mimeType,
             durationMs: Date.now() - startedAt,
-            model: result.model ?? preferredModel ?? 'gemini-3.1-flash-image-preview (default)',
+            model: result.model ?? preferredModel ?? 'gemini-3.1-flash-lite-image (default)',
         });
 
         // Return as data URI
@@ -433,7 +433,7 @@ export async function editCakeImage(
     } catch (error) {
         console.error(`[AI TRACE ${effectiveTraceId}] editCakeImage:error`, {
             requestSource: requestSource ?? 'unknown',
-            preferredModel: preferredModel ?? 'gemini-3.1-flash-image-preview (default)',
+            preferredModel: preferredModel ?? 'gemini-3.1-flash-lite-image (default)',
             errorMessage: error instanceof Error ? error.message : String(error),
         });
         console.error("Error editing image:", error);

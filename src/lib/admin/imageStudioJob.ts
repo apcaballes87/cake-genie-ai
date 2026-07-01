@@ -11,7 +11,7 @@ import { getAI } from '@/lib/ai/client';
 import { normalizeAiRouteError } from '@/lib/ai/routeError';
 import { createPublicServerSupabaseClient } from '@/lib/supabase/publicServer';
 
-const MODEL_NAME = 'gemini-3.1-flash-image-preview';
+const MODEL_NAME = 'gemini-3.1-flash-lite-image';
 const STORAGE_BUCKET = 'cakegenie';
 const DEFAULT_CACHE_ROW_WAIT_ATTEMPTS = 45;
 const DEFAULT_CACHE_ROW_WAIT_MS = 1000;
