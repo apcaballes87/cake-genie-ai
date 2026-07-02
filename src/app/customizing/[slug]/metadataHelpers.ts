@@ -14,9 +14,6 @@
  */
 export const FALLBACK_MIN_PRICE = 1099;
 
-/** Upper bound for a sane price value used in the meta-description suffix. */
-const PRICE_MAX = 9_999_999;
-
 /**
  * Truncates `text` to a maximum length at a word boundary.
  *
@@ -64,45 +61,25 @@ function filterBoilerplateSentences(descriptionText: string): string {
  * Algorithm (R5.1–R5.6):
  * 1. Empty input → empty output.
  * 2. Strip boilerplate sentences. If <15 chars survive, fall back to trimmed input.
- * 3. Compute price-CTA suffix.
- * 4. Truncate to fit `155 - codePoint(suffix)` budget at a word boundary.
- * 5. Iteratively strip trailing `.`, `…`, and whitespace.
- * 6. If empty after strip, return suffix only (without the leading ` | `).
- * 7. If the original ended in `.` (and not `…`) and budget allows, restore one `.`.
+ * 3. Truncate to fit the 155 character budget at a word boundary.
+ * 4. Iteratively strip trailing `.`, `…`, and whitespace.
+ * 5. If empty after strip, return a generic descriptive fallback.
+ * 6. If the original ended in `.` (and not `…`) and budget allows, restore one `.`.
  *
  * Postconditions:
  * - `[...result].length <= 155` (R5.4 upper bound).
- * - Result NEVER contains `'... |'`, `'… |'`, or `'.. |'` (R5.2).
- * - Result ends with `'Customize now!'` (R5.3).
+ * - Result NEVER ends with trailing ellipsis/dot runs.
+ * - Result does not inject price text into Google-search meta descriptions.
  */
-export function optimizeMetaDescription(
-    descriptionText: string,
-    price: number | null | undefined,
-): string {
-    // Note: even an empty/whitespace-only input flows through to the suffix-only
-    // fallback (R5.6 spirit + Property 4 invariant: result always ends in 'Customize now!').
-
+export function optimizeMetaDescription(descriptionText: string): string {
     // Step 1–2: boilerplate filter + fallback.
     let uniqueText = filterBoilerplateSentences(descriptionText ?? '');
     if (uniqueText.length < 15) {
         uniqueText = (descriptionText ?? '').trim();
     }
 
-    // Step 3: suffix.
-    // Treat unreasonable prices (≤ 0, non-finite, > PRICE_MAX) as missing so the
-    // resulting suffix never blows past the 155 cp budget for very large numbers.
-    const finalPrice =
-        typeof price === 'number' &&
-        Number.isFinite(price) &&
-        price > 0 &&
-        price <= PRICE_MAX
-            ? Math.round(price)
-            : FALLBACK_MIN_PRICE;
-    const suffix = ` | Price starts at ₱${finalPrice.toLocaleString('en-US')}. Customize now!`;
-    const suffixCp = [...suffix].length;
-
-    // Step 4: truncate to code-point budget at a word boundary.
-    const budget = 155 - suffixCp;
+    // Step 3: truncate to code-point budget at a word boundary.
+    const budget = 155;
     let truncated = truncateToWordBoundary(uniqueText, budget);
     // Defensive code-point reslice in case the UTF-16 truncation produced
     // a string whose code-point count still exceeds `budget`.
@@ -110,7 +87,7 @@ export function optimizeMetaDescription(
         truncated = [...truncated].slice(0, budget).join('');
     }
 
-    // Step 5: iterative trailing-punctuation strip (R5.1).
+    // Step 4: iterative trailing-punctuation strip (R5.1).
     while (truncated.length > 0) {
         const cps = [...truncated];
         const last = cps[cps.length - 1];
@@ -122,26 +99,26 @@ export function optimizeMetaDescription(
         }
     }
 
-    // Step 6: empty-after-strip fallback (R5.6).
+    // Step 5: empty-after-strip fallback (R5.6).
     if (truncated.length === 0) {
-        return suffix.replace(/^ \| /, '');
+        return 'Custom cake design available for Genie.ph customization.';
     }
 
-    // Step 7: restore single '.' if original ended in '.' (only `.`s in trailing run, no `…`)
+    // Step 6: restore single '.' if original ended in '.' (only `.`s in trailing run, no `…`)
     // and uniqueText already fits within budget. R5.5 limits this to the "fits" branch.
     const trailingRunMatch = uniqueText.match(/[.\u2026\s]*$/);
     const trailingRun = trailingRunMatch ? trailingRunMatch[0] : '';
     const originalEndsWithDotOnly =
-        trailingRun.includes('.') && !trailingRun.includes('\u2026');
+        /^\.\s*$/.test(trailingRun);
     const uniqueFitsBudget = [...uniqueText].length <= budget;
     if (originalEndsWithDotOnly && uniqueFitsBudget) {
-        const candidate = `${truncated}.${suffix}`;
+        const candidate = `${truncated}.`;
         if ([...candidate].length <= 155) {
             return candidate;
         }
     }
 
-    return truncated + suffix;
+    return truncated;
 }
 
 /**

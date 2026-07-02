@@ -5,7 +5,6 @@ import {
   optimizeMetaDescription,
   resolveAggregateRating,
   resolveSkuMpn,
-  FALLBACK_MIN_PRICE,
 } from './metadataHelpers';
 
 // ---------------------------------------------------------------------------
@@ -45,21 +44,15 @@ describe('truncateToWordBoundary', () => {
 // ---------------------------------------------------------------------------
 
 describe('optimizeMetaDescription — R5', () => {
-  const SUFFIX_RE = / \| Price starts at ₱[\d,]+\. Customize now!$/;
-
   it('strips trailing "." then "…" then whitespace iteratively (R5.1)', () => {
     // Build a long input so truncation occurs and trailing punct/whitespace runs would stick
     const longPrefix = 'Beautiful custom cake design with intricate decorations and vibrant colors';
     const noisy = `${longPrefix} foo bar.   …. `;
-    const out = optimizeMetaDescription(noisy, 1099);
-    // The portion immediately preceding the suffix must NOT end in '.', '…', or whitespace
-    const idx = out.lastIndexOf(' | Price starts at ');
-    expect(idx).toBeGreaterThan(0);
-    const head = out.slice(0, idx);
-    expect(head).not.toMatch(/[.\u2026\s]$/);
+    const out = optimizeMetaDescription(noisy);
+    expect(out).not.toMatch(/[.\u2026\s]$/);
   });
 
-  it('does not contain "... |", "… |", or ".. |" (R5.2)', () => {
+  it('does not end with ellipsis or repeated dots (R5.2)', () => {
     const samples = [
       'Sample description ending in ellipsis…',
       'Sample description ending in dots...',
@@ -69,82 +62,54 @@ describe('optimizeMetaDescription — R5', () => {
       'Lots of unicode ellipsis ……',
     ];
     for (const s of samples) {
-      const out = optimizeMetaDescription(s, 1099);
-      expect(out).not.toContain('... |');
-      expect(out).not.toContain('… |');
-      expect(out).not.toContain('.. |');
+      const out = optimizeMetaDescription(s);
+      expect(out).not.toMatch(/(\.\.\.|\u2026|\.\.)$/);
     }
   });
 
-  it('ends with " | Price starts at ₱X,XXX. Customize now!" preceded by non-punct char (R5.3)', () => {
-    const out = optimizeMetaDescription('A perfectly normal description with text', 1099);
-    expect(out).toMatch(SUFFIX_RE);
-    const idx = out.lastIndexOf(' | Price starts at ');
-    const charBefore = out.charAt(idx - 1);
-    expect(charBefore).not.toBe('.');
-    expect(charBefore).not.toBe('\u2026');
-    expect(/\s/.test(charBefore)).toBe(false);
+  it('does not inject price text into the organic meta description (R5.3)', () => {
+    const out = optimizeMetaDescription('A perfectly normal description with text');
+    expect(out).not.toMatch(/price starts|starting at|starts at|₱|php/i);
+    expect(out).toBe('A perfectly normal description with text');
   });
 
   it('length ≤ 155 cp (R5.4)', () => {
     const long = 'lorem ipsum dolor sit amet '.repeat(40);
-    const out = optimizeMetaDescription(long, 1099);
+    const out = optimizeMetaDescription(long);
     expect([...out].length).toBeLessThanOrEqual(155);
   });
 
-  it('length ≥ suffix length (R5.4 lower bound)', () => {
-    const suffix = ' | Price starts at ₱1,099. Customize now!';
-    const out = optimizeMetaDescription('hello', 1099);
-    expect([...out].length).toBeGreaterThanOrEqual([...suffix].length);
+  it('input ending in "..." produces no trailing ellipsis (R5.2 edge)', () => {
+    const out = optimizeMetaDescription('Short description that ends...');
+    expect(out).toBe('Short description that ends');
   });
 
-  it('input ending in "..." produces no ellipsis before " | " (R5.2 edge)', () => {
-    const out = optimizeMetaDescription('Short description that ends...', 1099);
-    expect(out).not.toContain('... |');
-    expect(out).not.toContain('.. |');
-  });
-
-  it('input ending in "…" produces no ellipsis before " | " (R5.5 edge)', () => {
-    const out = optimizeMetaDescription('Short description that ends…', 1099);
-    expect(out).not.toContain('… |');
+  it('input ending in "…" produces no trailing ellipsis (R5.5 edge)', () => {
+    const out = optimizeMetaDescription('Short description that ends…');
+    expect(out).toBe('Short description that ends');
   });
 
   it('input ending in "." preserves a single "." when within budget (R5.5)', () => {
-    const out = optimizeMetaDescription('Short text.', 1099);
-    expect(out).toBe('Short text. | Price starts at ₱1,099. Customize now!');
+    const out = optimizeMetaDescription('Short text.');
+    expect(out).toBe('Short text.');
   });
 
-  it('already-fits input is returned with suffix appended, no truncation (R5.5)', () => {
+  it('already-fits input is returned without suffix injection or truncation (R5.5)', () => {
     const input = 'A perfectly fine description';
-    const out = optimizeMetaDescription(input, 1099);
-    expect(out).toBe(`${input} | Price starts at ₱1,099. Customize now!`);
+    const out = optimizeMetaDescription(input);
+    expect(out).toBe(input);
   });
 
-  it('input "...." returns suffix-only beginning with "Price starts at ₱" (R5.6)', () => {
-    const out = optimizeMetaDescription('....', 1099);
-    expect(out).toBe('Price starts at ₱1,099. Customize now!');
+  it('input "...." returns descriptive fallback without price text (R5.6)', () => {
+    const out = optimizeMetaDescription('....');
+    expect(out).toBe('Custom cake design available for Genie.ph customization.');
+    expect(out).not.toMatch(/price starts|₱/i);
   });
 
-  it('input "    " (whitespace only) returns suffix-only (R5.6)', () => {
-    const out = optimizeMetaDescription('    ', 1099);
-    expect(out.startsWith('Price starts at ₱')).toBe(true);
-    expect(out.endsWith('Customize now!')).toBe(true);
-  });
-
-  it('price === null uses FALLBACK_MIN_PRICE 1099', () => {
-    const out = optimizeMetaDescription('Hello world', null);
-    expect(FALLBACK_MIN_PRICE).toBe(1099);
-    expect(out).toContain('₱1,099');
-  });
-
-  it('price === 0 uses FALLBACK_MIN_PRICE', () => {
-    const out = optimizeMetaDescription('Hello world', 0);
-    expect(out).toContain('₱1,099');
-  });
-
-  it('price === -50 uses FALLBACK_MIN_PRICE', () => {
-    const out = optimizeMetaDescription('Hello world', -50);
-    expect(out).toContain('₱1,099');
+  it('input "    " (whitespace only) returns descriptive fallback without price text (R5.6)', () => {
+    const out = optimizeMetaDescription('    ');
+    expect(out).toBe('Custom cake design available for Genie.ph customization.');
+    expect(out).not.toMatch(/price starts|₱/i);
   });
 
   it('Property 4: output contract holds for arbitrary (desc, price)', () => {
@@ -152,14 +117,11 @@ describe('optimizeMetaDescription — R5', () => {
     fc.assert(
       fc.property(
         fc.string({ unit: 'binary' }),
-        fc.oneof(fc.constant(null), fc.constant(undefined), fc.double(), fc.integer()),
-        (desc, price) => {
-          const r = optimizeMetaDescription(desc, price as number | null);
+        (desc) => {
+          const r = optimizeMetaDescription(desc);
           expect([...r].length).toBeLessThanOrEqual(155);
-          expect(r).not.toContain('... |');
-          expect(r).not.toContain('… |');
-          expect(r).not.toContain('.. |');
-          expect(r.endsWith('Customize now!')).toBe(true);
+          expect(r).not.toMatch(/(\.\.\.|\u2026|\.\.)$/);
+          expect(r).not.toMatch(/price starts at|starting at|starts at|₱/i);
         },
       ),
       { numRuns: 100 },

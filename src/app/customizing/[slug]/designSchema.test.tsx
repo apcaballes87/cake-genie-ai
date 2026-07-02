@@ -359,6 +359,62 @@ describe('DesignSchema — R4 SKU/MPN resolution', () => {
   });
 });
 
+describe('DesignSchema — cake-type price range offers', () => {
+  it('emits AggregateOffer when the detected cake type has multiple base-price variants', () => {
+    const { container } = render(
+      <DesignSchema
+        design={baseDesign({ price: 1299 })}
+        prices={[
+          { size: '6" Round', price: 1299 },
+          { size: '8" Round', price: 1599 },
+          { size: '10" Round', price: 1999 },
+        ]}
+        siteReviewSummary={{ total: 6, averageRating: 4.8 }}
+        isSiteReviewSummaryFallback={true}
+        perDesignReviewStats={null}
+        linkedMerchantProducts={[]}
+      />,
+    );
+
+    const product = getProductGraph(container)!;
+    expect(product.offers).toMatchObject({
+      '@type': 'AggregateOffer',
+      lowPrice: '1299',
+      highPrice: '1999',
+      offerCount: 3,
+      priceCurrency: 'PHP',
+      sku: product.sku,
+      mpn: product.mpn,
+    });
+    expect(product.offers).not.toHaveProperty('price');
+    expect(product.offers).not.toHaveProperty('priceSpecification');
+  });
+
+  it('keeps a single Offer when only one base-price variant is available', () => {
+    const { container } = render(
+      <DesignSchema
+        design={baseDesign({ price: 1299 })}
+        prices={[{ size: '6" Round', price: 1299 }]}
+        siteReviewSummary={{ total: 6, averageRating: 4.8 }}
+        isSiteReviewSummaryFallback={true}
+        perDesignReviewStats={null}
+        linkedMerchantProducts={[]}
+      />,
+    );
+
+    const product = getProductGraph(container)!;
+    expect(product.offers).toMatchObject({
+      '@type': 'Offer',
+      price: '1299',
+      priceCurrency: 'PHP',
+      sku: product.sku,
+      mpn: product.mpn,
+    });
+    expect(product.offers).not.toHaveProperty('lowPrice');
+    expect(product.offers).not.toHaveProperty('highPrice');
+  });
+});
+
 // ---------------------------------------------------------------------------
 // R9 — JSON-LD safety
 // ---------------------------------------------------------------------------

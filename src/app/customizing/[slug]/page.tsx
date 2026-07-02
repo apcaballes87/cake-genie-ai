@@ -22,6 +22,7 @@ import {
     buildCustomCakeAdditionalProperties,
     buildMerchantReturnPolicy,
     buildOfferShippingDetails,
+    buildPriceSummary,
     getCommercePolicyUrls,
     getLeadTimeLabel,
     getMerchantListingActivePrice,
@@ -336,8 +337,10 @@ export async function generateMetadata(
     // 4. Generic fallback
     const rawDescription = resolveRichDescription(design);
 
-    // Optimize description to strip boilerplate, target correct length and inject price CTR signals
-    const description = optimizeMetaDescription(rawDescription, design.price);
+    // Optimize description to strip boilerplate and target snippet length.
+    // Keep pricing out of organic meta descriptions; Product structured data
+    // carries offer price separately for eligible rich results.
+    const description = optimizeMetaDescription(rawDescription);
 
     const canonicalUrl = `https://genie.ph/customizing/${slug}`
 
@@ -525,21 +528,14 @@ export function DesignSchema({
     // Use end of current year for stable schema (avoids changing on every render)
     const priceValidUntil = `${new Date().getFullYear()}-12-31`;
     const availability = mapDesignAvailabilityToSchema(design.availability);
+    const fallbackPrice = (design.price && design.price > 0) ? design.price : FALLBACK_MIN_PRICE;
     const activePrice = getMerchantListingActivePrice(
         prices,
-        (design.price && design.price > 0) ? design.price : FALLBACK_MIN_PRICE,
+        fallbackPrice,
     );
+    const priceSummary = buildPriceSummary(prices, fallbackPrice);
 
-    const offers = {
-        '@type': 'Offer',
-        ...(activePrice !== null ? { price: Math.round(activePrice).toString() } : {}),
-        ...(activePrice !== null ? {
-            priceSpecification: {
-                '@type': 'UnitPriceSpecification',
-                price: Math.round(activePrice),
-                priceCurrency: 'PHP',
-            }
-        } : {}),
+    const sharedOfferFields = {
         priceCurrency: 'PHP',
         availability: availability,
         itemCondition: 'https://schema.org/NewCondition',
@@ -555,6 +551,30 @@ export function DesignSchema({
         shippingDetails: shippingDetails,
         hasMerchantReturnPolicy: returnPolicy
     };
+
+    const offers = priceSummary.offerCount > 1
+        && priceSummary.lowPrice !== null
+        && priceSummary.highPrice !== null
+        && priceSummary.lowPrice !== priceSummary.highPrice
+        ? {
+            '@type': 'AggregateOffer',
+            lowPrice: Math.round(priceSummary.lowPrice).toString(),
+            highPrice: Math.round(priceSummary.highPrice).toString(),
+            offerCount: priceSummary.offerCount,
+            ...sharedOfferFields,
+        }
+        : {
+            '@type': 'Offer',
+            ...(activePrice !== null ? { price: Math.round(activePrice).toString() } : {}),
+            ...(activePrice !== null ? {
+                priceSpecification: {
+                    '@type': 'UnitPriceSpecification',
+                    price: Math.round(activePrice),
+                    priceCurrency: 'PHP',
+                }
+            } : {}),
+            ...sharedOfferFields,
+        };
 
     // Build a second ImageObject when a customized variant exists
     const customizedImageUrl = design.customized_image_url;

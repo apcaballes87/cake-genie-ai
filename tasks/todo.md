@@ -1,5 +1,80 @@
 # Tasks
 
+## Cake-Type Price Range Structured Data (2026-07-02)
+
+### Plan
+
+- [x] Inspect the existing `/customizing/[slug]` Product JSON-LD offer path and cake base-price helper.
+- [x] Change Product structured data to use `AggregateOffer` with `lowPrice`, `highPrice`, and `offerCount` when the detected cake type has multiple base-price variants.
+- [x] Keep single-price `Offer` fallback when there is only one price or no variant ladder.
+- [x] Update focused schema/page tests for the new range contract while keeping organic meta descriptions price-free.
+- [x] Run focused tests, rendered metadata/schema verification, diff checks, and build.
+
+### Review
+
+- Updated [src/app/customizing/[slug]/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/[slug]/page.tsx:1) so the Product JSON-LD uses `AggregateOffer` when the detected cake type has multiple base-price options. The offer now emits `lowPrice`, `highPrice`, and `offerCount` from the cake-type variant ladder.
+- The single-price path still emits a normal `Offer` when only one price is available or the range collapses to one value.
+- Organic meta descriptions remain price-free; the price range is limited to Product structured data / rich-result eligibility.
+- Added coverage in [src/app/customizing/[slug]/designSchema.test.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/[slug]/designSchema.test.tsx:1) and [src/app/customizing/[slug]/page.test.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/[slug]/page.test.tsx:1) for both multi-variant `AggregateOffer` and single-price fallback behavior.
+- Verification:
+  - `npx vitest run 'src/app/customizing/[slug]/designSchema.test.tsx' 'src/app/customizing/[slug]/page.test.tsx' 'src/app/customizing/[slug]/metadataHelpers.test.ts' src/lib/commerce/machineReadable.test.ts --exclude '.claude/**'` passed: 4 files, 103 tests, 1 skipped.
+  - Local dev render at `http://localhost:3017/customizing/police-white-1-tier-cake-f4d8` showed meta descriptions without price text and Product JSON-LD range fields `lowPrice = 1299`, `highPrice = 1899`, `offerCount = 3`.
+  - `git diff --check -- 'src/app/customizing/[slug]/page.tsx' 'src/app/customizing/[slug]/designSchema.test.tsx' 'src/app/customizing/[slug]/page.test.tsx' tasks/todo.md` passed.
+  - `npm run build` passed with existing non-fatal warnings for stale `baseline-browser-mapping`, inferred workspace root, and deprecated `middleware`.
+
+## Remove Price CTA From Customizing Meta Descriptions (2026-07-02)
+
+### Plan
+
+- [x] Verify whether the reported Google snippet text comes from stored cache descriptions or live route-rendered metadata.
+- [x] Check the affected live cache row and current public HTML for the active custom cake slug.
+- [x] Remove route-level price CTA injection from `/customizing/[slug]` meta descriptions while keeping product offer structured data separate.
+- [x] Update focused metadata tests so price text cannot be reintroduced into organic snippets.
+- [x] Run focused tests and verify rendered metadata for the affected page.
+
+### Review
+
+- Investigation found the cleaned live `cakegenie_analysis_cache.seo_description` did not contain price text, and a DB-wide check found `0` rows with price text in top-level or nested SEO descriptions.
+- Root cause was [src/app/customizing/[slug]/metadataHelpers.ts](/Users/apcaballes/genieph-nextjs/src/app/customizing/[slug]/metadataHelpers.ts:1), where `optimizeMetaDescription(...)` appended ` | Price starts at ₱... Customize now!` at render time.
+- Updated [src/app/customizing/[slug]/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/[slug]/page.tsx:1) to optimize snippet copy without price injection.
+- Updated tests in [src/app/customizing/[slug]/metadataHelpers.test.ts](/Users/apcaballes/genieph-nextjs/src/app/customizing/[slug]/metadataHelpers.test.ts:1) and [src/app/customizing/[slug]/page.test.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/[slug]/page.test.tsx:1) to assert organic meta descriptions do not include price terms.
+- Verification:
+  - `npx vitest run 'src/app/customizing/[slug]/metadataHelpers.test.ts' 'src/app/customizing/[slug]/page.test.tsx' --exclude '.claude/**'` passed: 2 files, 51 tests, 1 skipped.
+  - Local dev render at `http://localhost:3017/customizing/police-white-1-tier-cake-f4d8` showed meta, OG, and Twitter descriptions without `Price starts`, `₱1,299`, or `Customize now`.
+  - `git diff --check -- 'src/app/customizing/[slug]/metadataHelpers.ts' 'src/app/customizing/[slug]/metadataHelpers.test.ts' 'src/app/customizing/[slug]/page.tsx' 'src/app/customizing/[slug]/page.test.tsx' tasks/todo.md` passed.
+  - `npm run build` passed with existing non-fatal warnings for stale `baseline-browser-mapping`, inferred workspace root, deprecated `middleware`, and Supabase statement timeouts during static fallback generation.
+
+## Re-run AI Analysis Cache Prices And Analysis JSON (2026-07-02)
+
+### Plan
+
+- [x] Audit the current cache write path and confirm it would overwrite fields beyond `analysis_json` and `price`.
+- [x] Add a dedicated backfill script that re-runs the active cake-analysis prompt against existing cache image URLs and recalculates price.
+- [x] Keep the database write scoped to `analysis_json` and `price` only, leaving slug, keywords, SEO fields, and other cache metadata untouched.
+- [x] Verify the script with a dry run and a small live batch.
+- [x] Start the full cache re-analysis run for all eligible `cakegenie_analysis_cache` rows.
+
+### Review
+
+- Added [scripts/rerun-analysis-cache.ts](/Users/apcaballes/genieph-nextjs/scripts/rerun-analysis-cache.ts:1), a dedicated backfill script that fetches existing cache rows by `original_image_url`, re-runs the active AI cake-analysis prompt, recalculates price from current pricing rules, and updates only `analysis_json` and `price`.
+- The script deliberately does not call the shared `cacheAnalysisResult(...)` writer because that path would also rewrite slug, keywords, top-level SEO fields, and related cache metadata.
+- Verification:
+  - `npx tsx scripts/rerun-analysis-cache.ts --help`
+  - `git diff --check`
+  - `npx tsx scripts/rerun-analysis-cache.ts --dry-run --limit=1 --concurrency=1`
+  - `npx tsx scripts/rerun-analysis-cache.ts --limit=1 --concurrency=1`
+- Dry run succeeded against `p_hash = 0c0807c0d8d4743c`, producing recalculated `price = 1199` without writing to the database.
+- Live one-row write succeeded against the same row, updating only `analysis_json` and `price`.
+- Full rerun started with `npx tsx scripts/rerun-analysis-cache.ts --concurrency=2`.
+- Initial live progress confirmed updates for:
+  - `0c0807c0d8d4743c` -> `1199`
+  - `1b3d51bece961fec` -> `4099`
+  - `8e1f3b3b33068585` -> `1399`
+  - `c95333fd7d0f4bed` -> `2699`
+- User-requested stop checkpoint captured on 2026-07-02: latest completed index observed was `2947`.
+- Resume command for later:
+  - `npx tsx scripts/rerun-analysis-cache.ts --concurrency=2 --offset=2947`
+
 ## Parallel Customizer Studio Edit Start (2026-07-01)
 
 ### Plan

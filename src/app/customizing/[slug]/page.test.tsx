@@ -244,6 +244,23 @@ describe('RecentSearchPage', () => {
     expect(staticMarkup).not.toContain('AggregateOffer');
   });
 
+  it('renders AggregateOffer JSON-LD when the cake type has multiple base-price variants', async () => {
+    vi.mocked(getCakeBasePriceOptions).mockResolvedValueOnce([
+      { price: 1299, size: '6 in' },
+      { price: 1599, size: '8 in' },
+      { price: 1999, size: '10 in' },
+    ] as never);
+
+    const page = await RecentSearchPage({ params: Promise.resolve({ slug: 'pink-minimalist-light-pink-bento-cake-f707' }) });
+    const staticMarkup = renderToStaticMarkup(page);
+
+    expect(staticMarkup).toContain('"@type":"AggregateOffer"');
+    expect(staticMarkup).toContain('"lowPrice":"1299"');
+    expect(staticMarkup).toContain('"highPrice":"1999"');
+    expect(staticMarkup).toContain('"offerCount":3');
+    expect(staticMarkup).toContain('"priceCurrency":"PHP"');
+  });
+
   it('prefers the studio-edited image for the customizing hero when it is not blank', async () => {
     const design = {
       slug: 'studio-edited-cake',
@@ -545,7 +562,7 @@ describe('RecentSearchPage', () => {
   });
 
   describe('generateMetadata', () => {
-    it('strips boilerplates, formats meta description to correct length, and injects price CTA', async () => {
+    it('strips boilerplates, formats meta description to correct length, and keeps price out of snippets', async () => {
       const design = {
         slug: 'hot-wheels-jollibee-blue-2-tier-fondant-cake-80a1',
         keywords: 'Hot Wheels Jollibee',
@@ -577,8 +594,8 @@ describe('RecentSearchPage', () => {
       // Should preserve the descriptive body content
       expect(metadata.description).toContain('This vibrant two-tier fondant cake is the ultimate celebration');
       
-      // Should inject the beautiful CTR price CTA suffix
-      expect(metadata.description).toContain('Price starts at ₱2,500. Customize now!');
+      // Should not inject price text into organic search snippets
+      expect(metadata.description).not.toMatch(/price starts|starting at|starts at|₱|php/i);
       
       // Total length should fit perfectly within limits (<= 155 chars)
       expect(metadata.description?.length).toBeLessThanOrEqual(155);
