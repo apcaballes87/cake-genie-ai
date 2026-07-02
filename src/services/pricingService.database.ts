@@ -210,6 +210,8 @@ export async function calculatePriceFromDatabase(
       }
     } else if (category === 'message' && type === 'icing_text') {
       effectiveType = 'icing_script';
+    } else if (type === 'fresh_flowers') {
+      effectiveType = 'edible_flowers';
     }
 
     // Helper to find match in a list of rules

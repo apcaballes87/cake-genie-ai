@@ -22,6 +22,8 @@ export const SEARCH_ANALYSIS_ICING_BASES = ['soft_icing', 'fondant'] as const;
 export const SEARCH_ANALYSIS_COLOR_TYPES = ['single', 'gradient', 'multicolor'] as const;
 
 export function buildSearchAnalysisResponseSchema(typeEnums: TypeEnums) {
+  const supportElementTypes = typeEnums.supportElementTypes.filter((type) => type !== 'fresh_flowers');
+
   return {
     type: Type.OBJECT,
     properties: {
@@ -47,7 +49,7 @@ export function buildSearchAnalysisResponseSchema(typeEnums: TypeEnums) {
         items: {
           type: Type.OBJECT,
           properties: {
-            type: { type: Type.STRING, enum: typeEnums.supportElementTypes },
+            type: { type: Type.STRING, enum: supportElementTypes },
             material: { type: Type.STRING }, group_id: { type: Type.STRING },
             color: { type: Type.STRING }, colors: { type: Type.ARRAY, items: { type: Type.STRING } },
             size: { type: Type.STRING, enum: ['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge'] },

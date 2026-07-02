@@ -3602,3 +3602,31 @@
     - explicit `HybridAnalysisResult` handoff in `/api/ai/analyze-url`
     - missing exhaustive topper/support label map entries after widening the local type unions
   - The build still logs the existing workspace-root, middleware deprecation, and `baseline-browser-mapping` freshness warnings, plus non-fatal prerender fallback query timeouts during static generation. The build completed successfully despite those logs.
+
+## Flower Classification Safety Update (2026-07-02)
+
+### Plan
+
+- [x] Trace current analyzer schema, fallback prompt, and database pricing-rule behavior for `fresh_flowers` versus `edible_flowers`.
+- [x] Update local analyzer/fallback contract so all flower decorations, including natural-looking or fresh-looking flowers, classify as `edible_flowers`.
+- [x] Update pricing/type mapping so legacy `fresh_flowers` analysis rows price through edible-flower rules.
+- [x] Create the next active Supabase `ai_prompts` row with matching wording, preserving the previous active row.
+- [x] Verify with focused tests, live Supabase checks, and diff checks.
+
+### Review
+
+- Removed `fresh_flowers` from the canonical support-element enum used to build analyzer schemas while keeping the TypeScript/UI legacy label path for old cached rows.
+- Updated fallback prompt flower rules so Genie.ph safety policy is explicit: fresh-looking, natural-looking, realistic, or edible flowers must classify as `edible_flowers`; the old `IT IS "fresh_flowers"` classifier and table row are gone.
+- Added `fresh_flowers` -> `edible_flowers` mapping in dynamic enum recovery and database pricing lookup so old analysis rows price through edible-flower rules instead of falling through to zero.
+- Created migration `supabase/migrations/20260702023709_classify_flowers_as_edible.sql` and applied the live prompt update as active `ai_prompts` version `3.24`, prompt id `33`; v3.23 remains preserved and inactive.
+- Live Supabase verification:
+  - one active prompt row
+  - active version `3.24`
+  - safety wording present
+  - old `IT IS "fresh_flowers"` guidance absent
+  - old `fresh_flowers` support table row absent
+  - no active `fresh_flowers` pricing rules
+- Verification:
+  - `npx vitest run src/lib/admin/searchAnalysisContract.test.ts src/lib/ai/utils.test.ts src/services/prompts/analysisPromptRules.test.ts src/services/pricingService.database.test.ts --exclude '.claude/**'` passed: 4 files, 24 tests.
+  - `git diff --check` passed.
+  - `npm run build` passed. Existing non-fatal warnings appeared for stale `baseline-browser-mapping`, inferred workspace root, deprecated `middleware`, and Supabase statement timeouts during static generation.

@@ -51,6 +51,22 @@ const pricingRows: PricingRule[] = [
     updated_at: '2026-01-01T00:00:00.000Z',
   },
   {
+    rule_id: 5,
+    item_key: 'edible_flowers_small',
+    item_type: 'edible_flowers',
+    classification: 'support',
+    size: 'small',
+    description: 'Edible flowers',
+    price: 10,
+    category: 'support_element',
+    quantity_rule: 'buy_3_get_1_free',
+    multiplier_rule: null,
+    special_conditions: null,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+  },
+  {
     rule_id: 4,
     item_key: 'satin_ribbon',
     item_type: 'satin_ribbon',
@@ -175,6 +191,33 @@ describe('calculatePriceFromDatabase', () => {
 
     expect(itemPrices.get('ribbon-1')).toBe(100);
     expect(addOnPricing.addOnPrice).toBe(100);
+  });
+
+  it('prices legacy fresh_flowers through edible flower pricing rules', async () => {
+    const { calculatePriceFromDatabase } = await import('./pricingService.database');
+    const warnSpy = vi.spyOn(console, 'warn');
+
+    const flowers = {
+      id: 'flowers-1',
+      type: 'fresh_flowers',
+      material: 'non-edible',
+      description: 'Pink natural-looking flowers',
+      quantity: 4,
+      isEnabled: true,
+      size: 'small',
+    } as SupportElementUI;
+
+    const { addOnPricing, itemPrices } = await calculatePriceFromDatabase({
+      mainToppers: [],
+      supportElements: [flowers],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
+    });
+
+    expect(itemPrices.get('flowers-1')).toBe(30);
+    expect(addOnPricing.addOnPrice).toBe(30);
+    expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining('fresh_flowers'));
   });
 
   it('calculates cupcake topper prices correctly (Option B - Flat Maximum)', async () => {

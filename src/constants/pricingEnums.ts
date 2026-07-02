@@ -79,7 +79,6 @@ export const SUPPORT_ELEMENT_TYPES = [
     'icing_decorations',
     'gumpaste_creations',
     'edible_lego_bricks',
-    'fresh_flowers',
     'artificial_flowers',
     'thin_fabric_ribbon_bows',
     'satin_ribbon',

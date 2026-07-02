@@ -203,9 +203,11 @@ Group visually similar candles together with quantity.
 - Printed graphics that show depth, shadows, or 3D rendering are STILL printouts
 - Only classify as "toy" if you can see it's a PHYSICAL 3D molded object with real depth
 
-### Protocol 4: THE "FLOWER" CHECK (Fresh vs. Sugar vs. Silk)
+### Protocol 4: THE "FLOWER" CHECK (Edible Flower Safety Rule)
 
-- IF petals have veins, natural imperfections, brown edges → IT IS "fresh_flowers" (removed before eating).
+- Genie.ph does not put fresh flowers on cakes because they are not safe or hygienic for our food workflow.
+- IF a flower appears fresh, natural, realistic, or edible, classify it as "edible_flowers".
+- IF petals have veins, natural imperfections, brown edges, or fresh-flower styling → IT IS still "edible_flowers".
 - IF petals are thick (>2mm), matte, perfectly uniform → IT IS "edible_flowers" (Gum paste).
 - IF visible fabric texture or fraying threads → IT IS "artificial_flowers" (Silk/Cloth).
 
@@ -576,7 +578,7 @@ Different element shapes require different measurement axes:
 |-----------------|----------------------|
 | **3D figures** (edible_3d_complex, edible_3d_ordinary, toy) | **HEIGHT** — vertical extent from base to top of figure |
 | **Flat toppers** (printout, cardstock) | **LARGER** of height or width (whichever dominates) |
-| **Flowers** (edible_flowers, fresh, artificial) | **DIAMETER** of the bloom face |
+| **Flowers** (edible_flowers, artificial) | **DIAMETER** of the bloom face |
 | **Spheres / balls** (plastic_ball_regular, edible balls) | **DIAMETER** |
 | **2D flat decorations** (edible_2d_support) | **LONGEST dimension** (height, width, or diagonal) |
 | **Candles** | **HEIGHT** only (ignore flame) |
@@ -629,7 +631,7 @@ Flat toppers have more visual surface area than 3D items, so they *appear* large
 | `xlarge` | **> 1.2** | A lot taller than the tier itself, could be bigger than the cake |
 ---
 
-### C3. FLOWERS — edible_flowers, fresh_flowers, artificial_flowers
+### C3. FLOWERS — edible_flowers, artificial_flowers
 
 Flowers are measured by bloom **diameter**, which is perpendicular to height. Thresholds are tighter because even a small-looking flower takes significant skill.
 
@@ -900,7 +902,7 @@ A unique item that has no duplicates should still have its own unique group_id.
 | `icing_decorations` | icing | Piped icing elements (rosettes, swirls, borders) - tiny/small, usually at top, sides, or base |
 | `icing_palette_knife` | icing | `impasto` style petals where each stroke represents a leaf or a petal. It looks like a 3D painting on the cake.|
 | `plastic_ball_regular` | plastic | Round smooth plastic spheres (gold, silver, colored). Count individually |
-| `fresh_flowers` | non-edible | Real flowers (not counted for pricing) |
+| `edible_flowers` | edible_fondant | Fresh-looking, natural-looking, or realistic flowers must still be classified and priced as edible flowers. Do not output `fresh_flowers`. |
 | `artificial_flowers` | non-edible | Silk/cloth flowers (not counted for pricing) |
 | `thin_fabric_ribbon_bows` | non-edible | Small/thin satin, organza, or sheer fabric bow accents, dangling ribbon tails, and narrow streamers. Free decorative accent. Use quantity 1 for the set. |
 | `satin_ribbon` | non-edible | Large satin or organza fabric wrap, full/near-full side band, or substantial structured translucent ruffle. Paid large fabric feature. Use quantity 1 for the whole wrap. |

@@ -36,4 +36,31 @@ describe('getDynamicTypeEnums', () => {
     expect(result.mainTopperTypes).toContain('icing_doodle');
     expect(result.subtypesByType.icing_doodle).toEqual(['icing_doodle_intricate']);
   });
+
+  it('maps fresh flower pricing aliases to edible flowers for analyzer enums', async () => {
+    const eq = vi.fn().mockResolvedValue({
+      data: [
+        {
+          item_type: 'fresh_flowers',
+          item_key: 'fresh_flowers',
+          category: 'support_element',
+          sub_item_type: null,
+        },
+      ],
+      error: null,
+    });
+
+    const supabase = {
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq,
+        })),
+      })),
+    };
+
+    const result = await getDynamicTypeEnums(supabase);
+
+    expect(result.supportElementTypes).toContain('edible_flowers');
+    expect(result.supportElementTypes).not.toContain('fresh_flowers');
+  });
 });

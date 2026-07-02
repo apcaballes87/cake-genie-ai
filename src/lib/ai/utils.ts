@@ -1,6 +1,7 @@
 import { MAIN_TOPPER_TYPES, SUPPORT_ELEMENT_TYPES } from '@/constants/pricingEnums';
 
 const ITEM_KEY_TYPE_ALIASES: Record<string, string> = {
+    fresh_flowers: 'edible_flowers',
     icing_brush_stroke: 'icing_brush_stroke',
     icing_doodle: 'icing_doodle',
     icing_doodle_intricate: 'icing_doodle',
@@ -31,7 +32,8 @@ export async function getDynamicTypeEnums(supabase: any) {
     const subtypesByType: Record<string, string[]> = {};
 
     data.forEach((rule: any) => {
-        const resolvedItemType = rule.item_type || ITEM_KEY_TYPE_ALIASES[rule.sub_item_type] || ITEM_KEY_TYPE_ALIASES[rule.item_key];
+        const rawItemType = rule.item_type || rule.sub_item_type || rule.item_key;
+        const resolvedItemType = ITEM_KEY_TYPE_ALIASES[rawItemType] || rule.item_type || ITEM_KEY_TYPE_ALIASES[rule.sub_item_type] || ITEM_KEY_TYPE_ALIASES[rule.item_key];
         if (resolvedItemType) {
             if (rule.category === 'main_topper') {
                 mainTopperTypes.add(resolvedItemType);

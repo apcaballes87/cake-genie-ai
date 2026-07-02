@@ -60,6 +60,16 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('| `thin_fabric_ribbon_bows` | non-edible | Small/thin satin, organza, or sheer fabric bow accents, dangling ribbon tails, and narrow streamers.');
   });
 
+  it('classifies fresh-looking flowers as edible flowers in the fallback prompt source', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(prompt).toContain('Genie.ph does not put fresh flowers on cakes because they are not safe or hygienic for our food workflow.');
+    expect(prompt).toContain('IF a flower appears fresh, natural, realistic, or edible, classify it as "edible_flowers".');
+    expect(prompt).toContain('Do not output `fresh_flowers`.');
+    expect(prompt).not.toContain('IT IS "fresh_flowers"');
+    expect(prompt).not.toContain('| `fresh_flowers` |');
+  });
+
   it('keeps candle classification in the fallback prompt source', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 

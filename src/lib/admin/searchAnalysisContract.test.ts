@@ -12,7 +12,7 @@ describe('search analysis contract', () => {
   it('includes the canonical rejection reasons and enums used by the prompt', () => {
     const schema = buildSearchAnalysisResponseSchema({
       mainTopperTypes: ['printout', 'icing_doodle', 'edible_photo_top'],
-      supportElementTypes: ['sprinkles', 'fresh_flowers', 'icing_doodle'],
+      supportElementTypes: ['sprinkles', 'fresh_flowers', 'edible_flowers', 'icing_doodle'],
     }) as Record<string, any>;
 
     expect(SEARCH_ANALYSIS_REJECTION_REASONS).toContain('payment_receipt');
@@ -25,6 +25,8 @@ describe('search analysis contract', () => {
       'printout',
       'cardstock',
     ]);
+    expect(schema.properties.support_elements.items.properties.type.enum).toContain('edible_flowers');
+    expect(schema.properties.support_elements.items.properties.type.enum).not.toContain('fresh_flowers');
     expect(schema.properties).not.toHaveProperty('is_tall_proportion');
   });
 
