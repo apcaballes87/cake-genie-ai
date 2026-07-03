@@ -95,11 +95,6 @@ export const CustomizingAiChatPanel = React.memo(({
         if (event.defaultPrevented) {
             return;
         }
-
-        if (event.key === 'Enter' && !event.shiftKey) {
-            event.preventDefault();
-            void onSubmit();
-        }
     };
 
     return (
@@ -130,7 +125,7 @@ export const CustomizingAiChatPanel = React.memo(({
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isAttachmentDisabled}
                         aria-label="Attach reference image"
-                        className="shrink-0 h-10 w-10 rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-purple-200 hover:bg-purple-50 hover:text-purple-700 disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center"
+                        className="shrink-0 h-9 w-9 rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-purple-200 hover:bg-purple-50 hover:text-purple-700 disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center"
                     >
                         {isAttachmentUploading ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -187,13 +182,13 @@ export const CustomizingAiChatPanel = React.memo(({
                                 disabled={isAiProcessing || isUpdatingDesign}
                                 autoComplete="off"
                                 rows={1}
-                                className="w-full min-h-10 resize-none overflow-hidden pl-4 pr-14 py-2.5 bg-white border border-slate-200 rounded-2xl text-[12.5px] leading-[18px] shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all disabled:opacity-50 disabled:bg-slate-50 placeholder:text-slate-400"
+                                className="w-full min-h-9 resize-none overflow-hidden pl-4 pr-12 py-2 bg-white border border-slate-200 rounded-2xl text-[12.5px] leading-[18px] shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all disabled:opacity-50 disabled:bg-slate-50 placeholder:text-slate-400"
                             />
                         )}
                         <button
                             type="submit"
                             disabled={!chatInput.trim() || isAiProcessing || isUpdatingDesign || !!selectedAiPromptTemplate}
-                            className="absolute right-1.5 top-1.5 h-10 w-10 bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white rounded-xl transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                            className="absolute right-1 top-1 h-9 w-9 bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white rounded-xl transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
                             aria-label="Submit AI Edit"
                         >
                             {isAiProcessing ? (

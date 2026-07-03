@@ -43,7 +43,7 @@ const buildProps = () => ({
 });
 
 describe('CustomizingAiChatPanel', () => {
-    it('renders free-text mode and forwards primary interactions', () => {
+    it('renders free-text mode and forwards primary interactions without submitting on Enter', () => {
         const props = buildProps();
 
         render(<CustomizingAiChatPanel {...props} />);
@@ -52,10 +52,11 @@ describe('CustomizingAiChatPanel', () => {
         const uploadButton = screen.getByRole('button', { name: 'Attach reference image' });
         const submitButton = screen.getByRole('button', { name: 'Submit AI Edit' });
         expect(input.tagName).toBe('TEXTAREA');
-        expect(uploadButton.className).toContain('h-10');
-        expect(uploadButton.className).toContain('w-10');
-        expect(submitButton.className).toContain('h-10');
-        expect(submitButton.className).toContain('w-10');
+        expect(uploadButton.className).toContain('h-9');
+        expect(uploadButton.className).toContain('w-9');
+        expect(submitButton.className).toContain('h-9');
+        expect(submitButton.className).toContain('w-9');
+        expect(input).toHaveClass('min-h-9');
         fireEvent.focus(input);
         fireEvent.click(input);
         fireEvent.change(input, { target: { value: 'make it pastel blue' } });
@@ -65,6 +66,16 @@ describe('CustomizingAiChatPanel', () => {
         expect(props.onInputInteract).toHaveBeenCalledTimes(2);
         expect(props.onInputChange).toHaveBeenCalledWith('make it pastel blue');
         expect(props.onSuggestionSelect).toHaveBeenCalledWith('add butterflies');
+        expect(props.onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('still submits through the send button', () => {
+        const props = buildProps();
+
+        const { container } = render(<CustomizingAiChatPanel {...props} />);
+
+        fireEvent.submit(container.querySelector('form') as HTMLFormElement);
+
         expect(props.onSubmit).toHaveBeenCalledTimes(1);
     });
 

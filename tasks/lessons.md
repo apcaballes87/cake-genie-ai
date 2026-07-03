@@ -1,5 +1,6 @@
 # Lessons
 
+- For the customizer AI chat, treat plain `Enter` as textarea newline behavior unless the user explicitly asks for chat-style submit-on-enter. Suggestion navigation and submission shortcuts should not silently override multiline editing expectations.
 - For the `/customizing` mobile hero, do not force every image through the scrollable pan treatment. Compare the source aspect ratio against the fixed mobile hero frame first, and use a cover-fill render path for wider images so the frame cannot show bottom whitespace.
 - When recalculating `cakegenie_analysis_cache.price`, never default a missing base-price lookup to `0` and continue writing. Normalize raw `analysis_json.cakeType` to a canonical `CakeType`, and if no `productsizes_cakegenie` row exists after normalization, skip or fail that row loudly instead of corrupting the stored total.
 - When the user narrows a broad customizer strategy from “CRO plus agent readiness” down to “agent readiness only,” drop the conversion redesign scope completely. Keep the implementation centered on semantics, accessibility, and machine-readable state instead of sneaking UX optimization work back in.

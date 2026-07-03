@@ -1875,7 +1875,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
             return;
         }
 
-        if (e.key === 'Enter' && selectedAiPromptIndex >= 0) {
+        if (e.key === 'Tab' && selectedAiPromptIndex >= 0) {
             e.preventDefault();
             handleAiPromptSuggestionSelect(filteredAiChatPromptSuggestions[selectedAiPromptIndex].suggestion);
         }

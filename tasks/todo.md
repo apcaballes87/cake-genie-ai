@@ -1,5 +1,25 @@
 # Tasks
 
+## Customizer AI Chat Enter Key And Button Height (2026-07-03)
+
+### Plan
+
+- [x] Reinspect the AI chat panel layout and keyboard handling after the user-reported mismatch.
+- [x] Reduce the icon button sizing so the send button matches the visible input height more cleanly.
+- [x] Change the AI chat keyboard behavior so plain Enter inserts a new line instead of submitting.
+- [x] Update focused tests and run verification.
+
+### Review
+
+- Updated [src/app/customizing/CustomizingAiChatPanel.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingAiChatPanel.tsx:1) so the upload button and purple send button both use the same `h-9 w-9` size, while the textarea now uses a tighter `min-h-9`, `py-2`, and `pr-12`. That brings the send button back into proportion with the visible text field while keeping it pinned at the top-right as the textarea grows.
+- Removed the panel-level plain-Enter auto-submit behavior, so pressing `Enter` in the AI chat textarea now behaves like a normal multiline field and creates a new line.
+- Updated the shared AI prompt key handler in [src/app/customizing/CustomizingClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingClient.tsx:1875) so suggestion acceptance no longer steals `Enter`; it now uses `Tab` when a suggestion is highlighted.
+- Expanded [src/app/customizing/CustomizingAiChatPanel.test.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingAiChatPanel.test.tsx:1) to verify the smaller matched button sizing, assert that `Enter` no longer submits, and confirm the form still submits through the explicit send action.
+- Verification:
+  - `npx vitest run src/app/customizing/CustomizingAiChatPanel.test.tsx --exclude '.claude/**'` passed: 4 tests.
+  - `git diff --check -- src/app/customizing/CustomizingAiChatPanel.tsx src/app/customizing/CustomizingAiChatPanel.test.tsx src/app/customizing/CustomizingClient.tsx tasks/todo.md tasks/lessons.md` passed.
+  - `npx eslint src/app/customizing/CustomizingAiChatPanel.tsx src/app/customizing/CustomizingAiChatPanel.test.tsx src/app/customizing/CustomizingClient.tsx` reported only the existing warning set already present in `CustomizingClient.tsx`, plus the usual stale Browserslist notice.
+
 ## Customizer Hero Frame Fill On Mobile (2026-07-03)
 
 ### Plan
