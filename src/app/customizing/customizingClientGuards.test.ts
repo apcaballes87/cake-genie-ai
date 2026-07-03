@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest'
 import {
   buildRetryUploadUrl,
   buildRelatedCollectionsRequestKey,
+  EDIBLE_PHOTO_AI_CHAT_DEFAULT_PROMPT,
   getAutoRelatedDesignRequest,
+  getNextEdiblePhotoAiChatInput,
+  persistAnalysisImageRef,
   resolveEntrySourceParam,
   shouldLoadPropDesign,
   shouldHydrateImageFromExistingAnalysis,
@@ -163,5 +166,52 @@ describe('customizingClientGuards', () => {
     )).toBe('/customizing?keep=1')
 
     expect(buildRetryUploadUrl('/customizing', '')).toBe('/customizing')
+  })
+
+  it('stores only the image ref for analysis handoff persistence', () => {
+    const writes: Record<string, string> = {}
+    const storage = {
+      setItem: (key: string, value: string) => {
+        writes[key] = value
+      },
+    }
+
+    expect(persistAnalysisImageRef(
+      storage,
+      'cakegenie_analysis',
+      'https://example.com/fresh-cake.jpg'
+    )).toBe(true)
+
+    expect(JSON.parse(writes.cakegenie_analysis)).toEqual({
+      imageRef: 'https://example.com/fresh-cake.jpg',
+    })
+    expect(writes.cakegenie_analysis).not.toContain('result')
+    expect(writes.cakegenie_analysis).not.toContain('data:image')
+  })
+
+  it('treats quota-exceeded storage writes as non-fatal', () => {
+    const storage = {
+      setItem: () => {
+        throw new DOMException(
+          "Failed to execute 'setItem' on 'Storage': Setting the value exceeded the quota.",
+          'QuotaExceededError'
+        )
+      },
+    }
+
+    expect(persistAnalysisImageRef(
+      storage,
+      'cakegenie_analysis',
+      'https://example.com/fresh-cake.jpg'
+    )).toBe(false)
+  })
+
+  it('prefills edible-photo AI chat without overwriting user text', () => {
+    expect(getNextEdiblePhotoAiChatInput('', true)).toBe(EDIBLE_PHOTO_AI_CHAT_DEFAULT_PROMPT)
+    expect(getNextEdiblePhotoAiChatInput('   ', true)).toBe(EDIBLE_PHOTO_AI_CHAT_DEFAULT_PROMPT)
+    expect(getNextEdiblePhotoAiChatInput(EDIBLE_PHOTO_AI_CHAT_DEFAULT_PROMPT, true)).toBe(EDIBLE_PHOTO_AI_CHAT_DEFAULT_PROMPT)
+    expect(getNextEdiblePhotoAiChatInput('make the border blue', true)).toBe('make the border blue')
+    expect(getNextEdiblePhotoAiChatInput(EDIBLE_PHOTO_AI_CHAT_DEFAULT_PROMPT, false)).toBe('')
+    expect(getNextEdiblePhotoAiChatInput('make the border blue', false)).toBe('make the border blue')
   })
 })

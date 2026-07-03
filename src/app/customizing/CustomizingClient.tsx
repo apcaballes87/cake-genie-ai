@@ -86,6 +86,8 @@ import {
     buildRetryUploadUrl,
     buildRelatedCollectionsRequestKey,
     getAutoRelatedDesignRequest,
+    getNextEdiblePhotoAiChatInput,
+    persistAnalysisImageRef,
     resolveEntrySourceParam,
     shouldHydrateImageFromExistingAnalysis,
     shouldLoadPropDesign,
@@ -1002,9 +1004,15 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     const effectiveCacheId = recentSearchDesign?.id || currentCacheId || null;
 
     const hasEnabledEdiblePhotoTopper = useMemo(
-        () => mainToppers?.some(t => t.isEnabled && t.type === 'edible_photo_top') ?? false,
+        () => mainToppers?.some(t => t.isEnabled && (t.type === 'edible_photo_top' || t.original_type === 'edible_photo_top')) ?? false,
         [mainToppers]
     );
+
+    useEffect(() => {
+        setChatInput((current) => {
+            return getNextEdiblePhotoAiChatInput(current, hasEnabledEdiblePhotoTopper);
+        });
+    }, [hasEnabledEdiblePhotoTopper]);
 
     const staticIcingMaskUrl = useMemo(
         () => (effectiveCacheId === null && hasEnabledEdiblePhotoTopper ? EDIBLE_PHOTO_MASK_URL : null),
@@ -2520,16 +2528,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         // setIsPreSelectionModalOpen(true);
         showInfo("Loading your cake design...");
 
-        // Save the image ref we're about to analyze (so we can restore on return)
-        const existingData = localStorage.getItem('cakegenie_analysis');
-        try {
-            const data = existingData ? JSON.parse(existingData) : {};
-            data.imageRef = decodedUrl;
-            localStorage.setItem('cakegenie_analysis', JSON.stringify(data));
-        } catch (e) {
-            // Create new entry if parsing fails
-            localStorage.setItem('cakegenie_analysis', JSON.stringify({ imageRef: decodedUrl }));
-        }
+        // Save only the ref needed for handoff reuse. Full analysis payloads can
+        // include large image data and exceed localStorage quota.
+        persistAnalysisImageRef(localStorage, 'cakegenie_analysis', decodedUrl);
         // TODO: SEO Titles/Descriptions for shared designs
         // - [/] Fix `seo_title` and `seo_description` for 52 items in `cakegenie_analysis_cache`
         // - [x] Refine implementation plan based on user feedback (descriptive titles)
@@ -4014,6 +4015,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                         separateIcingStep,
                                         hideStepFour,
                                         photoStepNode,
+                                        prioritizeAiChat: hasEnabledEdiblePhotoTopper,
                                         onUpdateDesign: onUpdateDesign,
                                         isUpdatingDesign: isUpdatingDesign,
                                         dirtyFields: dirtyFields,
@@ -4094,6 +4096,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                     hideStepOne={hideStepOne}
                                     hideStepFour={hideStepFour}
                                     photoStepNode={photoStepNode}
+                                    prioritizeAiChat={hasEnabledEdiblePhotoTopper}
                                     aiChatNode={!analysisError && !hideAiChat ? (
                                         <CustomizingAiChatPanel
                                             className="w-full"
@@ -4212,6 +4215,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                     hideStepOne,
                                     hideStepFour,
                                     photoStepNode,
+                                    prioritizeAiChat: hasEnabledEdiblePhotoTopper,
                                     originalCakeType: analysisResult?.cakeType,
                                     aiChatNode: !analysisError && !hideAiChat ? (
                                         <CustomizingAiChatPanel

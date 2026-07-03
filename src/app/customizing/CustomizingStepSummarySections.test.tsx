@@ -261,7 +261,7 @@ describe('CustomizingStepSummarySections', () => {
         expect(screen.getByRole('button', { name: /Top Border/i })).toBeInTheDocument();
     });
 
-    it('renders the main color swatches above the cake options and outside advanced customization', () => {
+    it('renders AI chat below messages while keeping cake options inside advanced customization', () => {
         const props = buildProps();
         props.aiChatNode = <div>AI Cake Assistant</div>;
 
@@ -275,25 +275,47 @@ describe('CustomizingStepSummarySections', () => {
         const advancedSection = document.getElementById('advanced-customization-steps');
         const icingTypeLabel = screen.getByText('Icing Type');
         const mainLabel = screen.getByText('Main');
+        const messageLabel = screen.getByText('Happy Birthday');
+        const aiChatTitle = screen.getByText('AI Cake Assistant');
 
         expect(icingTypeLabel.compareDocumentPosition(mainLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(messageLabel.compareDocumentPosition(aiChatTitle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(aiChatTitle.compareDocumentPosition(advancedToggle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         expect(screen.getByTitle('red')).toBeInTheDocument();
         expect(advancedToggle).toHaveAttribute('aria-expanded', 'false');
         expect(advancedSection).toHaveClass('max-h-0', 'opacity-0', 'pointer-events-none');
         expect(within(advancedSection as HTMLElement).queryByText('Main')).not.toBeInTheDocument();
+        expect(within(advancedSection as HTMLElement).queryByText('AI Cake Assistant')).not.toBeInTheDocument();
 
         fireEvent.click(advancedToggle);
 
         expect(advancedToggle).toHaveAttribute('aria-expanded', 'true');
         expect(advancedSection).toHaveClass('max-h-[2000px]', 'opacity-100');
         const advancedScope = within(advancedSection as HTMLElement);
-        const aiChatTitle = advancedScope.getByText('AI Cake Assistant');
         const cakeTypeLabel = advancedScope.getByText('Cake Type');
 
-        expect(aiChatTitle.compareDocumentPosition(cakeTypeLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(advancedScope.queryByText('AI Cake Assistant')).not.toBeInTheDocument();
         expect(advancedScope.getByRole('button', { name: /2 Tier/i })).toBeInTheDocument();
         expect(advancedScope.getByRole('button', { name: /3 Tier/i })).toBeInTheDocument();
         expect(cakeTypeLabel).toBeInTheDocument();
+    });
+
+    it('moves AI chat above cake options when prioritized for edible-photo designs', () => {
+        const props = buildProps();
+        props.aiChatNode = <div>AI Cake Assistant</div>;
+
+        render(<CustomizingStepSummarySections {...props} prioritizeAiChat />);
+
+        const aiChatTitle = screen.getByText('AI Cake Assistant');
+        const icingTypeLabel = screen.getByText('Icing Type');
+        const messageLabel = screen.getByText('Happy Birthday');
+        const advancedToggle = screen.getByRole('button', { name: /Edit Design Details/i });
+        const advancedSection = document.getElementById('advanced-customization-steps');
+
+        expect(aiChatTitle.compareDocumentPosition(icingTypeLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(aiChatTitle.compareDocumentPosition(messageLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(aiChatTitle.compareDocumentPosition(advancedToggle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(within(advancedSection as HTMLElement).queryByText('AI Cake Assistant')).not.toBeInTheDocument();
     });
 
     it('calls onDisableMask and onUpdateDesign when (fix icing color) button is clicked', () => {

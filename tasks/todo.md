@@ -1,5 +1,62 @@
 # Tasks
 
+## Customizer Edible Photo AI Chat Priority (2026-07-03)
+
+### Plan
+
+- [x] Trace edible-photo detection and current AI chat input ownership.
+- [x] Prefill the AI chat input for enabled top edible-photo designs without overwriting user edits.
+- [x] Move the AI chat card above cake options only for top edible-photo designs.
+- [x] Add focused regression coverage and run verification.
+
+### Review
+
+- Reused the customizer's enabled edible-photo-top detection in [src/app/customizing/CustomizingClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingClient.tsx:1), now checking both `type` and `original_type` for `edible_photo_top`.
+- Added `getNextEdiblePhotoAiChatInput(...)` and `EDIBLE_PHOTO_AI_CHAT_DEFAULT_PROMPT` in [src/app/customizing/customizingClientGuards.ts](/Users/apcaballes/genieph-nextjs/src/app/customizing/customizingClientGuards.ts:1). The input fills with `Change the Edible Photo to the uploaded photo` only when empty/default, preserves user-typed text, and clears the untouched default if the edible-photo condition disappears.
+- Added `prioritizeAiChat` to [src/app/customizing/CustomizingStepSummarySections.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingStepSummarySections.tsx:1). Normal cakes still show AI chat below cake messages; edible-photo-top cakes show it at the top above cake options.
+- Passed `prioritizeAiChat={hasEnabledEdiblePhotoTopper}` through mobile and desktop customizer render paths.
+- Verification:
+  - `npx vitest run src/app/customizing/CustomizingStepSummarySections.test.tsx src/app/customizing/customizingClientGuards.test.ts --exclude '.claude/**'` passed: 26 tests.
+  - `git diff --check -- src/app/customizing/CustomizingClient.tsx src/app/customizing/CustomizingStepSummarySections.tsx src/app/customizing/CustomizingStepSummarySections.test.tsx src/app/customizing/customizingClientGuards.ts src/app/customizing/customizingClientGuards.test.ts tasks/todo.md` passed.
+  - `npx eslint src/app/customizing/CustomizingClient.tsx src/app/customizing/CustomizingStepSummarySections.tsx src/app/customizing/CustomizingStepSummarySections.test.tsx src/app/customizing/customizingClientGuards.ts src/app/customizing/customizingClientGuards.test.ts` passed with 0 errors; existing stale Browserslist notice and pre-existing warnings remain.
+
+## Customizer AI Chat Below Cake Messages (2026-07-03)
+
+### Plan
+
+- [x] Locate the current `aiChatNode` placement inside the customizer advanced details stack.
+- [x] Move the AI chat panel outside `Edit Design Details`, directly below the cake messages card.
+- [x] Update focused layout tests and run verification.
+
+### Review
+
+- Moved `aiChatNode` in [src/app/customizing/CustomizingStepSummarySections.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingStepSummarySections.tsx:1) so the AI chat edit card renders immediately after the cake messages card and before the `Edit Design Details` toggle.
+- Removed `AI chat` from the collapsed advanced-details helper text because the chat is no longer inside that section.
+- Updated [src/app/customizing/CustomizingStepSummarySections.test.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingStepSummarySections.test.tsx:1) to assert the new order: cake message, AI chat, then `Edit Design Details`; it also confirms the advanced section no longer contains the AI chat.
+- Verification:
+  - `npx vitest run src/app/customizing/CustomizingStepSummarySections.test.tsx --exclude '.claude/**'` passed: 12 tests.
+  - `git diff --check -- src/app/customizing/CustomizingStepSummarySections.tsx src/app/customizing/CustomizingStepSummarySections.test.tsx tasks/todo.md` passed.
+
+## Customizer LocalStorage Quota Crash (2026-07-03)
+
+### Plan
+
+- [x] Trace the `cakegenie_analysis` localStorage write path on `/customizing`.
+- [x] Replace the unsafe full-object rewrite with a bounded, fail-soft ref persistence helper.
+- [x] Add focused regression coverage for malformed JSON and quota-exceeded storage writes.
+- [x] Run focused tests and diff checks.
+
+### Review
+
+- Root cause: the external-ref loading path in [src/app/customizing/CustomizingClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingClient.tsx:1) read the existing `cakegenie_analysis` localStorage value, mutated `imageRef`, then wrote the full object back. After upload/AI edit, that object can include large image data, so the browser can throw `QuotaExceededError` during `localStorage.setItem`.
+- Added `persistAnalysisImageRef(...)` in [src/app/customizing/customizingClientGuards.ts](/Users/apcaballes/genieph-nextjs/src/app/customizing/customizingClientGuards.ts:1). It writes only `{ imageRef }` and returns `false` instead of throwing if storage quota is exhausted.
+- Updated the customizer ref handoff to use the bounded helper, preventing localStorage quota errors from reaching the React error boundary.
+- Added regression coverage in [src/app/customizing/customizingClientGuards.test.ts](/Users/apcaballes/genieph-nextjs/src/app/customizing/customizingClientGuards.test.ts:1) for small snapshot persistence and quota-exceeded failure.
+- Verification:
+  - `npx vitest run src/app/customizing/customizingClientGuards.test.ts src/app/customizing/refLoadStrategy.test.ts --exclude '.claude/**'` passed: 2 files, 17 tests.
+  - `git diff --check -- src/app/customizing/CustomizingClient.tsx src/app/customizing/customizingClientGuards.ts src/app/customizing/customizingClientGuards.test.ts tasks/todo.md` passed.
+  - `npx eslint src/app/customizing/CustomizingClient.tsx src/app/customizing/customizingClientGuards.ts src/app/customizing/customizingClientGuards.test.ts` passed with 0 errors; it still reports the existing stale Browserslist notice and pre-existing warnings in `CustomizingClient.tsx`.
+
 ## Backfill Cache Total Price Column (2026-07-03)
 
 ### Plan

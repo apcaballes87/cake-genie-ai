@@ -51,6 +51,7 @@ interface CustomizingStepSummarySectionsProps {
     addOnPricing?: number;
     separateIcingStep?: boolean;
     aiChatNode?: React.ReactNode;
+    prioritizeAiChat?: boolean;
     hideStepOne?: boolean;
     hideStepFour?: boolean;
     photoStepNode?: React.ReactNode;
@@ -268,6 +269,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     addOnPricing = 0,
     separateIcingStep = false,
     aiChatNode,
+    prioritizeAiChat = false,
     hideStepOne,
     hideStepFour,
     photoStepNode,
@@ -532,6 +534,14 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
 
     const combinedDecorItems = getCombinedDecorItems(mainToppers, supportElements);
     const combinedDecorSummary = buildCombinedDecorSummary(mainToppers, supportElements, isCupcake);
+    const shouldShowAiChatCard = Boolean(cakeInfo && !isAnalyzing && !isRejectionError && aiChatNode);
+    const aiChatCard = shouldShowAiChatCard ? (
+        <div className={cardClassName}>
+            <div className="mt-1">
+                {aiChatNode}
+            </div>
+        </div>
+    ) : null;
 
     const cakeTypeSelectorNode = cakeInfo ? (() => {
         const currentIcingType = getIcingTypeValue(cakeInfo, icingDesign);
@@ -650,6 +660,8 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
         <div className={containerClassName}>
 
             {/* Pulsing hint for AI icing mask is disabled/hidden since the mask is disabled */}
+
+            {prioritizeAiChat ? aiChatCard : null}
 
             {cakeInfo && !isAnalyzing && !isRejectionError && !hideStepOne && (
                 <div 
@@ -1073,6 +1085,8 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                 </div>
             )}
 
+            {!prioritizeAiChat ? aiChatCard : null}
+
             {cakeInfo && !isAnalyzing && !isRejectionError && (
                 <div className="px-1 py-1">
                     <button
@@ -1094,7 +1108,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                             <div className="text-left">
                                 <span className="block text-sm font-bold leading-tight">Edit Design Details</span>
                                 <span className="block text-[10px] font-medium text-slate-500 mt-0.5">
-                                    {showAdvanced ? 'Hide additional options' : 'Cake type, decorations, AI chat and more'}
+                                    {showAdvanced ? 'Hide additional options' : 'Cake type, decorations and more'}
                                 </span>
                             </div>
                         </div>
@@ -1113,14 +1127,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                     showAdvanced ? 'max-h-[2000px] opacity-100 overflow-visible' : 'max-h-0 opacity-0 pointer-events-none overflow-hidden'
                 }`}
             >
-                {cakeInfo && !isAnalyzing && !isRejectionError && aiChatNode && (
-                    <div className={cardClassName}>
-                        <div className="mt-1">
-                            {aiChatNode}
-                        </div>
-                    </div>
-                )}
-
                 {cakeInfo && !isCupcake && !isAnalyzing && !isRejectionError && cakeTypeSelectorNode && (
                     <div className={cardClassName}>
                         <div className="flex flex-col gap-2 px-1 pb-2">

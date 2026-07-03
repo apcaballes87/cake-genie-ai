@@ -23,6 +23,12 @@ interface ExistingAnalysisHydrationArgs {
   hasCachedAnalysis?: boolean
 }
 
+interface MinimalPersistedAnalysisSnapshot {
+  imageRef: string
+}
+
+export const EDIBLE_PHOTO_AI_CHAT_DEFAULT_PROMPT = 'Change the Edible Photo to the uploaded photo'
+
 const RETRY_UPLOAD_QUERY_PARAMS = [
   'ref',
   'source',
@@ -124,4 +130,31 @@ export function buildRetryUploadUrl(pathname: string, search: string): string {
 
   const nextSearch = params.toString()
   return nextSearch ? `${pathname}?${nextSearch}` : pathname
+}
+
+export function persistAnalysisImageRef(
+  storage: Pick<Storage, 'setItem'>,
+  key: string,
+  imageRef: string
+): boolean {
+  const snapshot: MinimalPersistedAnalysisSnapshot = { imageRef }
+
+  try {
+    storage.setItem(key, JSON.stringify(snapshot))
+    return true
+  } catch {
+    return false
+  }
+}
+
+export function getNextEdiblePhotoAiChatInput(current: string, hasEnabledEdiblePhotoTopper: boolean): string {
+  if (hasEnabledEdiblePhotoTopper) {
+    if (!current.trim() || current === EDIBLE_PHOTO_AI_CHAT_DEFAULT_PROMPT) {
+      return EDIBLE_PHOTO_AI_CHAT_DEFAULT_PROMPT
+    }
+
+    return current
+  }
+
+  return current === EDIBLE_PHOTO_AI_CHAT_DEFAULT_PROMPT ? '' : current
 }
