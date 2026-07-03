@@ -124,13 +124,13 @@ export const CustomizingAiChatPanel = React.memo(({
                         event.target.value = '';
                     }}
                 />
-                <div className="flex items-stretch gap-2">
+                <div className="flex items-start gap-2">
                     <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isAttachmentDisabled}
                         aria-label="Attach reference image"
-                        className="shrink-0 rounded-2xl border border-slate-200 bg-white px-3 text-slate-500 shadow-sm transition hover:border-purple-200 hover:bg-purple-50 hover:text-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="shrink-0 h-10 w-10 rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-purple-200 hover:bg-purple-50 hover:text-purple-700 disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center"
                     >
                         {isAttachmentUploading ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
