@@ -51,12 +51,15 @@ describe('CustomizingAiChatPanel', () => {
         const input = screen.getByPlaceholderText('✨ Tell Genie your cake design wish...');
         const uploadButton = screen.getByRole('button', { name: 'Attach reference image' });
         const submitButton = screen.getByRole('button', { name: 'Submit AI Edit' });
+        const inputWrapper = input.parentElement;
         expect(input.tagName).toBe('TEXTAREA');
         expect(uploadButton.className).toContain('h-9');
         expect(uploadButton.className).toContain('w-9');
-        expect(submitButton.className).toContain('h-9');
-        expect(submitButton.className).toContain('w-9');
-        expect(input).toHaveClass('min-h-9');
+        expect(submitButton.className).toContain('h-8');
+        expect(submitButton.className).toContain('w-8');
+        expect(input).toHaveClass('min-h-10');
+        expect(inputWrapper?.className).toContain('rounded-2xl');
+        expect(inputWrapper?.className).toContain('border');
         fireEvent.focus(input);
         fireEvent.click(input);
         fireEvent.change(input, { target: { value: 'make it pastel blue' } });

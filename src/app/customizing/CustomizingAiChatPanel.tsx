@@ -170,25 +170,27 @@ export const CustomizingAiChatPanel = React.memo(({
                                 )}
                             </div>
                         ) : (
-                            <textarea
-                                ref={inputRef}
-                                value={chatInput}
-                                onChange={(event) => onInputChange(event.target.value)}
-                                onFocus={onInputInteract}
-                                onBlur={onInputBlur}
-                                onClick={onInputInteract}
-                                onKeyDown={handleTextareaKeyDown}
-                                placeholder={placeholder}
-                                disabled={isAiProcessing || isUpdatingDesign}
-                                autoComplete="off"
-                                rows={1}
-                                className="w-full min-h-9 resize-none overflow-hidden pl-4 pr-12 py-2 bg-white border border-slate-200 rounded-2xl text-[12.5px] leading-[18px] shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all disabled:opacity-50 disabled:bg-slate-50 placeholder:text-slate-400"
-                            />
+                            <div className="relative rounded-2xl border border-slate-200 bg-white shadow-sm transition-all focus-within:border-transparent focus-within:ring-2 focus-within:ring-purple-500">
+                                <textarea
+                                    ref={inputRef}
+                                    value={chatInput}
+                                    onChange={(event) => onInputChange(event.target.value)}
+                                    onFocus={onInputInteract}
+                                    onBlur={onInputBlur}
+                                    onClick={onInputInteract}
+                                    onKeyDown={handleTextareaKeyDown}
+                                    placeholder={placeholder}
+                                    disabled={isAiProcessing || isUpdatingDesign}
+                                    autoComplete="off"
+                                    rows={1}
+                                    className="w-full min-h-10 resize-none overflow-hidden rounded-2xl bg-transparent pl-4 pr-[3.25rem] py-[9px] text-[12.5px] leading-[18px] focus:outline-none disabled:opacity-50 disabled:bg-slate-50 placeholder:text-slate-400"
+                                />
+                            </div>
                         )}
                         <button
                             type="submit"
                             disabled={!chatInput.trim() || isAiProcessing || isUpdatingDesign || !!selectedAiPromptTemplate}
-                            className="absolute right-1 top-1 h-9 w-9 bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white rounded-xl transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                            className="absolute right-1 top-1 h-8 w-8 bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white rounded-xl transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
                             aria-label="Submit AI Edit"
                         >
                             {isAiProcessing ? (

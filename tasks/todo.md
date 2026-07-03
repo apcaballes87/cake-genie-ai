@@ -1,5 +1,25 @@
 # Tasks
 
+## Customizer AI Chat Send Button Inside Field (2026-07-04)
+
+### Plan
+
+- [x] Inspect the current AI chat composer structure against the screenshot to confirm why the send button still reads as outside the text field.
+- [x] Refactor the textarea into a shared bordered wrapper so the send button sits inside the field by default.
+- [x] Update focused UI tests for the new field/button sizing contract.
+- [x] Run focused verification and record the result.
+
+### Review
+
+- Root cause: the AI chat textarea still owned the full bordered pill while the send button was absolutely positioned on top of it from the outside. Even after shrinking the button, the control still read as a separate purple pill instead of an element living inside the field.
+- Updated [src/app/customizing/CustomizingAiChatPanel.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingAiChatPanel.tsx:1) so the free-text composer now uses a shared rounded wrapper with the border, background, shadow, and focus ring on the wrapper itself. The textarea is now transparent inside that wrapper, and the send button is reduced to `h-8 w-8` so it sits visibly inside the field by default.
+- Kept the existing multiline behavior intact: the textarea can still grow, and the button remains pinned at the top-right within the same field container.
+- Expanded [src/app/customizing/CustomizingAiChatPanel.test.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingAiChatPanel.test.tsx:1) to assert the new wrapper contract and the smaller internal send-button size.
+- Verification:
+  - `npx vitest run src/app/customizing/CustomizingAiChatPanel.test.tsx --exclude '.claude/**'` passed: 4 tests.
+  - `git diff --check -- src/app/customizing/CustomizingAiChatPanel.tsx src/app/customizing/CustomizingAiChatPanel.test.tsx tasks/todo.md tasks/lessons.md` passed.
+  - `npx eslint src/app/customizing/CustomizingAiChatPanel.tsx src/app/customizing/CustomizingAiChatPanel.test.tsx` completed without lint findings beyond the usual stale Browserslist notice.
+
 ## Customizer AI Chat Enter Key And Button Height (2026-07-03)
 
 ### Plan
