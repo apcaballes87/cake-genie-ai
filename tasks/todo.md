@@ -1,5 +1,26 @@
 # Tasks
 
+## Customizer Hero Frame Fill On Mobile (2026-07-03)
+
+### Plan
+
+- [x] Inspect the customizer hero rendering paths to confirm why the mobile frame shows bottom whitespace.
+- [x] Update the mobile/fixed hero image sizing so non-tall images fill the frame while tall images keep the intended scroll behavior.
+- [x] Add focused regression coverage for both scrollable and fill-cover hero cases.
+- [x] Run focused verification and note any remaining risk.
+
+### Review
+
+- Root cause: the mobile hero pan path in [src/app/customizing/CustomizingHeroPanel.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingHeroPanel.tsx:1) treated every image as a scrollable full-image render inside a fixed `aspect-[5/4]` frame. When the source image was wider than that frame, it preserved the full image height and exposed the white background at the bottom instead of filling the hero.
+- Added aspect-ratio gating in `CustomizingHeroPanel` so mobile only uses the scrollable pan treatment for truly tall images (`ratio < 5 / 4`). Wider images now render through a cover-fill path and fully occupy the hero frame.
+- Updated the fixed-frame `LazyImage` branches from `object-contain` to `object-cover`, including the studio overlay, so the non-scroll mobile/SSR hero variants also fill the frame consistently.
+- Expanded [src/app/customizing/CustomizingHeroPanel.test.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingHeroPanel.test.tsx:1) to keep the tall-image scroll behavior covered and to assert that wider mobile hero images no longer show the scroll cue and now use `object-cover`.
+- Verification:
+  - `npx vitest run src/app/customizing/CustomizingHeroPanel.test.tsx --exclude '.claude/**'` passed: 13 tests.
+  - `git diff --check -- src/app/customizing/CustomizingHeroPanel.tsx src/app/customizing/CustomizingHeroPanel.test.tsx tasks/todo.md tasks/lessons.md` passed.
+  - `npx eslint src/app/customizing/CustomizingHeroPanel.tsx src/app/customizing/CustomizingHeroPanel.test.tsx` reported only pre-existing warnings in `CustomizingHeroPanel.tsx` (`Wand2`, `reviewStars`, `showMotifButton`, `onOpenMotifPanel` unused) plus the usual stale Browserslist notice.
+  - Remaining practical risk: if an uploaded image already contains baked-in blank canvas inside the file itself, `object-cover` will crop to fill the frame but cannot reconstruct missing content. It does remove the frame-level bottom gap shown in the current mobile hero.
+
 ## Mobile Edible Photo AI Chat Fetch Failure (2026-07-03)
 
 ### Plan

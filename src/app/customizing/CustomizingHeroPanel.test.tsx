@@ -21,9 +21,9 @@ Object.defineProperty(HTMLDivElement.prototype, 'clientHeight', {
 });
 
 vi.mock('@/components/LazyImage', () => ({
-    default: ({ src, alt, title, onLoad, onClick }: { src: string; alt: string; title?: string; onLoad?: React.ReactEventHandler<HTMLImageElement>; onClick?: React.MouseEventHandler<HTMLImageElement> }) => (
+    default: ({ src, alt, title, onLoad, onClick, imageClassName }: { src: string; alt: string; title?: string; onLoad?: React.ReactEventHandler<HTMLImageElement>; onClick?: React.MouseEventHandler<HTMLImageElement>; imageClassName?: string }) => (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt={alt} title={title} onLoad={onLoad} onClick={onClick} />
+        <img src={src} alt={alt} title={title} onLoad={onLoad} onClick={onClick} className={imageClassName} />
     ),
 }));
 
@@ -221,6 +221,7 @@ describe('CustomizingHeroPanel', () => {
         props.enableMobileHeroPan = true;
         props.originalImagePreview = 'https://example.com/original-cake.jpg';
         props.preferredOriginalImageUrl = 'https://example.com/original-cake.jpg';
+        props.initialHeroAspectRatio = '1 / 2';
 
         render(<CustomizingHeroPanel {...props} />);
 
@@ -234,6 +235,7 @@ describe('CustomizingHeroPanel', () => {
         props.enableMobileHeroPan = true;
         props.originalImagePreview = 'https://example.com/original-cake.jpg';
         props.preferredOriginalImageUrl = 'https://example.com/original-cake.jpg';
+        props.initialHeroAspectRatio = '1 / 2';
 
         scrollToMock.mockClear();
 
@@ -244,6 +246,20 @@ describe('CustomizingHeroPanel', () => {
             top: 700,
             behavior: 'auto',
         });
+    });
+
+    it('fills the mobile hero frame for wider images instead of showing the scroll treatment', () => {
+        const props = buildProps();
+        props.enableMobileHeroPan = true;
+        props.originalImagePreview = 'https://example.com/original-cake.jpg';
+        props.preferredOriginalImageUrl = 'https://example.com/original-cake.jpg';
+        props.initialHeroAspectRatio = '4 / 3';
+
+        render(<CustomizingHeroPanel {...props} />);
+
+        expect(screen.queryByText('Scroll')).not.toBeInTheDocument();
+        const heroImages = screen.getAllByRole('img', { name: 'Hero cake' });
+        expect(heroImages.some((image) => image.className.includes('object-cover'))).toBe(true);
     });
 
     it('swaps to the preferred original image after it loads', () => {

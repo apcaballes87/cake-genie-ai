@@ -146,6 +146,18 @@ const reviewStars: ReactNode[] = Array.from({ length: 5 }, (_, index) => (
     </span>
 ));
 
+const MOBILE_HERO_FRAME_RATIO = 5 / 4;
+
+const parseAspectRatioValue = (value: string | null | undefined): number | null => {
+    if (!value) return null;
+    const [rawWidth, rawHeight] = value.split('/').map((part) => Number(part.trim()));
+    if (!Number.isFinite(rawWidth) || !Number.isFinite(rawHeight) || rawHeight <= 0) {
+        return null;
+    }
+
+    return rawWidth / rawHeight;
+};
+
 export const CustomizingHeroPanel = memo(({
     mainImageContainerRef,
     editedImage,
@@ -225,6 +237,14 @@ export const CustomizingHeroPanel = memo(({
     const heroImageRatio = originalImageDimensions
         ? `${originalImageDimensions.width} / ${originalImageDimensions.height}`
         : (initialHeroAspectRatio || '1 / 1');
+    const heroImageRatioValue = originalImageDimensions
+        ? (originalImageDimensions.width / originalImageDimensions.height)
+        : parseAspectRatioValue(heroImageRatio);
+    const shouldUseScrollableMobileHero = Boolean(
+        enableMobileHeroPan
+        && heroImageRatioValue
+        && heroImageRatioValue < MOBILE_HERO_FRAME_RATIO
+    );
     const zoomOriginalImage = originalHeroModalSrc || null;
     const zoomCustomizedImage = editedImage || null;
     const zoomInitialTab: ImageTab = activeTab === 'customized' && zoomCustomizedImage ? 'customized' : 'original';
@@ -235,7 +255,7 @@ export const CustomizingHeroPanel = memo(({
     };
     const closeHeroImageModal = () => setIsHeroImageZoomOpen(false);
     const centerMobileHeroScrollPosition = () => {
-        if (!enableMobileHeroPan || isHeroImageZoomOpen) return;
+        if (!shouldUseScrollableMobileHero || isHeroImageZoomOpen) return;
 
         const scrollContainer = mobileHeroScrollRef.current;
         if (!scrollContainer) return;
@@ -334,6 +354,53 @@ export const CustomizingHeroPanel = memo(({
                 ) : null}
             </div>
         </div>
+    );
+
+    const renderCoveredImage = (
+        src: string,
+        alt: string,
+        title: string,
+        caption?: string,
+        overlaySrc?: string,
+        modalSrc?: string,
+    ) => (
+        <figure className="absolute inset-0 w-full h-full">
+            <LazyImage
+                src={src}
+                alt={alt}
+                title={title}
+                fill
+                sizes="100vw"
+                imageClassName="object-cover rounded-3xl cursor-zoom-in"
+                priority
+                fetchPriority="high"
+                decoding="async"
+                unoptimized
+                onClick={() => openHeroImageModal(modalSrc || overlaySrc || src)}
+                onLoad={imageOnLoad}
+            />
+            {overlaySrc ? (
+                <div className="absolute inset-0 pointer-events-none">
+                    <LazyImage
+                        key={`cover-overlay-${overlaySrc}`}
+                        src={overlaySrc}
+                        alt=""
+                        title={title}
+                        fill
+                        sizes="100vw"
+                        imageClassName="object-cover rounded-3xl"
+                        decoding="async"
+                        unoptimized
+                        onLoad={imageOnLoad}
+                    />
+                </div>
+            ) : null}
+            {caption ? (
+                <figcaption className="absolute bottom-0 left-0 right-0 text-[10px] text-slate-500 p-2 text-center bg-white/60 backdrop-blur-sm z-10 leading-tight">
+                    {caption}
+                </figcaption>
+            ) : null}
+        </figure>
     );
 
     const renderStaticImage = (
@@ -445,7 +512,9 @@ export const CustomizingHeroPanel = memo(({
                                 {!hasOriginalDisplayImage && preloadedHeroImage ? (
                                     <>
                                         <div className="md:hidden">
-                                            {renderScrollableImage(preloadedHeroImage, 'Loading cake design...', 'Loading your cake design', isAnalyzing ? 'Analyzing your design...' : undefined)}
+                                            {shouldUseScrollableMobileHero
+                                                ? renderScrollableImage(preloadedHeroImage, 'Loading cake design...', 'Loading your cake design', isAnalyzing ? 'Analyzing your design...' : undefined)
+                                                : renderCoveredImage(preloadedHeroImage, 'Loading cake design...', 'Loading your cake design', isAnalyzing ? 'Analyzing your design...' : undefined)}
                                         </div>
                                         <div className="hidden md:block">
                                             {renderStaticImage(preloadedHeroImage, 'Loading cake design...', 'Loading your cake design', isAnalyzing ? 'Analyzing your design...' : undefined)}
@@ -456,7 +525,9 @@ export const CustomizingHeroPanel = memo(({
                                 {!hasOriginalDisplayImage && fallbackImageUrl ? (
                                     <>
                                         <div className="md:hidden">
-                                            {renderScrollableImage(fallbackImageUrl, fallbackImageAlt, fallbackImageTitle, initialCaption || undefined)}
+                                            {shouldUseScrollableMobileHero
+                                                ? renderScrollableImage(fallbackImageUrl, fallbackImageAlt, fallbackImageTitle, initialCaption || undefined)
+                                                : renderCoveredImage(fallbackImageUrl, fallbackImageAlt, fallbackImageTitle, initialCaption || undefined)}
                                         </div>
                                         <div className="hidden md:block">
                                             {renderStaticImage(fallbackImageUrl, fallbackImageAlt, fallbackImageTitle, initialCaption || undefined)}
@@ -467,14 +538,23 @@ export const CustomizingHeroPanel = memo(({
                                 {hasOriginalDisplayImage ? (
                                     <>
                                         <div className="md:hidden">
-                                            {renderScrollableImage(
-                                                heroDisplaySrc,
-                                                heroImageAlt,
-                                                heroDisplayTitle,
-                                                undefined,
-                                                shouldRenderStudioOverlay ? (incomingStudioImageUrl || undefined) : undefined,
-                                                originalHeroModalSrc,
-                                            )}
+                                            {shouldUseScrollableMobileHero
+                                                ? renderScrollableImage(
+                                                    heroDisplaySrc,
+                                                    heroImageAlt,
+                                                    heroDisplayTitle,
+                                                    undefined,
+                                                    shouldRenderStudioOverlay ? (incomingStudioImageUrl || undefined) : undefined,
+                                                    originalHeroModalSrc,
+                                                )
+                                                : renderCoveredImage(
+                                                    heroDisplaySrc,
+                                                    heroImageAlt,
+                                                    heroDisplayTitle,
+                                                    undefined,
+                                                    shouldRenderStudioOverlay ? (incomingStudioImageUrl || undefined) : undefined,
+                                                    originalHeroModalSrc,
+                                                )}
                                         </div>
                                         <div className="hidden md:block">
                                             {renderStaticImage(
@@ -499,7 +579,7 @@ export const CustomizingHeroPanel = memo(({
                                             title="Loading your cake design"
                                             fill
                                             sizes="(max-width: 768px) 100vw, 50vw"
-                                            imageClassName="object-contain rounded-3xl cursor-zoom-in"
+                                            imageClassName="object-cover rounded-3xl cursor-zoom-in"
                                             priority
                                             fetchPriority="high"
                                             decoding="async"
@@ -523,7 +603,7 @@ export const CustomizingHeroPanel = memo(({
                                             title={fallbackImageTitle}
                                             fill
                                             sizes="(max-width: 768px) 100vw, 50vw"
-                                            imageClassName="object-contain rounded-3xl cursor-zoom-in"
+                                            imageClassName="object-cover rounded-3xl cursor-zoom-in"
                                             priority
                                             fetchPriority="high"
                                             decoding="async"
@@ -548,7 +628,7 @@ export const CustomizingHeroPanel = memo(({
                                             title={heroImageTitle}
                                             fill
                                             sizes="(max-width: 768px) 100vw, 50vw"
-                                            imageClassName="object-contain rounded-3xl cursor-zoom-in"
+                                            imageClassName="object-cover rounded-3xl cursor-zoom-in"
                                             priority
                                             fetchPriority="high"
                                             decoding="async"
@@ -566,7 +646,7 @@ export const CustomizingHeroPanel = memo(({
                                                     title={heroImageTitle}
                                                     fill
                                                     sizes="(max-width: 768px) 100vw, 50vw"
-                                                    imageClassName="object-contain rounded-3xl"
+                                                    imageClassName="object-cover rounded-3xl"
                                                     decoding="async"
                                                     unoptimized
                                                     onLoad={imageOnLoad}
