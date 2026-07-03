@@ -1,5 +1,6 @@
 # Lessons
 
+- When recalculating `cakegenie_analysis_cache.price`, never default a missing base-price lookup to `0` and continue writing. Normalize raw `analysis_json.cakeType` to a canonical `CakeType`, and if no `productsizes_cakegenie` row exists after normalization, skip or fail that row loudly instead of corrupting the stored total.
 - When the user narrows a broad customizer strategy from “CRO plus agent readiness” down to “agent readiness only,” drop the conversion redesign scope completely. Keep the implementation centered on semantics, accessibility, and machine-readable state instead of sneaking UX optimization work back in.
 - When retiring an older SEO surface in Genie.ph, do not stop at `robots` or sitemap changes alone. Also check first-party discovery surfaces like `/customizing` theme chips and JSON-LD item lists so the deprecated hub is not still being promoted internally.
 

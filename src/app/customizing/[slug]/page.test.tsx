@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import RecentSearchPage, { generateMetadata } from './page';
 import { createClient } from '@/lib/supabase/server';
-import { getCakeBasePriceOptions, getRelatedProductsByKeywords } from '@/services/supabaseService';
+import { getLowestCakeBasePriceOptions, getRelatedProductsByKeywords } from '@/services/supabaseService';
 
 let capturedInitialData: unknown;
 
@@ -59,12 +59,12 @@ vi.mock('@/lib/reviews', async () => {
   };
 });
 vi.mock('@/services/supabaseService', () => ({
-  getCakeBasePriceOptions: vi.fn(),
+  getLowestCakeBasePriceOptions: vi.fn(),
   getRelatedProductsByKeywords: vi.fn(),
 }));
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }));
 vi.mock('@/services/supabaseService', () => ({
-  getCakeBasePriceOptions: vi.fn(),
+  getLowestCakeBasePriceOptions: vi.fn(),
   getRelatedProductsByKeywords: vi.fn(),
 }));
 vi.mock('@/contexts/CustomizationContext', () => ({
@@ -105,7 +105,7 @@ describe('RecentSearchPage', () => {
         }),
       }),
     } as never);
-    vi.mocked(getCakeBasePriceOptions).mockResolvedValue([{ price: 1299, size: '6 in' }] as never);
+    vi.mocked(getLowestCakeBasePriceOptions).mockResolvedValue([{ price: 1299, size: '6 in' }] as never);
     vi.mocked(getRelatedProductsByKeywords).mockResolvedValue({ data: [], error: null } as never);
   });
 
@@ -245,7 +245,7 @@ describe('RecentSearchPage', () => {
   });
 
   it('renders AggregateOffer JSON-LD when the cake type has multiple base-price variants', async () => {
-    vi.mocked(getCakeBasePriceOptions).mockResolvedValueOnce([
+    vi.mocked(getLowestCakeBasePriceOptions).mockResolvedValueOnce([
       { price: 1299, size: '6 in' },
       { price: 1599, size: '8 in' },
       { price: 1999, size: '10 in' },
@@ -259,6 +259,49 @@ describe('RecentSearchPage', () => {
     expect(staticMarkup).toContain('"highPrice":"1999"');
     expect(staticMarkup).toContain('"offerCount":3');
     expect(staticMarkup).toContain('"priceCurrency":"PHP"');
+  });
+
+  it('aligns the displayed starting price to the stored cache price after applying the lowest same-tier ladder', async () => {
+    const design = {
+      slug: 'aligned-price-cake',
+      keywords: 'Aligned Price Cake',
+      seo_title: 'Aligned Price Cake | Genie.ph',
+      seo_description: 'Aligned price cake design.',
+      alt_text: 'Aligned price cake',
+      original_image_url: 'https://example.com/aligned-price-cake.webp',
+      price: 1399,
+      tags: ['aligned'],
+      analysis_json: {
+        cakeType: '1 Tier',
+        icing_design: {},
+        main_toppers: [],
+        support_elements: [],
+        cake_messages: [],
+      },
+    };
+
+    vi.mocked(createClient).mockResolvedValueOnce({
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            single: () => Promise.resolve({ data: design }),
+          }),
+        }),
+      }),
+    } as never);
+
+    vi.mocked(getLowestCakeBasePriceOptions).mockResolvedValueOnce([
+      { price: 1299, size: '6" Round' },
+      { price: 1599, size: '8" Round' },
+      { price: 1999, size: '10" Round' },
+    ] as never);
+
+    const page = await RecentSearchPage({ params: Promise.resolve({ slug: 'aligned-price-cake' }) });
+    const staticMarkup = renderToStaticMarkup(page);
+
+    expect(staticMarkup).toContain('Starting at <span>₱1,399</span>');
+    expect(staticMarkup).toContain('"lowPrice":"1399"');
+    expect(staticMarkup).toContain('"highPrice":"2099"');
   });
 
   it('prefers the studio-edited image for the customizing hero when it is not blank', async () => {
@@ -301,7 +344,7 @@ describe('RecentSearchPage', () => {
 
   it('still renders when SEO-side data fetches fail independently', async () => {
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
-    vi.mocked(getCakeBasePriceOptions).mockRejectedValueOnce(new Error('pricing failed'));
+    vi.mocked(getLowestCakeBasePriceOptions).mockRejectedValueOnce(new Error('pricing failed'));
     vi.mocked(getRelatedProductsByKeywords).mockRejectedValueOnce(new Error('related failed'));
 
     const page = await RecentSearchPage({ params: Promise.resolve({ slug: 'pink-minimalist-light-pink-bento-cake-f707' }) });

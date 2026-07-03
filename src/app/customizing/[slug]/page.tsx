@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import CustomizingClient from '../CustomizingClient'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
-import { getCakeBasePriceOptions, getRelatedProductsByKeywords, getCollectionForDesignKeyword } from '@/services/supabaseService'
+import { getLowestCakeBasePriceOptions, getRelatedProductsByKeywords, getCollectionForDesignKeyword } from '@/services/supabaseService'
 import { CakeType, CakeThickness, BasePriceInfo, HybridAnalysisResult, CakeInfoUI } from '@/types'
 import { CustomizationProvider, CustomizationState } from '@/contexts/CustomizationContext'
 import { DesignAboutSection } from '@/components/DesignAboutSection'
@@ -16,9 +16,11 @@ import { mapAnalysisToState, mapProductToDefaultState } from '@/utils/customizat
 import { upgradeLegacySlug, downgradeCakeSlug } from '@/lib/utils/urlHelpers'
 import { buildDesignPageContent, generateDesignDetails, generateRichAltText, isGenericDesignDescription } from '@/utils/designContentUtils'
 import { parseManifest, buildSrcSet, pickFallbackSrc } from '@/lib/imageVariants/manifest'
+import { normalizeCakeType } from '@/lib/utils/cakeType'
 import { buildPerDesignReviewSummary, buildReviewSummary, getThemedReviewsForSlug, getSourceSubtitle, getReviewDisplayName, getExactReviewsForSchema, type ThemedReview } from '@/lib/reviews'
 import { ReviewCard } from '@/components/ReviewsDisplay'
 import {
+    alignPriceOptionsToStartingPrice,
     buildCustomCakeAdditionalProperties,
     buildMerchantReturnPolicy,
     buildOfferShippingDetails,
@@ -36,7 +38,6 @@ import {
 } from './metadataHelpers'
 import { buildCakeTitle, extractTitleInputFromAnalysis, extractDesignCodeFromSlug, CAKE_TITLE_BUDGET } from '@/lib/seo/cakeTitle'
 
-const VALID_CAKE_TYPES: CakeType[] = ['1 Tier', '2 Tier', '3 Tier', '1 Tier Fondant', '2 Tier Fondant', '3 Tier Fondant', 'Square', 'Rectangle', 'Bento', 'Square Fondant', 'Rectangle Fondant', 'Cupcake'];
 const CAKE_TYPE_THICKNESS_MAP: Record<string, CakeThickness> = {
     '1 Tier': '4 in', '2 Tier': '4 in', '3 Tier': '4 in',
     'Square': '3 in', 'Rectangle': '3 in',
@@ -1337,9 +1338,7 @@ export default async function RecentSearchPage({ params }: Props) {
     }
 
     const seoAnalysis = design.analysis_json || {};
-    const seoCakeType: CakeType = VALID_CAKE_TYPES.includes(seoAnalysis.cakeType as CakeType)
-        ? (seoAnalysis.cakeType as CakeType)
-        : '1 Tier';
+    const seoCakeType: CakeType = normalizeCakeType(seoAnalysis.cakeType);
 
     // Only fetch prices server-side — they're needed for the Product schema
     // offer price and SSR price display. Everything else (related designs,
@@ -1355,10 +1354,12 @@ export default async function RecentSearchPage({ params }: Props) {
     const linkedMerchantProducts: LinkedMerchantProduct[] = [];
     const themeCollection: { slug: string; name: string; item_count: number } | null = null;
     try {
-        prices = await getCakeBasePriceOptions(seoCakeType, CAKE_TYPE_THICKNESS_MAP[seoCakeType] || '4 in');
+        prices = await getLowestCakeBasePriceOptions(seoCakeType);
     } catch (e) {
         console.error('Error fetching SEO prices:', e);
     }
+
+    prices = alignPriceOptionsToStartingPrice(prices, design.price ?? null);
 
     const reviewSummary = await (async () => {
         try {

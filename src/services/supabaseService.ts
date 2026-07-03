@@ -14,6 +14,7 @@ import { firstNonBlankImageUrl } from '@/lib/utils/imageSelection';
 import { calculatePriceFromDatabase } from './pricingService.database';
 import { roundDownToNearest99 } from '@/lib/utils/pricing';
 import { getDesignAvailability } from '@/lib/utils/availability';
+import { normalizeCakeType } from '@/lib/utils/cakeType';
 import { MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI } from '@/types';
 import { generateCakeAnalysisSlug } from '@/lib/utils/urlHelpers';
 import { generateTagsForAnalysis } from '@/utils/tagUtils';
@@ -116,6 +117,58 @@ export const getCakeBasePriceOptions = async (
       throw err;
     }
     throw new Error("Could not connect to the pricing database.");
+  }
+};
+
+export const getLowestCakeBasePriceOptions = async (
+  type: CakeType,
+): Promise<BasePriceInfo[]> => {
+  try {
+    const normalizedType = normalizeCakeType(type);
+    const { data, error } = await supabase
+      .from('productsizes_cakegenie')
+      .select('cakesize, price, display_order')
+      .eq('type', normalizedType)
+      .order('display_order', { ascending: true })
+      .order('cakesize', { ascending: true })
+      .order('price', { ascending: true });
+
+    if (error) {
+      console.error('Supabase error:', error.message);
+      throw new Error(error.message);
+    }
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    const lowestBySize = new Map<string, { size: string; price: number; displayOrder: number | null }>();
+
+    for (const item of data) {
+      const key = item.cakesize;
+      const nextPrice = Number(item.price);
+      const existing = lowestBySize.get(key);
+
+      if (!existing || nextPrice < existing.price) {
+        lowestBySize.set(key, {
+          size: item.cakesize,
+          price: nextPrice,
+          displayOrder: item.display_order ?? null,
+        });
+      }
+    }
+
+    return [...lowestBySize.values()]
+      .sort((left, right) => {
+        const leftOrder = left.displayOrder ?? Number.MAX_SAFE_INTEGER;
+        const rightOrder = right.displayOrder ?? Number.MAX_SAFE_INTEGER;
+        if (leftOrder !== rightOrder) return leftOrder - rightOrder;
+        return left.size.localeCompare(right.size);
+      })
+      .map(({ size, price }) => ({ size, price }));
+  } catch (err) {
+    console.error('Error fetching lowest cake base price options:', JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
+    throw new Error('Could not connect to the pricing database.');
   }
 };
 
@@ -244,7 +297,7 @@ function mapAnalysisToPricingState(analysis: HybridAnalysisResult) {
   };
 
   const cakeInfo: CakeInfoUI = {
-    type: analysis.cakeType,
+    type: normalizeCakeType(analysis.cakeType),
     thickness: analysis.cakeThickness,
     size: '6" Round', // Default size for pricing calculation (will be overridden by lowest price logic if needed, but pricing service needs a size)
     flavors: [],
@@ -257,17 +310,18 @@ function mapAnalysisToPricingState(analysis: HybridAnalysisResult) {
  * Fetches the lowest base price for a given cake type.
  */
 async function getLowestBasePrice(type: CakeType): Promise<number> {
+  const normalizedType = normalizeCakeType(type);
   const { data, error } = await supabase
     .from('productsizes_cakegenie')
     .select('price')
-    .eq('type', type)
+    .eq('type', normalizedType)
     .order('price', { ascending: true })
     .limit(1)
     .maybeSingle();
 
   if (error || !data) {
-    console.warn(`Could not find base price for type ${type}, defaulting to 0`);
-    return 0;
+    const detail = error ? `: ${error.message}` : '';
+    throw new Error(`Could not find base price for type "${normalizedType}"${detail}`);
   }
 
   return data.price;

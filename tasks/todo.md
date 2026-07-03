@@ -1,5 +1,53 @@
 # Tasks
 
+## Backfill Cache Total Price Column (2026-07-03)
+
+### Plan
+
+- [x] Confirm the stored `cakegenie_analysis_cache.price` should be recalculated as lowest same-tier base price plus current add-on pricing.
+- [x] Add a dedicated backfill script for the total `price` column.
+- [x] Verify the script on previously bad/non-canonical rows and inspect the before/after values.
+- [x] Run the corrected backfill against the full cache table.
+
+### Review
+
+- Added [scripts/backfill-cache-total-prices.ts](/Users/apcaballes/genieph-nextjs/scripts/backfill-cache-total-prices.ts:1), a dedicated script that recalculates `cakegenie_analysis_cache.price` as lowest same-tier/type base price from `productsizes_cakegenie` plus current add-on pricing. It updates only the `price` column.
+- Fixed the unsafe pricing path by adding [src/lib/utils/cakeType.ts](/Users/apcaballes/genieph-nextjs/src/lib/utils/cakeType.ts:1). Raw AI/cache labels such as `cupcakes-icing`, `cupcakes_only`, and `4 Tier Fondant` are normalized to canonical pricing-table types before base-price lookup.
+- Changed base-price lookup failures to throw instead of falling back to `0`, preventing corrupted totals like `0` or `99`.
+- Corrected full backfill completed:
+  - `fetched: 13342`
+  - `processed: 13342`
+  - `updated: 6`
+  - `unchanged: 13336`
+  - `errors: 0`
+- Verified known previously bad/non-canonical rows now price from real base rows:
+  - `cupcakes-icing` / `cupcakes-printout-toppers` normalize to `Cupcake` and now store `499` or `599`, not `99`.
+  - `4 Tier Fondant` normalizes to `3 Tier Fondant` and now stores `11399`.
+  - Missing raw `cakeType` falls back to `1 Tier` and stores `1199`.
+- Verified there are `0` rows whose stored price is below the normalized type's lowest `productsizes_cakegenie` base price.
+- Verification:
+  - `npx vitest run 'src/lib/utils/cakeType.test.ts' 'src/app/customizing/[slug]/page.test.tsx' 'src/app/customizing/[slug]/designSchema.test.tsx' --exclude '.claude/**'`
+
+## Lowest Displayed Price Per Tier On Customizing Slug Page (2026-07-03)
+
+### Plan
+
+- [x] Confirm the current `/customizing/[slug]` displayed price is sourced from thickness-filtered base-price options instead of the lowest ladder for the same tier.
+- [x] Add a shared helper that returns the lowest base-price option per size for a cake type/tier.
+- [x] Switch the slug page SSR price fetch to the new tier-level helper while leaving interactive customizer pricing unchanged.
+- [x] Run focused tests for the slug page/schema price contract.
+
+### Review
+
+- Confirmed the slug page SSR price fetch was using `getCakeBasePriceOptions(type, defaultThickness)`, which locked `1 Tier` pages to the `4 in` ladder instead of the cheapest available ladder for the same tier.
+- Added `getLowestCakeBasePriceOptions(type)` in [src/services/supabaseService.ts](/Users/apcaballes/genieph-nextjs/src/services/supabaseService.ts:1). It reads all base-price rows for a cake type/tier, keeps the lowest price per size, and returns that ladder in stable size order.
+- Updated [src/app/customizing/[slug]/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/[slug]/page.tsx:1) to use the new helper for SSR/display/schema pricing. This changes the visible slug-page starting price and JSON-LD range to the lowest ladder for the same tier.
+- Left the interactive customizer pricing flow unchanged: `usePricing` and merchant-product flows still use exact `type + thickness` selections for actual customization.
+- Verification:
+  - `npx vitest run 'src/app/customizing/[slug]/page.test.tsx' 'src/app/customizing/[slug]/designSchema.test.tsx' --exclude '.claude/**'`
+  - `git diff --check -- 'src/services/supabaseService.ts' 'src/app/customizing/[slug]/page.tsx' 'src/app/customizing/[slug]/page.test.tsx' 'src/app/customizing/[slug]/designSchema.test.tsx' tasks/todo.md`
+- Result: focused tests passed (`42` passed, `1` skipped), and `git diff --check` passed.
+
 ## Cake-Type Price Range Structured Data (2026-07-02)
 
 ### Plan
@@ -3705,3 +3753,40 @@
   - `npx vitest run src/lib/admin/searchAnalysisContract.test.ts src/lib/ai/utils.test.ts src/services/prompts/analysisPromptRules.test.ts src/services/pricingService.database.test.ts --exclude '.claude/**'` passed: 4 files, 24 tests.
   - `git diff --check` passed.
   - `npm run build` passed. Existing non-fatal warnings appeared for stale `baseline-browser-mapping`, inferred workspace root, deprecated `middleware`, and Supabase statement timeouts during static generation.
+
+## GSC Cake Product Indexing And Collection Discovery Audit (2026-07-03)
+
+### Plan
+
+- [x] Confirm live GSC property access, submitted sitemap state, and a sample of cake-product URL inspection results.
+- [x] Verify the current repo discovery path for `/customizing/[slug]`, `/collections`, collection sitemap inclusion, and collection page SSR depth.
+- [x] Decide whether more collection types should be added now, and define the quality/linking rules so new pages do not become thin SEO surfaces.
+- [x] Document recommended actions, verification evidence, and remaining data gaps.
+
+### Review
+
+- GSC property access is live for both `https://genie.ph/` and `sc-domain:genie.ph`.
+- Submitted sitemap state from GSC:
+  - `https://genie.ph/sitemap.xml` is valid, last downloaded `2026-07-02 19:56`, with `25,391` indexed URLs and `0` errors.
+  - `https://genie.ph/sitemap-images.xml` is valid, last downloaded `2026-07-02 18:14`, with `12,554` indexed URLs and `0` errors.
+- Live sitemap checks:
+  - `https://genie.ph/sitemap-index.xml` includes `sitemap-core.xml`, `sitemap-images.xml`, `sitemap-designs-0.xml`, and `sitemap-customized-cakes-0.xml` through `sitemap-customized-cakes-13.xml`.
+  - `https://genie.ph/sitemap-core.xml` currently exposes `230` `/collections/*` URLs.
+  - `https://genie.ph/sitemap-customized-cakes-0.xml` exposes `1,000` `/customizing/*` product URLs, including recent July 2026 products.
+- GSC URL Inspection samples:
+  - `https://genie.ph/customizing/christening-bear-sky-blue-1-tier-cake-1fb3` is `Submitted and indexed`, last crawled `2026-07-02 04:03`, mobile crawl, product/merchant/breadcrumb/image/review rich results detected.
+  - `https://genie.ph/customizing/pickleball-birthday-white-1-tier-cake-232b` is `URL is unknown to Google` even though it appears in `sitemap-customized-cakes-0.xml`; this is likely crawl queue/selection delay for a very recent product, not a sitemap failure.
+  - `https://genie.ph/collections/bento-cake` is `Submitted and indexed`, last crawled `2026-06-29 15:59`.
+  - `https://genie.ph/collections/cakes-under-500-pesos` is `URL is unknown to Google`.
+- Code/path findings:
+  - Collection sitemap inclusion is gated by `publication_status = published`, `is_indexable = true`, and `item_count >= 8` in `src/app/sitemap.ts`.
+  - The collection quality helper also defines `COLLECTION_MIN_MATCHED_DESIGNS = 8`.
+  - `/collections/[category]` server-renders only the first `30` designs via `getDesignsByKeyword(canonicalCategory, 30)`, then deeper results use the client-side load-more path.
+  - `https://genie.ph/collections/bento-cake` exposes about `31` `/customizing/*` links in fetched HTML.
+  - `https://genie.ph/collections/cakes-under-500-pesos` returns `200` with `index,follow`, but only has `1` item in the rendered `ItemList`; it is not in `sitemap-core.xml`.
+- Recommendation:
+  - Keep relying on customized-cake sitemap chunks for bulk product discovery.
+  - Improve prioritization by adding curated collection hubs, but only when each page has enough inventory and internal links.
+  - Do not index price-band pages until they have enough genuinely matching products. Current under-500 page is too thin.
+  - Add crawlable pagination or server-rendered next-page links for important collections if the goal is to expose more than the first 30 product links through collection hubs.
+  - Add guard behavior so unknown/dynamic collection pages that do not map to a published/indexable collection either `404`/`noindex` instead of returning indexable thin pages.

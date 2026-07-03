@@ -51,7 +51,7 @@ vi.mock('@/contexts/CustomizationContext', () => ({
 }));
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }));
 vi.mock('@/services/supabaseService', () => ({
-  getCakeBasePriceOptions: vi.fn(),
+  getLowestCakeBasePriceOptions: vi.fn(),
   getRelatedProductsByKeywords: vi.fn(),
   getCollectionForDesignKeyword: vi.fn(),
 }));
