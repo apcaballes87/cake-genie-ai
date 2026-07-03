@@ -1,5 +1,45 @@
 # Tasks
 
+## Mobile Edible Photo AI Chat Fetch Failure (2026-07-03)
+
+### Plan
+
+- [x] Trace the edible-photo replacement request path for mobile AI chat edits.
+- [x] Compress AI chat reference images before storing/sending them.
+- [x] Add focused regression coverage for the attachment preparation step.
+- [x] Run focused verification and note any remaining risk.
+
+### Review
+
+- Root cause is most likely request size on the mobile AI chat replacement path. The base cake image already gets compressed before `/api/ai/edit-image`, but the attached edible-photo replacement image was going straight from `File` to base64 in [CustomizingClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingClient.tsx:1), which makes mobile far more likely to fail with a generic `Failed to fetch` before the server can return a structured error.
+- Added [aiChatReferenceImage.ts](/Users/apcaballes/genieph-nextjs/src/app/customizing/aiChatReferenceImage.ts:1) so AI chat attachment uploads are compressed to WebP (`maxSizeMB: 0.8`, `maxWidthOrHeight: 1280`) before converting to base64 and storing in chat state.
+- Updated the AI chat attachment handler in [CustomizingClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingClient.tsx:1) to use the new helper, so both `/api/ai/edit-image` and `/api/ai/chat-edit` receive the smaller reference image payload.
+- Added [aiChatReferenceImage.test.ts](/Users/apcaballes/genieph-nextjs/src/app/customizing/aiChatReferenceImage.test.ts:1) to prove the compressed file, not the original upload, is the one sent into `fileToBase64(...)`.
+- Verification:
+  - `npx vitest run src/app/customizing/aiChatReferenceImage.test.ts src/app/customizing/CustomizingAiChatPanel.test.tsx --exclude '.claude/**'` passed: 4 tests.
+  - `git diff --check -- src/app/customizing/aiChatReferenceImage.ts src/app/customizing/aiChatReferenceImage.test.ts src/app/customizing/CustomizingClient.tsx src/app/customizing/CustomizingAiChatPanel.tsx src/app/customizing/CustomizingAiChatPanel.test.tsx tasks/todo.md` passed.
+  - Remaining practical risk: if a phone supplies an unusually massive panorama or HEIC conversion edge case, we may still want a server-side body-size guard or an attachment-size log, but this change removes the main mobile-only payload spike in the current flow.
+
+## Customizer AI Chat Multiline Input (2026-07-03)
+
+### Plan
+
+- [x] Inspect the current AI chat input component and key handling.
+- [x] Convert the single-line input into a capped multiline text area with a slightly smaller font.
+- [x] Keep the submit button fixed at the top-right while the field grows.
+- [x] Update focused tests and run verification.
+
+### Review
+
+- Updated [src/app/customizing/CustomizingAiChatPanel.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingAiChatPanel.tsx:1) to replace the single-line text input with an auto-resizing textarea capped at 3 lines. The text size is now slightly smaller at `12.5px`, and the textarea keeps enough right padding so the submit button never overlaps typed text.
+- Kept the submit button pinned to a fixed `40px` square at the top-right of the field while the textarea grows downward.
+- Preserved keyboard behavior by making plain `Enter` submit the AI edit and `Shift+Enter` create a new line.
+- Updated [src/app/customizing/CustomizingAiChatPanel.test.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingAiChatPanel.test.tsx:1) to assert textarea rendering and Enter-to-submit behavior, and aligned the shared chat refs in [src/app/customizing/CustomizingClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingClient.tsx:1) to `HTMLTextAreaElement`.
+- Verification:
+  - `npx vitest run src/app/customizing/CustomizingAiChatPanel.test.tsx --exclude '.claude/**'` passed: 3 tests.
+  - `git diff --check -- src/app/customizing/CustomizingAiChatPanel.tsx src/app/customizing/CustomizingAiChatPanel.test.tsx src/app/customizing/CustomizingClient.tsx tasks/todo.md` passed.
+  - `npx eslint src/app/customizing/CustomizingAiChatPanel.tsx src/app/customizing/CustomizingAiChatPanel.test.tsx src/app/customizing/CustomizingClient.tsx` passed with 0 errors; existing stale Browserslist notice and pre-existing warnings in `CustomizingClient.tsx` remain.
+
 ## Customizer Edible Photo AI Chat Priority (2026-07-03)
 
 ### Plan

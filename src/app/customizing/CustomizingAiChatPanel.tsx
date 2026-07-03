@@ -14,7 +14,7 @@ export interface CustomizingAiPromptSuggestionItem {
 interface CustomizingAiChatPanelProps {
     className?: string;
     containerRef: React.RefObject<HTMLFormElement | null>;
-    inputRef: React.RefObject<HTMLInputElement | null>;
+    inputRef: React.RefObject<HTMLTextAreaElement | null>;
     chatInput: string;
     selectedAiPromptTemplate: ParsedAiChatPromptTemplate | null;
     selectedAiPromptColor: string;
@@ -35,7 +35,7 @@ interface CustomizingAiChatPanelProps {
     onInputChange: (value: string) => void;
     onInputInteract: () => void;
     onInputBlur?: () => void;
-    onInputKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
+    onInputKeyDown: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void;
     onSuggestionSelect: (suggestion: string) => void;
     placeholder?: string;
     title?: string;
@@ -72,6 +72,35 @@ export const CustomizingAiChatPanel = React.memo(({
 }: CustomizingAiChatPanelProps) => {
     const fileInputRef = React.useRef<HTMLInputElement | null>(null);
     const isAttachmentDisabled = isAiProcessing || isUpdatingDesign || isAttachmentUploading;
+
+    React.useLayoutEffect(() => {
+        if (selectedAiPromptTemplate) return;
+
+        const textarea = inputRef.current;
+        if (!textarea) return;
+
+        const computedStyle = window.getComputedStyle(textarea);
+        const lineHeight = Number.parseFloat(computedStyle.lineHeight);
+        const verticalPadding = Number.parseFloat(computedStyle.paddingTop) + Number.parseFloat(computedStyle.paddingBottom);
+        const maxHeight = ((Number.isFinite(lineHeight) ? lineHeight : 18) * 3) + verticalPadding;
+
+        textarea.style.height = 'auto';
+        textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`;
+        textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'auto' : 'hidden';
+    }, [chatInput, inputRef, selectedAiPromptTemplate]);
+
+    const handleTextareaKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        onInputKeyDown(event);
+
+        if (event.defaultPrevented) {
+            return;
+        }
+
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            void onSubmit();
+        }
+    };
 
     return (
         <div className={className}>
@@ -146,25 +175,25 @@ export const CustomizingAiChatPanel = React.memo(({
                                 )}
                             </div>
                         ) : (
-                            <input
+                            <textarea
                                 ref={inputRef}
-                                type="text"
                                 value={chatInput}
                                 onChange={(event) => onInputChange(event.target.value)}
                                 onFocus={onInputInteract}
                                 onBlur={onInputBlur}
                                 onClick={onInputInteract}
-                                onKeyDown={onInputKeyDown}
+                                onKeyDown={handleTextareaKeyDown}
                                 placeholder={placeholder}
                                 disabled={isAiProcessing || isUpdatingDesign}
                                 autoComplete="off"
-                                className="w-full pl-4 pr-12 py-3 bg-white border border-slate-200 rounded-2xl text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all disabled:opacity-50 disabled:bg-slate-50 placeholder:text-slate-400"
+                                rows={1}
+                                className="w-full min-h-10 resize-none overflow-hidden pl-4 pr-14 py-2.5 bg-white border border-slate-200 rounded-2xl text-[12.5px] leading-[18px] shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all disabled:opacity-50 disabled:bg-slate-50 placeholder:text-slate-400"
                             />
                         )}
                         <button
                             type="submit"
                             disabled={!chatInput.trim() || isAiProcessing || isUpdatingDesign || !!selectedAiPromptTemplate}
-                            className="absolute right-1.5 top-1.5 bottom-1.5 bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white px-2.5 rounded-xl transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                            className="absolute right-1.5 top-1.5 h-10 w-10 bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white rounded-xl transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
                             aria-label="Submit AI Edit"
                         >
                             {isAiProcessing ? (

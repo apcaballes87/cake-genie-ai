@@ -81,6 +81,7 @@ import { CustomizingEmptyLandingState } from './CustomizingEmptyLandingState';
 import { CustomizingAiChatPanel } from './CustomizingAiChatPanel';
 import { CustomizingToppersPanel } from './CustomizingToppersPanel';
 import { CustomizingAgentProtocol } from './CustomizingAgentProtocol';
+import { prepareAiChatReferenceImage } from './aiChatReferenceImage';
 import { canConsumeDesktopSidebarWheel, shouldCaptureDesktopSidebarScroll } from './desktopSidebarScroll';
 import {
     buildRetryUploadUrl,
@@ -128,7 +129,6 @@ import {
     requestMentionsPrintoutConversion,
 } from '@/utils/printoutConversionPrompt';
 import { buildDecorLocalizationHint } from '@/utils/editImageTuning';
-import { fileToBase64 } from '@/services/geminiService';
 import type { EditImageReferenceImage } from '@/services/geminiService';
 import {
     buildCommerceOrderSnapshot,
@@ -497,8 +497,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     const lastAutoRelatedDesignRequestKeyRef = useRef<string | null>(null);
     const aiChatMobileContainerRef = useRef<HTMLFormElement>(null);
     const aiChatDesktopContainerRef = useRef<HTMLFormElement>(null);
-    const aiChatMobileInputRef = useRef<HTMLInputElement>(null);
-    const aiChatDesktopInputRef = useRef<HTMLInputElement>(null);
+    const aiChatMobileInputRef = useRef<HTMLTextAreaElement>(null);
+    const aiChatDesktopInputRef = useRef<HTMLTextAreaElement>(null);
     const chatEndMobileRef = useRef<HTMLDivElement>(null);
     const chatEndDesktopRef = useRef<HTMLDivElement>(null);
     const isDraftApplied = useRef(false);
@@ -1824,11 +1824,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         setIsAiChatAttachmentUploading(true);
 
         try {
-            const attachmentImage = await fileToBase64(file);
-            setAiChatReferenceAttachment({
-                fileName: file.name,
-                image: attachmentImage,
-            });
+            const preparedReferenceImage = await prepareAiChatReferenceImage(file);
+            setAiChatReferenceAttachment(preparedReferenceImage);
             showSuccess('Reference image attached.');
         } catch (error) {
             showError('Could not process the reference image. Please try another file.');

@@ -15,7 +15,7 @@ const suggestionTemplate: ParsedAiChatPromptTemplate = {
 const buildProps = () => ({
     className: 'test-panel',
     containerRef: React.createRef<HTMLFormElement>(),
-    inputRef: React.createRef<HTMLInputElement>(),
+    inputRef: React.createRef<HTMLTextAreaElement>(),
     chatInput: 'make it blue',
     selectedAiPromptTemplate: null as ParsedAiChatPromptTemplate | null,
     selectedAiPromptColor: '',
@@ -49,11 +49,12 @@ describe('CustomizingAiChatPanel', () => {
         render(<CustomizingAiChatPanel {...props} />);
 
         const input = screen.getByPlaceholderText('✨ Tell Genie your cake design wish...');
+        expect(input.tagName).toBe('TEXTAREA');
         fireEvent.focus(input);
         fireEvent.click(input);
         fireEvent.change(input, { target: { value: 'make it pastel blue' } });
         fireEvent.click(screen.getByRole('button', { name: /add butterflies/i }));
-        fireEvent.click(screen.getByRole('button', { name: 'Submit AI Edit' }));
+        fireEvent.keyDown(input, { key: 'Enter' });
 
         expect(props.onInputInteract).toHaveBeenCalledTimes(2);
         expect(props.onInputChange).toHaveBeenCalledWith('make it pastel blue');
