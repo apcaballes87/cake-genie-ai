@@ -51,7 +51,6 @@ interface CustomizingStepSummarySectionsProps {
     addOnPricing?: number;
     separateIcingStep?: boolean;
     aiChatNode?: React.ReactNode;
-    prioritizeAiChat?: boolean;
     hideStepOne?: boolean;
     hideStepFour?: boolean;
     photoStepNode?: React.ReactNode;
@@ -269,7 +268,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     addOnPricing = 0,
     separateIcingStep = false,
     aiChatNode,
-    prioritizeAiChat = false,
     hideStepOne,
     hideStepFour,
     photoStepNode,
@@ -661,7 +659,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
 
             {/* Pulsing hint for AI icing mask is disabled/hidden since the mask is disabled */}
 
-            {prioritizeAiChat ? aiChatCard : null}
+            {aiChatCard}
 
             {cakeInfo && !isAnalyzing && !isRejectionError && !hideStepOne && (
                 <div 
@@ -1084,8 +1082,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                     )}
                 </div>
             )}
-
-            {!prioritizeAiChat ? aiChatCard : null}
 
             {cakeInfo && !isAnalyzing && !isRejectionError && (
                 <div className="px-1 py-1">

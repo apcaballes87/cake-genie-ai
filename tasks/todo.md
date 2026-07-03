@@ -6,15 +6,14 @@
 
 - [x] Trace edible-photo detection and current AI chat input ownership.
 - [x] Prefill the AI chat input for enabled top edible-photo designs without overwriting user edits.
-- [x] Move the AI chat card above cake options only for top edible-photo designs.
+- [x] Move the AI chat card permanently above cake options for all designs.
 - [x] Add focused regression coverage and run verification.
 
 ### Review
 
 - Reused the customizer's enabled edible-photo-top detection in [src/app/customizing/CustomizingClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingClient.tsx:1), now checking both `type` and `original_type` for `edible_photo_top`.
 - Added `getNextEdiblePhotoAiChatInput(...)` and `EDIBLE_PHOTO_AI_CHAT_DEFAULT_PROMPT` in [src/app/customizing/customizingClientGuards.ts](/Users/apcaballes/genieph-nextjs/src/app/customizing/customizingClientGuards.ts:1). The input fills with `Change the Edible Photo to the uploaded photo` only when empty/default, preserves user-typed text, and clears the untouched default if the edible-photo condition disappears.
-- Added `prioritizeAiChat` to [src/app/customizing/CustomizingStepSummarySections.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingStepSummarySections.tsx:1). Normal cakes still show AI chat below cake messages; edible-photo-top cakes show it at the top above cake options.
-- Passed `prioritizeAiChat={hasEnabledEdiblePhotoTopper}` through mobile and desktop customizer render paths.
+- Updated [src/app/customizing/CustomizingStepSummarySections.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingStepSummarySections.tsx:1) so the AI chat card now always renders at the top above the icing/cake options, while the edible-photo-specific behavior is limited to the default input text.
 - Verification:
   - `npx vitest run src/app/customizing/CustomizingStepSummarySections.test.tsx src/app/customizing/customizingClientGuards.test.ts --exclude '.claude/**'` passed: 26 tests.
   - `git diff --check -- src/app/customizing/CustomizingClient.tsx src/app/customizing/CustomizingStepSummarySections.tsx src/app/customizing/CustomizingStepSummarySections.test.tsx src/app/customizing/customizingClientGuards.ts src/app/customizing/customizingClientGuards.test.ts tasks/todo.md` passed.

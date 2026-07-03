@@ -4015,7 +4015,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                         separateIcingStep,
                                         hideStepFour,
                                         photoStepNode,
-                                        prioritizeAiChat: hasEnabledEdiblePhotoTopper,
                                         onUpdateDesign: onUpdateDesign,
                                         isUpdatingDesign: isUpdatingDesign,
                                         dirtyFields: dirtyFields,
@@ -4096,7 +4095,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                     hideStepOne={hideStepOne}
                                     hideStepFour={hideStepFour}
                                     photoStepNode={photoStepNode}
-                                    prioritizeAiChat={hasEnabledEdiblePhotoTopper}
                                     aiChatNode={!analysisError && !hideAiChat ? (
                                         <CustomizingAiChatPanel
                                             className="w-full"
@@ -4215,7 +4213,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                     hideStepOne,
                                     hideStepFour,
                                     photoStepNode,
-                                    prioritizeAiChat: hasEnabledEdiblePhotoTopper,
                                     originalCakeType: analysisResult?.cakeType,
                                     aiChatNode: !analysisError && !hideAiChat ? (
                                         <CustomizingAiChatPanel
