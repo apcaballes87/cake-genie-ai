@@ -1,5 +1,6 @@
 # Lessons
 
+- For customizer composer sizing corrections, prioritize rendered box measurements over class-name intent. A bordered wrapper with an inline textarea can render taller than the upload button even when both declare matching Tailwind heights; make the textarea `block` and account for the wrapper border when matching visible control height.
 - For customizer composer polish, use a fixed default control scale rather than chasing screenshots with raw Tailwind swaps: upload button and text field should share the same base height, the send button should be materially smaller inside the field, and textarea autosize should preserve the one-line height until real wrapping/newlines occur.
 - Do not make an input larger to make an oversized embedded button fit. For the customizer AI chat, preserve the compact field height first, then reduce the send button and adjust inner padding so the button fits inside the existing text field.
 - For the customizer AI chat composer, matching raw heights is not enough if the textarea and send button do not share the same visual container. Put the send button inside the field wrapper itself so the control reads as one input by default.

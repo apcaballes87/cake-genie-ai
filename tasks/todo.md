@@ -31,9 +31,16 @@
 
 ### Review
 
-- Updated [src/app/customizing/CustomizingAiChatPanel.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingAiChatPanel.tsx:1) so the upload button and one-line AI chat field use the same `h-12` / `min-h-12` visual scale, with the send button sized and positioned inside the field.
-- Updated [src/app/customizing/CustomizingAiChatPanel.test.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingAiChatPanel.test.tsx:1) to assert the aligned button/field sizing.
-- Verification was included in the desktop autocomplete follow-up: focused AI chat tests passed, `git diff --check` passed, and ESLint reported only the existing `CustomizingClient.tsx` warning set plus the stale Browserslist notice.
+- Updated [src/app/customizing/CustomizingAiChatPanel.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingAiChatPanel.tsx:1) so the attach button and free-text field share the same visible `48px` control height.
+- Root cause: the textarea sat inside a bordered wrapper as a full-height inline control, which made the wrapper render taller than the upload button. The textarea is now a `block` inner control with a `46px` base height so the field wrapper lands at `48px` including its border.
+- Increased the purple send button from `h-6 w-6` to `h-10 w-10`, inset it with `right-1 top-1`, and switched the icon to Lucide `Send` at `16px` so it fills the text field properly without touching the border.
+- Updated [src/app/customizing/CustomizingAiChatPanel.test.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingAiChatPanel.test.tsx:1) to assert the new upload, field, textarea, and send-button sizing contract.
+- Verification:
+  - `npx vitest run src/app/customizing/CustomizingAiChatPanel.test.tsx --exclude '.claude/**'` passed: 4 tests.
+  - `npx eslint src/app/customizing/CustomizingAiChatPanel.tsx src/app/customizing/CustomizingAiChatPanel.test.tsx` completed without lint findings beyond the existing stale Browserslist notice.
+  - `git diff --check -- src/app/customizing/CustomizingAiChatPanel.tsx src/app/customizing/CustomizingAiChatPanel.test.tsx tasks/todo.md tasks/lessons.md` passed.
+  - `agent-browser` opened `http://localhost:3002/customizing/fathers-day-sky-blue-1-tier-cake-ffef`; no Next.js error overlay was present.
+  - Browser measurement on that route: upload button `48x48`, text field `540x48`, textarea `538x46`, send button `40x40`.
 
 ## Presentable Customizer AI Chat Control (2026-07-04)
 
