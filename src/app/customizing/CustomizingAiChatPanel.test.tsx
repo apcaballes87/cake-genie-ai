@@ -55,11 +55,12 @@ describe('CustomizingAiChatPanel', () => {
         expect(input.tagName).toBe('TEXTAREA');
         expect(uploadButton.className).toContain('h-9');
         expect(uploadButton.className).toContain('w-9');
-        expect(submitButton.className).toContain('h-8');
-        expect(submitButton.className).toContain('w-8');
-        expect(input).toHaveClass('min-h-10');
+        expect(submitButton.className).toContain('h-7');
+        expect(submitButton.className).toContain('w-7');
+        expect(input).toHaveClass('min-h-9');
         expect(inputWrapper?.className).toContain('rounded-2xl');
         expect(inputWrapper?.className).toContain('border');
+        expect(inputWrapper?.className).toContain('min-h-9');
         fireEvent.focus(input);
         fireEvent.click(input);
         fireEvent.change(input, { target: { value: 'make it pastel blue' } });

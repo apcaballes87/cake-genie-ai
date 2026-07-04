@@ -1,5 +1,25 @@
 # Tasks
 
+## Compact Customizer AI Chat Composer (2026-07-04)
+
+### Plan
+
+- [x] Reinspect the AI chat composer after the user clarified the previous fix made the field too large.
+- [x] Restore the compact text field height while making the send button smaller inside the field.
+- [x] Update focused tests to assert the compact field and smaller internal send button.
+- [x] Run focused verification and record the result.
+
+### Review
+
+- Correction: the previous change made the text field taller to fit the send button, but the intended fix was to preserve the compact field and reduce the button so it fits inside.
+- Updated [src/app/customizing/CustomizingAiChatPanel.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingAiChatPanel.tsx:1) so the field wrapper and textarea are back to the compact `min-h-9` scale, while the send button is now smaller at `h-7 w-7` and remains positioned inside the field.
+- Kept the shared wrapper so the button still reads as part of the text field, but tightened the textarea padding to `pr-11 py-2` so the text has room without growing the control.
+- Updated [src/app/customizing/CustomizingAiChatPanel.test.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingAiChatPanel.test.tsx:1) to assert the compact field height and smaller internal send button.
+- Verification:
+  - `npx vitest run src/app/customizing/CustomizingAiChatPanel.test.tsx --exclude '.claude/**'` passed: 4 tests.
+  - `git diff --check -- src/app/customizing/CustomizingAiChatPanel.tsx src/app/customizing/CustomizingAiChatPanel.test.tsx tasks/todo.md tasks/lessons.md` passed.
+  - `npx eslint src/app/customizing/CustomizingAiChatPanel.tsx src/app/customizing/CustomizingAiChatPanel.test.tsx` completed without lint findings beyond the usual stale Browserslist notice.
+
 ## Customizer AI Chat Send Button Inside Field (2026-07-04)
 
 ### Plan

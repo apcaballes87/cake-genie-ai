@@ -170,7 +170,7 @@ export const CustomizingAiChatPanel = React.memo(({
                                 )}
                             </div>
                         ) : (
-                            <div className="relative rounded-2xl border border-slate-200 bg-white shadow-sm transition-all focus-within:border-transparent focus-within:ring-2 focus-within:ring-purple-500">
+                            <div className="relative min-h-9 rounded-2xl border border-slate-200 bg-white shadow-sm transition-all focus-within:border-transparent focus-within:ring-2 focus-within:ring-purple-500">
                                 <textarea
                                     ref={inputRef}
                                     value={chatInput}
@@ -183,14 +183,14 @@ export const CustomizingAiChatPanel = React.memo(({
                                     disabled={isAiProcessing || isUpdatingDesign}
                                     autoComplete="off"
                                     rows={1}
-                                    className="w-full min-h-10 resize-none overflow-hidden rounded-2xl bg-transparent pl-4 pr-[3.25rem] py-[9px] text-[12.5px] leading-[18px] focus:outline-none disabled:opacity-50 disabled:bg-slate-50 placeholder:text-slate-400"
+                                    className="w-full min-h-9 resize-none overflow-hidden rounded-2xl bg-transparent pl-4 pr-11 py-2 text-[12.5px] leading-[18px] focus:outline-none disabled:opacity-50 disabled:bg-slate-50 placeholder:text-slate-400"
                                 />
                             </div>
                         )}
                         <button
                             type="submit"
                             disabled={!chatInput.trim() || isAiProcessing || isUpdatingDesign || !!selectedAiPromptTemplate}
-                            className="absolute right-1 top-1 h-8 w-8 bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white rounded-xl transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                            className="absolute right-1 top-1 h-7 w-7 bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white rounded-lg transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
                             aria-label="Submit AI Edit"
                         >
                             {isAiProcessing ? (
