@@ -159,6 +159,34 @@ export function getDisabledTimeSlotsForLeadTime(
     .map((slot) => slot.slot);
 }
 
+export function getDisabledTimeSlotReason(
+  date: string,
+  slot: DeliveryTimeSlot,
+  options: DeliveryLeadTimeOptions
+): string | null {
+  if (!date) {
+    return null;
+  }
+
+  const { readyAtWallClockMs } = getLeadTimeReadyAt(options);
+
+  if (buildWallClockMs(date, slot.endHour) >= readyAtWallClockMs) {
+    return null;
+  }
+
+  if (options.availability === 'normal') {
+    const leadTimeDays = Math.max(options.minimumLeadTimeDays ?? 1, 1);
+    const plural = leadTimeDays > 1 ? 's' : '';
+    return `This design needs at least ${leadTimeDays} day${plural} of lead time, so this time slot is too close. Please choose a later time or a later date.`;
+  }
+
+  if (options.availability === 'same-day') {
+    return 'This time slot is too close for the remaining same-day prep time. Please choose a later time or a later date.';
+  }
+
+  return 'This time slot is too close for the remaining rush prep time. Please choose a later time or a later date.';
+}
+
 export function isDateAvailableForLeadTime(
   date: string,
   slots: DeliveryTimeSlot[],

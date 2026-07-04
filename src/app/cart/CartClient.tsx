@@ -30,7 +30,7 @@ import { SplitWithFriendsModal } from '@/components/SplitWithFriendsModal';
 import { SplitOrderShareModal } from '@/components/SplitOrderShareModal';
 import { useGoogleMapsLoader, GoogleMapsLoaderProvider } from '@/contexts/GoogleMapsLoaderContext';
 import { calculateCartAvailability } from '@/lib/utils/availability';
-import { getDisabledTimeSlotsForLeadTime, getLeadTimeDaysFromManilaToday, isDateAvailableForLeadTime } from '@/lib/utils/deliveryLeadTime';
+import { getDisabledTimeSlotReason, getDisabledTimeSlotsForLeadTime, getLeadTimeDaysFromManilaToday, isDateAvailableForLeadTime } from '@/lib/utils/deliveryLeadTime';
 import CartItemCard from '@/components/CartItemCard';
 import { useQuery } from '@tanstack/react-query';
 import { useAvailabilitySettings } from '@/hooks/useAvailabilitySettings';
@@ -497,6 +497,7 @@ function CartClient() {
     const [isRedirecting, setIsRedirecting] = useState(false);
     const [partiallyBlockedSlots, setPartiallyBlockedSlots] = useState<BlockedDateInfo[]>([]);
     const [unavailableDateFeedback, setUnavailableDateFeedback] = useState<{ date: string; reason: string; } | null>(null);
+    const [unavailableTimeFeedback, setUnavailableTimeFeedback] = useState<{ slot: string; reason: string; } | null>(null);
 
     // --- Pending order recovery (Xendit browser-back) ---
     // The hook reads the sessionStorage snapshot written by
@@ -1079,6 +1080,7 @@ function CartClient() {
     const handleDateSelect = useCallback((date: string) => {
         setEventDate(date);
         setUnavailableDateFeedback(null);
+        setUnavailableTimeFeedback(null);
         const blocks = blockedDatesMap?.[date] || [];
         const partials = blocks.filter(b => !b.is_all_day);
         setPartiallyBlockedSlots(partials);
@@ -1097,6 +1099,21 @@ function CartClient() {
 
     const clearUnavailableDateFeedback = useCallback(() => {
         setUnavailableDateFeedback(null);
+    }, []);
+
+    const showUnavailableTimeFeedback = useCallback((slot: string, reason: string, options?: { announce?: boolean }) => {
+        setUnavailableTimeFeedback({ slot, reason });
+
+        if (options?.announce) {
+            showInfo(reason, {
+                id: `cart-time-unavailable-${slot}`,
+                duration: 3500,
+            });
+        }
+    }, []);
+
+    const clearUnavailableTimeFeedback = useCallback(() => {
+        setUnavailableTimeFeedback(null);
     }, []);
 
     const getDateStatus = useCallback((dateInfo: AvailableDate) => {
@@ -1187,6 +1204,34 @@ function CartClient() {
         return [...new Set(newDisabledSlots)];
     }, [eventDate, leadTimeOptions, partiallyBlockedSlots]);
 
+    const getTimeSlotUnavailableReason = useCallback((slot: string): string | null => {
+        if (!eventDate) {
+            return null;
+        }
+
+        const timeSlot = EVENT_TIME_SLOTS_MAP.find((candidate) => candidate.slot === slot);
+        if (!timeSlot) {
+            return null;
+        }
+
+        const matchingBlockedSlot = partiallyBlockedSlots.find((blockedSlot) => {
+            if (!blockedSlot.blocked_time_start || !blockedSlot.blocked_time_end) {
+                return false;
+            }
+
+            const blockStartHour = parseInt(blockedSlot.blocked_time_start.split(':')[0], 10);
+            const blockEndHour = parseInt(blockedSlot.blocked_time_end.split(':')[0], 10);
+
+            return timeSlot.startHour < blockEndHour && timeSlot.endHour > blockStartHour;
+        });
+
+        if (matchingBlockedSlot) {
+            return matchingBlockedSlot.closure_reason || 'This time slot is no longer available. Please choose another time.';
+        }
+
+        return getDisabledTimeSlotReason(eventDate, timeSlot, leadTimeOptions);
+    }, [eventDate, leadTimeOptions, partiallyBlockedSlots]);
+
     useEffect(() => {
         if (!eventDate || isLoadingDates || isLoadingBlockedDates) {
             return;
@@ -1201,6 +1246,7 @@ function CartClient() {
             setEventDate('');
             setEventTime('');
             setPartiallyBlockedSlots([]);
+            setUnavailableTimeFeedback(null);
         }
     }, [
         correctedDates,
@@ -1217,6 +1263,12 @@ function CartClient() {
             setEventTime('');
         }
     }, [eventTime, disabledSlots, setEventTime]);
+
+    useEffect(() => {
+        if (unavailableTimeFeedback && !disabledSlots.includes(unavailableTimeFeedback.slot)) {
+            setUnavailableTimeFeedback(null);
+        }
+    }, [disabledSlots, unavailableTimeFeedback]);
 
     useEffect(() => {
         if (isRegisteredUser && !isAddressesLoading) {
@@ -2185,23 +2237,51 @@ function CartClient() {
                                                     {EVENT_TIME_SLOTS.map(slot => {
                                                         const isDisabled = disabledSlots.includes(slot);
                                                         const isSelected = eventTime === slot;
+                                                        const unavailableReason = isDisabled ? getTimeSlotUnavailableReason(slot) : null;
                                                         return (
-                                                            <button
-                                                                key={slot}
-                                                                type="button"
-                                                                onClick={() => !isDisabled && setEventTime(slot)}
-                                                                disabled={isDisabled}
-                                                                className={`shrink-0 text-center rounded-lg p-2 border-2 transition-all duration-200
+                                                            <div key={slot} className="relative shrink-0">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setEventTime(slot);
+                                                                        clearUnavailableTimeFeedback();
+                                                                    }}
+                                                                    disabled={isDisabled}
+                                                                    className={`w-full text-center rounded-lg p-2 border-2 transition-all duration-200
                                                             ${isSelected ? 'genie-control-selected text-purple-900' : 'border-purple-100 bg-white'}
                                                             ${isDisabled ? 'opacity-50 bg-slate-50 cursor-not-allowed' : 'hover:border-purple-300'}
     `}
-                                                            >
-                                                                <span className="block text-xs font-semibold text-slate-800 px-2">{slot}</span>
-                                                            </button>
+                                                                >
+                                                                    <span className="block text-xs font-semibold text-slate-800 px-2">{slot}</span>
+                                                                </button>
+                                                                {isDisabled && unavailableReason ? (
+                                                                    <button
+                                                                        type="button"
+                                                                        className="absolute inset-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2"
+                                                                        aria-label={`${slot} unavailable. ${unavailableReason}`}
+                                                                        onClick={() => showUnavailableTimeFeedback(slot, unavailableReason, { announce: true })}
+                                                                        onFocus={() => showUnavailableTimeFeedback(slot, unavailableReason)}
+                                                                        onBlur={clearUnavailableTimeFeedback}
+                                                                        onMouseEnter={() => showUnavailableTimeFeedback(slot, unavailableReason)}
+                                                                        onMouseLeave={clearUnavailableTimeFeedback}
+                                                                    >
+                                                                        <span className="sr-only">{unavailableReason}</span>
+                                                                    </button>
+                                                                ) : null}
+                                                            </div>
                                                         );
                                                     })}
                                                 </div>
                                             </div>
+                                            {unavailableTimeFeedback && (
+                                                <div
+                                                    className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 animate-fade-in"
+                                                    role="status"
+                                                    aria-live="polite"
+                                                >
+                                                    <strong>Time unavailable:</strong> {unavailableTimeFeedback.reason}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 

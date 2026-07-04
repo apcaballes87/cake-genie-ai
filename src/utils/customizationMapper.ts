@@ -71,11 +71,6 @@ export function mapAnalysisToState(rawData: HybridAnalysisResult): Customization
 
     // 3. Support Elements
     state.supportElements = (rawData.support_elements || []).map((s): SupportElementUI => {
-        let initialType = s.type;
-        if (s.type === 'edible_photo_side') {
-            initialType = 'support_printout';
-        }
-
         return {
             ...s,
             x: s.x,
@@ -84,7 +79,7 @@ export function mapAnalysisToState(rawData: HybridAnalysisResult): Customization
             isEnabled: true,
             price: 0,
             original_type: s.type,
-            type: initialType,
+            type: s.type,
             replacementImage: undefined,
             original_color: s.color,
             original_colors: s.colors,

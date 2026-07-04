@@ -4141,3 +4141,30 @@
   - `git diff --check` passed.
   - `npm run build` passed. Existing warnings appeared for stale browser baseline data, inferred workspace root, deprecated middleware convention, and non-fatal Supabase statement timeouts during static generation.
   - Targeted `npm run lint -- ...` did not pass because of existing unrelated lint errors in `src/app/customizing/[slug]/page.tsx` (`no-explicit-any`, `prefer-const`) plus existing warnings; no new TypeScript/build failure was introduced.
+
+## Edible Photo Side Wrap Rule Check (2026-07-05)
+
+### Plan
+
+- [x] Verify the live cache row for `anime-cake-white-2-tier-cake-929e`.
+- [x] Trace edible-photo prompt, pricing, and customizer conversion rules.
+- [x] Confirm whether side-wrap edible photos are charged or defaulted to photo paper.
+- [x] Fix the customizer mapper so edible side wraps remain edible by default.
+- [x] Add a focused regression test for edible side-wrap hydration.
+- [x] Document evidence, conclusion, and verification.
+
+### Review
+
+- Live `cakegenie_analysis_cache` row for `anime-cake-white-2-tier-cake-929e` has one support element: `type = edible_photo_side`, `material = waferpaper`, `size = large`, description `manga panel side wrap`.
+- The top Attack on Titan logo is a separate `main_toppers` item with `type = printout`, `material = photopaper`, and prices at `0`.
+- Active pricing rules distinguish edible side wraps from photo-paper wraps:
+  - `edible_photo_side_large` prices at `300`.
+  - `support_printout`/`printout` prices at `0`.
+- The real pricing function returned add-on `300`, with the `manga panel side wrap` as the only positive-priced item. This explains stored product price `2699` as lowest 2-tier base `2399` plus edible-photo side-wrap add-on `300`.
+- Prompt rules say full side edible prints/wraps classify as `edible_photo_side`; smaller edible printed side pieces classify as `edible_photo_print`; freestanding paper/photo-paper cutouts classify as `printout`/`cardstock`/`toy`.
+- Root cause: `mapAnalysisToState` converted every `edible_photo_side` support element to `support_printout` during customizer hydration, even though the live cache row and pricing rules classified it as edible.
+- Fixed `src/utils/customizationMapper.ts` so support elements preserve `s.type` by default, including `edible_photo_side`.
+- Added `src/utils/customizationMapper.test.ts` to assert edible side photo wraps hydrate with both `original_type` and `type` as `edible_photo_side`.
+- UI rules in `TopperCard` still allow a manual switch from `Edible Photo Wrap` to `Printout Wrap` (`support_printout`) when the original item is an edible side wrap.
+- Verification:
+  - `npx vitest run src/utils/customizationMapper.test.ts` passed.

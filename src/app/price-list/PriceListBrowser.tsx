@@ -5,12 +5,13 @@ import Link from 'next/link';
 import { ImagePlus, MapPin } from 'lucide-react';
 
 import LazyImage from '@/components/LazyImage';
+import MobileBottomNav from '@/components/MobileBottomNav';
 import type { DeliveryRateCard } from '@/lib/commerce/deliveryRates';
 import type {
   CakeTypePriceSummary,
   PriceListFilterKey,
 } from '@/lib/pricing/priceList';
-import type { CakeThickness } from '@/types';
+import type { CakeThickness, CakeType } from '@/types';
 import {
   CAKE_SIZE_THUMBNAILS,
   CAKE_TYPE_THUMBNAILS,
@@ -27,6 +28,23 @@ const FILTERS: { key: PriceListFilterKey; label: string }[] = [
   { key: 'soft-icing', label: 'Soft icing' },
   { key: 'fondant', label: 'Fondant' },
   { key: 'party', label: 'Party sets' },
+];
+
+type PriceListCakeGroup = {
+  key: string;
+  title: string;
+  summaries: CakeTypePriceSummary[];
+};
+
+const COMBINED_CAKE_TYPE_GROUPS: { title: string; types: CakeType[] }[] = [
+  { title: '1 Tier', types: ['1 Tier', '1 Tier Fondant'] },
+  { title: '2 Tier', types: ['2 Tier', '2 Tier Fondant'] },
+  { title: '3 Tier', types: ['3 Tier', '3 Tier Fondant'] },
+  { title: 'Square', types: ['Square', 'Square Fondant'] },
+  { title: 'Rectangle', types: ['Rectangle', 'Rectangle Fondant'] },
+  { title: 'Bento', types: ['Bento'] },
+  { title: 'Cupcake', types: ['Cupcake'] },
+  { title: 'Bento Cupcake Set', types: ['Bento Cupcake Set'] },
 ];
 
 function formatPeso(value: number): string {
@@ -48,22 +66,63 @@ function getSizeOverlayLabel(size: string): string[] {
   return [size];
 }
 
+function getGroupedSummaries(summaries: CakeTypePriceSummary[]): PriceListCakeGroup[] {
+  const byCakeType = new Map(summaries.map((summary) => [summary.cakeType, summary]));
+
+  return COMBINED_CAKE_TYPE_GROUPS.flatMap((group) => {
+    const groupSummaries = group.types
+      .map((type) => byCakeType.get(type))
+      .filter((summary): summary is CakeTypePriceSummary => Boolean(summary));
+
+    if (groupSummaries.length === 0) return [];
+
+    return [{
+      key: group.title.toLowerCase().replace(/\s+/g, '-'),
+      title: group.title,
+      summaries: groupSummaries,
+    }];
+  });
+}
+
+function getDefaultSummaryForFilter(group: PriceListCakeGroup, activeFilter: PriceListFilterKey): CakeTypePriceSummary {
+  if (activeFilter !== 'all') {
+    const filteredSummary = group.summaries.find((summary) => summary.filterKey === activeFilter);
+    if (filteredSummary) return filteredSummary;
+  }
+
+  return group.summaries.find((summary) => summary.filterKey === 'soft-icing') ?? group.summaries[0];
+}
+
 export default function PriceListBrowser({
   summaries,
   deliveryRates,
 }: PriceListBrowserProps) {
   const [activeFilter, setActiveFilter] = useState<PriceListFilterKey>('all');
+  const [selectedCakeTypeByGroup, setSelectedCakeTypeByGroup] = useState<Record<string, CakeType>>({});
   const [selectedThicknessByType, setSelectedThicknessByType] = useState<Record<string, CakeThickness>>({});
 
-  const filteredSummaries = useMemo(() => {
-    if (activeFilter === 'all') return summaries;
-    return summaries.filter((summary) => summary.filterKey === activeFilter);
+  const filteredGroups = useMemo(() => {
+    const groups = getGroupedSummaries(summaries);
+    if (activeFilter === 'all') return groups;
+    return groups
+      .map((group) => ({
+        ...group,
+        summaries: group.summaries.filter((summary) => summary.filterKey === activeFilter),
+      }))
+      .filter((group) => group.summaries.length > 0);
   }, [activeFilter, summaries]);
 
   const handleThicknessSelect = (cakeType: string, thickness: CakeThickness) => {
     setSelectedThicknessByType((current) => ({
       ...current,
       [cakeType]: thickness,
+    }));
+  };
+
+  const handleCakeTypeSelect = (groupKey: string, cakeType: CakeType) => {
+    setSelectedCakeTypeByGroup((current) => ({
+      ...current,
+      [groupKey]: cakeType,
     }));
   };
 
@@ -105,12 +164,17 @@ export default function PriceListBrowser({
         </div>
 
         <div className="mt-6 grid gap-4 lg:grid-cols-2">
-          {filteredSummaries.length === 0 && (
+          {filteredGroups.length === 0 && (
             <div className="rounded-[1.75rem] border border-dashed border-slate-300 bg-slate-50/80 p-6 text-sm text-slate-600 lg:col-span-2">
               No cake types are available in this filter right now.
             </div>
           )}
-          {filteredSummaries.map((summary) => {
+          {filteredGroups.map((group) => {
+            const defaultSummary = getDefaultSummaryForFilter(group, activeFilter);
+            const selectedCakeType = selectedCakeTypeByGroup[group.key];
+            const summary =
+              group.summaries.find((candidate) => candidate.cakeType === selectedCakeType) ??
+              defaultSummary;
             const selectedThickness = selectedThicknessByType[summary.cakeType] ?? summary.defaultThickness;
             const selectedGroup =
               summary.priceGroups.find((group) => group.thickness === selectedThickness) ??
@@ -118,7 +182,7 @@ export default function PriceListBrowser({
 
             return (
               <article
-                key={summary.cakeType}
+                key={group.key}
                 className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-purple-300 hover:shadow-md"
               >
                 <div className="flex items-start gap-4">
@@ -132,11 +196,33 @@ export default function PriceListBrowser({
                     />
                   </div>
                   <div className="min-w-0">
-                    <div className="inline-flex rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-purple-700">
-                      {summary.filterLabel}
-                    </div>
+                    {group.summaries.length > 1 ? (
+                      <div className="inline-flex rounded-full border border-purple-100 bg-purple-50 p-1">
+                        {group.summaries.map((variant) => {
+                          const isSelected = variant.cakeType === summary.cakeType;
+                          return (
+                            <button
+                              key={variant.cakeType}
+                              type="button"
+                              onClick={() => handleCakeTypeSelect(group.key, variant.cakeType)}
+                              className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                                isSelected
+                                  ? 'bg-purple-600 text-white shadow-sm'
+                                  : 'text-purple-700 hover:bg-white'
+                              }`}
+                            >
+                              {variant.filterLabel}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="inline-flex rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-purple-700">
+                        {summary.filterLabel}
+                      </div>
+                    )}
                     <h3 className="mt-3 text-2xl font-black tracking-tight text-slate-900">
-                      {summary.title}
+                      {group.title}
                     </h3>
                     <p className="mt-2 text-sm leading-6 text-slate-600">
                       {summary.note}
@@ -262,6 +348,8 @@ export default function PriceListBrowser({
           ))}
         </div>
       </section>
+
+      <MobileBottomNav />
     </>
   );
 }

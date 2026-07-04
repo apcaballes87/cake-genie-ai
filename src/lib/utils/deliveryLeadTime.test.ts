@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getDisabledTimeSlotReason,
   getDisabledTimeSlotsForLeadTime,
   getLeadTimeDaysFromManilaToday,
   getLeadTimeReadyAt,
@@ -63,6 +64,24 @@ describe('delivery lead time', () => {
       minimumLeadTimeDays: 1,
       now: new Date('2026-04-23T07:00:00.000Z'),
     })).toEqual(['10AM - 12NN', '12NN - 2PM']);
+  });
+
+  it('explains when a normal-order time slot is too close for the design lead time', () => {
+    expect(getDisabledTimeSlotReason('2026-04-24', TIME_SLOTS[0], {
+      availability: 'normal',
+      minimumLeadTimeDays: 1,
+      now: new Date('2026-04-23T07:00:00.000Z'),
+    })).toBe(
+      'This design needs at least 1 day of lead time, so this time slot is too close. Please choose a later time or a later date.',
+    );
+  });
+
+  it('returns no reason for an available time slot', () => {
+    expect(getDisabledTimeSlotReason('2026-04-24', TIME_SLOTS[4], {
+      availability: 'normal',
+      minimumLeadTimeDays: 1,
+      now: new Date('2026-04-23T07:00:00.000Z'),
+    })).toBeNull();
   });
 
   it('derives the current calendar date in Asia/Manila instead of the browser timezone', () => {

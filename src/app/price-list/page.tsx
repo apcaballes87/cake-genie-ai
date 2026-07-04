@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/server';
 import { buildMarketingPageMetadata } from '@/lib/utils/metadata';
 
 import PriceListBrowser from './PriceListBrowser';
+import PriceListHeader from './PriceListHeader';
 
 export const metadata = buildMarketingPageMetadata({
   title: 'Custom Cake Price List in Cebu',
@@ -82,10 +83,11 @@ export default async function PriceListPage() {
 
   return (
     <>
-      <main className="relative overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(245,208,254,0.42),_transparent_30%),linear-gradient(180deg,_#fcfbff_0%,_#f8fafc_44%,_#ffffff_100%)]">
+      <main className="relative overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(245,208,254,0.42),_transparent_30%),linear-gradient(180deg,_#fcfbff_0%,_#f8fafc_44%,_#ffffff_100%)] pb-24 md:pb-0">
         <AnimatedBlobs />
+        <PriceListHeader />
 
-        <section className="relative mx-auto max-w-7xl px-4 pb-8 pt-14 sm:px-6 lg:px-8 lg:pt-20">
+        <section className="relative mx-auto max-w-7xl px-4 pb-8 pt-10 sm:px-6 lg:px-8 lg:pt-16">
           <div className="max-w-4xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-purple-200 bg-white/80 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.22em] text-purple-600 shadow-sm backdrop-blur">
               Cake pricing guide
