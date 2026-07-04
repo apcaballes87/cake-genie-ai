@@ -85,7 +85,7 @@ export const CustomizingAiChatPanel = React.memo(({
         const lineHeight = Number.parseFloat(computedStyle.lineHeight);
         const verticalPadding = Number.parseFloat(computedStyle.paddingTop) + Number.parseFloat(computedStyle.paddingBottom);
         const minHeight = Number.parseFloat(computedStyle.minHeight);
-        const baseHeight = Number.isFinite(minHeight) ? minHeight : 46;
+        const baseHeight = Number.isFinite(minHeight) ? minHeight : 39;
         const maxHeight = ((Number.isFinite(lineHeight) ? lineHeight : 18) * 3) + verticalPadding;
 
         textarea.style.height = 'auto';
@@ -134,7 +134,7 @@ export const CustomizingAiChatPanel = React.memo(({
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isAttachmentDisabled}
                         aria-label="Attach reference image"
-                        className="shrink-0 h-12 w-12 rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-purple-200 hover:bg-purple-50 hover:text-purple-700 disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center"
+                        className="shrink-0 h-[41px] w-[41px] rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-purple-200 hover:bg-purple-50 hover:text-purple-700 disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center"
                     >
                         {isAttachmentUploading ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -179,7 +179,7 @@ export const CustomizingAiChatPanel = React.memo(({
                                 )}
                             </div>
                         ) : (
-                            <div className="relative min-h-12 rounded-2xl border border-slate-200 bg-white shadow-sm transition-all focus-within:border-transparent focus-within:ring-2 focus-within:ring-purple-500">
+                            <div className="relative min-h-[41px] rounded-xl border border-slate-200 bg-white shadow-sm transition-all focus-within:border-transparent focus-within:ring-2 focus-within:ring-purple-500">
                                 <textarea
                                     ref={inputRef}
                                     value={chatInput}
@@ -192,14 +192,14 @@ export const CustomizingAiChatPanel = React.memo(({
                                     disabled={isAiProcessing || isUpdatingDesign}
                                     autoComplete="off"
                                     rows={1}
-                                    className="block w-full min-h-[46px] resize-none overflow-hidden rounded-2xl bg-transparent pl-5 pr-14 py-[13px] text-[12px] leading-5 focus:outline-none disabled:opacity-50 disabled:bg-slate-50 placeholder:text-slate-400"
+                                    className="block w-full min-h-[39px] resize-none overflow-hidden rounded-xl bg-transparent pl-4 pr-12 py-[11px] text-[12px] leading-[17px] focus:outline-none disabled:opacity-50 disabled:bg-slate-50 placeholder:text-slate-400"
                                 />
                             </div>
                         )}
                         <button
                             type="submit"
                             disabled={!chatInput.trim() || isAiProcessing || isUpdatingDesign || !!selectedAiPromptTemplate}
-                            className="absolute right-1 top-1 h-10 w-10 bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white rounded-xl transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="absolute right-1 top-1 h-[33px] w-[33px] bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white rounded-lg transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
                             aria-label="Submit AI Edit"
                         >
                             {isAiProcessing ? (

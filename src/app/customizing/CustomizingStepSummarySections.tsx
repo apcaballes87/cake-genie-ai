@@ -534,10 +534,8 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     const combinedDecorSummary = buildCombinedDecorSummary(mainToppers, supportElements, isCupcake);
     const shouldShowAiChatCard = Boolean(cakeInfo && !isAnalyzing && !isRejectionError && aiChatNode);
     const aiChatCard = shouldShowAiChatCard ? (
-        <div className={cardClassName}>
-            <div className="mt-1">
-                {aiChatNode}
-            </div>
+        <div className="w-full min-w-0">
+            {aiChatNode}
         </div>
     ) : null;
 

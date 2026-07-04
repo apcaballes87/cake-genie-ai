@@ -263,7 +263,7 @@ describe('CustomizingStepSummarySections', () => {
 
     it('renders AI chat above cake options while keeping cake type controls inside advanced customization', () => {
         const props = buildProps();
-        props.aiChatNode = <div>AI Cake Assistant</div>;
+        props.aiChatNode = <div data-testid="ai-chat-node">AI Cake Assistant</div>;
 
         render(<CustomizingStepSummarySections {...props} />);
 
@@ -276,9 +276,12 @@ describe('CustomizingStepSummarySections', () => {
         const icingTypeLabel = screen.getByText('Icing Type');
         const mainLabel = screen.getByText('Main');
         const aiChatTitle = screen.getByText('AI Cake Assistant');
+        const aiChatNode = screen.getByTestId('ai-chat-node');
 
         expect(icingTypeLabel.compareDocumentPosition(mainLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         expect(aiChatTitle.compareDocumentPosition(icingTypeLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(aiChatNode.parentElement).toHaveClass('w-full', 'min-w-0');
+        expect(aiChatNode.parentElement).not.toHaveClass('genie-card', 'p-2', 'rounded-2xl');
         expect(screen.getByTitle('red')).toBeInTheDocument();
         expect(advancedToggle).toHaveAttribute('aria-expanded', 'false');
         expect(advancedSection).toHaveClass('max-h-0', 'opacity-0', 'pointer-events-none');

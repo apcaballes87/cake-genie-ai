@@ -1,5 +1,49 @@
 # Tasks
 
+## Customizer AI Chat Remove Outer Container (2026-07-04)
+
+### Plan
+
+- [x] Identify the white enclosing card around the AI chat controls.
+- [x] Remove only the outer AI chat section card so the controls render directly.
+- [x] Keep the upload, text field, send button, and autocomplete behavior unchanged.
+- [x] Update focused tests and verify rendered output.
+
+### Review
+
+- Root cause: [src/app/customizing/CustomizingStepSummarySections.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingStepSummarySections.tsx:535) wrapped `aiChatNode` in the shared `cardClassName`, which adds the white `genie-card p-2 rounded-2xl` container.
+- Replaced that card wrapper with a plain `w-full min-w-0` layout wrapper so the AI chat controls render directly in the customization flow.
+- Kept [src/app/customizing/CustomizingAiChatPanel.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingAiChatPanel.tsx:1) behavior and control sizing unchanged from the compact 41px pass.
+- Updated [src/app/customizing/CustomizingStepSummarySections.test.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingStepSummarySections.test.tsx:1) to assert the AI chat node is no longer wrapped in `genie-card p-2 rounded-2xl`.
+- Verification:
+  - `npx vitest run src/app/customizing/CustomizingStepSummarySections.test.tsx src/app/customizing/CustomizingAiChatPanel.test.tsx --exclude '.claude/**'` passed: 18 tests.
+  - `npx eslint src/app/customizing/CustomizingStepSummarySections.tsx src/app/customizing/CustomizingStepSummarySections.test.tsx src/app/customizing/CustomizingAiChatPanel.tsx src/app/customizing/CustomizingAiChatPanel.test.tsx` completed with only existing warnings in `CustomizingStepSummarySections.tsx` plus the stale Browserslist notice.
+  - `git diff --check -- src/app/customizing/CustomizingStepSummarySections.tsx src/app/customizing/CustomizingStepSummarySections.test.tsx src/app/customizing/CustomizingAiChatPanel.tsx src/app/customizing/CustomizingAiChatPanel.test.tsx tasks/todo.md tasks/lessons.md` passed.
+  - `agent-browser` opened `http://localhost:3002/customizing/fathers-day-sky-blue-1-tier-cake-ffef`; no Next.js error overlay was present and content rendered.
+  - Browser measurement: `hasAiChatOuterCard: false`, `closestCardClassName: null`, upload `41x41`, field `41px`, send `33x33`.
+
+## Customizer AI Chat 15 Percent Height Reduction (2026-07-04)
+
+### Plan
+
+- [x] Reduce the free-text AI chat composer controls from `48px` to about `41px`.
+- [x] Keep upload, text field, textarea, and send button proportionally aligned.
+- [x] Preserve the one-line icing-color placeholder after reducing height.
+- [x] Update focused tests and verify rendered measurements.
+
+### Review
+
+- Updated [src/app/customizing/CustomizingAiChatPanel.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingAiChatPanel.tsx:1) so the upload button and text-field wrapper now render at `41px`, down from `48px`.
+- Scaled the inner textarea to `39px` with tighter `py-[11px]`, `leading-[17px]`, `pl-4`, and `pr-12`, preserving the `12px` text size from the previous pass.
+- Scaled the purple send button to `33px` with the same `4px` inset, so it remains centered and proportional inside the shorter field.
+- Updated [src/app/customizing/CustomizingAiChatPanel.test.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingAiChatPanel.test.tsx:1) to assert the compact sizing contract.
+- Verification:
+  - `npx vitest run src/app/customizing/CustomizingAiChatPanel.test.tsx --exclude '.claude/**'` passed: 6 tests.
+  - `npx eslint src/app/customizing/CustomizingAiChatPanel.tsx src/app/customizing/CustomizingAiChatPanel.test.tsx` completed without lint findings beyond the existing stale Browserslist notice.
+  - `git diff --check -- src/app/customizing/CustomizingAiChatPanel.tsx src/app/customizing/CustomizingAiChatPanel.test.tsx tasks/todo.md tasks/lessons.md` passed.
+  - `agent-browser` opened `http://localhost:3002/customizing/fathers-day-sky-blue-1-tier-cake-ffef`; no Next.js error overlay was present and content rendered.
+  - Browser measurement: upload `41x41`, field `547x41`, textarea `545x39`, send button `33x33`, placeholder `fitsOneLine: true`.
+
 ## Customizer AI Chat Smaller Text And Autocomplete (2026-07-04)
 
 ### Plan

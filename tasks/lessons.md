@@ -1,5 +1,7 @@
 # Lessons
 
+- For customizer AI chat section polish, do not wrap the AI chat controls in a `genie-card`/white card container. Let the controls render directly in the customization flow unless the user explicitly asks for a framed section.
+- For customizer AI chat thickness tuning, the preferred compact scale is about `41px` outer height: upload and field `41px`, textarea `39px`, and inset send button `33px`. Do not drift back to the thicker `48px` composer unless explicitly requested.
 - For customizer AI chat placeholder wrapping, keep the field text at `12px` before changing control width or send-button spacing; the desktop icing-color placeholder fits one line at that size, and autocomplete prompts should use compact `12px` rows with tighter padding.
 - For customizer composer sizing corrections, prioritize rendered box measurements over class-name intent. A bordered wrapper with an inline textarea can render taller than the upload button even when both declare matching Tailwind heights; make the textarea `block` and account for the wrapper border when matching visible control height.
 - For customizer composer polish, use a fixed default control scale rather than chasing screenshots with raw Tailwind swaps: upload button and text field should share the same base height, the send button should be materially smaller inside the field, and textarea autosize should preserve the one-line height until real wrapping/newlines occur.
