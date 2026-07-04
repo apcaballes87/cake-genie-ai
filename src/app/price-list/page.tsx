@@ -40,8 +40,9 @@ async function getPriceRows(): Promise<CakeTypePriceRow[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('productsizes_cakegenie')
-    .select('type, cakesize, price, display_order')
+    .select('type, thickness, cakesize, price, display_order')
     .order('type', { ascending: true })
+    .order('thickness', { ascending: true })
     .order('display_order', { ascending: true })
     .order('cakesize', { ascending: true });
 
@@ -53,6 +54,7 @@ async function getPriceRows(): Promise<CakeTypePriceRow[]> {
   return (data ?? []).flatMap((row) => {
     if (
       typeof row.type !== 'string' ||
+      typeof row.thickness !== 'string' ||
       typeof row.cakesize !== 'string' ||
       typeof row.price !== 'number'
     ) {
@@ -61,6 +63,7 @@ async function getPriceRows(): Promise<CakeTypePriceRow[]> {
 
     return [{
       type: row.type as CakeTypePriceRow['type'],
+      thickness: row.thickness as CakeTypePriceRow['thickness'],
       cakesize: row.cakesize,
       price: row.price,
       display_order: typeof row.display_order === 'number' ? row.display_order : null,

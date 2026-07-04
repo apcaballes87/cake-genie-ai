@@ -1345,8 +1345,9 @@ const LandingClient: React.FC<LandingClientProps> = ({
     reviewSummary,
 }) => {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [activeTab, setActiveTab] = useState('home');
-    const [isUploaderOpen, setIsUploaderOpen] = useState(false);
+    const [isUploaderOpen, setIsUploaderOpen] = useState(() => searchParams.get('upload') === '1');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isOccasionOpen, setIsOccasionOpen] = useState(false);
     const [isUploading, setIsUploading] = useState(false);

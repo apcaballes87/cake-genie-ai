@@ -1,8 +1,10 @@
-import type { CakeType } from '@/types';
+import type { CakeThickness, CakeType } from '@/types';
 import { CANONICAL_CAKE_TYPES } from '@/lib/utils/cakeType';
+import { DEFAULT_THICKNESS_MAP } from '@/constants';
 
 export type CakeTypePriceRow = {
   type: CakeType;
+  thickness: CakeThickness;
   cakesize: string;
   price: number;
   display_order: number | null;
@@ -15,6 +17,11 @@ export type CakeTypePricePoint = {
   price: number;
 };
 
+export type CakeTypeThicknessPriceGroup = {
+  thickness: CakeThickness;
+  prices: CakeTypePricePoint[];
+};
+
 export type CakeTypePriceSummary = {
   cakeType: CakeType;
   title: string;
@@ -23,7 +30,9 @@ export type CakeTypePriceSummary = {
   note: string;
   startingPrice: number;
   maxPrice: number;
-  prices: CakeTypePricePoint[];
+  defaultThickness: CakeThickness;
+  thicknesses: CakeThickness[];
+  priceGroups: CakeTypeThicknessPriceGroup[];
 };
 
 const PRICE_LIST_META: Record<
@@ -130,27 +139,54 @@ export function buildCakeTypePriceSummaries(
     const typeRows = rowsByType.get(cakeType) ?? [];
     if (typeRows.length === 0) return [];
 
-    const lowestBySize = new Map<
-      string,
-      { size: string; price: number; displayOrder: number | null }
+    const rowsByThickness = new Map<
+      CakeThickness,
+      CakeTypePriceRow[]
     >();
 
     for (const row of typeRows) {
-      const existing = lowestBySize.get(row.cakesize);
-      if (!existing || row.price < existing.price) {
-        lowestBySize.set(row.cakesize, {
-          size: row.cakesize,
-          price: row.price,
-          displayOrder: row.display_order,
-        });
-      }
+      const existing = rowsByThickness.get(row.thickness) ?? [];
+      existing.push(row);
+      rowsByThickness.set(row.thickness, existing);
     }
 
-    const sortedPricePoints = [...lowestBySize.values()].sort(sortPricePoints);
-    if (sortedPricePoints.length === 0) return [];
+    const priceGroups = [...rowsByThickness.entries()]
+      .map(([thickness, thicknessRows]) => {
+        const lowestBySize = new Map<
+          string,
+          { size: string; price: number; displayOrder: number | null }
+        >();
 
-    const numericPrices = sortedPricePoints.map((point) => point.price);
+        for (const row of thicknessRows) {
+          const existing = lowestBySize.get(row.cakesize);
+          if (!existing || row.price < existing.price) {
+            lowestBySize.set(row.cakesize, {
+              size: row.cakesize,
+              price: row.price,
+              displayOrder: row.display_order,
+            });
+          }
+        }
+
+        const sortedPricePoints = [...lowestBySize.values()]
+          .sort(sortPricePoints)
+          .map(({ size, price }) => ({ size, price }));
+
+        return {
+          thickness,
+          prices: sortedPricePoints,
+        };
+      })
+      .filter((group) => group.prices.length > 0)
+      .sort((left, right) => left.thickness.localeCompare(right.thickness, undefined, { numeric: true }));
+
+    if (priceGroups.length === 0) return [];
+
+    const numericPrices = priceGroups.flatMap((group) => group.prices.map((point) => point.price));
     const meta = PRICE_LIST_META[cakeType];
+    const defaultThickness = priceGroups.some((group) => group.thickness === DEFAULT_THICKNESS_MAP[cakeType])
+      ? DEFAULT_THICKNESS_MAP[cakeType]
+      : priceGroups[0].thickness;
 
     return [{
       cakeType,
@@ -160,7 +196,9 @@ export function buildCakeTypePriceSummaries(
       note: meta.note,
       startingPrice: Math.min(...numericPrices),
       maxPrice: Math.max(...numericPrices),
-      prices: sortedPricePoints.map(({ size, price }) => ({ size, price })),
+      defaultThickness,
+      thicknesses: priceGroups.map((group) => group.thickness),
+      priceGroups,
     }];
   });
 }

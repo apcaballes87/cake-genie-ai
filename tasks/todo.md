@@ -15,7 +15,8 @@
 
 - Added a new marketing route at [src/app/price-list/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/price-list/page.tsx:1) with the same purple/pink editorial styling direction used across the landing/customizing surfaces, plus the shared [LandingFooter](/Users/apcaballes/genieph-nextjs/src/components/landing/LandingFooter.tsx:1).
 - Built the interactive browser in [src/app/price-list/PriceListBrowser.tsx](/Users/apcaballes/genieph-nextjs/src/app/price-list/PriceListBrowser.tsx:1), including filter chips, per-card expand/collapse controls, and a global “show all visible prices” action so visitors can reveal every base price by size.
-- Kept pricing truth aligned with the real source by grouping `productsizes_cakegenie` rows server-side and reducing each cake type to its lowest listed price per size via [src/lib/pricing/priceList.ts](/Users/apcaballes/genieph-nextjs/src/lib/pricing/priceList.ts:1).
+- Follow-up polish for the selector-style request: the top of `/price-list` now mirrors the customizer’s flow with icing tabs, cake-shape cards, size circles, and height buttons using the same thumbnail assets and option families from the real cake-base controls.
+- Extended the pricing model in [src/lib/pricing/priceList.ts](/Users/apcaballes/genieph-nextjs/src/lib/pricing/priceList.ts:1) so `productsizes_cakegenie` rows stay grouped by both `thickness` and `cakesize`, allowing the new height selector on `/price-list` to switch real base prices instead of acting like a visual placeholder.
 - Reused [src/lib/commerce/deliveryRates.ts](/Users/apcaballes/genieph-nextjs/src/lib/commerce/deliveryRates.ts:1) for the closing Cebu delivery-fee section so the city cards stay in sync with checkout and the dedicated delivery-rates page.
 - Added explicit customer-facing copy that all listed prices are starting points only and can increase with design difficulty, intricacy, toppers, and other custom details.
 - Verification:
