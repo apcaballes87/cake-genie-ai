@@ -1,5 +1,6 @@
 # Lessons
 
+- For customizer composer polish, use a fixed default control scale rather than chasing screenshots with raw Tailwind swaps: upload button and text field should share the same base height, the send button should be materially smaller inside the field, and textarea autosize should preserve the one-line height until real wrapping/newlines occur.
 - Do not make an input larger to make an oversized embedded button fit. For the customizer AI chat, preserve the compact field height first, then reduce the send button and adjust inner padding so the button fits inside the existing text field.
 - For the customizer AI chat composer, matching raw heights is not enough if the textarea and send button do not share the same visual container. Put the send button inside the field wrapper itself so the control reads as one input by default.
 - For the customizer AI chat, treat plain `Enter` as textarea newline behavior unless the user explicitly asks for chat-style submit-on-enter. Suggestion navigation and submission shortcuts should not silently override multiline editing expectations.

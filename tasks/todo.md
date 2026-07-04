@@ -1,5 +1,25 @@
 # Tasks
 
+## Presentable Customizer AI Chat Control (2026-07-04)
+
+### Plan
+
+- [x] Reinspect the current AI chat control after the user called out the remaining visual mismatch.
+- [x] Keep the text field aligned to the upload button height while making the send button visibly smaller inside it.
+- [x] Clamp one-line autosizing so the field does not grow from textarea scroll-height quirks.
+- [x] Update focused tests and run verification.
+
+### Review
+
+- Updated [src/app/customizing/CustomizingAiChatPanel.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingAiChatPanel.tsx:1) so the upload button and text field keep the same compact `h-9` / `min-h-9` default scale.
+- Reduced the purple send button to `h-6 w-6`, moved it to `right-1.5 top-1.5`, removed its extra shadow, and reduced the paper-plane icon to `12px` so it sits cleanly inside the text field instead of dominating it.
+- Tightened the textarea right padding to `pr-10` and updated the autosize effect so one-line content stays at the compact base height unless the text actually wraps or creates new lines.
+- Updated [src/app/customizing/CustomizingAiChatPanel.test.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingAiChatPanel.test.tsx:1) to assert the upload button/text field base scale, smaller send button, and internal text padding.
+- Verification:
+  - `npx vitest run src/app/customizing/CustomizingAiChatPanel.test.tsx --exclude '.claude/**'` passed: 4 tests.
+  - `git diff --check -- src/app/customizing/CustomizingAiChatPanel.tsx src/app/customizing/CustomizingAiChatPanel.test.tsx tasks/todo.md tasks/lessons.md` passed.
+  - `npx eslint src/app/customizing/CustomizingAiChatPanel.tsx src/app/customizing/CustomizingAiChatPanel.test.tsx` completed without lint findings beyond the usual stale Browserslist notice.
+
 ## Compact Customizer AI Chat Composer (2026-07-04)
 
 ### Plan

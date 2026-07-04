@@ -55,9 +55,10 @@ describe('CustomizingAiChatPanel', () => {
         expect(input.tagName).toBe('TEXTAREA');
         expect(uploadButton.className).toContain('h-9');
         expect(uploadButton.className).toContain('w-9');
-        expect(submitButton.className).toContain('h-7');
-        expect(submitButton.className).toContain('w-7');
+        expect(submitButton.className).toContain('h-6');
+        expect(submitButton.className).toContain('w-6');
         expect(input).toHaveClass('min-h-9');
+        expect(input).toHaveClass('pr-10');
         expect(inputWrapper?.className).toContain('rounded-2xl');
         expect(inputWrapper?.className).toContain('border');
         expect(inputWrapper?.className).toContain('min-h-9');

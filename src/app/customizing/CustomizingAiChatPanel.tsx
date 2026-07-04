@@ -82,10 +82,14 @@ export const CustomizingAiChatPanel = React.memo(({
         const computedStyle = window.getComputedStyle(textarea);
         const lineHeight = Number.parseFloat(computedStyle.lineHeight);
         const verticalPadding = Number.parseFloat(computedStyle.paddingTop) + Number.parseFloat(computedStyle.paddingBottom);
+        const minHeight = Number.parseFloat(computedStyle.minHeight);
+        const baseHeight = Number.isFinite(minHeight) ? minHeight : 36;
         const maxHeight = ((Number.isFinite(lineHeight) ? lineHeight : 18) * 3) + verticalPadding;
 
         textarea.style.height = 'auto';
-        textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`;
+        const measuredHeight = Math.min(textarea.scrollHeight, maxHeight);
+        const shouldKeepCompactHeight = measuredHeight <= baseHeight + 4;
+        textarea.style.height = `${shouldKeepCompactHeight ? baseHeight : Math.max(baseHeight, measuredHeight)}px`;
         textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'auto' : 'hidden';
     }, [chatInput, inputRef, selectedAiPromptTemplate]);
 
@@ -183,20 +187,20 @@ export const CustomizingAiChatPanel = React.memo(({
                                     disabled={isAiProcessing || isUpdatingDesign}
                                     autoComplete="off"
                                     rows={1}
-                                    className="w-full min-h-9 resize-none overflow-hidden rounded-2xl bg-transparent pl-4 pr-11 py-2 text-[12.5px] leading-[18px] focus:outline-none disabled:opacity-50 disabled:bg-slate-50 placeholder:text-slate-400"
+                                    className="w-full min-h-9 resize-none overflow-hidden rounded-2xl bg-transparent pl-4 pr-10 py-2 text-[12.5px] leading-[18px] focus:outline-none disabled:opacity-50 disabled:bg-slate-50 placeholder:text-slate-400"
                                 />
                             </div>
                         )}
                         <button
                             type="submit"
                             disabled={!chatInput.trim() || isAiProcessing || isUpdatingDesign || !!selectedAiPromptTemplate}
-                            className="absolute right-1 top-1 h-7 w-7 bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white rounded-lg transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                            className="absolute right-1.5 top-1.5 h-6 w-6 bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white rounded-md transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
                             aria-label="Submit AI Edit"
                         >
                             {isAiProcessing ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
                             ) : (
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                             )}
                         </button>
                     </div>
