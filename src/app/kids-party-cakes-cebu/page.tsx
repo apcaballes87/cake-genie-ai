@@ -5,6 +5,7 @@ import { RecommendedProductsSection } from '@/components/landing';
 import { KidsIntroContent } from '@/components/landing/KidsIntroContent';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import NewsletterPopup from '@/components/NewsletterPopup';
+import { LandingPageSkeleton } from '@/components/LoadingSkeletons';
 import { getRecommendedProducts, type RecommendedProductsQueryOptions } from '@/services/supabaseService';
 import { createClient } from '@/lib/supabase/server';
 import { buildReviewSummary, normalizePublicReviews, REVIEW_SELECT } from '@/lib/reviews';
@@ -221,18 +222,20 @@ export default async function KidsPartyCakesCebuPage() {
   return (
     <>
       <KidsPartySchema />
-      <LandingClient heroContent={heroContent} reviewSummary={reviewData.reviewSummary}>
-        <RecommendedProductsSection
-          products={recommendedProducts}
-          headingHighlight="Kids Birthday Picks:"
-          headingText="Real themed cakes kids love"
-          description="Compare and customize real character, dinosaur, and princess cake designs ordered by parents in Cebu."
-          listName="kids_recommended"
-          emptyStateText="No kids party cakes found at the moment."
-          loadMoreEnabled={false}
-        />
-        <KidsIntroContent />
-      </LandingClient>
+      <Suspense fallback={<LandingPageSkeleton />}>
+        <LandingClient heroContent={heroContent} reviewSummary={reviewData.reviewSummary}>
+          <RecommendedProductsSection
+            products={recommendedProducts}
+            headingHighlight="Kids Birthday Picks:"
+            headingText="Real themed cakes kids love"
+            description="Compare and customize real character, dinosaur, and princess cake designs ordered by parents in Cebu."
+            listName="kids_recommended"
+            emptyStateText="No kids party cakes found at the moment."
+            loadMoreEnabled={false}
+          />
+          <KidsIntroContent />
+        </LandingClient>
+      </Suspense>
       <NewsletterPopup />
       <LandingFooter reviewSummary={reviewData.reviewSummary} />
     </>

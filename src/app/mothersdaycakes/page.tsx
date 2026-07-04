@@ -1,6 +1,8 @@
 import { Metadata } from 'next';
+import { Suspense } from 'react';
 import LandingClient from '@/app/LandingClient';
 import NewsletterPopup from '@/components/NewsletterPopup';
+import { LandingPageSkeleton } from '@/components/LoadingSkeletons';
 import {
     RecommendedProductsSection,
     MothersDayIntroContent,
@@ -227,18 +229,20 @@ export default async function MothersDayPage() {
     return (
         <>
             <MothersDaySchema />
-            <LandingClient heroContent={heroContent} blogPosts={blogPosts}>
-                <RecommendedProductsSection
-                    products={recommendedProducts}
-                    headingHighlight="Mother's Day Picks:"
-                    headingText="Real Happy Mother's Day cake designs"
-                    description="These picks are filtered from designs that actually include a Happy Mother's Day message."
-                    listName="mothers_day_recommended"
-                    emptyStateText="No Mother's Day cakes found at the moment."
-                    loadMoreEnabled={false}
-                />
-                <MothersDayIntroContent />
-            </LandingClient>
+            <Suspense fallback={<LandingPageSkeleton />}>
+                <LandingClient heroContent={heroContent} blogPosts={blogPosts}>
+                    <RecommendedProductsSection
+                        products={recommendedProducts}
+                        headingHighlight="Mother's Day Picks:"
+                        headingText="Real Happy Mother's Day cake designs"
+                        description="These picks are filtered from designs that actually include a Happy Mother's Day message."
+                        listName="mothers_day_recommended"
+                        emptyStateText="No Mother's Day cakes found at the moment."
+                        loadMoreEnabled={false}
+                    />
+                    <MothersDayIntroContent />
+                </LandingClient>
+            </Suspense>
             <NewsletterPopup />
             <LandingFooter />
         </>
