@@ -59,6 +59,7 @@ describe('CustomizingAiChatPanel', () => {
         expect(submitButton.className).toContain('w-10');
         expect(input).toHaveClass('block');
         expect(input.className).toContain('min-h-[46px]');
+        expect(input.className).toContain('text-[12px]');
         expect(input).toHaveClass('pr-14');
         expect(inputWrapper?.className).toContain('rounded-2xl');
         expect(inputWrapper?.className).toContain('border');
@@ -81,8 +82,13 @@ describe('CustomizingAiChatPanel', () => {
         render(<CustomizingAiChatPanel {...props} />);
 
         const suggestionPanel = screen.getByRole('button', { name: /add butterflies/i }).closest('.absolute');
+        const suggestionButton = screen.getByRole('button', { name: /add butterflies/i });
         expect(suggestionPanel?.className).toContain('bottom-full');
         expect(suggestionPanel?.className).toContain('mb-2');
+        expect(suggestionButton.className).toContain('px-3');
+        expect(suggestionButton.className).toContain('py-2');
+        expect(suggestionButton.className).toContain('text-[12px]');
+        expect(suggestionButton.className).toContain('leading-4');
     });
 
     it('can show autocomplete below the composer for desktop layouts', () => {

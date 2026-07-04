@@ -192,7 +192,7 @@ export const CustomizingAiChatPanel = React.memo(({
                                     disabled={isAiProcessing || isUpdatingDesign}
                                     autoComplete="off"
                                     rows={1}
-                                    className="block w-full min-h-[46px] resize-none overflow-hidden rounded-2xl bg-transparent pl-5 pr-14 py-[13px] text-[13px] leading-5 focus:outline-none disabled:opacity-50 disabled:bg-slate-50 placeholder:text-slate-400"
+                                    className="block w-full min-h-[46px] resize-none overflow-hidden rounded-2xl bg-transparent pl-5 pr-14 py-[13px] text-[12px] leading-5 focus:outline-none disabled:opacity-50 disabled:bg-slate-50 placeholder:text-slate-400"
                                 />
                             </div>
                         )}
@@ -212,7 +212,7 @@ export const CustomizingAiChatPanel = React.memo(({
                 </div>
                 {showAiPromptSuggestions && filteredAiChatPromptSuggestions.length > 0 && !isAiProcessing && !isUpdatingDesign && (
                     <div className={`absolute left-0 right-0 z-9999 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl animate-in fade-in duration-200 ${suggestionsPlacementClassName}`}>
-                        <div className="max-h-72 overflow-y-auto py-1">
+                        <div className="max-h-72 overflow-y-auto py-0.5">
                             {filteredAiChatPromptSuggestions.map(({ suggestion, template }, index) => (
                                 <button
                                     key={suggestion}
@@ -222,13 +222,13 @@ export const CustomizingAiChatPanel = React.memo(({
                                         event.preventDefault();
                                     }}
                                     onClick={() => onSuggestionSelect(suggestion)}
-                                    className={`block w-full px-4 py-3 text-left text-sm transition-colors cursor-pointer active:bg-purple-100 ${selectedAiPromptIndex === index ? 'bg-purple-50 text-purple-700' : 'text-slate-700 hover:bg-slate-50'}`}
+                                    className={`block w-full px-3 py-2 text-left text-[12px] leading-4 transition-colors cursor-pointer active:bg-purple-100 ${selectedAiPromptIndex === index ? 'bg-purple-50 text-purple-700' : 'text-slate-700 hover:bg-slate-50'}`}
                                     aria-label={`Select suggestion: ${suggestion}`}
                                 >
                                     {template ? (
                                         <span className="wrap-break-word">
                                             {template.prefix}
-                                            <span className="mx-1 inline-flex rounded-full bg-purple-50 px-2 py-0.5 font-bold text-purple-700">
+                                            <span className="mx-1 inline-flex rounded-full bg-purple-50 px-1.5 py-0.5 text-[11px] leading-4 font-bold text-purple-700">
                                                 {template.placeholderLabel}
                                             </span>
                                             {template.suffix}

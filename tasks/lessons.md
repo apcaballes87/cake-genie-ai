@@ -1,5 +1,6 @@
 # Lessons
 
+- For customizer AI chat placeholder wrapping, keep the field text at `12px` before changing control width or send-button spacing; the desktop icing-color placeholder fits one line at that size, and autocomplete prompts should use compact `12px` rows with tighter padding.
 - For customizer composer sizing corrections, prioritize rendered box measurements over class-name intent. A bordered wrapper with an inline textarea can render taller than the upload button even when both declare matching Tailwind heights; make the textarea `block` and account for the wrapper border when matching visible control height.
 - For customizer composer polish, use a fixed default control scale rather than chasing screenshots with raw Tailwind swaps: upload button and text field should share the same base height, the send button should be materially smaller inside the field, and textarea autosize should preserve the one-line height until real wrapping/newlines occur.
 - Do not make an input larger to make an oversized embedded button fit. For the customizer AI chat, preserve the compact field height first, then reduce the send button and adjust inner padding so the button fits inside the existing text field.

@@ -1,5 +1,26 @@
 # Tasks
 
+## Customizer AI Chat Smaller Text And Autocomplete (2026-07-04)
+
+### Plan
+
+- [x] Reduce the free-text AI chat field font size by exactly `1px`.
+- [x] Keep the icing-color placeholder fitting on one line in the rendered composer.
+- [x] Tighten autocomplete prompt row font size and spacing.
+- [x] Update focused tests and verify the rendered page.
+
+### Review
+
+- Updated [src/app/customizing/CustomizingAiChatPanel.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingAiChatPanel.tsx:1) so the free-text textarea uses `text-[12px]`, down from `text-[13px]`.
+- Tightened autocomplete suggestions from `px-4 py-3 text-sm` to `px-3 py-2 text-[12px] leading-4`, reduced the suggestions list padding to `py-0.5`, and made template chips smaller with `px-1.5 text-[11px]`.
+- Updated [src/app/customizing/CustomizingAiChatPanel.test.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingAiChatPanel.test.tsx:1) to assert the smaller textarea and autocomplete row sizing.
+- Verification:
+  - `npx vitest run src/app/customizing/CustomizingAiChatPanel.test.tsx --exclude '.claude/**'` passed: 6 tests.
+  - `npx eslint src/app/customizing/CustomizingAiChatPanel.tsx src/app/customizing/CustomizingAiChatPanel.test.tsx` completed without lint findings beyond the existing stale Browserslist notice.
+  - `git diff --check -- src/app/customizing/CustomizingAiChatPanel.tsx src/app/customizing/CustomizingAiChatPanel.test.tsx tasks/todo.md` passed.
+  - `agent-browser` opened `http://localhost:3002/customizing/fathers-day-sky-blue-1-tier-cake-ffef`; no Next.js error overlay was present.
+  - Browser measurement: placeholder font `12px`, textarea content width `462px`, placeholder width `225px`, `fitsOneLine: true`.
+
 ## Desktop AI Chat Autocomplete Placement (2026-07-04)
 
 ### Plan
