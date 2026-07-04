@@ -1471,6 +1471,11 @@ export default async function RecentSearchPage({ params }: Props) {
         initialState = mapProductToDefaultState(undefined, prices);
     }
 
+    const heroPreloadManifest = parseManifest(design.image_variants);
+    const heroPreloadSrcSet = heroPreloadManifest ? buildSrcSet(heroPreloadManifest) : '';
+    const heroPreloadSizes = '(max-width: 768px) 100vw, 50vw';
+    const heroPreloadHref = pickFallbackSrc(heroPreloadManifest, 1200) ?? design.original_image_url;
+
     return (
         <>
             <DesignSchema
@@ -1487,23 +1492,18 @@ export default async function RecentSearchPage({ params }: Props) {
 
             {/* Preload the hero image for faster LCP.
 
-                IMPORTANT: this must point at the EXACT URL the visible LCP
-                element renders. On JS clients the visible hero is the native
-                <img> inside CustomizingHeroPanel, which renders
-                `design.original_image_url` with NO srcset. The SSR <picture>
-                (which uses the variant srcset) is hidden via display:none
-                before paint by our CLS fix, so it is no longer the LCP.
-
-                Previously this preload used the 1200px variant + imagesrcset,
-                which never matched the visible <img> — the browser preloaded a
-                variant the LCP never requested, then fetched the original late
-                and unprioritized (~2.3s load delay). Pointing the preload at
-                original_image_url makes it actually feed the LCP image. */}
+                The visible client hero now renders the same responsive variant
+                set as this preload. Mobile can pick the 400/800px rendition
+                instead of downloading the original full-size upload, while the
+                href fallback still points at the exact stored hero URL when a
+                row has no valid variant manifest. */}
             {design.original_image_url && (
                 <link
                     rel="preload"
                     as="image"
-                    href={design.original_image_url}
+                    href={heroPreloadHref}
+                    imageSrcSet={heroPreloadSrcSet || undefined}
+                    imageSizes={heroPreloadSrcSet ? heroPreloadSizes : undefined}
                     fetchPriority="high"
                 />
             )}

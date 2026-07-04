@@ -82,6 +82,7 @@ import { CustomizingAiChatPanel } from './CustomizingAiChatPanel';
 import { CustomizingToppersPanel } from './CustomizingToppersPanel';
 import { CustomizingAgentProtocol } from './CustomizingAgentProtocol';
 import { prepareAiChatReferenceImage } from './aiChatReferenceImage';
+import { parseManifest } from '@/lib/imageVariants/manifest';
 import { canConsumeDesktopSidebarWheel, shouldCaptureDesktopSidebarScroll } from './desktopSidebarScroll';
 import {
     buildRetryUploadUrl,
@@ -341,6 +342,7 @@ interface RecentSearchDesignProp {
     tags?: string[] | null;
     image_width?: number | null;
     image_height?: number | null;
+    image_variants?: unknown;
 }
 
 const firstNonBlankImageUrl = (...urls: unknown[]) => {
@@ -694,6 +696,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
 
     // Preloaded image from SSR for Shopify CSE handoff - shows immediately while processing
     const [preloadedHeroImage, setPreloadedHeroImage] = useState<string | null>(preloadImageUrl || null);
+    const heroImageVariants = useMemo(
+        () => parseManifest(recentSearchDesign?.image_variants),
+        [recentSearchDesign?.image_variants],
+    );
 
     // Sync preloadImageUrl to state on mount (from SSR)
     useEffect(() => {
@@ -3967,6 +3973,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                             onSave={onSave}
                             onClearAll={onClearAll}
                             reviewSummary={reviewSummary}
+                            heroImageVariants={heroImageVariants}
                             initialHeroAspectRatio={
                                 recentSearchDesign?.image_width && recentSearchDesign?.image_height
                                     ? `${recentSearchDesign.image_width} / ${recentSearchDesign.image_height}`

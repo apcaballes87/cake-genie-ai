@@ -4118,3 +4118,25 @@
   - Do not index price-band pages until they have enough genuinely matching products. Current under-500 page is too thin.
   - Add crawlable pagination or server-rendered next-page links for important collections if the goal is to expose more than the first 30 product links through collection hubs.
   - Add guard behavior so unknown/dynamic collection pages that do not map to a published/indexable collection either `404`/`noindex` instead of returning indexable thin pages.
+
+## Mobile CWV Customizing PDP Image Fix (2026-07-04)
+
+### Plan
+
+- [x] Confirm the shared `/customizing/[slug]` image render path responsible for mobile LCP/CLS.
+- [x] Pass the parsed image variant manifest into the client hero so the visible LCP image can use responsive `srcset`.
+- [x] Align the server preload with the same responsive image candidates the visible hero renders.
+- [x] Add focused tests for responsive hero image output and preload behavior.
+- [x] Verify with focused tests, lint/type checks where practical, and document the result.
+
+### Review
+
+- `src/app/customizing/CustomizingClient.tsx` now parses `recentSearchDesign.image_variants` and passes the manifest to `CustomizingHeroPanel`.
+- `src/app/customizing/CustomizingHeroPanel.tsx` now applies the manifest as responsive `srcset`/`sizes` on native mobile-scroll and desktop hero `<img>` elements, and passes variants to the covered `LazyImage` path only when the rendered source is the stored catalog hero rather than a `data:` or `blob:` edit.
+- `src/app/customizing/[slug]/page.tsx` now emits a responsive hero preload with `imageSrcSet` and `imageSizes`, using the 1200px variant as the `href` fallback when available.
+- Added focused coverage in `CustomizingHeroPanel.test.tsx` and `[slug]/page.test.tsx` for hero `srcset` output and preload alignment.
+- Verification:
+  - `npx vitest run src/app/customizing/CustomizingHeroPanel.test.tsx 'src/app/customizing/[slug]/page.test.tsx'` passed: 30 tests, 1 skipped.
+  - `git diff --check` passed.
+  - `npm run build` passed. Existing warnings appeared for stale browser baseline data, inferred workspace root, deprecated middleware convention, and non-fatal Supabase statement timeouts during static generation.
+  - Targeted `npm run lint -- ...` did not pass because of existing unrelated lint errors in `src/app/customizing/[slug]/page.tsx` (`no-explicit-any`, `prefer-const`) plus existing warnings; no new TypeScript/build failure was introduced.

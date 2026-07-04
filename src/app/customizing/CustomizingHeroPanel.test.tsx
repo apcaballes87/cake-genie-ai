@@ -248,6 +248,28 @@ describe('CustomizingHeroPanel', () => {
         });
     });
 
+    it('renders stored hero variants as responsive srcset candidates for native LCP images', () => {
+        const props = buildProps();
+        props.enableMobileHeroPan = true;
+        props.originalImagePreview = 'https://example.com/original-cake.jpg';
+        props.preferredOriginalImageUrl = 'https://example.com/original-cake.jpg';
+        props.initialHeroAspectRatio = '1 / 2';
+        props.heroImageVariants = {
+            format: 'webp',
+            source: 'original_image_url',
+            variants: [
+                { width: 400, url: 'https://example.com/original-cake-400.webp', bytes: 12_000 },
+                { width: 800, url: 'https://example.com/original-cake-800.webp', bytes: 24_000 },
+            ],
+        };
+
+        render(<CustomizingHeroPanel {...props} />);
+
+        const heroImages = screen.getAllByRole('img', { name: 'Hero cake' });
+        expect(heroImages.some((image) => image.getAttribute('srcset')?.includes('original-cake-400.webp 400w'))).toBe(true);
+        expect(heroImages.some((image) => image.getAttribute('sizes') === '(max-width: 768px) 100vw, 50vw')).toBe(true);
+    });
+
     it('fills the mobile hero frame for wider images instead of showing the scroll treatment', () => {
         const props = buildProps();
         props.enableMobileHeroPan = true;

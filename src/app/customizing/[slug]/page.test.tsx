@@ -85,6 +85,17 @@ describe('RecentSearchPage', () => {
       seo_description: 'Soft pink minimalist bento cake design.',
       alt_text: 'Pink minimalist bento cake with clean icing details',
       original_image_url: 'https://example.com/pink-bento-cake.webp',
+      image_width: 1200,
+      image_height: 1200,
+      image_variants: {
+        format: 'webp',
+        source: 'original_image_url',
+        variants: [
+          { width: 400, url: 'https://example.com/pink-bento-cake-400.webp', bytes: 12000 },
+          { width: 800, url: 'https://example.com/pink-bento-cake-800.webp', bytes: 24000 },
+          { width: 1200, url: 'https://example.com/pink-bento-cake-1200.webp', bytes: 36000 },
+        ],
+      },
       price: 1299,
       tags: ['pink', 'minimalist'],
       analysis_json: {
@@ -224,7 +235,7 @@ describe('RecentSearchPage', () => {
     const staticMarkup = renderToStaticMarkup(page);
     const topLevelChildren = Children.toArray((page as ReactElement<{ children?: ReactNode }>).props.children);
 
-    const hasDirectPreloadLink = topLevelChildren.some(
+    const preloadLink = topLevelChildren.find(
       (child) => isValidElement<{ rel?: string }>(child) && child.type === 'link' && child.props.rel === 'preload',
     );
 
@@ -235,10 +246,14 @@ describe('RecentSearchPage', () => {
 
     // SSR block stays visible in the HTML for crawlers; the client hides it after hydration.
     expect(staticMarkup).toContain('<noscript>');
-    // Preload link added for LCP optimization (image SEO improvement)
-    expect(hasDirectPreloadLink).toBe(true);
-    // Visible SSR <img> tag for Googlebot + hidden SSR fallback both reference the image
-    expect(staticMarkup).toContain('src="https://example.com/pink-bento-cake.webp"');
+    // Preload link added for LCP optimization and aligned to responsive variants.
+    expect(preloadLink).toBeTruthy();
+    expect((preloadLink as ReactElement<{ href?: string; imageSrcSet?: string; imageSizes?: string }>).props.href).toBe('https://example.com/pink-bento-cake-1200.webp');
+    expect((preloadLink as ReactElement<{ href?: string; imageSrcSet?: string; imageSizes?: string }>).props.imageSrcSet).toContain('https://example.com/pink-bento-cake-400.webp 400w');
+    expect((preloadLink as ReactElement<{ href?: string; imageSrcSet?: string; imageSizes?: string }>).props.imageSizes).toBe('(max-width: 768px) 100vw, 50vw');
+    // Visible SSR <img> tag for Googlebot + hidden SSR fallback reference the responsive variant.
+    expect(staticMarkup).toContain('src="https://example.com/pink-bento-cake-1200.webp"');
+    expect(staticMarkup).toContain('srcSet="https://example.com/pink-bento-cake-400.webp 400w');
     expect(staticMarkup).toContain('"@type":"Offer"');
     expect(staticMarkup).toContain('"shippingRate":{"@type":"MonetaryAmount","currency":"PHP"');
     expect(staticMarkup).not.toContain('AggregateOffer');

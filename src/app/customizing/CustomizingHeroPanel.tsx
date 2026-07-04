@@ -9,6 +9,8 @@ import { ErrorIcon, ImageIcon, ResetIcon, SaveIcon, Loader2, ReportIcon } from '
 import MagicGlitter from '@/components/MagicGlitter';
 import { getCustomerFacingAnalysisError } from './analysisErrorDisplay';
 import { useDynamicLoadingPhrase } from '@/hooks/useDynamicLoadingPhrase';
+import { buildSrcSet } from '@/lib/imageVariants/manifest';
+import type { VariantManifest } from '@/lib/imageVariants/types';
 
 
 type ImageTab = 'original' | 'customized';
@@ -60,6 +62,7 @@ interface CustomizingHeroPanelProps {
      * box). Falls back to the measured ratio once the image's onLoad fires.
      */
     initialHeroAspectRatio?: string | null;
+    heroImageVariants?: VariantManifest | null;
     reviewSummary?: {
         total: number;
         averageRating: number;
@@ -199,6 +202,7 @@ export const CustomizingHeroPanel = memo(({
     onClearAll,
     reviewSummary,
     initialHeroAspectRatio = null,
+    heroImageVariants = null,
 }: CustomizingHeroPanelProps) => {
     const [originalImageDimensions, setOriginalImageDimensions] = useState<{ width: number, height: number } | null>(null);
     const [isHeroImageZoomOpen, setIsHeroImageZoomOpen] = useState(false);
@@ -245,6 +249,23 @@ export const CustomizingHeroPanel = memo(({
         && heroImageRatioValue
         && heroImageRatioValue < MOBILE_HERO_FRAME_RATIO
     );
+    const heroVariantSrcSet = heroImageVariants?.variants.length ? buildSrcSet(heroImageVariants) : '';
+    const heroVariantSizes = '(max-width: 768px) 100vw, 50vw';
+    const shouldUseHeroVariantsForSrc = (src: string) => {
+        if (!heroVariantSrcSet) return false;
+        if (src.startsWith('data:') || src.startsWith('blob:')) return false;
+
+        return [
+            fallbackImageUrl,
+            preferredOriginalImageUrl,
+            preloadedHeroImage,
+            originalHeroModalSrc,
+            preferredBaseHeroUrl,
+        ].some((candidate) => candidate === src);
+    };
+    const getResponsiveAttrsForSrc = (src: string) => shouldUseHeroVariantsForSrc(src)
+        ? { srcSet: heroVariantSrcSet, sizes: heroVariantSizes }
+        : {};
     const zoomOriginalImage = originalHeroModalSrc || null;
     const zoomCustomizedImage = editedImage || null;
     const zoomInitialTab: ImageTab = activeTab === 'customized' && zoomCustomizedImage ? 'customized' : 'original';
@@ -302,59 +323,64 @@ export const CustomizingHeroPanel = memo(({
         caption?: string,
         overlaySrc?: string,
         modalSrc?: string,
-    ) => (
-        <div className="absolute inset-0">
-            <div className="relative h-full w-full">
-                <div
-                    ref={mobileHeroScrollRef}
-                    className="h-full w-full overflow-y-auto overscroll-auto bg-white scroll-smooth"
-                    style={{ WebkitOverflowScrolling: 'touch' }}
-                    data-testid="mobile-hero-scroll-area"
-                >
-                    <div className="relative w-full">
-                        {/* eslint-disable-next-line @next/next/no-img-element -- Mobile hero uses a native scrolling image so the frame stays static and the image can be panned inside it. */}
-                        <img
-                            src={src}
-                            alt={alt}
-                            title={title}
-                            // LCP hint: this native <img> is the largest paint
-                            // on the customizing PDP. Mark it high priority and
-                            // eager so the browser fetches it the instant it's
-                            // discovered (and reuses the matching <link rel=preload>).
-                            fetchPriority="high"
-                            loading="eager"
-                            decoding="async"
-                            className="block w-full h-auto align-top cursor-zoom-in"
-                            onClick={() => openHeroImageModal(modalSrc || overlaySrc || src)}
-                            onLoad={imageOnLoad}
-                        />
-                        {overlaySrc ? (
-                            <NativeFadeOverlayImage
-                                key={`scroll-overlay-${overlaySrc}`}
-                                src={overlaySrc}
-                                alt=""
+    ) => {
+        const responsiveAttrs = getResponsiveAttrsForSrc(src);
+
+        return (
+            <div className="absolute inset-0">
+                <div className="relative h-full w-full">
+                    <div
+                        ref={mobileHeroScrollRef}
+                        className="h-full w-full overflow-y-auto overscroll-auto bg-white scroll-smooth"
+                        style={{ WebkitOverflowScrolling: 'touch' }}
+                        data-testid="mobile-hero-scroll-area"
+                    >
+                        <div className="relative w-full">
+                            {/* eslint-disable-next-line @next/next/no-img-element -- Mobile hero uses a native scrolling image so the frame stays static and the image can be panned inside it. */}
+                            <img
+                                src={src}
+                                {...responsiveAttrs}
+                                alt={alt}
                                 title={title}
-                                className="pointer-events-none absolute inset-x-0 top-0 w-full h-auto align-top"
+                                // LCP hint: this native <img> is the largest paint
+                                // on the customizing PDP. Mark it high priority and
+                                // eager so the browser fetches it the instant it's
+                                // discovered (and reuses the matching <link rel=preload>).
+                                fetchPriority="high"
+                                loading="eager"
+                                decoding="async"
+                                className="block w-full h-auto align-top cursor-zoom-in"
+                                onClick={() => openHeroImageModal(modalSrc || overlaySrc || src)}
                                 onLoad={imageOnLoad}
                             />
-                        ) : null}
+                            {overlaySrc ? (
+                                <NativeFadeOverlayImage
+                                    key={`scroll-overlay-${overlaySrc}`}
+                                    src={overlaySrc}
+                                    alt=""
+                                    title={title}
+                                    className="pointer-events-none absolute inset-x-0 top-0 w-full h-auto align-top"
+                                    onLoad={imageOnLoad}
+                                />
+                            ) : null}
+                        </div>
                     </div>
+                    <div className="pointer-events-none absolute right-1.5 top-1/2 z-20 -translate-y-1/2 rounded-full bg-black/28 px-1.5 py-2 text-white shadow-md backdrop-blur-sm">
+                        <div className="flex flex-col items-center gap-0.5 text-[8px] font-bold uppercase tracking-[0.18em] leading-none opacity-90">
+                            <span aria-hidden="true">↑</span>
+                            <span>Scroll</span>
+                            <span aria-hidden="true">↓</span>
+                        </div>
+                    </div>
+                    {caption ? (
+                        <div className="absolute bottom-0 left-0 right-0 text-[10px] text-slate-500 p-2 text-center bg-white/60 backdrop-blur-sm z-10 leading-tight">
+                            {caption}
+                        </div>
+                    ) : null}
                 </div>
-                <div className="pointer-events-none absolute right-1.5 top-1/2 z-20 -translate-y-1/2 rounded-full bg-black/28 px-1.5 py-2 text-white shadow-md backdrop-blur-sm">
-                    <div className="flex flex-col items-center gap-0.5 text-[8px] font-bold uppercase tracking-[0.18em] leading-none opacity-90">
-                        <span aria-hidden="true">↑</span>
-                        <span>Scroll</span>
-                        <span aria-hidden="true">↓</span>
-                    </div>
-                </div>
-                {caption ? (
-                    <div className="absolute bottom-0 left-0 right-0 text-[10px] text-slate-500 p-2 text-center bg-white/60 backdrop-blur-sm z-10 leading-tight">
-                        {caption}
-                    </div>
-                ) : null}
             </div>
-        </div>
-    );
+        );
+    };
 
     const renderCoveredImage = (
         src: string,
@@ -376,6 +402,7 @@ export const CustomizingHeroPanel = memo(({
                 fetchPriority="high"
                 decoding="async"
                 unoptimized
+                variants={shouldUseHeroVariantsForSrc(src) ? heroImageVariants : null}
                 onClick={() => openHeroImageModal(modalSrc || overlaySrc || src)}
                 onLoad={imageOnLoad}
             />
@@ -410,39 +437,44 @@ export const CustomizingHeroPanel = memo(({
         caption?: string,
         overlaySrc?: string,
         modalSrc?: string,
-    ) => (
-        <figure className="relative w-full">
-            {/* eslint-disable-next-line @next/next/no-img-element -- Desktop hero should size naturally to the source image aspect ratio. */}
-            <img
-                src={src}
-                alt={alt}
-                title={title}
-                // LCP hint: see renderScrollableImage. High priority + eager so
-                // the desktop hero paints without waiting on hydration.
-                fetchPriority="high"
-                loading="eager"
-                decoding="async"
-                className="block w-full h-auto rounded-3xl cursor-zoom-in"
-                onClick={() => openHeroImageModal(modalSrc || overlaySrc || src)}
-                onLoad={imageOnLoad}
-            />
-            {overlaySrc ? (
-                <NativeFadeOverlayImage
-                    key={`static-overlay-${overlaySrc}`}
-                    src={overlaySrc}
-                    alt=""
+    ) => {
+        const responsiveAttrs = getResponsiveAttrsForSrc(src);
+
+        return (
+            <figure className="relative w-full">
+                {/* eslint-disable-next-line @next/next/no-img-element -- Desktop hero should size naturally to the source image aspect ratio. */}
+                <img
+                    src={src}
+                    {...responsiveAttrs}
+                    alt={alt}
                     title={title}
-                    className="pointer-events-none absolute inset-x-0 top-0 w-full h-auto rounded-3xl"
+                    // LCP hint: see renderScrollableImage. High priority + eager so
+                    // the desktop hero paints without waiting on hydration.
+                    fetchPriority="high"
+                    loading="eager"
+                    decoding="async"
+                    className="block w-full h-auto rounded-3xl cursor-zoom-in"
+                    onClick={() => openHeroImageModal(modalSrc || overlaySrc || src)}
                     onLoad={imageOnLoad}
                 />
-            ) : null}
-            {caption ? (
-                <figcaption className="absolute bottom-0 left-0 right-0 text-[10px] text-slate-500 p-2 text-center bg-white/60 backdrop-blur-sm z-10 leading-tight">
-                    {caption}
-                </figcaption>
-            ) : null}
-        </figure>
-    );
+                {overlaySrc ? (
+                    <NativeFadeOverlayImage
+                        key={`static-overlay-${overlaySrc}`}
+                        src={overlaySrc}
+                        alt=""
+                        title={title}
+                        className="pointer-events-none absolute inset-x-0 top-0 w-full h-auto rounded-3xl"
+                        onLoad={imageOnLoad}
+                    />
+                ) : null}
+                {caption ? (
+                    <figcaption className="absolute bottom-0 left-0 right-0 text-[10px] text-slate-500 p-2 text-center bg-white/60 backdrop-blur-sm z-10 leading-tight">
+                        {caption}
+                    </figcaption>
+                ) : null}
+            </figure>
+        );
+    };
 
     return (
         <div className="w-full flex flex-col gap-1">
