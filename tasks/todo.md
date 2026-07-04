@@ -1,5 +1,29 @@
 # Tasks
 
+## Price List Page (2026-07-04)
+
+### Plan
+
+- [x] Inspect the real base-price and delivery-fee sources that should power the page.
+- [x] Add a new `/price-list` marketing page that matches the landing/customizing visual theme.
+- [x] Make the page interactive so visitors can browse cake types and expand all base prices by size.
+- [x] Add clear copy that prices are starting points only and can increase with design difficulty and intricacy.
+- [x] Reuse the shared Cebu delivery-fee data at the end of the page.
+- [x] Run focused verification and record the outcome here.
+
+### Review
+
+- Added a new marketing route at [src/app/price-list/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/price-list/page.tsx:1) with the same purple/pink editorial styling direction used across the landing/customizing surfaces, plus the shared [LandingFooter](/Users/apcaballes/genieph-nextjs/src/components/landing/LandingFooter.tsx:1).
+- Built the interactive browser in [src/app/price-list/PriceListBrowser.tsx](/Users/apcaballes/genieph-nextjs/src/app/price-list/PriceListBrowser.tsx:1), including filter chips, per-card expand/collapse controls, and a global “show all visible prices” action so visitors can reveal every base price by size.
+- Kept pricing truth aligned with the real source by grouping `productsizes_cakegenie` rows server-side and reducing each cake type to its lowest listed price per size via [src/lib/pricing/priceList.ts](/Users/apcaballes/genieph-nextjs/src/lib/pricing/priceList.ts:1).
+- Reused [src/lib/commerce/deliveryRates.ts](/Users/apcaballes/genieph-nextjs/src/lib/commerce/deliveryRates.ts:1) for the closing Cebu delivery-fee section so the city cards stay in sync with checkout and the dedicated delivery-rates page.
+- Added explicit customer-facing copy that all listed prices are starting points only and can increase with design difficulty, intricacy, toppers, and other custom details.
+- Verification:
+  - `npx vitest run src/lib/pricing/priceList.test.ts --exclude '.claude/**'` passed: 1 test.
+  - `npx eslint src/app/price-list/page.tsx src/app/price-list/PriceListBrowser.tsx src/lib/pricing/priceList.ts src/lib/pricing/priceList.test.ts` completed successfully with only the existing stale Browserslist notice.
+  - `git diff --check -- src/app/price-list/page.tsx src/app/price-list/PriceListBrowser.tsx src/lib/pricing/priceList.ts src/lib/pricing/priceList.test.ts tasks/todo.md` passed.
+  - `npm run build` passed and emitted the new dynamic route `/price-list`. Build logs also included existing workspace-root, deprecated middleware, stale Baseline data, and unrelated Supabase prerender timeout warnings from other routes, but the build completed successfully with exit code 0.
+
 ## Customizer AI Chat Remove Outer Container (2026-07-04)
 
 ### Plan
