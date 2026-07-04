@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { X, Sparkles } from 'lucide-react';
+import { Send, Sparkles, X } from 'lucide-react';
 import { Loader2, PhotoIcon } from '../../components/icons';
 import { ColorPalette } from '../../components/ColorPalette';
 import type { ParsedAiChatPromptTemplate } from '@/utils/aiChatPromptComposer';
@@ -39,6 +39,7 @@ interface CustomizingAiChatPanelProps {
     onSuggestionSelect: (suggestion: string) => void;
     placeholder?: string;
     title?: string;
+    suggestionsPlacement?: 'above' | 'below';
 }
 
 export const CustomizingAiChatPanel = React.memo(({
@@ -69,6 +70,7 @@ export const CustomizingAiChatPanel = React.memo(({
     onSuggestionSelect,
     placeholder = "✨ Tell Genie your cake design wish...",
     title,
+    suggestionsPlacement = 'above',
 }: CustomizingAiChatPanelProps) => {
     const fileInputRef = React.useRef<HTMLInputElement | null>(null);
     const isAttachmentDisabled = isAiProcessing || isUpdatingDesign || isAttachmentUploading;
@@ -83,7 +85,7 @@ export const CustomizingAiChatPanel = React.memo(({
         const lineHeight = Number.parseFloat(computedStyle.lineHeight);
         const verticalPadding = Number.parseFloat(computedStyle.paddingTop) + Number.parseFloat(computedStyle.paddingBottom);
         const minHeight = Number.parseFloat(computedStyle.minHeight);
-        const baseHeight = Number.isFinite(minHeight) ? minHeight : 36;
+        const baseHeight = Number.isFinite(minHeight) ? minHeight : 46;
         const maxHeight = ((Number.isFinite(lineHeight) ? lineHeight : 18) * 3) + verticalPadding;
 
         textarea.style.height = 'auto';
@@ -100,6 +102,9 @@ export const CustomizingAiChatPanel = React.memo(({
             return;
         }
     };
+    const suggestionsPlacementClassName = suggestionsPlacement === 'below'
+        ? 'top-full mt-2 slide-in-from-top-2'
+        : 'bottom-full mb-2 slide-in-from-bottom-2';
 
     return (
         <div className={className}>
@@ -129,7 +134,7 @@ export const CustomizingAiChatPanel = React.memo(({
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isAttachmentDisabled}
                         aria-label="Attach reference image"
-                        className="shrink-0 h-9 w-9 rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-purple-200 hover:bg-purple-50 hover:text-purple-700 disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center"
+                        className="shrink-0 h-12 w-12 rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-purple-200 hover:bg-purple-50 hover:text-purple-700 disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center"
                     >
                         {isAttachmentUploading ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -174,7 +179,7 @@ export const CustomizingAiChatPanel = React.memo(({
                                 )}
                             </div>
                         ) : (
-                            <div className="relative min-h-9 rounded-2xl border border-slate-200 bg-white shadow-sm transition-all focus-within:border-transparent focus-within:ring-2 focus-within:ring-purple-500">
+                            <div className="relative min-h-12 rounded-2xl border border-slate-200 bg-white shadow-sm transition-all focus-within:border-transparent focus-within:ring-2 focus-within:ring-purple-500">
                                 <textarea
                                     ref={inputRef}
                                     value={chatInput}
@@ -187,26 +192,26 @@ export const CustomizingAiChatPanel = React.memo(({
                                     disabled={isAiProcessing || isUpdatingDesign}
                                     autoComplete="off"
                                     rows={1}
-                                    className="w-full min-h-9 resize-none overflow-hidden rounded-2xl bg-transparent pl-4 pr-10 py-2 text-[12.5px] leading-[18px] focus:outline-none disabled:opacity-50 disabled:bg-slate-50 placeholder:text-slate-400"
+                                    className="block w-full min-h-[46px] resize-none overflow-hidden rounded-2xl bg-transparent pl-5 pr-14 py-[13px] text-[13px] leading-5 focus:outline-none disabled:opacity-50 disabled:bg-slate-50 placeholder:text-slate-400"
                                 />
                             </div>
                         )}
                         <button
                             type="submit"
                             disabled={!chatInput.trim() || isAiProcessing || isUpdatingDesign || !!selectedAiPromptTemplate}
-                            className="absolute right-1.5 top-1.5 h-6 w-6 bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white rounded-md transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="absolute right-1 top-1 h-10 w-10 bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white rounded-xl transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
                             aria-label="Submit AI Edit"
                         >
                             {isAiProcessing ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                <Send className="h-4 w-4" />
                             )}
                         </button>
                     </div>
                 </div>
                 {showAiPromptSuggestions && filteredAiChatPromptSuggestions.length > 0 && !isAiProcessing && !isUpdatingDesign && (
-                    <div className="absolute left-0 right-0 bottom-full z-9999 mb-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-200">
+                    <div className={`absolute left-0 right-0 z-9999 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl animate-in fade-in duration-200 ${suggestionsPlacementClassName}`}>
                         <div className="max-h-72 overflow-y-auto py-1">
                             {filteredAiChatPromptSuggestions.map(({ suggestion, template }, index) => (
                                 <button

@@ -4239,6 +4239,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                             onInputKeyDown={handleAiPromptInputKeyDown}
                                             onSuggestionSelect={handleAiPromptSuggestionSelect}
                                             placeholder="✨ Describe the icing colors you want..."
+                                            suggestionsPlacement="below"
                                         />
                                     ) : null,
                                     onIcingColorRecolor: handleIcingColorToggle,

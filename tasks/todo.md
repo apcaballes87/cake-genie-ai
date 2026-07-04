@@ -1,5 +1,40 @@
 # Tasks
 
+## Desktop AI Chat Autocomplete Placement (2026-07-04)
+
+### Plan
+
+- [x] Inspect AI chat autocomplete positioning and desktop render paths.
+- [x] Add explicit autocomplete placement support to the AI chat panel.
+- [x] Wire desktop AI chat suggestions to open below the composer while keeping the default mobile behavior above.
+- [x] Update focused tests and run verification.
+
+### Review
+
+- Root cause: [src/app/customizing/CustomizingAiChatPanel.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingAiChatPanel.tsx:1) hard-coded autocomplete suggestions with `bottom-full`, so the panel always opened above the AI chat composer. On desktop this made it appear above the chat section and get covered/clipped by surrounding customizer content.
+- Added a `suggestionsPlacement` prop to `CustomizingAiChatPanel`, defaulting to `above` so existing/mobile behavior stays the same.
+- Wired the desktop sidebar AI chat instance in [src/app/customizing/CustomizingClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingClient.tsx:4239) with `suggestionsPlacement="below"`, so desktop suggestions open underneath the AI chat field.
+- Added focused coverage in [src/app/customizing/CustomizingAiChatPanel.test.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingAiChatPanel.test.tsx:1) for default above placement and desktop below placement.
+- Verification:
+  - `npx vitest run src/app/customizing/CustomizingAiChatPanel.test.tsx --exclude '.claude/**'` passed: 6 tests.
+  - `git diff --check -- src/app/customizing/CustomizingAiChatPanel.tsx src/app/customizing/CustomizingAiChatPanel.test.tsx src/app/customizing/CustomizingClient.tsx tasks/todo.md` passed.
+  - `npx eslint src/app/customizing/CustomizingAiChatPanel.tsx src/app/customizing/CustomizingAiChatPanel.test.tsx src/app/customizing/CustomizingClient.tsx` reported only the existing warning set in `CustomizingClient.tsx` plus the stale Browserslist notice.
+
+## Customizer AI Chat Composer Height Alignment Follow-up (2026-07-04)
+
+### Plan
+
+- [x] Reconfirm the current free-text AI chat composer sizing against the uploaded screenshot.
+- [x] Make the upload button and one-line text field use the same vertical control height.
+- [x] Resize and position the purple send button so it fits the text field height without looking undersized.
+- [x] Update focused tests and run verification.
+
+### Review
+
+- Updated [src/app/customizing/CustomizingAiChatPanel.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingAiChatPanel.tsx:1) so the upload button and one-line AI chat field use the same `h-12` / `min-h-12` visual scale, with the send button sized and positioned inside the field.
+- Updated [src/app/customizing/CustomizingAiChatPanel.test.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/CustomizingAiChatPanel.test.tsx:1) to assert the aligned button/field sizing.
+- Verification was included in the desktop autocomplete follow-up: focused AI chat tests passed, `git diff --check` passed, and ESLint reported only the existing `CustomizingClient.tsx` warning set plus the stale Browserslist notice.
+
 ## Presentable Customizer AI Chat Control (2026-07-04)
 
 ### Plan

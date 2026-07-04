@@ -53,15 +53,16 @@ describe('CustomizingAiChatPanel', () => {
         const submitButton = screen.getByRole('button', { name: 'Submit AI Edit' });
         const inputWrapper = input.parentElement;
         expect(input.tagName).toBe('TEXTAREA');
-        expect(uploadButton.className).toContain('h-9');
-        expect(uploadButton.className).toContain('w-9');
-        expect(submitButton.className).toContain('h-6');
-        expect(submitButton.className).toContain('w-6');
-        expect(input).toHaveClass('min-h-9');
-        expect(input).toHaveClass('pr-10');
+        expect(uploadButton.className).toContain('h-12');
+        expect(uploadButton.className).toContain('w-12');
+        expect(submitButton.className).toContain('h-10');
+        expect(submitButton.className).toContain('w-10');
+        expect(input).toHaveClass('block');
+        expect(input.className).toContain('min-h-[46px]');
+        expect(input).toHaveClass('pr-14');
         expect(inputWrapper?.className).toContain('rounded-2xl');
         expect(inputWrapper?.className).toContain('border');
-        expect(inputWrapper?.className).toContain('min-h-9');
+        expect(inputWrapper?.className).toContain('min-h-12');
         fireEvent.focus(input);
         fireEvent.click(input);
         fireEvent.change(input, { target: { value: 'make it pastel blue' } });
@@ -72,6 +73,27 @@ describe('CustomizingAiChatPanel', () => {
         expect(props.onInputChange).toHaveBeenCalledWith('make it pastel blue');
         expect(props.onSuggestionSelect).toHaveBeenCalledWith('add butterflies');
         expect(props.onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('shows autocomplete above the composer by default', () => {
+        const props = buildProps();
+
+        render(<CustomizingAiChatPanel {...props} />);
+
+        const suggestionPanel = screen.getByRole('button', { name: /add butterflies/i }).closest('.absolute');
+        expect(suggestionPanel?.className).toContain('bottom-full');
+        expect(suggestionPanel?.className).toContain('mb-2');
+    });
+
+    it('can show autocomplete below the composer for desktop layouts', () => {
+        const props = buildProps();
+
+        render(<CustomizingAiChatPanel {...props} suggestionsPlacement="below" />);
+
+        const suggestionPanel = screen.getByRole('button', { name: /add butterflies/i }).closest('.absolute');
+        expect(suggestionPanel?.className).toContain('top-full');
+        expect(suggestionPanel?.className).toContain('mt-2');
+        expect(suggestionPanel?.className).not.toContain('bottom-full');
     });
 
     it('still submits through the send button', () => {
