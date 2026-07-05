@@ -1,5 +1,77 @@
 # Tasks
 
+## Customizer Query Share OG Tags (2026-07-05)
+
+### Plan
+
+- [x] Trace `/customizing/[slug]` metadata and crawler access for query-string share links.
+- [x] Allow Meta/Facebook sharing crawlers to fetch customizer query URLs while keeping canonical SEO behavior.
+- [x] Add regression coverage for same OG metadata on clean and query share URLs.
+- [x] Run focused verification and record the result.
+
+### Review
+
+- Root cause: `generateMetadata` for `/customizing/[slug]` already builds canonical OG metadata from only the slug, so the query string does not change the title/image/description. The blocker for Facebook was `src/app/robots.ts`: the Meta crawler group also disallowed `/customizing/*?*`, which could prevent Facebook's scraper/debugger from fetching query-string share URLs.
+- Updated the Meta/Facebook robots group (`facebookexternalhit`, `Facebot`, `FacebookBot`, `meta-externalagent`) to allow customizer query URLs while still blocking private/internal paths.
+- Kept the general crawler rule disallowing `/customizing?*` and `/customizing/*?*`, so SEO canonicalization stays clean for normal crawlers.
+- Added `src/app/robots.test.ts` coverage proving Meta crawlers are not blocked from customizer query URLs while general crawlers still are.
+- Added `src/app/customizing/[slug]/page.test.tsx` coverage proving a cake-option query share URL resolves to the clean canonical OG URL, same OG image, and same Twitter image.
+- Verification:
+  - `npx vitest run src/app/robots.test.ts 'src/app/customizing/[slug]/page.test.tsx' --exclude '.claude/**'` passed: 20 tests, 1 skipped.
+  - `npx eslint src/app/robots.ts src/app/robots.test.ts 'src/app/customizing/[slug]/page.test.tsx'` passed with existing warnings in the page test mock file plus the stale Browserslist notice.
+  - `git diff --check -- src/app/robots.ts src/app/robots.test.ts 'src/app/customizing/[slug]/page.test.tsx' tasks/todo.md` passed.
+  - `npm run build` passed. Existing warnings appeared for stale baseline/browser data, inferred workspace root, and deprecated middleware convention.
+
+## Customizer Share URL Cake Options (2026-07-05)
+
+### Plan
+
+- [x] Trace the existing customizer share URL builder and URL hydration path.
+- [x] Add selected cake type, size, and height to generated share links.
+- [x] Add focused regression coverage for encoded share URLs.
+- [x] Run targeted verification and document the result.
+
+### Review
+
+- Root cause: `src/hooks/useDesignSharing.ts` built share URLs from only `/customizing/${slug}`, even though `src/app/customizing/CustomizingClient.tsx` already knows how to hydrate `caketype`, `size`, and `height` query params into `cakeInfo`.
+- Updated `useDesignSharing` to accept the current `cakeInfo` selection and append `caketype`, `size`, and `height` using `URLSearchParams`.
+- Wired the current customizer `cakeInfo` into the share hook from `src/app/customizing/CustomizingClient.tsx`, so the modal now exposes links like `https://genie.ph/customizing/photo-cake-white-1-tier-cake-39cc?caketype=1+Tier&size=6%22+Round&height=4+in`.
+- Added `src/hooks/useDesignSharing.test.tsx` to lock the encoded production share URL shape.
+- Verification:
+  - `npx vitest run src/hooks/useDesignSharing.test.tsx --exclude '.claude/**'` passed: 1 test.
+  - `npx eslint src/hooks/useDesignSharing.ts src/hooks/useDesignSharing.test.tsx` passed with only the existing stale Browserslist notice.
+  - `git diff --check -- src/hooks/useDesignSharing.ts src/hooks/useDesignSharing.test.tsx src/app/customizing/CustomizingClient.tsx tasks/todo.md` passed.
+  - `npm run build` passed. Existing warnings appeared for stale baseline/browser data, inferred workspace root, deprecated middleware convention, and non-fatal Supabase statement timeouts during static generation.
+
+## Image Studio Stretch Fix And Dimension Refresh (2026-07-05)
+
+### Plan
+
+- [x] Trace the Studio generation and post-processing path to confirm where square outputs are being stretched.
+- [x] Update the Studio pipeline so post-processing preserves the generated image's real aspect ratio instead of forcing original-upload dimensions.
+- [x] Persist the final Studio image dimensions back onto `cakegenie_analysis_cache` for both live and offline batch Studio runs.
+- [x] Add focused regression coverage for the Studio dimension logic.
+- [x] Run targeted verification and record the outcome here.
+
+### Review
+
+- Root cause: the live Studio job in [src/lib/admin/imageStudioJob.ts](/Users/apcaballes/genieph-nextjs/src/lib/admin/imageStudioJob.ts:464) used the original upload's cached `image_width` and `image_height` as the post-processing target after Gemini returned a new Studio image. When Gemini produced a square catalog asset, the small-image upscale path could force it back into the original portrait rectangle with `sharp.resize(..., { fit: 'fill' })`, which stretches the cake visually.
+- Updated the live Studio path so `getImageStudioOutputDimensions(...)` now derives from the generated Studio image's own decoded width and height, preserving the model's square output while still allowing proportional small-image upscaling.
+- After watermarking/encoding, the live Studio job now re-measures the final WebP and writes those actual `image_width` and `image_height` values back to `cakegenie_analysis_cache` alongside `studio_edited_image_url`.
+- Updated the offline import path in [src/lib/admin/imageStudioBatch.ts](/Users/apcaballes/genieph-nextjs/src/lib/admin/imageStudioBatch.ts:245) to do the same dimension refresh when it stores Studio images, so batch-generated rows no longer keep stale original-upload dimensions.
+- Upgraded [scripts/backfill-image-dimensions.ts](/Users/apcaballes/genieph-nextjs/scripts/backfill-image-dimensions.ts:1) so it can re-measure from `studio_edited_image_url`, refresh rows that already have dimensions, and scope to completed Studio rows. That gives us a safe maintenance path for post-regeneration cleanup instead of a second one-off script.
+- Extended the offline batch submitter in [src/lib/admin/imageStudioBatch.ts](/Users/apcaballes/genieph-nextjs/src/lib/admin/imageStudioBatch.ts:134) and [src/app/api/admin/image-studio-batch/route.ts](/Users/apcaballes/genieph-nextjs/src/app/api/admin/image-studio-batch/route.ts:45) so it can select a stable completed-row slice by `offset`, which is what lets a full rerun walk the completed set chunk-by-chunk instead of reprocessing the first page forever.
+- Added [scripts/rerun-completed-studio-rows.ts](/Users/apcaballes/genieph-nextjs/scripts/rerun-completed-studio-rows.ts:1), an orchestration script that counts completed Studio rows, submits completed-row rerun batches in `1000`-row chunks, and polls the existing offline batch engine between submissions.
+- Added a regression assertion in [src/lib/admin/imageStudio.test.ts](/Users/apcaballes/genieph-nextjs/src/lib/admin/imageStudio.test.ts:105) covering square small-image upscaling (`300x300 -> 400x400`) so the helper keeps preserving aspect ratio for the Studio output path.
+- Dry-run evidence from the upgraded backfill script showed that some historical completed Studio assets are actually stored as portrait `400x713` files, while others are square `1024x1024`. That means the existing landing-page distortion is not only stale DB metadata; at least some Studio images need regeneration under the new process before a dimension-only backfill will help.
+- Operational status: the first completed-row rerun batch is already submitted in production as run `83e5e73e-ad0a-4673-a711-6a42df9b9c1d` with `1000` Studio requests. At the time of this note it is still `stage=studio`, `status=JOB_STATE_PENDING`, `completed_requests=0`, `failed_requests=0`.
+- Verification:
+  - `npx vitest run src/lib/admin/imageStudio.test.ts src/app/api/ai/trigger-studio-edit/route.test.ts --exclude '.claude/**'` passed: 9 tests.
+  - `npx eslint src/lib/admin/imageStudio.ts src/lib/admin/imageStudioJob.ts src/lib/admin/imageStudioBatch.ts src/lib/admin/imageStudio.test.ts src/app/api/ai/trigger-studio-edit/route.test.ts` completed with one existing unrelated warning in `src/lib/admin/imageStudio.ts` for the unused `brandLabel` parameter plus the stale Browserslist notice.
+  - `DRY_RUN=true ONLY_STUDIO=true REFRESH_ALL=true SOURCE=studio MAX_ROWS=3 BATCH_SIZE=3 CONCURRENCY=1 npx tsx scripts/backfill-image-dimensions.ts` successfully measured real completed Studio rows and returned a mix of `1024x1024` and `400x713` assets, confirming the historical stretched-file problem.
+  - `npx tsx scripts/rerun-completed-studio-rows.ts --dry-run --batch-size=1000 --max-batches=3` reported `9116` eligible completed Studio rows, which maps to `10` total rerun batches at the current chunk size.
+  - `git diff --check -- src/lib/admin/imageStudioJob.ts src/lib/admin/imageStudioBatch.ts src/lib/admin/imageStudio.test.ts tasks/todo.md` passed.
+
 ## Price List Page (2026-07-04)
 
 ### Plan

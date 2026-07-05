@@ -38,6 +38,8 @@ export default function robots(): MetadataRoute.Robots {
                 ],
             },
             // Meta's sharing/debugger crawlers use several identifiers in the wild.
+            // Let them fetch customizer query URLs so Facebook can read the same OG tags
+            // as the canonical clean slug page.
             {
                 userAgent: ['facebookexternalhit', 'Facebot', 'FacebookBot', 'meta-externalagent'],
                 allow: '/',
@@ -46,8 +48,6 @@ export default function robots(): MetadataRoute.Robots {
                     '/api/',
                     '/account/',
                     '/_next/',
-                    '/customizing?*',
-                    '/customizing/*?*',
                 ],
             },
         ],

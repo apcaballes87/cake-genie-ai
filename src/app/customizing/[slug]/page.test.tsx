@@ -620,6 +620,56 @@ describe('RecentSearchPage', () => {
   });
 
   describe('generateMetadata', () => {
+    it('uses the same canonical Open Graph tags for cake-option query share URLs', async () => {
+      const design = {
+        slug: 'photo-cake-white-1-tier-cake-39cc',
+        keywords: 'Photo Cake',
+        seo_title: 'Photo Cake White 1 Tier Cake',
+        seo_description: 'A white one-tier custom photo cake with a clean printed top design.',
+        original_image_url: 'https://example.com/photo-cake.webp',
+        image_width: 1200,
+        image_height: 1200,
+        price: 1499,
+        tags: ['photo cake'],
+        analysis_json: { cakeType: '1 Tier' },
+      };
+
+      vi.mocked(createClient).mockResolvedValueOnce({
+        from: () => ({
+          select: () => ({
+            eq: () => ({
+              single: () => Promise.resolve({ data: design }),
+            }),
+          }),
+        }),
+      } as never);
+
+      const metadata = await generateMetadata({
+        params: Promise.resolve({ slug: design.slug }),
+        searchParams: Promise.resolve({
+          caketype: '1 Tier',
+          size: '6" Round',
+          height: '4 in',
+        }),
+      } as never, {} as never);
+
+      expect(metadata.alternates?.canonical).toBe('https://genie.ph/customizing/photo-cake-white-1-tier-cake-39cc');
+      expect(metadata.openGraph).toMatchObject({
+        title: 'Photo Cake White 1 Tier Cake - 39CC',
+        url: 'https://genie.ph/customizing/photo-cake-white-1-tier-cake-39cc',
+        images: [
+          expect.objectContaining({
+            url: 'https://example.com/photo-cake.webp',
+            width: 1200,
+            height: 1200,
+          }),
+        ],
+      });
+      expect(metadata.twitter?.images).toEqual([
+        expect.objectContaining({ url: 'https://example.com/photo-cake.webp' }),
+      ]);
+    });
+
     it('strips boilerplates, formats meta description to correct length, and keeps price out of snippets', async () => {
       const design = {
         slug: 'hot-wheels-jollibee-blue-2-tier-fondant-cake-80a1',

@@ -2,25 +2,48 @@
 import { useState, useCallback } from 'react';
 import { ShareResult } from '@/services/shareService';
 import { createClient } from '@/lib/supabase/client';
+import type { CakeInfoUI } from '@/types';
 
 interface UseDesignSharingProps {
     slug: string | null;
     originalImageUrl: string | null;
+    cakeInfo?: Pick<CakeInfoUI, 'type' | 'size' | 'thickness'> | null;
 }
 
-export const useDesignSharing = ({ slug, originalImageUrl }: UseDesignSharingProps) => {
+type CakeOptionSelection = Partial<Pick<CakeInfoUI, 'type' | 'size' | 'thickness'>>;
+
+const buildCakeOptionQuery = (cakeInfo?: CakeOptionSelection | null) => {
+    const params = new URLSearchParams();
+
+    if (cakeInfo?.type) params.set('caketype', cakeInfo.type);
+    if (cakeInfo?.size) params.set('size', cakeInfo.size);
+    if (cakeInfo?.thickness) params.set('height', cakeInfo.thickness);
+
+    const queryString = params.toString();
+    return queryString ? `?${queryString}` : '';
+};
+
+export const useDesignSharing = ({ slug, originalImageUrl, cakeInfo }: UseDesignSharingProps) => {
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [shareData, setShareData] = useState<ShareResult | null>(null);
     const [isSavingDesign, setIsSavingDesign] = useState(false);
+    const cakeType = cakeInfo?.type ?? null;
+    const cakeSize = cakeInfo?.size ?? null;
+    const cakeHeight = cakeInfo?.thickness ?? null;
 
     const closeShareModal = () => {
         setIsShareModalOpen(false);
     };
 
-    const buildShareData = (resolvedSlug: string) => {
+    const buildShareData = useCallback((resolvedSlug: string) => {
         const clientDomain = typeof window !== 'undefined' ? window.location.origin : 'https://genie.ph';
-        const shareUrl = `${clientDomain}/customizing/${resolvedSlug}`;
-        const botShareUrl = `https://genie.ph/customizing/${resolvedSlug}`;
+        const optionQuery = buildCakeOptionQuery({
+            type: cakeType ?? undefined,
+            size: cakeSize ?? undefined,
+            thickness: cakeHeight ?? undefined,
+        });
+        const shareUrl = `${clientDomain}/customizing/${resolvedSlug}${optionQuery}`;
+        const botShareUrl = `https://genie.ph/customizing/${resolvedSlug}${optionQuery}`;
 
         return {
             designId: '',
@@ -28,7 +51,7 @@ export const useDesignSharing = ({ slug, originalImageUrl }: UseDesignSharingPro
             botShareUrl,
             urlSlug: resolvedSlug,
         };
-    };
+    }, [cakeType, cakeSize, cakeHeight]);
 
     const handleShare = useCallback(async () => {
         // 1. Try slug from props (persistedSlug, URL params, or seoMetadata)
@@ -54,7 +77,7 @@ export const useDesignSharing = ({ slug, originalImageUrl }: UseDesignSharingPro
                     setShareData(buildShareData(data.slug));
                     return;
                 }
-            } catch (error) {
+            } catch {
                 // Silently handle error fetching slug from cache
             } finally {
                 setIsSavingDesign(false);
@@ -70,7 +93,7 @@ export const useDesignSharing = ({ slug, originalImageUrl }: UseDesignSharingPro
                 setIsShareModalOpen(true);
             }
         }
-    }, [slug, originalImageUrl]);
+    }, [slug, originalImageUrl, buildShareData]);
 
     return {
         isShareModalOpen,

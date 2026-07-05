@@ -1157,6 +1157,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     const { isShareModalOpen, shareData, isSavingDesign, handleShare, createShareLink, closeShareModal } = useDesignSharing({
         slug: (persistedSlug || slug || seoMetadata?.slug) as string || null,
         originalImageUrl: seoMetadata?.original_image_url || null,
+        cakeInfo,
     });
 
     const handleChatClick = React.useCallback(() => {

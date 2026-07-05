@@ -15,6 +15,17 @@ describe('robots metadata route', () => {
     expect(metaRule?.disallow).toEqual(
       expect.arrayContaining(['/admin/', '/api/', '/account/', '/_next/']),
     );
+    expect(metaRule?.disallow).not.toContain('/customizing?*');
+    expect(metaRule?.disallow).not.toContain('/customizing/*?*');
+  });
+
+  it('keeps customizer query URLs disallowed for general crawlers', () => {
+    const config = robots();
+    const generalRule = config.rules.find((rule) => rule.userAgent === '*');
+
+    expect(generalRule?.disallow).toEqual(
+      expect.arrayContaining(['/customizing?*', '/customizing/*?*']),
+    );
   });
 
   it('keeps the global sitemap stable', () => {
