@@ -1,5 +1,40 @@
 # Tasks
 
+## AI Chat Prompt And Reference Image Persistence (2026-07-05)
+
+### Plan
+
+- [x] Trace the current AI chat prompt and attachment state through customizer, cart, and order details.
+- [x] Extend customization data to store structured AI chat history plus the legacy prompt mirror.
+- [x] Upload AI chat reference attachments to Supabase and persist their public URLs in chat history entries.
+- [x] Show persisted AI chat requests and saved reference images in cart and order customization details.
+- [x] Add focused regression coverage and run targeted tests plus `npm run build`.
+
+### Review
+
+- Kept `customization_details` as the single persistence seam and extended it with `ai_chat_history`, while continuing to mirror prompt-only text into legacy `chat_history` for backward compatibility.
+- Added shared AI chat history normalization in `src/lib/commerce/aiChatHistory.ts` so old prompt-only rows and new structured rows both render correctly in cart and order surfaces.
+- Updated `src/contexts/CustomizationContext.tsx` to own structured AI chat history state, persist it in localStorage, derive the legacy prompt mirror automatically, and expose a structured append helper instead of only raw-string chat history writes.
+- Added `src/app/customizing/uploadAiChatReferenceImage.ts` so AI chat attachments are uploaded to `cakegenie/customizations/ai-chat-references/<ownerId>/...webp` at submit time, using the already-compressed WEBP payload from the attachment prep flow.
+- Updated `src/app/customizing/CustomizingClient.tsx` so each submitted AI chat request appends a structured history entry with prompt text, optional saved reference-image URL, original attachment name, and timestamp. If attachment upload fails, the AI edit still proceeds and the entry is saved with a null URL while the user gets a warning toast.
+- Extracted `src/app/customizing/buildCartCustomizationDetails.ts` so cart payload construction has a focused seam that always includes both `ai_chat_history` and `chat_history`.
+- Added `src/components/AiChatHistoryDetails.tsx` and wired it into cart/order detail renderers, including account orders, split-order share cards, contribution order views, and the report modal, so saved AI chat requests and saved reference images are visible wherever customization details are shown.
+- Verification:
+  - `npx vitest run src/lib/commerce/aiChatHistory.test.ts src/app/customizing/uploadAiChatReferenceImage.test.ts src/app/customizing/buildCartCustomizationDetails.test.ts src/components/CartItemCard.test.tsx src/app/account/orders/OrdersClient.test.tsx --exclude '.claude/**'` passed: 7 tests.
+  - `git diff --check -- src/types.ts src/lib/database.types.ts src/lib/commerce/aiChatHistory.ts src/lib/commerce/aiChatHistory.test.ts src/contexts/CustomizationContext.tsx src/app/customizing/CustomizingClient.tsx src/app/customizing/buildCartCustomizationDetails.ts src/app/customizing/buildCartCustomizationDetails.test.ts src/app/customizing/uploadAiChatReferenceImage.ts src/app/customizing/uploadAiChatReferenceImage.test.ts src/components/AiChatHistoryDetails.tsx src/components/CartItemCard.tsx src/components/CartItemCard.test.tsx src/components/BillShareCard.tsx src/components/ReportModal.tsx src/app/account/orders/OrdersClient.tsx src/app/account/orders/OrdersClient.test.tsx src/app/contribute/[orderId]/ContributeClient.tsx tasks/todo.md` passed.
+  - `npx eslint ...` surfaced existing pre-existing lint debt in touched files like `OrdersClient.tsx`, `BillShareCard.tsx`, `ReportModal.tsx`, and `types.ts`; no new eslint cleanup pass was done as part of this feature.
+  - `npm run build` passed. Existing warnings remained for stale baseline/browser data, inferred workspace root, and deprecated middleware naming.
+
+## Studio Asset Square Normalization (2026-07-05)
+
+### Plan
+
+- [ ] Inspect the current Studio asset and variant pipeline so a square-asset repair updates what the site really renders.
+- [ ] Add a bulk script that finds non-square completed Studio assets from June 1, 2026 onward, converts them to 1:1 without AI, and overwrites the existing Studio files.
+- [ ] Update cache-row dimensions and invalidate stale image variants for repaired rows.
+- [ ] Dry-run or sample-run the script against known stretched Studio rows.
+- [ ] Start the real bulk repair run and record progress/verification here.
+
 ## Customizer Query Share OG Tags (2026-07-05)
 
 ### Plan

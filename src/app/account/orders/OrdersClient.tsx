@@ -10,6 +10,7 @@ import { Loader2, ArrowLeft, ChevronDown, Package, Clock, CreditCard, CheckCircl
 import { OrdersSkeleton, Skeleton } from '@/components/LoadingSkeletons';
 import { ImageZoomModal } from '@/components/ImageZoomModal';
 import DetailItem from '@/components/UI/DetailItem';
+import AiChatHistoryDetails from '@/components/AiChatHistoryDetails';
 import LazyImage from '@/components/LazyImage';
 import BillShareCard from '@/components/BillShareCard';
 import MobileBottomNav from '@/components/MobileBottomNav';
@@ -282,7 +283,7 @@ const PayBalanceButton: React.FC<{ order: EnrichedOrder }> = ({ order }) => {
 
 // --- Order Details Expansion ---
 
-const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrder: EnrichedOrder) => void; onReviewSubmitted?: () => void }> = ({ order, onOrderUpdate, onReviewSubmitted }) => {
+export const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrder: EnrichedOrder) => void; onReviewSubmitted?: () => void }> = ({ order, onOrderUpdate, onReviewSubmitted }) => {
     const { user } = useAuth();
     const [zoomedItem, setZoomedItem] = useState<CakeGenieOrderItem | null>(null);
 
@@ -383,6 +384,7 @@ const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (updatedOrde
                                                     />
                                                 ))}
                                                 {customization.additionalInstructions && <DetailItem label="Instructions" value={customization.additionalInstructions} />}
+                                                <AiChatHistoryDetails historySource={customization} />
                                             </div>
                                         </details>
                                     )}

@@ -8,6 +8,7 @@ import {
     MainTopperUI,
     SupportElementUI,
     CakeMessageUI,
+    AiChatHistoryEntry,
     IcingDesignUI,
     CakeInfoUI,
     CakeType,
@@ -21,6 +22,7 @@ import {
 import { DEFAULT_THICKNESS_MAP, DEFAULT_SIZE_MAP, DEFAULT_ICING_DESIGN } from '@/constants'
 import { showSuccess } from '@/lib/utils/toast'
 import { calculateCustomizingAvailability, AvailabilityType } from '@/lib/utils/availability'
+import { getLegacyChatHistory, normalizeAiChatHistory } from '@/lib/commerce/aiChatHistory'
 import { mapAnalysisToState } from '@/utils/customizationMapper'
 
 // 'icingDesign' is now handled with granular dot-notation strings
@@ -67,8 +69,9 @@ interface CustomizationContextType {
     handleSwitchToSoftIcing: () => void;
     seoMetadata: CacheSEOMetadata | null;
     setSEOMetadata: (metadata: CacheSEOMetadata | null) => void;
+    aiChatHistory: AiChatHistoryEntry[];
     chatHistory: string[];
-    addChatEntry: (message: string) => void;
+    appendAiChatHistoryEntry: (entry: AiChatHistoryEntry) => void;
 }
 
 const CustomizationContext = createContext<CustomizationContextType | null>(null)
@@ -84,12 +87,17 @@ export interface CustomizationState {
     analysisResult?: HybridAnalysisResult | null;
     analysisId?: string | null;
     availability?: AvailabilityType;
+    aiChatHistory?: AiChatHistoryEntry[];
     chatHistory?: string[];
 }
 
 export function CustomizationProvider({ children, initialData }: { children: React.ReactNode; initialData?: CustomizationState }) {
     const pathname = usePathname()
     const shouldDeferCustomizationPersistence = pathname === '/' || pathname.startsWith('/coldcaking')
+    const initialAiChatHistory = normalizeAiChatHistory({
+        aiChatHistory: initialData?.aiChatHistory,
+        chatHistory: initialData?.chatHistory,
+    });
 
     // --- State ---
     // Initialize state with initialData if provided, otherwise null/empty
@@ -109,8 +117,9 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
     const [isCustomizationDirty, setIsCustomizationDirty] = useState(false);
     const [dirtyFields, setDirtyFields] = useState<Set<string>>(new Set());
     const [availability, setAvailability] = useState<AvailabilityType>(initialData?.availability || 'rush');
-    const [chatHistory, setChatHistory] = useState<string[]>(initialData?.chatHistory || []);
+    const [aiChatHistory, setAiChatHistory] = useState<AiChatHistoryEntry[]>(initialAiChatHistory);
     const [seoMetadata, setSEOMetadata] = useState<CacheSEOMetadata | null>(null);
+    const chatHistory = useMemo(() => getLegacyChatHistory(aiChatHistory), [aiChatHistory]);
     const persistedAnalysisStateRef = React.useRef<string | null>(null);
     const persistedCustomizationStateRef = React.useRef<string | null>(null);
     const hasInMemoryCustomizationState = !!(
@@ -120,7 +129,8 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         supportElements.length > 0 ||
         cakeMessages.length > 0 ||
         icingDesign ||
-        additionalInstructions
+        additionalInstructions ||
+        aiChatHistory.length > 0
     )
 
     // --- State Ref for Async Operations ---
@@ -190,7 +200,10 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
                 if (parsed.cakeMessages) setCakeMessages(parsed.cakeMessages);
                 if (parsed.icingDesign) setIcingDesign(parsed.icingDesign);
                 if (parsed.additionalInstructions) setAdditionalInstructions(parsed.additionalInstructions);
-                if (parsed.chatHistory) setChatHistory(parsed.chatHistory);
+                const normalizedAiChatHistory = normalizeAiChatHistory(parsed);
+                if (normalizedAiChatHistory.length > 0) {
+                    setAiChatHistory(normalizedAiChatHistory);
+                }
             } catch (e) {
                 // Silently handle parse errors
             }
@@ -241,7 +254,7 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         if (shouldDeferCustomizationPersistence) return;
 
         // Save customization state whenever it changes
-        if (cakeInfo || mainToppers.length > 0 || supportElements.length > 0 || cakeMessages.length > 0 || icingDesign) {
+        if (cakeInfo || mainToppers.length > 0 || supportElements.length > 0 || cakeMessages.length > 0 || icingDesign || additionalInstructions || aiChatHistory.length > 0) {
             const customizationState = JSON.stringify({
                 cakeInfo,
                 mainToppers,
@@ -249,6 +262,7 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
                 cakeMessages,
                 icingDesign,
                 additionalInstructions,
+                aiChatHistory,
                 chatHistory
             });
 
@@ -262,7 +276,7 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
             persistedCustomizationStateRef.current = null;
             localStorage.removeItem('cakegenie_customization');
         }
-    }, [cakeInfo, mainToppers, supportElements, cakeMessages, icingDesign, additionalInstructions, shouldDeferCustomizationPersistence]);
+    }, [cakeInfo, mainToppers, supportElements, cakeMessages, icingDesign, additionalInstructions, aiChatHistory, chatHistory, shouldDeferCustomizationPersistence]);
 
     // --- Effect to calculate availability ---
     useEffect(() => {
@@ -293,7 +307,7 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         setCakeMessages([]);
         setIcingDesign(DEFAULT_ICING_DESIGN);
         setAdditionalInstructions('');
-        setChatHistory([]);
+        setAiChatHistory([]);
         setIsCustomizationDirty(false);
         setDirtyFields(new Set());
     }, []);
@@ -470,7 +484,7 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         setCakeMessages([]);
         setIcingDesign(null);
         setAdditionalInstructions('');
-        setChatHistory([]);
+        setAiChatHistory([]);
         setAnalysisError(null);
         setIsAnalyzing(false);
         setIsCustomizationDirty(false);
@@ -572,6 +586,12 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         if (state.cakeMessages !== undefined) setCakeMessages(state.cakeMessages);
         if (state.icingDesign !== undefined) setIcingDesign(state.icingDesign ?? null);
         if (state.additionalInstructions !== undefined) setAdditionalInstructions(state.additionalInstructions);
+        if (state.aiChatHistory !== undefined || state.chatHistory !== undefined) {
+            setAiChatHistory(normalizeAiChatHistory({
+                aiChatHistory: state.aiChatHistory,
+                chatHistory: state.chatHistory,
+            }));
+        }
         if (state.analysisResult !== undefined) setAnalysisResult(state.analysisResult ?? null);
         if (state.analysisId !== undefined) setAnalysisId(state.analysisId ?? null);
         setIsCustomizationDirty(false);
@@ -800,9 +820,12 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         setIsCustomizationDirty(false);
         setDirtyFields(new Set());
     }, []);
- 
-    const addChatEntry = useCallback((message: string) => {
-        setChatHistory(prev => [...prev, message]);
+
+    const appendAiChatHistoryEntry = useCallback((entry: AiChatHistoryEntry) => {
+        const [normalizedEntry] = normalizeAiChatHistory({ aiChatHistory: [entry] });
+        if (!normalizedEntry) return;
+
+        setAiChatHistory(prev => [...prev, normalizedEntry]);
     }, []);
 
     const value = useMemo(() => ({
@@ -846,8 +869,9 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         handleSwitchToSoftIcing,
         seoMetadata,
         setSEOMetadata,
+        aiChatHistory,
         chatHistory,
-        addChatEntry,
+        appendAiChatHistoryEntry,
     }), [
         cakeInfo,
         mainToppers,
@@ -885,8 +909,9 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         applyFullCustomizationState,
         handleSwitchToSoftIcing,
         seoMetadata,
+        aiChatHistory,
         chatHistory,
-        addChatEntry,
+        appendAiChatHistoryEntry,
     ]);
 
     return (

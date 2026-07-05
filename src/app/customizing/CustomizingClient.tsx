@@ -16,7 +16,7 @@ import { CustomizationSkeleton } from '../../components/LoadingSkeletons';
 import { BackIcon, UserCircleIcon, LogOutIcon, MapPinIcon, PackageIcon, TrashIcon } from '../../components/icons';
 import SameDayCutoffBanner from '@/components/SameDayCutoffBanner';
 import { ShoppingBag } from 'lucide-react';
-import { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI, BasePriceInfo, CakeType, CakeSize, CakeThickness, AvailabilitySettings, IcingColorDetails, AnalysisItem, ClusteredMarker, CartItem } from '../../types';
+import { HybridAnalysisResult, MainTopperUI, SupportElementUI, CakeMessageUI, AiChatHistoryEntry, IcingDesignUI, CakeInfoUI, BasePriceInfo, CakeType, CakeSize, CakeThickness, AvailabilitySettings, IcingColorDetails, AnalysisItem, ClusteredMarker, CartItem } from '../../types';
 import { CakeGenieCartItem, CakeGenieMerchant, CakeGenieMerchantProduct } from '../../lib/database.types';
 import { SearchAutocomplete } from '../../components/SearchAutocomplete';
 import { AvailabilityType } from '../../lib/utils/availability';
@@ -82,6 +82,8 @@ import { CustomizingAiChatPanel } from './CustomizingAiChatPanel';
 import { CustomizingToppersPanel } from './CustomizingToppersPanel';
 import { CustomizingAgentProtocol } from './CustomizingAgentProtocol';
 import { prepareAiChatReferenceImage } from './aiChatReferenceImage';
+import { buildCartCustomizationDetails } from './buildCartCustomizationDetails';
+import { uploadAiChatReferenceImage } from './uploadAiChatReferenceImage';
 import { parseManifest } from '@/lib/imageVariants/manifest';
 import { canConsumeDesktopSidebarWheel, shouldCaptureDesktopSidebarScroll } from './desktopSidebarScroll';
 import {
@@ -507,6 +509,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     const committedStateRef = useRef<CustomizationState | null>(null);
     const addToCartInFlightRef = useRef(false);
     const addToCartResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const aiChatHistoryRef = useRef<AiChatHistoryEntry[]>([]);
     // Kept in sync with `hasPendingVisualChanges` (declared later via useMemo) so that
     // onAddToCart can read it without a forward-reference TypeScript error.
     const hasPendingVisualChangesRef = useRef(false);
@@ -528,8 +531,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         getSyncedAnalysisResult,
         clearDirtyState,
         applyFullCustomizationState,
-        chatHistory, addChatEntry,
+        aiChatHistory, appendAiChatHistoryEntry,
     } = useCakeCustomization();
+
+    useEffect(() => {
+        aiChatHistoryRef.current = aiChatHistory;
+    }, [aiChatHistory]);
 
     const isCupcake = cakeInfo?.type === 'Cupcake' || (cakeInfo?.type?.toLowerCase().startsWith('cupcake') ?? false);
 
@@ -1289,6 +1296,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
 
     // --- AI Chat Customization Handler ---
     const onAddToCart = useCallback(async () => {
+        const addToCartClickStartedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
         const sourceSurface = getCustomizerAnalyticsSourceSurface(product, recentSearchDesign, originalImageData);
         const designSlug = persistedSlug || (typeof slug === 'string' ? slug : null) || seoMetadata?.slug || recentSearchDesign?.slug || product?.slug || null;
         const effectivePrice = finalPrice ?? (useBasePriceAsFallback ? basePrice : null);
@@ -1323,65 +1331,49 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         setIsAddingToCart(true);
 
         try {
-            let cartUser = user;
-
-            if (!cartUser) {
-                const { data: { user: liveUser }, error: authError } = await supabase.auth.getUser();
-                if (authError) throw authError;
-                cartUser = liveUser;
-            }
-
-            if (!cartUser) {
-                throw new Error('Your cart session is still loading. Please try again in a moment.');
-            }
-
             // 1. Decide the upload task.
             //    • If there are pending visual changes (e.g. unapplied message edits), kick off
             //      the AI image edit in the background.  The cart item is added immediately with
             //      the current image as a placeholder (CartItemCard renders a spinner overlay),
             //      and when Gemini + upload both finish the cart swaps in the final image.
             //    • Otherwise just upload what we already have.
-            let uploadPromise: Promise<{ originalImageUrl: string; finalImageUrl: string }>;
+            const uploadCartItemImages = (ownerId: string): Promise<{ originalImageUrl: string; finalImageUrl: string }> => {
+                if (hasPendingVisualChangesRef.current && originalImageData) {
+                    isDraftApplied.current = true;
 
-            if (hasPendingVisualChangesRef.current && originalImageData) {
-                isDraftApplied.current = true;
+                    return handleUpdateDesign()
+                        .then((freshEditedImage) =>
+                            uploadCartImages({
+                                editedImageDataUri: freshEditedImage ?? editedImage,
+                                userId: ownerId,
+                                slug: typeof slug === 'string' ? slug : undefined,
+                            })
+                        )
+                        .catch(() =>
+                            // If AI edit fails, fall back to uploading the current image
+                            uploadCartImages({
+                                editedImageDataUri: editedImage,
+                                userId: ownerId,
+                                slug: typeof slug === 'string' ? slug : undefined,
+                            })
+                        );
+                }
 
-                // Start AI edit without awaiting — navigation happens instantly below
-                const aiEditPromise = handleUpdateDesign();
-
-                // Chain: wait for AI → then upload the freshly-generated image
-                uploadPromise = aiEditPromise
-                    .then((freshEditedImage) =>
-                        uploadCartImages({
-                            editedImageDataUri: freshEditedImage ?? editedImage,
-                            userId: cartUser!.id,
-                            slug: typeof slug === 'string' ? slug : undefined,
-                        })
-                    )
-                    .catch(() =>
-                        // If AI edit fails, fall back to uploading the current image
-                        uploadCartImages({
-                            editedImageDataUri: editedImage,
-                            userId: cartUser!.id,
-                            slug: typeof slug === 'string' ? slug : undefined,
-                        })
-                    );
-            } else {
-                // No pending changes — upload immediately as before
-                uploadPromise = uploadCartImages({
+                return uploadCartImages({
                     editedImageDataUri: editedImage,
-                    userId: cartUser!.id,
+                    userId: ownerId,
                     slug: typeof slug === 'string' ? slug : undefined,
                 });
-            }
+            };
 
             // 2. Prepare optimistic placeholders (current image, may be old — spinner covers it)
             const optimisticOriginal = originalImagePreview || '';
             const optimisticCustomized = editedImage || '';
+            const persistedAiChatHistory = aiChatHistoryRef.current;
 
             const cartItem: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'> = {
-                user_id: cartUser.is_anonymous ? null : cartUser.id,
-                session_id: cartUser.is_anonymous ? cartUser.id : null,
+                user_id: user && !user.is_anonymous ? user.id : null,
+                session_id: user?.is_anonymous ? user.id : null,
                 merchant_id: merchant?.merchant_id || null,
                 product_id: product?.product_id || null,
                 cake_type: cakeInfo.type,
@@ -1393,31 +1385,15 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                 quantity: 1,
                 original_image_url: optimisticOriginal, // Base64
                 customized_image_url: optimisticCustomized, // Base64
-                customization_details: {
-                    flavors: cakeInfo.flavors,
-                    mainToppers: mainToppers.filter(t => t.isEnabled).map(t => ({
-                        description: t.description,
-                        type: t.type,
-                        size: t.size
-                    })),
-                    supportElements: supportElements.filter(e => e.isEnabled).map(e => ({
-                        description: e.description,
-                        type: e.type,
-                        coverage: e.size
-                    })),
-                    cakeMessages: cakeMessages.filter(m => m.isEnabled).map(m => ({
-                        text: m.text,
-                        color: m.color
-                    })),
-                    icingDesign: {
-                        base: icingDesign?.base,
-                        drip: icingDesign?.drip || false,
-                        gumpasteBaseBoard: icingDesign?.gumpasteBaseBoard || false,
-                        colors: (icingDesign?.colors as unknown as Record<string, string>) || {}
-                    },
-                    additionalInstructions: additionalInstructions,
-                    chat_history: chatHistory,
-                    commerce_snapshot: buildCommerceOrderSnapshot({
+                customization_details: buildCartCustomizationDetails({
+                    cakeInfo,
+                    mainToppers,
+                    supportElements,
+                    cakeMessages,
+                    icingDesign,
+                    additionalInstructions,
+                    aiChatHistory: persistedAiChatHistory,
+                    commerceSnapshot: buildCommerceOrderSnapshot({
                         product: {
                             productId: product?.product_id || null,
                             designSlug: persistedSlug || (typeof slug === 'string' ? slug : null) || seoMetadata?.slug || recentSearchDesign?.slug || null,
@@ -1493,17 +1469,18 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                         }),
                         policyUrls: getCommercePolicyUrls(),
                     }),
-                }
+                })
             };
 
             // 4. Fire-and-forget: optimistic update happens instantly, upload runs in background
             // No await needed - function returns immediately after optimistic update
-            void addToCartWithBackgroundUpload(cartItem, uploadPromise);
+            addToCartWithBackgroundUpload(cartItem, uploadCartItemImages);
 
             showSuccess('Added to cart!');
             trackCustomizerCartRedirectStarted({
                 ...analyticsBase,
                 priceBucket: getAnalyticsValueBucket((effectivePrice || 0) + ediblePhotoAddonPrice),
+                clickToRedirectMs: Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - addToCartClickStartedAt),
             });
             router.push('/cart');
         } catch (err) {
@@ -1533,7 +1510,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         additionalInstructions,
         addToCartWithBackgroundUpload,
         ediblePhotoAddonPrice,
-        chatHistory,
         product?.product_id,
         product?.image_url,
         product?.p_hash,
@@ -1551,7 +1527,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         analysisId,
         router,
         slug,
-        supabase,
         handleUpdateDesign,
         originalImageData,
     ]);
@@ -1572,21 +1547,66 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         slug,
     ]);
 
+    const persistAiChatHistoryEntry = useCallback(async (
+        prompt: string,
+        attachment: AiChatReferenceAttachment | null,
+    ): Promise<{ entry: AiChatHistoryEntry; uploadFailed: boolean }> => {
+        const baseEntry: AiChatHistoryEntry = {
+            prompt: prompt.trim(),
+            referenceImageUrl: null,
+            referenceImageName: attachment?.fileName ?? null,
+            createdAt: new Date().toISOString(),
+        };
+
+        if (!attachment) {
+            return { entry: baseEntry, uploadFailed: false };
+        }
+
+        try {
+            const activeUser = user ?? (await supabase.auth.getUser()).data.user ?? null;
+            if (!activeUser?.id) {
+                throw new Error('Authentication session not found.');
+            }
+
+            const referenceImageUrl = await uploadAiChatReferenceImage(supabase, {
+                base64Data: attachment.image.data,
+                ownerId: activeUser.id,
+            });
+
+            return {
+                entry: {
+                    ...baseEntry,
+                    referenceImageUrl,
+                },
+                uploadFailed: false,
+            };
+        } catch (error) {
+            console.error('Failed to save AI chat reference image:', error);
+            return { entry: baseEntry, uploadFailed: true };
+        }
+    }, [supabase, user]);
+
     const submitAiChatPrompt = useCallback(async (prompt: string) => {
 
         const currentPrompt = prompt.trim();
         if (!currentPrompt || !analysisResult || isAiProcessing || isUpdatingDesign) return;
 
         const traceId = `ai-chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const currentAttachment = aiChatReferenceAttachment;
         const referenceImages = aiChatReferenceImages;
         let resolveMergedAnalysis: ((value: HybridAnalysisResult) => void) | undefined;
         let rejectMergedAnalysis: ((reason?: unknown) => void) | undefined;
 
         setIsAiProcessing(true);
         setChatInput('');
-        addChatEntry(currentPrompt);
 
         try {
+            const { entry, uploadFailed } = await persistAiChatHistoryEntry(currentPrompt, currentAttachment);
+            appendAiChatHistoryEntry(entry);
+            if (uploadFailed) {
+                showInfo('We used your AI chat request, but could not save the attached reference image link.');
+            }
+
             const syncedAnalysis = getSyncedAnalysisResult() || analysisResult;
             const mergedAnalysisReady = new Promise<HybridAnalysisResult>((resolve, reject) => {
                 resolveMergedAnalysis = resolve;
@@ -1742,9 +1762,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         isUpdatingDesign,
         setPendingAnalysisData,
         additionalInstructions,
+        aiChatReferenceAttachment,
         aiChatReferenceImages,
         onAdditionalInstructionsChange,
         onAddToCart,
+        appendAiChatHistoryEntry,
+        persistAiChatHistoryEntry,
     ]);
 
     const handleChatSubmit = useCallback(async (e?: React.FormEvent) => {

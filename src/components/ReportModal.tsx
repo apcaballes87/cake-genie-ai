@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { CloseIcon, Loader2 } from './icons';
 import { CartItemDetails, CakeInfoUI, CakeType } from '@/types';
 import DetailItem from './UI/DetailItem';
+import AiChatHistoryDetails from './AiChatHistoryDetails';
 import LazyImage from './LazyImage';
 
 const cakeTypeDisplayMap: Record<CakeType, string> = {
@@ -105,6 +106,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, onSubmit, is
                                         return <DetailItem key={loc} label={`${colorLabelMap[loc] || loc} Color`} value={color} />;
                                     })}
                                     {details.additionalInstructions && <DetailItem label="Instructions" value={details.additionalInstructions} />}
+                                    <AiChatHistoryDetails historySource={details} />
                                 </>
                             )}
                         </div>

@@ -9,6 +9,7 @@ import { formatCurrency } from '@/lib/utils/currency';
 import { Loader2, CheckCircle, AlertCircle, Users, CreditCard } from 'lucide-react';
 import { showSuccess, showError } from '@/lib/utils/toast';
 import DetailItem from '@/components/UI/DetailItem';
+import AiChatHistoryDetails from '@/components/AiChatHistoryDetails';
 
 interface ContributeClientProps {
     orderId: string;
@@ -250,6 +251,7 @@ export default function ContributeClient({ orderId }: ContributeClientProps) {
                                                     <DetailItem key={loc} label={`${colorLabelMap[loc] || loc.charAt(0).toUpperCase() + loc.slice(1)} Color`} value={color} />
                                                 ))}
                                                 {details.additionalInstructions && <DetailItem label="Instructions" value={details.additionalInstructions} />}
+                                                <AiChatHistoryDetails historySource={details} />
                                             </div>
                                         </details>
                                     </div>

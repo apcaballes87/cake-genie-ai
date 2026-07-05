@@ -7,6 +7,7 @@ import { Share2, Link as LinkIcon, CheckCircle, Users, ChevronDown, Calendar, Ma
 import LazyImage from './LazyImage';
 import { showSuccess } from '@/lib/utils/toast';
 import DetailItem from './UI/DetailItem';
+import AiChatHistoryDetails from './AiChatHistoryDetails';
 import { ImageZoomModal } from './ImageZoomModal';
 import { CartItemDetails } from '@/types';
 
@@ -156,6 +157,7 @@ const BillShareCard: React.FC<BillShareCardProps> = ({ design, onDesignUpdate })
                                                 {details.icingDesign?.gumpasteBaseBoard && <DetailItem label="Icing" value="Gumpaste Base Board" />}
                                                 {details.icingDesign?.colors && Object.entries(details.icingDesign.colors).map(([loc, color]) => (<DetailItem key={loc} label={`${colorLabelMap[loc] || loc.charAt(0).toUpperCase() + loc.slice(1)} Color`} value={color} />))}
                                                 {details.additionalInstructions && <DetailItem label="Instructions" value={details.additionalInstructions} />}
+                                                <AiChatHistoryDetails historySource={details} />
                                             </>
                                         ) : (<p className="text-slate-500 text-xs italic">Detailed customization data not available for this older shared design.</p>)}
                                     </div>

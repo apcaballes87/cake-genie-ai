@@ -1,6 +1,6 @@
 // lib/database.types.ts
 
-import type { CommerceOrderSnapshot } from '@/types';
+import type { AiChatHistoryEntry, CommerceOrderSnapshot } from '@/types';
 
 /**
  * The status of a customer's order in the fulfillment process.
@@ -40,6 +40,7 @@ export interface CustomizationDetails {
     colors: Record<string, string>;
   };
   additionalInstructions: string;
+  ai_chat_history?: AiChatHistoryEntry[];
   chat_history?: string[];
   commerce_snapshot?: CommerceOrderSnapshot;
 }
@@ -424,4 +425,3 @@ export interface CakeGenieIcingMask {
   status: 'ready' | 'failed';
   created_at: string; // ISO 8601 timestamp
 }
-

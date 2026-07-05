@@ -205,6 +205,13 @@ export interface CakeInfoUI {
   flavors: CakeFlavor[];
 }
 
+export interface AiChatHistoryEntry {
+  prompt: string;
+  referenceImageUrl: string | null;
+  referenceImageName: string | null;
+  createdAt: string;
+}
+
 
 // --- Pricing & Cart Types ---
 
@@ -231,6 +238,7 @@ export interface CartItemDetails {
     colors: Record<string, string>;
   };
   additionalInstructions: string;
+  ai_chat_history?: AiChatHistoryEntry[];
   chat_history?: string[];
   commerceSnapshot?: CommerceOrderSnapshot;
 }

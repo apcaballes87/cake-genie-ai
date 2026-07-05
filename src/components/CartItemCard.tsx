@@ -2,6 +2,7 @@
 import React from 'react';
 import { CartItem, DiscountValidationResult } from '@/types';
 import DetailItem from './UI/DetailItem';
+import AiChatHistoryDetails from './AiChatHistoryDetails';
 import { LoadingSpinner } from './LoadingSpinner';
 import { TrashIcon, MagicSparkleIcon } from './icons';
 import LazyImage from './LazyImage';
@@ -176,6 +177,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom, app
                             />
                         ))}
                         {item.details.additionalInstructions && <DetailItem label="Instructions" value={item.details.additionalInstructions} />}
+                        <AiChatHistoryDetails historySource={item.details} />
                     </div>
                 </details>
             </div>
@@ -268,6 +270,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom, app
                         />
                     ))}
                     {item.details.additionalInstructions && <DetailItem label="Instructions" value={item.details.additionalInstructions} />}
+                    <AiChatHistoryDetails historySource={item.details} />
                 </div>
             </details>
         </div>
