@@ -283,6 +283,7 @@ export function trackCustomizerAddToCartBlocked(params: CustomizerFunnelBase & {
 
 export function trackCustomizerCartRedirectStarted(params: CustomizerFunnelBase & {
   priceBucket: string
+  clickToRedirectMs?: number
 }): void {
   trackEvent('customizer_cart_redirect_started', {
     event_category: 'ecommerce_funnel',
@@ -290,6 +291,7 @@ export function trackCustomizerCartRedirectStarted(params: CustomizerFunnelBase 
     design_slug: params.designSlug || undefined,
     price_bucket: params.priceBucket,
     has_pending_design_changes: Boolean(params.hasPendingDesignChanges),
+    click_to_redirect_ms: params.clickToRedirectMs,
   })
 }
 

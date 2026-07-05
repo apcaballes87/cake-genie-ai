@@ -57,6 +57,13 @@ type ContinuationStep = {
   remaining?: number;
 };
 
+type BatchSelectionMode = 'pending' | 'completed';
+
+type SubmitImageStudioBatchOptions = {
+  selectionMode?: BatchSelectionMode;
+  offset?: number;
+};
+
 function parseGcsPrefix() {
   const value = process.env.VERTEX_AI_BATCH_GCS_URI?.trim();
   const match = value?.match(/^gs:\/\/([^/]+)\/?(.*)$/);
@@ -131,7 +138,13 @@ function isTerminalProviderFailure(state?: string | null) {
   ));
 }
 
-export async function submitNextImageStudioBatch(limit = 1000, requestContext?: AIRequestContext) {
+export async function submitNextImageStudioBatch(
+  limit = 1000,
+  requestContext?: AIRequestContext,
+  options: SubmitImageStudioBatchOptions = {}
+) {
+  const selectionMode = options.selectionMode ?? 'pending';
+  const offset = Math.max(options.offset ?? 0, 0);
   const admin = createAdminServerSupabaseClient();
   const { data: activeRun, error: activeRunError } = await admin
     .from('cakegenie_image_studio_batch_jobs')
@@ -141,16 +154,30 @@ export async function submitNextImageStudioBatch(limit = 1000, requestContext?: 
     .maybeSingle();
   if (activeRunError) throw activeRunError;
   if (activeRun) throw new Error('An offline image batch is already active. Refresh its status before submitting another.');
-  const { data: rows, error } = await admin
+
+  let rowsQuery = admin
     .from('cakegenie_analysis_cache')
     .select('id,p_hash,slug,original_image_url,studio_edited_image_url')
     .not('original_image_url', 'is', null)
     .neq('original_image_url', '')
-    .or('studio_edit_status.is.null,studio_edit_status.neq.completed')
     .is('batch_job_id', null)
-    .limit(Math.min(Math.max(limit, 1), 1000));
+    .order('created_at', { ascending: false });
+
+  if (selectionMode === 'completed') {
+    rowsQuery = rowsQuery.eq('studio_edit_status', 'completed');
+  } else {
+    rowsQuery = rowsQuery.or('studio_edit_status.is.null,studio_edit_status.neq.completed');
+  }
+
+  const safeLimit = Math.min(Math.max(limit, 1), 1000);
+  const { data: rows, error } = await rowsQuery.range(offset, offset + safeLimit - 1);
   if (error) throw error;
-  if (!rows?.length) throw new Error('No eligible cache rows are waiting for batch processing.');
+  if (!rows?.length) {
+    if (selectionMode === 'completed') {
+      throw new Error('No eligible completed Studio rows were found for batch rerun.');
+    }
+    throw new Error('No eligible cache rows are waiting for batch processing.');
+  }
 
   const adminClient = getAI(requestContext);
   const gcs = parseGcsPrefix();
@@ -245,12 +272,19 @@ async function importStage(run: BatchRun, items: BatchItem[], stage: Stage, maxI
         const latestSlug = item.cache?.slug || item.slug;
         const path = getImageStudioStoragePath({ slug: latestSlug, pHash: item.p_hash });
         const webp = await sharp(image).webp({ quality: 92, effort: 4 }).toBuffer();
+        const metadata = await sharp(webp).metadata().catch(() => null);
         const { error: uploadError } = await admin.storage.from(STORAGE_BUCKET).upload(path, webp, { contentType: 'image/webp', upsert: true });
         throwIfSupabaseError(uploadError, `Upload studio image ${path}`);
         const { data } = admin.storage.from(STORAGE_BUCKET).getPublicUrl(path);
         const { error: cacheUpdateError } = await admin
           .from('cakegenie_analysis_cache')
-          .update({ studio_edited_image_url: data.publicUrl, studio_edit_status: 'completed', studio_edited_at: new Date().toISOString() })
+          .update({
+            studio_edited_image_url: data.publicUrl,
+            studio_edit_status: 'completed',
+            studio_edited_at: new Date().toISOString(),
+            image_width: metadata?.width ?? null,
+            image_height: metadata?.height ?? null,
+          })
           .eq('id', item.cache_id);
         throwIfSupabaseError(cacheUpdateError, `Update studio cache row ${item.cache_id}`);
         const { error: itemUpdateError } = await admin

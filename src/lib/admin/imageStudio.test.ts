@@ -102,6 +102,13 @@ describe('imageStudio helpers', () => {
       scaleFactor: 400 / 300,
     });
 
+    expect(getImageStudioOutputDimensions(300, 300)).toEqual({
+      width: 400,
+      height: 400,
+      wasUpscaled: true,
+      scaleFactor: 400 / 300,
+    });
+
     expect(getImageStudioOutputDimensions(1600, 900)).toEqual({
       width: 1600,
       height: 900,

@@ -231,8 +231,8 @@ interface CartActionsType {
     clearCart: () => void;
     addToCartWithBackgroundUpload: (
         initialItem: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'>,
-        uploadTask: Promise<{ originalImageUrl: string; finalImageUrl: string }>
-    ) => Promise<void>;
+        uploadTask: (ownerId: string) => Promise<{ originalImageUrl: string; finalImageUrl: string }>
+    ) => void;
 }
 
 interface CartContextType extends CartDataType, CartActionsType { }
@@ -580,9 +580,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     }, []);
 
-    const addToCartWithBackgroundUpload = useCallback(async (
+    const addToCartWithBackgroundUpload = useCallback((
         initialItem: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'>,
-        uploadTask: Promise<{ originalImageUrl: string; finalImageUrl: string }>
+        uploadTask: (ownerId: string) => Promise<{ originalImageUrl: string; finalImageUrl: string }>
     ) => {
         const tempId = uuidv4();
         const now = new Date().toISOString();
@@ -609,13 +609,17 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             quantity: tempItem.quantity,
         });
 
-        const ownerPromise: Promise<Pick<CakeGenieCartItem, 'user_id' | 'session_id'>> =
-            initialItem.user_id || initialItem.session_id
-                ? Promise.resolve({
-                    user_id: initialItem.user_id,
-                    session_id: initialItem.session_id,
-                })
-                : supabase.auth.getUser().then(({ data: { user } }) => {
+        const ownerPromise: Promise<Pick<CakeGenieCartItem, 'user_id' | 'session_id'> & { ownerId: string }> =
+            Promise.resolve().then(() => {
+                if (initialItem.user_id || initialItem.session_id) {
+                    return {
+                        user_id: initialItem.user_id,
+                        session_id: initialItem.session_id,
+                        ownerId: initialItem.user_id || initialItem.session_id || '',
+                    };
+                }
+
+                return supabase.auth.getUser().then(({ data: { user } }) => {
                     const isAnonymous = user?.is_anonymous ?? false;
 
                     if (!user) {
@@ -626,14 +630,20 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     return {
                         user_id: isAnonymous ? null : user.id,
                         session_id: isAnonymous ? user.id : null,
+                        ownerId: user.id,
                     };
                 });
+            });
 
         // 2. Fire-and-forget Background Process (runs without blocking navigation)
         // We DON'T await this - it runs in the background while user is navigated to cart
         console.log('🔄 Cart: Background upload started...');
-        uploadTask
-            .then(async ({ originalImageUrl, finalImageUrl }) => {
+        ownerPromise
+            .then(async (owner) => {
+                const uploadedImages = await uploadTask(owner.ownerId);
+                return { owner, ...uploadedImages };
+            })
+            .then(async ({ owner, originalImageUrl, finalImageUrl }) => {
                 console.log('✅ Cart: Background upload complete. Saving to database...', { originalImageUrl, finalImageUrl });
                 
                 // Prepare real item for DB
@@ -642,7 +652,6 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     original_image_url: originalImageUrl,
                     customized_image_url: finalImageUrl
                 };
-                const owner = await ownerPromise;
 
                 const itemToSend = {
                     ...finalItemParams,

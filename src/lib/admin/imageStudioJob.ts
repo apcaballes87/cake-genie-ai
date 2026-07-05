@@ -81,6 +81,8 @@ type StudioUpdatePayload = {
   studio_edit_error?: string | null;
   studio_edit_started_at?: string | null;
   studio_edited_at?: string | null;
+  image_width?: number | null;
+  image_height?: number | null;
 };
 
 type PersistStudioUpdateOptions = {
@@ -401,8 +403,6 @@ export async function runImageStudioJob({
 
     const originalImage =
       inlineOriginalImage ?? await fetchImageAsInlineData(cacheRow!.original_image_url!);
-    const originalBuffer = Buffer.from(originalImage.data, 'base64');
-    const originalMetadata = await sharp(originalBuffer).metadata().catch(() => null);
     const prompt = buildImageStudioPrompt();
     const systemInstruction = buildImageStudioSystemInstruction();
     const aiClient = getAI(requestContext);
@@ -464,13 +464,16 @@ export async function runImageStudioJob({
     const generatedBuffer = Buffer.from(generatedImage.imageData, 'base64');
     const generatedMetadata = await sharp(generatedBuffer).metadata();
     const outputDimensions = getImageStudioOutputDimensions(
-      cacheRow?.image_width ?? originalMetadata?.width ?? generatedMetadata.width ?? null,
-      cacheRow?.image_height ?? originalMetadata?.height ?? generatedMetadata.height ?? null
+      generatedMetadata.width ?? null,
+      generatedMetadata.height ?? null
     );
     const watermarkedBuffer = await finalizeEditedImage(
       generatedBuffer,
       outputDimensions
     );
+    const finalizedMetadata = await sharp(watermarkedBuffer).metadata().catch(() => null);
+    const finalizedWidth = finalizedMetadata?.width ?? generatedMetadata.width ?? null;
+    const finalizedHeight = finalizedMetadata?.height ?? generatedMetadata.height ?? null;
     const storagePath = getImageStudioStoragePath({
       slug: cacheRow?.slug ?? null,
       pHash,
@@ -499,6 +502,8 @@ export async function runImageStudioJob({
         studio_edit_status: 'completed',
         studio_edit_error: null,
         studio_edited_at: new Date().toISOString(),
+        image_width: finalizedWidth,
+        image_height: finalizedHeight,
       },
       {
         waitForRow: canWaitForRow,
@@ -524,6 +529,8 @@ export async function runImageStudioJob({
           studio_edit_status: 'completed',
           studio_edit_error: null,
           studio_edited_at: new Date().toISOString(),
+          image_width: finalizedWidth,
+          image_height: finalizedHeight,
         },
         {
           waitForRow: true,

@@ -49,7 +49,12 @@ export async function POST(req: NextRequest) {
   if (!authorized(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const body = await req.json().catch(() => ({}));
-    const run = await submitNextImageStudioBatch(body.limit ?? 1000, req);
+    const selectionMode = body.selectionMode === 'completed' ? 'completed' : 'pending';
+    const offset = Number.isFinite(Number(body.offset)) ? Math.max(0, Number(body.offset)) : 0;
+    const run = await submitNextImageStudioBatch(body.limit ?? 1000, req, {
+      selectionMode,
+      offset,
+    });
     scheduleImageStudioContinuation(req);
     return NextResponse.json({ run });
   } catch (error) {
