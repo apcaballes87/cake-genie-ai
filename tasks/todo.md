@@ -85,11 +85,27 @@
 
 ### Plan
 
-- [ ] Inspect the current Studio asset and variant pipeline so a square-asset repair updates what the site really renders.
-- [ ] Add a bulk script that finds non-square completed Studio assets from June 1, 2026 onward, converts them to 1:1 without AI, and overwrites the existing Studio files.
-- [ ] Update cache-row dimensions and invalidate stale image variants for repaired rows.
-- [ ] Dry-run or sample-run the script against known stretched Studio rows.
-- [ ] Start the real bulk repair run and record progress/verification here.
+- [x] Inspect the current Studio asset and variant pipeline so a square-asset repair updates what the site really renders.
+- [x] Add a bulk script that finds non-square completed Studio assets from June 1, 2026 onward, converts them to 1:1 without AI, and overwrites the existing Studio files.
+- [x] Update cache-row dimensions and invalidate stale image variants for repaired rows.
+- [x] Dry-run or sample-run the script against known stretched Studio rows.
+- [x] Start the real bulk repair run and record progress/verification here.
+
+### Review
+
+- Root cause: many affected rows had real portrait Studio assets, so `ProductCard` was faithfully rendering portrait cards from stored `image_width` and `image_height`. A smaller second class of rows already had square Studio files, but their database dimensions were stale portrait values.
+- Added `scripts/square-studio-images.ts` to backfill completed Studio rows from `2026-06-01T00:00:00.000Z` onward by downloading the existing Studio asset, square-padding non-square files onto a sampled background color, overwriting the same storage object, cache-busting `studio_edited_image_url`, and clearing stale variant metadata.
+- Patched the script so rows whose Studio file is already square still repair stale `image_width` and `image_height` plus variant metadata instead of being skipped.
+- Bulk run result:
+  - `inspected=4940`
+  - `squared=794`
+  - `alreadySquare=4146`
+  - `failed=0`
+- Follow-up repair result:
+  - one metadata-only straggler (`monthly-milestone-pink-1-tier-cake-0f65`) was rerun through the fixed path and repaired as `already square (1024x1024) • metadata repaired`
+- Verification:
+  - Aggregate Supabase check after the rerun returned `total=4941` completed Studio rows since June 1 and `nonSquare=0`.
+  - Sample slug `photo-birthday-white-1-tier-cake-8333` now stores `image_width=713`, `image_height=713`, and the fetched Studio asset also measures `713x713`.
 
 ## Customizer Query Share OG Tags (2026-07-05)
 
