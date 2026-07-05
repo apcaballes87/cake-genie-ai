@@ -25,6 +25,8 @@ import {
     trackCheckoutPlaceOrderClicked,
     trackCheckoutRedirectStarted,
 } from '@/lib/analytics';
+import { GA4_MEASUREMENT_ID } from '@/lib/analyticsRoutes';
+import { prepareBuyerAttributionForCheckout } from '@/lib/buyerAttribution';
 import { AddressForm, StaticMap } from '@/components/AddressForm';
 import { SplitWithFriendsModal } from '@/components/SplitWithFriendsModal';
 import { SplitOrderShareModal } from '@/components/SplitOrderShareModal';
@@ -1455,6 +1457,7 @@ function CartClient() {
 
             // GA4: user has committed to checkout (address valid, about to create order)
             trackBeginCheckout(total, cartItems.length);
+            const buyerAttribution = await prepareBuyerAttributionForCheckout(GA4_MEASUREMENT_ID);
 
             // 1. Create Order
             const { success, order, error } = await createOrderFromCart({
@@ -1473,7 +1476,8 @@ function CartClient() {
                     city: effectiveGuestAddress.city,
                     latitude: effectiveGuestAddress.latitude,
                     longitude: effectiveGuestAddress.longitude
-                } : undefined
+                } : undefined,
+                buyerAttribution,
             });
 
             if (!success || !order) {
@@ -1673,6 +1677,7 @@ function CartClient() {
 
             // GA4: downpayment checkout commitment
             trackBeginCheckout(total, cartItems.length);
+            const buyerAttribution = await prepareBuyerAttributionForCheckout(GA4_MEASUREMENT_ID);
 
             // Create split order
             const { success, order, error } = await createSplitOrderFromCart({
@@ -1694,7 +1699,8 @@ function CartClient() {
                     city: effectiveGuestAddress.city,
                     latitude: effectiveGuestAddress.latitude,
                     longitude: effectiveGuestAddress.longitude
-                } : undefined
+                } : undefined,
+                buyerAttribution,
             });
 
             if (!success || !order) {
@@ -1873,6 +1879,7 @@ function CartClient() {
 
             // GA4: split-order checkout commitment
             trackBeginCheckout(total, cartItems.length);
+            const buyerAttribution = await prepareBuyerAttributionForCheckout(GA4_MEASUREMENT_ID);
 
             const { success, order, error } = await createSplitOrderFromCart({
                 cartItems,
@@ -1893,7 +1900,8 @@ function CartClient() {
                     city: effectiveGuestAddress.city,
                     latitude: effectiveGuestAddress.latitude,
                     longitude: effectiveGuestAddress.longitude
-                } : undefined
+                } : undefined,
+                buyerAttribution,
             });
 
             if (!success || !order) {

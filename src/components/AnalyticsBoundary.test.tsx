@@ -8,9 +8,25 @@ const navigationState = vi.hoisted(() => ({
   search: '',
 }))
 
+const authState = vi.hoisted(() => ({
+  user: null as { id: string } | null,
+  isAuthenticated: false,
+}))
+
+const syncBuyerAttributionForCurrentPageMock = vi.fn()
+
 vi.mock('next/navigation', () => ({
   usePathname: () => navigationState.pathname,
   useSearchParams: () => new URLSearchParams(navigationState.search),
+}))
+
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => authState,
+}))
+
+vi.mock('@/lib/buyerAttribution', () => ({
+  syncBuyerAttributionForCurrentPage: (...args: unknown[]) =>
+    syncBuyerAttributionForCurrentPageMock(...args),
 }))
 
 function setLocation(path: string): void {
@@ -32,6 +48,10 @@ describe('AnalyticsBoundary', () => {
     clarityMock.mockReset()
     ;(window as typeof window & { gtag?: typeof gtagMock }).gtag = gtagMock
     ;(window as typeof window & { clarity?: typeof clarityMock }).clarity = clarityMock
+    authState.user = null
+    authState.isAuthenticated = false
+    syncBuyerAttributionForCurrentPageMock.mockReset()
+    syncBuyerAttributionForCurrentPageMock.mockResolvedValue(null)
     clearInternalTrafficCookie()
     document.title = 'Genie.ph Test'
     navigationState.pathname = '/'
@@ -66,10 +86,26 @@ describe('AnalyticsBoundary', () => {
       send_page_view: false,
       ignore_referrer: false,
     })
+    expect(syncBuyerAttributionForCurrentPageMock).toHaveBeenCalledWith('G-TEST123')
     expect(gtagMock).toHaveBeenCalledWith('event', 'page_view', {
       page_location: 'http://localhost:3000/',
       page_path: '/',
       page_title: 'Genie.ph Test',
+    })
+  })
+
+  it('sets GA4 user_id for authenticated users', async () => {
+    authState.user = { id: 'user-123' }
+    authState.isAuthenticated = true
+
+    render(<AnalyticsBoundary enabled measurementId="G-TEST123" />)
+
+    await waitFor(() => {
+      expect(gtagMock).toHaveBeenCalledWith('config', 'G-TEST123', {
+        send_page_view: false,
+        ignore_referrer: false,
+        user_id: 'user-123',
+      })
     })
   })
 

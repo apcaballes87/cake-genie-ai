@@ -13,6 +13,8 @@ import {
   setClarityTag,
   setAnalyticsRouteTracking,
 } from '@/lib/analytics'
+import { syncBuyerAttributionForCurrentPage } from '@/lib/buyerAttribution'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface AnalyticsBoundaryProps {
   enabled: boolean
@@ -42,6 +44,7 @@ export function AnalyticsBoundary({ enabled, measurementId }: AnalyticsBoundaryP
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const searchParamString = searchParams.toString()
+  const { user, isAuthenticated } = useAuth()
 
   useLayoutEffect(() => {
     if (!enabled) return
@@ -74,9 +77,11 @@ export function AnalyticsBoundary({ enabled, measurementId }: AnalyticsBoundaryP
     gtag('config', measurementId, {
       send_page_view: false,
       ignore_referrer: ignoreReferrer,
+      ...(isAuthenticated && user?.id ? { user_id: user.id } : {}),
     })
 
     markAnalyticsReady()
+    void syncBuyerAttributionForCurrentPage(measurementId)
 
     const pagePath = searchParamString ? `${pathname}?${searchParamString}` : pathname
     sendPageView({
@@ -84,7 +89,7 @@ export function AnalyticsBoundary({ enabled, measurementId }: AnalyticsBoundaryP
       page_path: pagePath,
       page_title: document.title,
     })
-  }, [enabled, measurementId, pathname, searchParamString])
+  }, [enabled, isAuthenticated, measurementId, pathname, searchParamString, user?.id])
 
   return null
 }

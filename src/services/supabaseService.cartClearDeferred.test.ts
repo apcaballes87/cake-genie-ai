@@ -186,6 +186,60 @@ describe('deferred cart clear (data-layer track)', () => {
     expect(params.p_discount_amount).toBe(0);
   });
 
+  it('passes buyer attribution through to create_order_from_cart', async () => {
+    const { createOrderFromCart } = await import('./supabaseService');
+
+    await createOrderFromCart({
+      cartItems: [buildCartItem()],
+      eventDate: '2026-07-01',
+      eventTime: '14:00-16:00',
+      deliveryAddressId: 'addr-1',
+      deliveryFee: 100,
+      buyerAttribution: {
+        version: 1,
+        firstTouch: {
+          source: 'tiktok',
+          medium: 'paid_social',
+          campaign: 'launch',
+          entrySource: null,
+          referrerHost: null,
+          clickIdType: 'ttclid',
+          category: 'campaign',
+          landingPath: '/',
+          landingUrl: 'https://genie.ph/?utm_source=tiktok',
+          occurredAt: '2026-07-05T00:00:00.000Z',
+        },
+        firstNonDirectTouch: null,
+        latestTouch: null,
+        latestNonDirectTouch: null,
+        purchaseSession: null,
+        ga: {
+          clientId: '1234.5678',
+          sessionId: '123',
+          sessionNumber: 1,
+          lastResolvedAt: '2026-07-05T00:00:00.000Z',
+        },
+        latestTouchSessionId: '123',
+        latestNonDirectTouchSessionId: '123',
+      },
+    });
+
+    const createOrderCall = rpcMock.mock.calls.find(
+      ([rpcName]: [string]) => rpcName === 'create_order_from_cart',
+    );
+    expect(createOrderCall).toBeDefined();
+    const params = createOrderCall![1] as Record<string, unknown>;
+    expect(params.p_buyer_attribution).toMatchObject({
+      version: 1,
+      firstTouch: {
+        source: 'tiktok',
+      },
+      ga: {
+        clientId: '1234.5678',
+      },
+    });
+  });
+
   it('clear_cart_for_paid_order is reachable via the supabase.rpc() call boundary', async () => {
     // This is the contract test for the new server-side helper
     // defined in supabase/migrations/20260612130000_defer_cart_clear_to_payment.sql.

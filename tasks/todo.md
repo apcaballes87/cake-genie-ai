@@ -1,5 +1,39 @@
 # Tasks
 
+## Buyer Attribution Hardening (2026-07-05)
+
+### Plan
+
+- [x] Add same-browser buyer attribution capture in the GA4 client flow and persist it locally.
+- [x] Thread buyer attribution through checkout into `cakegenie_orders` with new durable columns and RPC params.
+- [x] Mirror confirmed purchases server-side through GA4 Measurement Protocol from the Xendit confirmation paths.
+- [x] Add a repeatable audit script and focused regression coverage.
+- [x] Run targeted tests plus `npm run build`, then record the outcome here.
+
+### Review
+
+- Added [src/lib/buyerAttribution.ts](/Users/apcaballes/genieph-nextjs/src/lib/buyerAttribution.ts:1) as the same-browser attribution source of truth. It stores `buyer_attribution_v1` in `localStorage`, classifies direct/campaign/referral touches from `utm_*`, click IDs, `entry_source`/`source`, and external referrers, and only refreshes `latestTouch` once per resolved GA session.
+- Updated [src/components/AnalyticsBoundary.tsx](/Users/apcaballes/genieph-nextjs/src/components/AnalyticsBoundary.tsx:1) to set GA4 `user_id` for authenticated users and to resolve `client_id`, `session_id`, and `session_number` from the live tag on page load/route change.
+- Updated [src/app/cart/CartClient.tsx](/Users/apcaballes/genieph-nextjs/src/app/cart/CartClient.tsx:1) so all order-creation paths (`full_payment`, `downpayment_50`, `split_with_friends`) call `prepareBuyerAttributionForCheckout(...)` immediately before checkout and pass the resulting snapshot into the RPC layer.
+- Extended [src/services/supabaseService.ts](/Users/apcaballes/genieph-nextjs/src/services/supabaseService.ts:2449) to thread `p_buyer_attribution` into both checkout RPCs.
+- Added migration [supabase/migrations/20260705144506_buyer_attribution_hardening.sql](/Users/apcaballes/genieph-nextjs/supabase/migrations/20260705144506_buyer_attribution_hardening.sql:1) to:
+  - add durable attribution columns on `cakegenie_orders`
+  - extend `create_order_from_cart`
+  - extend `create_split_order_from_cart`
+  - denormalize first-touch and purchase-session source/medium/campaign fields on insert
+- Added [supabase/functions/_shared/ga4MeasurementProtocol.ts](/Users/apcaballes/genieph-nextjs/supabase/functions/_shared/ga4MeasurementProtocol.ts:1) and wired it into [supabase/functions/xendit-webhook/index.ts](/Users/apcaballes/genieph-nextjs/supabase/functions/xendit-webhook/index.ts:1) and [supabase/functions/verify-xendit-payment/index.ts](/Users/apcaballes/genieph-nextjs/supabase/functions/verify-xendit-payment/index.ts:1) so server-confirmed `paid` / `partial` orders can mirror a GA4 `purchase` once, using `transaction_id = order_number`, stored `client_id`, optional `user_id`, and session attribution only while still inside the supported window.
+- Added [scripts/audit-buyer-attribution.ts](/Users/apcaballes/genieph-nextjs/scripts/audit-buyer-attribution.ts:1) for repeatable operator audits. It groups paid/partial orders by first-touch and purchase-session source, highlights source changes, missing attribution, and missing mirrors, and excludes `apcaballes@gmail.com` by default.
+- Verification:
+  - `npx vitest run src/lib/buyerAttribution.test.ts src/components/AnalyticsBoundary.test.tsx src/services/supabaseService.cartClearDeferred.test.ts --exclude '.claude/**'` passed: 14 tests.
+  - `git diff --check -- ...` passed for all touched files.
+  - `npm run build` passed. Existing warnings remained for stale `baseline-browser-mapping`, inferred Turbopack workspace root, and deprecated `middleware`.
+  - `npx tsx scripts/audit-buyer-attribution.ts --from 2026-06-01 --to 2026-06-30` now fails with a clear message that the new migration must be applied first, which is the expected pre-deploy/live-state blocker.
+  - `2026-07-06`: applied `supabase/migrations/20260705144506_buyer_attribution_hardening.sql` to the live Supabase project via MCP `apply_migration`, then verified:
+    - `cakegenie_orders` now has all 8 buyer-attribution columns, including `buyer_attribution jsonb not null default '{}'::jsonb`
+    - `create_order_from_cart(..., p_buyer_attribution jsonb)` and `create_split_order_from_cart(..., p_buyer_attribution jsonb)` are the active public RPC signatures
+    - all existing `149` `cakegenie_orders` rows have non-null `buyer_attribution`, with current historical rows defaulted to `{}` as expected for a forward-looking rollout
+    - `npx tsx scripts/audit-buyer-attribution.ts --from 2026-06-01 --to 2026-06-30` now succeeds against the live schema and reports the expected historical gap: all 10 June 2026 non-admin orders remain `(missing)` for attribution and mirror state because no backfill is part of v1
+
 ## Background Cart Upload Build Follow-up (2026-07-05)
 
 ### Plan

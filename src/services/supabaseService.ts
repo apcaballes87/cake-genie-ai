@@ -1,6 +1,6 @@
 // services/supabaseService.ts
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { CakeType, BasePriceInfo, CakeThickness, ReportPayload, CartItemDetails, HybridAnalysisResult, AiPrompt, PricingRule, PricingFeedback, AvailabilitySettings, CartItem, CacheSEOMetadata } from '@/types';
+import { CakeType, BasePriceInfo, CakeThickness, ReportPayload, CartItemDetails, HybridAnalysisResult, AiPrompt, PricingRule, PricingFeedback, AvailabilitySettings, CartItem, CacheSEOMetadata, BuyerAttributionRecord } from '@/types';
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase/env';
 import { notifyIndexNow } from './indexNowService';
@@ -2464,9 +2464,21 @@ export async function createOrderFromCart(
       latitude?: number | null;
       longitude?: number | null;
     };
+    buyerAttribution?: BuyerAttributionRecord;
   }
 ): Promise<{ success: boolean, order?: any, error?: Error }> {
-  const { cartItems, eventDate, eventTime, deliveryAddressId, deliveryInstructions, deliveryFee = 0, discountAmount, discountCodeId, guestAddress } = params;
+  const {
+    cartItems,
+    eventDate,
+    eventTime,
+    deliveryAddressId,
+    deliveryInstructions,
+    deliveryFee = 0,
+    discountAmount,
+    discountCodeId,
+    guestAddress,
+    buyerAttribution,
+  } = params;
 
   try {
     if (!cartItems || cartItems.length === 0) {
@@ -2509,6 +2521,7 @@ export async function createOrderFromCart(
       p_delivery_city: guestAddress?.city || 'Cebu City', // Default to Cebu City if not provided
       p_delivery_latitude: guestAddress?.latitude || null,
       p_delivery_longitude: guestAddress?.longitude || null,
+      p_buyer_attribution: buyerAttribution || {},
     });
 
     if (error) throw error;
@@ -2555,6 +2568,7 @@ export async function createSplitOrderFromCart(params: {
     latitude?: number | null;
     longitude?: number | null;
   };
+  buyerAttribution?: BuyerAttributionRecord;
   isSplitOrder: boolean;
   splitMessage: string;
   splitCount: number;
@@ -2572,7 +2586,8 @@ export async function createSplitOrderFromCart(params: {
       guestAddress,
       isSplitOrder,
       splitMessage,
-      splitCount
+      splitCount,
+      buyerAttribution,
     } = params;
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -2601,7 +2616,8 @@ export async function createSplitOrderFromCart(params: {
       p_is_split_order: isSplitOrder,
       p_split_message: splitMessage,
       p_split_count: splitCount,
-      p_cart_item_ids: cartItems.map(item => item.cart_item_id)
+      p_cart_item_ids: cartItems.map(item => item.cart_item_id),
+      p_buyer_attribution: buyerAttribution || {},
     });
 
     if (error) throw error;

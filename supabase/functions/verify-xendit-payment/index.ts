@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
+import { mirrorOrderPurchaseToGa4 } from '../_shared/ga4MeasurementProtocol.ts'
 
 declare const Deno: any;
 
@@ -68,6 +69,8 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const ga4MeasurementId = Deno.env.get('GA4_MEASUREMENT_ID') ?? '';
+    const ga4MeasurementProtocolApiSecret = Deno.env.get('GA4_MEASUREMENT_PROTOCOL_API_SECRET') ?? '';
 
     if (!supabaseUrl || !serviceRoleKey) {
       throw new Error('Supabase environment variables are not set.');
@@ -176,7 +179,23 @@ serve(async (req) => {
         );
         const { data: order } = await supabaseAdmin
           .from('cakegenie_orders')
-          .select('total_amount, split_message')
+          .select(`
+            order_id,
+            order_number,
+            user_id,
+            total_amount,
+            split_message,
+            payment_status,
+            discount_code_id,
+            buyer_attribution,
+            ga_purchase_mirrored_at,
+            cakegenie_order_items (
+              cake_type,
+              cake_size,
+              final_price,
+              quantity
+            )
+          `)
           .eq('order_id', contribution.order_id)
           .single();
 
@@ -202,6 +221,17 @@ serve(async (req) => {
 
           if (updates.payment_status === 'paid' || updates.payment_status === 'partial') {
             await clearCartForOrder(supabaseAdmin, contribution.order_id);
+            if (ga4MeasurementId && ga4MeasurementProtocolApiSecret && order) {
+              await mirrorOrderPurchaseToGa4({
+                supabaseAdmin,
+                order: {
+                  ...order,
+                  payment_status: String(updates.payment_status),
+                },
+                measurementId: ga4MeasurementId,
+                apiSecret: ga4MeasurementProtocolApiSecret,
+              });
+            }
           }
         }
       }
@@ -261,7 +291,21 @@ serve(async (req) => {
 
       const { data: order, error: orderError } = await supabaseAdmin
         .from('cakegenie_orders')
-        .select('total_amount')
+        .select(`
+          order_id,
+          order_number,
+          user_id,
+          total_amount,
+          discount_code_id,
+          buyer_attribution,
+          ga_purchase_mirrored_at,
+          cakegenie_order_items (
+            cake_type,
+            cake_size,
+            final_price,
+            quantity
+          )
+        `)
         .eq('order_id', orderId)
         .single();
 
@@ -299,6 +343,17 @@ serve(async (req) => {
       if (updateOrderError) throw updateOrderError;
 
       await clearCartForOrder(supabaseAdmin, orderId);
+      if (ga4MeasurementId && ga4MeasurementProtocolApiSecret) {
+        await mirrorOrderPurchaseToGa4({
+          supabaseAdmin,
+          order: {
+            ...order,
+            ga_purchase_mirrored_at: order.ga_purchase_mirrored_at ?? null,
+          },
+          measurementId: ga4MeasurementId,
+          apiSecret: ga4MeasurementProtocolApiSecret,
+        });
+      }
     }
 
     return new Response(JSON.stringify({ success: true, status: latestStatus }), {

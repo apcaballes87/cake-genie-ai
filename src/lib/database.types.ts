@@ -1,6 +1,10 @@
 // lib/database.types.ts
 
-import type { AiChatHistoryEntry, CommerceOrderSnapshot } from '@/types';
+import type {
+  AiChatHistoryEntry,
+  BuyerAttributionRecord,
+  CommerceOrderSnapshot,
+} from '@/types';
 
 /**
  * The status of a customer's order in the fulfillment process.
@@ -137,6 +141,14 @@ export interface CakeGenieOrder {
   updated_at: string; // ISO 8601 timestamp
   confirmed_at: string | null; // ISO 8601 timestamp
   delivered_at: string | null; // ISO 8601 timestamp
+  buyer_attribution?: BuyerAttributionRecord | Record<string, unknown> | null;
+  buyer_first_touch_source?: string | null;
+  buyer_first_touch_medium?: string | null;
+  buyer_first_touch_campaign?: string | null;
+  buyer_purchase_session_source?: string | null;
+  buyer_purchase_session_medium?: string | null;
+  buyer_purchase_session_campaign?: string | null;
+  ga_purchase_mirrored_at?: string | null;
   cakegenie_order_items?: CakeGenieOrderItem[]; // Optional for joined queries
   // Split with Friends fields
   is_split_order?: boolean;

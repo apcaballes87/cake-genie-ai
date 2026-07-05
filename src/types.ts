@@ -332,6 +332,40 @@ export interface CommerceOrderSnapshot {
   policyUrls: CommercePolicyUrls;
 }
 
+export type BuyerAttributionTouchCategory = 'direct' | 'campaign' | 'referral';
+
+export interface BuyerAttributionTouch {
+  source: string;
+  medium: string;
+  campaign: string | null;
+  entrySource: string | null;
+  referrerHost: string | null;
+  clickIdType: 'gclid' | 'fbclid' | 'ttclid' | null;
+  category: BuyerAttributionTouchCategory;
+  landingPath: string;
+  landingUrl: string;
+  occurredAt: string;
+}
+
+export interface BuyerAttributionGaSnapshot {
+  clientId: string | null;
+  sessionId: string | null;
+  sessionNumber: number | null;
+  lastResolvedAt: string | null;
+}
+
+export interface BuyerAttributionRecord {
+  version: 1;
+  firstTouch: BuyerAttributionTouch | null;
+  firstNonDirectTouch: BuyerAttributionTouch | null;
+  latestTouch: BuyerAttributionTouch | null;
+  latestNonDirectTouch: BuyerAttributionTouch | null;
+  purchaseSession: BuyerAttributionTouch | null;
+  ga: BuyerAttributionGaSnapshot;
+  latestTouchSessionId: string | null;
+  latestNonDirectTouchSessionId: string | null;
+}
+
 export interface CartItem {
   id: string;
   image: string | null;

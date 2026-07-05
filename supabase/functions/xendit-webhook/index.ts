@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { mirrorOrderPurchaseToGa4 } from '../_shared/ga4MeasurementProtocol.ts';
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -62,6 +63,8 @@ serve(async (req) => {
 
         const supabaseUrl = Deno.env.get('SUPABASE_URL');
         const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+        const ga4MeasurementId = Deno.env.get('GA4_MEASUREMENT_ID') ?? '';
+        const ga4MeasurementProtocolApiSecret = Deno.env.get('GA4_MEASUREMENT_PROTOCOL_API_SECRET') ?? '';
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
         console.log('\n========== XENDIT WEBHOOK RECEIVED ==========');
@@ -202,12 +205,35 @@ serve(async (req) => {
 
                 const { data: updatedOrder } = await supabase
                     .from('cakegenie_orders')
-                    .select('payment_status')
+                    .select(`
+                        order_id,
+                        order_number,
+                        user_id,
+                        total_amount,
+                        payment_status,
+                        discount_code_id,
+                        buyer_attribution,
+                        ga_purchase_mirrored_at,
+                        cakegenie_order_items (
+                            cake_type,
+                            cake_size,
+                            final_price,
+                            quantity
+                        )
+                    `)
                     .eq('order_id', contribution.order_id)
                     .single();
 
                 if (updatedOrder?.payment_status === 'paid' || updatedOrder?.payment_status === 'partial') {
                     await clearCartForOrder(supabase, contribution.order_id);
+                    if (ga4MeasurementId && ga4MeasurementProtocolApiSecret) {
+                        await mirrorOrderPurchaseToGa4({
+                            supabaseAdmin: supabase,
+                            order: updatedOrder,
+                            measurementId: ga4MeasurementId,
+                            apiSecret: ga4MeasurementProtocolApiSecret,
+                        });
+                    }
                 }
             } else {
                 await supabase
@@ -297,7 +323,21 @@ serve(async (req) => {
         if (paymentStatus === 'PAID' && paymentRecord?.order_id) {
             const { data: order, error: orderError } = await supabase
                 .from('cakegenie_orders')
-                .select('total_amount')
+                .select(`
+                    order_id,
+                    order_number,
+                    user_id,
+                    total_amount,
+                    discount_code_id,
+                    buyer_attribution,
+                    ga_purchase_mirrored_at,
+                    cakegenie_order_items (
+                        cake_type,
+                        cake_size,
+                        final_price,
+                        quantity
+                    )
+                `)
                 .eq('order_id', paymentRecord.order_id)
                 .single();
 
@@ -339,6 +379,17 @@ serve(async (req) => {
 
             console.log(`✅ Order ${paymentRecord.order_id} marked as confirmed`);
             await clearCartForOrder(supabase, paymentRecord.order_id);
+            if (ga4MeasurementId && ga4MeasurementProtocolApiSecret) {
+                await mirrorOrderPurchaseToGa4({
+                    supabaseAdmin: supabase,
+                    order: {
+                        ...order,
+                        ga_purchase_mirrored_at: order.ga_purchase_mirrored_at ?? null,
+                    },
+                    measurementId: ga4MeasurementId,
+                    apiSecret: ga4MeasurementProtocolApiSecret,
+                });
+            }
         }
 
         console.log('\n========== WEBHOOK PROCESSING COMPLETE ==========\n');
