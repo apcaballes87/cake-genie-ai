@@ -183,10 +183,10 @@ export default function PriceListBrowser({
             return (
               <article
                 key={group.key}
-                className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-purple-300 hover:shadow-md"
+                className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-purple-300 hover:shadow-md sm:p-5"
               >
-                <div className="flex items-start gap-4">
-                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-purple-100 bg-purple-50">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-purple-100 bg-purple-50 sm:h-16 sm:w-16">
                     <LazyImage
                       src={CAKE_TYPE_THUMBNAILS[summary.cakeType]}
                       alt=""
@@ -197,7 +197,7 @@ export default function PriceListBrowser({
                   </div>
                   <div className="min-w-0">
                     {group.summaries.length > 1 ? (
-                      <div className="inline-flex rounded-full border border-purple-100 bg-purple-50 p-1">
+                      <div className="inline-flex max-w-full flex-wrap rounded-full border border-purple-100 bg-purple-50 p-1">
                         {group.summaries.map((variant) => {
                           const isSelected = variant.cakeType === summary.cakeType;
                           return (
@@ -221,7 +221,7 @@ export default function PriceListBrowser({
                         {summary.filterLabel}
                       </div>
                     )}
-                    <h3 className="mt-3 text-2xl font-black tracking-tight text-slate-900">
+                    <h3 className="mt-3 text-xl font-black tracking-tight text-slate-900 sm:text-2xl">
                       {group.title}
                     </h3>
                     <p className="mt-2 text-sm leading-6 text-slate-600">
@@ -230,26 +230,26 @@ export default function PriceListBrowser({
                   </div>
                 </div>
 
-                <div className="mt-5 rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+                <div className="mt-5 rounded-2xl border border-slate-100 bg-slate-50/80 p-3 sm:p-4">
                   <div className="text-sm font-semibold text-slate-800">
                     Size prices for {selectedGroup.thickness} height
                   </div>
 
-                  <div className="mt-4 flex flex-wrap gap-4">
+                  <div className="mt-4 grid grid-cols-2 justify-items-center gap-3 min-[430px]:grid-cols-3 sm:flex sm:flex-wrap sm:justify-start sm:gap-4">
                     {selectedGroup.prices.map((pricePoint) => {
                       const overlayLines = getSizeOverlayLabel(pricePoint.size);
 
                       return (
                         <div
                           key={`${summary.cakeType}-${selectedGroup.thickness}-${pricePoint.size}`}
-                          className="flex w-[118px] flex-col items-center gap-2 text-center"
+                          className="flex w-full max-w-[118px] flex-col items-center gap-2 text-center"
                         >
-                          <div className="relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border border-purple-300 bg-white shadow-sm shadow-purple-100/60">
+                          <div className="relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border border-purple-300 bg-white shadow-sm shadow-purple-100/60 min-[390px]:h-28 min-[390px]:w-28">
                             <LazyImage
                               src={CAKE_SIZE_THUMBNAILS[pricePoint.size] || CAKE_TYPE_THUMBNAILS[summary.cakeType]}
                               alt=""
                               fill
-                              sizes="112px"
+                              sizes="(max-width: 389px) 96px, 112px"
                               imageClassName="object-cover opacity-[0.08]"
                             />
                             <div className="relative z-10 px-3 text-center">
@@ -275,7 +275,7 @@ export default function PriceListBrowser({
                     <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">
                       Height
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-3">
+                    <div className="mt-3 flex flex-wrap gap-2 sm:gap-3">
                       {summary.thicknesses.map((thickness) => {
                         const isSelected = selectedGroup.thickness === thickness;
                         return (
@@ -283,7 +283,7 @@ export default function PriceListBrowser({
                             key={`${summary.cakeType}-${thickness}`}
                             type="button"
                             onClick={() => handleThicknessSelect(summary.cakeType, thickness)}
-                            className={`min-h-[64px] min-w-[92px] rounded-[1.1rem] border px-4 py-3 text-center text-lg font-black transition ${
+                            className={`min-h-[60px] min-w-[80px] rounded-[1.1rem] border px-3 py-3 text-center text-base font-black transition min-[390px]:min-w-[92px] min-[390px]:text-lg ${
                               isSelected
                                 ? 'border-purple-400 bg-purple-50 text-purple-700 shadow-[0_0_0_3px_rgba(168,85,247,0.12)]'
                                 : 'border-slate-200 bg-white text-slate-700 hover:border-purple-300 hover:bg-purple-50/50'
@@ -302,7 +302,7 @@ export default function PriceListBrowser({
                       className="genie-btn-primary flex w-full items-center justify-center gap-3 rounded-[1.35rem] px-6 py-[15px] text-[12px] font-bold shadow-lg shadow-purple-100/50 transition active:scale-[0.99] min-[360px]:text-[13px] min-[390px]:text-sm md:px-8 md:text-[17px] lg:text-lg"
                     >
                       <ImagePlus size={22} className="shrink-0" />
-                      <span className="whitespace-nowrap">Upload Your Design - Get Instant Pricing</span>
+                      <span className="text-center sm:whitespace-nowrap">Upload Your Design - Get Instant Pricing</span>
                     </Link>
                   </div>
                 </div>
