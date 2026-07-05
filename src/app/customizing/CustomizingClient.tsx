@@ -3692,7 +3692,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
 
     const showStickyBar = finalPrice !== null || !!basePriceError || isAnalyzing || hasPendingVisualChanges || isUpdatingDesign;
     const isStudioBackgroundEditingPending = Boolean(
-        originalImagePreview
+        !isComposingSelfie
+        && originalImagePreview
         && (
             currentPHash
             || (recentSearchDesign?.p_hash && recentSearchDesign?.studio_edit_status === 'processing')

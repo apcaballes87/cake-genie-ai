@@ -745,15 +745,15 @@ export const CustomizingHeroPanel = memo(({
                                 ) : null}
 
                                 <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
-                                    {(isStudioBackgroundEditingPending || isGeneratingMask || isComposingSelfie) ? (
+                                    {(isStudioBackgroundEditingPending || isComposingSelfie) ? (
                                         <div
                                             className="flex h-9 px-3.5 items-center gap-2.5 rounded-full bg-white/95 text-purple-600 shadow-lg ring-1 ring-purple-100 backdrop-blur-md transition-all duration-300 animate-pulse pointer-events-none"
-                                            aria-label={isComposingSelfie ? "ai is adding your image to the cake" : isStudioBackgroundEditingPending ? "ai is editing your background" : "ai is editing your icing"}
-                                            title={isComposingSelfie ? "ai is adding your image to the cake" : isStudioBackgroundEditingPending ? "ai is editing your background" : "ai is editing your icing"}
+                                            aria-label={isComposingSelfie ? "ai is adding your image to the cake" : "ai is editing your background"}
+                                            title={isComposingSelfie ? "ai is adding your image to the cake" : "ai is editing your background"}
                                         >
                                             <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0 text-purple-500" />
                                             <span className="text-[8px] font-bold text-slate-800 tracking-wider select-none whitespace-nowrap">
-                                                {isComposingSelfie ? "ai adding your image on this cake..." : isStudioBackgroundEditingPending ? "ai is editing your background..." : "ai is editing your icing..."}
+                                                {isComposingSelfie ? "ai adding your image on this cake..." : "ai is editing your background..."}
                                             </span>
                                         </div>
                                     ) : null}
