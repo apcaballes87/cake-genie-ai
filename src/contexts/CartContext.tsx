@@ -200,6 +200,15 @@ interface DeliveryDetails {
 
 // --- NEW SPLIT CONTEXT TYPES ---
 
+type BackgroundUploadResult = {
+    originalImageUrl: string;
+    finalImageUrl: string;
+};
+
+type BackgroundUploadTask =
+    | Promise<BackgroundUploadResult>
+    | ((ownerId: string) => Promise<BackgroundUploadResult>);
+
 interface CartDataType {
     cartItems: (CakeGenieCartItem & { merchant?: CakeGenieMerchant; isPending?: boolean })[];
     addresses: CakeGenieAddress[];
@@ -231,7 +240,7 @@ interface CartActionsType {
     clearCart: () => void;
     addToCartWithBackgroundUpload: (
         initialItem: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'>,
-        uploadTask: (ownerId: string) => Promise<{ originalImageUrl: string; finalImageUrl: string }>
+        uploadTask: BackgroundUploadTask
     ) => void;
 }
 
@@ -582,7 +591,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const addToCartWithBackgroundUpload = useCallback((
         initialItem: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'>,
-        uploadTask: (ownerId: string) => Promise<{ originalImageUrl: string; finalImageUrl: string }>
+        uploadTask: BackgroundUploadTask
     ) => {
         const tempId = uuidv4();
         const now = new Date().toISOString();
@@ -640,7 +649,11 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         console.log('🔄 Cart: Background upload started...');
         ownerPromise
             .then(async (owner) => {
-                const uploadedImages = await uploadTask(owner.ownerId);
+                const uploadedImages = await (
+                    typeof uploadTask === 'function'
+                        ? uploadTask(owner.ownerId)
+                        : uploadTask
+                );
                 return { owner, ...uploadedImages };
             })
             .then(async ({ owner, originalImageUrl, finalImageUrl }) => {

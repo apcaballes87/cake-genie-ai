@@ -1,5 +1,61 @@
 # Tasks
 
+## Background Cart Upload Build Follow-up (2026-07-05)
+
+### Plan
+
+- [x] Reproduce or validate the reported Vercel build mismatch around `addToCartWithBackgroundUpload`.
+- [x] Harden the cart background-upload API so both owner-aware callbacks and prebuilt upload promises are accepted.
+- [x] Rerun `npm run build` and record the result.
+
+### Review
+
+- The reported Vercel failure said `CustomizingClient.tsx` was passing a callback where `addToCartWithBackgroundUpload` expected a `Promise`, but the current local tree already used the callback form successfully. That mismatch suggested a compatibility seam rather than a customizer logic bug.
+- Hardened `src/contexts/CartContext.tsx` by introducing a shared `BackgroundUploadTask` union that accepts either an owner-aware callback or a ready-made upload promise, then normalized it at the single execution point before persisting the real cart item.
+- This keeps the existing optimistic cart behavior unchanged for the customizer while making the cart API resilient to either call pattern if one surface or cached type path narrows differently during production builds.
+- Verification:
+  - `npm run build` passed locally on July 5, 2026 after the compatibility change. Existing non-fatal warnings remained for stale `baseline-browser-mapping`, inferred Turbopack workspace root, deprecated `middleware`, and intermittent Supabase statement timeouts during static generation.
+
+## June 2026 Buyer Source Check (2026-07-05)
+
+### Plan
+
+- [x] Pull June 1-30, 2026 completed buyer records and exclude `apcaballes@gmail.com`.
+- [x] Identify what acquisition-source data is available for those buyers from order data and GA4 purchase attribution.
+- [x] Summarize buyer counts by source bucket (`google`, `facebook`, `tiktok`, `direct`, other) with caveats on attribution gaps.
+- [x] Record verification notes and outcome here.
+
+### Review
+
+- Pulled live June 1-30, 2026 orders from `cakegenie_orders` with `payment_status in ('paid', 'partial')`, joined to `cakegenie_users` for buyer email, then excluded `apcaballes@gmail.com`.
+- Result after exclusion: `10` buyer orders from `9` unique buyer emails.
+- Pulled live GA4 `purchase` events for `2026-06-01` through `2026-06-30` from property `properties/510070439`, keyed by `transactionId` and attributed via `sessionSource` + `sessionMedium`.
+- GA4 matched `8` of the `10` non-admin June buyer orders. Two paid orders had no GA4 purchase-event row in that window: `ORD-20260617-76617` and `ORD-20260620-21987`.
+- Matched buyer-order source split:
+  - `google`: `2` orders, `2` unique buyers, `Php 3,558.40` tracked revenue
+  - `facebook`: `0`
+  - `tiktok`: `0`
+  - `direct`: `3` orders, `3` unique buyers, `Php 5,356.80` tracked revenue
+  - `other`: `3` orders, `3` unique buyers, `Php 5,147.20` tracked revenue
+- The `other` bucket was not social. It consisted of:
+  - `cakesandmemories.com / referral`
+  - `checkout.xendit.co / referral`
+  - `landing / (not set)`
+- Verification:
+  - Supabase live query against `cakegenie_orders` + `cakegenie_users!cakegenie_orders_user_id_fkey(email)` succeeded with service-role access from `.env.local`.
+  - GA4 live `run_report` using `/Users/apcaballes/ga4-service-account.json` succeeded for June 2026 `purchase` events with dimensions `transactionId`, `sessionSource`, and `sessionMedium`.
+  - Reconciled Supabase non-admin buyer orders against GA4 purchase rows by `order_number == transactionId`.
+- Attribution-capability audit:
+  - The storefront only sends a client-side GA4 `purchase` event from the browser confirmation page, with `transaction_id`, value, coupon, and items. It does not send a GA4 `user_id`, captured UTMs, click IDs, or a server-side purchase mirror.
+  - GA4 can still answer both `sessionSource/sessionMedium` and `firstUserSource/firstUserMedium` for purchase events when the same browser identity is preserved.
+  - Live June 2026 purchase data proved this partially works: some purchase rows had different first-touch vs purchase-session attribution, including `sessionSource=google / organic` while `firstUserSource=(direct) / (none)`, and `sessionSource=landing / (not set)` while `firstUserSource=(direct) / (none)`.
+  - That means a pattern like “first visit from TikTok, came back direct and purchased” is theoretically traceable in GA4 today as `firstUserSource=tiktok` and `sessionSource=(direct)`, but only when the same GA4 browser identity survives across sessions.
+  - Major gaps remain:
+    - No `user_id` is set in GA4 config/events, so cross-device and logged-out-to-logged-in stitching is weak.
+    - Purchase tracking depends on the confirmation page loading in the browser; two June paid orders had no matching GA4 purchase row at all.
+    - Order records do not persist attribution fields that would let Supabase act as a durable source-of-buyer truth.
+    - A June purchase was still attributed to `checkout.xendit.co / referral`, so payment-return attribution leakage is not fully solved.
+
 ## AI Chat Prompt And Reference Image Persistence (2026-07-05)
 
 ### Plan

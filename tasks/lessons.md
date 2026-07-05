@@ -1,5 +1,6 @@
 # Lessons
 
+- When a Vercel build reports a type mismatch that the current local tree does not reproduce, do not assume the deploy log is wrong and do not patch only the call site blindly. Check the full API seam and prefer a compatibility-safe contract at the shared boundary, then rerun `npm run build`.
 - For follow-up UI requests on `/price-list`, do not stop at generic cards if the user points to `/customizing` selectors. Reuse the real customizer interaction model and assets for icing base, cake shape, size, and height whenever the page is meant to feel like an extension of the customizer.
 - When the user points to a specific CTA on landing or customizer, copy that CTA literally instead of rewriting the text into a more specific variant. For this repo, `Upload your design` on `/customizing#upload` should stay verbatim when the user asks for the same CTA.
 - When the user says to use the landing-page CTA, match the landing CTA's behavior, not just the styling or a nearby upload link. In this repo the homepage hero CTA opens the landing uploader modal, so cross-page reuse should target that same flow (for example `/?upload=1`) rather than `/customizing#upload`.
