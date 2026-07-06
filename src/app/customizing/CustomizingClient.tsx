@@ -2735,10 +2735,29 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
 
     const onClearAll = () => {
         isResettingRef.current = true;
+        isLoadingDesignRef.current = false;
+        isLoadingShopifyCseRef.current = false;
+        lastProcessedDesignRefUrl.current = null;
+        setHasNewUpload(true);
         clearImages();
         clearCustomization();
         setActiveTab('original');
+        setIsAnalyzing(false);
+        setAnalysisError(null);
+        setPreloadedHeroImage(null);
+        setLiveStudioEditedImageUrl(null);
+        setAiChatReferenceAttachment(null);
+        setIsAiChatAttachmentUploading(false);
+        setChatInput('');
+        setShowAiPromptSuggestions(false);
+        setSelectedAiPromptIndex(-1);
+        setSelectedAiPromptTemplate(null);
+        setSelectedAiPromptColor('');
+        setShowAiPromptColorPicker(false);
+        setIsUploaderOpen(false);
+        setIsPreSelectionModalOpen(false);
         router.push('/');
+        window.location.assign('/');
     };
 
     const handleToggleSavedDesign = useCallback(async () => {

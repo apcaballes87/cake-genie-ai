@@ -1,5 +1,25 @@
 # Tasks
 
+## Customizer Reset Everything Navigation (2026-07-06)
+
+### Plan
+
+- [x] Trace the current `Reset everything` handler and image/context persistence path.
+- [x] Patch reset so it clears route-backed design state, local hero mirrors, and image context before leaving `/customizing`.
+- [x] Run focused verification and record the result.
+
+### Review
+
+- Root cause: `onClearAll` cleared image/customization contexts and called `router.push('/')`, but it did not suppress route-backed `product` / `recentSearchDesign` props or clear customizer-local hero mirrors like `preloadedHeroImage` and `liveStudioEditedImageUrl`. On `/customizing/[slug]`, the same mounted client could repopulate the old design while navigation was in progress.
+- Updated `src/app/customizing/CustomizingClient.tsx` so reset now marks the active route data as ignored with `setHasNewUpload(true)`, clears loading refs, image context, customization state, analysis/error state, preloaded/studio hero URLs, AI chat attachment/template state, and upload/preselection UI before leaving for `/`.
+- Navigation now also calls `window.location.assign('/')` after `router.push('/')` so the reset action exits the customizer decisively instead of relying only on a client transition from a stateful customizer route.
+- Verification:
+  - `git diff --check -- src/app/customizing/CustomizingClient.tsx tasks/todo.md` passed.
+  - `npx eslint src/app/customizing/CustomizingClient.tsx` completed with `0` errors and the existing warning set in that file.
+  - `npm run build` passed. Existing warnings remained for stale baseline/browser data, inferred workspace root, deprecated middleware naming, and non-fatal Supabase statement timeouts during static generation.
+  - Browser verification on `http://127.0.0.1:3002/customizing/fathers-day-sky-blue-1-tier-cake-ffef` clicked the visible `Reset everything` button and landed on `http://127.0.0.1:3002/` with `hasCustomizerPath=false` and no reset/customizer UI text.
+  - Reopening `http://127.0.0.1:3002/customizing` showed the base landing/customizer state with no `Reset Everything` controls, confirming the editing session was not restored.
+
 ## Buyer Attribution Hardening (2026-07-05)
 
 ### Plan
