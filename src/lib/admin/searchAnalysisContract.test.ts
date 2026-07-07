@@ -16,7 +16,9 @@ describe('search analysis contract', () => {
     }) as Record<string, any>;
 
     expect(SEARCH_ANALYSIS_REJECTION_REASONS).toContain('payment_receipt');
+    expect(SEARCH_ANALYSIS_REJECTION_REASONS).toContain('selfie');
     expect(schema.properties.rejection.properties.reason.enum).toContain('payment_receipt');
+    expect(schema.properties.rejection.properties.reason.enum).toContain('selfie');
     expect(schema.properties.icing_design.properties.base.enum).toEqual([...SEARCH_ANALYSIS_ICING_BASES]);
     expect(schema.properties.icing_design.properties.color_type.enum).toEqual([...SEARCH_ANALYSIS_COLOR_TYPES]);
     expect(schema.properties.cake_messages.items.properties.type.enum).toEqual([

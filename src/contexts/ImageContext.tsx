@@ -537,33 +537,6 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
 
 
             try {
-                const earlyStudioRowPromise =
-                    pHash && fingerprint
-                        ? prepareStudioEditCacheRow(pHash, {
-                            fingerprintPipeline: fingerprint.pipeline,
-                            originalImageUrl: uploadedImageUrl || null,
-                        }).then(preparedRow => {
-                            if (preparedRow) {
-                                setCurrentCacheId(preparedRow.id ?? null);
-                                setCurrentPHash(preparedRow.storedPHash);
-                            }
-                            return preparedRow;
-                        })
-                        : Promise.resolve(null);
-
-                const parallelStudioTriggerPromise =
-                    pHash
-                        ? earlyStudioRowPromise
-                            .catch(() => null)
-                            .then(preparedRow => {
-                                if (preparedRow?.studioTriggerHandled || preparedRow?.shouldTriggerStudioEdit === false) {
-                                    return true;
-                                }
-
-                                return triggerStudioEditFromUpload(preparedRow?.storedPHash || pHash, compressedImageData);
-                            })
-                        : null;
-
                 // PHASE 1: Fast feature-only analysis with v3.2 prompt (coordinates all 0,0)
                 const fastResult = await analyzeCakeFeaturesOnly(
                     compressedImageData.data,
@@ -702,9 +675,30 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     setCurrentSlugState(generatedSlug);
                 }
 
-                const studioTriggerHandled = parallelStudioTriggerPromise
-                    ? await parallelStudioTriggerPromise
-                    : false;
+                const preparedStudioRow =
+                    pHash && fingerprint
+                        ? await prepareStudioEditCacheRow(pHash, {
+                            fingerprintPipeline: fingerprint.pipeline,
+                            originalImageUrl: uploadedImageUrl || null,
+                        })
+                        : null;
+
+                if (preparedStudioRow) {
+                    setCurrentCacheId(preparedStudioRow.id ?? null);
+                    setCurrentPHash(preparedStudioRow.storedPHash);
+                }
+
+                let studioTriggerHandled = false;
+                if (pHash) {
+                    if (preparedStudioRow?.studioTriggerHandled || preparedStudioRow?.shouldTriggerStudioEdit === false) {
+                        studioTriggerHandled = true;
+                    } else {
+                        studioTriggerHandled = await triggerStudioEditFromUpload(
+                            preparedStudioRow?.storedPHash || pHash,
+                            compressedImageData
+                        );
+                    }
+                }
 
                 const fastCacheWritePromise: ReturnType<typeof cacheAnalysisResult> | null =
                     pHash && fingerprint

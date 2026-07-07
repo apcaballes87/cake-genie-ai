@@ -115,6 +115,13 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('| `payment_receipt` | "This looks like a payment receipt or screenshot. Please upload a cake design image instead." |');
   });
 
+  it('keeps the selfie edible-photo interception rule in the fallback prompt source', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(prompt).toContain('| `selfie` | "This is a selfie or portrait photo of humans. Let\'s make an edible photo cake!" |');
+    expect(prompt).toContain('If the main subject is a person, pet, selfie, or portrait of humans with no cake or cupcakes present, classify as `selfie`.');
+  });
+
   it('uses canonical prompt enums and removes stale aliases from the fallback prompt source', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 

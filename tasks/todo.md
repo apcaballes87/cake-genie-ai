@@ -1,5 +1,25 @@
 # Tasks
 
+## Selfie Upload Studio Bypass (2026-07-07)
+
+### Plan
+
+- [x] Trace the live customizer upload path for selfie detection, Studio triggering, and edible-photo compositing.
+- [x] Patch the upload flow so selfie uploads enter only the edible-photo composite path and never schedule Image Studio editing for the raw selfie.
+- [x] Update focused regression tests around the selfie branch and normal cake Studio trigger behavior.
+- [x] Run focused tests and record the review result.
+
+### Review
+
+- Root cause: `ImageContext` prepared the Studio cache row and triggered `/api/ai/trigger-studio-edit` before `analyzeCakeFeaturesOnly()` returned, so a selfie upload could correctly branch into the edible-photo cake flow while a raw-selfie Studio edit was already in flight.
+- Updated `src/contexts/ImageContext.tsx` so fresh uploads run fast analysis first. If the analyzer returns `rejection.reason === 'selfie'`, the function exits into the existing edible-photo composite flow before any Studio cache row, Studio trigger, or normal analysis cache write can happen.
+- Normal cake uploads still prepare the Studio cache row and trigger Image Studio after successful fast analysis, and still prevent a duplicate delayed trigger when the early trigger succeeds.
+- Verification:
+  - `git diff --check -- src/contexts/ImageContext.tsx src/contexts/ImageContext.test.tsx tasks/todo.md` passed.
+  - `npx vitest run src/contexts/ImageContext.test.tsx --exclude '.claude/**'` passed: 9 tests.
+  - `npx vitest run src/contexts/ImageContext.test.tsx src/services/prompts/analysisPromptRules.test.ts src/lib/admin/searchAnalysisContract.test.ts --exclude '.claude/**'` passed: 27 tests.
+  - `npm run build` passed. Existing non-fatal warnings/noise remained for stale `baseline-browser-mapping`, inferred Turbopack workspace root, deprecated middleware naming, and intermittent Supabase/network fetch failures during static generation.
+
 ## Customizer Reset Everything Navigation (2026-07-06)
 
 ### Plan

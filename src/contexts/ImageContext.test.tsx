@@ -152,7 +152,7 @@ describe('ImageContext', () => {
     });
   });
 
-  it('starts the studio edit trigger while cake analysis is still running', async () => {
+  it('waits for cake analysis before starting the studio edit trigger', async () => {
     const onSuccess = vi.fn();
     const onError = vi.fn();
     const { result } = renderHook(() => useImageManagement(), { wrapper });
@@ -173,20 +173,8 @@ describe('ImageContext', () => {
       await Promise.resolve();
     });
 
-    await waitFor(() => {
-      expect(prepareStudioEditCacheRowMock).toHaveBeenCalledWith('abc123def4567890', {
-        fingerprintPipeline: 'v2-test-pipeline',
-        originalImageUrl: null,
-      });
-      expect(triggerStudioEditFromUploadMock).toHaveBeenCalledWith(
-        'abc123def4567890',
-        expect.objectContaining({
-          data: 'uploaded-base64',
-          mimeType: 'image/png',
-        })
-      );
-    });
-
+    expect(prepareStudioEditCacheRowMock).not.toHaveBeenCalled();
+    expect(triggerStudioEditFromUploadMock).not.toHaveBeenCalled();
     expect(onSuccess).not.toHaveBeenCalled();
 
     resolveAnalysis({
@@ -206,6 +194,17 @@ describe('ImageContext', () => {
       await uploadPromise;
     });
 
+    expect(prepareStudioEditCacheRowMock).toHaveBeenCalledWith('abc123def4567890', {
+      fingerprintPipeline: 'v2-test-pipeline',
+      originalImageUrl: null,
+    });
+    expect(triggerStudioEditFromUploadMock).toHaveBeenCalledWith(
+      'abc123def4567890',
+      expect.objectContaining({
+        data: 'uploaded-base64',
+        mimeType: 'image/png',
+      })
+    );
     expect(onSuccess).toHaveBeenCalledWith(expect.objectContaining({
       keyword: 'purple cake',
     }));
@@ -394,6 +393,9 @@ describe('ImageContext', () => {
         })
       ]),
     }));
+    expect(prepareStudioEditCacheRowMock).not.toHaveBeenCalled();
+    expect(triggerStudioEditFromUploadMock).not.toHaveBeenCalled();
+    expect(cacheAnalysisResultMock).not.toHaveBeenCalled();
     expect(onError).not.toHaveBeenCalled();
 
     fetchSpy.mockRestore();
