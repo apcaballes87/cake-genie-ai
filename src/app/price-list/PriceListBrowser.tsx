@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ImagePlus, MapPin } from 'lucide-react';
 
@@ -11,7 +11,8 @@ import type {
   CakeTypePriceSummary,
   PriceListFilterKey,
 } from '@/lib/pricing/priceList';
-import type { CakeThickness, CakeType } from '@/types';
+import { validateDiscountCode } from '@/services/discountService';
+import type { CakeThickness, CakeType, DiscountValidationResult } from '@/types';
 import {
   CAKE_SIZE_THUMBNAILS,
   CAKE_TYPE_THUMBNAILS,
@@ -35,6 +36,8 @@ type PriceListCakeGroup = {
   title: string;
   summaries: CakeTypePriceSummary[];
 };
+
+type PricePointDiscountMap = Record<number, DiscountValidationResult>;
 
 const COMBINED_CAKE_TYPE_GROUPS: { title: string; types: CakeType[] }[] = [
   { title: '1 Tier', types: ['1 Tier', '1 Tier Fondant'] },
@@ -100,6 +103,8 @@ export default function PriceListBrowser({
   const [activeFilter, setActiveFilter] = useState<PriceListFilterKey>('all');
   const [selectedCakeTypeByGroup, setSelectedCakeTypeByGroup] = useState<Record<string, CakeType>>({});
   const [selectedThicknessByType, setSelectedThicknessByType] = useState<Record<string, CakeThickness>>({});
+  const [activeDiscountCode, setActiveDiscountCode] = useState('');
+  const [validatedDiscountsByPrice, setValidatedDiscountsByPrice] = useState<PricePointDiscountMap>({});
 
   const filteredGroups = useMemo(() => {
     const groups = getGroupedSummaries(summaries);
@@ -111,6 +116,77 @@ export default function PriceListBrowser({
       }))
       .filter((group) => group.summaries.length > 0);
   }, [activeFilter, summaries]);
+
+  const visibleBasePrices = useMemo(() => {
+    const uniquePrices = new Set<number>();
+
+    filteredGroups.forEach((group) => {
+      const defaultSummary = getDefaultSummaryForFilter(group, activeFilter);
+      const selectedCakeType = selectedCakeTypeByGroup[group.key];
+      const summary =
+        group.summaries.find((candidate) => candidate.cakeType === selectedCakeType) ??
+        defaultSummary;
+
+      const selectedThickness = selectedThicknessByType[summary.cakeType] ?? summary.defaultThickness;
+      const selectedGroup =
+        summary.priceGroups.find((priceGroup) => priceGroup.thickness === selectedThickness) ??
+        summary.priceGroups[0];
+
+      selectedGroup.prices.forEach((pricePoint) => {
+        uniquePrices.add(pricePoint.price);
+      });
+    });
+
+    return [...uniquePrices].sort((a, b) => a - b);
+  }, [activeFilter, filteredGroups, selectedCakeTypeByGroup, selectedThicknessByType]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const syncDiscountCode = () => {
+      const storedCode = window.localStorage.getItem('cart_discount_code')?.trim().toUpperCase() || '';
+      setActiveDiscountCode(storedCode);
+    };
+
+    syncDiscountCode();
+    window.addEventListener('focus', syncDiscountCode);
+    window.addEventListener('storage', syncDiscountCode);
+
+    return () => {
+      window.removeEventListener('focus', syncDiscountCode);
+      window.removeEventListener('storage', syncDiscountCode);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!activeDiscountCode || visibleBasePrices.length === 0) return;
+
+    let isCancelled = false;
+
+    const validateVisiblePrices = async () => {
+      const results = await Promise.all(
+        visibleBasePrices.map(async (price) => {
+          const result = await validateDiscountCode(activeDiscountCode, price);
+          return [price, result] as const;
+        }),
+      );
+
+      if (isCancelled) return;
+
+      setValidatedDiscountsByPrice(Object.fromEntries(results));
+    };
+
+    validateVisiblePrices().catch((error) => {
+      console.error('Failed to validate discount code for price list:', error);
+      if (!isCancelled) setValidatedDiscountsByPrice({});
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [activeDiscountCode, visibleBasePrices]);
+
+  const discountsByPrice = activeDiscountCode ? validatedDiscountsByPrice : {};
 
   const handleThicknessSelect = (cakeType: string, thickness: CakeThickness) => {
     setSelectedThicknessByType((current) => ({
@@ -140,6 +216,13 @@ export default function PriceListBrowser({
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
               Filter the catalog, then pick a cake height inside each type to see the matching size prices.
             </p>
+            {activeDiscountCode && (
+              <div className="mt-4 inline-flex max-w-full flex-wrap items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-800">
+                <span className="uppercase tracking-[0.18em] text-emerald-600">Discount active</span>
+                <span className="font-mono">{activeDiscountCode}</span>
+                <span className="text-emerald-700/80">Discounted prices show when the code is valid for that base amount.</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -238,6 +321,11 @@ export default function PriceListBrowser({
                   <div className="mt-4 grid grid-cols-2 justify-items-center gap-3 min-[430px]:grid-cols-3 sm:flex sm:flex-wrap sm:justify-start sm:gap-4">
                     {selectedGroup.prices.map((pricePoint) => {
                       const overlayLines = getSizeOverlayLabel(pricePoint.size);
+                      const discountedPrice = discountsByPrice[pricePoint.price];
+                      const hasDiscountedPrice =
+                        Boolean(activeDiscountCode) &&
+                        discountedPrice?.valid &&
+                        discountedPrice.finalAmount < pricePoint.price;
 
                       return (
                         <div
@@ -258,9 +346,20 @@ export default function PriceListBrowser({
                                   <div key={`${pricePoint.size}-${line}-${index}`}>{line}</div>
                                 ))}
                               </div>
-                              <div className="mt-1 text-sm font-bold text-purple-700">
-                                {formatPeso(pricePoint.price)}
-                              </div>
+                              {hasDiscountedPrice ? (
+                                <div className="mt-1">
+                                  <div className="text-[10px] font-bold leading-4 text-slate-400 line-through">
+                                    {formatPeso(pricePoint.price)}
+                                  </div>
+                                  <div className="text-sm font-black leading-4 text-emerald-600">
+                                    {formatPeso(discountedPrice.finalAmount)}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="mt-1 text-sm font-bold text-purple-700">
+                                  {formatPeso(pricePoint.price)}
+                                </div>
+                              )}
                             </div>
                           </div>
                           <div className="min-h-8 text-xs font-semibold leading-4 text-slate-600">

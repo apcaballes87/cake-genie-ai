@@ -1,5 +1,27 @@
 # Tasks
 
+## Price List Discounted Base Prices (2026-07-08)
+
+### Plan
+
+- [x] Inspect how active discount codes are stored and validated in the current app.
+- [x] Reuse the shared discount validation behavior on `/price-list` instead of inventing a separate pricing rule.
+- [x] Show a slashed original base price plus the discounted price when the saved code is valid for that amount.
+- [x] Keep non-qualifying prices unchanged when a code has a minimum order or other restriction.
+- [x] Run focused verification and record the outcome here.
+
+### Review
+
+- Added client-side discount awareness to [src/app/price-list/PriceListBrowser.tsx](/Users/apcaballes/genieph-nextjs/src/app/price-list/PriceListBrowser.tsx:1) by reading the saved `cart_discount_code` from localStorage and re-syncing it on focus/storage updates.
+- Reused the shared [validateDiscountCode](/Users/apcaballes/genieph-nextjs/src/services/discountService.ts:1) flow so `/price-list` respects the same rules as cart: percentage vs fixed discounts, max caps, minimum order amounts, and account restrictions.
+- Cached validation results by unique visible base price amount, then rendered a slashed original price plus the discounted price only when the code is valid for that exact amount.
+- Added a small “Discount active” badge near the section intro so visitors understand why some prices show markdowns while others may remain unchanged.
+- Verification:
+  - `npx eslint src/app/price-list/PriceListBrowser.tsx` completed successfully with only the existing stale Browserslist notice.
+  - `npx vitest run src/lib/pricing/priceList.test.ts --exclude '.claude/**'` passed: 1 test.
+  - `git diff --check -- src/app/price-list/PriceListBrowser.tsx tasks/todo.md tasks/lessons.md` passed.
+  - `npm run build` passed and emitted `/price-list`. Build logs also included the existing stale Baseline data notices, the inferred workspace-root warning, the deprecated middleware warning, and unrelated fallback keyword-query timeouts during static generation, but the build completed successfully with exit code 0.
+
 ## Selfie Upload Studio Bypass (2026-07-07)
 
 ### Plan
