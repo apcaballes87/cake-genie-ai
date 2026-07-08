@@ -4373,6 +4373,27 @@
   - Add crawlable pagination or server-rendered next-page links for important collections if the goal is to expose more than the first 30 product links through collection hubs.
   - Add guard behavior so unknown/dynamic collection pages that do not map to a published/indexable collection either `404`/`noindex` instead of returning indexable thin pages.
 
+## Search Result Back Button Restoration (2026-07-08)
+
+### Plan
+
+- [x] Trace the real `/search` result card navigation into `/customizing/[slug]` and the shared customizer back button.
+- [x] Persist the exact search return URL, filters, loaded result count, and scroll position before leaving search results.
+- [x] Restore the search page to the same query/filter/page configuration and scroll position after returning from the customizer.
+- [x] Route the customizer back action through the search return snapshot when the user entered from search results.
+- [x] Add focused regression coverage and run verification.
+
+### Review
+
+- Added `src/lib/searchReturnState.ts` to store a short-lived search return snapshot with exact return URL, target customizer path, filter/sort state, loaded result count, and scroll position.
+- `src/app/search/SearchingClient.tsx` now captures that snapshot when a user clicks a `/customizing/[slug]` result card, restores saved filters/sort, fetches enough results to cover the prior loaded depth, and scrolls back after results are ready.
+- `src/hooks/useSmartBack.ts` now routes the customizer back button to the saved search URL only when the current customizer entry is search-sourced or matches the saved target design path, preventing stale search snapshots from hijacking direct visits.
+- Added regression coverage in `src/lib/searchReturnState.test.ts` and `src/hooks/useSmartBack.test.tsx`.
+- Verification:
+  - `npx vitest run src/lib/searchReturnState.test.ts src/hooks/useSmartBack.test.tsx src/components/ProductCard.test.tsx src/contexts/NavigationContext.test.tsx` passed: 14 tests.
+  - `git diff --check` passed.
+  - `npm run build` passed. Existing warnings appeared for stale `baseline-browser-mapping`, inferred workspace root from multiple lockfiles, and deprecated `middleware` convention.
+
 ## Mobile CWV Customizing PDP Image Fix (2026-07-04)
 
 ### Plan

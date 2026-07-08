@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useNavigation, PageType } from '@/contexts/NavigationContext';
+import { readSearchReturnState } from '@/lib/searchReturnState';
 
 /**
  * Hook for smart back navigation that follows app structure
@@ -14,9 +15,22 @@ import { useNavigation, PageType } from '@/contexts/NavigationContext';
  */
 export function useSmartBack(currentPage: PageType) {
     const router = useRouter();
-    const { recordNavigation, getBackDestination, canGoBack: contextCanGoBack } = useNavigation();
+    const { navigationState, recordNavigation, getBackDestination, canGoBack: contextCanGoBack } = useNavigation();
 
     const goBack = () => {
+        if (currentPage === 'customizing' && navigationState.currentPage === 'customizing') {
+            const searchReturnState = readSearchReturnState();
+            const isSearchSourced =
+                navigationState.entrySource === 'search' ||
+                navigationState.previousPage === 'search' ||
+                searchReturnState?.targetPath === window.location.pathname;
+
+            if (searchReturnState && isSearchSourced) {
+                router.push(searchReturnState.returnUrl);
+                return;
+            }
+        }
+
         const destination = getBackDestination();
         router.push(destination);
     };

@@ -20,6 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { showError } from '@/lib/utils/toast';
 import { AppState } from '@/hooks/useAppNavigation';
 import { LandingFooter } from '@/components/landing/LandingFooter';
+import { isCurrentSearchReturnUrl, readSearchReturnState, writeSearchReturnState } from '@/lib/searchReturnState';
 
 const SearchResultsSkeleton = ({ count = 8, showHeader = true }: { count?: number; showHeader?: boolean }) => (
     <div className="mb-6">
@@ -102,6 +103,13 @@ const SearchingClient: React.FC = () => {
     const [sortBy, setSortBy] = useState<'relevant' | 'price_asc' | 'price_desc'>('relevant');
     const [maxPrice, setMaxPrice] = useState<number | null>(null);
     const [selectedColor, setSelectedColor] = useState<string | null>(null);
+    const searchReturnStateRef = useRef(readSearchReturnState());
+    const pendingRestoreScrollYRef = useRef<number | null>(
+        isCurrentSearchReturnUrl(searchReturnStateRef.current) ? searchReturnStateRef.current?.scrollY ?? null : null,
+    );
+    const restoreResultCountRef = useRef(
+        isCurrentSearchReturnUrl(searchReturnStateRef.current) ? searchReturnStateRef.current?.resultCount ?? 0 : 0,
+    );
 
     // Loading animation state
     const [loadingStep, setLoadingStep] = useState(0);
@@ -121,6 +129,15 @@ const SearchingClient: React.FC = () => {
             recordNavigation('search', 'direct');
         }
     }, [recordNavigation, navigationState.entrySource]);
+
+    useEffect(() => {
+        const returnState = searchReturnStateRef.current;
+        if (!returnState || !isCurrentSearchReturnUrl(returnState)) return;
+
+        setMaxPrice(returnState.maxPrice);
+        setSelectedColor(returnState.selectedColor);
+        setSortBy(returnState.sortBy);
+    }, []);
 
     // Adapter for AppState
     const setAppState = useCallback((state: AppState) => {
@@ -217,7 +234,8 @@ const SearchingClient: React.FC = () => {
 
         const priceParam = maxPrice ? `&maxPrice=${maxPrice}` : '';
         const colorParam = selectedColor ? `&icingColors=${selectedColor}` : '';
-        fetch(`/api/search?q=${encodeURIComponent(searchQuery.trim())}&limit=12${priceParam}${colorParam}`, {
+        const initialLimit = Math.max(12, restoreResultCountRef.current || 0);
+        fetch(`/api/search?q=${encodeURIComponent(searchQuery.trim())}&limit=${initialLimit}${priceParam}${colorParam}`, {
             signal: controller.signal
         })
             .then(res => res.json())
@@ -236,6 +254,17 @@ const SearchingClient: React.FC = () => {
 
         return () => controller.abort();
     }, [searchQuery, maxPrice, selectedColor]);
+
+    useEffect(() => {
+        const pendingScrollY = pendingRestoreScrollYRef.current;
+        if (pendingScrollY === null || isInternalLoading) return;
+        if (restoreResultCountRef.current > 0 && internalResults.length < restoreResultCountRef.current) return;
+
+        pendingRestoreScrollYRef.current = null;
+        window.requestAnimationFrame(() => {
+            window.scrollTo({ top: pendingScrollY, behavior: 'auto' });
+        });
+    }, [internalResults.length, isInternalLoading]);
 
     // Apply client-side sorting
     const processedResults = React.useMemo(() => {
@@ -279,6 +308,25 @@ const SearchingClient: React.FC = () => {
             .catch(err => console.error('Load more error:', err))
             .finally(() => setIsLoadingMore(false));
     }, [searchQuery, internalResults.length, isLoadingMore, maxPrice, selectedColor]);
+
+    const saveSearchReturnState = useCallback((event: React.MouseEvent<HTMLElement>) => {
+        if (!searchQuery.trim()) return;
+        const target = event.target as HTMLElement | null;
+        const targetLink = target?.closest<HTMLAnchorElement>('a[href^="/customizing/"]');
+        if (!targetLink) return;
+
+        recordNavigation('customizing', 'search');
+        writeSearchReturnState({
+            returnUrl: `${window.location.pathname}${window.location.search}`,
+            targetPath: new URL(targetLink.href, window.location.origin).pathname,
+            query: searchQuery.trim(),
+            scrollY: window.scrollY,
+            resultCount: Math.max(internalResults.length, processedResults.length),
+            maxPrice,
+            selectedColor,
+            sortBy,
+        });
+    }, [internalResults.length, maxPrice, processedResults.length, recordNavigation, searchQuery, selectedColor, sortBy]);
 
     // Loading animation effect
     const isLoading = isFetchingWebImage; // Map to local loading state
@@ -571,7 +619,7 @@ const SearchingClient: React.FC = () => {
                         </div>
                     )}
                     {searchQuery && !isLoading && (internalResults.length > 0 || isInternalLoading) && (
-                        <div className="mb-6" id="internal-designs-section">
+                        <div className="mb-6" id="internal-designs-section" onClickCapture={saveSearchReturnState}>
                             <div className="flex items-center justify-between mb-3">
                                 <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wider flex items-center gap-2">
                                     Cake Designs with Price
