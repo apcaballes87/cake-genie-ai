@@ -269,6 +269,22 @@ export const CustomizingHeroPanel = memo(({
     const zoomOriginalImage = originalHeroModalSrc || null;
     const zoomCustomizedImage = editedImage || null;
     const zoomInitialTab: ImageTab = activeTab === 'customized' && zoomCustomizedImage ? 'customized' : 'original';
+    const activeHeroLoader = isComposingSelfie
+        ? {
+            label: 'ai is adding your image to the cake',
+            text: 'ai adding your image on this cake...',
+        }
+        : isGeneratingMask
+            ? {
+                label: 'ai is editing your icing',
+                text: 'ai is editing your icing...',
+            }
+            : isStudioBackgroundEditingPending
+                ? {
+                    label: 'ai is editing your background',
+                    text: 'ai is editing your background...',
+                }
+                : null;
 
     const openHeroImageModal = (src: string) => {
         if (!src) return;
@@ -301,7 +317,14 @@ export const CustomizingHeroPanel = memo(({
     };
     const imageOnLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
         const image = event.currentTarget;
-        if (!originalImageDimensions || activeTab === 'original') {
+        const loadedSrc = image.currentSrc || image.src;
+        const isCustomizedResult = Boolean(
+            editedImage
+            && activeTab === 'customized'
+            && loadedSrc === editedImage
+        );
+
+        if (!isCustomizedResult && (!originalImageDimensions || activeTab === 'original')) {
             setOriginalImageDimensions({ width: image.naturalWidth, height: image.naturalHeight });
         }
         centerMobileHeroScrollPosition();
@@ -490,6 +513,7 @@ export const CustomizingHeroPanel = memo(({
 
                 <div className="grow">
                     <div
+                        data-testid="customizer-hero-frame"
                         className={enableMobileHeroPan
                             ? 'relative w-full aspect-[5/4] md:min-h-0 rounded-3xl overflow-hidden touch-none md:touch-auto overscroll-auto md:[aspect-ratio:var(--hero-md-ratio)]'
                             : 'relative w-full min-h-[270px] md:min-h-[400px] rounded-3xl overflow-hidden'
@@ -745,15 +769,15 @@ export const CustomizingHeroPanel = memo(({
                                 ) : null}
 
                                 <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
-                                    {(isStudioBackgroundEditingPending || isComposingSelfie) ? (
+                                    {activeHeroLoader ? (
                                         <div
                                             className="flex h-9 px-3.5 items-center gap-2.5 rounded-full bg-white/95 text-purple-600 shadow-lg ring-1 ring-purple-100 backdrop-blur-md transition-all duration-300 animate-pulse pointer-events-none"
-                                            aria-label={isComposingSelfie ? "ai is adding your image to the cake" : "ai is editing your background"}
-                                            title={isComposingSelfie ? "ai is adding your image to the cake" : "ai is editing your background"}
+                                            aria-label={activeHeroLoader.label}
+                                            title={activeHeroLoader.label}
                                         >
                                             <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0 text-purple-500" />
                                             <span className="text-[8px] font-bold text-slate-800 tracking-wider select-none whitespace-nowrap">
-                                                {isComposingSelfie ? "ai adding your image on this cake..." : "ai is editing your background..."}
+                                                {activeHeroLoader.text}
                                             </span>
                                         </div>
                                     ) : null}

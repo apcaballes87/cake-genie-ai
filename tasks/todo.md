@@ -1,5 +1,25 @@
 # Tasks
 
+## Preserve Customizer Hero Frame Aspect During AI Edits (2026-07-09)
+
+### Plan
+
+- [x] Trace the hero image aspect-ratio source and AI edit display path.
+- [x] Keep the hero frame ratio anchored to the original/session image when an AI edit produces a different bitmap ratio.
+- [x] Add focused regression coverage for edited images with different dimensions.
+- [x] Run targeted verification and record results.
+
+### Review
+
+- Root cause: `CustomizingHeroPanel` allowed whichever visible image loaded most recently to update `originalImageDimensions`. When the customized AI result had a wider bitmap than the original hero image, its natural dimensions replaced the reserved hero-frame ratio and widened the page frame.
+- Updated `CustomizingHeroPanel` so customized AI results do not overwrite the original/session frame dimensions. Original, Studio, fallback, and preloaded images can still establish the frame ratio.
+- Repaired the existing hero loader selection so icing-mask generation shows the expected `ai is editing your icing` loader alongside the existing background-edit and selfie-composition loaders.
+- Added focused coverage proving a customized wide bitmap keeps the original `6 / 5` hero frame ratio after load.
+- Verification:
+  - `npx vitest run src/app/customizing/CustomizingHeroPanel.test.tsx --exclude '.claude/**'` passed with 15 tests.
+  - `git diff --check -- src/app/customizing/CustomizingHeroPanel.tsx src/app/customizing/CustomizingHeroPanel.test.tsx tasks/todo.md` passed.
+  - `npx eslint src/app/customizing/CustomizingHeroPanel.tsx src/app/customizing/CustomizingHeroPanel.test.tsx` passed with 0 errors and the existing unused-item warnings in `CustomizingHeroPanel.tsx`.
+
 ## Supplier Directory From Signups (2026-07-09)
 
 ### Plan

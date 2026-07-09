@@ -284,6 +284,28 @@ describe('CustomizingHeroPanel', () => {
         expect(heroImages.some((image) => image.className.includes('object-cover'))).toBe(true);
     });
 
+    it('keeps the original hero frame ratio when a customized AI edit has a wider bitmap', () => {
+        const props = buildProps();
+        props.activeTab = 'customized';
+        props.editedImage = 'data:image/png;base64,wide-edited-cake';
+        props.originalImagePreview = 'https://example.com/original-cake.jpg';
+        props.preferredOriginalImageUrl = 'https://example.com/original-cake.jpg';
+        props.initialHeroAspectRatio = '6 / 5';
+
+        render(<CustomizingHeroPanel {...props} />);
+
+        const frame = screen.getByTestId('customizer-hero-frame');
+        expect(frame).toHaveStyle({ aspectRatio: '6 / 5' });
+
+        const editedImage = screen.getByRole('img', { name: 'Hero cake' });
+        Object.defineProperty(editedImage, 'naturalWidth', { configurable: true, value: 1600 });
+        Object.defineProperty(editedImage, 'naturalHeight', { configurable: true, value: 900 });
+
+        fireEvent.load(editedImage);
+
+        expect(frame).toHaveStyle({ aspectRatio: '6 / 5' });
+    });
+
     it('swaps to the preferred original image after it loads', () => {
         const props = buildProps();
         props.activeTab = 'original';
