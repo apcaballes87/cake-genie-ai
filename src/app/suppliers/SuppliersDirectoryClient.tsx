@@ -7,14 +7,10 @@ import {
   Search,
   Filter,
   MapPin,
-  DollarSign,
-  Star,
   MessageCircle,
   X,
-  ExternalLink,
   ArrowLeft,
   Briefcase,
-  Layers,
   Sparkles,
   Info,
   Camera,
@@ -22,54 +18,66 @@ import {
   Tag,
   CreditCard
 } from 'lucide-react';
-import { SUPPLIERS_DATA, SUPPLIER_CATEGORIES, CEBU_LOCATIONS, type Supplier } from '@/data/suppliersData';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import { COMMON_ASSETS } from '@/constants';
 
-export default function SuppliersDirectoryClient() {
+export interface Supplier {
+  id: string;
+  name: string;
+  ownerName: string;
+  category: string;
+  categoryLabel: string;
+  tagline: string;
+  description: string;
+  contactNumber: string;
+  contactUrl: string;
+  facebookPageUrl: string | null;
+  websiteUrl: string | null;
+  extraLinkUrl: string | null;
+  imageUrl: string;
+  listedAt: string;
+}
+
+function getCategoryOptions(suppliers: Supplier[]) {
+  const categoryMap = new Map<string, string>();
+  suppliers.forEach((supplier) => {
+    categoryMap.set(supplier.category, supplier.categoryLabel);
+  });
+  return Array.from(categoryMap.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+}
+
+export default function SuppliersDirectoryClient({ suppliers }: { suppliers: Supplier[] }) {
   const router = useRouter();
 
   // Search & filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedLocation, setSelectedLocation] = useState<string>('All Locations');
-  const [selectedBudget, setSelectedBudget] = useState<string>('all');
   const [activeSupplier, setActiveSupplier] = useState<Supplier | null>(null);
+  const categoryOptions = useMemo(() => getCategoryOptions(suppliers), [suppliers]);
 
   // Filter logic
   const filteredSuppliers = useMemo(() => {
-    return SUPPLIERS_DATA.filter((supplier) => {
+    return suppliers.filter((supplier) => {
       // 1. Search Query
       const query = searchQuery.toLowerCase().trim();
       const matchesSearch =
         query === '' ||
         supplier.name.toLowerCase().includes(query) ||
+        supplier.ownerName.toLowerCase().includes(query) ||
         supplier.tagline.toLowerCase().includes(query) ||
-        supplier.description.toLowerCase().includes(query) ||
-        supplier.specialties.some((spec) => spec.toLowerCase().includes(query));
+        supplier.description.toLowerCase().includes(query);
 
       // 2. Category
       const matchesCategory =
         selectedCategory === 'all' || supplier.category === selectedCategory;
 
-      // 3. Location
-      const matchesLocation =
-        selectedLocation === 'All Locations' ||
-        supplier.locationsCovered.includes(selectedLocation);
-
-      // 4. Budget
-      const matchesBudget =
-        selectedBudget === 'all' || supplier.priceRange === selectedBudget;
-
-      return matchesSearch && matchesCategory && matchesLocation && matchesBudget;
+      return matchesSearch && matchesCategory;
     });
-  }, [searchQuery, selectedCategory, selectedLocation, selectedBudget]);
+  }, [suppliers, searchQuery, selectedCategory]);
 
   const handleResetFilters = () => {
     setSearchQuery('');
     setSelectedCategory('all');
-    setSelectedLocation('All Locations');
-    setSelectedBudget('all');
   };
 
   return (
@@ -101,6 +109,12 @@ export default function SuppliersDirectoryClient() {
               Price a Cake
             </Link>
             <Link
+              href="/suppliers/signup"
+              className="hidden md:inline-flex rounded-full border border-purple-200 px-5 py-2 text-sm font-bold text-purple-700 transition-colors hover:bg-purple-50"
+            >
+              List your business
+            </Link>
+            <Link
               href="/shop"
               className="genie-btn-primary py-2 px-5 text-sm font-bold rounded-full"
             >
@@ -124,14 +138,22 @@ export default function SuppliersDirectoryClient() {
           <p className="text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
             Find the finest planners, stylists, emcees, mobile carts, photographers, and entertainers for your dream celebration in Metro Cebu.
           </p>
+          <div className="mt-6 flex justify-center">
+            <Link
+              href="/suppliers/signup"
+              className="inline-flex items-center justify-center rounded-full bg-slate-900 px-5 py-3 text-sm font-bold text-white shadow-md transition-colors hover:bg-slate-800"
+            >
+              List your business
+            </Link>
+          </div>
         </section>
 
         {/* Filter Controls Bar */}
         <section className="genie-card rounded-3xl p-6 mb-8 border border-purple-100/80 shadow-md">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+          <div className="grid grid-cols-1 gap-4 items-center">
             
             {/* Search Input */}
-            <div className="md:col-span-6 relative">
+            <div className="relative">
               <label htmlFor="supplier-search" className="sr-only">Search suppliers</label>
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                 <Search size={18} />
@@ -155,66 +177,23 @@ export default function SuppliersDirectoryClient() {
               )}
             </div>
 
-            {/* Location Filter */}
-            <div className="md:col-span-3">
-              <label htmlFor="location-filter" className="sr-only">Filter by Location</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <MapPin size={16} />
-                </div>
-                <select
-                  id="location-filter"
-                  value={selectedLocation}
-                  onChange={(e) => setSelectedLocation(e.target.value)}
-                  className="w-full pl-10 pr-8 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:bg-white transition-all text-sm appearance-none cursor-pointer"
-                >
-                  {CEBU_LOCATIONS.map((loc) => (
-                    <option key={loc} value={loc}>
-                      {loc}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            {/* Budget Filter */}
-            <div className="md:col-span-3">
-              <label htmlFor="budget-filter" className="sr-only">Filter by Budget</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <DollarSign size={16} />
-                </div>
-                <select
-                  id="budget-filter"
-                  value={selectedBudget}
-                  onChange={(e) => setSelectedBudget(e.target.value)}
-                  className="w-full pl-10 pr-8 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:bg-white transition-all text-sm appearance-none cursor-pointer"
-                >
-                  <option value="all">All Budgets</option>
-                  <option value="Affordable">Affordable</option>
-                  <option value="Mid-range">Mid-range</option>
-                  <option value="Premium">Premium / Luxury</option>
-                </select>
-                <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
           </div>
 
           {/* Category Navigation Row */}
           <div className="mt-6 pt-6 border-t border-purple-50">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Filter by Category</p>
             <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap">
-              {Object.entries(SUPPLIER_CATEGORIES).map(([key, label]) => {
+              <button
+                onClick={() => setSelectedCategory('all')}
+                className={`px-4 py-2 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer focus:ring-2 focus:ring-purple-400 focus:outline-none ${
+                  selectedCategory === 'all'
+                    ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                }`}
+              >
+                All Categories
+              </button>
+              {categoryOptions.map(([key, label]) => {
                 const isActive = selectedCategory === key;
                 return (
                   <button
@@ -234,7 +213,7 @@ export default function SuppliersDirectoryClient() {
           </div>
 
           {/* Active Filter Badges */}
-          {(searchQuery || selectedCategory !== 'all' || selectedLocation !== 'All Locations' || selectedBudget !== 'all') && (
+          {(searchQuery || selectedCategory !== 'all') && (
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <span className="text-xs text-slate-400 font-semibold mr-1">Active filters:</span>
               
@@ -247,22 +226,8 @@ export default function SuppliersDirectoryClient() {
 
               {selectedCategory !== 'all' && (
                 <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 border border-purple-100 text-xs px-2.5 py-1 rounded-full">
-                  Category: {SUPPLIER_CATEGORIES[selectedCategory as keyof typeof SUPPLIER_CATEGORIES]}
+                  Category: {categoryOptions.find(([key]) => key === selectedCategory)?.[1] || selectedCategory}
                   <button onClick={() => setSelectedCategory('all')} aria-label="Remove category filter" className="hover:text-purple-900"><X size={12} /></button>
-                </span>
-              )}
-
-              {selectedLocation !== 'All Locations' && (
-                <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 border border-purple-100 text-xs px-2.5 py-1 rounded-full">
-                  Location: {selectedLocation}
-                  <button onClick={() => setSelectedLocation('All Locations')} aria-label="Remove location filter" className="hover:text-purple-900"><X size={12} /></button>
-                </span>
-              )}
-
-              {selectedBudget !== 'all' && (
-                <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 border border-purple-100 text-xs px-2.5 py-1 rounded-full">
-                  Budget: {selectedBudget}
-                  <button onClick={() => setSelectedBudget('all')} aria-label="Remove budget filter" className="hover:text-purple-900"><X size={12} /></button>
                 </span>
               )}
 
@@ -305,34 +270,13 @@ export default function SuppliersDirectoryClient() {
                   
                   {/* Category Pill Tag */}
                   <span className="absolute top-3 left-3 bg-white/95 backdrop-blur-xs text-purple-700 text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-sm">
-                    {SUPPLIER_CATEGORIES[supplier.category as keyof typeof SUPPLIER_CATEGORIES]}
-                  </span>
-
-                  {/* Budget Rating Indicator */}
-                  <span className={`absolute top-3 right-3 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm text-white ${
-                    supplier.priceRange === 'Premium'
-                      ? 'bg-purple-600/90'
-                      : supplier.priceRange === 'Mid-range'
-                      ? 'bg-indigo-600/90'
-                      : 'bg-pink-600/90'
-                  }`}>
-                    {supplier.priceRange}
+                    {supplier.categoryLabel}
                   </span>
                 </div>
 
                 {/* Body Content */}
                 <div className="p-5 flex-grow flex flex-col justify-between">
                   <div>
-                    {/* Rating Bar */}
-                    <div className="flex items-center gap-1.5 mb-2.5">
-                      <div className="flex text-yellow-400">
-                        <Star size={14} fill="currentColor" />
-                      </div>
-                      <span className="text-xs font-bold text-slate-800">{supplier.rating.toFixed(1)}</span>
-                      <span className="text-slate-300 text-xs">|</span>
-                      <span className="text-xs text-slate-500">{supplier.reviewCount} reviews</span>
-                    </div>
-
                     {/* Supplier Title */}
                     <h3 className="font-extrabold text-lg text-slate-900 group-hover:text-purple-700 transition-colors line-clamp-1 mb-1">
                       {supplier.name}
@@ -352,15 +296,13 @@ export default function SuppliersDirectoryClient() {
                   {/* Metadata Specs */}
                   <div className="space-y-2 border-t border-slate-100 pt-4 mt-auto">
                     <div className="flex items-center gap-2 text-slate-600 text-xs">
-                      <MapPin size={14} className="text-purple-500 shrink-0" />
-                      <span className="line-clamp-1">{supplier.locationsCovered.slice(0, 3).join(', ')}{supplier.locationsCovered.length > 3 ? '...' : ''}</span>
+                      <Briefcase size={14} className="text-purple-500 shrink-0" />
+                      <span className="line-clamp-1">{supplier.categoryLabel}</span>
                     </div>
-                    {supplier.startingPrice && (
-                      <div className="flex items-center gap-2 text-slate-600 text-xs">
-                        <DollarSign size={14} className="text-purple-500 shrink-0" />
-                        <span>Starting at <span className="font-bold text-slate-800">{supplier.startingPrice}</span></span>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2 text-slate-600 text-xs">
+                      <MessageCircle size={14} className="text-purple-500 shrink-0" />
+                      <span className="line-clamp-1">{supplier.contactNumber}</span>
+                    </div>
                   </div>
                 </div>
 
@@ -393,39 +335,47 @@ export default function SuppliersDirectoryClient() {
             </div>
             <h3 className="font-bold text-xl text-slate-900 mb-2">No Suppliers Found</h3>
             <p className="text-slate-600 max-w-md mx-auto mb-6">
-              We couldn&apos;t find any suppliers matching your search and filter criteria. Try resetting filters or choosing different options.
+              {suppliers.length === 0
+                ? 'No businesses have signed up yet. Be the first supplier in the directory.'
+                : 'We couldn\'t find any signed-up suppliers matching your search and filter criteria.'}
             </p>
-            <button
-              onClick={handleResetFilters}
-              className="genie-btn-primary px-6 py-2.5 rounded-full text-sm font-bold cursor-pointer"
-            >
-              Reset Filters
-            </button>
+            {suppliers.length === 0 ? (
+              <Link
+                href="/suppliers/signup"
+                className="genie-btn-primary inline-flex px-6 py-2.5 rounded-full text-sm font-bold"
+              >
+                List your business
+              </Link>
+            ) : (
+              <button
+                onClick={handleResetFilters}
+                className="genie-btn-primary px-6 py-2.5 rounded-full text-sm font-bold cursor-pointer"
+              >
+                Reset Filters
+              </button>
+            )}
           </section>
         )}
 
         {/* Join Directory CTA */}
-        <section className="genie-card rounded-3xl p-8 bg-gradient-to-br from-purple-500 to-indigo-600 text-white relative overflow-hidden shadow-lg mb-12">
-          {/* Subtle background overlay shapes */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full translate-x-20 -translate-y-20 pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full -translate-x-20 translate-y-20 pointer-events-none" />
-          
-          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+        <section className="rounded-lg border border-purple-200 bg-slate-950 p-6 text-white shadow-2xl shadow-purple-950/20 mb-12 sm:p-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
             <div className="lg:col-span-8">
-              <h2 className="text-2xl sm:text-3xl font-black mb-3">Are you a Cebu Party Supplier?</h2>
-              <p className="text-purple-100 text-sm sm:text-base leading-relaxed">
+              <span className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-purple-100">
+                Free supplier listing
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-3">Are you a Cebu Party Supplier?</h2>
+              <p className="text-slate-200 text-base sm:text-lg leading-relaxed">
                 Connect with thousands of parents, wedding couples, and event coordinators looking for premium services. Add your listing to our curated directory for free.
               </p>
             </div>
             <div className="lg:col-span-4 lg:text-right">
-              <a
-                href="https://m.me/genieph"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-white text-purple-700 hover:bg-purple-50 font-black py-3.5 px-8 rounded-full shadow-lg transition-all active:scale-[0.98] text-sm focus:ring-2 focus:ring-white focus:outline-none"
+              <Link
+                href="/suppliers/signup"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-white px-7 py-4 text-sm font-black text-slate-950 shadow-lg transition-all hover:bg-purple-50 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-white sm:w-auto"
               >
-                List Your Business <ExternalLink size={16} />
-              </a>
+                List your business <Briefcase size={17} />
+              </Link>
             </div>
           </div>
         </section>
@@ -466,7 +416,7 @@ export default function SuppliersDirectoryClient() {
               {/* Title & Tagline in Overlay */}
               <div className="absolute bottom-4 left-5 right-5 text-white">
                 <span className="inline-block bg-purple-600 text-white text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full mb-1.5 shadow-sm">
-                  {SUPPLIER_CATEGORIES[activeSupplier.category as keyof typeof SUPPLIER_CATEGORIES]}
+                  {activeSupplier.categoryLabel}
                 </span>
                 <h2 id="modal-supplier-name" className="text-xl sm:text-2xl font-black tracking-tight leading-tight">
                   {activeSupplier.name}
@@ -477,18 +427,14 @@ export default function SuppliersDirectoryClient() {
             {/* Modal Content Scroll Area */}
             <div className="p-6 overflow-y-auto space-y-6 flex-grow">
               
-              {/* Review / Tagline Row */}
+              {/* Listing metadata */}
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
-                <div className="flex items-center gap-1.5">
-                  <div className="flex text-yellow-400">
-                    <Star size={16} fill="currentColor" />
-                  </div>
-                  <span className="text-sm font-bold text-slate-800">{activeSupplier.rating.toFixed(1)}</span>
-                  <span className="text-slate-300 text-sm">|</span>
-                  <span className="text-sm text-slate-500 font-medium">{activeSupplier.reviewCount} satisfied reviews</span>
+                <div className="flex items-center gap-1.5 text-sm font-bold text-slate-700">
+                  <Briefcase size={16} className="text-purple-600" />
+                  {activeSupplier.categoryLabel}
                 </div>
                 <div className="flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-100">
-                  <DollarSign size={13} /> {activeSupplier.priceRange} Budget
+                  Listed from signup
                 </div>
               </div>
 
@@ -502,42 +448,34 @@ export default function SuppliersDirectoryClient() {
                 </p>
               </div>
 
-              {/* Specialties / Service Offerings */}
+              {/* Contact details */}
               <div>
                 <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-2.5 flex items-center gap-2">
-                  <Briefcase size={16} className="text-purple-600" /> Specialties & Services
+                  <MessageCircle size={16} className="text-purple-600" /> Contact Details
                 </h3>
-                <div className="flex flex-wrap gap-2">
-                  {activeSupplier.specialties.map((spec) => (
-                    <span
-                      key={spec}
-                      className="bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1"
-                    >
-                      <Sparkles size={11} className="text-purple-500" /> {spec}
-                    </span>
-                  ))}
+                <div className="space-y-2 text-sm text-slate-600">
+                  <p><span className="font-bold text-slate-800">Contact person:</span> {activeSupplier.ownerName}</p>
+                  <p><span className="font-bold text-slate-800">Contact number:</span> {activeSupplier.contactNumber}</p>
+                  {activeSupplier.facebookPageUrl && (
+                    <p><span className="font-bold text-slate-800">Facebook:</span> {activeSupplier.facebookPageUrl}</p>
+                  )}
+                  {activeSupplier.websiteUrl && (
+                    <p><span className="font-bold text-slate-800">Website:</span> {activeSupplier.websiteUrl}</p>
+                  )}
+                  {activeSupplier.extraLinkUrl && (
+                    <p><span className="font-bold text-slate-800">Other link:</span> {activeSupplier.extraLinkUrl}</p>
+                  )}
                 </div>
               </div>
 
-              {/* Areas Covered Panel */}
+              {/* Service Type Panel */}
               <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex items-start gap-2.5">
-                    <MapPin size={16} className="text-purple-600 mt-0.5 shrink-0" />
-                    <div>
-                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Service Coverage</h4>
-                      <p className="text-slate-800 text-xs font-bold mt-0.5">{activeSupplier.locationsCovered.join(', ')}</p>
-                    </div>
+                <div className="flex items-start gap-2.5">
+                  <MapPin size={16} className="text-purple-600 mt-0.5 shrink-0" />
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Directory Area</h4>
+                    <p className="text-slate-800 text-xs font-bold mt-0.5">Cebu celebrations</p>
                   </div>
-                  {activeSupplier.startingPrice && (
-                    <div className="flex items-start gap-2.5">
-                      <DollarSign size={16} className="text-purple-600 mt-0.5 shrink-0" />
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Starting Rates</h4>
-                        <p className="text-slate-800 text-xs font-bold mt-0.5">{activeSupplier.startingPrice}</p>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
 

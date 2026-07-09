@@ -171,6 +171,8 @@ export default async function sitemap({ id }: { id: SitemapParam }): Promise<Met
             '/how-to-order',
             '/contact',
             '/reviews',
+            '/suppliers',
+            '/suppliers/signup',
             '/return-policy',
             '/terms',
             '/privacy',

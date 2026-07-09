@@ -1,6 +1,7 @@
 import { buildMarketingPageMetadata } from '@/lib/utils/metadata';
 import SuppliersDirectoryClient from './SuppliersDirectoryClient';
-import { SUPPLIERS_DATA, SUPPLIER_CATEGORIES } from '@/data/suppliersData';
+import { createClient } from '@supabase/supabase-js';
+import type { Supplier } from './SuppliersDirectoryClient';
 
 export const metadata = buildMarketingPageMetadata({
   title: 'Metro Cebu Party & Event Suppliers Directory',
@@ -8,7 +9,97 @@ export const metadata = buildMarketingPageMetadata({
   canonicalPath: 'https://genie.ph/suppliers',
 });
 
-function SuppliersSchema() {
+type SupplierSignupRow = {
+  id: string;
+  created_at: string;
+  name: string;
+  contact_number: string;
+  business_name: string;
+  description: string;
+  business_type: string;
+  facebook_page_url: string | null;
+  website_url: string | null;
+  extra_link_url: string | null;
+  image_url: string | null;
+}
+
+const SUPPLIER_TYPE_LABELS: Record<string, string> = {
+  cakes: 'Cakes & Desserts',
+  photo_video: 'Photo & Video',
+  catering: 'Catering',
+  hosting: 'Host / Emcee',
+  band_music: 'Band / DJ / Music',
+  coordinator: 'Event Coordinator / Planner',
+  styling_decor: 'Styling & Decor',
+  flowers: 'Flowers & Bouquets',
+  lights_sounds: 'Lights & Sounds',
+  venue: 'Venue / Event Space',
+  rentals: 'Tables, Chairs & Party Rentals',
+  mobile_bar: 'Mobile Bar / Coffee Cart',
+  entertainment: 'Magician / Performer / Entertainment',
+  hair_makeup: 'Hair & Makeup',
+  invites_souvenirs: 'Invitations, Giveaways & Souvenirs',
+  transportation: 'Transport / Bridal Car',
+  other: 'Other Event Service',
+};
+
+function buildContactUrl(row: SupplierSignupRow): string {
+  return row.facebook_page_url || row.website_url || row.extra_link_url || `tel:${row.contact_number.replace(/[^\d+]/g, '')}`;
+}
+
+function mapSignupToSupplier(row: SupplierSignupRow): Supplier {
+  const categoryLabel = SUPPLIER_TYPE_LABELS[row.business_type] || 'Event Supplier';
+
+  return {
+    id: row.id,
+    name: row.business_name,
+    ownerName: row.name,
+    category: row.business_type,
+    categoryLabel,
+    tagline: categoryLabel,
+    description: row.description,
+    contactNumber: row.contact_number,
+    contactUrl: buildContactUrl(row),
+    facebookPageUrl: row.facebook_page_url,
+    websiteUrl: row.website_url,
+    extraLinkUrl: row.extra_link_url,
+    imageUrl: row.image_url || 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/genie-logo-header-360.webp',
+    listedAt: row.created_at,
+  };
+}
+
+async function getSignupSuppliers(): Promise<Supplier[]> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.error('[suppliers] Missing Supabase env vars for supplier directory fetch.');
+    return [];
+  }
+
+  const supabase = createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      persistSession: false,
+    },
+  });
+
+  const { data, error } = await supabase
+    .from('cakegenie_supplier_signups')
+    .select('id, created_at, name, contact_number, business_name, description, business_type, facebook_page_url, website_url, extra_link_url, image_url')
+    .in('status', ['new', 'reviewing', 'approved'])
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('[suppliers] Failed to fetch supplier signups:', error);
+    return [];
+  }
+
+  return (data || []).map((row) => mapSignupToSupplier(row as SupplierSignupRow));
+}
+
+function SuppliersSchema({ suppliers }: { suppliers: Supplier[] }) {
   const schema = {
     '@context': 'https://schema.org',
     '@graph': [
@@ -72,8 +163,8 @@ function SuppliersSchema() {
       },
       {
         '@type': 'ItemList',
-        'numberOfItems': SUPPLIERS_DATA.length,
-        'itemListElement': SUPPLIERS_DATA.map((supplier, index) => ({
+        'numberOfItems': suppliers.length,
+        'itemListElement': suppliers.map((supplier, index) => ({
           '@type': 'ListItem',
           position: index + 1,
           item: {
@@ -81,21 +172,14 @@ function SuppliersSchema() {
             name: supplier.name,
             image: supplier.imageUrl,
             description: supplier.description,
-            category: SUPPLIER_CATEGORIES[supplier.category as keyof typeof SUPPLIER_CATEGORIES],
-            priceRange: supplier.priceRange === 'Premium' ? '$$$' : supplier.priceRange === 'Mid-range' ? '$$' : '$',
-            telephone: '+63 908 940 8747',
+            category: supplier.categoryLabel,
+            telephone: supplier.contactNumber,
+            url: supplier.websiteUrl || supplier.facebookPageUrl || supplier.extraLinkUrl || 'https://genie.ph/suppliers',
             address: {
               '@type': 'PostalAddress',
-              addressLocality: supplier.locationsCovered[0] || 'Cebu City',
+              addressLocality: 'Cebu City',
               addressRegion: 'Cebu',
               addressCountry: 'PH',
-            },
-            aggregateRating: {
-              '@type': 'AggregateRating',
-              ratingValue: supplier.rating,
-              reviewCount: supplier.reviewCount,
-              bestRating: 5,
-              worstRating: 1,
             },
           },
         })),
@@ -111,11 +195,13 @@ function SuppliersSchema() {
   );
 }
 
-export default function SuppliersPage() {
+export default async function SuppliersPage() {
+  const suppliers = await getSignupSuppliers();
+
   return (
     <>
-      <SuppliersSchema />
-      <SuppliersDirectoryClient />
+      <SuppliersSchema suppliers={suppliers} />
+      <SuppliersDirectoryClient suppliers={suppliers} />
     </>
   );
 }

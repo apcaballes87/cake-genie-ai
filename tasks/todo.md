@@ -1,5 +1,62 @@
 # Tasks
 
+## Supplier Directory From Signups (2026-07-09)
+
+### Plan
+
+- [x] Remove `/suppliers` dependency on hardcoded supplier data.
+- [x] Load supplier signup rows from `cakegenie_supplier_signups` on the server.
+- [x] Map signup rows into the public directory UI without fake reviews, budgets, or prices.
+- [x] Update JSON-LD schema to describe only real signup listings.
+- [x] Verify with lint/build and record the result.
+
+### Review
+
+- Removed the hardcoded supplier directory source by deleting `src/data/suppliersData.ts`.
+- Updated `/suppliers` to fetch live rows from `public.cakegenie_supplier_signups` using the server-side Supabase service role and pass mapped listings into the client.
+- The public directory now lists signup rows with `status in ('new', 'reviewing', 'approved')`, ordered newest first.
+- Removed fake supplier attributes from the UI: ratings, review counts, budgets, starting prices, and fixed service areas.
+- Search/category filters now derive from the live signup rows.
+- Updated JSON-LD `ItemList` to describe only the live signup listings.
+- Verification:
+  - `rg -n "suppliersData|SUPPLIERS_DATA|SUPPLIER_CATEGORIES|CEBU_LOCATIONS" src` returned no references.
+  - `npx eslint src/app/suppliers/page.tsx src/app/suppliers/SuppliersDirectoryClient.tsx` passed with existing `<img>` warnings only.
+  - `npm run build` passed and emitted `/suppliers`.
+  - Live Supabase check found `1` currently listable signup row.
+  - Local `/suppliers` smoke check showed `1` signup-backed listing and did not render old hardcoded names like `Cakes and Memories Cebu` or `10 Dove Street Bakery`.
+  - `npx tsc --noEmit --pretty false` remains blocked by pre-existing repo-wide test type debt unrelated to this change.
+
+## Supplier Signup Page (2026-07-09)
+
+### Plan
+
+- [x] Inspect existing supplier/contact page and API conventions.
+- [x] Create a supplier signup page with required fields, event-business dropdown, image upload, send button, and thank-you modal.
+- [x] Add a server API route that validates the form, uploads the optional image, and stores the submission.
+- [x] Add a Supabase migration for the supplier signup table, bucket, explicit grants, RLS, and storage policies.
+- [x] Apply/verify the database change and run focused app verification plus `npm run build`.
+- [x] Record review notes and any security/advisor caveats.
+
+### Review
+
+- Added `/suppliers/signup` with a supplier application form for name, contact number, business name, description, event-business type dropdown, Facebook page, website, extra link, optional image upload, send action, and thank-you modal.
+- Added a visible "Join as Supplier" entry point from `/suppliers` and included `/suppliers` plus `/suppliers/signup` in the sitemap.
+- Added `POST /api/supplier-signups` to validate multipart form data, upload optional images to Supabase Storage, and insert rows into `cakegenie_supplier_signups`.
+- Added migration `20260709075628_create_supplier_signups.sql` for `cakegenie_supplier_signups`, indexes, explicit grants, RLS insert policy, and the `supplier-signup-images` storage bucket/policies.
+- Applied the migration to live Supabase and verified:
+  - `cakegenie_supplier_signups` exists with expected columns.
+  - RLS is enabled on the table.
+  - `anon` and `authenticated` have INSERT only; `service_role` has management privileges.
+  - `supplier-signup-images` exists as a public 8 MB image bucket with JPG, PNG, WebP, and GIF MIME limits.
+- Verification:
+  - `npx vitest run src/app/api/supplier-signups/route.test.ts --exclude '.claude/**'` passed: 3 tests.
+  - Targeted `npx eslint ...` passed with existing/no-new warnings for `<img>` usage and stale Browserslist data.
+  - `git diff --check -- ...` passed.
+  - `npm run build` passed and emitted `/suppliers/signup`; existing warnings remained for stale baseline/browser data, inferred Turbopack workspace root, deprecated `middleware`, and non-fatal Supabase statement timeouts during static generation.
+  - Local smoke check returned HTTP 200 for `http://127.0.0.1:3002/suppliers/signup`.
+  - Local multipart POST to `/api/supplier-signups` returned `{"success":true}`; the temporary smoke-test row was deleted from Supabase afterward.
+- Supabase advisor caveat: existing unrelated public tables still have RLS disabled. This feature did not modify those tables.
+
 ## Bing Images Product Signal Alignment (2026-07-09)
 
 ### Plan
