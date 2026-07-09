@@ -31,6 +31,10 @@ describe('robots metadata route', () => {
   it('keeps the global sitemap stable', () => {
     const config = robots();
 
-    expect(config.sitemap).toBe('https://genie.ph/sitemap.xml');
+    expect(config.sitemap).toEqual([
+      'https://genie.ph/sitemap.xml',
+      'https://genie.ph/sitemap-index.xml',
+      'https://genie.ph/sitemap-images.xml',
+    ]);
   });
 });

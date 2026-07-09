@@ -1,5 +1,59 @@
 # Tasks
 
+## Bing Images Product Signal Alignment (2026-07-09)
+
+### Plan
+
+- [x] Align `/customizing/[slug]` Open Graph and Twitter images with the existing variant-first schema/sitemap image selection.
+- [x] Add explicit `sitemap-index.xml` and `sitemap-images.xml` discovery entries to `robots.txt`.
+- [x] Strengthen crawler-facing image alt text with Cebu context.
+- [x] Add focused regression coverage for metadata, JSON-LD image parity, and robots sitemap discovery.
+- [x] Run focused tests and record the result.
+
+### Review
+
+- Added a shared canonical crawler-image selector in [src/app/customizing/[slug]/page.tsx](/Users/apcaballes/genieph-nextjs/src/app/customizing/[slug]/page.tsx:1) so Open Graph, Twitter, Product JSON-LD, ItemPage `primaryImageOfPage`, and sitemap behavior all prefer the same slug-based image variant when available.
+- Strengthened crawler-facing image alt/name text with Cebu context when the existing rich alt text does not already include Cebu or Philippines.
+- Updated [src/app/robots.ts](/Users/apcaballes/genieph-nextjs/src/app/robots.ts:1) to advertise `sitemap.xml`, `sitemap-index.xml`, and `sitemap-images.xml`.
+- Added focused coverage for canonical variant metadata, JSON-LD image parity, and robots sitemap discovery.
+- Verification:
+  - `npx vitest run 'src/app/customizing/[slug]/page.test.tsx' src/app/robots.test.ts src/app/sitemap.test.ts src/lib/sitemap/indexability.test.ts --exclude '.claude/**'` passed: 28 tests, 1 skipped.
+  - `git diff --check -- 'src/app/customizing/[slug]/page.tsx' 'src/app/customizing/[slug]/page.test.tsx' src/app/robots.ts src/app/robots.test.ts tasks/todo.md` passed.
+  - `npm run build` passed. Existing warnings/noise remained for stale `baseline-browser-mapping`, inferred Turbopack workspace root, deprecated `middleware`, and non-fatal Supabase statement timeouts while statically generating some pages.
+  - Targeted `npx eslint ...` remains blocked by pre-existing lint debt in `src/app/customizing/[slug]/page.tsx` and test mocks; the new `prefer-const` issue it surfaced in the touched area was fixed before build.
+
+## Bing Webmaster MCP Image Results Check (2026-07-09)
+
+### Plan
+
+- [x] Inspect the configured `mcp_server_bwt` command and environment without exposing secrets.
+- [x] Verify what tools the upstream MCP server actually provides.
+- [x] Test whether the Bing Webmaster API returns image search data or only site/search analytics data.
+- [x] Record the root cause and practical next step.
+
+### Review
+
+- `mcp_server_bwt` is enabled in `/Users/apcaballes/.codex/config.toml` and runs through `uvx --from git+https://github.com/zizzfizzix/mcp-server-bwt mcp-server-bwt`.
+- The server source wraps only `bing_webmaster_tools` services: site management, URL submission, traffic/query/page stats, crawling, keyword analysis, link analysis, content management/blocking, regional settings, and URL management.
+- There is no Bing Image Search/SERP client, no image vertical parameter, and no tool that returns Bing Images result URLs or thumbnails.
+- Root cause: `mcp_server_bwt` uses the Bing Webmaster Tools API key/API, which can expose Webmaster/site analytics and indexing operations, not live Bing Images search results.
+- Practical next step: use a separate Bing Search/Image Search-capable provider or API for Bing Images SERP results; for search-performance analytics by image vertical, use GSC `search_type=IMAGE` for Google Images, not this Bing Webmaster MCP.
+
+## Customizer Studio Icing Color Wait State (2026-07-08)
+
+### Plan
+
+- [x] Locate the disabled icing colors UI during Studio background edits.
+- [x] Hide the permanent `Fix Icing Color` action while Studio background editing is pending.
+- [x] Add the requested wait notice in the disabled icing colors panel.
+- [x] Add focused regression coverage.
+
+### Review
+
+- Updated `CustomizingStepSummarySections` so the floating icing colors picker shows `Please wait while we're editing the background.` in small red text while `isStudioBackgroundEditingPending` is true.
+- The `Fix Icing Color` button is no longer rendered in that pending state, while the close button and existing disabled swatch/toggle behavior remain unchanged.
+- Verification: `npx vitest run src/app/customizing/CustomizingStepSummarySections.test.tsx` passed with 13 tests.
+
 ## Price List Discounted Base Prices (2026-07-08)
 
 ### Plan

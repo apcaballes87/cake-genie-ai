@@ -254,6 +254,10 @@ describe('RecentSearchPage', () => {
     // Visible SSR <img> tag for Googlebot + hidden SSR fallback reference the responsive variant.
     expect(staticMarkup).toContain('src="https://example.com/pink-bento-cake-1200.webp"');
     expect(staticMarkup).toContain('srcSet="https://example.com/pink-bento-cake-400.webp 400w');
+    expect(staticMarkup).toContain('"url":"https://example.com/pink-bento-cake-1200.webp"');
+    expect(staticMarkup).toContain('"contentUrl":"https://example.com/pink-bento-cake-1200.webp"');
+    expect(staticMarkup).toContain('"primaryImageOfPage":{"@type":"ImageObject","url":"https://example.com/pink-bento-cake-1200.webp"');
+    expect(staticMarkup).toContain('Pink minimalist bento cake with clean icing details Custom cake design in Cebu.');
     expect(staticMarkup).toContain('"@type":"Offer"');
     expect(staticMarkup).toContain('"shippingRate":{"@type":"MonetaryAmount","currency":"PHP"');
     expect(staticMarkup).not.toContain('AggregateOffer');
@@ -668,6 +672,64 @@ describe('RecentSearchPage', () => {
       expect(metadata.twitter?.images).toEqual([
         expect.objectContaining({ url: 'https://example.com/photo-cake.webp' }),
       ]);
+    });
+
+    it('uses the same canonical variant image for Open Graph and Twitter when image variants exist', async () => {
+      const design = {
+        slug: 'pickleball-sky-blue-rectangle-cake-f8b0',
+        keywords: 'Pickleball Cake',
+        seo_title: 'Pickleball Rectangle Cake',
+        seo_description: 'A blue rectangle pickleball cake with court details and character toppers.',
+        alt_text: 'Blue rectangle pickleball cake with court details',
+        original_image_url: 'https://example.com/source/pickleball.webp',
+        studio_edited_image_url: 'https://example.com/studio/pickleball.webp',
+        image_width: 1600,
+        image_height: 1200,
+        image_variants: {
+          format: 'webp',
+          source: 'studio_edited_image_url',
+          variants: [
+            { width: 400, url: 'https://example.com/variants/pickleball-sky-blue-rectangle-cake-f8b0/400.webp', bytes: 12000 },
+            { width: 800, url: 'https://example.com/variants/pickleball-sky-blue-rectangle-cake-f8b0/800.webp', bytes: 24000 },
+            { width: 1200, url: 'https://example.com/variants/pickleball-sky-blue-rectangle-cake-f8b0/1200.webp', bytes: 36000 },
+          ],
+        },
+        price: 2199,
+        tags: ['pickleball', 'rectangle'],
+        analysis_json: { cakeType: 'Rectangle' },
+      };
+
+      vi.mocked(createClient).mockResolvedValueOnce({
+        from: () => ({
+          select: () => ({
+            eq: () => ({
+              single: () => Promise.resolve({ data: design }),
+            }),
+          }),
+        }),
+      } as never);
+
+      const metadata = await generateMetadata({ params: Promise.resolve({ slug: design.slug }) }, {} as never);
+
+      const expectedImage = 'https://example.com/variants/pickleball-sky-blue-rectangle-cake-f8b0/1200.webp';
+      expect(metadata.openGraph?.images).toEqual([
+        expect.objectContaining({
+          url: expectedImage,
+          width: 1200,
+          height: 900,
+          alt: expect.stringContaining('Cebu'),
+        }),
+      ]);
+      expect(metadata.twitter?.images).toEqual([
+        expect.objectContaining({
+          url: expectedImage,
+          width: 1200,
+          height: 900,
+          alt: expect.stringContaining('Cebu'),
+        }),
+      ]);
+      expect(metadata.other?.thumbnail).toBe(expectedImage);
+      expect(metadata.other?.['og:image:alt']).toEqual(expect.stringContaining('Cebu'));
     });
 
     it('strips boilerplates, formats meta description to correct length, and keeps price out of snippets', async () => {

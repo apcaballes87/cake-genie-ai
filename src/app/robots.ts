@@ -51,6 +51,10 @@ export default function robots(): MetadataRoute.Robots {
                 ],
             },
         ],
-        sitemap: 'https://genie.ph/sitemap.xml',
+        sitemap: [
+            'https://genie.ph/sitemap.xml',
+            'https://genie.ph/sitemap-index.xml',
+            'https://genie.ph/sitemap-images.xml',
+        ],
     }
 }

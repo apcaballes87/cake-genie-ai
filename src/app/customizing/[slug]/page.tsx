@@ -73,6 +73,42 @@ const withPreferredHeroImage = <T extends DesignWithHeroImageUrls>(design: T): T
     ),
 });
 
+const getCanonicalCrawlerImage = (design: {
+    image_variants?: unknown;
+    original_image_url?: string | null;
+    image_width?: number | null;
+    image_height?: number | null;
+}) => {
+    const manifest = parseManifest(design.image_variants);
+    const imageUrl = pickFallbackSrc(manifest, 1200) ?? design.original_image_url ?? null;
+    const selectedVariant = imageUrl && manifest
+        ? manifest.variants.find((variant) => variant.url === imageUrl) ?? null
+        : null;
+
+    if (selectedVariant && design.image_width && design.image_height) {
+        return {
+            url: imageUrl,
+            width: selectedVariant.width,
+            height: Math.round(selectedVariant.width * (design.image_height / design.image_width)),
+        };
+    }
+
+    return {
+        url: imageUrl,
+        width: design.image_width ?? null,
+        height: design.image_height ?? null,
+    };
+};
+
+const getImageSearchAltText = (design: unknown): string => {
+    const altText = generateRichAltText(design);
+    if (/cebu|philippines/i.test(altText)) {
+        return altText;
+    }
+
+    return `${altText} Custom cake design in Cebu.`;
+};
+
 type LinkedMerchantProduct = {
     product_id: string;
     title: string;
@@ -344,6 +380,16 @@ export async function generateMetadata(
     const description = optimizeMetaDescription(rawDescription);
 
     const canonicalUrl = `https://genie.ph/customizing/${slug}`
+    const crawlerImage = getCanonicalCrawlerImage(design);
+    const imageAltText = getImageSearchAltText(design);
+    const metadataImages = crawlerImage.url ? [
+        {
+            url: crawlerImage.url,
+            width: crawlerImage.width || 1200,
+            height: crawlerImage.height || 1200,
+            alt: imageAltText,
+        },
+    ] : [];
 
     return {
         title,
@@ -367,34 +413,20 @@ export async function generateMetadata(
             description,
             url: canonicalUrl,
             siteName: 'Genie.ph',
-            images: design.original_image_url ? [
-                {
-                    url: design.original_image_url,
-                    width: design.image_width || 1200,
-                    height: design.image_height || 1200,
-                    alt: generateRichAltText(design),
-                },
-            ] : [],
+            images: metadataImages,
             type: 'website',
         },
         twitter: {
             card: 'summary_large_image',
             title,
             description,
-            images: design.original_image_url ? [
-                {
-                    url: design.original_image_url,
-                    width: design.image_width || 1200,
-                    height: design.image_height || 1200,
-                    alt: generateRichAltText(design),
-                }
-            ] : [],
+            images: metadataImages,
         },
         other: {
-            thumbnail: design.original_image_url || '',
+            thumbnail: crawlerImage.url || '',
             // Explicit og:image:alt for Pinterest and crawlers that read it separately
             // Uses generateRichAltText so short/generic stored values get upgraded
-            'og:image:alt': generateRichAltText(design),
+            'og:image:alt': imageAltText,
             // product:* meta tags for e-commerce enrichment (og:type set via openGraph.type above)
             'product:price:amount': (design.price && design.price > 0) ? Math.round(design.price).toString() : FALLBACK_MIN_PRICE.toString(),
             'product:price:currency': 'PHP',
@@ -460,27 +492,16 @@ export function DesignSchema({
         }
         baseTitle = `${baseTitle}${suffix}`;
     }
-    let title = baseTitle;
+    const title = baseTitle;
     // Image URL for structured data + sitemap parity. Point at the SAME image the
     // page actually renders as its hero (the largest slug-based variant ≤ 1200,
     // falling back to the original). After the slug-based variant re-path this URL
     // is keyword-rich, so the embedded image, JSON-LD, and sitemap all agree on one
     // descriptive URL — the key signal for Google Images.
-    const heroVariantManifest = parseManifest(design.image_variants);
-    const heroVariant = heroVariantManifest
-        ? [...heroVariantManifest.variants].sort((a, b) => a.width - b.width).filter((v) => v.width <= 1200).pop()
-            ?? [...heroVariantManifest.variants].sort((a, b) => a.width - b.width)[0]
-        : null;
-    const imageUrl = heroVariant?.url ?? design.original_image_url;
-    // Dimensions that match `imageUrl`: when it's a variant, derive proportional
-    // height from the source aspect ratio; otherwise use the measured source dims.
-    const imageDims = (() => {
-        if (heroVariant && design.image_width && design.image_height) {
-            const h = Math.round(heroVariant.width * (design.image_height / design.image_width));
-            return { width: heroVariant.width, height: h };
-        }
-        return { width: design.image_width ?? null, height: design.image_height ?? null };
-    })();
+    const crawlerImage = getCanonicalCrawlerImage(design);
+    const imageUrl = crawlerImage.url;
+    const imageDims = { width: crawlerImage.width, height: crawlerImage.height };
+    const imageAltText = getImageSearchAltText(design);
     const pageUrl = `https://genie.ph/customizing/${design.slug || ''}`;
     const policyUrls = getCommercePolicyUrls();
 
@@ -504,7 +525,7 @@ export function DesignSchema({
         ...(imageDims.width && { width: imageDims.width }),
         ...(imageDims.height && { height: imageDims.height }),
         encodingFormat: detectMimeType(imageUrl),
-        name: sanitize(generateRichAltText(design)),
+        name: sanitize(imageAltText),
         caption: sanitizedDesc,
         creditText: 'Genie.ph',
         creator: {
