@@ -4618,3 +4618,21 @@
 - UI rules in `TopperCard` still allow a manual switch from `Edible Photo Wrap` to `Printout Wrap` (`support_printout`) when the original item is an edible side wrap.
 - Verification:
   - `npx vitest run src/utils/customizationMapper.test.ts` passed.
+## Sitewide Address Update (2026-07-09)
+
+### Plan
+
+- [x] Search the app for Genie.ph business-address strings and address schema sources.
+- [x] Update the shared business profile plus direct page/cart pickup address copies to the new address.
+- [x] Verify no old business-address strings remain in the app source.
+- [x] Run focused checks and document results.
+
+### Review
+
+- Updated the shared Genie.ph business profile address, postal schema street address, map URL, and geo coordinates to the Treehouse/Camputhaw location.
+- Updated visible address copies in contact metadata, FAQ support copy, services/about/scam/contact consumers via the shared profile, cart pickup location data, the best-cake-shops page, and blog pickup copy.
+- Verification:
+  - `rg -n "Park Tower One|Cebu Business Park|R\\. Aboitiz St\\., Camputhaw|The Treehouse Building|maps\\.app\\.goo\\.gl/pnfoibK2gjaAD6DA7|latitude: 10\\.3175|longitude: 123\\.9046" src tasks/todo.md` found only unrelated `Cebu Business Park` service-area coverage labels.
+  - `npx vitest run src/components/SEOSchemas.test.tsx src/app/contact/page.test.tsx src/app/faq/page.test.tsx` passed the existing SEO schema test; the page test files do not exist.
+  - `git diff --check -- src/lib/seo/genieBusinessProfile.ts src/app/cart/CartClient.tsx src/app/best-cake-shops-cebu/page.tsx src/data/blogPosts.ts src/app/contact/page.tsx src/app/faq/page.tsx tasks/todo.md` passed.
+  - `npm run build` passed. Existing warnings appeared for stale `baseline-browser-mapping`, inferred workspace root from multiple lockfiles, deprecated `middleware`, and non-fatal Supabase statement timeouts during static generation.

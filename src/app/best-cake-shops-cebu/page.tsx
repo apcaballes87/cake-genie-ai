@@ -97,7 +97,7 @@ const cakeShops: CakeShop[] = [
       { label: 'Facebook Messenger', href: 'https://m.me/cakesandmemoriescebu' },
       { label: 'Facebook', href: 'https://www.facebook.com/cakesandmemoriescebu' },
     ],
-    address: 'Unit 3, The Treehouse Building, R. Aboitiz St., Camputhaw, Cebu City',
+    address: 'Unit 3, Treehouse Building, R. Aboitiz St. Camputhaw, Cebu City, Cebu',
     mapUrl: googleMapSearch('Cakes and Memories Treehouse Branch R. Aboitiz St Camputhaw Cebu City'),
     image: cakeImages.cakesAndMemories,
     imageAlt: 'Custom themed birthday cake inspiration for Cakes and Memories Bakeshop',

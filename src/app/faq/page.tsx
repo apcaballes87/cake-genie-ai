@@ -95,7 +95,7 @@ const faqs = [
             },
             {
                 q: 'How do I contact customer support?',
-                a: 'Reach Genie.ph customer support via live chat on the website (available during business hours), phone at +63-908-940-8747, email at support@genie.ph, or visit the office at Park Tower One, Cebu Business Park, Cebu City. Support is available in English and Filipino with average response times under 2 hours.'
+                a: 'Reach Genie.ph customer support via live chat on the website (available during business hours), phone at +63-908-940-8747, email at support@genie.ph, or visit the office at Unit 3, Treehouse Building, R. Aboitiz St. Camputhaw, Cebu City, Cebu. Support is available in English and Filipino with average response times under 2 hours.'
             },
         ]
     },

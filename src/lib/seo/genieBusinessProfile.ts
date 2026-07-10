@@ -19,12 +19,13 @@ export const genieBusinessProfile = {
   supportEmail: 'support@genie.ph',
   phoneDisplay: '+63 908 940 8747',
   phoneHref: 'tel:+639089408747',
-  mapUrl: 'https://maps.app.goo.gl/pnfoibK2gjaAD6DA7',
-  addressLine: 'Park Tower One, Cebu Business Park, Cebu City',
+  mapUrl:
+    'https://www.google.com/maps/search/?api=1&query=Unit%203%2C%20Treehouse%20Building%2C%20R.%20Aboitiz%20St.%20Camputhaw%2C%20Cebu%20City%2C%20Cebu',
+  addressLine: 'Unit 3, Treehouse Building, R. Aboitiz St. Camputhaw, Cebu City, Cebu',
   hoursDisplay: 'Mon - Sat: 9:00 AM - 6:00 PM',
   address: {
     '@type': 'PostalAddress',
-    streetAddress: 'Park Tower One, Cebu Business Park',
+    streetAddress: 'Unit 3, Treehouse Building, R. Aboitiz St. Camputhaw',
     addressLocality: 'Cebu City',
     addressRegion: 'Cebu',
     postalCode: '6000',
@@ -32,8 +33,8 @@ export const genieBusinessProfile = {
   },
   geo: {
     '@type': 'GeoCoordinates',
-    latitude: 10.3175,
-    longitude: 123.9046,
+    latitude: 10.3124792,
+    longitude: 123.8929501,
   },
   socialProfiles: [
     'https://web.facebook.com/geniephilippines',

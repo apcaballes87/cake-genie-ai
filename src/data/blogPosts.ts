@@ -211,7 +211,7 @@ The biggest fear when ordering a **custom cake Cebu** is the transport. We’ve 
 
 **Pickup Optional:** 
 If you’d rather pick it up yourself, you can visit the physical branch at:
-*Unit 3, Treehouse Building, R. Aboitiz St., Camputhaw, Cebu City (Near Redemptorist Church).*
+*Unit 3, Treehouse Building, R. Aboitiz St. Camputhaw, Cebu City, Cebu (Near Redemptorist Church).*
 
 ---
 

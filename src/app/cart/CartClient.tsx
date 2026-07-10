@@ -74,7 +74,7 @@ const PICKUP_LOCATIONS = [
         id: 'treehouse',
         name: 'Cebu (Treehouse)',
         branchName: 'Cakes and Memories Bakeshop – Treehouse',
-        street_address: 'Unit 3, Treehouse Building, R. Aboitiz St., Camputhaw, Cebu City',
+        street_address: 'Unit 3, Treehouse Building, R. Aboitiz St. Camputhaw, Cebu City, Cebu',
         city: 'Cebu City',
         latitude: 10.3124792,
         longitude: 123.8929501,

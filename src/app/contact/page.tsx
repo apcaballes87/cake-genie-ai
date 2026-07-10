@@ -4,7 +4,7 @@ import { buildGenieLocalBusinessSchema, genieBusinessProfile } from '@/lib/seo/g
 
 export const metadata = buildMarketingPageMetadata({
     title: 'Contact Us for Cebu Custom Cake Orders',
-    description: 'Get in touch with Genie.ph for custom cake orders in Cebu. Visit us at Park Tower One, Cebu Business Park, Cebu City or call +63-908-940-8747.',
+    description: 'Get in touch with Genie.ph for custom cake orders in Cebu. Visit us at Unit 3, Treehouse Building, R. Aboitiz St. Camputhaw, Cebu City, Cebu or call +63-908-940-8747.',
     canonicalPath: 'https://genie.ph/contact',
 })
 
