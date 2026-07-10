@@ -52,32 +52,28 @@ const MessageRow: React.FC<{
     }, [isColorPickerOpen]);
 
     return (
-        <div className="grid grid-cols-[minmax(0,1fr)_minmax(110px,0.45fr)_auto_auto] items-end gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm max-md:grid-cols-[minmax(0,1fr)_auto_auto]">
-            <div className="min-w-0 max-md:col-span-3">
-                <label htmlFor={`msg-text-${message.id}`} className="mb-1 block text-[10px] font-bold uppercase tracking-tight text-slate-500">
-                    Text
-                </label>
+        <div className="flex min-w-0 items-center gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
+            <div className="min-w-0 flex-1">
+                <label htmlFor={`msg-text-${message.id}`} className="sr-only">Text</label>
                 <input
                     id={`msg-text-${message.id}`}
                     type="text"
                     value={message.text}
                     onChange={(event) => updateCakeMessage(message.id, { text: event.target.value, isPlaceholder: false })}
-                    className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2 text-sm outline-none transition-all focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+                    className="h-8 w-full min-w-0 rounded-lg border border-slate-200 bg-slate-50/50 px-2.5 text-xs outline-none transition-all focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
                     placeholder={message.originalMessage?.text || 'What should it say?'}
                     autoComplete="off"
                 />
             </div>
 
-            <div className="max-md:min-w-0">
-                <label htmlFor={`msg-position-${message.id}`} className="mb-1 block text-[10px] font-bold uppercase tracking-tight text-slate-500">
-                    Position
-                </label>
+            <div className="shrink-0">
+                <label htmlFor={`msg-position-${message.id}`} className="sr-only">Position</label>
                 <select
                     id={`msg-position-${message.id}`}
                     aria-label={`Position for ${message.id}`}
                     value={message.position}
                     onChange={(event) => updateCakeMessage(message.id, { position: event.target.value as CakeMessageUI['position'] })}
-                    className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-2.5 py-2 text-sm outline-none transition-all focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+                    className="h-8 w-[76px] rounded-lg border border-slate-200 bg-slate-50/50 px-1.5 text-[11px] outline-none transition-all focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
                 >
                     {availablePositions.map((option) => (
                         <option key={option.position} value={option.position}>
@@ -87,12 +83,11 @@ const MessageRow: React.FC<{
                 </select>
             </div>
 
-            <div ref={colorPickerRef} className="relative max-md:justify-self-end">
-                <span className="mb-1 block text-[10px] font-bold uppercase tracking-tight text-slate-500">Color</span>
+            <div ref={colorPickerRef} className="relative shrink-0">
                 <button
                     type="button"
                     onClick={() => setIsColorPickerOpen((isOpen) => !isOpen)}
-                    className="h-8 w-8 rounded-full border-2 border-white shadow-md ring-1 ring-slate-200 transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1"
+                    className="h-6 w-6 rounded-full border-2 border-white shadow-md ring-1 ring-slate-200 transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1"
                     style={{ backgroundColor: message.color || '#000000' }}
                     aria-label={`Choose color for ${message.id}`}
                     aria-expanded={isColorPickerOpen}
@@ -123,7 +118,7 @@ const MessageRow: React.FC<{
                 onClick={() => {
                     if (window.confirm('Delete this message?')) removeCakeMessage(message.id);
                 }}
-                className="mb-1 rounded-md p-1 text-slate-300 transition-colors hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                className="shrink-0 rounded-md p-1 text-slate-300 transition-colors hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20"
                 aria-label={`Delete ${getPositionLabel(message.position)} message`}
             >
                 <TrashIcon className="h-4 w-4" />

@@ -3572,13 +3572,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
             y: coords.y,
         };
 
-        onCakeMessageChange([...cakeMessages, newMessage]);
-
-        // After a short delay, select the newly created message to open its editor
-        setTimeout(() => {
-            setSelectedItem({ ...newMessage, itemCategory: 'message' });
-        }, 100);
-    }, [onCakeMessageChange, cakeMessages, analysisResult]);
+        // Message creation is a direct inline edit now; do not scroll the user
+        // back to the image or select the retired message editor.
+        baseOnCakeMessageChange([...cakeMessages, newMessage]);
+    }, [baseOnCakeMessageChange, cakeMessages, analysisResult]);
 
     const handleCustomizedTabClick = () => {
         setActiveTab('customized');

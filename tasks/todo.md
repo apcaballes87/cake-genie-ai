@@ -4677,3 +4677,11 @@
 - New messages append at the first unused position and can then be moved with the Front/Top/Base selector.
 - Color is now a swatch button that opens a floating palette and closes on selection, Done, Escape, or outside click.
 - Verification: 8 focused tests passed, production build passed, and `git diff --check` passed. Full-repo lint remains blocked by pre-existing repository-wide errors; targeted lint reported only existing warnings plus the pre-existing unescaped apostrophe error in `CustomizingStepSummarySections.tsx`.
+
+## Cake message compact-row follow-up (2026-07-10)
+
+### Review
+
+- Message creation now updates inline state directly without scrolling to the image or selecting the retired message editor.
+- Each message is now a single compact row with a flexible text field, smaller position selector, smaller color swatch, and delete control.
+- Verification: 8 focused tests passed, `npm run build` passed, and `git diff --check` passed.
