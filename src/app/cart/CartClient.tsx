@@ -48,6 +48,10 @@ const getErrorMessage = (error: unknown, fallback: string) => (
     error instanceof Error ? error.message : fallback
 );
 type AddressCreateInput = Omit<CakeGenieAddress, 'address_id' | 'created_at' | 'updated_at' | 'user_id'>;
+type RegistrationDocument = {
+    label: string;
+    imageUrl: string;
+};
 
 const EVENT_TIME_SLOTS_MAP: { slot: string; startHour: number; endHour: number }[] = [
     { slot: "10AM - 12NN", startHour: 10, endHour: 12 },
@@ -680,6 +684,7 @@ function CartClient() {
     const [isSplitModalOpen, setIsSplitModalOpen] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [isDownpaymentModalOpen, setIsDownpaymentModalOpen] = useState(false);
+    const [registrationDocument, setRegistrationDocument] = useState<RegistrationDocument | null>(null);
     const [splitOrderDetails, setSplitOrderDetails] = useState<{
         shareLink: string;
         orderNumber: string;
@@ -1983,6 +1988,36 @@ function CartClient() {
 
     return (
         <>
+            {registrationDocument && (
+                <div
+                    className="fixed inset-0 z-9999 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+                    onClick={() => setRegistrationDocument(null)}
+                    role="presentation"
+                >
+                    <div
+                        className="relative max-h-[90vh] w-full max-w-4xl overflow-auto rounded-xl bg-white p-2 shadow-2xl"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={`${registrationDocument.label} document`}
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <button
+                            type="button"
+                            onClick={() => setRegistrationDocument(null)}
+                            className="absolute right-3 top-3 z-10 rounded-full bg-black/60 p-2 text-white transition-colors hover:bg-black/80"
+                            aria-label={`Close ${registrationDocument.label} document`}
+                        >
+                            <CloseIcon />
+                        </button>
+                        <img
+                            src={registrationDocument.imageUrl}
+                            alt={`${registrationDocument.label} registration document`}
+                            className="block h-auto max-h-[86vh] w-full object-contain"
+                        />
+                    </div>
+                </div>
+            )}
+
             {zoomedImage && (
                 <div
                     className="fixed inset-0 bg-black/90 backdrop-blur-sm z-9999 flex items-center justify-center animate-fade-in-fast"
@@ -2825,6 +2860,39 @@ function CartClient() {
                                                 alt="Secure Payment"
                                                 className="h-10 w-auto object-contain"
                                             />
+                                        </div>
+                                        <nav aria-label="Checkout policies and contact" className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-slate-500">
+                                            <a href="/privacy" className="underline underline-offset-2 transition-colors hover:text-purple-600">
+                                                Privacy Policy
+                                            </a>
+                                            <a href="/return-policy" className="underline underline-offset-2 transition-colors hover:text-purple-600">
+                                                Return Policy
+                                            </a>
+                                            <a href="/contact" className="underline underline-offset-2 transition-colors hover:text-purple-600">
+                                                Contact Us
+                                            </a>
+                                        </nav>
+                                        <div className="flex flex-wrap items-center justify-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setRegistrationDocument({
+                                                    label: 'DTI Registered',
+                                                    imageUrl: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/business%20permits/DTI%20Alalai%20ITS.jpg',
+                                                })}
+                                                className="inline-flex items-center rounded-md border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700 shadow-sm transition-colors hover:bg-green-100"
+                                            >
+                                                DTI Registered
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setRegistrationDocument({
+                                                    label: 'BIR Registered',
+                                                    imageUrl: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/business%20permits/BIR%20Certificate%20of%20Registration%202303.jpg',
+                                                })}
+                                                className="inline-flex items-center rounded-md border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700 shadow-sm transition-colors hover:bg-green-100"
+                                            >
+                                                BIR Registered
+                                            </button>
                                         </div>
                                     </div>
 

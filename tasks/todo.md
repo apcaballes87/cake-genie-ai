@@ -1,5 +1,42 @@
 # Tasks
 
+## Cart Registration Badges (2026-07-10)
+
+### Plan
+
+- [x] Inspect existing registration badge/modal patterns and the cart payment area.
+- [x] Add DTI Registered and BIR Registered badge controls below the policy links.
+- [x] Run focused checks and verify the modal behavior.
+
+### Review
+
+- Added green badge-style DTI Registered and BIR Registered buttons below the cart policy links.
+- Each badge opens its supplied registration image in a centered modal with backdrop dismissal, close control, accessible dialog semantics, and the document label in the alt text.
+- Verification:
+  - `git diff --check -- src/app/cart/CartClient.tsx tasks/todo.md` passed.
+  - `npx eslint src/app/cart/CartClient.tsx` passed with 0 errors; existing cart warnings remain.
+  - `npx vitest run src/app/cart/__tests__/CartClient.recovery.test.ts src/app/cart/__tests__/CartDateOption.test.tsx --exclude '.claude/**'` passed: 9 tests.
+  - `npm run build` passed. Existing stale browser-data, workspace-root, deprecated middleware, and non-fatal Supabase timeout warnings remained.
+  - The local browser reached `/cart`, but the current cart was empty, so the conditional payment/trust block was not rendered for live click verification.
+
+## Cart Checkout Policy Links (2026-07-10)
+
+### Plan
+
+- [x] Inspect the cart payment-logo block and confirm the canonical policy/contact routes.
+- [x] Add Privacy Policy, Return Policy, and Contact Us links beneath the payment images.
+- [x] Run focused verification and record the result.
+
+### Review
+
+- Added Privacy Policy (`/privacy`), Return Policy (`/return-policy`), and Contact Us (`/contact`) links directly beneath the Xendit and Secure Payment images in the cart checkout panel.
+- Verification:
+  - `git diff --check -- src/app/cart/CartClient.tsx tasks/todo.md` passed.
+  - `npx eslint src/app/cart/CartClient.tsx` passed with 0 errors; existing warnings remain in the large cart client component.
+  - `npx vitest run src/app/cart/__tests__/CartClient.recovery.test.ts src/app/cart/__tests__/CartDateOption.test.tsx --exclude '.claude/**'` passed: 9 tests.
+  - `npm run build` passed. Existing stale browser-data, workspace-root, deprecated middleware, and non-fatal Supabase timeout warnings remained.
+  - Local `/cart` returned successfully in the browser, but the current cart was empty, so the conditional checkout payment block was not rendered for visual inspection.
+
 ## Fix Retired Gemini Flash-Lite Preview Analyze Model (2026-07-10)
 
 ### Plan
