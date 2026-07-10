@@ -65,9 +65,13 @@ describe('cake analysis prompt rules', () => {
 
     expect(prompt).toContain('Genie.ph does not put fresh flowers on cakes because they are not safe or hygienic for our food workflow.');
     expect(prompt).toContain('IF a flower appears fresh, natural, realistic, or edible, classify it as "edible_flowers".');
+    expect(prompt).toContain('FLOWER TYPE PRECEDENCE');
+    expect(prompt).toContain('Do NOT classify fondant/gumpaste flowers as `edible_3d_ordinary`');
+    expect(prompt).toContain('small gold fondant flowers on a mahjong cake -> `edible_flowers`');
     expect(prompt).toContain('Do not output `fresh_flowers`.');
     expect(prompt).not.toContain('IT IS "fresh_flowers"');
     expect(prompt).not.toContain('| `fresh_flowers` |');
+    expect(prompt).not.toContain('Basic roses without fine detail');
   });
 
   it('keeps candle classification in the fallback prompt source', () => {

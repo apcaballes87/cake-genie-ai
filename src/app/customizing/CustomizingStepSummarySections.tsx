@@ -718,15 +718,21 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                         <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-100">
                                             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Icing Colors</span>
                                             <div className="flex items-center gap-3.5">
-                                                <button
-                                                    type="button"
-                                                    onClick={handleFixIcingColor}
-                                                    disabled={isUpdatingDesign || isStudioBackgroundEditingPending || maskStatus === 'generating' || !isMaskActive}
-                                                    className="px-4 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider bg-purple-600 text-white hover:bg-purple-700 transition-all shadow-md hover:shadow-lg shadow-purple-600/25 hover:shadow-purple-600/35 disabled:opacity-50 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed active:scale-95"
-                                                    title="Permanently recolor using AI image edit"
-                                                >
-                                                    Fix Icing Color
-                                                </button>
+                                                {isStudioBackgroundEditingPending ? (
+                                                    <p className="max-w-[150px] text-right text-[10px] font-semibold leading-snug text-red-600">
+                                                        Please wait while we're editing the background.
+                                                    </p>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleFixIcingColor}
+                                                        disabled={isUpdatingDesign || maskStatus === 'generating' || !isMaskActive}
+                                                        className="px-4 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider bg-purple-600 text-white hover:bg-purple-700 transition-all shadow-md hover:shadow-lg shadow-purple-600/25 hover:shadow-purple-600/35 disabled:opacity-50 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed active:scale-95"
+                                                        title="Permanently recolor using AI image edit"
+                                                    >
+                                                        Fix Icing Color
+                                                    </button>
+                                                )}
                                                 <button 
                                                     type="button"
                                                     onClick={() => setIsColorPickerOpen(false)}

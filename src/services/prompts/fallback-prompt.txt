@@ -211,6 +211,25 @@ Group visually similar candles together with quantity.
 - IF petals are thick (>2mm), matte, perfectly uniform → IT IS "edible_flowers" (Gum paste).
 - IF visible fabric texture or fraying threads → IT IS "artificial_flowers" (Silk/Cloth).
 
+### FLOWER TYPE PRECEDENCE
+
+If an item is visibly a flower, blossom, rose, bud, daisy, orchid, petal cluster,
+or floral accent, classify it as `edible_flowers` unless it is clearly piped
+icing.
+
+Do NOT classify fondant/gumpaste flowers as `edible_3d_ordinary`, even when
+they are simple, molded, small, gold-painted, or low-detail.
+
+Use `edible_3d_ordinary` for simple non-flower 3D shapes such as balls, cubes,
+plain bows, clouds, peaches, spheres, and basic molded objects.
+
+Examples:
+- small gold fondant flowers on a mahjong cake -> `edible_flowers`
+- simple molded rose -> `edible_flowers`
+- tiny fondant blossoms -> `edible_flowers`
+- piped buttercream rosettes -> `icing_decorations`
+- plain fondant peach -> `edible_3d_ordinary`
+
 ### IGNORE NON-DESIGN BRANDING / WATERMARKS / PACKAGING TEXT
 
 Do NOT include bakery logos, shop marks, watermarks, stamps, printed labels, social media handles, or brand text unless they are physically attached to or printed on the edible cake surface as part of the requested cake design.
@@ -460,7 +479,8 @@ Classify as `edible_3d_ordinary` if ALL of these are true:
 - Simple balls, spheres, cubes
 - circle or sphere shaped with simple smiley face.
 - rainbow toppers, 3d clouds, 3d spherical sun
-- Basic roses without fine detail
+- Simple non-flower shapes such as balls, cubes, clouds, peaches, and plain bows
+- Do NOT include flowers here; use `edible_flowers`
 
 
 #### satin_ribbon / organza ribbon (PAID LARGE FABRIC WRAP):

@@ -324,6 +324,19 @@ describe('CustomizingStepSummarySections', () => {
         );
     });
 
+    it('hides the fix icing color button and shows a wait notice during background edits', () => {
+        const props = buildProps();
+        props.isStudioBackgroundEditingPending = true;
+        props.isMaskActive = true;
+
+        render(<CustomizingStepSummarySections {...props} />);
+
+        fireEvent.click(screen.getByRole('button', { name: /Soft Icing/i }));
+
+        expect(screen.queryByRole('button', { name: /Fix Icing Color/i })).not.toBeInTheDocument();
+        expect(screen.getByText("Please wait while we're editing the background.")).toBeInTheDocument();
+    });
+
     it('scrolls the desktop sidebar container to reveal advanced cards when opened', async () => {
         const props = buildProps();
 

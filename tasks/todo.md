@@ -4636,3 +4636,20 @@
   - `npx vitest run src/components/SEOSchemas.test.tsx src/app/contact/page.test.tsx src/app/faq/page.test.tsx` passed the existing SEO schema test; the page test files do not exist.
   - `git diff --check -- src/lib/seo/genieBusinessProfile.ts src/app/cart/CartClient.tsx src/app/best-cake-shops-cebu/page.tsx src/data/blogPosts.ts src/app/contact/page.tsx src/app/faq/page.tsx tasks/todo.md` passed.
   - `npm run build` passed. Existing warnings appeared for stale `baseline-browser-mapping`, inferred workspace root from multiple lockfiles, deprecated `middleware`, and non-fatal Supabase statement timeouts during static generation.
+# Material-Specific Printout Notification (2026-07-10)
+
+## Plan
+
+- [x] Add typed printout-conversion summary derivation for toy, edible photo, and cardstock.
+- [x] Replace the generic sticky-bar printout warning with one combined material-specific card.
+- [x] Update editor-sheet offset and sticky-bar visibility wiring.
+- [x] Add focused regression tests for detection, rendering, stacking, and offsets.
+- [x] Run focused tests, `git diff --check`, and `npm run build`.
+
+## Review
+
+- Added `printoutConversion.ts` as the typed derivation seam so current enabled UI state determines whether toy-like toppers, top/side edible photos, or cardstock toppers were converted to printout.
+- Updated `StickyAddToCartBar` to render one combined red card above availability while preserving existing stacking and overlap behavior.
+- Focused tests passed: 13 tests across 2 files.
+- `git diff --check` passed for the scoped implementation files.
+- `npm run build` passed. Existing warnings remained for stale baseline-browser data, multiple lockfiles, deprecated middleware, and non-fatal Supabase statement timeouts during static generation.
