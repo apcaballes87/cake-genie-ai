@@ -7,6 +7,7 @@ import {
     STICKY_ADD_TO_CART_AVAILABILITY_VERTICAL_PADDING_PX,
     STICKY_ADD_TO_CART_PRINTOUT_OVERLAP_PX,
 } from '@/app/customizing/stickyBarLayout';
+import type { PrintoutConversionSummary } from '@/app/customizing/printoutConversion';
 
 vi.mock('./ShareButton', () => ({
     ShareButton: ({ onClick }: { onClick: () => void }) => <button onClick={onClick}>share</button>,
@@ -107,19 +108,29 @@ describe('StickyAddToCartBar', () => {
         expect(mainBar).toHaveClass('relative', 'z-10');
     });
 
-    it('renders the printout warning bar when hasPrintoutConversion is true', () => {
+    it('renders one combined material-specific printout warning bar', () => {
         const props = buildProps();
-        props.hasPrintoutConversion = true;
+        const printoutConversions: PrintoutConversionSummary = { toy: true, ediblePhoto: true, cardstock: true };
+        props.printoutConversions = printoutConversions;
 
         const { container } = render(<StickyAddToCartBar {...props} />);
 
-        const warningText = screen.getByText('Topper changed to printout');
+        const warningText = screen.getByText('Toy, Edible photo, Cardstock changed to printout');
         expect(warningText).toBeDefined();
 
         const stickyBar = container.querySelector('[data-sticky-add-to-cart-bar]');
         const printoutWrapper = stickyBar?.querySelector('[data-printout-wrapper]');
 
         expect(printoutWrapper).toHaveStyle({ marginBottom: `-${STICKY_ADD_TO_CART_PRINTOUT_OVERLAP_PX}px` });
+    });
+
+    it('does not render a printout warning when the conversion summary is empty', () => {
+        const props = buildProps();
+        props.printoutConversions = { toy: false, ediblePhoto: false, cardstock: false };
+
+        render(<StickyAddToCartBar {...props} />);
+
+        expect(screen.queryByText(/changed to printout/i)).not.toBeInTheDocument();
     });
 
     it('announces price changes through the polite status region', () => {

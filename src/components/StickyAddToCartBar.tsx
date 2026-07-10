@@ -9,6 +9,7 @@ import { ColorPalette } from './ColorPalette';
 import type { CustomizingAiPromptSuggestionItem } from '@/app/customizing/CustomizingAiChatPanel';
 import type { ParsedAiChatPromptTemplate } from '@/utils/aiChatPromptComposer';
 import { DiscountOfferBubble } from './DiscountOfferBubble';
+import type { PrintoutConversionSummary } from '@/app/customizing/printoutConversion';
 import {
     STICKY_ADD_TO_CART_AVAILABILITY_OVERLAP_PX,
     STICKY_ADD_TO_CART_AVAILABILITY_VERTICAL_PADDING_PX,
@@ -39,7 +40,7 @@ interface StickyAddToCartBarProps {
     applyChangesLabel?: string;
     ediblePhotoAddonNote?: boolean;
     isBlurred?: boolean;
-    hasPrintoutConversion?: boolean;
+    printoutConversions?: PrintoutConversionSummary;
     onAddToCartBlockedVisible?: (reason: string) => void;
 }
 
@@ -65,7 +66,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     isApplyingChanges = false,
     ediblePhotoAddonNote = false,
     isBlurred = false,
-    hasPrintoutConversion = false,
+    printoutConversions,
     onAddToCartBlockedVisible,
 }) => {
     const announcementStateRef = React.useRef<{
@@ -79,6 +80,9 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
         error,
         initialized: false,
     });
+    const hasPrintoutConversion = Boolean(
+        printoutConversions?.toy || printoutConversions?.ediblePhoto || printoutConversions?.cardstock,
+    );
     const showAvailability = Boolean(availability && !isAnalyzing && !error);
     const showPrintoutNotification = Boolean(hasPrintoutConversion && !isAnalyzing && !error);
     const hasTopNotification = !error && (showAvailability || showPrintoutNotification);
@@ -303,7 +307,13 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                     style={notificationBodyStyle}
                 >
                     <span>⚠️</span>
-                    <span>Topper changed to printout</span>
+                    <span className="text-center">
+                        {[
+                            printoutConversions?.toy && 'Toy',
+                            printoutConversions?.ediblePhoto && 'Edible photo',
+                            printoutConversions?.cardstock && 'Cardstock',
+                        ].filter(Boolean).join(', ')} changed to printout
+                    </span>
                 </div>
             </div>
         );
