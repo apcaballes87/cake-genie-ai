@@ -70,7 +70,6 @@ import { CustomizingEditorSheet } from './CustomizingEditorSheet';
 import { CustomizingHeroPanel, HeroActionButtonsRow } from './CustomizingHeroPanel';
 import { CustomizingIcingEditorPanel, areIcingDesignsEqual } from './CustomizingIcingEditorPanel';
 import { CustomizingInstructionsPanel } from './CustomizingInstructionsPanel';
-import { CustomizingMessagesPanel } from './CustomizingMessagesPanel';
 import { CustomizingOptionsPanel } from './CustomizingOptionsPanel';
 import { CakeFlavorBottomSheet } from '@/components/CakeFlavorBottomSheet';
 import { CustomizingPhotosPanel } from './CustomizingPhotosPanel';
@@ -4047,7 +4046,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                         selectedItemId: selectedItem?.id ?? null,
                                         setActiveCustomization,
                                         setSelectedItem,
+                                        addCakeMessage,
                                         removeCakeMessage,
+                                        updateCakeMessage,
                                         updateMainTopper,
                                         updateSupportElement,
                                         onTopperImageReplace: onTopperImageReplace,
@@ -4125,7 +4126,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                     selectedItemId={selectedItem?.id ?? null}
                                     setActiveCustomization={setActiveCustomization}
                                     setSelectedItem={setSelectedItem}
+                                    addCakeMessage={addCakeMessage}
                                     removeCakeMessage={removeCakeMessage}
+                                    updateCakeMessage={updateCakeMessage}
                                     updateMainTopper={updateMainTopper}
                                     updateSupportElement={updateSupportElement}
                                     onTopperImageReplace={onTopperImageReplace}
@@ -4243,7 +4246,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                     selectedItemId: selectedItem?.id ?? null,
                                     setActiveCustomization,
                                     setSelectedItem,
+                                    addCakeMessage,
                                     removeCakeMessage,
+                                    updateCakeMessage,
                                     updateMainTopper,
                                     updateSupportElement,
                                     onTopperImageReplace: onTopperImageReplace,
@@ -4376,18 +4381,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                         onIcingBaseChange={handleIcingTypeChange}
                         isAnalyzing={isAnalyzing}
                         addOnPricing={addOnPricing?.addOnPrice ?? 0}
-                    />
-
-                    <CustomizingMessagesPanel
-                        isVisible={activeCustomization === 'messages'}
-                        cakeMessages={cakeMessages}
-                        markerMap={markerMap}
-                        selectedMessageId={selectedItem && 'itemCategory' in selectedItem && selectedItem.itemCategory === 'message' ? selectedItem.id : undefined}
-                        cakeType={cakeInfo?.type}
-                        onItemClick={handleListItemClick}
-                        addCakeMessage={addCakeMessage}
-                        updateCakeMessage={updateCakeMessage}
-                        removeCakeMessage={removeCakeMessage}
                     />
 
                     <CustomizingIcingEditorPanel

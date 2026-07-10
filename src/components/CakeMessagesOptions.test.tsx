@@ -5,10 +5,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { CakeMessagesOptions } from './CakeMessagesOptions';
 import type { CakeMessageUI, CakeType } from '@/types';
 
-vi.mock('./LazyImage', () => ({
-    default: ({ alt, src }: { alt: string; src: string }) => <img alt={alt} src={src} />,
-}));
-
 const createMessage = (overrides: Partial<CakeMessageUI> = {}): CakeMessageUI => ({
     id: 'message-1',
     type: 'icing_script',
@@ -42,49 +38,61 @@ const renderCakeMessagesOptions = (
 };
 
 describe('CakeMessagesOptions', () => {
-    it('renders one simplified container for top, front, and base when empty', () => {
-        renderCakeMessagesOptions();
+    it('renders direct text, position, color, and delete controls for a message', () => {
+        renderCakeMessagesOptions([createMessage({ position: 'side', text: 'Hello' })]);
 
-        // New design: a single row of 3 position-thumbnail buttons, each with
-        // a short label ("Top" / "Front" / "Base"). No separate "Add message"
-        // button — clicking the thumbnail itself adds the message.
-        expect(screen.getByText('Top')).toBeInTheDocument();
-        expect(screen.getByText('Front')).toBeInTheDocument();
-        expect(screen.getByText('Base')).toBeInTheDocument();
-        // No editor rendered when nothing is selected.
-        expect(screen.queryByRole('button', { name: /Edit .* Message/i })).not.toBeInTheDocument();
+        expect(screen.getByLabelText('Text')).toHaveValue('Hello');
+        expect(screen.getByLabelText('Position for message-1')).toHaveValue('side');
+        expect(screen.getByRole('button', { name: 'Delete Front message' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Choose color for message-1' })).toBeInTheDocument();
     });
 
-    it('adds a new message at the chosen position via the thumbnail button', async () => {
+    it('updates the message text directly', async () => {
+        const user = userEvent.setup();
+        const updateCakeMessage = vi.fn();
+        renderCakeMessagesOptions([createMessage()], { updateCakeMessage });
+
+        const input = screen.getByLabelText('Text');
+        await user.clear(input);
+
+        expect(updateCakeMessage).toHaveBeenLastCalledWith('message-1', {
+            text: '',
+            isPlaceholder: false,
+        });
+    });
+
+    it('updates the message position directly', async () => {
+        const user = userEvent.setup();
+        const updateCakeMessage = vi.fn();
+        renderCakeMessagesOptions([createMessage()], { updateCakeMessage });
+
+        await user.selectOptions(screen.getByLabelText('Position for message-1'), 'side');
+
+        expect(updateCakeMessage).toHaveBeenCalledWith('message-1', { position: 'side' });
+    });
+
+    it('opens the floating color picker and updates the selected color', async () => {
+        const user = userEvent.setup();
+        const updateCakeMessage = vi.fn();
+        renderCakeMessagesOptions([createMessage()], { updateCakeMessage });
+
+        await user.click(screen.getByRole('button', { name: 'Choose color for message-1' }));
+
+        expect(screen.getByText('Choose color')).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'Select Red color' }));
+        expect(updateCakeMessage).toHaveBeenCalledWith('message-1', { color: '#FF0000' });
+    });
+
+    it('adds a blank row at an unused position and hides base for bento cakes', async () => {
         const user = userEvent.setup();
         const addCakeMessage = vi.fn();
-
-        renderCakeMessagesOptions([], { addCakeMessage });
-
-        // The 3 thumbnail buttons are always rendered (the old "hide existing
-        // position" UX was removed in the May 30 redesign).
-        await user.click(screen.getByRole('button', { name: /Front/ }));
-        expect(addCakeMessage).toHaveBeenCalledWith('side');
-    });
-
-    it('renders the existing message directly in its single position container', () => {
-        renderCakeMessagesOptions([createMessage({ position: 'side', text: 'Hello' })], {
-            selectedMessageId: 'message-1',
+        renderCakeMessagesOptions([createMessage({ position: 'top' })], {
+            addCakeMessage,
+            cakeType: 'Bento' as CakeType,
         });
 
-        // Editor title uses the short label, not the legacy "Cake Front" string.
-        expect(screen.getByText(/Edit Front Message/i)).toBeInTheDocument();
-        expect(screen.queryByText('Customize Message')).not.toBeInTheDocument();
-        expect(screen.getByDisplayValue('Hello')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Delete Front message' })).toBeInTheDocument();
-    });
-
-    it('keeps cake base hidden for bento cakes', () => {
-        renderCakeMessagesOptions([], { cakeType: 'Bento' as CakeType });
-
-        // Bento: 2 positions only (top, front). "Base" is filtered out.
-        expect(screen.getByText('Top')).toBeInTheDocument();
-        expect(screen.getByText('Front')).toBeInTheDocument();
-        expect(screen.queryByText('Base')).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Add Base message/i })).not.toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: /Add message/i }));
+        expect(addCakeMessage).toHaveBeenCalledWith('side');
     });
 });

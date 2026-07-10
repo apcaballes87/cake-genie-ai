@@ -1,13 +1,7 @@
-import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { COLORS } from '@/constants';
 import type { CakeMessageUI } from '@/types';
 import { CustomizingMessagesPanel } from './CustomizingMessagesPanel';
-
-vi.mock('@/components/LazyImage', () => ({
-    default: ({ alt }: { alt: string }) => <span>{alt}</span>,
-}));
 
 const topMessage: CakeMessageUI = {
     id: 'message-top',
@@ -21,59 +15,45 @@ const topMessage: CakeMessageUI = {
     y: 0,
 };
 
-const buildProps = (): React.ComponentProps<typeof CustomizingMessagesPanel> => ({
+const buildProps = () => ({
     isVisible: true,
     cakeMessages: [topMessage],
-    markerMap: new Map(),
-    selectedMessageId: undefined,
-    cakeType: '2 Tier',
-    onItemClick: vi.fn(),
+    cakeType: '2 Tier' as const,
     addCakeMessage: vi.fn(),
     updateCakeMessage: vi.fn(),
     removeCakeMessage: vi.fn(),
 });
 
 describe('CustomizingMessagesPanel', () => {
-    it('forwards existing-message selection interactions', () => {
-        const props = buildProps();
+    it('renders the message row inline with direct text and position controls', () => {
+        render(<CustomizingMessagesPanel {...buildProps()} />);
 
-        render(<CustomizingMessagesPanel {...props} />);
-
-        // The position-thumbnail button's accessible name is the short label
-        // ("Top"), not the legacy duplicated "Top Top" string from the
-        // pre-redesign button.
-        fireEvent.click(screen.getByRole('button', { name: 'Top' }));
-
-        expect(props.onItemClick).toHaveBeenCalledWith(expect.objectContaining({
-            id: 'message-top',
-            itemCategory: 'message',
-        }));
+        expect(screen.getByLabelText('Text')).toHaveValue('Happy Birthday');
+        expect(screen.getByLabelText('Position for message-top')).toHaveValue('top');
     });
 
-    it('renders the selected message editor and forwards edits', () => {
+    it('forwards direct text and color edits', () => {
         const props = buildProps();
-        props.selectedMessageId = topMessage.id;
-
         render(<CustomizingMessagesPanel {...props} />);
 
-        fireEvent.change(screen.getByLabelText('Message Content'), { target: { value: 'Congrats!' } });
-        fireEvent.click(screen.getAllByRole('button', { name: /Select .* color/i })[0]);
+        fireEvent.change(screen.getByLabelText('Text'), { target: { value: 'Congrats!' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Choose color for message-top' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Select Red color' }));
 
-        expect(props.updateCakeMessage).toHaveBeenCalledWith(topMessage.id, expect.objectContaining({
+        expect(props.updateCakeMessage).toHaveBeenCalledWith(topMessage.id, {
             text: 'Congrats!',
             isPlaceholder: false,
-        }));
-        expect(props.updateCakeMessage).toHaveBeenCalledWith(topMessage.id, { color: COLORS[0].hex });
+        });
+        expect(props.updateCakeMessage).toHaveBeenCalledWith(topMessage.id, { color: '#FF0000' });
     });
 
-    it('adds a new message for an empty position', () => {
+    it('adds a new message row at the first unused position', () => {
         const props = buildProps();
         props.cakeMessages = [];
 
         render(<CustomizingMessagesPanel {...props} />);
+        fireEvent.click(screen.getByRole('button', { name: '+ Add message' }));
 
-        fireEvent.click(screen.getByRole('button', { name: 'Top' }));
-
-        expect(props.addCakeMessage).toHaveBeenCalledWith('top');
+        expect(props.addCakeMessage).toHaveBeenCalledWith('side');
     });
 });

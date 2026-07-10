@@ -4653,3 +4653,27 @@
 - Focused tests passed: 13 tests across 2 files.
 - `git diff --check` passed for the scoped implementation files.
 - `npm run build` passed. Existing warnings remained for stale baseline-browser data, multiple lockfiles, deprecated middleware, and non-fatal Supabase statement timeouts during static generation.
+
+## Cake message direct editing (2026-07-10)
+
+### Plan
+
+- [x] Inspect the current cake-message UI and state handlers.
+- [x] Replace the position-first editor with direct text, position, color, and delete controls.
+- [x] Add focused component coverage for direct edits and position changes.
+- [x] Run focused tests and the production build.
+
+### Review
+
+- Replaced the position-thumbnail-first flow with one direct row per message: Text, Position, Color, and Delete.
+- Preserved the existing one-message-per-position rule by limiting each selector to the current position plus unused positions.
+- Verification: focused CakeMessagesOptions tests passed, lint passed, `git diff --check` passed, and `npm run build` passed with existing non-fatal Next.js warnings.
+
+## Cake message inline editing follow-up (2026-07-10)
+
+### Review
+
+- Moved message editing into the existing inline summary card so the cake message flow no longer opens the editor bottom sheet.
+- New messages append at the first unused position and can then be moved with the Front/Top/Base selector.
+- Color is now a swatch button that opens a floating palette and closes on selection, Done, Escape, or outside click.
+- Verification: 8 focused tests passed, production build passed, and `git diff --check` passed. Full-repo lint remains blocked by pre-existing repository-wide errors; targeted lint reported only existing warnings plus the pre-existing unescaped apostrophe error in `CustomizingStepSummarySections.tsx`.

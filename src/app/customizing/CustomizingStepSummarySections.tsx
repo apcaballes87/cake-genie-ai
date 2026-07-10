@@ -4,6 +4,7 @@ import React, { memo } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { X, ChevronDown, ChevronUp, Wand2, Check } from 'lucide-react';
 import { CakeBaseOptions } from '@/components/CakeBaseOptions';
+import { CakeMessagesOptions } from '@/components/CakeMessagesOptions';
 import LazyImage from '@/components/LazyImage';
 import { 
     getCakeTypesForIcingBase, 
@@ -13,7 +14,7 @@ import {
 } from '@/constants';
 import { getIcingBucketName } from '@/utils/colorUtils';
 import { getIcingImage, type IcingImageType } from '@/utils/icingImage';
-import { TrashIcon, MagicSparkleIcon } from '@/components/icons';
+import { MagicSparkleIcon } from '@/components/icons';
 import { roundDownToNearest99 } from '@/lib/utils/pricing';
 import type { BasePriceInfo, CakeInfoUI, CakeMessageUI, ClusteredMarker, IcingDesignUI, IcingGroup, MainTopperType, MainTopperUI, SupportElementType, SupportElementUI } from '@/types';
 
@@ -39,6 +40,7 @@ interface CustomizingStepSummarySectionsProps {
     setActiveCustomization: Dispatch<SetStateAction<string | null>>;
     setSelectedItem: Dispatch<SetStateAction<ClusteredMarker | null>>;
     addCakeMessage?: (position: 'top' | 'side' | 'base_board') => void;
+    updateCakeMessage: (id: string, updates: Partial<CakeMessageUI>) => void;
     removeCakeMessage: (id: string) => void;
     updateMainTopper: (id: string, updates: Partial<MainTopperUI>) => void;
     updateSupportElement: (id: string, updates: Partial<SupportElementUI>) => void;
@@ -101,10 +103,6 @@ const findScrollableParent = (element: HTMLElement | null): HTMLElement | null =
 
     return document.scrollingElement instanceof HTMLElement ? document.scrollingElement : null;
 };
-
-const getMessagePositionLabel = (position: CakeMessageUI['position']) => (
-    position === 'top' ? 'TOP' : position === 'side' ? 'FRONT' : 'BASE'
-);
 
 const buildCombinedDecorSummary = (mainToppers: MainTopperUI[], supportElements: SupportElementUI[], isCupcake?: boolean) => {
     const items = [...mainToppers, ...supportElements];
@@ -256,6 +254,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     setActiveCustomization,
     setSelectedItem,
     addCakeMessage,
+    updateCakeMessage,
     removeCakeMessage,
     updateMainTopper,
     updateSupportElement,
@@ -286,7 +285,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     maskStatus = 'idle',
 }: CustomizingStepSummarySectionsProps) {
     // Default position when "+ Add" is clicked: Bento → front (side), all others → base_board
-    const defaultMessagePosition = cakeInfo?.type === 'Bento' ? 'side' : 'base_board';
     const [showIcingChoice, setShowIcingChoice] = React.useState(true);
     const [showAdvanced, setShowAdvanced] = React.useState(false);
     const [isColorPickerOpen, setIsColorPickerOpen] = React.useState(false);
@@ -1028,62 +1026,13 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
 
             {cakeInfo && !isAnalyzing && !isRejectionError && (
                 <div className={cardClassName}>
-                    {cakeMessages.length > 0 ? (
-                        <div className="flex flex-col gap-2">
-                            {cakeMessages.map((message, index) => (
-                                <div
-                                    key={message.id || index}
-                                    className={`flex items-center gap-3 py-[9px] px-4 rounded-xl bg-slate-50/80 hover:bg-slate-100/80 transition-colors cursor-pointer group ${!message.isEnabled ? 'opacity-40' : ''}`}
-                                    onClick={() => {
-                                        setSelectedItem({ ...message, itemCategory: 'message' });
-                                        setActiveCustomization('messages');
-                                    }}
-                                >
-                                    <span className="text-[10px] font-bold text-purple-500 uppercase tracking-wider shrink-0">{getMessagePositionLabel(message.position)}</span>
-                                    <span className={`text-sm font-medium truncate flex-1 ${message.text || message.originalMessage?.text ? 'text-slate-700' : 'text-slate-400 italic'}`}>
-                                        {message.text || message.originalMessage?.text || 'New Message'}
-                                    </span>
-                                    <div className="w-4 h-4 rounded-full border border-slate-200 shrink-0 shadow-sm" style={{ backgroundColor: message.color || '#000000' }} />
-                                    <button
-                                        onClick={(event) => {
-                                            event.stopPropagation();
-                                            removeCakeMessage(message.id);
-                                        }}
-                                        className="text-slate-400 hover:text-red-500 transition-colors p-1 shrink-0"
-                                        aria-label="Delete message"
-                                    >
-                                        <TrashIcon className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            ))}
-                            <div className="flex justify-center mt-2">
-                                <button
-                                    onClick={(event) => {
-                                        event.stopPropagation();
-                                        setActiveCustomization('messages');
-                                        setSelectedItem(null);
-                                        addCakeMessage?.(defaultMessagePosition);
-                                    }}
-                                    className="genie-btn-secondary text-[10px] font-bold py-2 px-5 rounded-full"
-                                >
-                                    <span className="text-base leading-none">+</span> Add message
-                                </button>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="flex justify-center py-2">
-                            <button
-                                className="genie-btn-secondary text-[10px] font-bold py-2 px-5 rounded-full"
-                                onClick={() => {
-                                    setActiveCustomization('messages');
-                                    setSelectedItem(null);
-                                    addCakeMessage?.(defaultMessagePosition);
-                                }}
-                            >
-                                <span className="text-base leading-none">+</span> Add a cake message
-                            </button>
-                        </div>
-                    )}
+                    <CakeMessagesOptions
+                        cakeMessages={cakeMessages}
+                        cakeType={cakeInfo.type}
+                        addCakeMessage={(position) => addCakeMessage?.(position)}
+                        updateCakeMessage={updateCakeMessage}
+                        removeCakeMessage={removeCakeMessage}
+                    />
                 </div>
             )}
 
