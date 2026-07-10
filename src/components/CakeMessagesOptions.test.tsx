@@ -57,8 +57,35 @@ describe('CakeMessagesOptions', () => {
 
         expect(updateCakeMessage).toHaveBeenLastCalledWith('message-1', {
             text: '',
-            isPlaceholder: false,
         });
+    });
+
+    it('shows an existing message as a placeholder without replacing its value', () => {
+        renderCakeMessagesOptions([createMessage({
+            text: 'Happy Birthday',
+            originalMessage: {
+                type: 'icing_script',
+                text: 'Happy Birthday',
+                position: 'top',
+                color: '#000000',
+            },
+        })]);
+
+        expect(screen.getByLabelText('Text')).toHaveValue('');
+        expect(screen.getByLabelText('Text')).toHaveAttribute('placeholder', 'Happy Birthday');
+    });
+
+    it('requires modal confirmation before removing a message', async () => {
+        const user = userEvent.setup();
+        const removeCakeMessage = vi.fn();
+        renderCakeMessagesOptions([createMessage()], { removeCakeMessage });
+
+        await user.click(screen.getByRole('button', { name: 'Delete Top message' }));
+        expect(screen.getByRole('dialog', { name: 'Delete message?' })).toBeInTheDocument();
+        expect(removeCakeMessage).not.toHaveBeenCalled();
+
+        await user.click(screen.getByRole('button', { name: 'Delete message' }));
+        expect(removeCakeMessage).toHaveBeenCalledWith('message-1');
     });
 
     it('updates the message position directly', async () => {

@@ -165,14 +165,15 @@ export const useCakeCustomization = () => {
 
     const updateCakeMessage = useCallback((id: string, updates: Partial<CakeMessageUI>) => {
         setCakeMessages(prev => prev.map(m => {
-            if (m.id === id) {
-                const newMsg = { ...m, ...updates };
-                if (updates.text !== undefined) {
-                    newMsg.isPlaceholder = false;
-                }
-                return newMsg;
+            if (m.id !== id) return m;
+
+            const newMsg = { ...m, ...updates };
+            if (updates.text !== undefined) {
+                newMsg.isPlaceholder = updates.text.trim().length === 0
+                    ? Boolean(m.originalMessage)
+                    : false;
             }
-            return m;
+            return newMsg;
         }));
         markDirty('cakeMessages');
     }, []);

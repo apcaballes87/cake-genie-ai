@@ -121,7 +121,12 @@ describe('CustomizingStepSummarySections', () => {
         fireEvent.change(instructions, { target: { value: 'Use a softer pink.' } });
 
         expect(props.onAdditionalInstructionsChange).toHaveBeenCalledWith('Use a softer pink.');
-        expect(screen.getByRole('button', { name: /Edit Design Details/i }).compareDocumentPosition(instructions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        const editDetailsButton = screen.getByRole('button', { name: /Edit Design Details/i });
+        expect(editDetailsButton.compareDocumentPosition(instructions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+        fireEvent.click(editDetailsButton);
+        const tierButton = screen.getByRole('button', { name: /3 Tier/i });
+        expect(tierButton.compareDocumentPosition(instructions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
 
     it('keeps cake type controls in advanced customization and still forwards message actions', () => {
@@ -134,13 +139,12 @@ describe('CustomizingStepSummarySections', () => {
         fireEvent.click(screen.getByRole('button', { name: /Edit Design Details/i }));
         fireEvent.click(screen.getByRole('button', { name: /3 Tier/i }));
         fireEvent.change(screen.getByLabelText('Text'), { target: { value: 'Congrats!' } });
-        vi.spyOn(window, 'confirm').mockReturnValue(true);
         fireEvent.click(screen.getByRole('button', { name: 'Delete Front message' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Delete message' }));
 
         expect(props.onCakeInfoChange).toHaveBeenCalledWith({ type: '3 Tier' });
         expect(props.updateCakeMessage).toHaveBeenCalledWith('message-1', {
             text: 'Congrats!',
-            isPlaceholder: false,
         });
         expect(props.removeCakeMessage).toHaveBeenCalledWith('message-1');
         expect(screen.queryByText('Choose Cake Type')).not.toBeInTheDocument();

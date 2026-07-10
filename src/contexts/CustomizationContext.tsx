@@ -418,7 +418,17 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
     }, []);
 
     const updateCakeMessage = useCallback((id: string, updates: Partial<CakeMessageUI>) => {
-        setCakeMessages(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
+        setCakeMessages(prev => prev.map(m => {
+            if (m.id !== id) return m;
+
+            const nextMessage = { ...m, ...updates };
+            if (updates.text !== undefined) {
+                nextMessage.isPlaceholder = updates.text.trim().length === 0
+                    ? Boolean(m.originalMessage)
+                    : false;
+            }
+            return nextMessage;
+        }));
         markDirty('cakeMessages');
     }, []);
 

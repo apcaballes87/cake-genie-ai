@@ -18,7 +18,6 @@ export const CustomizingInstructionsPanel = memo(function CustomizingInstruction
             <div className="p-4 space-y-3">
                 <div>
                     <h3 className="text-sm font-bold text-slate-800">Additional Instructions</h3>
-                    <p className="mt-1 text-xs text-slate-500">Any special requests or details we should know about?</p>
                 </div>
                 <textarea
                     aria-label="Additional Instructions"

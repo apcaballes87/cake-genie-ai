@@ -42,7 +42,6 @@ describe('CustomizingMessagesPanel', () => {
 
         expect(props.updateCakeMessage).toHaveBeenCalledWith(topMessage.id, {
             text: 'Congrats!',
-            isPlaceholder: false,
         });
         expect(props.updateCakeMessage).toHaveBeenCalledWith(topMessage.id, { color: '#FF0000' });
     });

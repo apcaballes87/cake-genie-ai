@@ -3103,8 +3103,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
 
             if (!originalMsg) return true; // New message at a new position
 
+            const isBlankPlaceholder = Boolean(currentMsg.isPlaceholder && !currentMsg.text.trim() && currentMsg.originalMessage);
+
             return (
-                currentMsg.text !== originalMsg.text ||
+                (!isBlankPlaceholder && currentMsg.text !== originalMsg.text) ||
                 currentMsg.color !== originalMsg.color ||
                 currentMsg.isEnabled !== (originalMsg.isEnabled ?? true) ||
                 currentMsg.position !== originalMsg.position
@@ -3182,7 +3184,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         if (!clearMessageTexts || cakeMessages.length === 0) return;
         const hasText = cakeMessages.some(m => m.text);
         if (!hasText) return;
-        onCakeMessageChange(cakeMessages.map(m => ({ ...m, text: '' })));
+        onCakeMessageChange(cakeMessages.map(m => ({
+            ...m,
+            text: '',
+            isPlaceholder: Boolean(m.originalMessage),
+        })));
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [clearMessageTexts, analysisResult]);
 
@@ -3568,6 +3574,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
             color: color || '#000000',
             isEnabled: true,
             price: 0,
+            isPlaceholder: true,
             x: coords.x,
             y: coords.y,
         };

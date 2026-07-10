@@ -80,6 +80,59 @@ describe('designService: no-op fast path', () => {
         expect(result.image).toBe('new-image-data-base64');
     });
 
+    it('preserves a blank placeholder message and skips blank new-message prompts', async () => {
+        (geminiService.editCakeImage as any).mockResolvedValueOnce('placeholder-preserved-image');
+
+        const originalMessage = {
+            type: 'icing_script',
+            text: 'Happy Birthday',
+            position: 'side',
+            color: '#000000',
+        };
+
+        const result = await updateDesign({
+            originalImageData: mockOriginalImage,
+            analysisResult: {
+                ...mockAnalysisResult,
+                cake_messages: [originalMessage],
+            } as any,
+            cakeInfo: { type: '1 Tier', flavor: ['Chocolate Cake'], size: '6" Round', thickness: 'Standard' } as any,
+            mainToppers: [],
+            supportElements: [],
+            cakeMessages: [
+                {
+                    id: 'message-1',
+                    type: 'icing_script',
+                    text: '',
+                    position: 'side',
+                    color: '#000000',
+                    originalMessage,
+                    isPlaceholder: true,
+                    isEnabled: true,
+                    price: 0,
+                },
+                {
+                    id: 'message-2',
+                    type: 'gumpaste_letters',
+                    text: '',
+                    position: 'top',
+                    color: '#000000',
+                    isEnabled: true,
+                    price: 0,
+                },
+            ] as any,
+            icingDesign: { ...mockAnalysisResult.icing_design, colors: { side: '#FF0000' } },
+            additionalInstructions: '',
+            threeTierReferenceImage: null,
+            traceId: 'placeholder-message-trace',
+        });
+
+        const [prompt] = (geminiService.editCakeImage as any).mock.calls[0];
+        expect(prompt).toContain('Preserve the existing text/message');
+        expect(prompt).not.toContain('Write ""');
+        expect(result.image).toBe('placeholder-preserved-image');
+    });
+
     it('uses a strong object-replacement prompt when converting a toy topper to printout', async () => {
         (geminiService.editCakeImage as any).mockResolvedValueOnce('toy-to-printout-image');
 

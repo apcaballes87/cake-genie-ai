@@ -4693,3 +4693,29 @@
 - Added an always-visible Additional Instructions textarea directly below Edit Design Details in the customizer summary.
 - Reused the existing context handler and persistence; the value is included in `customization_details` when adding to cart and copied unchanged from cart rows into order items by the order RPC.
 - Verification: 17 focused tests passed, `npm run build` passed, and `git diff --check` passed.
+
+## Additional Instructions layout refinement (2026-07-10)
+
+### Review
+
+- Removed the helper sentence under Additional Instructions.
+- Moved the instructions card below the expandable advanced design section so it is pushed down when Edit Design Details opens.
+- Right-aligned Add message and reduced the position selector width by approximately 15%.
+- Verification: 21 focused tests passed, `npm run build` passed, and `git diff --check` passed.
+
+## Message row container cleanup (2026-07-10)
+
+### Review
+
+- Removed the individual border, background, rounded corners, padding, and shadow from each message row so the section now presents clean inline lines.
+- Verification: 8 focused message tests passed and `git diff --check` passed.
+
+## Placeholder message preservation and delete modal (2026-07-10)
+
+### Review
+
+- Existing detected messages now display as placeholders; clearing a message keeps its original image text preserved during image edits.
+- Blank newly added rows no longer generate empty “Write” instructions, and only the explicit trash action removes a message.
+- Replaced browser `confirm()` with an accessible Cancel/Delete modal.
+- Cart serialization falls back to the original message text for untouched placeholders.
+- Verification: 30 focused tests passed, `npm run build` passed, and `git diff --check` passed.

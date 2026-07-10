@@ -469,7 +469,7 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
 
     // Any remaining items in `availableUIMessages` must be new messages added by the user.
     availableUIMessages.forEach(uiMsg => {
-        if (uiMsg.isEnabled && !uiMsg.originalMessage) {
+        if (uiMsg.isEnabled && !uiMsg.originalMessage && uiMsg.text.trim()) {
             messageChanges.push(`- **Add new text**: Write "${uiMsg.text}" on the **${uiMsg.position}** using small ${uiMsg.type} style in the color ${colorName(uiMsg.color)}.`);
         }
     });

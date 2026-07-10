@@ -1073,16 +1073,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                 </div>
             )}
 
-            {cakeInfo && !isAnalyzing && !isRejectionError && onAdditionalInstructionsChange && (
-                <div className={cardClassName}>
-                    <CustomizingInstructionsPanel
-                        isVisible={true}
-                        additionalInstructions={additionalInstructions}
-                        onAdditionalInstructionsChange={onAdditionalInstructionsChange}
-                    />
-                </div>
-            )}
-
             <div 
                 ref={advancedSectionRef}
                 id="advanced-customization-steps" 
@@ -1168,6 +1158,16 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                 )}
 
             </div>
+
+            {cakeInfo && !isAnalyzing && !isRejectionError && onAdditionalInstructionsChange && (
+                <div className={cardClassName}>
+                    <CustomizingInstructionsPanel
+                        isVisible={true}
+                        additionalInstructions={additionalInstructions}
+                        onAdditionalInstructionsChange={onAdditionalInstructionsChange}
+                    />
+                </div>
+            )}
         </div>
     );
 });

@@ -35,7 +35,7 @@ export function buildCartCustomizationDetails(
     cakeMessages: input.cakeMessages
       .filter((message) => message.isEnabled)
       .map((message) => ({
-        text: message.text,
+        text: message.text || message.originalMessage?.text || '',
         color: message.color,
       })),
     icingDesign: {
