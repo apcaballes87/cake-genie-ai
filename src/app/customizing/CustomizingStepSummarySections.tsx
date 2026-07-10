@@ -5,6 +5,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import { X, ChevronDown, ChevronUp, Wand2, Check } from 'lucide-react';
 import { CakeBaseOptions } from '@/components/CakeBaseOptions';
 import { CakeMessagesOptions } from '@/components/CakeMessagesOptions';
+import { CustomizingInstructionsPanel } from './CustomizingInstructionsPanel';
 import LazyImage from '@/components/LazyImage';
 import { 
     getCakeTypesForIcingBase, 
@@ -41,6 +42,8 @@ interface CustomizingStepSummarySectionsProps {
     setSelectedItem: Dispatch<SetStateAction<ClusteredMarker | null>>;
     addCakeMessage?: (position: 'top' | 'side' | 'base_board') => void;
     updateCakeMessage: (id: string, updates: Partial<CakeMessageUI>) => void;
+    additionalInstructions?: string;
+    onAdditionalInstructionsChange?: (value: string) => void;
     removeCakeMessage: (id: string) => void;
     updateMainTopper: (id: string, updates: Partial<MainTopperUI>) => void;
     updateSupportElement: (id: string, updates: Partial<SupportElementUI>) => void;
@@ -255,6 +258,8 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     setSelectedItem,
     addCakeMessage,
     updateCakeMessage,
+    additionalInstructions = '',
+    onAdditionalInstructionsChange,
     removeCakeMessage,
     updateMainTopper,
     updateSupportElement,
@@ -1065,6 +1070,16 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                             <ChevronDown className={`w-5 h-5 ${showAdvanced ? 'text-purple-500' : 'text-slate-300'}`} />
                         </div>
                     </button>
+                </div>
+            )}
+
+            {cakeInfo && !isAnalyzing && !isRejectionError && onAdditionalInstructionsChange && (
+                <div className={cardClassName}>
+                    <CustomizingInstructionsPanel
+                        isVisible={true}
+                        additionalInstructions={additionalInstructions}
+                        onAdditionalInstructionsChange={onAdditionalInstructionsChange}
+                    />
                 </div>
             )}
 

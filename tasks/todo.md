@@ -4685,3 +4685,11 @@
 - Message creation now updates inline state directly without scrolling to the image or selecting the retired message editor.
 - Each message is now a single compact row with a flexible text field, smaller position selector, smaller color swatch, and delete control.
 - Verification: 8 focused tests passed, `npm run build` passed, and `git diff --check` passed.
+
+## Additional Instructions section (2026-07-10)
+
+### Review
+
+- Added an always-visible Additional Instructions textarea directly below Edit Design Details in the customizer summary.
+- Reused the existing context handler and persistence; the value is included in `customization_details` when adding to cart and copied unchanged from cart rows into order items by the order RPC.
+- Verification: 17 focused tests passed, `npm run build` passed, and `git diff --check` passed.

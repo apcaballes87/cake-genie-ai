@@ -16,12 +16,16 @@ export const CustomizingInstructionsPanel = memo(function CustomizingInstruction
     return (
         <div className={isVisible ? 'block' : 'hidden'}>
             <div className="p-4 space-y-3">
-                <p className="text-xs text-slate-500">Any special requests or details we should know about? Describe them here!</p>
+                <div>
+                    <h3 className="text-sm font-bold text-slate-800">Additional Instructions</h3>
+                    <p className="mt-1 text-xs text-slate-500">Any special requests or details we should know about?</p>
+                </div>
                 <textarea
+                    aria-label="Additional Instructions"
                     value={additionalInstructions}
                     onChange={(e) => onAdditionalInstructionsChange(e.target.value)}
-                    placeholder="e.g. Please make the colors exactly as in the photo, or Make the topper slightly taller..."
-                    className="w-full h-32 p-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow resize-none"
+                    placeholder="e.g. Please make the colors exactly as in the photo, or make the topper slightly taller..."
+                    className="w-full h-28 resize-none rounded-xl border border-slate-200 bg-white p-3 text-sm transition-shadow focus:outline-none focus:ring-2 focus:ring-purple-400"
                 />
             </div>
         </div>

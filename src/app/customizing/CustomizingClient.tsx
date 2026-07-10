@@ -4046,6 +4046,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                         addCakeMessage,
                                         removeCakeMessage,
                                         updateCakeMessage,
+                                        additionalInstructions,
+                                        onAdditionalInstructionsChange,
                                         updateMainTopper,
                                         updateSupportElement,
                                         onTopperImageReplace: onTopperImageReplace,
@@ -4126,6 +4128,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                     addCakeMessage={addCakeMessage}
                                     removeCakeMessage={removeCakeMessage}
                                     updateCakeMessage={updateCakeMessage}
+                                    additionalInstructions={additionalInstructions}
+                                    onAdditionalInstructionsChange={onAdditionalInstructionsChange}
                                     updateMainTopper={updateMainTopper}
                                     updateSupportElement={updateSupportElement}
                                     onTopperImageReplace={onTopperImageReplace}
@@ -4246,6 +4250,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                     addCakeMessage,
                                     removeCakeMessage,
                                     updateCakeMessage,
+                                    additionalInstructions,
+                                    onAdditionalInstructionsChange,
                                     updateMainTopper,
                                     updateSupportElement,
                                     onTopperImageReplace: onTopperImageReplace,

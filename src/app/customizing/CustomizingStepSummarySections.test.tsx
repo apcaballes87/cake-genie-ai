@@ -94,7 +94,11 @@ const buildProps = (): React.ComponentProps<typeof CustomizingStepSummarySection
     selectedItemId: null,
     setActiveCustomization: vi.fn(),
     setSelectedItem: vi.fn(),
+    addCakeMessage: vi.fn(),
     removeCakeMessage: vi.fn(),
+    updateCakeMessage: vi.fn(),
+    additionalInstructions: '',
+    onAdditionalInstructionsChange: vi.fn(),
     updateMainTopper: vi.fn(),
     updateSupportElement: vi.fn(),
     onTopperImageReplace: vi.fn(),
@@ -106,6 +110,20 @@ const buildProps = (): React.ComponentProps<typeof CustomizingStepSummarySection
 });
 
 describe('CustomizingStepSummarySections', () => {
+    it('renders Additional Instructions below Edit Design Details and forwards changes', () => {
+        const props = buildProps();
+        props.additionalInstructions = 'Keep the topper centered.';
+
+        render(<CustomizingStepSummarySections {...props} />);
+
+        const instructions = screen.getByRole('textbox', { name: 'Additional Instructions' });
+        expect(instructions).toHaveValue('Keep the topper centered.');
+        fireEvent.change(instructions, { target: { value: 'Use a softer pink.' } });
+
+        expect(props.onAdditionalInstructionsChange).toHaveBeenCalledWith('Use a softer pink.');
+        expect(screen.getByRole('button', { name: /Edit Design Details/i }).compareDocumentPosition(instructions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
     it('keeps cake type controls in advanced customization and still forwards message actions', () => {
         const props = buildProps();
 
@@ -115,18 +133,16 @@ describe('CustomizingStepSummarySections', () => {
 
         fireEvent.click(screen.getByRole('button', { name: /Edit Design Details/i }));
         fireEvent.click(screen.getByRole('button', { name: /3 Tier/i }));
-        fireEvent.click(screen.getByText('Happy Birthday'));
-        fireEvent.click(screen.getByRole('button', { name: 'Delete message' }));
+        fireEvent.change(screen.getByLabelText('Text'), { target: { value: 'Congrats!' } });
+        vi.spyOn(window, 'confirm').mockReturnValue(true);
+        fireEvent.click(screen.getByRole('button', { name: 'Delete Front message' }));
 
         expect(props.onCakeInfoChange).toHaveBeenCalledWith({ type: '3 Tier' });
-        expect(props.setActiveCustomization).toHaveBeenCalledWith('messages');
-        expect(props.setSelectedItem).toHaveBeenCalledWith(expect.objectContaining({
-            id: 'message-1',
-            itemCategory: 'message',
-            text: 'Happy Birthday',
-        }));
+        expect(props.updateCakeMessage).toHaveBeenCalledWith('message-1', {
+            text: 'Congrats!',
+            isPlaceholder: false,
+        });
         expect(props.removeCakeMessage).toHaveBeenCalledWith('message-1');
-        expect(screen.getByText('FRONT')).toBeInTheDocument();
         expect(screen.queryByText('Choose Cake Type')).not.toBeInTheDocument();
     });
 
@@ -159,11 +175,10 @@ describe('CustomizingStepSummarySections', () => {
 
         render(<CustomizingStepSummarySections {...props} />);
 
-        fireEvent.click(screen.getByRole('button', { name: /Add a cake message/i }));
+        fireEvent.click(screen.getByRole('button', { name: /\+ Add message/i }));
         fireEvent.click(screen.getByRole('button', { name: /Edit Design Details/i }));
         fireEvent.click(screen.getByRole('button', { name: /Toy topper\s*\(Toy\)/i }));
 
-        expect(props.setActiveCustomization).toHaveBeenCalledWith('messages');
         expect(props.setSelectedItem).toHaveBeenCalledWith(expect.objectContaining({
             id: 'topper-1',
             itemCategory: 'topper',
