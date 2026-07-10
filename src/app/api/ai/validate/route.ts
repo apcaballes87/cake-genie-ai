@@ -71,8 +71,8 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const primaryModel = useCase === 'chat' ? 'gemini-2.5-flash' : 'gemini-3.1-flash-lite-preview';
-        const fallbackModel = 'gemini-3.1-flash-lite-preview';
+        const primaryModel = useCase === 'chat' ? 'gemini-2.5-flash' : 'gemini-3.1-flash-lite';
+        const fallbackModel = 'gemini-3.1-flash-lite';
 
         let result;
         try {

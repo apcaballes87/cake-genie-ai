@@ -26,7 +26,7 @@ export async function OPTIONS() {
 // Fail fast on slow AI calls so we can return a clean 504 well before Vercel kills the function.
 // The analyze prompt is heavy; most successful calls complete in <90s.
 const AI_REQUEST_TIMEOUT_MS = 120_000;
-const ANALYSIS_MODEL = "gemini-3.1-flash-lite-preview";
+const ANALYSIS_MODEL = "gemini-3.1-flash-lite";
 const ANALYSIS_CONFIG_CACHE_TTL_MS = 5 * 60_000;
 const PROMPT_CACHE_NAME_TTL_MS = 30 * 60_000;
 

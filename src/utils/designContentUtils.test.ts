@@ -216,7 +216,7 @@ describe('generateDynamicCollectionDescription', () => {
                 };
             };
         };
-        expect(args.model).toBe('gemini-3.1-flash-lite-preview');
+        expect(args.model).toBe('gemini-3.1-flash-lite');
         expect(args.config?.responseMimeType).toBe('application/json');
         expect(args.config?.thinkingConfig?.thinkingLevel).toBe('LOW');
 

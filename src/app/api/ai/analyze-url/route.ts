@@ -203,7 +203,7 @@ export async function POST(req: NextRequest) {
 
         const aiClient = getAI(req);
         const response = await aiClient.models.generateContent({
-            model: "gemini-3.1-flash-lite-preview",
+            model: "gemini-3.1-flash-lite",
             contents: [{
                 role: 'user',
                 parts: [

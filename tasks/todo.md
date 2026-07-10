@@ -1,5 +1,28 @@
 # Tasks
 
+## Fix Retired Gemini Flash-Lite Preview Analyze Model (2026-07-10)
+
+### Plan
+
+- [x] Confirm the failing production model ID against current Google docs.
+- [x] Trace all active runtime call sites still using `gemini-3.1-flash-lite-preview`.
+- [x] Replace the retired preview ID with the GA `gemini-3.1-flash-lite` model in analysis/validation/text-generation paths and prompt caching.
+- [x] Update tests and docs/task notes that assert the retired model ID.
+- [x] Run focused verification and record results.
+
+### Review
+
+- Root cause: production was still calling `gemini-3.1-flash-lite-preview` from `/api/ai/analyze`. Current Google docs list that preview model as shut down and point to the GA replacement `gemini-3.1-flash-lite`, which matches the production 404/`NOT_FOUND` error.
+- Updated active runtime analysis, URL analysis, validation, generated-text, prompt-cache, collection-description, admin batch, and related maintenance-script call sites to use `gemini-3.1-flash-lite`.
+- Left image-generation/editing model IDs such as `gemini-3.1-flash-lite-image` unchanged because they are separate image models and were not the failing stack trace.
+- Updated focused tests to assert the GA model, and repaired the `/api/ai/analyze` test fixture so it matches the current dynamic enum contract.
+- Verification:
+  - `rg -n "gemini-3\\.1-flash-lite-preview" src scripts -S` returned no active code/script references.
+  - `npx vitest run src/app/api/ai/analyze/route.test.ts src/app/api/ai/validate/route.test.ts src/utils/designContentUtils.test.ts --exclude '.claude/**'` passed with 18 tests.
+  - `git diff --check -- ...` passed across the touched files.
+  - `npx eslint src/app/api/ai/analyze/route.ts src/app/api/ai/analyze/route.test.ts src/app/api/ai/validate/route.ts src/app/api/ai/validate/route.test.ts src/app/api/ai/analyze-url/route.ts src/app/api/ai/generate-texts/route.ts src/lib/ai/client.ts src/lib/admin/searchAnalysisBatch.ts` passed with 0 errors and existing unused-variable warnings.
+  - `npm run build` passed. Existing warnings remained for stale baseline/browser data, inferred Turbopack workspace root, deprecated `middleware`, and non-fatal Supabase statement timeouts during static generation.
+
 ## Preserve Customizer Hero Frame Aspect During AI Edits (2026-07-09)
 
 ### Plan

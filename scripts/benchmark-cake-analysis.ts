@@ -68,7 +68,7 @@ async function runBenchmark() {
         const start = performance.now();
         try {
             const response = await ai.models.generateContent({
-                model: "gemini-3.1-flash-lite-preview",
+                model: "gemini-3.1-flash-lite",
                 contents: [{
                     role: 'user',
                     parts: [
@@ -114,7 +114,7 @@ async function runBenchmark() {
         console.log("   Creating Vertex AI Context Cache (Prompt Cache)...");
         const cacheStart = performance.now();
         cache = await ai.caches.create({
-            model: 'gemini-3.1-flash-lite-preview',
+            model: 'gemini-3.1-flash-lite',
             config: {
                 contents: [
                     { role: 'user', parts: [{ text: fallbackPrompt }] }
@@ -131,7 +131,7 @@ async function runBenchmark() {
         for (let i = 0; i < 4; i++) {
             const start = performance.now();
             const response = await ai.models.generateContent({
-                model: 'gemini-3.1-flash-lite-preview',
+                model: 'gemini-3.1-flash-lite',
                 contents: [
                     { inlineData: { mimeType: imgData.mimeType, data: imgData.data } }
                 ],

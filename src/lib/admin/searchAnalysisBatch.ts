@@ -10,7 +10,7 @@ import { getAnalysisPromptWithFallback } from '@/services/prompts/promptLoader';
 import { cacheAnalysisResult } from '@/services/supabaseService';
 import type { HybridAnalysisResult } from '@/types';
 
-const MODEL = 'gemini-3.1-flash-lite-preview';
+const MODEL = 'gemini-3.1-flash-lite';
 const STORAGE_BUCKET = 'cakegenie';
 const MAX_BATCH_SIZE = 1000;
 const PROBE_SIZE = 3;

@@ -39,8 +39,8 @@ describe('POST /api/ai/analyze', () => {
             version: '1.0',
         });
         mockGetDynamicTypeEnums.mockResolvedValue({
-            styles: [],
-            icings: [],
+            mainTopperTypes: ['fondant_figure'],
+            supportElementTypes: ['artificial_flowers', 'fresh_flowers'],
         });
         mockGenerateContent.mockResolvedValue({
             text: JSON.stringify({
@@ -84,6 +84,9 @@ describe('POST /api/ai/analyze', () => {
 
         expect(response.status).toBe(200);
         expect(payload.title).toBe('Ocean Mermaid Cake');
+        expect(mockGenerateContent).toHaveBeenCalledWith(
+            expect.objectContaining({ model: 'gemini-3.1-flash-lite' })
+        );
     });
 
     it('processes successfully for public requests without requiring a Turnstile token', async () => {
@@ -103,6 +106,9 @@ describe('POST /api/ai/analyze', () => {
 
         expect(response.status).toBe(200);
         expect(payload.title).toBe('Ocean Mermaid Cake');
+        expect(mockGenerateContent).toHaveBeenCalledWith(
+            expect.objectContaining({ model: 'gemini-3.1-flash-lite' })
+        );
     });
 
     it('reuses cached prompt details and enum config across hot requests', async () => {

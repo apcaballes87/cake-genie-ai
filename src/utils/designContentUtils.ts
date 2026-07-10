@@ -727,7 +727,7 @@ Return JSON in this format:
 `;
 
         const response = await aiClient.models.generateContent({
-            model: 'gemini-3.1-flash-lite-preview',
+            model: 'gemini-3.1-flash-lite',
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
             config: {
                 responseMimeType: 'application/json',

@@ -2,7 +2,6 @@ import { GoogleGenAI } from "@google/genai";
 import fs from 'fs';
 
 let ai: InstanceType<typeof GoogleGenAI> | null = null;
-let aiBatch: InstanceType<typeof GoogleGenAI> | null = null;
 type AIClientMode = 'vertex' | 'apiKey-fallback' | 'service-account-key';
 type AIRequestContext = {
     headers?: {
@@ -265,7 +264,7 @@ export async function getOrCreatePromptCache(
         
         console.info(`[AI Cache] Cache not found. Creating new cached content for version ${version}...`);
         const newCache = await aiClient.caches.create({
-            model: 'gemini-3.1-flash-lite-preview',
+            model: 'gemini-3.1-flash-lite',
             config: {
                 contents: [
                     { role: 'user', parts: [{ text: promptText }] }
@@ -283,4 +282,3 @@ export async function getOrCreatePromptCache(
         return null;
     }
 }
-
