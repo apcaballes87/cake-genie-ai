@@ -646,8 +646,6 @@ export default function CreatorsLandingPage() {
                     {/* Other nav links */}
                     {[
                         { label: 'Cold Caking', href: '/coldcaking', emoji: '🧊' },
-                        { label: 'Our Bakers', href: '/shop', emoji: '🏪' },
-                        { label: 'Compare Cakes', href: '/compare', emoji: '⚖️' },
                         { label: 'How to Order', href: '/how-to-order', emoji: '📋' },
                         { label: 'Payment Options', href: '/payment-options', emoji: '💳' },
                         { label: 'Delivery Rates', href: '/delivery-rates', emoji: '🚚' },

@@ -662,7 +662,7 @@ const ColdCakingClient: React.FC = () => {
             {/* ========== MOBILE SIDE MENU DRAWER ========== */}
             {/* Backdrop */}
             <div
-                className={`fixed inset-0 z-50 transition-opacity duration-300 ${isMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+                className={`fixed inset-0 z-[90] transition-opacity duration-300 ${isMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
                 onClick={() => setIsMenuOpen(false)}
                 aria-hidden="true"
                 style={{ background: 'rgba(0,0,0,0.45)' }}
@@ -670,7 +670,7 @@ const ColdCakingClient: React.FC = () => {
 
             {/* Drawer Panel */}
             <aside
-                className={`fixed top-0 left-0 z-50 h-full w-72 bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-out ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+                className={`fixed top-0 left-0 z-[100] h-full w-72 bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-out ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
                 aria-label="Side navigation"
             >
                 {/* Drawer Header */}
@@ -754,8 +754,6 @@ const ColdCakingClient: React.FC = () => {
                     {/* Other nav links */}
                     {[
                         { label: 'Cold Caking', href: '/coldcaking', emoji: '🧊' },
-                        { label: 'Our Bakers', href: '/shop', emoji: '🏪' },
-                        { label: 'Compare Cakes', href: '/compare', emoji: '⚖️' },
                         { label: 'How to Order', href: '/how-to-order', emoji: '📋' },
                         { label: 'Payment Options', href: '/payment-options', emoji: '💳' },
                         { label: 'Delivery Rates', href: '/delivery-rates', emoji: '🚚' },

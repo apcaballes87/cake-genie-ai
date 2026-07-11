@@ -1,5 +1,54 @@
 # Tasks
 
+## Remove Side Menu Links (2026-07-11)
+
+### Plan
+
+- [x] Locate all side-menu entries for Our Bakers and Compare Cakes.
+- [x] Remove both entries from each side-menu implementation.
+- [x] Run focused checks and the production build.
+
+### Review
+
+- Removed `Our Bakers` and `Compare Cakes` from the landing, Cold Caking, and Creators side menus.
+- Confirmed neither label remains in those side-menu implementations.
+- `git diff --check` passed for the touched menu files.
+- `npm run build` passed. Existing baseline-browser-mapping, inferred workspace-root, and deprecated middleware warnings remain.
+
+## Equal Mobile Bottom Nav Spacing (2026-07-11)
+
+### Plan
+
+- [x] Confirm the uneven placement comes from content-width-based `justify-around` spacing.
+- [x] Use five equal nav columns and full-width buttons for consistent icon/label centers.
+- [x] Run focused verification and record the result.
+
+### Review
+
+- Replaced content-width-based `justify-around` with a five-column grid so each nav item has an equal horizontal slot.
+- Added `w-full` to each nav button so the icon and label center within its slot.
+- Verification:
+  - `npx eslint src/components/MobileBottomNav.tsx` passed with 0 errors; the existing Browserslist data warning remains.
+  - `git diff --check -- src/components/MobileBottomNav.tsx tasks/todo.md` passed.
+  - `npm run build` passed. Existing stale browser-data, inferred workspace-root, and deprecated middleware warnings remained.
+
+## Mobile Side Menu Above Header (2026-07-11)
+
+### Plan
+
+- [x] Trace the side menu and sticky header stacking contexts.
+- [x] Raise the mobile drawer above the header and keep its backdrop below the drawer.
+- [x] Run focused verification and visually confirm the menu covers the header logo.
+
+### Review
+
+- Raised the landing and Cold Caking mobile drawer panels to `z-[100]` and their backdrops to `z-[90]`, above the shared `z-80` sticky headers.
+- Browser verification at a 390px mobile viewport confirmed the homepage drawer fully covers the header logo while the page remains dimmed behind it.
+- `git diff --check -- src/app/LandingClient.tsx src/app/coldcaking/ColdCakingClient.tsx tasks/todo.md` passed.
+- `npm run build` passed. Existing baseline-browser-mapping, inferred workspace-root, and deprecated middleware warnings remain.
+- Focused ESLint still reports existing errors in the two large client components; the z-index-only change introduced no lint diagnostics.
+
+
 ## Cart Location Badge (2026-07-11)
 
 ### Plan
