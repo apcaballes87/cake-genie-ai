@@ -1,5 +1,22 @@
 # Tasks
 
+## Cart Location Badge (2026-07-11)
+
+### Plan
+
+- [x] Inspect the existing cart registration badge block.
+- [x] Add a Location badge beside BIR Registered using the supplied Google Maps link.
+- [x] Run focused verification and record the result.
+
+### Review
+
+- Added a purple Location badge beside BIR Registered in the cart trust area.
+- The badge opens `https://maps.app.goo.gl/P3N77t6kwSs41LM89` in a new tab.
+- Verification:
+  - `git diff --check -- src/app/cart/CartClient.tsx tasks/todo.md` passed.
+  - `npx eslint src/app/cart/CartClient.tsx` passed with 0 errors; existing cart warnings remain.
+  - `npm run build` passed. Existing stale browser-data, workspace-root, and deprecated middleware warnings remain.
+
 ## Remove Homepage Direct Answer Section (2026-07-11)
 
 ### Plan

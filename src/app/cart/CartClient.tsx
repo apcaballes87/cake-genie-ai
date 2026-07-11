@@ -2893,6 +2893,14 @@ function CartClient() {
                                             >
                                                 BIR Registered
                                             </button>
+                                            <a
+                                                href="https://maps.app.goo.gl/P3N77t6kwSs41LM89"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center rounded-md border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-semibold text-purple-700 shadow-sm transition-colors hover:bg-purple-100"
+                                            >
+                                                Location
+                                            </a>
                                         </div>
                                     </div>
 
