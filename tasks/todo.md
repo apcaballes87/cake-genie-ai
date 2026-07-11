@@ -1,5 +1,22 @@
 # Tasks
 
+## Customizer Upload Cake Design Action (2026-07-11)
+
+### Plan
+
+- [x] Locate the report/save/reset action row and its icon source.
+- [x] Replace the save action with the canonical upload flow, using `Upload Cake Design` and the media-plus icon.
+- [x] Run focused verification and record the result.
+
+### Review
+
+- Replaced the action-row Save button in both desktop and mobile customizer placements with `Upload Cake Design` and Lucide's `ImagePlus` icon.
+- Connected the button to the existing upload-another flow, which clears the current design and opens the image uploader.
+- Verification:
+  - `npx vitest run src/app/customizing/CustomizingHeroPanel.test.tsx --exclude '.claude/**'` passed: 15 tests.
+  - ESLint passed with 0 errors; pre-existing warnings remain in the large customizer files.
+  - `npm run build` passed. Existing baseline-browser-mapping, inferred workspace-root, deprecated middleware, and non-fatal Supabase fetch/statement-timeout warnings remained.
+
 ## Cart Registration Badges (2026-07-10)
 
 ### Plan

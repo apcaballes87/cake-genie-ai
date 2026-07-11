@@ -588,7 +588,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         originalImageData, sourceImageData, previousImageData, originalImagePreview, editedImage, threeTierReferenceImage,
         isLoading: isImageManagementLoading, error: imageManagementError,
         setEditedImage, setError: setImageManagementError, setOriginalImageData, setPreviousImageData,
-        handleImageUpload: rawHookImageUpload, handleSave, uploadCartImages, clearImages,
+        handleImageUpload: rawHookImageUpload, uploadCartImages, clearImages,
         loadImageWithoutAnalysis, setCurrentSlug, currentSlug: persistedSlug,
         currentPHash, currentCacheId, seoMetadata, isAnalysisCached,
         isComposingSelfie, loadedImageUrl,
@@ -2621,9 +2621,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     };
     const onOpenReportModal = () => setIsReportModalOpen(true);
 
-    const onSave = handleSave;
-    const isSaving = false;
-
     const handleUploadAnother = useCallback(() => {
         const nextUrl = buildRetryUploadUrl(window.location.pathname, window.location.search);
         window.history.replaceState({}, '', nextUrl);
@@ -3915,7 +3912,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                             canUndo={canUndo}
                             isLoading={isLoading}
                             isReporting={isReporting}
-                            isSaving={isSaving}
                             showFooterActions={Boolean(cakeInfo || analysisError)}
                             showPriceGuarantee={finalPrice !== null && !isAnalyzing}
                             showMotifButton={Boolean(dominantMotif)}
@@ -3927,7 +3923,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                             onUndo={handleUndoWithModalCleanup}
                             onOpenMotifPanel={openMotifPanel}
                             onOpenReportModal={onOpenReportModal}
-                            onSave={onSave}
+                            onUploadCakeDesign={handleUploadAnother}
                             onClearAll={onClearAll}
                             reviewSummary={reviewSummary}
                             heroImageVariants={heroImageVariants}
@@ -4109,9 +4105,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                         editedImage={editedImage} 
                                         isLoading={isLoading} 
                                         isReporting={isReporting} 
-                                        isSaving={isSaving} 
                                         onOpenReportModal={onOpenReportModal} 
-                                        onSave={onSave} 
+                                        onUploadCakeDesign={handleUploadAnother}
                                         onClearAll={onClearAll} 
                                     />
                                 </div>

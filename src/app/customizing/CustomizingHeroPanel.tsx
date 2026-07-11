@@ -4,8 +4,8 @@ import { memo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import Link from 'next/link';
 import LazyImage from '@/components/LazyImage';
 import { ImageZoomModal } from '@/components/ImageZoomModal';
-import { Heart, ShieldCheck, Wand2 } from 'lucide-react';
-import { ErrorIcon, ImageIcon, ResetIcon, SaveIcon, Loader2, ReportIcon } from '../../components/icons';
+import { Heart, ImagePlus, ShieldCheck, Wand2 } from 'lucide-react';
+import { ErrorIcon, ImageIcon, ResetIcon, Loader2, ReportIcon } from '../../components/icons';
 import MagicGlitter from '@/components/MagicGlitter';
 import { getCustomerFacingAnalysisError } from './analysisErrorDisplay';
 import { useDynamicLoadingPhrase } from '@/hooks/useDynamicLoadingPhrase';
@@ -39,7 +39,6 @@ interface CustomizingHeroPanelProps {
     canUndo: boolean;
     isLoading: boolean;
     isReporting: boolean;
-    isSaving: boolean;
     showFooterActions: boolean;
     showPriceGuarantee: boolean;
     showMotifButton?: boolean;
@@ -51,7 +50,7 @@ interface CustomizingHeroPanelProps {
     onUndo: () => void;
     onOpenMotifPanel?: () => void;
     onOpenReportModal: () => void;
-    onSave: () => void;
+    onUploadCakeDesign: () => void;
     onClearAll: () => void;
     /**
      * Aspect ratio (width / height) of the hero image from the DB
@@ -102,13 +101,12 @@ export interface HeroActionButtonsRowProps {
     editedImage: string | null;
     isLoading: boolean;
     isReporting: boolean;
-    isSaving: boolean;
     onOpenReportModal: () => void;
-    onSave: () => void;
+    onUploadCakeDesign: () => void;
     onClearAll: () => void;
 }
 
-export const HeroActionButtonsRow = ({ editedImage, isLoading, isReporting, isSaving, onOpenReportModal, onSave, onClearAll }: HeroActionButtonsRowProps) => {
+export const HeroActionButtonsRow = ({ editedImage, isLoading, isReporting, onOpenReportModal, onUploadCakeDesign, onClearAll }: HeroActionButtonsRowProps) => {
     const buttonClassName = 'flex items-center gap-1.5 text-[11px] font-bold py-2 px-3 rounded-full bg-white border border-slate-200 text-slate-600 shadow-sm hover:shadow-md hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap';
     const iconClassName = 'w-3.5 h-3.5';
 
@@ -119,13 +117,9 @@ export const HeroActionButtonsRow = ({ editedImage, isLoading, isReporting, isSa
                 <span>{isReporting ? 'Submitting...' : 'Report Issue'}</span>
             </button>
 
-            <button onClick={onSave} disabled={!editedImage || isLoading || isSaving} className={buttonClassName} aria-label="Save customized image">
-                {isSaving ? (
-                    <Loader2 className={`${iconClassName} animate-spin text-purple-500 shrink-0`} />
-                ) : (
-                    <SaveIcon className={`${iconClassName} text-green-600 shrink-0`} />
-                )}
-                <span>{isSaving ? 'Saving...' : 'Save'}</span>
+            <button onClick={onUploadCakeDesign} disabled={isLoading} className={buttonClassName} aria-label="Upload Cake Design">
+                <ImagePlus className={`${iconClassName} text-green-600 shrink-0`} />
+                <span>Upload Cake Design</span>
             </button>
 
             <button onClick={onClearAll} className={`${buttonClassName} border-red-100 text-red-600 hover:bg-red-50`} aria-label="Reset everything">
@@ -184,7 +178,6 @@ export const CustomizingHeroPanel = memo(({
     canUndo,
     isLoading,
     isReporting,
-    isSaving,
     showFooterActions,
     showPriceGuarantee,
     showMotifButton = false,
@@ -196,7 +189,7 @@ export const CustomizingHeroPanel = memo(({
     onUndo,
     onOpenMotifPanel,
     onOpenReportModal,
-    onSave,
+    onUploadCakeDesign,
     onClearAll,
     reviewSummary,
     initialHeroAspectRatio = null,
@@ -834,7 +827,7 @@ export const CustomizingHeroPanel = memo(({
 
             {showFooterActions ? (
                 <div className="hidden md:block animate-in fade-in slide-in-from-bottom-2 duration-500">
-                    <HeroActionButtonsRow editedImage={editedImage} isLoading={isLoading} isReporting={isReporting} isSaving={isSaving} onOpenReportModal={onOpenReportModal} onSave={onSave} onClearAll={onClearAll} />
+                    <HeroActionButtonsRow editedImage={editedImage} isLoading={isLoading} isReporting={isReporting} onOpenReportModal={onOpenReportModal} onUploadCakeDesign={onUploadCakeDesign} onClearAll={onClearAll} />
                 </div>
             ) : null}
         </div>
