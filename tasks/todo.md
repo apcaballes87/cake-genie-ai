@@ -1,5 +1,23 @@
 # Tasks
 
+## Remove Homepage Direct Answer Section (2026-07-11)
+
+### Plan
+
+- [x] Locate the landing-page source for the requested Direct Answer block.
+- [x] Remove the complete block and its unused data/imports while preserving Key Facts and reviews.
+- [x] Run focused verification and record the result.
+
+### Review
+
+- Removed the homepage “Direct Answer” section, including its description, two CTAs, and four supporting fact cards.
+- Preserved the separate homepage Key Facts and customer reviews sections.
+- Verification:
+  - The requested Direct Answer copy is absent from `src/components/seo/HomepageAeoSections.tsx`.
+  - `npx eslint src/components/seo/HomepageAeoSections.tsx src/app/page.tsx` passed with 0 errors; the existing Browserslist data warning remains.
+  - `git diff --check -- src/components/seo/HomepageAeoSections.tsx tasks/todo.md` passed.
+  - `npm run build` passed. Existing stale browser-data, inferred workspace-root, and deprecated middleware warnings remained.
+
 ## Mobile Bottom Nav Contrast and Opacity (2026-07-11)
 
 ### Plan

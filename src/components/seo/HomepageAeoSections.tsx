@@ -1,62 +1,14 @@
 import Link from 'next/link'
 import { CakeGenieReview } from '@/lib/database.types'
 import ReviewsDisplay from '@/components/ReviewsDisplay'
-import { PUBLIC_ORDER_FACTS, SUPPORT_PAGE_PATHS } from '@/lib/seo/publicOrderFacts'
 
 type HomepageAeoSectionsProps = {
   reviews: CakeGenieReview[]
 }
 
 export default function HomepageAeoSections({ reviews }: HomepageAeoSectionsProps) {
-  const answerFacts = [
-    {
-      label: 'Instant custom pricing',
-      body: PUBLIC_ORDER_FACTS.pricingShortSummary,
-    },
-    {
-      label: 'Metro Cebu delivery',
-      body: PUBLIC_ORDER_FACTS.deliverySummary,
-    },
-    {
-      label: 'Secure checkout',
-      body: PUBLIC_ORDER_FACTS.paymentSummary,
-    },
-    {
-      label: 'Trust proof',
-      body: PUBLIC_ORDER_FACTS.trustSummary,
-    },
-  ]
-
   return (
     <>
-      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-purple-500">Direct Answer</p>
-            <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-900">What is Genie.ph?</h2>
-            <p className="mt-4 text-base leading-7 text-slate-600">
-              Genie.ph is an AI-powered custom cake marketplace for Metro Cebu. Customers upload or choose a cake design, get an AI-assisted starting price, customize the cake details, and place an order with Cebu delivery or pickup support.
-            </p>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <Link href={SUPPORT_PAGE_PATHS.customizing} className="genie-btn-primary rounded-full px-5 py-2.5 text-sm font-semibold">
-                Start a custom cake
-              </Link>
-              <Link href={SUPPORT_PAGE_PATHS.facts} className="genie-btn-secondary rounded-full px-5 py-2.5 text-sm font-semibold">
-                See pricing facts
-              </Link>
-            </div>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {answerFacts.map((fact) => (
-              <div key={fact.label} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <h3 className="text-sm font-bold text-slate-900">{fact.label}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{fact.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Key Facts — structured data block for AI citation */}
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
         <div className="rounded-2xl border border-purple-100 bg-gradient-to-br from-purple-50/50 via-white to-purple-50/50 p-6 sm:p-8">
