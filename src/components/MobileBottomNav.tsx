@@ -34,7 +34,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onUploadClick }) => {
 
     const activeTab = getActiveTab();
     const navItemClass = (tab: string) =>
-        `flex flex-col items-center gap-1 transition-colors ${activeTab === tab ? 'text-purple-600 genie-icon' : 'text-gray-500 hover:text-purple-500'}`;
+        `w-full flex flex-col items-center gap-1 transition-colors ${activeTab === tab ? 'text-purple-600 genie-icon' : 'text-gray-500 hover:text-purple-500'}`;
 
     // Show cloud indicator 2 seconds after component mounts
     useEffect(() => {
@@ -61,7 +61,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onUploadClick }) => {
 
     return (
         <>
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 w-full bg-white border-t border-purple-100 py-3 px-6 flex justify-around items-center text-gray-500 z-50 pb-safe shadow-[0_-10px_30px_-24px_rgba(88,28,135,0.55)]">
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 w-full bg-white border-t border-purple-100 py-3 px-6 grid grid-cols-5 items-center text-gray-500 z-50 pb-safe shadow-[0_-10px_30px_-24px_rgba(88,28,135,0.55)]">
                 <button
                     onClick={() => router.push('/')}
                     className={navItemClass('home')}
