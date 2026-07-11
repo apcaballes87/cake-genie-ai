@@ -1,5 +1,25 @@
 # Tasks
 
+## Investigate Guest Cart Disappearance (2026-07-11)
+
+### Plan
+
+- [x] Trace the supplied customizer route through its add-to-cart and background-upload paths.
+- [x] Verify guest-cart persistence, hydration, and recovery behavior against the reported blocked telemetry event.
+- [x] Correlate the reported session with available analytics/Clarity evidence and document a root-cause assessment.
+
+### Review
+
+- The supplied chat session is a chat-local identifier, not the anonymous cart owner ID. Its associated anonymous user reached `/cart`, but no cart row was created for that user after the recorded add click.
+- `API Customizer Add to Cart Blocked` is telemetry from a visible disabled state or an early UI guard; it is not an API failure response and discards the underlying reason in Clarity.
+- Replaced the vulnerable flow with an IndexedDB-backed cart outbox. A cart row is now idempotently created before preview upload, while image failures retain the priced cart item and retry record instead of rolling it back.
+- `client_errors` has no rows for the supplied Bluey URL, `/cart`, or any page during the 07:00–08:45 UTC incident window. This path catches its background rejection and writes only to the browser console, so the table cannot reveal the upload/insert failure.
+- Background cart failures now log their stage and stable request ID to `client_errors`; hydration merges pending outbox entries instead of treating an empty server result as a cart deletion.
+- Applied production migration `add_cart_outbox_idempotency` to add the nullable, unique `cakegenie_cart.client_request_id` idempotency key. Focused cart tests and `npm run build` pass.
+- Corrected telemetry: initial disabled CTA state now emits `customizer_add_to_cart_unavailable_visible`; `customizer_add_to_cart_blocked` is emitted only from an actual click and includes a stable reason tag in Clarity. Successful adds also emit save-started and durable-outbox-save-confirmed events.
+- Added shared CTA guard reason mapping, `aria-disabled` click interception, bounded retry backoff, scheduled recovery, and sanitized `auth_owner`/`cart_insert`/`image_upload`/`image_update` diagnostics. Existing anonymous-cart RLS policies were re-checked and left unchanged.
+- Final verification: 20 focused Vitest tests, targeted ESLint with 0 errors (existing warnings remain), `git diff --check`, and `npm run build` passed. Build retains existing baseline-browser-mapping, inferred workspace-root, deprecated middleware, and occasional nonfatal Supabase statement-timeout warnings.
+
 ## Prevent Stale Cake Type on Chrome Extension Uploads (2026-07-11)
 
 ### Plan
@@ -4930,3 +4950,18 @@
 - Replaced the obsolete `/customizing#upload` support CTA with `/?upload=1`, which opens the landing-page uploader modal.
 - Updated standalone upload/start-order CTAs in the services, about, contact, delivery rates, best cake shops, suppliers, footer, and customizer fallback surfaces.
 - Verification: 3 focused page tests passed, targeted ESLint passed with 0 errors, no stale upload hash/query destinations remain in `src`, `git diff --check` passed, and `npm run build` passed.
+
+# Current task: toppers summary controls and labels (2026-07-11)
+
+- [x] Trace the visible toppers summary and existing design-apply/toggle behavior.
+- [x] Render topper and decoration names in title case.
+- [x] Add on/off toggles to the visible summary rows.
+- [x] Place Apply Design Changes beside Show more and reuse the existing update handler.
+- [x] Run focused tests and source checks.
+
+## Review
+
+- Updated the mobile and desktop customizer summary rows plus detailed topper cards to title-case item descriptions.
+- Added accessible enable/disable toggles to the visible summary rows, wired to the existing topper/element state update callbacks.
+- Added the adjacent Apply Design Changes action for overflowed decoration lists.
+- Verification: 23 focused tests passed and `git diff --check` passed. The full build was blocked by an existing `next dev -p 3002` process holding `.next/lock`; repository-wide TypeScript and lint still report unrelated pre-existing errors/warnings.

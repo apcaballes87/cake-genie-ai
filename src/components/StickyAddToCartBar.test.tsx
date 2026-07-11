@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi, beforeAll } from 'vitest';
 import StickyAddToCartBar from './StickyAddToCartBar';
 import {
@@ -140,5 +140,25 @@ describe('StickyAddToCartBar', () => {
         rerender(<StickyAddToCartBar {...props} price={999} />);
 
         expect(screen.getByRole('status')).toHaveTextContent('Price updated to 999 pesos.');
+    });
+
+    it('reports visible unavailability separately and captures a blocked click', () => {
+        const props = buildProps();
+        const unavailableVisible = vi.fn();
+        const blockedClick = vi.fn();
+        props.onAddToCartUnavailableVisible = unavailableVisible;
+        props.onAddToCartBlockedClick = blockedClick;
+
+        render(<StickyAddToCartBar {...props} isAnalyzing />);
+
+        const addButton = screen.getByRole('button', { name: 'Wait for analysis to finish before buying' });
+        expect(addButton).toHaveAttribute('aria-disabled', 'true');
+        expect(unavailableVisible).toHaveBeenCalledTimes(1);
+        expect(unavailableVisible).toHaveBeenCalledWith('analysis_in_progress');
+
+        fireEvent.click(addButton);
+        expect(blockedClick).toHaveBeenCalledTimes(1);
+        expect(blockedClick).toHaveBeenCalledWith('analysis_in_progress');
+        expect(props.onAddToCartClick).not.toHaveBeenCalled();
     });
 });

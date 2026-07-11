@@ -465,10 +465,12 @@ function CartClient() {
         const mappedSupabaseItems: CartItem[] = cartItems.map(item => {
             // If the image is still a base64 data URI or has the isPending flag, the background AI edit + upload is
             // still in flight. Show a 'pending' spinner overlay until it resolves.
-            const isImagePending = item.isPending || (item.customized_image_url?.startsWith('data:') ?? false);
+            const isImagePending = item.isPending
+                || (item.customized_image_url?.startsWith('data:') ?? false)
+                || !item.customized_image_url;
             return {
                 id: item.cart_item_id,
-                image: item.customized_image_url,
+                image: item.customized_image_url || item.original_image_url || '',
                 status: isImagePending ? 'pending' : 'complete',
                 type: item.cake_type,
                 thickness: item.cake_thickness,

@@ -45,7 +45,7 @@ interface ErrorLogPayload {
 const recentErrors = new Set<string>();
 const ERROR_DEDUPE_WINDOW_MS = 5000; // 5 seconds
 
-const logErrorToSupabase = async (payload: ErrorLogPayload): Promise<void> => {
+export const logErrorToSupabase = async (payload: ErrorLogPayload): Promise<void> => {
     // Create a unique key for this error to prevent duplicates
     const errorKey = `${payload.error_type}:${payload.error_message}:${payload.page_path}`;
 

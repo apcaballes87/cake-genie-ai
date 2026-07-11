@@ -93,6 +93,7 @@ export interface CakeGenieAddress {
  */
 export interface CakeGenieCartItem {
   cart_item_id: string; // UUID
+  client_request_id?: string | null; // Stable UUID used to retry one cart add safely
   user_id: string | null; // UUID, nullable for guest carts
   session_id: string | null; // For guest carts
   merchant_id: string | null; // UUID - merchant/shop this item belongs to
@@ -104,8 +105,8 @@ export interface CakeGenieCartItem {
   addon_price: number;
   final_price: number;
   quantity: number;
-  original_image_url: string;
-  customized_image_url: string;
+  original_image_url: string | null;
+  customized_image_url: string | null;
   customization_details: CustomizationDetails;
   created_at: string; // ISO 8601 timestamp
   updated_at: string; // ISO 8601 timestamp

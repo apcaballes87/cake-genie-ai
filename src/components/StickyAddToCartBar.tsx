@@ -15,6 +15,11 @@ import {
     STICKY_ADD_TO_CART_AVAILABILITY_VERTICAL_PADDING_PX,
     STICKY_ADD_TO_CART_PRINTOUT_OVERLAP_PX,
 } from '@/app/customizing/stickyBarLayout';
+import {
+    getAddToCartBlockLabel,
+    getAddToCartBlockReason,
+    type AddToCartBlockReason,
+} from '@/lib/customizerAddToCart';
 
 // --- Sticky Add to Cart Bar ---
 interface StickyAddToCartBarProps {
@@ -41,7 +46,8 @@ interface StickyAddToCartBarProps {
     ediblePhotoAddonNote?: boolean;
     isBlurred?: boolean;
     printoutConversions?: PrintoutConversionSummary;
-    onAddToCartBlockedVisible?: (reason: string) => void;
+    onAddToCartUnavailableVisible?: (reason: AddToCartBlockReason) => void;
+    onAddToCartBlockedClick?: (reason: AddToCartBlockReason) => void;
 }
 
 const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
@@ -67,7 +73,8 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     ediblePhotoAddonNote = false,
     isBlurred = false,
     printoutConversions,
-    onAddToCartBlockedVisible,
+    onAddToCartUnavailableVisible,
+    onAddToCartBlockedClick,
 }) => {
     const announcementStateRef = React.useRef<{
         price: number | null;
@@ -87,17 +94,15 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     const showPrintoutNotification = Boolean(hasPrintoutConversion && !isAnalyzing && !error);
     const hasTopNotification = !error && (showAvailability || showPrintoutNotification);
     const show = Boolean(price !== null || error || isAnalyzing || hasPendingDesignChanges || isApplyingChanges || availability || hasPrintoutConversion);
-    const addToCartDisabledReason = isAnalyzing
-        ? 'Wait for analysis to finish before buying'
-        : isLoading
-            ? 'Price is still calculating'
-            : error
-                ? 'Resolve the pricing issue before buying'
-                : price === null
-                    ? 'Upload or select a cake design first'
-                    : isAdding
-                        ? 'Adding this cake to your cart'
-                        : undefined;
+    const addToCartBlockReason = getAddToCartBlockReason({
+        isAdding,
+        isAnalyzing,
+        isLoading,
+        error,
+        price,
+        hasCakeInfo: Boolean(cakeInfo),
+    });
+    const addToCartDisabledReason = getAddToCartBlockLabel(addToCartBlockReason);
     const shareDisabledReason = isApplyingChanges
         ? 'Apply pending changes before sharing'
         : !canShare
@@ -111,7 +116,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     const [statusAnnouncement, setStatusAnnouncement] = React.useState('');
     const [errorAnnouncement, setErrorAnnouncement] = React.useState('');
     const buttonsRef = React.useRef<HTMLDivElement>(null);
-    const lastVisibleBlockReasonRef = React.useRef<string | null>(null);
+    const lastVisibleBlockReasonRef = React.useRef<AddToCartBlockReason | null>(null);
 
     React.useEffect(() => {
         setIsMounted(true);
@@ -123,10 +128,14 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     }, []);
 
     React.useEffect(() => {
-        if (!addToCartDisabledReason || lastVisibleBlockReasonRef.current === addToCartDisabledReason) return;
-        lastVisibleBlockReasonRef.current = addToCartDisabledReason;
-        onAddToCartBlockedVisible?.(addToCartDisabledReason);
-    }, [addToCartDisabledReason, onAddToCartBlockedVisible]);
+        if (!addToCartBlockReason) {
+            lastVisibleBlockReasonRef.current = null;
+            return;
+        }
+        if (lastVisibleBlockReasonRef.current === addToCartBlockReason) return;
+        lastVisibleBlockReasonRef.current = addToCartBlockReason;
+        onAddToCartUnavailableVisible?.(addToCartBlockReason);
+    }, [addToCartBlockReason, onAddToCartUnavailableVisible]);
 
     React.useEffect(() => {
         const previous = announcementStateRef.current;
@@ -402,11 +411,17 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                                 />
                             )}
                             <button
-                                onClick={onAddToCartClick}
-                                disabled={isLoading || !!error || price === null || isAdding || isAnalyzing}
+                                onClick={() => {
+                                    if (addToCartBlockReason) {
+                                        onAddToCartBlockedClick?.(addToCartBlockReason);
+                                        return;
+                                    }
+                                    onAddToCartClick();
+                                }}
                                 title={addToCartDisabledReason}
                                 aria-label={addToCartDisabledReason || 'Add this cake to cart'}
-                                className="flex-1 min-w-0 h-12 genie-btn-primary font-bold py-3 px-4 rounded-xl text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-md whitespace-nowrap"
+                                aria-disabled={Boolean(addToCartBlockReason)}
+                                className={`flex-1 min-w-0 h-12 genie-btn-primary font-bold py-3 px-4 rounded-xl text-sm whitespace-nowrap ${addToCartBlockReason ? 'opacity-50 cursor-not-allowed shadow-md' : ''}`}
                             >
                                 {isAdding ? (
                                     <><Loader2 className="w-5 h-5 animate-spin" /> {!isCompact && 'Processing...'}</>

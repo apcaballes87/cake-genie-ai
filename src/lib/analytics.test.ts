@@ -7,6 +7,9 @@ import {
   trackCartRequirementMissing,
   trackCheckoutPlaceOrderClicked,
   trackCustomizerAddToCartBlocked,
+  trackCustomizerAddToCartSaveConfirmed,
+  trackCustomizerAddToCartSaveStarted,
+  trackCustomizerAddToCartUnavailableVisible,
   trackImageUpload,
   trackSearch,
 } from './analytics'
@@ -77,6 +80,43 @@ describe('analytics helper', () => {
       has_pending_design_changes: true,
     })
     expect(clarityMock).toHaveBeenCalledWith('event', 'API Customizer Add to Cart Blocked')
+    expect(clarityMock).toHaveBeenCalledWith('set', 'customizer_add_to_cart_blocked_reason', 'price_missing')
+  })
+
+  it('separates visible unavailable state from an attempted blocked click', () => {
+    setAnalyticsRouteTracking(true)
+    markAnalyticsReady()
+
+    trackCustomizerAddToCartUnavailableVisible({
+      sourceSurface: 'uploaded_image',
+      reason: 'analysis_in_progress',
+    })
+
+    expect(gtagMock).toHaveBeenCalledWith('event', 'customizer_add_to_cart_unavailable_visible', {
+      event_category: 'ecommerce_funnel',
+      source_surface: 'uploaded_image',
+      design_slug: undefined,
+      unavailable_reason: 'analysis_in_progress',
+      has_pending_design_changes: false,
+    })
+    expect(clarityMock).toHaveBeenCalledWith('set', 'customizer_add_to_cart_unavailable_reason', 'analysis_in_progress')
+    expect(clarityMock).toHaveBeenCalledWith('event', 'API Customizer Add to Cart Unavailable Visible')
+  })
+
+  it('preserves the add-to-cart persistence funnel order as distinct events', () => {
+    setAnalyticsRouteTracking(true)
+    markAnalyticsReady()
+    const base = { sourceSurface: 'analysis_cache' as const, designSlug: 'cake-1', priceBucket: '1000_1999' }
+
+    trackCustomizerAddToCartSaveStarted(base)
+    trackCustomizerAddToCartSaveConfirmed(base)
+
+    expect(gtagMock.mock.calls.map(call => call[1])).toEqual([
+      'customizer_add_to_cart_save_started',
+      'customizer_add_to_cart_save_confirmed',
+    ])
+    expect(clarityMock).toHaveBeenCalledWith('event', 'API Customizer Add to Cart Save Started')
+    expect(clarityMock).toHaveBeenCalledWith('event', 'API Customizer Add to Cart Save Confirmed')
   })
 
   it('tracks checkout intent and missing requirements without private field values', () => {

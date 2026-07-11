@@ -56,6 +56,12 @@ function toClarityEventName(name: string): string | null {
       return 'API Customizer Add to Cart Clicked'
     case 'customizer_add_to_cart_blocked':
       return 'API Customizer Add to Cart Blocked'
+    case 'customizer_add_to_cart_unavailable_visible':
+      return 'API Customizer Add to Cart Unavailable Visible'
+    case 'customizer_add_to_cart_save_started':
+      return 'API Customizer Add to Cart Save Started'
+    case 'customizer_add_to_cart_save_confirmed':
+      return 'API Customizer Add to Cart Save Confirmed'
     case 'customizer_cart_redirect_started':
       return 'API Customizer Cart Redirect Started'
     case 'cart_requirement_missing':
@@ -81,12 +87,20 @@ function toClarityEventName(name: string): string | null {
   }
 }
 
-function sendClarityEvent(name: string): void {
+function sendClarityEvent(name: string, params: GA4EventParams = {}): void {
   const clarityEventName = toClarityEventName(name)
   if (!clarityEventName) return
 
   const clarity = getClarity()
   if (!clarity) return
+
+  const reason = params.blocked_reason || params.unavailable_reason
+  if (typeof reason === 'string' && name === 'customizer_add_to_cart_blocked') {
+    clarity('set', 'customizer_add_to_cart_blocked_reason', reason)
+  }
+  if (typeof reason === 'string' && name === 'customizer_add_to_cart_unavailable_visible') {
+    clarity('set', 'customizer_add_to_cart_unavailable_reason', reason)
+  }
 
   clarity('event', clarityEventName)
 }
@@ -102,7 +116,7 @@ function flushPendingEvents(): void {
 
   for (const event of eventsToFlush) {
     gtag('event', event.name, event.params)
-    sendClarityEvent(event.name)
+    sendClarityEvent(event.name, event.params)
   }
 }
 
@@ -155,7 +169,7 @@ export function trackEvent(name: string, params: GA4EventParams = {}): void {
   }
 
   gtag('event', name, params)
-  sendClarityEvent(name)
+  sendClarityEvent(name, params)
 }
 
 export function sendPageView(params: {
@@ -277,6 +291,42 @@ export function trackCustomizerAddToCartBlocked(params: CustomizerFunnelBase & {
     source_surface: params.sourceSurface,
     design_slug: params.designSlug || undefined,
     blocked_reason: params.reason,
+    has_pending_design_changes: Boolean(params.hasPendingDesignChanges),
+  })
+}
+
+export function trackCustomizerAddToCartUnavailableVisible(params: CustomizerFunnelBase & {
+  reason: string
+}): void {
+  trackEvent('customizer_add_to_cart_unavailable_visible', {
+    event_category: 'ecommerce_funnel',
+    source_surface: params.sourceSurface,
+    design_slug: params.designSlug || undefined,
+    unavailable_reason: params.reason,
+    has_pending_design_changes: Boolean(params.hasPendingDesignChanges),
+  })
+}
+
+export function trackCustomizerAddToCartSaveStarted(params: CustomizerFunnelBase & {
+  priceBucket: string
+}): void {
+  trackEvent('customizer_add_to_cart_save_started', {
+    event_category: 'ecommerce_funnel',
+    source_surface: params.sourceSurface,
+    design_slug: params.designSlug || undefined,
+    price_bucket: params.priceBucket,
+    has_pending_design_changes: Boolean(params.hasPendingDesignChanges),
+  })
+}
+
+export function trackCustomizerAddToCartSaveConfirmed(params: CustomizerFunnelBase & {
+  priceBucket: string
+}): void {
+  trackEvent('customizer_add_to_cart_save_confirmed', {
+    event_category: 'ecommerce_funnel',
+    source_surface: params.sourceSurface,
+    design_slug: params.designSlug || undefined,
+    price_bucket: params.priceBucket,
     has_pending_design_changes: Boolean(params.hasPendingDesignChanges),
   })
 }

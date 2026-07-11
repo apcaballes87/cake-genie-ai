@@ -6,6 +6,8 @@ import { CartProvider, useCartActions, useCartData } from './CartContext';
 const mocks = vi.hoisted(() => ({
     getUser: vi.fn(),
     addToCart: vi.fn(),
+    addToCartIdempotent: vi.fn(),
+    updateCartItemImages: vi.fn(),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -30,10 +32,14 @@ vi.mock('@/lib/supabase/client', () => ({
 vi.mock('@/services/supabaseService', () => ({
     getCartPageData: vi.fn(),
     addToCart: mocks.addToCart,
+    addToCartIdempotent: mocks.addToCartIdempotent,
     addManyToCart: vi.fn(),
     updateCartItemQuantity: vi.fn(),
     removeCartItem: vi.fn(),
+    updateCartItemImages: mocks.updateCartItemImages,
 }));
+
+vi.mock('@/components/ErrorLogger', () => ({ logErrorToSupabase: vi.fn() }));
 
 vi.mock('@/lib/analytics', () => ({
     trackAddToCart: vi.fn(),
@@ -143,6 +149,7 @@ describe('CartProvider hydration', () => {
             },
             error: null,
         });
+        mocks.addToCartIdempotent.mockResolvedValue({ data: null, error: new Error('network unavailable') });
     });
 
     it('keeps the first render SSR-safe before loading cached cart items after mount', async () => {
@@ -193,6 +200,22 @@ describe('CartProvider hydration', () => {
                 } as User,
             },
             error: null,
+        });
+    });
+
+    it('keeps the cart item visible when durable cart creation fails', async () => {
+        render(
+            <CartProvider>
+                <BackgroundUploadProbe />
+            </CartProvider>
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: 'add' }));
+
+        await waitFor(() => {
+            expect(mocks.addToCartIdempotent).toHaveBeenCalledTimes(1);
+            expect(screen.getByTestId('cart-count')).toHaveTextContent('1');
+            expect(screen.getByTestId('pending-state')).toHaveTextContent('pending');
         });
     });
 });

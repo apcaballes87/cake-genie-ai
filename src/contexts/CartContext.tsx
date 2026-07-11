@@ -16,6 +16,9 @@ import type { SupabaseClient, User, PostgrestError } from '@supabase/supabase-js
 import { debounce } from 'lodash-es';
 import { showError } from '@/lib/utils/toast';
 import { trackAddToCart } from '@/lib/analytics';
+import { logErrorToSupabase } from '@/components/ErrorLogger';
+import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
+import { getCartOutbox, putCartOutbox, removeCartOutbox, type CartOutboxRecord, type CartOutboxStage } from '@/lib/cartOutbox';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
@@ -23,7 +26,9 @@ import { CakeGenieCartItem, CakeGenieAddress, CakeGenieMerchant } from '@/lib/da
 import {
     getCartPageData,
     addToCart as addToCartService,
+    addToCartIdempotent,
     addManyToCart as addManyToCartService,
+    updateCartItemImages,
     updateCartItemQuantity as updateQuantityService,
     removeCartItem as removeItemService,
 } from '@/services/supabaseService';
@@ -60,7 +65,7 @@ const debouncedFlush = debounce(flushWrites, 100);
 
 // Helper to strip base64 image data from cart items before caching
 // This prevents localStorage quota exceeded errors on mobile
-const stripBase64FromCartItems = (items: any[]): any[] => {
+const stripBase64FromCartItems = (items: CakeGenieCartItem[]): CakeGenieCartItem[] => {
     return items.map(item => ({
         ...item,
         // Replace base64 data URIs with a placeholder
@@ -73,6 +78,31 @@ const stripBase64FromCartItems = (items: any[]): any[] => {
             : item.customized_image_url,
     }));
 };
+
+const CART_OUTBOX_MAX_RETRY_DELAY_MS = 60_000;
+
+function getCartOutboxRetryDelayMs(attempts: number): number {
+    return Math.min(CART_OUTBOX_MAX_RETRY_DELAY_MS, 1_000 * (2 ** Math.min(attempts, 6)));
+}
+
+function getCartOutboxErrorDetails(error: unknown, stage: CartOutboxStage): {
+    message: string;
+    errorCode?: string;
+    authFailure: boolean;
+} {
+    const errorCode = typeof error === 'object' && error !== null && 'code' in error
+        ? String((error as { code?: unknown }).code || '')
+        : undefined;
+    const rawMessage = error instanceof Error ? error.message : String(error || 'Unknown cart persistence error');
+    const authFailure = stage === 'auth_owner' || errorCode === '42501' || /session|auth|permission|row-level security/i.test(rawMessage);
+    const message = errorCode === '42501' || authFailure
+        ? 'Cart owner session or policy check failed'
+        : rawMessage.replace(/https?:\/\/[^\s]+/g, '[redacted-url]').slice(0, 500);
+    return { message, errorCode, authFailure };
+}
+
+const isPermanentCartImageUrl = (value: string | null | undefined): value is string =>
+    Boolean(value && value.startsWith('http'));
 
 // Helper to estimate localStorage usage
 const estimateLocalStorageSize = (): number => {
@@ -241,7 +271,7 @@ interface CartActionsType {
     addToCartWithBackgroundUpload: (
         initialItem: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'>,
         uploadTask: BackgroundUploadTask
-    ) => void;
+    ) => Promise<void>;
 }
 
 interface CartContextType extends CartDataType, CartActionsType { }
@@ -277,6 +307,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const prevUserIdRef = useRef<string | null>(null);
     const cartItemsRef = useRef(cartItems);
+    const outboxInFlightRef = useRef(new Set<string>());
 
     useEffect(() => {
         cartItemsRef.current = cartItems;
@@ -363,12 +394,22 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
             const { data: cartItemsData, error: cartError } = cartData;
             if (cartError) throw cartError;
-            setCartItems(cartItemsData || []);
+            // Never let an authoritative-but-still-empty fetch erase a locally
+            // durable cart save that is uploading its preview in the background.
+            setCartItems(previous => {
+                const pending = previous.filter(item => item.isPending);
+                const serverItems = cartItemsData || [];
+                const serverIds = new Set(serverItems.map(item => item.cart_item_id));
+                return [
+                    ...pending.filter(item => !serverIds.has(item.cart_item_id)),
+                    ...serverItems,
+                ];
+            });
 
             // Cache cart items for instant load next time
             if (cartItemsData && cartItemsData.length > 0) {
                 batchSaveToLocalStorage('cart_items_cache', JSON.stringify(cartItemsData));
-            } else {
+            } else if (!cartItemsRef.current.some(item => item.isPending)) {
                 batchRemoveFromLocalStorage('cart_items_cache');
             }
 
@@ -384,10 +425,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
 
         } catch (error) {
-            setCartItems([]);
+            // Keep cached and outbox-backed items visible; a failed refresh is
+            // not evidence that the customer deliberately removed their cart.
             setAddresses([]);
-            // Clear cache on error
-            batchRemoveFromLocalStorage('cart_items_cache');
         } finally {
             setIsLoading(false);
         }
@@ -581,7 +621,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 setCartItems(prev => prev.map(item => item.cart_item_id === tempId ? realItem : item));
             }
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             if (!options?.skipOptimistic) {
                 setCartItems(prev => prev.filter(item => item.cart_item_id !== tempId));
             }
@@ -589,7 +629,139 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     }, []);
 
-    const addToCartWithBackgroundUpload = useCallback((
+    const uploadOutboxImages = useCallback(async (
+        item: CakeGenieCartItem,
+        ownerId: string,
+    ): Promise<BackgroundUploadResult> => {
+        const uploadImage = async (value: string | null, suffix: 'original' | 'edited'): Promise<string | null> => {
+            if (!value || isPermanentCartImageUrl(value)) return value;
+
+            const blob = dataURItoBlob(value);
+            const file = new File([blob], `${suffix}.webp`, { type: 'image/webp' });
+            const compressed = suffix === 'edited'
+                ? await compressImage(file, { maxSizeMB: 1, fileType: 'image/webp' })
+                : file;
+            const path = `customizations/${ownerId}/cart/${item.cart_item_id}-${suffix}.webp`;
+            const { error } = await supabase.storage.from('cakegenie').upload(path, compressed, {
+                contentType: 'image/webp',
+                upsert: true,
+            });
+            if (error) throw new Error(`Failed to upload ${suffix} image: ${error.message}`);
+            return supabase.storage.from('cakegenie').getPublicUrl(path).data.publicUrl;
+        };
+
+        const originalImageUrl = await uploadImage(item.original_image_url, 'original');
+        const finalImageUrl = await uploadImage(item.customized_image_url, 'edited');
+        return { originalImageUrl: originalImageUrl || '', finalImageUrl: finalImageUrl || originalImageUrl || '' };
+    }, [supabase]);
+
+    const processCartOutboxRecord = useCallback(async (
+        record: CartOutboxRecord,
+        uploadTask?: BackgroundUploadTask,
+    ) => {
+        const requestId = record.cartItem.cart_item_id;
+        if (record.nextAttemptAt && new Date(record.nextAttemptAt).getTime() > Date.now()) return;
+        if (outboxInFlightRef.current.has(requestId)) return;
+        outboxInFlightRef.current.add(requestId);
+
+        let stage: CartOutboxStage = record.stage;
+        try {
+            const owner = record.cartItem.user_id || record.cartItem.session_id
+                ? {
+                    user_id: record.cartItem.user_id,
+                    session_id: record.cartItem.session_id,
+                    ownerId: record.cartItem.user_id || record.cartItem.session_id || '',
+                }
+                : await supabase.auth.getUser().then(({ data: { user } }) => {
+                    if (!user) throw new Error('User session not found while saving cart');
+                    return {
+                        user_id: user.is_anonymous ? null : user.id,
+                        session_id: user.is_anonymous ? user.id : null,
+                        ownerId: user.id,
+                    };
+                });
+
+            // UI-only fields are intentionally excluded from the database row.
+            const { isPending: _isPending, merchant: _merchant, ...cartItemForInsert } = record.cartItem as CakeGenieCartItem & {
+                isPending?: boolean;
+                merchant?: CakeGenieMerchant;
+            };
+            void _isPending;
+            void _merchant;
+            const durableItem: CakeGenieCartItem = {
+                ...cartItemForInsert,
+                user_id: owner.user_id,
+                session_id: owner.session_id,
+                original_image_url: isPermanentCartImageUrl(record.cartItem.original_image_url)
+                    ? record.cartItem.original_image_url
+                    : null,
+                customized_image_url: isPermanentCartImageUrl(record.cartItem.customized_image_url)
+                    ? record.cartItem.customized_image_url
+                    : null,
+            };
+
+            stage = 'cart_insert';
+            const { data: persisted, error: insertError } = await addToCartIdempotent(durableItem);
+            if (insertError || !persisted) throw insertError || new Error('Cart row was not created');
+
+            setCartItems(previous => previous.map(item => item.cart_item_id === requestId
+                ? { ...persisted, isPending: true }
+                : item));
+
+            stage = 'image_upload';
+            const uploaded = uploadTask
+                ? await (typeof uploadTask === 'function' ? uploadTask(owner.ownerId) : uploadTask)
+                : await uploadOutboxImages(record.cartItem, owner.ownerId);
+
+            stage = 'image_update';
+            const { data: completed, error: updateError } = await updateCartItemImages(
+                persisted.cart_item_id,
+                uploaded.originalImageUrl || null,
+                uploaded.finalImageUrl || null,
+            );
+            if (updateError || !completed) throw updateError || new Error('Cart preview was not updated');
+
+            setCartItems(previous => previous.map(item => item.cart_item_id === requestId ? completed : item));
+            await removeCartOutbox(requestId);
+        } catch (error) {
+            const errorDetails = getCartOutboxErrorDetails(error, stage);
+            const nextAttemptAt = new Date(Date.now() + getCartOutboxRetryDelayMs(record.attempts + 1)).toISOString();
+            const failedRecord: CartOutboxRecord = {
+                ...record,
+                attempts: record.attempts + 1,
+                stage,
+                lastError: errorDetails.message,
+                nextAttemptAt,
+            };
+            await putCartOutbox(failedRecord);
+            setCartItems(previous => previous.map(item => item.cart_item_id === requestId
+                ? { ...item, isPending: true }
+                : item));
+            void logErrorToSupabase({
+                error_message: `Cart outbox ${stage} failed: ${errorDetails.message}`.slice(0, 1000),
+                error_type: errorDetails.authFailure ? 'error' : 'network',
+                page_url: typeof window === 'undefined' ? '' : window.location.href,
+                page_path: typeof window === 'undefined' ? '' : window.location.pathname,
+                user_agent: typeof navigator === 'undefined' ? '' : navigator.userAgent,
+                viewport_width: typeof window === 'undefined' ? 0 : window.innerWidth,
+                viewport_height: typeof window === 'undefined' ? 0 : window.innerHeight,
+                session_id: requestId,
+                metadata: {
+                    cartRequestId: requestId,
+                    stage,
+                    attempts: failedRecord.attempts,
+                    nextAttemptAt,
+                    errorCode: errorDetails.errorCode,
+                    authFailure: errorDetails.authFailure,
+                },
+            });
+            showError("We're keeping your cake in the cart and will retry its preview.");
+        } finally {
+            outboxInFlightRef.current.delete(requestId);
+        }
+    }, [supabase, uploadOutboxImages]);
+
+    const addToCartWithBackgroundUpload = useCallback(async (
         initialItem: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'>,
         uploadTask: BackgroundUploadTask
     ) => {
@@ -602,6 +774,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const tempItem: CakeGenieCartItem & { merchant?: CakeGenieMerchant; isPending?: boolean } = {
             ...initialItem,
             cart_item_id: tempId,
+            client_request_id: tempId,
             created_at: now,
             updated_at: now,
             expires_at: expiresAt.toISOString(),
@@ -618,81 +791,67 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             quantity: tempItem.quantity,
         });
 
-        const ownerPromise: Promise<Pick<CakeGenieCartItem, 'user_id' | 'session_id'> & { ownerId: string }> =
-            Promise.resolve().then(() => {
-                if (initialItem.user_id || initialItem.session_id) {
-                    return {
-                        user_id: initialItem.user_id,
-                        session_id: initialItem.session_id,
-                        ownerId: initialItem.user_id || initialItem.session_id || '',
-                    };
-                }
+        // The durable browser outbox is written before this promise resolves
+        // (and before CustomizingClient redirects), but the optimistic state is
+        // rendered immediately rather than waiting for IndexedDB.
+        await putCartOutbox({
+            cartItem: tempItem,
+            createdAt: now,
+            attempts: 0,
+            stage: 'auth_owner',
+        });
 
-                return supabase.auth.getUser().then(({ data: { user } }) => {
-                    const isAnonymous = user?.is_anonymous ?? false;
+        void processCartOutboxRecord({
+            cartItem: tempItem,
+            createdAt: now,
+            attempts: 0,
+            stage: 'auth_owner',
+        }, uploadTask);
+    }, [processCartOutboxRecord]);
 
-                    if (!user) {
-                        console.error('❌ Cart: User session lost during background save');
-                        throw new Error("User session not found during background save");
-                    }
+    useEffect(() => {
+        if (authLoading || typeof window === 'undefined') return;
 
-                    return {
-                        user_id: isAnonymous ? null : user.id,
-                        session_id: isAnonymous ? user.id : null,
-                        ownerId: user.id,
-                    };
-                });
+        let disposed = false;
+        let retryTimer: ReturnType<typeof setTimeout> | null = null;
+        const restoreAndRetry = async () => {
+            const records = await getCartOutbox();
+            if (disposed || records.length === 0) return;
+
+            setCartItems(previous => {
+                const existing = new Set(previous.map(item => item.cart_item_id));
+                const restored = records
+                    .filter(record => !existing.has(record.cartItem.cart_item_id))
+                    .map(record => ({ ...record.cartItem, isPending: true }));
+                return [...restored, ...previous];
             });
 
-        // 2. Fire-and-forget Background Process (runs without blocking navigation)
-        // We DON'T await this - it runs in the background while user is navigated to cart
-        console.log('🔄 Cart: Background upload started...');
-        ownerPromise
-            .then(async (owner) => {
-                const uploadedImages = await (
-                    typeof uploadTask === 'function'
-                        ? uploadTask(owner.ownerId)
-                        : uploadTask
-                );
-                return { owner, ...uploadedImages };
-            })
-            .then(async ({ owner, originalImageUrl, finalImageUrl }) => {
-                console.log('✅ Cart: Background upload complete. Saving to database...', { originalImageUrl, finalImageUrl });
-                
-                // Prepare real item for DB
-                const finalItemParams = {
-                    ...initialItem,
-                    original_image_url: originalImageUrl,
-                    customized_image_url: finalImageUrl
-                };
-
-                const itemToSend = {
-                    ...finalItemParams,
-                    user_id: owner.user_id,
-                    session_id: owner.session_id,
-                };
-
-                const { data: realItem, error } = await addToCartService(itemToSend);
-
-                if (error || !realItem) {
-                    console.error('❌ Cart: Failed to save real item to database:', error);
-                    throw error;
+            const now = Date.now();
+            let nextRetryAt: number | null = null;
+            for (const record of records) {
+                const scheduledAt = record.nextAttemptAt ? new Date(record.nextAttemptAt).getTime() : now;
+                if (scheduledAt > now) {
+                    nextRetryAt = nextRetryAt === null ? scheduledAt : Math.min(nextRetryAt, scheduledAt);
+                    continue;
                 }
+                void processCartOutboxRecord(record);
+            }
+            if (nextRetryAt !== null && !disposed) {
+                if (retryTimer) clearTimeout(retryTimer);
+                retryTimer = setTimeout(() => void restoreAndRetry(), Math.max(250, nextRetryAt - Date.now()));
+            }
+        };
 
-                console.log('✅ Cart: Item successfully persisted to database.');
-
-                // Replace temp item with real item once upload/DB is complete
-                setCartItems(prev => prev.map(item => item.cart_item_id === tempId ? realItem : item));
-            })
-            .catch((error) => {
-                console.error('❌ Cart: Background process failed:', error);
-                // Rollback on failure - remove the temp item
-                setCartItems(prev => prev.filter(item => item.cart_item_id !== tempId));
-                showError("Failed to save item to cart. Please try again.");
-            });
-
-        // Function returns immediately - navigation can happen right away!
-    }, [supabase]);
+        void restoreAndRetry();
+        window.addEventListener('online', restoreAndRetry);
+        window.addEventListener('focus', restoreAndRetry);
+        return () => {
+            disposed = true;
+            if (retryTimer) clearTimeout(retryTimer);
+            window.removeEventListener('online', restoreAndRetry);
+            window.removeEventListener('focus', restoreAndRetry);
+        };
+    }, [authLoading, processCartOutboxRecord]);
 
     const removeItemOptimistic = useCallback(async (cartItemId: string) => {
         // Use ref to avoid stale closure over cartItems — prevents this callback
@@ -701,6 +860,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const originalCart = [...cartItemsRef.current];
 
         setCartItems(prev => prev.filter(item => item.cart_item_id !== cartItemId));
+        await removeCartOutbox(cartItemId);
 
         try {
             const { error } = await removeItemService(cartItemId);

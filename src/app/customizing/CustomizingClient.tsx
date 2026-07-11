@@ -45,9 +45,13 @@ import {
     getAnalyticsValueBucket,
     trackCustomizerAddToCartBlocked,
     trackCustomizerAddToCartClicked,
+    trackCustomizerAddToCartSaveConfirmed,
+    trackCustomizerAddToCartSaveStarted,
+    trackCustomizerAddToCartUnavailableVisible,
     trackCustomizerCartRedirectStarted,
     trackViewItem,
 } from '@/lib/analytics';
+import { getAddToCartBlockReason, type AddToCartBlockReason } from '@/lib/customizerAddToCart';
 import ReportModal from '../../components/ReportModal';
 import ShareModal from '../../components/ShareModal';
 import ChatModal from '../../components/ChatModal';
@@ -1222,23 +1226,33 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
             hasPendingDesignChanges: hasPendingVisualChangesRef.current,
         };
 
-        if (addToCartInFlightRef.current) {
+        const blockedReason = getAddToCartBlockReason({
+            isAdding: addToCartInFlightRef.current,
+            isAnalyzing,
+            isLoading: isFetchingBasePrice,
+            error: basePriceError || analysisError,
+            price: effectivePrice,
+            hasCakeInfo: Boolean(cakeInfo),
+        });
+
+        if (blockedReason) {
             trackCustomizerAddToCartBlocked({
                 ...analyticsBase,
-                reason: 'add_to_cart_in_flight',
+                reason: blockedReason,
             });
             return;
         }
 
-        if (!effectivePrice || !cakeInfo) {
-            trackCustomizerAddToCartBlocked({
-                ...analyticsBase,
-                reason: !effectivePrice ? 'price_missing' : 'cake_info_missing',
-            });
-            return;
-        }
+        // The shared guard above makes this unreachable for a normal click;
+        // keep the explicit check so TypeScript and future callers retain the
+        // same safety boundary if the guard evolves.
+        if (effectivePrice == null || !cakeInfo) return;
 
         trackCustomizerAddToCartClicked({
+            ...analyticsBase,
+            priceBucket: getAnalyticsValueBucket(effectivePrice + ediblePhotoAddonPrice),
+        });
+        trackCustomizerAddToCartSaveStarted({
             ...analyticsBase,
             priceBucket: getAnalyticsValueBucket(effectivePrice + ediblePhotoAddonPrice),
         });
@@ -1388,9 +1402,14 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                 })
             };
 
-            // 4. Fire-and-forget: optimistic update happens instantly, upload runs in background
-            // No await needed - function returns immediately after optimistic update
-            addToCartWithBackgroundUpload(cartItem, uploadCartItemImages);
+            // 4. Wait only for the durable IndexedDB outbox write. The network cart save
+            // and preview upload continue through the outbox after the redirect.
+            await addToCartWithBackgroundUpload(cartItem, uploadCartItemImages);
+
+            trackCustomizerAddToCartSaveConfirmed({
+                ...analyticsBase,
+                priceBucket: getAnalyticsValueBucket((effectivePrice || 0) + ediblePhotoAddonPrice),
+            });
 
             showSuccess('Added to cart!');
             trackCustomizerCartRedirectStarted({
@@ -1413,6 +1432,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     }, [
         finalPrice,
         useBasePriceAsFallback,
+        isAnalyzing,
+        isFetchingBasePrice,
+        analysisError,
+        basePriceError,
         cakeInfo,
         originalImagePreview,
         editedImage,
@@ -1431,6 +1454,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         product?.p_hash,
         product?.slug,
         merchant,
+        product,
+        recentSearchDesign,
         persistedSlug,
         seoMetadata?.original_image_url,
         seoMetadata?.slug,
@@ -1447,7 +1472,23 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         originalImageData,
     ]);
 
-    const handleAddToCartBlockedVisible = useCallback((reason: string) => {
+    const handleAddToCartUnavailableVisible = useCallback((reason: AddToCartBlockReason) => {
+        trackCustomizerAddToCartUnavailableVisible({
+            sourceSurface: getCustomizerAnalyticsSourceSurface(product, recentSearchDesign, originalImageData),
+            designSlug: persistedSlug || (typeof slug === 'string' ? slug : null) || seoMetadata?.slug || recentSearchDesign?.slug || product?.slug || null,
+            reason,
+            hasPendingDesignChanges: hasPendingVisualChangesRef.current,
+        });
+    }, [
+        originalImageData,
+        persistedSlug,
+        product,
+        recentSearchDesign,
+        seoMetadata?.slug,
+        slug,
+    ]);
+
+    const handleAddToCartBlockedClick = useCallback((reason: AddToCartBlockReason) => {
         trackCustomizerAddToCartBlocked({
             sourceSurface: getCustomizerAnalyticsSourceSurface(product, recentSearchDesign, originalImageData),
             designSlug: persistedSlug || (typeof slug === 'string' ? slug : null) || seoMetadata?.slug || recentSearchDesign?.slug || product?.slug || null,
@@ -4420,7 +4461,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                     onApplyChangesClick={handleApplyPendingDesignChanges}
                     isApplyingChanges={hideStickyBar ? false : isUpdatingDesign}
                     applyChangesLabel="Apply Design Changes"
-                    onAddToCartBlockedVisible={handleAddToCartBlockedVisible}
+                    onAddToCartUnavailableVisible={handleAddToCartUnavailableVisible}
+                    onAddToCartBlockedClick={handleAddToCartBlockedClick}
                 />
                     </>
                 )}

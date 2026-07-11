@@ -2178,6 +2178,64 @@ export async function addToCart(
 }
 
 /**
+ * Creates a cart row exactly once for a client-generated request ID.
+ * A network retry can safely call this again without making a duplicate cake.
+ */
+export async function addToCartIdempotent(
+  params: CakeGenieCartItem
+): Promise<SupabaseServiceResponse<CakeGenieCartItem>> {
+  try {
+    const { data, error } = await supabase
+      .from('cakegenie_cart')
+      .insert(params)
+      .select()
+      .single();
+
+    if (!error && data) return { data, error: null };
+
+    // PostgreSQL unique_violation. Resolve the already-created row instead of
+    // issuing an upsert, which would reset cart-side abandoned-cart metadata.
+    if (error?.code === '23505' && params.client_request_id) {
+      const { data: existing, error: existingError } = await supabase
+        .from('cakegenie_cart')
+        .select('*')
+        .eq('client_request_id', params.client_request_id)
+        .single();
+
+      return { data: existing || null, error: existingError };
+    }
+
+    return { data: null, error };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/** Updates only the preview URLs after its cart row has been safely created. */
+export async function updateCartItemImages(
+  cartItemId: string,
+  originalImageUrl: string | null,
+  customizedImageUrl: string | null,
+): Promise<SupabaseServiceResponse<CakeGenieCartItem>> {
+  try {
+    const { data, error } = await supabase
+      .from('cakegenie_cart')
+      .update({
+        original_image_url: originalImageUrl,
+        customized_image_url: customizedImageUrl,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('cart_item_id', cartItemId)
+      .select()
+      .single();
+
+    return { data: data || null, error };
+  } catch (err) {
+    return { data: null, error: err as Error };
+  }
+}
+
+/**
  * Optimistically bulk adds many items to the shopping cart.
  * If the bulk insert fails, falls back to N+1 inserts to isolate errors.
  * @param items - Array of cart items to add.

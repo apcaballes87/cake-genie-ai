@@ -111,7 +111,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom, app
                         />
                         <div className="absolute inset-0 bg-slate-900/30 flex flex-col items-center justify-center p-2">
                             <LoadingSpinner />
-                            <p className="text-xs text-white font-semibold mt-2 text-center shadow-sm">AI Editing...</p>
+                            <p className="text-xs text-white font-semibold mt-2 text-center shadow-sm">Saving your cake...</p>
                         </div>
                     </div>
                     <div className="grow">
@@ -129,7 +129,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom, app
                                 )}
                                 <div className="mt-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium text-purple-700 bg-purple-50 border border-purple-100 rounded-md animate-pulse">
                                     <MagicSparkleIcon className="w-3.5 h-3.5 text-purple-500 shrink-0 mr-0" />
-                                    <span>AI is currently editing the image...</span>
+                                    <span>We’re safely finishing your preview...</span>
                                 </div>
                             </div>
                             <button onClick={() => onRemove(item.id)} className="p-2 genie-icon-button rounded-full transition-colors" aria-label="Remove item">
