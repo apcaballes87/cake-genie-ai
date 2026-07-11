@@ -1,5 +1,22 @@
 # Tasks
 
+## Mobile Bottom Nav Contrast and Opacity (2026-07-11)
+
+### Plan
+
+- [x] Locate the shared mobile bottom navigation component and inactive-state styles.
+- [x] Darken unfocused labels/icons slightly and make the nav background fully opaque.
+- [x] Run focused verification and record the result.
+
+### Review
+
+- Updated the shared `MobileBottomNav` inactive state from `text-gray-300` to `text-gray-500`, including the chat icon.
+- Changed the mobile nav background from 97% white to fully opaque `bg-white`.
+- Verification:
+  - `npx eslint src/components/MobileBottomNav.tsx` passed with 0 errors; the existing Browserslist data warning remains.
+  - `git diff --check -- src/components/MobileBottomNav.tsx tasks/todo.md` passed.
+  - `npm run build` passed. Existing stale browser-data, inferred workspace-root, deprecated middleware, and non-fatal Supabase statement-timeout warnings remained.
+
 ## Customizer Upload Cake Design Action (2026-07-11)
 
 ### Plan
@@ -4803,3 +4820,15 @@
 - Studio completion no longer starts automatic icing-mask generation.
 - The removed loader text cannot be rendered by `CustomizingHeroPanel`.
 - The standalone `useIcingMask` hook and service tests remain in the repository as unused historical code; the live customizer no longer imports or executes them.
+
+# Current task: route upload and start-order CTAs to landing
+
+- [x] Trace shared and standalone upload/start-order CTA destinations.
+- [x] Route the relevant CTAs to `/?upload=1` and preserve intentional design-specific customizer links.
+- [x] Run focused tests, source checks, and production build verification.
+
+### Review
+
+- Replaced the obsolete `/customizing#upload` support CTA with `/?upload=1`, which opens the landing-page uploader modal.
+- Updated standalone upload/start-order CTAs in the services, about, contact, delivery rates, best cake shops, suppliers, footer, and customizer fallback surfaces.
+- Verification: 3 focused page tests passed, targeted ESLint passed with 0 errors, no stale upload hash/query destinations remain in `src`, `git diff --check` passed, and `npm run build` passed.
