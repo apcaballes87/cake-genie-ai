@@ -5,6 +5,10 @@ import { PencilIcon, PhotoIcon, Loader2, ResetIcon } from './icons';
 import { ColorPalette } from './ColorPalette';
 import { MultiColorEditor } from './MultiColorEditor';
 
+const toTitleCase = (value: string) => value
+    .toLowerCase()
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+
 // Constants
 export const topperTypeDisplayMap: Record<MainTopperType, string> = {
     'edible_3d_complex': 'Gumpaste (Complex)', 'edible_3d_ordinary': 'Gumpaste (Ordinary)', 'printout': 'Printout', 'edible_photo_top': 'Printout (Edible)', 'edible_photo_print': 'Printout (Edible)', 'edible_logo_2d': 'Edible Logo (2D)',
@@ -53,6 +57,7 @@ export const TopperCard: React.FC<{
 
     const isTopper = type === 'topper';
     const descriptionString = String(item.description || '');
+    const displayDescription = toTitleCase(descriptionString);
 
     // Checks
     const isHumanFigure = descriptionString.toLowerCase().includes('person') ||
@@ -122,7 +127,7 @@ export const TopperCard: React.FC<{
                 )}
                 <div className="grow">
                     <div className="text-xs font-medium text-slate-800">
-                        {descriptionString}
+                        {displayDescription}
                     </div>
                     <div className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
                         <span className="capitalize">{materialLabel || item.type.replace(/_/g, ' ')}</span>

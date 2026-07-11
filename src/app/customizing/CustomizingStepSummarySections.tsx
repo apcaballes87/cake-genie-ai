@@ -113,7 +113,10 @@ const buildCombinedDecorSummary = (mainToppers: MainTopperUI[], supportElements:
 
     const descriptions = items.map((item) => {
         const quantity = item.quantity || 1;
-        return (quantity > 1 && !isCupcake) ? `${item.description} × ${quantity}` : item.description;
+        const description = item.description
+            .toLowerCase()
+            .replace(/\b\w/g, (character) => character.toUpperCase());
+        return (quantity > 1 && !isCupcake) ? `${description} × ${quantity}` : description;
     });
 
     if (descriptions.length === 1) return descriptions[0];
@@ -124,6 +127,10 @@ const buildCombinedDecorSummary = (mainToppers: MainTopperUI[], supportElements:
 const getCombinedDecorItems = (mainToppers: MainTopperUI[], supportElements: SupportElementUI[]) => {
     return [...mainToppers, ...supportElements];
 };
+
+const toTitleCase = (value: string) => value
+    .toLowerCase()
+    .replace(/\b\w/g, (character) => character.toUpperCase());
 
 const topperMaterialLabelMap: Record<MainTopperType, string> = {
     edible_3d_complex: 'Gumpaste (Complex)',
@@ -1095,31 +1102,48 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                         {combinedDecorItems.length > 0 ? (
                             <div className="space-y-2">
                                 {combinedDecorItems.slice(0, 3).map((item) => (
-                                    <button
+                                    <div
                                         key={item.id}
-                                        type="button"
-                                        onClick={() => {
-                                            setSelectedItem({
-                                                ...item,
-                                                itemCategory: ('classification' in item ? 'topper' : 'element'),
-                                            } as ClusteredMarker);
-                                            openTopperSheet('classification' in item ? 'main' : 'support');
-                                        }}
                                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-purple-100 bg-white/90 hover:bg-purple-50/70 transition-colors text-left"
                                     >
-                                        <div className="min-w-0 flex-1 flex items-center gap-2 text-[11px] leading-5">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedItem({
+                                                    ...item,
+                                                    itemCategory: ('classification' in item ? 'topper' : 'element'),
+                                                } as ClusteredMarker);
+                                                openTopperSheet('classification' in item ? 'main' : 'support');
+                                            }}
+                                            className="min-w-0 flex-1 flex items-center gap-2 text-[11px] leading-5 text-left"
+                                        >
                                             <span className="truncate text-slate-500">
-                                                {item.description}{' '}
+                                                {toTitleCase(item.description)}{' '}
                                                 <span className="text-slate-400">
                                                     ({getDecorationMaterialLabel(item)})
                                                 </span>
                                             </span>
-                                        </div>
-                                    </button>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if ('classification' in item) {
+                                                    updateMainTopper(item.id, { isEnabled: !item.isEnabled });
+                                                } else {
+                                                    updateSupportElement(item.id, { isEnabled: !item.isEnabled });
+                                                }
+                                            }}
+                                            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ease-in-out ${item.isEnabled ? 'bg-purple-400' : 'bg-slate-300'}`}
+                                            aria-label={`${item.isEnabled ? 'Disable' : 'Enable'} ${toTitleCase(item.description)}`}
+                                            aria-pressed={item.isEnabled}
+                                        >
+                                            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-200 ease-in-out ${item.isEnabled ? 'translate-x-4' : 'translate-x-1'}`} />
+                                        </button>
+                                    </div>
                                 ))}
 
                                 {combinedDecorItems.length > 3 && (
-                                    <div className="flex justify-center pt-1">
+                                    <div className="flex items-center justify-center gap-2 pt-1">
                                         <button
                                             type="button"
                                             onClick={() => {
@@ -1129,6 +1153,14 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                             className="genie-btn-secondary text-[10px] font-bold py-2 px-5 rounded-full"
                                         >
                                             Show more
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => onUpdateDesign?.()}
+                                            disabled={isUpdatingDesign}
+                                            className="genie-btn-primary inline-flex items-center gap-1.5 text-[10px] font-bold py-2 px-4 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {isUpdatingDesign ? 'Updating...' : 'Apply Design Changes'}
                                         </button>
                                     </div>
                                 )}
