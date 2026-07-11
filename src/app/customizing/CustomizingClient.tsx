@@ -4425,6 +4425,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                         seoDescription={recentSearchDesign?.seo_description || analysisResult.seo_description || ''}
                         altText={recentSearchDesign?.alt_text || analysisResult.alt_text || ''}
                         basePriceOptions={basePriceOptions}
+                        onUploadAnother={handleUploadAnother}
                     />
                 )}
 

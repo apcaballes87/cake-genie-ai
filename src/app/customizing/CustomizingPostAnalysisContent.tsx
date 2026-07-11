@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { ImagePlus } from 'lucide-react';
 import { DesignAboutSection } from '@/components/DesignAboutSection';
 import type { BasePriceInfo, HybridAnalysisResult } from '@/types';
 import { buildDesignPageContent } from '@/utils/designContentUtils';
@@ -11,6 +12,7 @@ interface CustomizingPostAnalysisContentProps {
     seoDescription?: string | null;
     altText?: string | null;
     basePriceOptions: BasePriceInfo[];
+    onUploadAnother: () => void;
 }
 
 export const CustomizingPostAnalysisContent = React.memo(({
@@ -21,6 +23,7 @@ export const CustomizingPostAnalysisContent = React.memo(({
     seoDescription,
     altText,
     basePriceOptions,
+    onUploadAnother,
 }: CustomizingPostAnalysisContentProps) => {
     const pageContent = useMemo(() => buildDesignPageContent({
         keywords,
@@ -44,6 +47,15 @@ export const CustomizingPostAnalysisContent = React.memo(({
 
     return (
         <div className="w-full pb-4 pt-1 space-y-4">
+            <button
+                type="button"
+                onClick={onUploadAnother}
+                className="genie-btn-primary flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 font-bold shadow-md shadow-purple-50/50 transition-transform active:scale-[0.98]"
+            >
+                <ImagePlus size={20} className="shrink-0" aria-hidden="true" />
+                <span>Upload Any Design - Get Instant Pricing</span>
+            </button>
+
             <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
                 <h2 className="text-xl font-bold text-slate-800 mb-4 text-center">Design Specifications</h2>
                 <div className="overflow-hidden rounded-xl border border-slate-200">

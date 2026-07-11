@@ -1,6 +1,6 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import type { HybridAnalysisResult } from '@/types';
 import { CustomizingPostAnalysisContent } from './CustomizingPostAnalysisContent';
 
@@ -35,6 +35,8 @@ const analysisResult: HybridAnalysisResult = {
 
 describe('CustomizingPostAnalysisContent', () => {
     it('renders about, specifications, and FAQ content', () => {
+        const onUploadAnother = vi.fn();
+
         render(
             <CustomizingPostAnalysisContent
                 analysisResult={analysisResult}
@@ -44,9 +46,14 @@ describe('CustomizingPostAnalysisContent', () => {
                 seoDescription="Pastel mermaid cake with shell topper details."
                 altText="Pastel mermaid cake with shell topper details"
                 basePriceOptions={[{ size: '6" Round', price: 1200 }]}
+                onUploadAnother={onUploadAnother}
             />
         );
 
+        const uploadButton = screen.getByRole('button', { name: 'Upload Any Design - Get Instant Pricing' });
+        expect(uploadButton).toBeInTheDocument();
+        fireEvent.click(uploadButton);
+        expect(onUploadAnother).toHaveBeenCalledTimes(1);
         expect(screen.getByText('About This Mermaid Cake')).toBeInTheDocument();
         expect(screen.getByText('Pastel mermaid cake with shell topper details.')).toBeInTheDocument();
         expect(screen.getByText('Design Specifications')).toBeInTheDocument();
@@ -73,6 +80,7 @@ describe('CustomizingPostAnalysisContent', () => {
                 seoDescription=""
                 altText=""
                 basePriceOptions={[{ size: '6" Round', price: 900 }]}
+                onUploadAnother={vi.fn()}
             />
         );
 

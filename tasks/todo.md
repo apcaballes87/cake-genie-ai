@@ -1,5 +1,18 @@
 # Tasks
 
+## Add post-analysis upload CTA (2026-07-12)
+
+### Plan
+
+- [x] Trace the landing CTA and customizing upload handler.
+- [x] Add the upload CTA above Design Specifications.
+- [x] Run focused tests, lint, and build verification.
+
+### Review
+
+- Added the landing-style `Upload Any Design - Get Instant Pricing` button with a left-aligned `ImagePlus` icon to the post-analysis customizing content.
+- Reused `handleUploadAnother` so the CTA opens the existing uploader and clears the current design state consistently.
+
 ## Improve Search Relevance and Analytics (2026-07-12)
 
 ### Plan
