@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { CakeMessageUI, CakeType } from '@/types';
 import { ColorPalette } from './ColorPalette';
 import { TrashIcon } from './icons';
@@ -30,6 +30,27 @@ const MessageRow: React.FC<{
 }> = React.memo(({ message, availablePositions, updateCakeMessage, onRequestDelete }) => {
     const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
     const colorPickerRef = useRef<HTMLDivElement>(null);
+    const textAreaRef = useRef<HTMLTextAreaElement>(null);
+    const inputValue = message.originalMessage?.text === message.text ? '' : message.text;
+
+    useLayoutEffect(() => {
+        const textarea = textAreaRef.current;
+        if (!textarea) return;
+
+        const oneLineHeight = 34;
+        const maxHeight = 54;
+        textarea.style.height = `${oneLineHeight}px`;
+
+        if (!inputValue.trim()) {
+            textarea.style.overflowY = 'hidden';
+            return;
+        }
+
+        textarea.style.height = 'auto';
+        const nextHeight = Math.min(Math.max(textarea.scrollHeight, oneLineHeight), maxHeight);
+        textarea.style.height = `${nextHeight}px`;
+        textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'auto' : 'hidden';
+    }, [inputValue]);
 
     useEffect(() => {
         if (!isColorPickerOpen) return;
@@ -52,28 +73,29 @@ const MessageRow: React.FC<{
     }, [isColorPickerOpen]);
 
     return (
-        <div className="flex min-w-0 items-center gap-2 py-1">
+        <div className="flex min-w-0 items-start gap-2 py-0.5">
             <div className="min-w-0 flex-1">
                 <label htmlFor={`msg-text-${message.id}`} className="sr-only">Text</label>
-                <input
+                <textarea
                     id={`msg-text-${message.id}`}
-                    type="text"
-                    value={message.originalMessage?.text === message.text ? '' : message.text}
+                    ref={textAreaRef}
+                    rows={1}
+                    value={inputValue}
                     onChange={(event) => updateCakeMessage(message.id, { text: event.target.value })}
-                    className="h-8 w-full min-w-0 rounded-lg border border-slate-200 bg-slate-50/50 px-2.5 text-xs outline-none transition-all focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+                    className="h-[34px] max-h-[54px] w-full min-w-0 resize-none rounded-lg border border-slate-200 bg-slate-50/50 px-2.5 py-1.5 text-xs leading-5 outline-none transition-all placeholder:font-medium placeholder:italic placeholder:text-slate-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
                     placeholder={message.originalMessage?.text || 'What should it say?'}
                     autoComplete="off"
                 />
             </div>
 
-            <div className="shrink-0">
+            <div className="flex h-[34px] shrink-0 items-center">
                 <label htmlFor={`msg-position-${message.id}`} className="sr-only">Position</label>
                 <select
                     id={`msg-position-${message.id}`}
                     aria-label={`Position for ${message.id}`}
                     value={message.position}
                     onChange={(event) => updateCakeMessage(message.id, { position: event.target.value as CakeMessageUI['position'] })}
-                    className="h-8 w-[65px] rounded-lg border border-slate-200 bg-slate-50/50 px-1.5 text-[11px] outline-none transition-all focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+                    className="h-[34px] w-[65px] rounded-lg border border-slate-200 bg-slate-50/50 px-1.5 text-[11px] outline-none transition-all focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
                 >
                     {availablePositions.map((option) => (
                         <option key={option.position} value={option.position}>
@@ -83,11 +105,11 @@ const MessageRow: React.FC<{
                 </select>
             </div>
 
-            <div ref={colorPickerRef} className="relative shrink-0">
+            <div ref={colorPickerRef} className="relative flex h-[34px] shrink-0 items-center">
                 <button
                     type="button"
                     onClick={() => setIsColorPickerOpen((isOpen) => !isOpen)}
-                    className="h-6 w-6 rounded-full border-2 border-white shadow-md ring-1 ring-slate-200 transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1"
+                    className="h-7 w-7 rounded-full border-2 border-white shadow-md ring-1 ring-slate-200 transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1"
                     style={{ backgroundColor: message.color || '#000000' }}
                     aria-label={`Choose color for ${message.id}`}
                     aria-expanded={isColorPickerOpen}
@@ -116,10 +138,10 @@ const MessageRow: React.FC<{
             <button
                 type="button"
                 onClick={() => onRequestDelete(message)}
-                className="shrink-0 rounded-md p-1 text-slate-300 transition-colors hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-md text-slate-300 transition-colors hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20"
                 aria-label={`Delete ${getPositionLabel(message.position)} message`}
             >
-                <TrashIcon className="h-4 w-4" />
+                <TrashIcon className="h-5 w-5" />
             </button>
         </div>
     );
@@ -153,7 +175,11 @@ export const CakeMessagesOptions: React.FC<CakeMessagesOptionsProps> = ({
     }, [messagePendingDelete]);
 
     return (
-        <div className="space-y-3">
+        <div className="space-y-[3px]">
+            <h3 className="text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                CAKE MESSAGE
+            </h3>
+
             {cakeMessages.map((message) => {
                 const availablePositions = visiblePositionOptions.filter(
                     (option) => option.position === message.position || !usedPositions.has(option.position)
@@ -171,14 +197,14 @@ export const CakeMessagesOptions: React.FC<CakeMessagesOptionsProps> = ({
             })}
 
             {visiblePositionOptions.some((option) => !usedPositions.has(option.position)) && (
-                <div className="flex justify-end pt-1">
+                <div className="flex justify-center pt-1">
                     <button
                         type="button"
                         onClick={() => {
                             const firstUnusedPosition = visiblePositionOptions.find((option) => !usedPositions.has(option.position));
                             if (firstUnusedPosition) addCakeMessage(firstUnusedPosition.position);
                         }}
-                        className="rounded-lg border border-dashed border-slate-300 px-3 py-2 text-xs font-semibold text-slate-600 transition-colors hover:border-purple-300 hover:bg-purple-50 hover:text-purple-700"
+                        className="rounded-2xl border border-dashed border-slate-300 px-3 py-2 text-xs font-semibold text-slate-600 transition-colors hover:border-purple-300 hover:bg-purple-50 hover:text-purple-700"
                     >
                         + Add message
                     </button>
