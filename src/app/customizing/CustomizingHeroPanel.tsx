@@ -22,7 +22,6 @@ interface CustomizingHeroPanelProps {
     isAnalyzing: boolean;
     isUpdatingDesign: boolean;
     isStudioBackgroundEditingPending?: boolean;
-    isGeneratingMask?: boolean;
     isComposingSelfie?: boolean;
     dynamicLoadingMessage: string;
     error: string | null;
@@ -168,7 +167,6 @@ export const CustomizingHeroPanel = memo(({
     isAnalyzing,
     isUpdatingDesign,
     isStudioBackgroundEditingPending = false,
-    isGeneratingMask = false,
     isComposingSelfie = false,
     dynamicLoadingMessage,
     error,
@@ -274,12 +272,7 @@ export const CustomizingHeroPanel = memo(({
             label: 'ai is adding your image to the cake',
             text: 'ai adding your image on this cake...',
         }
-        : isGeneratingMask
-            ? {
-                label: 'ai is editing your icing',
-                text: 'ai is editing your icing...',
-            }
-            : isStudioBackgroundEditingPending
+        : isStudioBackgroundEditingPending
                 ? {
                     label: 'ai is editing your background',
                     text: 'ai is editing your background...',

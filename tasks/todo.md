@@ -4756,3 +4756,33 @@
 - Replaced browser `confirm()` with an accessible Cancel/Delete modal.
 - Cart serialization falls back to the original message text for untouched placeholders.
 - Verification: 30 focused tests passed, `npm run build` passed, and `git diff --check` passed.
+# Current task: validation-gated parallel cake analysis and Image Studio
+
+- [x] Trace the current pHash, cache-hit, analysis, and Studio trigger order.
+- [x] Add semantic validation before cache hits and early Studio startup.
+- [x] Start Studio preparation/trigger in parallel with cake analysis for valid cake classifications.
+- [x] Keep selfie/edible-photo handling analysis-gated.
+- [x] Add focused ordering and rejection-safety tests.
+- [x] Run lint and full build verification.
+
+## Review
+
+- The current `/customizing` path now validates the compressed image and generates its fingerprint concurrently.
+- Invalid classifications cannot reuse an accepted cache row or start Image Studio.
+- Valid single-cake and bento-cupcake classifications start cache-row preparation and the Studio trigger while the detailed cake analysis request is still pending.
+- Existing `CakeMessagesOptions.tsx` worktree changes remain outside this task.
+- Focused `ImageContext` tests pass (10 tests); the production build passes. Source lint has no errors, only pre-existing warnings. The broader TypeScript check and one unrelated cache-service fixture test remain noisy outside this change.
+
+# Current task: remove automatic icing-mask generation
+
+- [x] Trace the mask hook, Studio-image completion effect, and “AI is editing your icing” loader.
+- [x] Remove `useIcingMask` from the live customizer upload/edit path.
+- [x] Preserve icing color changes through the existing AI image-edit flow.
+- [x] Remove the icing-mask hero loader branch.
+- [x] Run focused tests, production build, and local browser verification.
+
+## Review
+
+- Studio completion no longer starts automatic icing-mask generation.
+- The removed loader text cannot be rendered by `CustomizingHeroPanel`.
+- The standalone `useIcingMask` hook and service tests remain in the repository as unused historical code; the live customizer no longer imports or executes them.

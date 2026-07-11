@@ -8,6 +8,7 @@ import { ImageProvider, useImageManagement } from './ImageContext';
 const {
   dismissToastMock,
   fileToBase64Mock,
+  validateCakeImageMock,
   analyzeCakeFeaturesOnlyMock,
   triggerStudioEditFromUploadMock,
   compressImageMock,
@@ -21,6 +22,7 @@ const {
 } = vi.hoisted(() => ({
   dismissToastMock: vi.fn(),
   fileToBase64Mock: vi.fn(),
+  validateCakeImageMock: vi.fn(),
   analyzeCakeFeaturesOnlyMock: vi.fn(),
   triggerStudioEditFromUploadMock: vi.fn(),
   compressImageMock: vi.fn(),
@@ -45,6 +47,7 @@ vi.mock('react-hot-toast', () => ({
 
 vi.mock('@/services/geminiService', () => ({
   fileToBase64: fileToBase64Mock,
+  validateCakeImage: validateCakeImageMock,
   analyzeCakeFeaturesOnly: analyzeCakeFeaturesOnlyMock,
   enrichAnalysisWithRoboflow: vi.fn(),
   triggerStudioEditFromUpload: triggerStudioEditFromUploadMock,
@@ -112,6 +115,7 @@ describe('ImageContext', () => {
       data: 'uploaded-base64',
       mimeType: 'image/png',
     });
+    validateCakeImageMock.mockResolvedValue('valid_single_cake');
     compressImageMock.mockImplementation(async (file: File) => file);
     findSimilarAnalysisByHashMock.mockResolvedValue(null);
     generateServerImageFingerprintMock.mockResolvedValue({
@@ -152,7 +156,7 @@ describe('ImageContext', () => {
     });
   });
 
-  it('waits for cake analysis before starting the studio edit trigger', async () => {
+  it('starts Studio setup while cake analysis is still pending for a valid cake', async () => {
     const onSuccess = vi.fn();
     const onError = vi.fn();
     const { result } = renderHook(() => useImageManagement(), { wrapper });
@@ -173,8 +177,17 @@ describe('ImageContext', () => {
       await Promise.resolve();
     });
 
-    expect(prepareStudioEditCacheRowMock).not.toHaveBeenCalled();
-    expect(triggerStudioEditFromUploadMock).not.toHaveBeenCalled();
+    expect(prepareStudioEditCacheRowMock).toHaveBeenCalledWith('abc123def4567890', {
+      fingerprintPipeline: 'v2-test-pipeline',
+      originalImageUrl: null,
+    });
+    expect(triggerStudioEditFromUploadMock).toHaveBeenCalledWith(
+      'abc123def4567890',
+      expect.objectContaining({
+        data: 'uploaded-base64',
+        mimeType: 'image/png',
+      })
+    );
     expect(onSuccess).not.toHaveBeenCalled();
 
     resolveAnalysis({
@@ -219,6 +232,37 @@ describe('ImageContext', () => {
       })
     );
     expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid validation classifications before cache hits or Studio startup', async () => {
+    const onSuccess = vi.fn();
+    const onError = vi.fn();
+    validateCakeImageMock.mockResolvedValue('multiple_cakes');
+    findSimilarAnalysisByHashMock.mockResolvedValue({
+      id: 'cached-row',
+      pHash: 'cached-phash',
+      analysisResult: { keyword: 'cached cake' },
+      seoMetadata: null,
+    });
+
+    const { result } = renderHook(() => useImageManagement(), { wrapper });
+
+    await act(async () => {
+      await result.current.handleImageUpload(
+        new File(['image-bytes'], 'catalog.png', { type: 'image/png' }),
+        onSuccess,
+        onError
+      );
+    });
+
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledWith(expect.objectContaining({
+      message: 'AI_REJECTION: Please upload a single cake image. This image contains multiple cakes.',
+    }));
+    expect(findSimilarAnalysisByHashMock).not.toHaveBeenCalled();
+    expect(analyzeCakeFeaturesOnlyMock).not.toHaveBeenCalled();
+    expect(prepareStudioEditCacheRowMock).not.toHaveBeenCalled();
+    expect(triggerStudioEditFromUploadMock).not.toHaveBeenCalled();
   });
 
   it('does not schedule a delayed cache-write studio trigger when prepare already handled Studio', async () => {
@@ -330,6 +374,7 @@ describe('ImageContext', () => {
     const { result } = renderHook(() => useImageManagement(), { wrapper });
 
     // Mock analyzeCakeFeaturesOnly to return a selfie rejection
+    validateCakeImageMock.mockResolvedValue('edible_photo_reference');
     analyzeCakeFeaturesOnlyMock.mockResolvedValue({
       cakeType: '',
       cakeThickness: '',

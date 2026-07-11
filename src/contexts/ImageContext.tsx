@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import { usePathname } from 'next/navigation'
 import { v4 as uuidv4 } from 'uuid'
 import { toast as toastHot } from 'react-hot-toast'
-import { fileToBase64, analyzeCakeFeaturesOnly, enrichAnalysisWithRoboflow, triggerStudioEditFromUpload } from '@/services/geminiService'
+import { fileToBase64, validateCakeImage, analyzeCakeFeaturesOnly, enrichAnalysisWithRoboflow, triggerStudioEditFromUpload } from '@/services/geminiService'
 import { createClient } from '@/lib/supabase/client'
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization'
 import { showSuccess, showError, showLoading, showStatus } from '@/lib/utils/toast'
@@ -33,6 +33,20 @@ const fetchImageAsBase64 = async (url: string): Promise<{ data: string; mimeType
     }
     const base64Data = window.btoa(binary);
     return { data: base64Data, mimeType };
+};
+
+const PARALLEL_STUDIO_VALID_CLASSIFICATIONS = new Set([
+    'valid_single_cake',
+    'valid_bento_cupcake_set',
+]);
+
+const VALIDATION_REJECTION_MESSAGES: Record<string, string> = {
+    multiple_cakes: 'Please upload a single cake image. This image contains multiple cakes.',
+    payment_receipt: 'This looks like a payment receipt or screenshot. Please upload a cake design image instead.',
+    not_a_cake: "This image doesn't appear to be a cake. Please upload a cake image.",
+    non_food: "This image doesn't appear to be a cake. Please upload a cake image.",
+    complex_sculpture: 'This cake design is too complex for online pricing. Please contact us for a custom quote.',
+    large_wedding_cake: 'Large wedding cakes require in-store consultation for accurate pricing.',
 };
 
 interface ImageContextType {
@@ -382,7 +396,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
 
             // --- STEP 1: COMPRESS IMAGE + pHash CACHE LOOKUP (in parallel) ---
             // Compression and pHash generation run concurrently to minimize latency.
-            // IMPORTANT: Validation MUST happen before we honour any cache hit —
+            // IMPORTANT: semantic validation must finish before we honour any cache hit —
             // a pHash collision could otherwise return a cached result for an image
             // that should be rejected (e.g. multiple cakes → Stranger Things cake bug).
             const uploadedImageUrl = options?.imageUrl; // Use existing URL if from web search
@@ -425,11 +439,9 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 // Silently handle compression failure — continue with original imageData
             }
 
-            // --- STEP 2: SINGLE SERVER FINGERPRINT LOOKUP ---
-            // The standalone Gemini validate call has been removed because the analyzer in
-            // STEP 3 already returns `rejection.isRejected` with the same labels and
-            // human-readable messages, and cache hits come from rows that were already
-            // validated when they were first analyzed.
+            // --- STEP 2: VALIDATE IMAGE + GENERATE FINGERPRINT ---
+            // Validation and fingerprinting can run together, but validation must gate
+            // both cache hits and the early Studio trigger.
             // Single in-place updating toast — feels faster than 3 dismiss+show cycles.
             const uploadToastId = 'upload-progress';
             const showProgressToast = (message: string, durationMs?: number) => {
@@ -442,15 +454,25 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             let pHash: string | null = null;
 
             // Generate canonical server fingerprint using the Sharp dHash pipeline.
-            fingerprint = await generateServerImageFingerprint(
-                finalImageBlobToCache ?? file
-            );
+            const [fingerprintResult, validationClassification] = await Promise.all([
+                generateServerImageFingerprint(finalImageBlobToCache ?? file),
+                validateCakeImage(compressedImageData.data, compressedImageData.mimeType, 'default'),
+            ]);
+
+            fingerprint = fingerprintResult;
             pHash = fingerprint.pHash;
             console.log(
                 `🔍 Server pHash result: ${pHash
                     ? pHash
                     : `FAILED (${fingerprint.error || 'unknown error'}) — new cache writes will be skipped`}`
             );
+
+            const validationMessage = VALIDATION_REJECTION_MESSAGES[validationClassification];
+            const isParallelStudioCandidate = PARALLEL_STUDIO_VALID_CLASSIFICATIONS.has(validationClassification);
+
+            if (validationMessage) {
+                throw new Error(`AI_REJECTION: ${validationMessage}`);
+            }
 
             const shouldUseSimilarCacheLookup = !knownSeoMetadata && pHash !== null;
 
@@ -532,6 +554,35 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 return; // Skip compression and AI call entirely!
             }
             // --- END OF COMPRESSION LOGIC AND CACHE CHECKS ---
+
+            // For clearly valid cake classifications, reserve the Studio row and trigger
+            // Studio before waiting for the more detailed cake analysis. This is the
+            // parallel path. `edible_photo_reference` stays analysis-gated so the existing
+            // selfie/edible-photo branch cannot send the raw portrait into normal Studio.
+            const earlyStudioSetupPromise =
+                isParallelStudioCandidate && pHash && fingerprint
+                    ? (async () => {
+                        const preparedStudioRow = await prepareStudioEditCacheRow(pHash, {
+                            fingerprintPipeline: fingerprint.pipeline,
+                            originalImageUrl: uploadedImageUrl || null,
+                        });
+
+                        if (!preparedStudioRow) {
+                            return { preparedStudioRow: null, studioTriggerHandled: false };
+                        }
+
+                        if (preparedStudioRow.studioTriggerHandled || preparedStudioRow.shouldTriggerStudioEdit === false) {
+                            return { preparedStudioRow, studioTriggerHandled: true };
+                        }
+
+                        const studioTriggerHandled = await triggerStudioEditFromUpload(
+                            preparedStudioRow.storedPHash || pHash,
+                            compressedImageData
+                        );
+
+                        return { preparedStudioRow, studioTriggerHandled };
+                    })()
+                    : null;
 
             // --- STEP 3: TWO-PHASE AI ANALYSIS ---
 
@@ -675,21 +726,24 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     setCurrentSlugState(generatedSlug);
                 }
 
-                const preparedStudioRow =
-                    pHash && fingerprint
+                const earlyStudioSetup = earlyStudioSetupPromise
+                    ? await earlyStudioSetupPromise
+                    : null;
+                const preparedStudioRow = earlyStudioSetup?.preparedStudioRow
+                    ?? (pHash && fingerprint
                         ? await prepareStudioEditCacheRow(pHash, {
                             fingerprintPipeline: fingerprint.pipeline,
                             originalImageUrl: uploadedImageUrl || null,
                         })
-                        : null;
+                        : null);
 
                 if (preparedStudioRow) {
                     setCurrentCacheId(preparedStudioRow.id ?? null);
                     setCurrentPHash(preparedStudioRow.storedPHash);
                 }
 
-                let studioTriggerHandled = false;
-                if (pHash) {
+                let studioTriggerHandled = earlyStudioSetup?.studioTriggerHandled ?? false;
+                if (pHash && !earlyStudioSetup) {
                     if (preparedStudioRow?.studioTriggerHandled || preparedStudioRow?.shouldTriggerStudioEdit === false) {
                         studioTriggerHandled = true;
                     } else {

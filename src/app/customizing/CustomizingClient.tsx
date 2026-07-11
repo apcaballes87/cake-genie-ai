@@ -32,7 +32,6 @@ import {
     getEquivalentCakeSizeForIcingBase,
     getEquivalentCakeTypeForIcingBase,
     inferIcingBaseFromCakeType,
-    EDIBLE_PHOTO_MASK_URL,
     CAKE_TYPES,
     CAKE_THICKNESSES,
 } from '@/constants';
@@ -114,7 +113,6 @@ import { useCart } from '@/contexts/CartContext';
 import { useSavedItemsActions, useSavedItemsData } from '@/contexts/SavedItemsContext';
 import { usePricing } from '@/hooks/usePricing';
 import { useDesignUpdate } from '@/hooks/useDesignUpdate';
-import { useIcingMask } from '@/hooks/useIcingMask';
 import { useDesignSharing } from '@/hooks/useDesignSharing';
 import { useAvailabilitySettings } from '@/hooks/useAvailabilitySettings';
 import { useSearchEngine } from '@/hooks/useSearchEngine';
@@ -1027,11 +1025,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         });
     }, [hasEnabledEdiblePhotoTopper]);
 
-    const staticIcingMaskUrl = useMemo(
-        () => (effectiveCacheId === null && hasEnabledEdiblePhotoTopper ? EDIBLE_PHOTO_MASK_URL : null),
-        [effectiveCacheId, hasEnabledEdiblePhotoTopper]
-    );
-
     const {
         isLoading: isUpdatingDesign, error: designUpdateError, lastGenerationInfoRef, handleUpdateDesign, setError: setDesignUpdateError, isSafetyFallback,
     } = useDesignUpdate({
@@ -1061,74 +1054,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     }, [handleUpdateDesign, scrollToHero]);
 
 
-    // Mask-based instant icing recolor (persistent, cross-user). Generates the icing
-    // mask once per design, then recolors client-side with no Gemini round trip.
-    // Wired alongside useDesignUpdate and shares the same cacheId source.
-    // Tracks whether the mask-recolored image is currently displayed (for toggle logic).
-    const maskOverlayActiveRef = useRef(false);
-    const [isMaskOverlayActive, setIsMaskOverlayActive] = useState(false);
-
-    const handleIcingMaskRecolored = useCallback((recoloredDataUrl: string, _hex: string) => {
-        // Special signal from disableMask — revert to original image
-        if (recoloredDataUrl === '__DISABLE_MASK__') {
-            maskOverlayActiveRef.current = false;
-            setIsMaskOverlayActive(false);
-            setEditedImage(null);
-            setActiveTab('original');
-            scrollToHero();
-            return;
-        }
-        maskOverlayActiveRef.current = true;
-        setIsMaskOverlayActive(true);
-        setEditedImage(recoloredDataUrl);
-        setActiveTab('customized');
-        scrollToHero();
-        clearDirtyState();
-    }, [setEditedImage, setActiveTab, scrollToHero, clearDirtyState]);
-
-    const handleIcingMaskFallback = useCallback((hex: string, name: string) => {
-        // Mask path unavailable — delegate to the existing Gemini color-variant path
-        // (Req 5.5). colorMeta enables the cakegenie_color_variants cache hit/save.
-        void handleUpdateDesign(`Recolor the icing to ${name}`, {
-            source: 'icing-mask-fallback',
-            colorMeta: { hex, name },
-        });
-    }, [handleUpdateDesign]);
-
-    const {
-        status: icingMaskStatus,
-        recolorIcing,
-        regenerateMask,
-        disableMask,
-    } = useIcingMask({
-        cacheId: effectiveCacheId,
-        baseImage: originalImageData,
-        baseImageUrl: liveStudioEditedImageUrl || originalImagePreview,
-        studioEditedImageUrl: liveStudioEditedImageUrl,
-        icingColorName: (() => {
-            const hex = icingDesign?.colors?.top || icingDesign?.colors?.side;
-            return getIcingBucketName(hex || '');
-        })(),
-        staticMaskUrl: staticIcingMaskUrl,
-        onRecolored: handleIcingMaskRecolored,
-        onFallback: handleIcingMaskFallback,
-    });
-
-    // "Recolor Icing" handler: clears the cached mask and immediately regenerates it
-    // with the current icing color, showing the hero loading animation during generation.
-    const handleRegenerateMask = useCallback(async () => {
-        await regenerateMask();
-        const currentColor = icingDesign?.colors?.top || icingDesign?.colors?.side || '#FFFFFF';
-        const colorName = getIcingBucketName(currentColor) || currentColor;
-        void recolorIcing(currentColor, colorName);
-    }, [regenerateMask, recolorIcing, icingDesign?.colors?.top, icingDesign?.colors?.side]);
-
-    // Toggle wrapper for color swatch clicks:
-    // We now bypass the mask recolor flow completely and call the AI image edit directly,
-    // passing the nextDesign state override to avoid React stale-state issues.
+    // Icing color changes use the existing AI image-edit path directly.
     const handleIcingColorToggle = useCallback((hex: string, name: string, nextDesign?: IcingDesignUI) => {
-        disableMask();
-
         const resolvedIcingDesign = nextDesign || (icingDesign ? {
             ...icingDesign,
             colors: {
@@ -1146,19 +1073,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         });
         setActiveCustomization(null);
         scrollToHero();
-    }, [disableMask, icingDesign, handleUpdateDesign, setActiveCustomization, scrollToHero]);
-
-    // Editor panel mask toggle: mirror the sidebar "Icing" toggle behavior — if the
-    // mask is currently active, turning it off reverts to the original image; if
-    // the mask is off, turning it on recolors using the current icing color.
-    const handleToggleMask = useCallback(() => {
-        if (isMaskOverlayActive) {
-            disableMask();
-            return;
-        }
-        const currentHex = icingDesign?.colors?.top || icingDesign?.colors?.side || '#FFFFFF';
-        void recolorIcing(currentHex, getIcingBucketName(currentHex));
-    }, [isMaskOverlayActive, disableMask, icingDesign?.colors?.top, icingDesign?.colors?.side, recolorIcing]);
+    }, [icingDesign, handleUpdateDesign, setActiveCustomization, scrollToHero]);
 
 
     const { isShareModalOpen, shareData, isSavingDesign, handleShare, createShareLink, closeShareModal } = useDesignSharing({
@@ -3975,7 +3890,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                             isAnalyzing={isAnalyzing}
                             isUpdatingDesign={isUpdatingDesign}
                             isStudioBackgroundEditingPending={isStudioBackgroundEditingPending}
-                            isGeneratingMask={icingMaskStatus === 'generating'}
                             isComposingSelfie={isComposingSelfie}
                             dynamicLoadingMessage={dynamicLoadingMessage}
                             error={error}
@@ -4101,7 +4015,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                             />
                                         ) : null,
                                         onIcingColorRecolor: handleIcingColorToggle,
-                                        onRegenerateMask: handleRegenerateMask,
                                     }}
                                 />
                             ) : analysisError ? (
@@ -4185,10 +4098,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                     dirtyFields={dirtyFields}
                                     originalCakeType={analysisResult?.cakeType}
                                     onIcingColorRecolor={handleIcingColorToggle}
-                                    onRegenerateMask={handleRegenerateMask}
-                                    isGeneratingMask={icingMaskStatus === 'generating'}
                                     isStudioBackgroundEditingPending={isStudioBackgroundEditingPending}
-                                    maskStatus={icingMaskStatus}
                                 />
                             )}
                             
@@ -4305,10 +4215,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                         />
                                     ) : null,
                                     onIcingColorRecolor: handleIcingColorToggle,
-                                    onRegenerateMask: handleRegenerateMask,
-                                    isGeneratingMask: icingMaskStatus === 'generating',
                                     isStudioBackgroundEditingPending: isStudioBackgroundEditingPending,
-                                    maskStatus: icingMaskStatus,
                                 }}
                             />
                         </aside>
@@ -4403,9 +4310,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                         onSelectItem={setSelectedItem}
                         onIcingDesignChange={onIcingDesignChange}
                         onIcingColorRecolor={handleIcingColorToggle}
-                        isGeneratingMask={icingMaskStatus === 'generating'}
                         isStudioBackgroundEditingPending={isStudioBackgroundEditingPending}
-                        maskStatus={icingMaskStatus}
                         onRevert={() => {
                             const revertTo = committedStateRef.current?.icingDesign ?? analysisResult?.icing_design;
                             if (revertTo && icingDesign) {
