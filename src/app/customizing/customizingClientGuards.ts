@@ -45,8 +45,29 @@ const RETRY_UPLOAD_QUERY_PARAMS = [
   'thickness',
 ] as const
 
+const EXTERNAL_IMAGE_HANDOFF_QUERY_PARAMS = [
+  'source',
+  'entry_source',
+  'image_url',
+  'image_name',
+  'image_type',
+  // These are normally generated from the previous design by the share-link
+  // synchronizer. They must not become selections for a new external upload.
+  'type',
+  'caketype',
+  'size',
+  'height',
+  'thickness',
+] as const
+
 export function resolveEntrySourceParam(urlParams: URLSearchParams): string | null {
   return urlParams.get('entry_source') || urlParams.get('source')
+}
+
+export function clearExternalImageHandoffParams(urlParams: URLSearchParams): void {
+  for (const key of EXTERNAL_IMAGE_HANDOFF_QUERY_PARAMS) {
+    urlParams.delete(key)
+  }
 }
 
 export function shouldLoadPropDesign({

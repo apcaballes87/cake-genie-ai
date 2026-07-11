@@ -87,6 +87,7 @@ import { canConsumeDesktopSidebarWheel, shouldCaptureDesktopSidebarScroll } from
 import {
     buildRetryUploadUrl,
     buildRelatedCollectionsRequestKey,
+    clearExternalImageHandoffParams,
     getAutoRelatedDesignRequest,
     getNextEdiblePhotoAiChatInput,
     persistAnalysisImageRef,
@@ -2145,11 +2146,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                 const file = new File([blob], fileName, { type: fileType });
 
                 // Clean up URL params using history API directly (avoids Next.js router cache issues)
-                urlParams.delete('source');
-                urlParams.delete('entry_source');
-                urlParams.delete('image_url');
-                urlParams.delete('image_name');
-                urlParams.delete('image_type');
+                // A handoff can begin from a URL generated for the prior design.
+                // Remove both the handoff fields and its synced cake selections before
+                // the new analysis is applied, otherwise `caketype=Cupcake` can
+                // override a newly analyzed 1 Tier cake in the URL-sync effect.
+                clearExternalImageHandoffParams(urlParams);
                 const currentPath = window.location.pathname;
                 const cleanUrl = urlParams.toString() ? `${currentPath}?${urlParams.toString()}` : currentPath;
                 window.history.replaceState({}, '', cleanUrl);

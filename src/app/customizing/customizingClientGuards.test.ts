@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildRetryUploadUrl,
   buildRelatedCollectionsRequestKey,
+  clearExternalImageHandoffParams,
   EDIBLE_PHOTO_AI_CHAT_DEFAULT_PROMPT,
   getAutoRelatedDesignRequest,
   getNextEdiblePhotoAiChatInput,
@@ -105,6 +106,16 @@ describe('customizingClientGuards', () => {
     expect(resolveEntrySourceParam(new URLSearchParams('entry_source=landing&source=blog'))).toBe('landing')
     expect(resolveEntrySourceParam(new URLSearchParams('source=blog'))).toBe('blog')
     expect(resolveEntrySourceParam(new URLSearchParams(''))).toBeNull()
+  })
+
+  it('clears stale cake selections with an external image handoff while preserving unrelated params', () => {
+    const params = new URLSearchParams(
+      'source=chrome_extension&image_url=https%3A%2F%2Fimages.example%2Fnew-cake.jpg&image_name=new-cake.jpg&image_type=image%2Fjpeg&caketype=Cupcake&size=2oz+-+12+pieces&height=2+in&keep=1'
+    )
+
+    clearExternalImageHandoffParams(params)
+
+    expect(params.toString()).toBe('keep=1')
   })
 
   it('reuses existing analysis only when SSR or cached analysis is already available', () => {

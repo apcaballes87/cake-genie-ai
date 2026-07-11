@@ -1,5 +1,19 @@
 # Tasks
 
+## Prevent Stale Cake Type on Chrome Extension Uploads (2026-07-11)
+
+### Plan
+
+- [x] Trace the same-browser Chrome-extension handoff and the customization URL synchronizer.
+- [x] Remove stale cake-selection query parameters before applying a new external upload analysis.
+- [x] Run focused regression coverage and production build verification.
+
+### Review
+
+- Root cause: the Chrome-extension handoff removed `source` and image fields but retained `caketype`, `size`, and `height` that the previous design had written to the URL. The customizer's URL synchronizer then treated those values as new selections and overwrote the fresh analysis in the same browser session.
+- Added scoped external-handoff cleanup for those stale selection fields while retaining unrelated query parameters.
+- Verification: `npx vitest run src/app/customizing/customizingClientGuards.test.ts` passed (14 tests); focused ESLint completed with 0 errors (100 existing warnings in `CustomizingClient.tsx`); `git diff --check` passed; `npm run build` compiled and type-checked successfully, with the existing stale browser-data, inferred workspace-root, and deprecated middleware warnings.
+
 ## Remove Side Menu Links (2026-07-11)
 
 ### Plan
