@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "vitest",
     "check:schema": "tsx scripts/check-required-columns.ts",
+    "index:typesense": "tsx scripts/index-typesense.ts",
     "cleanup:abandoned-orders": "tsx scripts/test-cleanup-abandoned-orders.ts",
     "backfill:variants": "tsx scripts/backfill-image-variants.ts",
     "backfill:phash": "tsx scripts/backfill-server-phashes.ts",

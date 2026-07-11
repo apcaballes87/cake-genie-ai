@@ -41,6 +41,8 @@ export interface ProductCardProps {
     collectionContext?: string;
     /** GA4 item_list_name — which section/page the card appears in (e.g. 'search_results', 'popular_designs') */
     listName?: string;
+    /** Optional callback for callers that need to record a card selection. */
+    onCardClick?: () => void;
     /**
      * Variant manifest from `cakegenie_analysis_cache.image_variants` (jsonb).
      * Accepts the raw JSONB shape — this component parses it once via
@@ -275,6 +277,7 @@ const LinkedProductCard = (props: ProductCardProps & { slug: string }) => {
     const { isSaved, handleSaveClick } = useProductCardCommon(props);
 
     const handleCardClick = () => {
+        props.onCardClick?.();
         trackSelectItem({
             item_list_name: props.listName ?? 'unknown',
             item_id: props.slug,
@@ -320,6 +323,7 @@ const InteractiveProductCard = (props: ProductCardProps) => {
             item_id: props.p_hash,
             item_name: buildProductTitle(props.keywords, props.collectionContext, props.analysis_json),
         });
+        props.onCardClick?.();
 
         // If we have precomputed analysis, navigate immediately without blocking
         if (isValidPrecomputedAnalysis(props.analysis_json)) {

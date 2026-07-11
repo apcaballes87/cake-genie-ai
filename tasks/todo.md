@@ -1,5 +1,64 @@
 # Tasks
 
+## Improve Search Relevance and Analytics (2026-07-12)
+
+### Plan
+
+- [x] Implement phrase-aware field weighting, alias expansion, and a safer fuzzy fallback in the current PostgreSQL search RPC.
+- [x] Add result-aware search analytics and restore database-backed popular keywords.
+- [x] Wire full search result observations and product-click events without counting autocomplete keystrokes as searches.
+- [x] Verify representative live queries, focused tests, lint, and build.
+
+### Review
+
+- Replaced the current PostgreSQL ranking body with explicit weighted ranking, phrase bonuses for multi-word queries, exact keyword/phrase boosts, and a gated fuzzy fallback that only runs when the expanded exact query has no matches.
+- Added managed query aliases for `bday`, `b-day`, `lunchbox`, `lunch box`, `cup cake`, and `spider man`. Live verification confirms `bday cake` expands to `birthday cake` and `lunch box` to `bento`.
+- Preserved typo recall without the old `alt_text` noise: `unicron` returns 117 Unicorn results, `bluey` returns 61 focused results, `bento` 709, and `bluey sky blue` 32.
+- Added typed, suggestion-click, product-click, result-observation, zero-result, last-result-count, and source fields to search analytics. Restored `get_popular_keywords()` and enabled it in autocomplete. Full search result observations are recorded only for `/search`; autocomplete keystrokes do not create result-observation events.
+- Added main-grid product-click tracking through `ProductCard`, alongside existing quick-result click tracking.
+- Hardened analytics access: RLS is enabled, anonymous/authenticated clients can read suggestions, and direct anonymous inserts/updates/deletes are revoked; writes go through the validated RPCs.
+- Verification passed: live Supabase query matrix, alias/popular-keyword checks, targeted 21-test Vitest run, production build, and `git diff --check`. Targeted ESLint reports only pre-existing diagnostics in the large search components plus the existing Browserslist warning.
+
+## Implement Typesense Shadow Search Comparison (2026-07-11)
+
+### Plan
+
+- [x] Add a server-only Typesense client, normalized document mapper, and index backfill command.
+- [x] Add a controlled, non-user-visible shadow query path and persisted comparison metrics.
+- [x] Fix the over-broad PostgreSQL fuzzy fallback without changing the public search contract.
+- [x] Deploy and verify Typesense on the existing Hostinger VPS, then run tests/build.
+
+### Review
+
+- Added a server-only Typesense integration for the `products_shadow_v1` collection, including an explicit product document mapper, collection schema bootstrap, bulk upsert importer, typo-tolerant query configuration, and `npm run index:typesense` backfill command.
+- Deployed Typesense 30.2 as an isolated Hostinger Docker Compose project on the existing VPS, persisted its data in a named volume, opened TCP 8108 in the active VPS firewall, and indexed 13,513 catalog documents. The health endpoint and live queries were verified for `bluey`, `unicron`, and `red minimalist`.
+- Added a 5% server-side shadow sample on `/api/search`. It does not change the user-visible response; it records baseline/Typesense counts, top slugs, and latency in the RLS-protected `cakegenie_search_shadow_comparisons` table.
+- Tightened PostgreSQL fallback behavior so fuzzy matching only runs when exact FTS has no results, excludes `alt_text`, and uses a 0.45 keyword/slug similarity threshold. Live production checks preserved `bluey` at 61 exact results and restored `unicron` to 117 focused Unicorn results.
+- Added focused mapper/query tests. Verification passed: 3 focused Vitest tests, targeted ESLint with 0 errors, `git diff --check`, and `npm run build`. The full suite had 172 passing files and 2 unrelated pre-existing failures in `cacheAnalysisResult.test.ts` and `image-studio-batch/route.test.ts`. Build still emits existing stale-browser-data, inferred-workspace-root, deprecated-middleware, and occasional non-fatal Supabase statement-timeout warnings.
+- Production shadow capture remains opt-in until `TYPESENSE_URL`, the read-only Typesense search key, and `TYPESENSE_SHADOW_SAMPLE_RATE` are configured in the server environment. The current VPS endpoint is plain HTTP, so HTTPS/domain hardening is required before exposing this beyond the shadow pilot.
+
+
+## Audit Current Product Search and Open-Source Alternatives (2026-07-11)
+
+### Plan
+
+- [x] Trace the user-facing search route and all backend retrieval/ranking paths.
+- [x] Identify concrete relevance, data, and UX weaknesses in the current implementation.
+- [x] Research open-source search engines and compare them against this stack.
+- [x] Document prioritized recommendations and verification gaps.
+
+### Review
+
+- The primary catalog search is a Supabase/PostgreSQL RPC using weighted `tsvector` search plus a `pg_trgm` `word_similarity` fallback. The same `/api/search` endpoint powers both autocomplete quick results and the full `/search` product grid.
+- The `/search` page also mounts Google Programmable Search configured for image-only external results; that is a separate inspiration/image flow, not a product-catalog relevance engine.
+- Live production evidence: `bluey` has 61 exact FTS matches but 4,016 fuzzy-only matches, for 4,077 combined. The fuzzy-only top hits include generic 18th-birthday and blue-color cakes. `unicron` returns 125 fuzzy-only matches, while `birthday` returns 11,021 exact FTS matches, showing both fuzzy-threshold noise and overly broad generic-term recall.
+- The current trigram index is on `searchable_text`, but the fallback compares `keywords` and `alt_text` directly, so the existing index does not directly support the fallback predicate. The RPC also omits `studio_edited_image_url`, forcing a follow-up hydration query for every search response.
+- Autocomplete uses literal substring matching against static keywords/site links/collections, waits two seconds before loading dynamic collections, and the “popular keywords” RPC is disabled. Every quick-result request also runs the full count RPC.
+- Open-source comparison: Meilisearch is the best first candidate for a low-ops pilot; Typesense is the strongest relevance/merchandising candidate if its GPL server license and separate service operations are acceptable; PGroonga is the lowest-ETL PostgreSQL-native alternative if available in the Supabase environment; OpenSearch is powerful but disproportionate for this catalog size and team surface area.
+- Recommended sequence: fix the current SQL ranking/fallback immediately, add a relevance test set and click/query analytics, then run a shadow index pilot with Meilisearch or Typesense before switching production traffic.
+- Verification completed with repository inspection, live Supabase schema/function/index inspection, live production query samples, and official documentation/repository research. No production code or schema was changed in this audit.
+
+
 ## Investigate Guest Cart Disappearance (2026-07-11)
 
 ### Plan

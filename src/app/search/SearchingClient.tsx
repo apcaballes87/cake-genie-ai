@@ -21,6 +21,7 @@ import { showError } from '@/lib/utils/toast';
 import { AppState } from '@/hooks/useAppNavigation';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import { isCurrentSearchReturnUrl, readSearchReturnState, writeSearchReturnState } from '@/lib/searchReturnState';
+import { logSearchAnalytics } from '@/services/supabaseService';
 
 const SearchResultsSkeleton = ({ count = 8, showHeader = true }: { count?: number; showHeader?: boolean }) => (
     <div className="mb-6">
@@ -235,7 +236,7 @@ const SearchingClient: React.FC = () => {
         const priceParam = maxPrice ? `&maxPrice=${maxPrice}` : '';
         const colorParam = selectedColor ? `&icingColors=${selectedColor}` : '';
         const initialLimit = Math.max(12, restoreResultCountRef.current || 0);
-        fetch(`/api/search?q=${encodeURIComponent(searchQuery.trim())}&limit=${initialLimit}${priceParam}${colorParam}`, {
+        fetch(`/api/search?q=${encodeURIComponent(searchQuery.trim())}&limit=${initialLimit}${priceParam}${colorParam}&analytics=1&analyticsSource=search_page`, {
             signal: controller.signal
         })
             .then(res => res.json())
@@ -655,6 +656,7 @@ const SearchingClient: React.FC = () => {
                                                 image_height={product.image_height}
                                                 image_variants={product.image_variants}
                                                 listName="search_results"
+                                                onCardClick={() => logSearchAnalytics(searchQuery, 'product_click')}
                                             />
                                         </div>
                                     ))}
