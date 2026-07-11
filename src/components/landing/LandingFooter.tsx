@@ -8,7 +8,7 @@ import { COMMON_ASSETS } from '@/constants';
 import { genieBusinessProfile } from '@/lib/seo/genieBusinessProfile';
 
 const featureCards = [
-  { title: 'Instantly get the price', body: 'Upload your cake design and get your price in 10 seconds.', href: '/customizing', cta: 'Upload here', icon: Camera, accent: 'purple' },
+  { title: 'Instantly get the price', body: 'Upload your cake design and get your price in 10 seconds.', href: '/?upload=1', cta: 'Upload here', icon: Camera, accent: 'purple' },
   { title: 'Fresh cakes delivered to you', body: 'Homemade delicious cakes freshly baked just in time for your special day', href: '/about', cta: 'About Us', icon: Cake, accent: 'pink' },
   { title: 'Affordable yummy cakes', body: 'All prices of our cake designs are always updated and affordable', href: '/how-to-order', cta: 'How to order', icon: Tag, accent: 'purple' },
   { title: 'Secure payment options', body: 'E-wallets, over-the-counter and bank payments for your convenience', href: 'https://checkout.xendit.co/od/genieph', cta: 'Payments', icon: CreditCard, accent: 'pink' },

@@ -13,6 +13,6 @@ describe('payment options page', () => {
     expect(markup).toContain('No cash on delivery');
     expect(markup).toContain('Palawan');
     expect(markup).toContain('/cake-price-calculator');
-    expect(markup).toContain('/customizing#upload');
+    expect(markup).toContain('href="/?upload=1"');
   });
 });

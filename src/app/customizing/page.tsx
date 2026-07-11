@@ -249,7 +249,7 @@ export default async function CustomizingPage(props: CustomizingPageProps) {
                             </p>
                             <div className="mt-4 flex flex-wrap gap-2">
                                 <Link
-                                    href="/customizing#upload"
+                                    href="/?upload=1"
                                     className="genie-btn-primary inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold"
                                 >
                                     Upload your design
@@ -379,7 +379,7 @@ export default async function CustomizingPage(props: CustomizingPageProps) {
                         </p>
                         <p>
                             New here? Start with the{' '}
-                            <Link href="/customizing#upload" className="text-purple-600 underline underline-offset-2 hover:text-purple-800">
+                            <Link href="/?upload=1" className="text-purple-600 underline underline-offset-2 hover:text-purple-800">
                                 upload tool
                             </Link>{' '}
                             to get a price in seconds, or jump to a{' '}

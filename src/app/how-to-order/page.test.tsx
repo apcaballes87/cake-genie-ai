@@ -13,7 +13,7 @@ describe('how to order page', () => {
     expect(markup).toContain('Bento cakes on Genie.ph start at ₱499.');
     expect(markup).toContain('Delivery and pickup');
     expect(markup).toContain('/cake-price-calculator');
-    expect(markup).toContain('/customizing#upload');
+    expect(markup).toContain('href="/?upload=1"');
     expect(markup).not.toContain('₱700–₱1,200');
     expect(markup).not.toContain('same-day delivery');
   });

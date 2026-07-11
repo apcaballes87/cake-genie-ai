@@ -6,7 +6,7 @@ const deliveryRateSummary = getDeliveryRateSummary();
 export const SUPPORT_PAGE_PATHS = {
   facts: '/cake-price-calculator',
   customizing: '/customizing',
-  customizingUpload: '/customizing#upload',
+  customizingUpload: '/?upload=1',
   deliveryRates: '/delivery-rates',
   paymentOptions: '/payment-options',
   howToOrder: '/how-to-order',
@@ -126,4 +126,3 @@ export const PAYMENT_METHOD_GROUPS = [
 export function buildCanonicalFactsPageDescription() {
   return `${PUBLIC_ORDER_FACTS.pricingShortSummary} ${PUBLIC_ORDER_FACTS.deliverySummary}`;
 }
-

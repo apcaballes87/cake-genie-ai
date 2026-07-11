@@ -672,7 +672,7 @@ export default function BestCakeShopsCebuPage() {
                 />
               </div>
               <Link
-                href="/customizing?upload=1"
+                href="/?upload=1"
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-purple-700 px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-purple-800"
               >
                 Upload your cake design

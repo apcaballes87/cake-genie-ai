@@ -73,7 +73,7 @@ export default function ServicesPage() {
               Genie.ph helps Metro Cebu customers discover a cake design, estimate the price, customize the details, and place an order with vetted local bakers in one flow.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link href="/customizing" className="genie-btn-primary px-6 py-3 rounded-full text-sm font-bold shadow-md hover:scale-[1.02] transition-transform">
+              <Link href="/?upload=1" className="genie-btn-primary px-6 py-3 rounded-full text-sm font-bold shadow-md hover:scale-[1.02] transition-transform">
                 Upload a cake design
               </Link>
               <Link href="/collections" className="genie-btn-secondary border border-purple-200 px-6 py-3 rounded-full text-sm font-bold shadow-xs hover:scale-[1.02] transition-transform">

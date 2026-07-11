@@ -104,7 +104,7 @@ const ContactClient: React.FC = () => {
                             <li>For faster same-day questions, call during business hours.</li>
                         </ol>
                         <div className="mt-4 flex flex-wrap gap-3">
-                            <Link href="/customizing" className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+                            <Link href="/?upload=1" className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
                                 Upload a design
                             </Link>
                             <Link href="/services" className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800">

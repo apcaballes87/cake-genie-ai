@@ -181,7 +181,7 @@ export default function DeliveryRatesPage() {
                     {/* Call to Action */}
                     <div className="mt-12 text-center">
                         <Link
-                            href="/customizing"
+                            href="/?upload=1"
                             className="inline-flex items-center justify-center genie-btn-primary px-8 py-4 rounded-full text-lg font-bold transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02]"
                         >
                             Start Your Custom Order

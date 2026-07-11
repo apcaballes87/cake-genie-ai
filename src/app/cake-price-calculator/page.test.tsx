@@ -15,7 +15,7 @@ describe('cake pricing guide page', () => {
     expect(markup).toContain('The real AI upload flow starts on Genie.ph');
     expect(markup).toContain('Bento cakes on Genie.ph start at ₱499.');
     expect(markup).toContain('GCash, Maya, ShopeePay, Visa, Mastercard, BPI, BDO, and Palawan');
-    expect(markup).toContain('/customizing#upload');
+    expect(markup).toContain('href="/?upload=1"');
     expect(markup).not.toContain('Available for delivery in Cebu City and Cavite');
     expect(markup).not.toContain('SoftwareApplication');
   });

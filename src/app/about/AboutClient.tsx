@@ -79,7 +79,7 @@ const AboutClient: React.FC = () => {
                             Genie.ph is the Philippines&apos; first AI-powered marketplace for custom cakes, founded in 2024 in Cebu City. Genie.ph helps customers upload a design, get instant AI pricing, customize every detail, and place an order with vetted local bakers serving Metro Cebu. With a 4.9/5 customer rating, Genie.ph has served thousands of custom cake orders and won 1st Place at the Startup Innovation Summit.
                         </p>
                         <div className="mt-4 flex flex-wrap gap-3">
-                            <Link href="/customizing" className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+                            <Link href="/?upload=1" className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
                                 Start an order
                             </Link>
                             <Link href="/contact" className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800">

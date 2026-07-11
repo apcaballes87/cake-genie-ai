@@ -513,7 +513,7 @@ export default function SuppliersDirectoryClient({ suppliers }: { suppliers: Sup
               </div>
               <h3 className="font-bold text-lg mb-2 text-purple-700 font-serif italic">Instantly get the price</h3>
               <p className="text-gray-600 text-sm mb-4">Upload your cake design and get your price in 10 seconds.</p>
-              <button onClick={() => router.push('/customizing')} className="genie-btn-primary px-6 py-2 rounded-full text-sm font-bold cursor-pointer">
+              <button onClick={() => router.push('/?upload=1')} className="genie-btn-primary px-6 py-2 rounded-full text-sm font-bold cursor-pointer">
                 Upload here
               </button>
             </article>
