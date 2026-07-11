@@ -18,7 +18,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation } from '@/contexts/NavigationContext';
 import { batchSaveToLocalStorage } from '@/contexts/CartContext';
 import { COMMON_ASSETS, HOMEPAGE_ASSETS } from '@/constants';
-import { trackImageUpload } from '@/lib/analytics';
+import { trackImageUpload, trackLandingCtaClick } from '@/lib/analytics';
 import {
     DEFAULT_LANDING_HERO_CONTENT,
     type LandingHeroContent,
@@ -636,7 +636,10 @@ function HeroProductPreviewStack({
                 {/* Primary CTA - Mobile */}
                 <div className="mx-auto w-full max-w-[480px] mt-2 mb-1">
                     <button
-                        onClick={onOpenUploader}
+                        onClick={() => {
+                            trackLandingCtaClick('hero_mobile');
+                            onOpenUploader();
+                        }}
                         className={`genie-btn-primary flex w-full items-center justify-center gap-2 ${LANDING_PRIMARY_CTA_RADIUS} py-4 px-3 font-bold active:scale-[0.98] shadow-md shadow-purple-50/50`}
                     >
                         <ImagePlus size={20} className="shrink-0" />
@@ -1844,7 +1847,10 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                     {heroUploadState === 'idle' && (
                                         <div className="mt-3 flex w-full max-w-[440px] flex-col items-center">
                                             <button
-                                                onClick={() => setIsUploaderOpen(true)}
+                                                onClick={() => {
+                                                    trackLandingCtaClick('hero_desktop');
+                                                    setIsUploaderOpen(true);
+                                                }}
                                                 className={`genie-btn-primary flex w-full items-center justify-center gap-3 ${LANDING_PRIMARY_CTA_RADIUS} py-[15px] px-6 md:px-8 text-[17px] lg:text-lg font-bold active:scale-[0.99] shadow-lg shadow-purple-100/50`}
                                             >
                                                 <ImagePlus size={22} className="shrink-0" />

@@ -248,6 +248,15 @@ export const trackSearch = (query: string, uiSource: string): void =>
 export const trackImageUpload = (uiSource: 'landing' | 'customizing' | 'header'): void =>
   trackEvent('image_upload', { ui_source: uiSource })
 
+export const trackLandingCtaClick = (
+  ctaLocation: 'hero_mobile' | 'hero_desktop',
+): void =>
+  trackEvent('landing_cta_click', {
+    cta_name: 'upload_design_get_instant_pricing',
+    cta_location: ctaLocation,
+    destination: 'image_uploader',
+  })
+
 export const trackSignUp = (method: string, uiSource: string): void =>
   trackEvent('sign_up', { method, ui_source: uiSource })
 

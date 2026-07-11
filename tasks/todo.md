@@ -4965,3 +4965,15 @@
 - Added accessible enable/disable toggles to the visible summary rows, wired to the existing topper/element state update callbacks.
 - Added the adjacent Apply Design Changes action for overflowed decoration lists.
 - Verification: 23 focused tests passed and `git diff --check` passed. The full build was blocked by an existing `next dev -p 3002` process holding `.next/lock`; repository-wide TypeScript and lint still report unrelated pre-existing errors/warnings.
+
+# Current task: track the landing upload/pricing CTA in GA4 (2026-07-11)
+
+- [x] Trace the existing GA4 helper and the responsive landing-page CTA instances.
+- [x] Add a dedicated `landing_cta_click` event with CTA name, responsive location, and destination parameters.
+- [x] Run focused analytics tests, diff checks, and the production build.
+
+### Review
+
+- Added `landing_cta_click` to the shared GA4 helper and wired both responsive hero buttons to emit it before opening the uploader.
+- Event parameters: `cta_name=upload_design_get_instant_pricing`, `cta_location=hero_mobile|hero_desktop`, and `destination=image_uploader`.
+- Verification: 8 focused analytics tests passed, `git diff --check` passed, and `npm run build` passed.

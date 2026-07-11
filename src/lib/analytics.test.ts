@@ -11,6 +11,7 @@ import {
   trackCustomizerAddToCartSaveStarted,
   trackCustomizerAddToCartUnavailableVisible,
   trackImageUpload,
+  trackLandingCtaClick,
   trackSearch,
 } from './analytics'
 
@@ -50,6 +51,19 @@ describe('analytics helper', () => {
 
     expect(gtagMock).not.toHaveBeenCalled()
     expect(clarityMock).not.toHaveBeenCalled()
+  })
+
+  it('tracks the landing upload/pricing CTA with its responsive location', () => {
+    setAnalyticsRouteTracking(true)
+    markAnalyticsReady()
+
+    trackLandingCtaClick('hero_mobile')
+
+    expect(gtagMock).toHaveBeenCalledWith('event', 'landing_cta_click', {
+      cta_name: 'upload_design_get_instant_pricing',
+      cta_location: 'hero_mobile',
+      destination: 'image_uploader',
+    })
   })
 
   it('clears any queued events if the route is later classified as excluded', () => {
