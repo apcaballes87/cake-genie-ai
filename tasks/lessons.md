@@ -64,3 +64,9 @@
 - When checking whether a cached cake-analysis type defaults correctly in `/customizing`, trace both the persisted `analysis_json` and `mapAnalysisToState` hydration. A correct DB/cache type can still be silently changed before the customizer UI renders.
 - When the user asks to fix only stored image dimensions, keep the scope strictly on dimension re-measurement and backfill. Do not escalate to AI/Vertex regeneration unless they explicitly ask to repair the generated asset itself.
 - When a user points out that the rejection rule already exists in the active cake-analysis prompt, do not describe the issue as a missing prompt rule. Separate prompt presence from enforcement: verify the production prompt row/version, model output, and cache-hit path before concluding why an upload was accepted.
+# Lesson: Verify every route-specific render seam for shared UI requests
+
+- When adding a visible CTA to a route family, inspect both the base route and dynamic slug route before concluding the UI is covered. A shared-looking section may be rendered by separate components, and a condition such as `!slug && analysisResult` can make a valid component change invisible on the route users actually visit.
+# Lesson: Keep background AI fallback states silent when the original experience remains usable
+
+- When a background enhancement fails but the original asset is still valid, stop the loading state and preserve the fallback silently. Do not surface provider or pipeline availability copy unless the user must take action.

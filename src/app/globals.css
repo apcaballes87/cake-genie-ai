@@ -256,6 +256,11 @@ body.genie-image-zoom-open [data-sticky-add-to-cart-bar] {
     position: relative;
     touch-action: manipulation;
   }
+
+  /* Keep the dense mobile customizer readable without requiring browser zoom. */
+  [data-customizer-mobile-scale] {
+    zoom: 0.75;
+  }
 }
 
 /* --- Progress Bar Animation --- */

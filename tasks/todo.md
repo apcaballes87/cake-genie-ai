@@ -1,5 +1,64 @@
 # Tasks
 
+## Compact the mobile customizer default scale (2026-07-12)
+
+### Plan
+
+- [x] Inspect the populated mobile customizer route and identify the oversized default scale seam.
+- [x] Apply a mobile-only 75% default scale without changing desktop layout behavior.
+- [x] Run focused checks, production build, and mobile browser verification.
+
+### Review
+
+- Wrapped the interactive customizer shell in a route-local scale boundary and applied `zoom: 0.75` only below the existing 768px mobile breakpoint.
+- Verified the populated slug route at 500px mobile CSS width: the shell reports `zoom: 0.75`, the mobile layout remains active, and the sticky cart bar stays viewport-wide.
+- Verified at 836px: the shell reports `zoom: 1` and the existing desktop two-column layout remains active.
+- Verification passed: 15 focused hero tests, scoped ESLint with 0 errors, `git diff --check`, and `npm run build`.
+
+## Preserve cart when existing-email checkout sends the customer to Google sign-in (2026-07-12)
+
+### Plan
+
+- [x] Trace the anonymous-to-authenticated cart ownership transition and login redirect.
+- [x] Preserve cart state during the transition, merge durable anonymous rows, and prevent failed fallback syncs from clearing the cart.
+- [x] Add regression coverage for sanitized transfer items and transition behavior, then run focused checks and the production build.
+
+### Review
+
+- The cart context now recognizes the anonymous-to-registered transition, calls `merge_anonymous_cart_to_user`, preserves the visible cart through the authenticated refetch, and keeps the source cart intact when the fallback copy is incomplete.
+- The fallback strips `merchant`, `isPending`, and server-owned timestamps/IDs before inserting. The previous implementation could send UI-only fields, receive an empty fallback result, and then clear both React state and `cart_items_cache`.
+- Cart-originated sign-in links now use `/login?redirect=%2Fcart`, so Google OAuth returns the customer to checkout.
+- Added and applied migration `harden_anonymous_cart_merge` through Supabase MCP. The remote migration was recorded as version `20260712131236`; the function now requires the authenticated destination user, runs with `search_path=public, pg_temp`, blocks `anon` execution, and permits only `authenticated`/`service_role` execution.
+- Verification passed: 10 focused Vitest tests, `npm run build`, `git diff --check`, and focused CartContext ESLint with 0 errors. Existing baseline-browser-data, inferred-workspace-root, middleware deprecation, and large-file lint warnings remain.
+
+## Prevent stuck Studio background-edit state when no image returns (2026-07-12)
+
+### Plan
+
+- [x] Trace the Studio status/URL lifecycle and confirm the no-image terminal state.
+- [x] Make failed or completed-without-image edits leave the pending UI and show recovery guidance.
+- [x] Add regression coverage and run focused checks plus the production build.
+
+### Review
+
+- The Studio job already persists `studio_edit_status = failed` when the model returns no image, but the customizer previously watched only for `studio_edited_image_url`.
+- The customizer now tracks the row status through Realtime and availability probes, stops polling for terminal `failed`/`completed` states, and silently keeps the original image in use.
+- Verification passed: 30 focused Vitest tests and `npm run build`. `git diff --check` passed. Existing baseline-browser-data, inferred-workspace-root, and deprecated-middleware warnings remain; the large customizer/service files also retain pre-existing lint diagnostics.
+
+
+## Fix customizing CTA visibility on slug pages (2026-07-12)
+
+### Plan
+
+- [x] Trace the missing CTA through `/customizing` and `/customizing/[slug]` render conditions.
+- [x] Add the CTA above the slug page Design Specifications section for mobile and desktop.
+- [x] Run focused tests, lint, and build verification.
+
+### Review
+
+- The first CTA implementation only rendered in `CustomizingPostAnalysisContent`, which is gated by `!slug && analysisResult`.
+- Added the same CTA to the slug page's `SSRDesignContent`, where the visible Design Specifications section is rendered, using `/customizing?upload=1` to enter the existing upload flow.
+
 ## Add post-analysis upload CTA (2026-07-12)
 
 ### Plan
@@ -5049,3 +5108,33 @@
 - Added `landing_cta_click` to the shared GA4 helper and wired both responsive hero buttons to emit it before opening the uploader.
 - Event parameters: `cta_name=upload_design_get_instant_pricing`, `cta_location=hero_mobile|hero_desktop`, and `destination=image_uploader`.
 - Verification: 8 focused analytics tests passed, `git diff --check` passed, and `npm run build` passed.
+
+# Current task: fix customizer Google signup return and immediate discount
+
+- [x] Add the shared pending-signup return-state contract and global OAuth return coordinator.
+- [x] Preserve the exact customizer URL through Google OAuth and make discount application retry-safe.
+- [x] Add focused tests for return-state parsing, callback redirects, coordinator recovery, and bubble discount application.
+- [x] Run focused tests, ESLint, `git diff --check`, and the full production build.
+
+## Review
+
+- Added `src/lib/auth/signupDiscountReturnState.ts` with validated, expiring internal return URLs and legacy marker compatibility.
+- Added `AuthReturnCoordinator` under the shared providers to recover authenticated bubble signups that land on `/`.
+- Updated `DiscountOfferBubble` to preserve the full current URL, keep pending state until validated application succeeds, and ignore stale invalid localStorage discounts.
+- Updated the sticky bar's mount-time discount gate so stale codes without a valid applied result do not hide the signup bubble.
+- Verification: 21 focused auth/discount/customizer tests passed; 27 relevant customizer tests passed with 1 existing skipped test; scoped ESLint passed with only 9 existing StickyAddToCartBar warnings; `git diff --check` passed; `npm run build` passed; populated customizer browser smoke check passed with no overlay or console errors.
+
+# Current task: make carts durable across authentication and payment (2026-07-12)
+
+- [x] Replace the in-memory anonymous-cart merge with a one-time, server-side transfer claim that survives OAuth redirects.
+- [x] Reassign pending cart outbox entries after a successful claim and extend cart persistence to 30 days.
+- [x] Clear only cart rows represented by a fully paid order, including split orders.
+- [x] Add regression coverage, deploy the Supabase migration, and record verification.
+
+## Review
+
+- Google and password sign-in now prepare a short-lived one-time cart claim before authentication; on return, the fresh cart provider claims it before its first registered-cart read.
+- Pending IndexedDB outbox rows are reassigned to the registered owner, and retries always use the current authenticated owner.
+- Applied Supabase migrations `durable_cart_auth_and_paid_item_clear` and `restrict_paid_cart_clear_to_service_role`; 34 active carts now have 30-day expiry, paid clearing is service-role-only, and only source cart rows on fully paid orders are deleted.
+- Deployed `xendit-webhook` v20 and `verify-xendit-payment` v31 with count-only cart-clear diagnostics.
+- Verification: 16 focused tests passed, `git diff --check` passed, and `npm run build` passed. One existing React test emits an `act(...)` warning in the deferred background-upload scenario.

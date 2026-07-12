@@ -3882,6 +3882,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                 Surface a visually-hidden H2 here so screen readers still get a section landmark
                 when no product/recent-search context provides its own visible heading. */}
             {!hasVisiblePageHeading && <h2 className="sr-only">{pageDisplayTitle}</h2>}
+            <div data-customizer-mobile-scale className="w-full">
             {/* Same-day cutoff countdown — live urgency signal */}
             {!hideBanner && (
                 <div className="w-full bg-purple-400 py-[4.5px] flex justify-center items-center">
@@ -4525,6 +4526,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                     onApply={handlePreSelectionApply}
                 />
             </main>
+            </div>
         </>
     );
 };
