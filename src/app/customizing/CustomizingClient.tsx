@@ -3695,11 +3695,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         && !isStudioBackgroundEditingTerminal
         && !liveStudioEditedImageUrl
     );
-    const studioBackgroundEditNotice = !isStudioBackgroundEditingPending
-        && !liveStudioEditedImageUrl
-        && (studioEditStatus === 'failed' || studioEditStatus === 'completed')
-        ? 'Background edit unavailable — continuing with your original image.'
-        : null;
     const preferredHeroOriginalImage = firstNonBlankImageUrl(
         liveStudioEditedImageUrl,
         originalImagePreview,
@@ -3957,7 +3952,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                             isAnalyzing={isAnalyzing}
                             isUpdatingDesign={isUpdatingDesign}
                             isStudioBackgroundEditingPending={isStudioBackgroundEditingPending}
-                            studioBackgroundEditNotice={studioBackgroundEditNotice}
                             isComposingSelfie={isComposingSelfie}
                             dynamicLoadingMessage={dynamicLoadingMessage}
                             error={error}
