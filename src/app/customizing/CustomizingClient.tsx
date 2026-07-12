@@ -636,6 +636,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     const [liveStudioEditedImageUrl, setLiveStudioEditedImageUrl] = useState<string | null>(
         firstNonBlankImageUrl(recentSearchDesign?.studio_edited_image_url)
     );
+    const [studioEditStatus, setStudioEditStatus] = useState<string | null>(
+        recentSearchDesign?.studio_edit_status || null
+    );
 
 
     // Open pre-selection modal when arriving from search with analysis already in progress
@@ -720,13 +723,16 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
 
     useEffect(() => {
         setLiveStudioEditedImageUrl(firstNonBlankImageUrl(recentSearchDesign?.studio_edited_image_url));
-    }, [recentSearchDesign?.p_hash, recentSearchDesign?.studio_edited_image_url]);
+        setStudioEditStatus(recentSearchDesign?.studio_edit_status || null);
+    }, [recentSearchDesign?.p_hash, recentSearchDesign?.studio_edited_image_url, recentSearchDesign?.studio_edit_status]);
 
     useEffect(() => {
         const studioPollHash = currentPHash || recentSearchDesign?.p_hash || null;
+        const hasTerminalStudioStatus = studioEditStatus === 'failed' || studioEditStatus === 'completed';
         const shouldPoll = Boolean(
-            currentPHash ||
-            (recentSearchDesign?.p_hash && recentSearchDesign?.studio_edit_status === 'processing')
+            !hasTerminalStudioStatus
+            && (currentPHash ||
+                (recentSearchDesign?.p_hash && recentSearchDesign?.studio_edit_status === 'processing'))
         );
 
         if (!shouldPoll || !studioPollHash || liveStudioEditedImageUrl) {
@@ -751,8 +757,14 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                 },
                 (payload) => {
                     if (isCancelled) return;
-                    const updated = payload.new as { studio_edited_image_url?: string | null } | undefined;
+                    const updated = payload.new as {
+                        studio_edited_image_url?: string | null;
+                        studio_edit_status?: string | null;
+                    } | undefined;
                     const studioUrl = firstNonBlankImageUrl(updated?.studio_edited_image_url);
+                    if (updated?.studio_edit_status) {
+                        setStudioEditStatus(updated.studio_edit_status);
+                    }
                     if (studioUrl) {
                         setLiveStudioEditedImageUrl(studioUrl);
                     }
@@ -764,6 +776,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         void getStudioImageAvailabilityByHash(studioPollHash).then((studioImage) => {
             if (isCancelled) return;
             const studioUrl = firstNonBlankImageUrl(studioImage?.studio_edited_image_url);
+            if (studioImage?.studio_edit_status) {
+                setStudioEditStatus(studioImage.studio_edit_status);
+            }
             if (studioUrl) {
                 setLiveStudioEditedImageUrl(studioUrl);
             }
@@ -785,6 +800,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
             const studioImage = await getStudioImageAvailabilityByHash(studioPollHash);
             if (isCancelled) return;
             const studioUrl = firstNonBlankImageUrl(studioImage?.studio_edited_image_url);
+            if (studioImage?.studio_edit_status) {
+                setStudioEditStatus(studioImage.studio_edit_status);
+            }
             if (studioUrl) {
                 setLiveStudioEditedImageUrl(studioUrl);
                 clearInterval(fastProbeIntervalId);
@@ -800,6 +818,9 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
             const studioImage = await getStudioImageAvailabilityByHash(studioPollHash);
             if (isCancelled) return;
             const studioUrl = firstNonBlankImageUrl(studioImage?.studio_edited_image_url);
+            if (studioImage?.studio_edit_status) {
+                setStudioEditStatus(studioImage.studio_edit_status);
+            }
             if (studioUrl) {
                 setLiveStudioEditedImageUrl(studioUrl);
             }
@@ -814,7 +835,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
             clearTimeout(fastProbeStopId);
             void supabase.removeChannel(channel);
         };
-    }, [currentPHash, recentSearchDesign?.p_hash, liveStudioEditedImageUrl, supabase]);
+    }, [currentPHash, recentSearchDesign?.p_hash, recentSearchDesign?.studio_edit_status, liveStudioEditedImageUrl, studioEditStatus, supabase]);
 
     // Preload the studio image as soon as its URL is known. This kicks off the
     // network fetch ahead of the LazyImage mount, shaving 200-600ms off the
@@ -3663,6 +3684,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     const hasPrintoutConversionNotice = hasPrintoutConversion(printoutConversions);
 
     const showStickyBar = finalPrice !== null || !!basePriceError || isAnalyzing || hasPendingVisualChanges || isUpdatingDesign;
+    const isStudioBackgroundEditingTerminal = studioEditStatus === 'failed' || studioEditStatus === 'completed';
     const isStudioBackgroundEditingPending = Boolean(
         !isComposingSelfie
         && originalImagePreview
@@ -3670,8 +3692,14 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
             currentPHash
             || (recentSearchDesign?.p_hash && recentSearchDesign?.studio_edit_status === 'processing')
         )
+        && !isStudioBackgroundEditingTerminal
         && !liveStudioEditedImageUrl
     );
+    const studioBackgroundEditNotice = !isStudioBackgroundEditingPending
+        && !liveStudioEditedImageUrl
+        && (studioEditStatus === 'failed' || studioEditStatus === 'completed')
+        ? 'Background edit unavailable — continuing with your original image.'
+        : null;
     const preferredHeroOriginalImage = firstNonBlankImageUrl(
         liveStudioEditedImageUrl,
         originalImagePreview,
@@ -3929,6 +3957,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                             isAnalyzing={isAnalyzing}
                             isUpdatingDesign={isUpdatingDesign}
                             isStudioBackgroundEditingPending={isStudioBackgroundEditingPending}
+                            studioBackgroundEditNotice={studioBackgroundEditNotice}
                             isComposingSelfie={isComposingSelfie}
                             dynamicLoadingMessage={dynamicLoadingMessage}
                             error={error}

@@ -747,6 +747,7 @@ export interface StudioImageAvailability {
   original_image_url: string | null;
   studio_edited_image_url: string | null;
   studio_edit_status: string | null;
+  studio_edit_error: string | null;
 }
 
 export async function getStudioImageAvailabilityByHash(
@@ -755,7 +756,7 @@ export async function getStudioImageAvailabilityByHash(
   try {
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
-      .select('original_image_url, studio_edited_image_url, studio_edit_status')
+      .select('original_image_url, studio_edited_image_url, studio_edit_status, studio_edit_error')
       .eq('p_hash', pHash)
       .maybeSingle();
 

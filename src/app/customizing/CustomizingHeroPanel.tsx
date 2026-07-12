@@ -22,6 +22,7 @@ interface CustomizingHeroPanelProps {
     isAnalyzing: boolean;
     isUpdatingDesign: boolean;
     isStudioBackgroundEditingPending?: boolean;
+    studioBackgroundEditNotice?: string | null;
     isComposingSelfie?: boolean;
     dynamicLoadingMessage: string;
     error: string | null;
@@ -161,6 +162,7 @@ export const CustomizingHeroPanel = memo(({
     isAnalyzing,
     isUpdatingDesign,
     isStudioBackgroundEditingPending = false,
+    studioBackgroundEditNotice = null,
     isComposingSelfie = false,
     dynamicLoadingMessage,
     error,
@@ -765,6 +767,15 @@ export const CustomizingHeroPanel = memo(({
                                             <span className="text-[8px] font-bold text-slate-800 tracking-wider select-none whitespace-nowrap">
                                                 {activeHeroLoader.text}
                                             </span>
+                                        </div>
+                                    ) : null}
+
+                                    {studioBackgroundEditNotice ? (
+                                        <div
+                                            className="rounded-full bg-amber-50/95 px-3.5 py-2 text-[9px] font-semibold text-amber-800 shadow-lg ring-1 ring-amber-200 backdrop-blur-md"
+                                            role="status"
+                                        >
+                                            {studioBackgroundEditNotice}
                                         </div>
                                     ) : null}
 

@@ -173,6 +173,18 @@ describe('CustomizingHeroPanel', () => {
         expect(screen.getByLabelText('ai is editing your background')).toBeInTheDocument();
     });
 
+    it('shows a recovery notice when the studio edit finishes without an image', () => {
+        const props = buildProps();
+        props.originalImagePreview = 'https://example.com/original-cake.jpg';
+        props.preferredOriginalImageUrl = 'https://example.com/original-cake.jpg';
+        props.studioBackgroundEditNotice = 'Background edit unavailable — continuing with your original image.';
+
+        render(<CustomizingHeroPanel {...props} />);
+
+        expect(screen.getByRole('status')).toHaveTextContent(/continuing with your original image/i);
+        expect(screen.queryByLabelText('ai is editing your background')).not.toBeInTheDocument();
+    });
+
     it('does not show the removed icing-mask loader', () => {
         const props = buildProps();
         props.originalImagePreview = 'https://example.com/original-cake.jpg';
