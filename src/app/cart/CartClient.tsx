@@ -1455,7 +1455,7 @@ function CartClient() {
                         showError('This email is already registered. Please sign in to continue.');
                         setIsPlacingOrder(false);
                         // Optionally trigger the sign-in modal
-                        router.push('/login');
+                        router.push('/login?redirect=%2Fcart');
                         return;
                     }
                     throw new Error(userError?.message || 'Failed to create user account');
@@ -1675,7 +1675,7 @@ function CartClient() {
                     if (emailAlreadyExists) {
                         showError('This email is already registered. Please sign in to continue.');
                         setIsPlacingOrder(false);
-                        router.push('/login');
+                        router.push('/login?redirect=%2Fcart');
                         return;
                     }
                     throw new Error(userError?.message || 'Failed to create user account');
@@ -1877,7 +1877,7 @@ function CartClient() {
                     if (emailAlreadyExists) {
                         showError('This email is already registered. Please sign in to continue.');
                         setIsPlacingOrder(false);
-                        router.push('/login');
+                        router.push('/login?redirect=%2Fcart');
                         return;
                     }
                     throw new Error(userError?.message || 'Failed to create user account');
@@ -2496,7 +2496,7 @@ function CartClient() {
                                                     <p className="text-xs text-center text-slate-400">
                                                         Have an account?{' '}
                                                         <button
-                                                            onClick={() => router.push('/login')}
+                                                            onClick={() => router.push('/login?redirect=%2Fcart')}
                                                             className="genie-link font-semibold hover:underline"
                                                             tabIndex={0}
                                                             aria-label="Sign in to your account"
@@ -2644,7 +2644,7 @@ function CartClient() {
                                                     <p className="text-xs text-center text-slate-400">
                                                         Have an account?{' '}
                                                         <button
-                                                            onClick={() => router.push('/login')}
+                                                            onClick={() => router.push('/login?redirect=%2Fcart')}
                                                             className="genie-link font-semibold hover:underline"
                                                             tabIndex={0}
                                                             aria-label="Sign in to your account"

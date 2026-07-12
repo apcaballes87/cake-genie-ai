@@ -1,22 +1,27 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { User } from '@supabase/supabase-js';
-import { CartProvider, useCartActions, useCartData } from './CartContext';
+import { CartProvider, prepareCartItemsForUser, useCartActions, useCartData } from './CartContext';
 
 const mocks = vi.hoisted(() => ({
+    authUser: null as User | null,
+    pathname: '/',
     getUser: vi.fn(),
+    getCartPageData: vi.fn(),
     addToCart: vi.fn(),
     addToCartIdempotent: vi.fn(),
+    addManyToCart: vi.fn(),
     updateCartItemImages: vi.fn(),
+    mergeAnonymousCartToUser: vi.fn(),
 }));
 
 vi.mock('next/navigation', () => ({
-    usePathname: () => '/',
+    usePathname: () => mocks.pathname,
 }));
 
 vi.mock('@/contexts/AuthContext', () => ({
     useAuth: () => ({
-        user: null,
+        user: mocks.authUser,
         isLoading: false,
     }),
 }));
@@ -30,13 +35,14 @@ vi.mock('@/lib/supabase/client', () => ({
 }));
 
 vi.mock('@/services/supabaseService', () => ({
-    getCartPageData: vi.fn(),
+    getCartPageData: mocks.getCartPageData,
     addToCart: mocks.addToCart,
     addToCartIdempotent: mocks.addToCartIdempotent,
-    addManyToCart: vi.fn(),
+    addManyToCart: mocks.addManyToCart,
     updateCartItemQuantity: vi.fn(),
     removeCartItem: vi.fn(),
     updateCartItemImages: mocks.updateCartItemImages,
+    mergeAnonymousCartToUser: mocks.mergeAnonymousCartToUser,
 }));
 
 vi.mock('@/components/ErrorLogger', () => ({ logErrorToSupabase: vi.fn() }));
@@ -116,6 +122,8 @@ describe('CartProvider hydration', () => {
     beforeEach(() => {
         cleanup();
         vi.clearAllMocks();
+        mocks.authUser = null;
+        mocks.pathname = '/';
         window.localStorage.clear();
         mocks.getUser.mockResolvedValue({
             data: {
@@ -152,6 +160,46 @@ describe('CartProvider hydration', () => {
         mocks.addToCartIdempotent.mockResolvedValue({ data: null, error: new Error('network unavailable') });
     });
 
+    it('strips joined UI fields before copying a cart to a registered owner', () => {
+        const [item] = prepareCartItemsForUser([
+            {
+                cart_item_id: 'guest-item',
+                client_request_id: 'guest-request',
+                user_id: null,
+                session_id: 'anonymous-user',
+                merchant_id: null,
+                product_id: null,
+                cake_type: 'Round',
+                cake_thickness: 'Regular',
+                cake_size: '6 inch',
+                base_price: 1000,
+                addon_price: 0,
+                final_price: 1000,
+                quantity: 1,
+                original_image_url: 'https://example.com/original.webp',
+                customized_image_url: 'https://example.com/custom.webp',
+                customization_details: {},
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                expires_at: new Date(Date.now() + 60_000).toISOString(),
+                merchant: { business_name: 'UI-only merchant data' },
+                isPending: true,
+            },
+        ], 'registered-user') as [Record<string, unknown>];
+
+        expect(item).toMatchObject({
+            client_request_id: 'guest-request',
+            user_id: 'registered-user',
+            session_id: null,
+        });
+        expect(item).not.toHaveProperty('merchant');
+        expect(item).not.toHaveProperty('isPending');
+        expect(item).not.toHaveProperty('cart_item_id');
+        expect(item).not.toHaveProperty('created_at');
+        expect(item).not.toHaveProperty('updated_at');
+        expect(item).not.toHaveProperty('expires_at');
+    });
+
     it('keeps the first render SSR-safe before loading cached cart items after mount', async () => {
         const renderCounts: number[] = [];
         writeCartCache([
@@ -175,6 +223,61 @@ describe('CartProvider hydration', () => {
         });
 
         expect(renderCounts).toContain(2);
+    });
+
+    it('keeps the cart visible while an anonymous owner is merged into Google sign-in', async () => {
+        const guestItem = {
+            cart_item_id: 'guest-item',
+            user_id: null,
+            session_id: 'anonymous-user',
+            merchant_id: null,
+            product_id: null,
+            cake_type: 'Round',
+            cake_thickness: 'Regular',
+            cake_size: '6 inch',
+            base_price: 1000,
+            addon_price: 0,
+            final_price: 1000,
+            quantity: 1,
+            original_image_url: 'https://example.com/original.webp',
+            customized_image_url: 'https://example.com/custom.webp',
+            customization_details: {},
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            expires_at: new Date(Date.now() + 60_000).toISOString(),
+        };
+        const registeredItem = { ...guestItem, user_id: 'registered-user', session_id: null };
+
+        mocks.pathname = '/cart';
+        mocks.authUser = { id: 'anonymous-user', is_anonymous: true } as User;
+        mocks.getCartPageData.mockImplementation(async (userId: string | null, sessionId: string | null) => ({
+            cartData: {
+                data: [userId ? registeredItem : { ...guestItem, session_id: sessionId }],
+                error: null,
+            },
+            addressesData: { data: [], error: null },
+        }));
+        mocks.mergeAnonymousCartToUser.mockResolvedValue({ success: true, updatedCount: 1 });
+
+        const { rerender } = render(
+            <CartProvider>
+                <CartCountProbe renderCounts={[]} />
+            </CartProvider>
+        );
+
+        await waitFor(() => expect(screen.getByTestId('cart-count')).toHaveTextContent('1'));
+
+        mocks.authUser = { id: 'registered-user', is_anonymous: false } as User;
+        rerender(
+            <CartProvider>
+                <CartCountProbe renderCounts={[]} />
+            </CartProvider>
+        );
+
+        await waitFor(() => {
+            expect(mocks.mergeAnonymousCartToUser).toHaveBeenCalledWith('anonymous-user', 'registered-user');
+            expect(screen.getByTestId('cart-count')).toHaveTextContent('1');
+        });
     });
 
     it('enqueues a pending background-upload item synchronously before auth and upload resolve', async () => {

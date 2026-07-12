@@ -28,6 +28,7 @@ import {
     addToCart as addToCartService,
     addToCartIdempotent,
     addManyToCart as addManyToCartService,
+    mergeAnonymousCartToUser,
     updateCartItemImages,
     updateCartItemQuantity as updateQuantityService,
     removeCartItem as removeItemService,
@@ -103,6 +104,45 @@ function getCartOutboxErrorDetails(error: unknown, stage: CartOutboxStage): {
 
 const isPermanentCartImageUrl = (value: string | null | undefined): value is string =>
     Boolean(value && value.startsWith('http'));
+
+type CartItemWithUiMetadata = CakeGenieCartItem & {
+    merchant?: CakeGenieMerchant;
+    isPending?: boolean;
+};
+
+/**
+ * Strip fields that only exist in the cart UI before moving anonymous items
+ * into a registered user's cart. Sending joined `merchant` data or the
+ * optimistic `isPending` flag to PostgREST makes the fallback insert fail.
+ */
+export function prepareCartItemsForUser(
+    items: CartItemWithUiMetadata[],
+    userId: string,
+): Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'>[] {
+    return items.map(item => {
+        const {
+            cart_item_id: _cartItemId,
+            created_at: _createdAt,
+            updated_at: _updatedAt,
+            expires_at: _expiresAt,
+            merchant: _merchant,
+            isPending: _isPending,
+            ...persistedItem
+        } = item;
+        void _cartItemId;
+        void _createdAt;
+        void _updatedAt;
+        void _expiresAt;
+        void _merchant;
+        void _isPending;
+
+        return {
+            ...persistedItem,
+            user_id: userId,
+            session_id: null,
+        };
+    });
+}
 
 // Helper to estimate localStorage usage
 const estimateLocalStorageSize = (): number => {
@@ -305,7 +345,10 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return user?.is_anonymous ? user.id : null;
     }, [user]);
 
-    const prevUserIdRef = useRef<string | null>(null);
+    // `CartProvider` lives above route changes, so this ref lets us identify
+    // the anonymous user that owned the cart before OAuth replaced the auth
+    // session with the registered Google user.
+    const previousUserRef = useRef<User | null | undefined>(undefined);
     const cartItemsRef = useRef(cartItems);
     const outboxInFlightRef = useRef(new Set<string>());
 
@@ -364,7 +407,10 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setSelectedAddressIdState(id);
     }, []);
 
-    const loadCartData = useCallback(async (user: User | null) => {
+    const loadCartData = useCallback(async (
+        user: User | null,
+        preservedItems: CartItemWithUiMetadata[] = [],
+    ) => {
         setIsLoading(true);
         try {
             const isAnonymous = user?.is_anonymous ?? false;
@@ -396,12 +442,16 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             if (cartError) throw cartError;
             // Never let an authoritative-but-still-empty fetch erase a locally
             // durable cart save that is uploading its preview in the background.
+            const serverItems = cartItemsData || [];
+            const serverIds = new Set(serverItems.map(item => item.cart_item_id));
+            const preserved = preservedItems.filter(item => !serverIds.has(item.cart_item_id));
+
             setCartItems(previous => {
-                const pending = previous.filter(item => item.isPending);
-                const serverItems = cartItemsData || [];
-                const serverIds = new Set(serverItems.map(item => item.cart_item_id));
+                const pending = previous.filter(item => item.isPending && !serverIds.has(item.cart_item_id));
+                const pendingIds = new Set(pending.map(item => item.cart_item_id));
                 return [
-                    ...pending.filter(item => !serverIds.has(item.cart_item_id)),
+                    ...pending,
+                    ...preserved.filter(item => !pendingIds.has(item.cart_item_id)),
                     ...serverItems,
                 ];
             });
@@ -409,7 +459,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             // Cache cart items for instant load next time
             if (cartItemsData && cartItemsData.length > 0) {
                 batchSaveToLocalStorage('cart_items_cache', JSON.stringify(cartItemsData));
-            } else if (!cartItemsRef.current.some(item => item.isPending)) {
+            } else if (!preservedItems.length && !cartItemsRef.current.some(item => item.isPending)) {
+                // An empty authenticated fetch is only allowed to clear the
+                // cache when there is no in-flight transition preserving it.
                 batchRemoveFromLocalStorage('cart_items_cache');
             }
 
@@ -449,79 +501,60 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
             if (authLoading) return;
 
-            // Update prevUserIdRef if it's the first run (initialization)
-            // preventing logic from thinking it's a "change" from null
-            if (prevUserIdRef.current === null && user?.id) {
-                prevUserIdRef.current = user.id;
+            // The first resolved auth state only establishes ownership; it is
+            // not a transfer from one account to another.
+            if (previousUserRef.current === undefined) {
+                previousUserRef.current = user;
                 await loadCartData(user);
                 return;
             }
 
-            const currentUserId = user?.id ?? null;
+            const previousUser = previousUserRef.current;
+            const userChanged = previousUser?.id !== user?.id;
 
-            // User changed (e.g. Guest -> Real User)
-            if (currentUserId !== prevUserIdRef.current && prevUserIdRef.current !== null) {
-                const isUpgrade = !prevUserIdRef.current && currentUserId; // Note: prevUserIdRef might be initialized to null, so this check logic needs to be robust. 
-                // Actually, simplified: if we had a user (guest) and now have a different user (real), we sync.
-                // But simplified sync logic: If we have local items and user changes, try to sync.
+            if (userChanged && previousUser?.is_anonymous && user && !user.is_anonymous) {
                 const localItems = cartItemsRef.current;
+                let itemsToPreserveForLoad = localItems;
+                let transferSucceeded = true;
 
                 if (localItems.length > 0) {
-                    try {
-                        const len = localItems.length;
-                        const itemsToSync = new Array(len);
+                    const mergeResult = await mergeAnonymousCartToUser(previousUser.id, user.id);
+                    transferSucceeded = mergeResult.success;
 
-                        const isAnon = user?.is_anonymous;
-                        const userId = isAnon ? null : (user?.id ?? null);
-                        const sessionId = isAnon ? user?.id : null;
-
-                        for (let i = 0; i < len; i++) {
-                            const { cart_item_id, created_at, updated_at, expires_at, ...itemParams } = localItems[i];
-                            // Re-assign explicitly without object spread
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            (itemParams as any).user_id = userId;
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            (itemParams as any).session_id = sessionId;
-
-                            itemsToSync[i] = itemParams;
-                        }
-
+                    // Keep a client-side fallback for environments where the
+                    // merge RPC has not been deployed yet. It deliberately
+                    // strips UI-only fields and never clears the source cart
+                    // unless every item is durably copied.
+                    if (!transferSucceeded) {
+                        const itemsToSync = prepareCartItemsForUser(localItems, user.id);
                         const { data: syncedItems, error: syncError } = await addManyToCartService(itemsToSync);
+                        transferSucceeded = !syncError && syncedItems?.length === itemsToSync.length;
 
-                        // Handle partial or full success
-                        if (syncedItems && syncedItems.length > 0) {
-                            if (syncedItems.length === len) {
-                                // Full success
-                                setCartItems([]);
-                                batchRemoveFromLocalStorage('cart_items_cache');
-                            } else {
-                                // Partial success: keep the failed ones in local state to try again later.
-                                // The backend uses the frontend-generated `cart_item_id` from the original `localItems[i]`
-                                // but since `itemsToSync` omitted `cart_item_id`, the backend creates new UUIDs.
-                                // To know exactly what failed, we must compare the request payloads against the successful responses
-                                // or simply refresh the cart and let the user re-add failed items.
-                                // Given the edge case, refreshing from backend is safest.
-                                setCartItems([]);
-                                batchRemoveFromLocalStorage('cart_items_cache');
-                                console.warn("Partial sync success. Some items failed to save.", syncError);
-                            }
-                        } else if (!syncError) {
-                             // Empty sync but no error
-                             setCartItems([]);
-                             batchRemoveFromLocalStorage('cart_items_cache');
+                        if (transferSucceeded && syncedItems) {
+                            setCartItems(syncedItems);
+                            itemsToPreserveForLoad = [];
                         } else {
-                            // Full failure, keep local cache intact
-                            console.error("Failed to sync cart items:", syncError);
+                            console.error('Failed to preserve cart during sign-in:', syncError || mergeResult.error);
                         }
-                    } catch (e) {
-                        // Silently handle sync failure
                     }
                 }
+
+                previousUserRef.current = user;
+                if (!transferSucceeded && localItems.length > 0) {
+                    setIsLoading(false);
+                    showError('We kept your cakes in the cart, but could not finish signing you in. Please try again.');
+                    return;
+                }
+
+                // Preserve the visible cart if the first authenticated fetch
+                // is briefly empty; the merge must complete before checkout
+                // is allowed to observe a different owner.
+                await loadCartData(user, itemsToPreserveForLoad);
+                return;
             }
 
-            if (currentUserId !== prevUserIdRef.current || !cartItems.length) {
-                prevUserIdRef.current = currentUserId;
-                // Load cart for the (new) user
+            if (userChanged) {
+                previousUserRef.current = user;
                 await loadCartData(user);
             }
         };

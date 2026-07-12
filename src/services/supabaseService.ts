@@ -2906,7 +2906,7 @@ export async function uploadPaymentProof(
 export async function mergeAnonymousCartToUser(
   anonymousUserId: string,
   realUserId: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; updatedCount?: number }> {
   try {
     const supabase = getSupabaseClient();
 
@@ -2920,8 +2920,21 @@ export async function mergeAnonymousCartToUser(
       return { success: false, error: error.message };
     }
 
-    console.log('Cart merge result:', data);
-    return { success: true };
+    const mergeResult = typeof data === 'string'
+      ? JSON.parse(data) as { success?: boolean; error?: string; updated_count?: number }
+      : data as { success?: boolean; error?: string; updated_count?: number } | null;
+
+    if (mergeResult?.success === false) {
+      return {
+        success: false,
+        error: mergeResult.error || 'The anonymous cart could not be merged.',
+      };
+    }
+
+    return {
+      success: true,
+      updatedCount: Number(mergeResult?.updated_count || 0),
+    };
   } catch (error: any) {
     console.error('Exception merging cart:', error);
     return { success: false, error: error.message };
