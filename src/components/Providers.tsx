@@ -11,6 +11,7 @@ import { SavedItemsProvider } from '@/contexts/SavedItemsContext'
 import { NavigationProvider } from '@/contexts/NavigationContext'
 import ComposeProviders from './ComposeProviders'
 import MobileGestureGuard from './MobileGestureGuard'
+import AuthReturnCoordinator from './AuthReturnCoordinator'
 
 export function Providers({ children }: { children: React.ReactNode }) {
     const [queryClient] = useState(
@@ -43,6 +44,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
                 NavigationProvider,
             ]}
         >
+            <AuthReturnCoordinator />
             <MobileGestureGuard />
             {children}
             <Toaster

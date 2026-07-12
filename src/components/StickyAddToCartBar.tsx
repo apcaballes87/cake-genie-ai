@@ -122,7 +122,15 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
         setIsMounted(true);
         // Check for discount on mount
         const appliedCode = localStorage.getItem('cart_discount_code');
-        if (appliedCode) {
+        const storedAppliedDiscount = localStorage.getItem('cart_applied_discount');
+        let parsedAppliedDiscount: { valid?: boolean; codeId?: string } | null = null;
+        try {
+            parsedAppliedDiscount = storedAppliedDiscount ? JSON.parse(storedAppliedDiscount) : null;
+        } catch {
+            parsedAppliedDiscount = null;
+        }
+
+        if (appliedCode && parsedAppliedDiscount?.valid && parsedAppliedDiscount.codeId) {
             setIsDiscountApplied(true);
         }
     }, []);

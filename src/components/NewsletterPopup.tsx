@@ -4,12 +4,11 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { trackSignUp } from '@/lib/analytics';
 import { X, Eye, EyeOff } from 'lucide-react';
+import { PENDING_SIGNUP_DISCOUNT_KEY } from '@/lib/auth/signupDiscountReturnState';
 
 /** Key used to suppress the popup after it has been dismissed or completed. */
 const SEEN_KEY = 'hasSeenNewsletterPopup';
 /** Key used to resume the discount flow after a Google OAuth redirect. */
-const PENDING_KEY = 'pendingSignupDiscount';
-
 export default function NewsletterPopup() {
   const { user, isAuthenticated, isLoading, signUp, signInWithGoogle } = useAuth();
 
@@ -55,11 +54,11 @@ export default function NewsletterPopup() {
     if (isLoading) return;
     if (oauthHandledRef.current) return;
 
-    const pending = localStorage.getItem(PENDING_KEY);
+    const pending = localStorage.getItem(PENDING_SIGNUP_DISCOUNT_KEY);
     if (pending === 'popup' && isAuthenticated && user && !user.is_anonymous) {
       const resumeTimer = window.setTimeout(() => {
         oauthHandledRef.current = true;
-        localStorage.removeItem(PENDING_KEY);
+        localStorage.removeItem(PENDING_SIGNUP_DISCOUNT_KEY);
         setIsOpen(true);
         void generateDiscountForCurrentUser();
       }, 0);
@@ -180,7 +179,7 @@ export default function NewsletterPopup() {
   // ── Google OAuth sign-up ──
   const handleGoogleSignup = async () => {
     // Store a flag so we re-open the popup and generate the code on return
-    localStorage.setItem(PENDING_KEY, 'popup');
+    localStorage.setItem(PENDING_SIGNUP_DISCOUNT_KEY, 'popup');
     await signInWithGoogle();
     // Page will redirect to Google — execution stops here
   };

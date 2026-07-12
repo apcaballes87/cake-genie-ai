@@ -1,14 +1,16 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { usePathname } from 'next/navigation';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { validateDiscountCode } from '@/services/discountService';
 import { Sparkles, Check, ChevronRight, X, Eye, EyeOff, Tag } from 'lucide-react';
 import { showSuccess, showError } from '@/lib/utils/toast';
-
-/** localStorage key used to resume the discount flow after a Google OAuth redirect. */
-const PENDING_KEY = 'pendingSignupDiscount';
+import {
+  clearPendingSignupDiscount,
+  getCurrentRelativeUrl,
+  readPendingSignupDiscount,
+  writePendingSignupDiscount,
+} from '@/lib/auth/signupDiscountReturnState';
 
 interface DiscountOfferBubbleProps {
   basePrice: number;
@@ -16,19 +18,35 @@ interface DiscountOfferBubbleProps {
   isShiftedUp?: boolean;
 }
 
+function readStoredAppliedCode(): string {
+  if (typeof window === 'undefined') return '';
+
+  const storedCode = window.localStorage.getItem('cart_discount_code');
+  const storedAppliedDiscount = window.localStorage.getItem('cart_applied_discount');
+  try {
+    const parsedAppliedDiscount = storedAppliedDiscount
+      ? JSON.parse(storedAppliedDiscount) as { valid?: boolean; codeId?: string }
+      : null;
+    return storedCode && parsedAppliedDiscount?.valid && parsedAppliedDiscount.codeId
+      ? storedCode
+      : '';
+  } catch {
+    return '';
+  }
+}
+
 export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
   basePrice,
   onApplied,
   isShiftedUp,
 }) => {
-  const pathname = usePathname();
   const { user, isAuthenticated, isLoading, signUp, signInWithGoogle } = useAuth();
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle');
-  const [hasApplied, setHasApplied] = useState(false);
+  const [hasApplied, setHasApplied] = useState(() => Boolean(readStoredAppliedCode()));
   const [isVisible, setIsVisible] = useState(true);
-  const [appliedCode, setAppliedCode] = useState('');
+  const [appliedCode, setAppliedCode] = useState(readStoredAppliedCode);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -39,34 +57,11 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
   // Prevent the OAuth-return effect running more than once per mount
   const oauthHandledRef = useRef(false);
 
-  // ── Restore already-applied discount from localStorage ──
-  useEffect(() => {
-    const storedCode = localStorage.getItem('cart_discount_code');
-    if (storedCode) {
-      setAppliedCode(storedCode);
-      setHasApplied(true);
-    }
-  }, []);
-
-  // ── Resume the discount flow if user just returned from Google OAuth ──
-  useEffect(() => {
-    if (isLoading) return;
-    if (oauthHandledRef.current) return;
-
-    const pending = localStorage.getItem(PENDING_KEY);
-    if (pending === 'bubble' && isAuthenticated && user && !user.is_anonymous) {
-      oauthHandledRef.current = true;
-      localStorage.removeItem(PENDING_KEY);
-      applyDiscountForCurrentUser();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, isAuthenticated, user]);
-
   const discountedPrice = basePrice * 0.8;
   const savings = basePrice - discountedPrice;
 
-  /** Calls /api/signup-discount then validates and stores the code in localStorage. */
-  const applyDiscountForCurrentUser = async () => {
+  /** Calls /api/signup-discount, validates the result, and persists it. */
+  const applyDiscountForCurrentUser = useCallback(async (): Promise<boolean> => {
     setStatus('loading');
     try {
       const res = await fetch('/api/signup-discount', {
@@ -79,13 +74,17 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
       if (!data.success || !data.code) {
         showError(data.error || 'Could not generate discount. Please try again.');
         setStatus('idle');
-        return;
+        return false;
       }
 
       const code: string = data.code;
 
-      // Validate to get codeId so CartClient can use it at checkout
       const validationResult = await validateDiscountCode(code, basePrice);
+      if (!validationResult.valid || !validationResult.codeId) {
+        showError(validationResult.message || 'Could not validate your discount. Please try again.');
+        setStatus('idle');
+        return false;
+      }
 
       localStorage.setItem('cart_discount_code', code);
       localStorage.setItem('cart_applied_discount', JSON.stringify(validationResult));
@@ -94,20 +93,53 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
       showSuccess(`20% Discount Unlocked! Code ${code} applied.`);
       setStatus('success');
       setHasApplied(true);
-      if (onApplied) onApplied();
-      setTimeout(() => setIsExpanded(false), 2000);
+      onApplied?.();
+      window.setTimeout(() => setIsExpanded(false), 2000);
+      return true;
     } catch (err) {
       console.error('Error generating discount for user:', err);
       showError('Something went wrong. Please try again.');
       setStatus('idle');
+      return false;
     }
-  };
+  }, [basePrice, onApplied]);
+
+  // ── Resume the discount flow if user just returned from Google OAuth ──
+  useEffect(() => {
+    if (isLoading) return;
+    if (oauthHandledRef.current) return;
+
+    const pending = readPendingSignupDiscount();
+    if (pending?.source === 'bubble' && isAuthenticated && user && !user.is_anonymous) {
+      oauthHandledRef.current = true;
+      const resumeTimer = window.setTimeout(() => {
+        void applyDiscountForCurrentUser().then((applied) => {
+          if (applied) {
+            clearPendingSignupDiscount();
+          } else {
+            oauthHandledRef.current = false;
+          }
+        });
+      }, 0);
+
+      return () => window.clearTimeout(resumeTimer);
+    }
+  }, [applyDiscountForCurrentUser, isAuthenticated, isLoading, user]);
 
   // ── Google OAuth ──
   const handleGoogleSignup = async () => {
-    localStorage.setItem(PENDING_KEY, 'bubble');
-    // Pass current path so the callback redirects back here
-    await signInWithGoogle(pathname);
+    const returnTo = getCurrentRelativeUrl(window.location);
+    writePendingSignupDiscount({
+      source: 'bubble',
+      returnTo,
+      createdAt: Date.now(),
+    });
+
+    const { error } = await signInWithGoogle(returnTo);
+    if (error) {
+      clearPendingSignupDiscount();
+      showError(error.message || 'Failed to continue with Google');
+    }
     // Page will redirect to Google — execution stops here
   };
 
