@@ -255,11 +255,8 @@ body.genie-image-zoom-open [data-sticky-add-to-cart-bar] {
   body {
     position: relative;
     touch-action: manipulation;
-  }
-
-  /* Keep the dense mobile customizer readable without requiring browser zoom. */
-  [data-customizer-mobile-scale] {
-    zoom: 0.75;
+    /* Keep the mobile presentation consistent across every route. */
+    zoom: 0.8;
   }
 }
 

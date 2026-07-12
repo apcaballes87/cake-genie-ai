@@ -70,3 +70,7 @@
 # Lesson: Keep background AI fallback states silent when the original experience remains usable
 
 - When a background enhancement fails but the original asset is still valid, stop the loading state and preserve the fallback silently. Do not surface provider or pipeline availability copy unless the user must take action.
+
+# Lesson: Put shared mobile presentation rules at the global page seam
+
+- When a mobile visual rule is intended to apply across the site, verify representative static, interactive, search, commerce, and dynamic routes before choosing a component-local wrapper. A route-local zoom can make one page look right while every other page stays at the default scale; use the global `body` mobile breakpoint and confirm fixed UI plus desktop behavior separately.

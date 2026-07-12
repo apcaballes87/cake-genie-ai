@@ -1,5 +1,20 @@
 # Tasks
 
+## Make mobile zoom consistent across all pages (2026-07-13)
+
+### Plan
+
+- [x] Re-check the existing mobile scale across representative routes.
+- [x] Replace the customizer-only 75% scale with a global mobile-only 80% scale.
+- [x] Verify route consistency, fixed UI, focused tests, and the production build.
+
+### Review
+
+- The previous rule only scaled `[data-customizer-mobile-scale]`, so `/`, `/about`, `/search`, `/price-list`, and `/cart` remained at 100% while `/customizing` used 75%.
+- Removed the nested customizer scale wrapper and applied `zoom: 0.8` to `body` inside the existing `max-width: 767px` media query.
+- Fresh browser verification at a 500px mobile viewport reports `bodyZoom: 0.8` on `/`, `/about`, `/search`, `/price-list`, `/cart`, `/customizing`, and the populated customizer slug. No horizontal overflow was observed; the sticky cart bar stayed full-width.
+- At 836px desktop, `bodyZoom` remains `1`. Verification passed: 17 focused tests, scoped ESLint with 0 errors, `git diff --check`, and `npm run build`.
+
 ## Compact the mobile customizer default scale (2026-07-12)
 
 ### Plan
