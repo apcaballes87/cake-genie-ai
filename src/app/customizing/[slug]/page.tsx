@@ -2,6 +2,7 @@ import { Metadata, ResolvingMetadata } from 'next'
 import { notFound, permanentRedirect } from 'next/navigation'
 import { cache, Suspense } from 'react'
 import Link from 'next/link'
+import { ImagePlus } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import CustomizingClient from '../CustomizingClient'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
@@ -1179,6 +1180,14 @@ function SSRDesignContent({
 
     return (
         <div className="w-full pb-4 pt-1 space-y-1">
+            <Link
+                href="/customizing?upload=1"
+                className="genie-btn-primary flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 font-bold shadow-md shadow-purple-50/50 transition-transform active:scale-[0.98]"
+            >
+                <ImagePlus size={20} className="shrink-0" aria-hidden="true" />
+                <span>Upload Any Design - Get Instant Pricing</span>
+            </Link>
+
             {/* Structured Specifications Table for SEO */}
             <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">
                 <h2 className="text-xl font-bold text-slate-800 mb-4 text-center">Design Specifications</h2>

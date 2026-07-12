@@ -240,6 +240,7 @@ describe('RecentSearchPage', () => {
     );
 
     expect(screen.getByTestId('customizing-client')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Upload Any Design - Get Instant Pricing' })).toHaveAttribute('href', '/customizing?upload=1');
 
     const ssrFallback = container.querySelector('#ssr-content');
     expect(ssrFallback).toBeInTheDocument();
