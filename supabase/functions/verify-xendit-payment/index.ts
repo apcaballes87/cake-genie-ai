@@ -33,13 +33,22 @@ const mapStatus = (status: string): string => {
 
 async function clearCartForOrder(supabaseAdmin: ReturnType<typeof createClient>, orderId: string) {
   try {
+    const { count: sourceCount, error: sourceCountError } = await supabaseAdmin
+      .from('cakegenie_order_items')
+      .select('*', { count: 'exact', head: true })
+      .eq('order_id', orderId)
+      .not('source_cart_item_id', 'is', null);
+
     const { data: clearedCount, error: clearError } = await supabaseAdmin
       .rpc('clear_cart_for_paid_order', { p_order_id: orderId });
 
     if (clearError) {
       console.error('⚠️  clear_cart_for_paid_order failed (non-fatal):', clearError);
     } else {
-      console.log(`🛒 Cleared ${clearedCount ?? 0} cart row(s) for funded order ${orderId}`);
+      console.log('cart_paid_clear', {
+        deleted_count: clearedCount ?? 0,
+        source_count: sourceCountError ? null : sourceCount ?? 0,
+      });
     }
   } catch (error) {
     console.error('⚠️  clear_cart_for_paid_order threw (non-fatal):', error);

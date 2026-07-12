@@ -1,5 +1,6 @@
 // services/supabaseService.ts
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { CART_RETENTION_DAYS } from '@/lib/cartAuthTransfer';
 import { CakeType, BasePriceInfo, CakeThickness, ReportPayload, CartItemDetails, HybridAnalysisResult, AiPrompt, PricingRule, PricingFeedback, AvailabilitySettings, CartItem, CacheSEOMetadata, BuyerAttributionRecord } from '@/types';
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase/env';
@@ -2160,7 +2161,7 @@ export async function addToCart(
 ): Promise<SupabaseServiceResponse<CakeGenieCartItem>> {
   try {
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // Item expires in 7 days
+    expiresAt.setDate(expiresAt.getDate() + CART_RETENTION_DAYS);
 
     const { data, error } = await supabase
       .from('cakegenie_cart')
@@ -2248,7 +2249,7 @@ export async function addManyToCart(
   if (!items || items.length === 0) return { data: [], error: null };
 
   try {
-    const expiresAtStr = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const expiresAtStr = new Date(Date.now() + CART_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
     // Allocate exactly sized array, mutate directly avoiding spread operators for perf
     const itemsToInsert = new Array(items.length);
@@ -2896,48 +2897,6 @@ export async function uploadPaymentProof(
     return { data, error: null };
   } catch (err) {
     return { data: null, error: err as Error };
-  }
-}
-
-/**
- * Merges anonymous user's cart into authenticated user's cart
- * Called after successful login to preserve items
- */
-export async function mergeAnonymousCartToUser(
-  anonymousUserId: string,
-  realUserId: string
-): Promise<{ success: boolean; error?: string; updatedCount?: number }> {
-  try {
-    const supabase = getSupabaseClient();
-
-    const { data, error } = await supabase.rpc('merge_anonymous_cart_to_user', {
-      p_anonymous_user_id: anonymousUserId,
-      p_real_user_id: realUserId
-    });
-
-    if (error) {
-      console.error('Error merging cart:', error);
-      return { success: false, error: error.message };
-    }
-
-    const mergeResult = typeof data === 'string'
-      ? JSON.parse(data) as { success?: boolean; error?: string; updated_count?: number }
-      : data as { success?: boolean; error?: string; updated_count?: number } | null;
-
-    if (mergeResult?.success === false) {
-      return {
-        success: false,
-        error: mergeResult.error || 'The anonymous cart could not be merged.',
-      };
-    }
-
-    return {
-      success: true,
-      updatedCount: Number(mergeResult?.updated_count || 0),
-    };
-  } catch (error: any) {
-    console.error('Exception merging cart:', error);
-    return { success: false, error: error.message };
   }
 }
 
@@ -4041,7 +4000,7 @@ export async function addToCartWithMerchant(
 ): Promise<SupabaseServiceResponse<CakeGenieCartItem>> {
   try {
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // 7 day expiration
+    expiresAt.setDate(expiresAt.getDate() + CART_RETENTION_DAYS);
 
     const { data, error } = await supabase
       .from('cakegenie_cart')

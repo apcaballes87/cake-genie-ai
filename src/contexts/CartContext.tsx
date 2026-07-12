@@ -12,13 +12,14 @@ import React, {
 } from 'react';
 import { usePathname } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
-import type { SupabaseClient, User, PostgrestError } from '@supabase/supabase-js';
+import type { User, PostgrestError } from '@supabase/supabase-js';
 import { debounce } from 'lodash-es';
 import { showError } from '@/lib/utils/toast';
-import { trackAddToCart } from '@/lib/analytics';
+import { trackAddToCart, trackEvent } from '@/lib/analytics';
 import { logErrorToSupabase } from '@/components/ErrorLogger';
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
-import { getCartOutbox, putCartOutbox, removeCartOutbox, type CartOutboxRecord, type CartOutboxStage } from '@/lib/cartOutbox';
+import { getCartOutbox, putCartOutbox, reassignCartOutboxOwner, removeCartOutbox, type CartOutboxRecord, type CartOutboxStage } from '@/lib/cartOutbox';
+import { CART_RETENTION_DAYS, claimCartAuthTransfer, clearPendingCartAuthTransfer, getPendingCartAuthTransfer } from '@/lib/cartAuthTransfer';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
@@ -27,8 +28,6 @@ import {
     getCartPageData,
     addToCart as addToCartService,
     addToCartIdempotent,
-    addManyToCart as addManyToCartService,
-    mergeAnonymousCartToUser,
     updateCartItemImages,
     updateCartItemQuantity as updateQuantityService,
     removeCartItem as removeItemService,
@@ -110,40 +109,6 @@ type CartItemWithUiMetadata = CakeGenieCartItem & {
     isPending?: boolean;
 };
 
-/**
- * Strip fields that only exist in the cart UI before moving anonymous items
- * into a registered user's cart. Sending joined `merchant` data or the
- * optimistic `isPending` flag to PostgREST makes the fallback insert fail.
- */
-export function prepareCartItemsForUser(
-    items: CartItemWithUiMetadata[],
-    userId: string,
-): Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'>[] {
-    return items.map(item => {
-        const {
-            cart_item_id: _cartItemId,
-            created_at: _createdAt,
-            updated_at: _updatedAt,
-            expires_at: _expiresAt,
-            merchant: _merchant,
-            isPending: _isPending,
-            ...persistedItem
-        } = item;
-        void _cartItemId;
-        void _createdAt;
-        void _updatedAt;
-        void _expiresAt;
-        void _merchant;
-        void _isPending;
-
-        return {
-            ...persistedItem,
-            user_id: userId,
-            session_id: null,
-        };
-    });
-}
-
 // Helper to estimate localStorage usage
 const estimateLocalStorageSize = (): number => {
     if (typeof window === 'undefined') return 0;
@@ -172,8 +137,8 @@ const clearOldCartItems = (): void => {
                 if (item) {
                     const data = JSON.parse(item);
                     if (data.timestamp) {
-                        const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-                        if (data.timestamp < oneDayAgo) {
+                        const cartRetentionCutoff = Date.now() - CART_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+                        if (data.timestamp < cartRetentionCutoff) {
                             keysToRemove.push(key);
                         }
                     }
@@ -241,8 +206,8 @@ export const cleanupExpiredLocalStorage = () => {
                 if (item) {
                     const data = JSON.parse(item);
                     if (data.timestamp) {
-                        const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-                        if (data.timestamp < sevenDaysAgo) {
+                        const cartRetentionCutoff = Date.now() - CART_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+                        if (data.timestamp < cartRetentionCutoff) {
                             keysToRemove.push(key);
                         }
                     }
@@ -410,7 +375,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const loadCartData = useCallback(async (
         user: User | null,
         preservedItems: CartItemWithUiMetadata[] = [],
-    ) => {
+    ): Promise<boolean> => {
         setIsLoading(true);
         try {
             const isAnonymous = user?.is_anonymous ?? false;
@@ -435,7 +400,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 addressesData = result.addressesData;
             } catch (timeoutError) {
                 // Return early on timeout, keep cached data
-                return;
+                return false;
             }
 
             const { data: cartItemsData, error: cartError } = cartData;
@@ -476,14 +441,44 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 batchSaveToLocalStorage('addresses_cache', JSON.stringify(userAddressesData));
             }
 
+            return true;
         } catch (error) {
             // Keep cached and outbox-backed items visible; a failed refresh is
             // not evidence that the customer deliberately removed their cart.
             setAddresses([]);
+            return false;
         } finally {
             setIsLoading(false);
         }
     }, []);
+
+    const claimPendingCartForAuthenticatedUser = useCallback(async (
+        authenticatedUser: User,
+    ): Promise<boolean> => {
+        const pendingTransfer = getPendingCartAuthTransfer();
+        if (!pendingTransfer) return true;
+
+        const { data: claimedTransfer, error } = await claimCartAuthTransfer(supabase, pendingTransfer.token);
+        if (error || !claimedTransfer) {
+            trackEvent('cart_auth_transfer', { state: 'failed', stage: 'claim' });
+            showError('We kept your cakes in the cart, but could not restore them after sign-in. Please try again.');
+            return false;
+        }
+
+        const reassignedOutboxCount = await reassignCartOutboxOwner(
+            claimedTransfer.sourceAnonymousUserId,
+            authenticatedUser.id,
+        );
+        if (reassignedOutboxCount > 0) {
+            trackEvent('cart_outbox_reowned', { had_pending_records: true });
+        }
+        trackEvent('cart_auth_transfer', {
+            state: 'claimed',
+            replayed: claimedTransfer.alreadyClaimed,
+        });
+
+        return true;
+    }, [supabase]);
 
     // Unified Effect for Auth Changes and Cart Loading
     useEffect(() => {
@@ -499,13 +494,37 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 return;
             }
 
-            if (authLoading) return;
+            // Wait for the browser cache before the first authenticated read.
+            // A full-page OAuth return starts with the registered user, so this
+            // is the only chance to claim the anonymous cart before an empty
+            // server response could replace its cached view.
+            if (authLoading || !hasLoadedStorageCache) return;
 
-            // The first resolved auth state only establishes ownership; it is
-            // not a transfer from one account to another.
+            const loadAuthenticatedCart = async (authenticatedUser: User): Promise<void> => {
+                const hasPendingTransfer = Boolean(getPendingCartAuthTransfer());
+                if (hasPendingTransfer) {
+                    const claimed = await claimPendingCartForAuthenticatedUser(authenticatedUser);
+                    if (!claimed) {
+                        setIsLoading(false);
+                        return;
+                    }
+                }
+
+                const loaded = await loadCartData(authenticatedUser);
+                if (hasPendingTransfer && loaded) {
+                    clearPendingCartAuthTransfer();
+                }
+            };
+
+            // The first resolved auth state can be a registered OAuth return.
+            // Restore its claim before loading the registered owner's cart.
             if (previousUserRef.current === undefined) {
                 previousUserRef.current = user;
-                await loadCartData(user);
+                if (user && !user.is_anonymous) {
+                    await loadAuthenticatedCart(user);
+                } else {
+                    await loadCartData(user);
+                }
                 return;
             }
 
@@ -513,43 +532,15 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const userChanged = previousUser?.id !== user?.id;
 
             if (userChanged && previousUser?.is_anonymous && user && !user.is_anonymous) {
-                const localItems = cartItemsRef.current;
-                let itemsToPreserveForLoad = localItems;
-                let transferSucceeded = true;
-
-                if (localItems.length > 0) {
-                    const mergeResult = await mergeAnonymousCartToUser(previousUser.id, user.id);
-                    transferSucceeded = mergeResult.success;
-
-                    // Keep a client-side fallback for environments where the
-                    // merge RPC has not been deployed yet. It deliberately
-                    // strips UI-only fields and never clears the source cart
-                    // unless every item is durably copied.
-                    if (!transferSucceeded) {
-                        const itemsToSync = prepareCartItemsForUser(localItems, user.id);
-                        const { data: syncedItems, error: syncError } = await addManyToCartService(itemsToSync);
-                        transferSucceeded = !syncError && syncedItems?.length === itemsToSync.length;
-
-                        if (transferSucceeded && syncedItems) {
-                            setCartItems(syncedItems);
-                            itemsToPreserveForLoad = [];
-                        } else {
-                            console.error('Failed to preserve cart during sign-in:', syncError || mergeResult.error);
-                        }
-                    }
-                }
-
                 previousUserRef.current = user;
-                if (!transferSucceeded && localItems.length > 0) {
+
+                if (!getPendingCartAuthTransfer() && cartItemsRef.current.length > 0) {
                     setIsLoading(false);
-                    showError('We kept your cakes in the cart, but could not finish signing you in. Please try again.');
+                    showError('We kept your cakes in the cart, but could not safely restore them after sign-in. Please try again.');
                     return;
                 }
 
-                // Preserve the visible cart if the first authenticated fetch
-                // is briefly empty; the merge must complete before checkout
-                // is allowed to observe a different owner.
-                await loadCartData(user, itemsToPreserveForLoad);
+                await loadAuthenticatedCart(user);
                 return;
             }
 
@@ -559,8 +550,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
         };
 
-        handleAuthChange();
-    }, [user, authLoading, loadCartData, shouldDeferCartSync]);
+        void handleAuthChange();
+    }, [user, authLoading, hasLoadedStorageCache, claimPendingCartForAuthenticatedUser, loadCartData, shouldDeferCartSync]);
 
     // Auto-cache cart items whenever they change (for instant load on next visit)
     // Strip base64 image data to prevent localStorage quota exceeded errors
@@ -604,7 +595,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const now = new Date().toISOString();
 
         const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 7);
+        expiresAt.setDate(expiresAt.getDate() + CART_RETENTION_DAYS);
 
         const tempItem: CakeGenieCartItem = {
             ...itemParams,
@@ -699,20 +690,17 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         let stage: CartOutboxStage = record.stage;
         try {
-            const owner = record.cartItem.user_id || record.cartItem.session_id
-                ? {
-                    user_id: record.cartItem.user_id,
-                    session_id: record.cartItem.session_id,
-                    ownerId: record.cartItem.user_id || record.cartItem.session_id || '',
-                }
-                : await supabase.auth.getUser().then(({ data: { user } }) => {
-                    if (!user) throw new Error('User session not found while saving cart');
-                    return {
-                        user_id: user.is_anonymous ? null : user.id,
-                        session_id: user.is_anonymous ? user.id : null,
-                        ownerId: user.id,
-                    };
-                });
+            const { data: { user: currentUser } } = await supabase.auth.getUser();
+            if (!currentUser) throw new Error('User session not found while saving cart');
+
+            // A pending anonymous record may resume after Google returns to a
+            // fresh page. The current authenticated owner is authoritative;
+            // never retry an old anonymous owner ID against the new session.
+            const owner = {
+                user_id: currentUser.is_anonymous ? null : currentUser.id,
+                session_id: currentUser.is_anonymous ? currentUser.id : null,
+                ownerId: currentUser.id,
+            };
 
             // UI-only fields are intentionally excluded from the database row.
             const { isPending: _isPending, merchant: _merchant, ...cartItemForInsert } = record.cartItem as CakeGenieCartItem & {
@@ -801,7 +789,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const tempId = uuidv4();
         const now = new Date().toISOString();
         const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 7);
+        expiresAt.setDate(expiresAt.getDate() + CART_RETENTION_DAYS);
 
         // 1. Optimistic Update with Initial Item (Base64) - INSTANT
         const tempItem: CakeGenieCartItem & { merchant?: CakeGenieMerchant; isPending?: boolean } = {
@@ -941,8 +929,17 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, [removeItemOptimistic, debouncedUpdateQuantity]);
 
     const refreshCart = useCallback(async () => {
+        if (user && !user.is_anonymous && getPendingCartAuthTransfer()) {
+            const claimed = await claimPendingCartForAuthenticatedUser(user);
+            if (!claimed) return;
+
+            const loaded = await loadCartData(user);
+            if (loaded) clearPendingCartAuthTransfer();
+            return;
+        }
+
         await loadCartData(user);
-    }, [loadCartData, user]);
+    }, [claimPendingCartForAuthenticatedUser, loadCartData, user]);
 
     const clearCart = useCallback(() => {
         setCartItems([]);

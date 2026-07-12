@@ -4,6 +4,8 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { usePathname } from 'next/navigation'
 import { User, Session } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
+import { beginCartAuthTransfer, clearPendingCartAuthTransfer } from '@/lib/cartAuthTransfer'
+import { trackEvent } from '@/lib/analytics'
 
 interface AuthContextType {
     user: User | null
@@ -49,16 +51,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return () => subscription.unsubscribe()
     }, [supabase])
 
+    const prepareCartForAccountAuth = useCallback(async () => {
+        const transfer = await beginCartAuthTransfer(supabase, user)
+        if (transfer.created) {
+            trackEvent('cart_auth_transfer', { state: 'started' })
+        }
+        return transfer
+    }, [supabase, user])
+
     const signIn = useCallback(async (email: string, password: string) => {
+        const transfer = await prepareCartForAccountAuth()
+        if (transfer.error) {
+            trackEvent('cart_auth_transfer', { state: 'failed', stage: 'start' })
+            return { error: transfer.error }
+        }
+
         const { error } = await supabase.auth.signInWithPassword({ email, password })
+        if (error && transfer.created) clearPendingCartAuthTransfer()
         return { error }
-    }, [supabase])
+    }, [prepareCartForAccountAuth, supabase])
 
     const signUp = useCallback(async (
         email: string,
         password: string,
         metadata?: { first_name?: string, last_name?: string }
     ) => {
+        const transfer = await prepareCartForAccountAuth()
+        if (transfer.error) {
+            trackEvent('cart_auth_transfer', { state: 'failed', stage: 'start' })
+            return { data: null, error: transfer.error }
+        }
+
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
@@ -66,8 +89,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 data: metadata
             }
         })
+        if (error && transfer.created) clearPendingCartAuthTransfer()
         return { data, error }
-    }, [supabase])
+    }, [prepareCartForAccountAuth, supabase])
 
     const signOut = useCallback(async () => {
         const { error } = await supabase.auth.signOut()
@@ -80,6 +104,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [supabase])
 
     const signInWithGoogle = useCallback(async (redirectTo?: string) => {
+        const transfer = await prepareCartForAccountAuth()
+        if (transfer.error) {
+            trackEvent('cart_auth_transfer', { state: 'failed', stage: 'start' })
+            return { data: null, error: transfer.error }
+        }
+
         const origin = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
         const callbackUrl = new URL('/auth/callback', origin)
         if (redirectTo) callbackUrl.searchParams.set('next', redirectTo)
@@ -90,8 +120,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 redirectTo: callbackUrl.toString(),
             },
         })
+        if (error && transfer.created) clearPendingCartAuthTransfer()
         return { data, error }
-    }, [supabase])
+    }, [prepareCartForAccountAuth, supabase])
 
     const isAuthenticated = !!user && !user.is_anonymous
 

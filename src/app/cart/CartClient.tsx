@@ -450,7 +450,6 @@ function CartClient() {
         setEventTime,
         setDeliveryInstructions,
         setSelectedAddressId,
-        clearCart,
         removeItemOptimistic,
     } = useCartActions();
 
@@ -1949,7 +1948,6 @@ function CartClient() {
 
             setIsSplitModalOpen(false);
             setIsShareModalOpen(true);
-            clearCart();
             setAppliedDiscount(null);
             setDiscountCode('');
             // Clear guest data

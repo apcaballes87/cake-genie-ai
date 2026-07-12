@@ -1,8 +1,9 @@
 import type { CakeGenieCartItem } from '@/lib/database.types';
 import { getFromIndexedDB, removeFromIndexedDB, saveToIndexedDB } from '@/lib/utils/storage';
+import { CART_RETENTION_DAYS } from '@/lib/cartAuthTransfer';
 
 const OUTBOX_KEY = 'cart-outbox-v1';
-const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+const MAX_AGE_MS = CART_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 
 export type CartOutboxStage = 'auth_owner' | 'cart_insert' | 'image_upload' | 'image_update';
 
@@ -59,4 +60,33 @@ export async function removeCartOutbox(cartItemId: string): Promise<void> {
     return;
   }
   await writeAll(next);
+}
+
+export async function reassignCartOutboxOwner(
+  anonymousUserId: string,
+  authenticatedUserId: string,
+): Promise<number> {
+  const records = await readAll();
+  let reassignedCount = 0;
+  const updatedRecords = records.map(record => {
+    if (record.cartItem.user_id !== null || record.cartItem.session_id !== anonymousUserId) {
+      return record;
+    }
+
+    reassignedCount += 1;
+    return {
+      ...record,
+      cartItem: {
+        ...record.cartItem,
+        user_id: authenticatedUserId,
+        session_id: null,
+      },
+    };
+  });
+
+  if (reassignedCount > 0) {
+    await writeAll(updatedRecords);
+  }
+
+  return reassignedCount;
 }
