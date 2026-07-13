@@ -73,7 +73,6 @@ const buildProps = (): React.ComponentProps<typeof CustomizingHeroPanel> => ({
     onUndo: vi.fn(),
     onOpenMotifPanel: vi.fn(),
     onOpenReportModal: vi.fn(),
-    onUploadCakeDesign: vi.fn(),
     onClearAll: vi.fn(),
 });
 
@@ -91,7 +90,7 @@ describe('CustomizingHeroPanel', () => {
         expect(screen.queryByText('Update Failed')).not.toBeInTheDocument();
     });
 
-    it('renders the empty hero state with disabled report and available upload action', () => {
+    it('renders the empty hero state with disabled report and reset action', () => {
         const props = buildProps();
         props.showFooterActions = true;
 
@@ -99,7 +98,7 @@ describe('CustomizingHeroPanel', () => {
 
         expect(screen.getByText('Your creation will appear here')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Report an issue' })).toBeDisabled();
-        expect(screen.getByRole('button', { name: 'Upload Cake Design' })).toBeEnabled();
+        expect(screen.queryByRole('button', { name: 'Upload Cake Design' })).not.toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Reset everything' })).toBeInTheDocument();
     });
 
@@ -148,7 +147,6 @@ describe('CustomizingHeroPanel', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Save this design' }));
         fireEvent.click(screen.getByRole('button', { name: 'Undo last change' }));
         fireEvent.click(screen.getByRole('button', { name: 'Report an issue' }));
-        fireEvent.click(screen.getByRole('button', { name: 'Upload Cake Design' }));
         fireEvent.click(screen.getByRole('button', { name: 'Reset everything' }));
 
         expect(props.onOriginalTabSelect).toHaveBeenCalledTimes(1);
@@ -156,10 +154,9 @@ describe('CustomizingHeroPanel', () => {
         expect(props.onToggleSaveDesign).toHaveBeenCalledTimes(1);
         expect(props.onUndo).toHaveBeenCalledTimes(1);
         expect(props.onOpenReportModal).toHaveBeenCalledTimes(1);
-        expect(props.onUploadCakeDesign).toHaveBeenCalledTimes(1);
         expect(props.onClearAll).toHaveBeenCalledTimes(1);
         expect(screen.getByRole('button', { name: 'Save this design' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Upload Cake Design' })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Upload Cake Design' })).not.toBeInTheDocument();
     });
 
     it('shows a lower-left loader while the studio background edit is still pending', () => {

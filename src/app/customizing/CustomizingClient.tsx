@@ -3988,7 +3988,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                             onUndo={handleUndoWithModalCleanup}
                             onOpenMotifPanel={openMotifPanel}
                             onOpenReportModal={onOpenReportModal}
-                            onUploadCakeDesign={handleUploadAnother}
                             onClearAll={onClearAll}
                             reviewSummary={reviewSummary}
                             heroImageVariants={heroImageVariants}
@@ -4171,7 +4170,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                         isLoading={isLoading} 
                                         isReporting={isReporting} 
                                         onOpenReportModal={onOpenReportModal} 
-                                        onUploadCakeDesign={handleUploadAnother}
                                         onClearAll={onClearAll} 
                                     />
                                 </div>

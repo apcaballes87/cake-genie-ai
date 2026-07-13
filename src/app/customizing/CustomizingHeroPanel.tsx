@@ -4,7 +4,7 @@ import { memo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import Link from 'next/link';
 import LazyImage from '@/components/LazyImage';
 import { ImageZoomModal } from '@/components/ImageZoomModal';
-import { Heart, ImagePlus, ShieldCheck, Wand2 } from 'lucide-react';
+import { Heart, ShieldCheck, Wand2 } from 'lucide-react';
 import { ErrorIcon, ImageIcon, ResetIcon, Loader2, ReportIcon } from '../../components/icons';
 import MagicGlitter from '@/components/MagicGlitter';
 import { getCustomerFacingAnalysisError } from './analysisErrorDisplay';
@@ -50,7 +50,6 @@ interface CustomizingHeroPanelProps {
     onUndo: () => void;
     onOpenMotifPanel?: () => void;
     onOpenReportModal: () => void;
-    onUploadCakeDesign: () => void;
     onClearAll: () => void;
     /**
      * Aspect ratio (width / height) of the hero image from the DB
@@ -102,11 +101,10 @@ export interface HeroActionButtonsRowProps {
     isLoading: boolean;
     isReporting: boolean;
     onOpenReportModal: () => void;
-    onUploadCakeDesign: () => void;
     onClearAll: () => void;
 }
 
-export const HeroActionButtonsRow = ({ editedImage, isLoading, isReporting, onOpenReportModal, onUploadCakeDesign, onClearAll }: HeroActionButtonsRowProps) => {
+export const HeroActionButtonsRow = ({ editedImage, isLoading, isReporting, onOpenReportModal, onClearAll }: HeroActionButtonsRowProps) => {
     const buttonClassName = 'flex items-center gap-1.5 text-[11px] max-md:text-[9px] font-bold py-2 max-md:py-1.5 px-3 max-md:px-2.5 rounded-full bg-white border border-slate-200 text-slate-600 shadow-sm hover:shadow-md hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap max-md:min-h-[44px]';
     const iconClassName = 'w-3.5 h-3.5';
 
@@ -115,11 +113,6 @@ export const HeroActionButtonsRow = ({ editedImage, isLoading, isReporting, onOp
             <button onClick={onOpenReportModal} disabled={!editedImage || isLoading || isReporting} className={buttonClassName} aria-label="Report an issue">
                 <ReportIcon className={`${iconClassName} text-slate-400 shrink-0`} />
                 <span>{isReporting ? 'Submitting...' : 'Report Issue'}</span>
-            </button>
-
-            <button onClick={onUploadCakeDesign} disabled={isLoading} className={buttonClassName} aria-label="Upload Cake Design">
-                <ImagePlus className={`${iconClassName} text-green-600 shrink-0`} />
-                <span>Upload Cake Design</span>
             </button>
 
             <button onClick={onClearAll} className={`${buttonClassName} border-red-100 text-red-600 hover:bg-red-50`} aria-label="Reset everything">
@@ -189,7 +182,6 @@ export const CustomizingHeroPanel = memo(({
     onUndo,
     onOpenMotifPanel,
     onOpenReportModal,
-    onUploadCakeDesign,
     onClearAll,
     reviewSummary,
     initialHeroAspectRatio = null,
@@ -827,7 +819,7 @@ export const CustomizingHeroPanel = memo(({
 
             {showFooterActions ? (
                 <div className="hidden md:block animate-in fade-in slide-in-from-bottom-2 duration-500">
-                    <HeroActionButtonsRow editedImage={editedImage} isLoading={isLoading} isReporting={isReporting} onOpenReportModal={onOpenReportModal} onUploadCakeDesign={onUploadCakeDesign} onClearAll={onClearAll} />
+                    <HeroActionButtonsRow editedImage={editedImage} isLoading={isLoading} isReporting={isReporting} onOpenReportModal={onOpenReportModal} onClearAll={onClearAll} />
                 </div>
             ) : null}
         </div>
