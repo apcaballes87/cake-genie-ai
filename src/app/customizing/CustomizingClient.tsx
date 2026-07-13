@@ -4119,6 +4119,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                     onCakeInfoChange={onCakeInfoChange}
                                     onIcingTypeChange={handleIcingTypeChange}
                                     onIcingDesignChange={onIcingDesignChange}
+                                    icingTypePriceDeltas={icingTypePriceDeltas}
                                     addOnPricing={addOnPricing?.addOnPrice ?? 0}
                                     separateIcingStep={separateIcingStep}
                                     hideStepOne={hideStepOne}

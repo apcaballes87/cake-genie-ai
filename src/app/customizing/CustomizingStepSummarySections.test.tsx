@@ -179,6 +179,16 @@ describe('CustomizingStepSummarySections', () => {
         expect(within(discountedFondantButton).getByText('-₱200')).toHaveClass('text-red-600');
     });
 
+    it('shows the signed price change in the mobile layout', () => {
+        const props = buildProps();
+        props.layout = 'mobile';
+
+        render(<CustomizingStepSummarySections {...props} />);
+
+        const fondantButton = screen.getByRole('button', { name: /Fondant.*\+₱600/i });
+        expect(within(fondantButton).getByText('+₱600')).toHaveClass('text-emerald-600');
+    });
+
     it('does not mix icing thumbnails into the default cake options step', () => {
         const props = buildProps();
 
