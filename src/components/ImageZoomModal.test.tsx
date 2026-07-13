@@ -42,9 +42,16 @@ describe('ImageZoomModal', () => {
     });
 
     afterEach(() => {
-        document.body.className = '';
-        document.body.style.overflow = '';
-        document.head.innerHTML = '';
+      document.body.className = '';
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.paddingRight = '';
+      document.body.style.overscrollBehavior = '';
+      document.documentElement.style.overflow = '';
+      document.documentElement.style.overscrollBehavior = '';
+      document.head.innerHTML = '';
         Object.defineProperty(window, 'matchMedia', {
             writable: true,
             value: originalMatchMedia,
@@ -58,6 +65,9 @@ describe('ImageZoomModal', () => {
         const { rerender } = render(<ImageZoomModal {...props} />);
 
         expect(document.body).toHaveClass('genie-image-zoom-open');
+        expect(document.body.style.overflow).toBe('hidden');
+        expect(document.body.style.position).toBe('fixed');
+        expect(document.documentElement.style.overflow).toBe('hidden');
         expect(document.querySelector('meta[name="viewport"]')?.getAttribute('content')).toBe(
             'width=device-width, initial-scale=1, viewport-fit=cover',
         );
@@ -72,6 +82,28 @@ describe('ImageZoomModal', () => {
         expect(document.querySelector('meta[name="viewport"]')?.getAttribute('content')).toBe(
             'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover',
         );
+    });
+
+    it('preserves the page position while the zoom overlay is open', () => {
+        mockMatchMedia(false);
+        let currentScrollY = 240;
+        Object.defineProperty(window, 'scrollY', {
+            configurable: true,
+            get: () => currentScrollY,
+        });
+        const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
+        const props = buildProps();
+
+        const { rerender } = render(<ImageZoomModal {...props} />);
+
+        expect(document.body.style.top).toBe('-240px');
+        expect(document.body.style.width).toBe('100%');
+
+        currentScrollY = 0;
+        rerender(<ImageZoomModal {...props} isOpen={false} />);
+
+        expect(scrollTo).toHaveBeenCalledWith(0, 240);
+        scrollTo.mockRestore();
     });
 
     it('keeps the locked viewport content untouched outside the mobile breakpoint', () => {

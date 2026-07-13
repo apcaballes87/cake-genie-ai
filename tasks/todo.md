@@ -5183,3 +5183,15 @@
 - Mobile routes now report `font-size: 13.6px`, `body` zoom `1`, and document width equal to the viewport at 390px and 500px. The populated Hello Kitty customizer and price list were visually checked; fixed bottom bars remain full-width and bottom-aligned.
 - Desktop at 836px remains native `16px` sizing with no horizontal overflow; desktop-specific base dimensions are retained through responsive overrides.
 - Verification: 39 focused tests passed, `git diff --check` passed, and `npm run build` passed. Scoped ESLint still reports the repository's existing lint debt (22 errors and 194 warnings across touched files); no new style-specific lint issue was introduced.
+
+# Current task: lock page scroll for all image zoom overlays (2026-07-13)
+
+- [x] Trace shared and inline image/document zoom overlays across the app.
+- [x] Add a shared iOS-safe, reference-counted page scroll lock and wire every zoom overlay into it.
+- [x] Add regression coverage and run focused tests, lint, diff checks, build, and browser verification.
+
+## Review
+
+- Added `src/hooks/useImageZoomScrollLock.ts`, a reference-counted lock that fixes the body at the current scroll offset, hides document overflow, preserves scrollbar width, and restores every prior inline style plus scroll position on close/unmount.
+- Wired the lock into the shared `ImageZoomModal`, customizer hero, About permit preview, Cart image/registration-document previews, both Reviews lightboxes, and both footer DTI permit previews.
+- Verification: focused Vitest passed (5 tests), scoped ESLint passed with 0 errors and 27 existing warnings, `git diff --check` passed, `npm run build` passed, and browser checks passed on the populated customizer, Reviews, homepage/footer DTI preview, including a non-zero scroll restore check (`800` before open, `0` while locked, `800` after close).

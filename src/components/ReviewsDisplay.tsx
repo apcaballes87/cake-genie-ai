@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Star, ShieldCheck, X } from 'lucide-react';
 import { CakeGenieReview } from '@/lib/database.types';
 import { getReviewAvatarInitial, getReviewDisplayName } from '@/lib/reviews';
+import { useImageZoomScrollLock } from '@/hooks/useImageZoomScrollLock';
 import LazyImage from './LazyImage';
 
 interface ReviewsDisplayProps {
@@ -49,6 +50,8 @@ export const ReviewCard: React.FC<{
   const router = useRouter();
   const displayName = getReviewDisplayName(review);
   const [localLightbox, setLocalLightbox] = useState<string | null>(null);
+
+  useImageZoomScrollLock(Boolean(localLightbox));
 
   const hasBefore = !!review.original_image_url;
   const hasAfter = !!review.finished_image_url;

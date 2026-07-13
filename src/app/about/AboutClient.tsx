@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft, Award, Target, Rocket, Users, Handshake, Search, Upload, Edit, Wand2, ShoppingCart, CheckCircle, X } from 'lucide-react';
 import LazyImage from '@/components/LazyImage';
 import { genieBusinessProfile } from '@/lib/seo/genieBusinessProfile';
+import { useImageZoomScrollLock } from '@/hooks/useImageZoomScrollLock';
 
 const Section: React.FC<{ title: string; children: React.ReactNode; className?: string }> = ({ title, children, className = '' }) => (
     <div className={`pt-6 border-t border-slate-200 ${className}`}>
@@ -50,6 +51,8 @@ const PermitThumbnail: React.FC<{ src: string; alt: string; onClick: () => void 
 const AboutClient: React.FC = () => {
     const router = useRouter();
     const [zoomedPermit, setZoomedPermit] = useState<string | null>(null);
+
+    useImageZoomScrollLock(Boolean(zoomedPermit));
 
     const permits = [
         { name: 'BIR Certificate of Registration', url: 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/business%20permits/BIR%20Certificate%20of%20Registration%202303.jpg' },

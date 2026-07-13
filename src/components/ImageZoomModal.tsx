@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import LazyImage from './LazyImage';
+import { useImageZoomScrollLock } from '@/hooks/useImageZoomScrollLock';
 
 type ImageTab = 'original' | 'customized';
 
@@ -29,6 +30,8 @@ const ImageZoomModalContent = React.memo<ImageZoomModalContentProps>(({
     hasCustomized ? initialTab : 'original',
   );
 
+  useImageZoomScrollLock(true);
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -43,24 +46,17 @@ const ImageZoomModalContent = React.memo<ImageZoomModalContentProps>(({
   }, [onClose]);
 
   useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
     const viewportMeta = document.querySelector('meta[name="viewport"]');
     const previousViewportContent = viewportMeta?.getAttribute('content') ?? null;
     const canRelaxViewport = Boolean(
       viewportMeta && window.matchMedia(MOBILE_VIEWPORT_QUERY).matches,
     );
 
-    document.body.style.overflow = 'hidden';
-    document.body.classList.add('genie-image-zoom-open');
-
     if (canRelaxViewport) {
       viewportMeta?.setAttribute('content', UNLOCKED_VIEWPORT_CONTENT);
     }
 
     return () => {
-      document.body.style.overflow = previousOverflow;
-      document.body.classList.remove('genie-image-zoom-open');
-
       if (canRelaxViewport && previousViewportContent) {
         viewportMeta?.setAttribute('content', previousViewportContent);
       }

@@ -44,6 +44,7 @@ import { useCancelOrder } from '@/hooks/useOrders';
 import PaymentErrorBoundary from '@/components/PaymentErrorBoundary';
 import CartDateOption from './CartDateOption';
 import CartLoginModal from '@/components/CartLoginModal';
+import { useImageZoomScrollLock } from '@/hooks/useImageZoomScrollLock';
 
 const getErrorMessage = (error: unknown, fallback: string) => (
     error instanceof Error ? error.message : fallback
@@ -689,6 +690,8 @@ function CartClient() {
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [isDownpaymentModalOpen, setIsDownpaymentModalOpen] = useState(false);
     const [registrationDocument, setRegistrationDocument] = useState<RegistrationDocument | null>(null);
+
+    useImageZoomScrollLock(Boolean(zoomedImage || registrationDocument));
     const [splitOrderDetails, setSplitOrderDetails] = useState<{
         shareLink: string;
         orderNumber: string;

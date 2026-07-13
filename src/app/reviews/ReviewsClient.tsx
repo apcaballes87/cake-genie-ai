@@ -7,6 +7,7 @@ import { LazyImage } from '@/components/LazyImage';
 import { ReviewSummary } from '@/components/ReviewsDisplay';
 import { CakeGenieReview } from '@/lib/database.types';
 import { getReviewAvatarInitial, getReviewDisplayName } from '@/lib/reviews';
+import { useImageZoomScrollLock } from '@/hooks/useImageZoomScrollLock';
 
 interface ReviewsClientProps {
   initialReviews?: CakeGenieReview[];
@@ -18,6 +19,8 @@ const ReviewsClient: React.FC<ReviewsClientProps> = ({ initialReviews = [], erro
   const [reviews] = useState<CakeGenieReview[]>(initialReviews);
   const [error] = useState<string | null>(initialError);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+
+  useImageZoomScrollLock(Boolean(lightboxImage));
 
   const ratingSummary = useMemo(() => {
     if (reviews.length === 0) return null;

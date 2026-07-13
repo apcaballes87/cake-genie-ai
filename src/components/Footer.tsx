@@ -5,10 +5,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Camera, Cake, Tag, CreditCard, Facebook, Instagram, MessageCircle, Youtube, Star, Mail, Phone, ChevronUp, ShieldCheck, Lock, X } from 'lucide-react';
 import LazyImage from './LazyImage';
+import { useImageZoomScrollLock } from '@/hooks/useImageZoomScrollLock';
 
 export const Footer = () => {
     const router = useRouter();
     const [showDtiModal, setShowDtiModal] = React.useState(false);
+
+    useImageZoomScrollLock(showDtiModal);
 
     const scrollToTop = () => {
         if (typeof window !== 'undefined') {
