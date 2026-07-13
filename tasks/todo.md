@@ -1,5 +1,23 @@
 # Tasks
 
+## Diagnose Cakes & Memories to Genie.ph cake-analysis handoff (2026-07-13)
+
+### Plan
+
+- [x] Inspect the pasted Shopify/Liquid uploader and identify the handoff contract it sends.
+- [x] Verify the live Cakes & Memories page, upload behavior, redirect URL, and Genie.ph receiving path.
+- [x] Trace Genie.ph query-param hydration, image fetch/CORS/proxy behavior, and analysis trigger conditions.
+- [x] Compare findings, identify the root cause(s), and implement only if a scoped repo fix is required.
+- [x] Verify the diagnosis or fix with route-level checks, focused tests, and a production build when code changes.
+
+### Review
+
+- Root cause: the live Shopify Liquid uses the `uploadopenai` bucket, but the connected Supabase project has no bucket or upload policy with that name. The existing public `cakegenie` bucket accepts image uploads, so the checked-in Liquid source now uses it and sends an explicit image content type.
+- The current redirect contract is `https://genie.ph/customizing?ref=<encoded-public-url>&source=shopify`. A production browser check with an existing public cake image loaded the image, hydrated cake selections, and rendered the analyzed customizer workspace successfully.
+- The MIME error is separate Shopify/app-injected noise: a dynamically added `<script src="?shop=cakes-and-memories.myshopify.com">` resolves to the HTML page, so strict MIME checking rejects it. It does not come from the Supabase SDK or Genie analysis path.
+- Added SSR preloading for `ref` + `source=shopify` handoffs and a regression test. The live Shopify page still needs the updated Liquid published in Shopify; this repository cannot mutate that external page.
+- Verification passed: 2 focused Vitest tests, scoped ESLint, `git diff --check`, and `npm run build`. Build retains existing workspace-root, baseline-browser-mapping, middleware, and non-fatal Supabase statement-timeout warnings.
+
 ## Keep the newsletter signup modal above the site header (2026-07-13)
 
 ### Plan

@@ -66,4 +66,18 @@ describe('customizing page discovery links', () => {
     expect(staticMarkup).toContain('https://genie.ph/collections/birthday-cakes');
     expect(staticMarkup).not.toContain('https://genie.ph/customizing/category/birthday-cakes');
   });
+
+  it('preloads the current Shopify ref handoff image before hydration', async () => {
+    const { default: CustomizingPage } = await import('./page');
+
+    const page = await CustomizingPage({
+      searchParams: Promise.resolve({
+        ref: 'https://cdn.example.com/cake.webp',
+        source: 'shopify',
+      }),
+    });
+    const staticMarkup = renderToStaticMarkup(page);
+
+    expect(staticMarkup).toContain('/api/proxy-image?url=https%3A%2F%2Fcdn.example.com%2Fcake.webp');
+  });
 });

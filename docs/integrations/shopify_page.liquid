@@ -110,7 +110,9 @@
   // ===== CONFIG =====
   const SUPABASE_URL      = 'https://congofivupobtfudnhni.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvbmdvZml2dXBvYnRmdWRuaG5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE2ODc1NjkyMTQsImV4cCI6MjAwMzE0NTIxNH0.y2jsrPWt7Q_016e1o8PkM-Ayyti9yzxj3jH9hvH4DiM';
-  const BUCKET_NAME       = 'uploadopenai';
+  // Use the existing public Genie.ph image bucket. `uploadopenai` is not
+  // provisioned in the current project and fails with a Storage RLS error.
+  const BUCKET_NAME       = 'cakegenie';
 
   if (!window.supabase) return console.error('Supabase SDK missing');
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -120,14 +122,6 @@
   const statusContainer = document.getElementById('status-container');
   const statusText = document.getElementById('status-text');
   const redirectText = document.getElementById('redirect-text');
-
-  // --- AUTH ---
-  async function ensureAuth(){
-    try {
-      const { data } = await sb.auth.getSession();
-      if (!data.session) await sb.auth.signInAnonymously();
-    } catch(e){ console.warn('Auth warning:', e?.message||e); }
-  }
 
   // ===== Image resize/compress Logic =====
   const IMG_MAX_LONG_EDGE    = 1800;
@@ -211,13 +205,13 @@
     statusText.textContent = 'Optimizing image...';
     
     try {
-      await ensureAuth();
-      
       const prepared = await downscaleAndCompress(file);
       statusText.textContent = 'Uploading...';
       
       const path = `${Date.now()}.${prepared.ext || 'jpg'}`;
-      const { data: upData, error: upErr } = await sb.storage.from(BUCKET_NAME).upload(path, prepared.blob);
+      const { data: upData, error: upErr } = await sb.storage.from(BUCKET_NAME).upload(path, prepared.blob, {
+        contentType: prepared.blob.type || 'image/webp',
+      });
       if (upErr) throw upErr;
 
       const { data: urlData } = sb.storage.from(BUCKET_NAME).getPublicUrl(upData.path);
@@ -245,8 +239,7 @@
 
       // Auto-redirect to genie.ph after 2 seconds with countdown
       const encodedUrl = encodeURIComponent(publicUrl);
-      const encodedRowId = ''; // No row ID available in this version
-      const geniephUrl = `https://genie.ph/#/customizing?image=${encodedUrl}&source=shopify&shopify_rowid=${encodedRowId}`;
+      const geniephUrl = `https://genie.ph/customizing?ref=${encodedUrl}&source=shopify`;
       
       let countdown = 2;
       const countdownEl = document.getElementById('countdown');

@@ -73,7 +73,12 @@ export const metadata: Metadata = {
 export default async function CustomizingPage(props: CustomizingPageProps) {
     // Await searchParams for Next.js 15+ compatibility
     const searchParams = await props.searchParams;
-    const imageUrl = typeof searchParams.image_url === 'string' ? searchParams.image_url : null;
+    const imageUrl =
+        typeof searchParams.image_url === 'string'
+            ? searchParams.image_url
+            : typeof searchParams.ref === 'string'
+                ? searchParams.ref
+                : null;
     const source =
         typeof searchParams.entry_source === 'string'
             ? searchParams.entry_source
@@ -110,8 +115,8 @@ export default async function CustomizingPage(props: CustomizingPageProps) {
         .filter((d): d is FeaturedDesign => Boolean(d?.slug && d?.original_image_url && d?.p_hash))
         .slice(0, FEATURED_DESIGN_LIMIT);
 
-    // Preload for external sources (Shopify CSE, Chrome Extension) - external images go through proxy
-    const isExternalSource = (source === 'shopify_cse' || source === 'chrome_extension') && imageUrl;
+    // Preload for external sources (Shopify CSE/ref handoff, Chrome Extension) - external images go through proxy
+    const isExternalSource = (source === 'shopify_cse' || source === 'shopify' || source === 'chrome_extension') && imageUrl;
     const proxyImageUrl = isExternalSource ? `/api/proxy-image?url=${encodeURIComponent(imageUrl)}` : null;
 
     // ----- JSON-LD blocks -----
@@ -215,7 +220,7 @@ export default async function CustomizingPage(props: CustomizingPageProps) {
                 />
             ))}
 
-            {/* SSR preload for Shopify CSE hero image - starts fetching before React hydrates */}
+            {/* SSR preload for external handoff hero image - starts fetching before React hydrates */}
             {proxyImageUrl && (
                 <link
                     rel="preload"
