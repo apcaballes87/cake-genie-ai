@@ -1,5 +1,7 @@
 # Lessons
 
+- When a Google OAuth flow is supposed to return to a specific page, do not rely only on the callback query parameter. Persist the validated internal destination before leaving the browser and add a post-auth recovery path for providers or callbacks that drop `next`.
+
 - When a public Shopify upload still fails after switching to an existing bucket, do not assume a broad `public` storage policy is actually the effective client path. Verify the exact project, bucket, policy, and anonymous REST upload with the same public key, then provision a dedicated bucket/policy contract for the integration.
 
 - When a Vercel build reports a type mismatch that the current local tree does not reproduce, do not assume the deploy log is wrong and do not patch only the call site blindly. Check the full API seam and prefer a compatibility-safe contract at the shared boundary, then rerun `npm run build`.

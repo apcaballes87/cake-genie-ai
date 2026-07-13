@@ -2,6 +2,7 @@ import { render, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AuthReturnCoordinator from './AuthReturnCoordinator';
 import { PENDING_SIGNUP_DISCOUNT_KEY, serializePendingSignupDiscount } from '@/lib/auth/signupDiscountReturnState';
+import { PENDING_AUTH_RETURN_KEY } from '@/lib/auth/pendingAuthReturn';
 
 const mocks = vi.hoisted(() => ({
   auth: {
@@ -76,5 +77,15 @@ describe('AuthReturnCoordinator', () => {
     render(<AuthReturnCoordinator />);
 
     expect(mocks.replaceBrowserLocation).not.toHaveBeenCalled();
+  });
+
+  it('returns an authenticated Google user to the saved cart when callback next is lost', async () => {
+    window.localStorage.setItem(PENDING_AUTH_RETURN_KEY, JSON.stringify({
+      returnTo: '/cart',
+      createdAt: Date.now(),
+    }));
+    render(<AuthReturnCoordinator />);
+
+    await waitFor(() => expect(mocks.replaceBrowserLocation).toHaveBeenCalledWith('/cart'));
   });
 });

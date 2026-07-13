@@ -8,6 +8,10 @@ import {
   readPendingSignupDiscount,
 } from '@/lib/auth/signupDiscountReturnState';
 import { replaceBrowserLocation } from '@/lib/auth/browserRedirect';
+import {
+  clearPendingAuthReturn,
+  readPendingAuthReturn,
+} from '@/lib/auth/pendingAuthReturn';
 
 /**
  * Recovers a customizer OAuth return if the auth callback falls back to the
@@ -24,13 +28,18 @@ export default function AuthReturnCoordinator() {
     if (redirectStartedRef.current) return;
 
     const pending = readPendingSignupDiscount();
-    if (!pending || pending.source !== 'bubble' || !pending.returnTo) return;
+    const pendingAuthReturn = readPendingAuthReturn();
+    const returnTo = pendingAuthReturn || (pending?.source === 'bubble' ? pending.returnTo : null);
+    if (!returnTo) return;
 
     const currentUrl = getCurrentRelativeUrl(window.location);
-    if (currentUrl === pending.returnTo) return;
+    if (currentUrl === returnTo) {
+      clearPendingAuthReturn();
+      return;
+    }
 
     redirectStartedRef.current = true;
-    replaceBrowserLocation(pending.returnTo);
+    replaceBrowserLocation(returnTo);
   }, [isAuthenticated, isLoading, pathname, user]);
 
   return null;

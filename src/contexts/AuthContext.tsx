@@ -6,6 +6,7 @@ import { User, Session } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { beginCartAuthTransfer, clearPendingCartAuthTransfer } from '@/lib/cartAuthTransfer'
 import { trackEvent } from '@/lib/analytics'
+import { clearPendingAuthReturn, writePendingAuthReturn } from '@/lib/auth/pendingAuthReturn'
 
 interface AuthContextType {
     user: User | null
@@ -112,7 +113,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         const origin = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
         const callbackUrl = new URL('/auth/callback', origin)
-        if (redirectTo) callbackUrl.searchParams.set('next', redirectTo)
+        if (redirectTo) {
+            writePendingAuthReturn(redirectTo)
+            callbackUrl.searchParams.set('next', redirectTo)
+        }
 
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
@@ -120,7 +124,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 redirectTo: callbackUrl.toString(),
             },
         })
-        if (error && transfer.created) clearPendingCartAuthTransfer()
+        if (error) {
+            if (transfer.created) clearPendingCartAuthTransfer()
+            clearPendingAuthReturn()
+        }
         return { data, error }
     }, [prepareCartForAccountAuth, supabase])
 
