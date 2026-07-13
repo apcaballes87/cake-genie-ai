@@ -53,6 +53,7 @@ interface CustomizingStepSummarySectionsProps {
     onCakeInfoChange?: (updates: Partial<CakeInfoUI>, options?: { isSystemCorrection?: boolean }) => void;
     onIcingTypeChange?: (newType: IcingDesignUI['base']) => void;
     onIcingDesignChange?: (newDesign: IcingDesignUI) => void;
+    icingTypePriceDeltas?: Partial<Record<IcingDesignUI['base'], number | null>>;
     addOnPricing?: number;
     separateIcingStep?: boolean;
     aiChatNode?: React.ReactNode;
@@ -276,6 +277,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     onCakeInfoChange,
     onIcingTypeChange,
     onIcingDesignChange,
+    icingTypePriceDeltas,
     addOnPricing = 0,
     separateIcingStep = false,
     aiChatNode,
@@ -678,13 +680,22 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                         {/* Line 1: Icing Type */}
                         {!isCupcakes && (
                             <div className="flex flex-col gap-1 relative">
-                                <span className="text-[10px] max-md:text-[9px] font-bold text-slate-400 uppercase tracking-wider">Icing Type</span>
+                                <span className="text-[10px] max-md:text-[9px] font-bold text-slate-400 uppercase tracking-wider">Icing Type &amp; Color</span>
                                 <div className="flex flex-wrap gap-1.5">
                                     {[
                                         { id: 'soft_icing', label: 'Soft Icing' },
                                         { id: 'fondant', label: 'Fondant' },
                                     ].map((option) => {
                                         const isSelected = getIcingTypeValue(cakeInfo, icingDesign) === (option.id === 'fondant' ? 'Fondant' : 'Soft Icing');
+                                        const priceDelta = !isSelected
+                                            ? icingTypePriceDeltas?.[option.id as IcingDesignUI['base']]
+                                            : null;
+                                        const priceDeltaValue = typeof priceDelta === 'number' && Number.isFinite(priceDelta)
+                                            ? priceDelta
+                                            : null;
+                                        const priceDeltaLabel = priceDeltaValue !== null && priceDeltaValue !== 0
+                                            ? `${priceDeltaValue > 0 ? '+' : '-'}₱${Math.abs(priceDeltaValue).toLocaleString()}`
+                                            : null;
                                         return (
                                             <button
                                                 key={option.id}
@@ -710,6 +721,13 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                                     />
                                                 )}
                                                 <span className="text-[9px] max-md:text-[8px] font-bold">{option.label}</span>
+                                                {priceDeltaLabel && (
+                                                    <span
+                                                        className={`text-[8px] max-md:text-[7px] font-bold ml-1 ${priceDeltaValue !== null && priceDeltaValue > 0 ? 'text-emerald-600' : 'text-red-600'}`}
+                                                    >
+                                                        {priceDeltaLabel}
+                                                    </span>
+                                                )}
                                             </button>
                                         );
                                     })}

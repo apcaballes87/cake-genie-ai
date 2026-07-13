@@ -106,6 +106,7 @@ const buildProps = (): React.ComponentProps<typeof CustomizingStepSummarySection
     openTopperSheet: vi.fn(),
     onCakeInfoChange: vi.fn(),
     onIcingTypeChange: vi.fn(),
+    icingTypePriceDeltas: { soft_icing: null, fondant: 600 },
     addOnPricing: 0,
 });
 
@@ -160,6 +161,22 @@ describe('CustomizingStepSummarySections', () => {
         fireEvent.click(screen.getAllByText('Fondant')[0]);
 
         expect(props.onIcingTypeChange).toHaveBeenCalledWith('fondant');
+    });
+
+    it('shows the signed price change only on the unselected icing button', () => {
+        const props = buildProps();
+
+        const { rerender } = render(<CustomizingStepSummarySections {...props} />);
+
+        const fondantButton = screen.getByRole('button', { name: /Fondant.*\+₱600/i });
+        expect(within(fondantButton).getByText('+₱600')).toHaveClass('text-emerald-600');
+        expect(screen.getByRole('button', { name: /^Soft Icing$/i })).not.toHaveTextContent('₱600');
+
+        props.icingTypePriceDeltas = { soft_icing: null, fondant: -200 };
+        rerender(<CustomizingStepSummarySections {...props} />);
+
+        const discountedFondantButton = screen.getByRole('button', { name: /Fondant.*-₱200/i });
+        expect(within(discountedFondantButton).getByText('-₱200')).toHaveClass('text-red-600');
     });
 
     it('does not mix icing thumbnails into the default cake options step', () => {
@@ -292,7 +309,7 @@ describe('CustomizingStepSummarySections', () => {
 
         const advancedToggle = screen.getByRole('button', { name: /Edit Design Details/i });
         const advancedSection = document.getElementById('advanced-customization-steps');
-        const icingTypeLabel = screen.getByText('Icing Type');
+        const icingTypeLabel = screen.getByText('Icing Type & Color');
         const mainLabel = screen.getByText('Main');
         const aiChatTitle = screen.getByText('AI Cake Assistant');
         const aiChatNode = screen.getByTestId('ai-chat-node');

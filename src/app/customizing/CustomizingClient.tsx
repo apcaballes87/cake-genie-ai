@@ -973,7 +973,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
 
 
     // --- Hooks ---
-    const { addOnPricing, itemPrices, basePriceOptions: hookBasePriceOptions, isFetchingBasePrice, basePriceError, basePrice, finalPrice, retryPricing } = usePricing({
+    const { addOnPricing, itemPrices, basePriceOptions: hookBasePriceOptions, isFetchingBasePrice, basePriceError, basePrice, finalPrice, icingTypePriceDeltas, retryPricing } = usePricing({
         analysisResult, mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo, onCakeInfoCorrection: handleCakeInfoChange, analysisId, merchantId: merchant?.merchant_id
     });
 
@@ -4036,6 +4036,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                         openTopperSheet,
                                         onCakeInfoChange,
                                         onIcingTypeChange: handleIcingTypeChange,
+                                        icingTypePriceDeltas,
                                         addOnPricing: addOnPricing?.addOnPrice ?? 0,
                                         separateIcingStep,
                                         hideStepFour,
@@ -4235,6 +4236,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                     onCakeInfoChange,
                                     onIcingTypeChange: handleIcingTypeChange,
                                     onIcingDesignChange,
+                                    icingTypePriceDeltas,
                                     addOnPricing: addOnPricing?.addOnPrice ?? 0,
                                     separateIcingStep,
                                     hideStepOne,
