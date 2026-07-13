@@ -18,6 +18,23 @@
 - Added SSR preloading for `ref` + `source=shopify` handoffs and a regression test. The live Shopify page still needs the updated Liquid published in Shopify; this repository cannot mutate that external page.
 - Verification passed: 2 focused Vitest tests, scoped ESLint, `git diff --check`, and `npm run build`. Build retains existing workspace-root, baseline-browser-mapping, middleware, and non-fatal Supabase statement-timeout warnings.
 
+## Provision dedicated Shopify cake upload storage (2026-07-13)
+
+### Plan
+
+- [x] Verify the live `cakegenie` bucket, RLS policies, and project identity against the new anonymous upload error.
+- [x] Align the Shopify uploader with the current Genie.ph Supabase project and its existing public bucket policy.
+- [x] Test a real anonymous Storage REST upload and public read using the same public client key.
+- [x] Update the Shopify Liquid source and document the live publish requirement.
+- [x] Run focused checks and record the remote storage verification.
+
+### Review
+
+- Root cause: the Shopify page was still using the legacy `congofivupobtfudnhni` Supabase project, while the current Genie.ph app and permitted `cakegenie` bucket are in `cqmhanqnfybyxezhobkx`. The new `cakegenie` RLS error was therefore occurring in the wrong project; changing only the bucket name could not fix it.
+- Updated `docs/integrations/shopify_page.liquid` to use the current project URL and public client key, retaining the `cakegenie` bucket.
+- Remote verification passed against the current project: anonymous `POST` upload returned 200 and the resulting public object returned 200 with `image/png` content type. The one-pixel verification object remains because anonymous delete is intentionally not permitted by the bucket policy.
+- The updated Liquid still must be republished in Shopify before the live page uses the corrected project configuration.
+
 ## Keep the newsletter signup modal above the site header (2026-07-13)
 
 ### Plan

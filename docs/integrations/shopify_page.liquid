@@ -108,10 +108,10 @@
 <script>
 ;(function(){
   // ===== CONFIG =====
-  const SUPABASE_URL      = 'https://congofivupobtfudnhni.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvbmdvZml2dXBvYnRmdWRuaG5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE2ODc1NjkyMTQsImV4cCI6MjAwMzE0NTIxNH0.y2jsrPWt7Q_016e1o8PkM-Ayyti9yzxj3jH9hvH4DiM';
-  // Use the existing public Genie.ph image bucket. `uploadopenai` is not
-  // provisioned in the current project and fails with a Storage RLS error.
+  const SUPABASE_URL      = 'https://cqmhanqnfybyxezhobkx.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxbWhhbnFuZnlieXhlemhvYmt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2MjEwMTgsImV4cCI6MjA3NTE5NzAxOH0.7Et4dx3c8MXXpVVC5tXzM2nFZ203lx9WnAagWsakXks';
+  // Use the current public Genie.ph image bucket and project. The previous
+  // project had no effective anonymous insert policy for this integration.
   const BUCKET_NAME       = 'cakegenie';
 
   if (!window.supabase) return console.error('Supabase SDK missing');

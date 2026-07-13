@@ -1,5 +1,7 @@
 # Lessons
 
+- When a public Shopify upload still fails after switching to an existing bucket, do not assume a broad `public` storage policy is actually the effective client path. Verify the exact project, bucket, policy, and anonymous REST upload with the same public key, then provision a dedicated bucket/policy contract for the integration.
+
 - When a Vercel build reports a type mismatch that the current local tree does not reproduce, do not assume the deploy log is wrong and do not patch only the call site blindly. Check the full API seam and prefer a compatibility-safe contract at the shared boundary, then rerun `npm run build`.
 - For follow-up UI requests on `/price-list`, do not stop at generic cards if the user points to `/customizing` selectors. Reuse the real customizer interaction model and assets for icing base, cake shape, size, and height whenever the page is meant to feel like an extension of the customizer.
 - When the user points to a specific CTA on landing or customizer, copy that CTA literally instead of rewriting the text into a more specific variant. For this repo, `Upload your design` on `/customizing#upload` should stay verbatim when the user asks for the same CTA.
