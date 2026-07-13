@@ -241,6 +241,9 @@ describe('RecentSearchPage', () => {
 
     expect(screen.getByTestId('customizing-client')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Upload Any Design - Get Instant Pricing' })).toHaveAttribute('href', '/customizing?upload=1');
+    expect(screen.getByText('Any Cake Image')).toBeInTheDocument();
+    expect(screen.getByText('Instant AI Pricing')).toBeInTheDocument();
+    expect(screen.getByText('Same-day Delivery')).toBeInTheDocument();
 
     const ssrFallback = container.querySelector('#ssr-content');
     expect(ssrFallback).toBeInTheDocument();

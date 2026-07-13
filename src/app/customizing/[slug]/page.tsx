@@ -2,7 +2,7 @@ import { Metadata, ResolvingMetadata } from 'next'
 import { notFound, permanentRedirect } from 'next/navigation'
 import { cache, Suspense } from 'react'
 import Link from 'next/link'
-import { ImagePlus } from 'lucide-react'
+import { ImagePlus, Truck, Zap } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import CustomizingClient from '../CustomizingClient'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
@@ -1182,11 +1182,28 @@ function SSRDesignContent({
         <div className="w-full pb-4 pt-1 space-y-1">
             <Link
                 href="/customizing?upload=1"
-                className="genie-btn-primary flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 font-bold shadow-md shadow-purple-50/50 transition-transform active:scale-[0.98]"
+                className="genie-btn-primary mx-auto flex w-full max-w-[520px] items-center justify-center gap-2 rounded-[1.5rem] px-4 py-3 text-sm font-bold shadow-md shadow-purple-50/50 transition-transform active:scale-[0.98] md:text-base"
             >
-                <ImagePlus size={20} className="shrink-0" aria-hidden="true" />
+                <ImagePlus size={18} className="shrink-0" aria-hidden="true" />
                 <span>Upload Any Design - Get Instant Pricing</span>
             </Link>
+
+            <div className="mx-auto flex w-full max-w-[520px] items-center justify-center gap-x-2 text-[9px] font-bold uppercase tracking-wide text-neutral-500 sm:text-[10px] md:text-[11px]">
+                <div className="flex items-center gap-1 whitespace-nowrap">
+                    <ImagePlus size={13} className="shrink-0 text-neutral-400" aria-hidden="true" />
+                    <span>Any Cake Image</span>
+                </div>
+                <span className="text-neutral-300" aria-hidden="true">•</span>
+                <div className="flex items-center gap-1 whitespace-nowrap">
+                    <Zap size={13} className="shrink-0 text-neutral-400" aria-hidden="true" />
+                    <span>Instant AI Pricing</span>
+                </div>
+                <span className="text-neutral-300" aria-hidden="true">•</span>
+                <div className="flex items-center gap-1 whitespace-nowrap">
+                    <Truck size={13} className="shrink-0 text-neutral-400" aria-hidden="true" />
+                    <span>Same-day Delivery</span>
+                </div>
+            </div>
 
             {/* Structured Specifications Table for SEO */}
             <section className="bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg border border-slate-200 p-4 md:p-6">

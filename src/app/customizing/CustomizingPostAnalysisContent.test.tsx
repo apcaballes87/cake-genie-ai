@@ -54,6 +54,9 @@ describe('CustomizingPostAnalysisContent', () => {
         expect(uploadButton).toBeInTheDocument();
         fireEvent.click(uploadButton);
         expect(onUploadAnother).toHaveBeenCalledTimes(1);
+        expect(screen.getByText('Any Cake Image')).toBeInTheDocument();
+        expect(screen.getByText('Instant AI Pricing')).toBeInTheDocument();
+        expect(screen.getByText('Same-day Delivery')).toBeInTheDocument();
         expect(screen.getByText('About This Mermaid Cake')).toBeInTheDocument();
         expect(screen.getByText('Pastel mermaid cake with shell topper details.')).toBeInTheDocument();
         expect(screen.getByText('Design Specifications')).toBeInTheDocument();
