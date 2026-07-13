@@ -57,6 +57,8 @@ describe('CustomizingAiChatPanel', () => {
         expect(uploadButton.className).toContain('w-[41px]');
         expect(submitButton.className).toContain('h-[33px]');
         expect(submitButton.className).toContain('w-[33px]');
+        expect(submitButton.className).not.toContain('max-md:min-h-[41px]');
+        expect(submitButton.className).not.toContain('max-md:min-w-[41px]');
         expect(input).toHaveClass('block');
         expect(input.className).toContain('min-h-[39px]');
         expect(input.className).toContain('text-[12px]');

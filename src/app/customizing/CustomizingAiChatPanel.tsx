@@ -199,7 +199,7 @@ export const CustomizingAiChatPanel = React.memo(({
                         <button
                             type="submit"
                             disabled={!chatInput.trim() || isAiProcessing || isUpdatingDesign || !!selectedAiPromptTemplate}
-                            className="absolute right-1 top-1 h-[33px] w-[33px] max-md:min-h-[41px] max-md:min-w-[41px] bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white rounded-lg transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="absolute right-1 top-1 h-[33px] w-[33px] bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white rounded-lg transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
                             aria-label="Submit AI Edit"
                         >
                             {isAiProcessing ? (
