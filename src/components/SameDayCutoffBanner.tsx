@@ -61,7 +61,7 @@ export default function SameDayCutoffBanner() {
     // SSR / pre-hydration fallback — keep copy identical to avoid CLS
     if (!state) {
         return (
-            <span className="inline-flex items-center text-white text-[10px] md:text-[11px] font-bold tracking-wider">
+            <span className="inline-flex items-center text-white text-[9px] md:text-[11px] font-bold tracking-wider">
                 Place your order by 4PM for same-day delivery in Metro Cebu 💖
             </span>
         );
@@ -69,7 +69,7 @@ export default function SameDayCutoffBanner() {
 
     if (state.mode === 'closed') {
         return (
-            <span className="inline-flex items-center text-white text-[10px] md:text-[11px] font-bold tracking-wider">
+            <span className="inline-flex items-center text-white text-[9px] md:text-[11px] font-bold tracking-wider">
                 Same-day cutoff closed — order now for tomorrow 💖
             </span>
         );
@@ -83,7 +83,7 @@ export default function SameDayCutoffBanner() {
 
     return (
         <span
-            className={`inline-flex items-center text-white text-[10px] md:text-[11px] font-bold tracking-wider ${mode === 'urgent' ? 'animate-pulse' : ''}`}
+            className={`inline-flex items-center text-white text-[9px] md:text-[11px] font-bold tracking-wider ${mode === 'urgent' ? 'animate-pulse' : ''}`}
         >
             {mode === 'urgent' ? '⏰' : '⏱️'} Same-day delivery in Metro Cebu — order in {timeLeft} 💖
         </span>

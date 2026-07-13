@@ -577,7 +577,7 @@ function HeroFeatureHighlights({ compact = false, className = '' }: { compact?: 
     return (
         <div
             className={`${compact
-                ? 'flex flex-nowrap items-center justify-center gap-x-1 min-[390px]:gap-x-1.5 text-[8px] min-[390px]:text-[10px]'
+                ? 'flex flex-nowrap items-center justify-center gap-x-1 min-[390px]:gap-x-1.5 text-[8px] min-[390px]:text-[9px]'
                 : 'flex items-center justify-center gap-2 text-[11px] lg:text-[12px]'
                 } font-bold uppercase tracking-wide text-neutral-500 ${className}`}
         >
@@ -710,7 +710,7 @@ function HeroProductPreviewStack({
                             </div>
                         )}
                         {heroUploadState === 'done' && (
-                            <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-green-500/90 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white shadow">
+                            <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-green-500/90 px-3 py-1.5 text-[10px] max-md:text-[9px] font-bold uppercase tracking-wider text-white shadow">
                                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                                 Analysis complete
                             </div>
@@ -838,7 +838,7 @@ function HeroProductPreviewStack({
                         <button
                             disabled={heroUploadState === 'analyzing' || (heroUploadState !== 'error' && !heroAnalysis.slug)}
                             onClick={onResultAction}
-                            className="shrink-0 flex items-center justify-center gap-1.5 whitespace-nowrap rounded-2xl bg-neutral-200 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-black border border-neutral-300 hover:bg-neutral-300 transition-colors active:scale-[0.98] disabled:cursor-wait disabled:opacity-40"
+                            className="shrink-0 flex items-center justify-center gap-1.5 whitespace-nowrap rounded-2xl bg-neutral-200 px-5 py-3 text-[10px] max-md:text-[9px] font-bold uppercase tracking-wider text-black border border-neutral-300 hover:bg-neutral-300 transition-colors active:scale-[0.98] disabled:cursor-wait disabled:opacity-40"
                         >
                             <ImagePlus size={14} className="shrink-0" />
                             {heroUploadState === 'analyzing' ? 'Analyzing...' : heroUploadState === 'error' ? 'Upload another' : 'Order This Cake'}
@@ -1678,7 +1678,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
             */}
             <nav className={`sticky top-0 z-80 w-full border-b transition-all duration-200 ${(isScrolled || isSearchFocused) ? 'border-purple-100 bg-white/[0.95] shadow-sm' : 'border-transparent bg-transparent'}`}>
                 <div className="max-w-7xl mx-auto px-4">
-                    <div className="w-full flex items-center justify-between py-[11px] md:py-[14px] relative">
+                    <div className="w-full flex items-center justify-between py-2.5 md:py-[14px] relative">
                         {/* Left Side: Menu & Desktop Logo */}
                         <div className="flex items-center gap-2 md:gap-4 shrink-0">
                             <button
@@ -1712,7 +1712,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                     alt="Genie Logo"
                                     width={105}
                                     height={32}
-                                    className="h-[32px] w-auto object-contain"
+                                    className="h-[27px] md:h-[32px] w-auto object-contain"
                                 />
                             </Link>
                         </div>
@@ -1773,9 +1773,9 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                 className="relative p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
                                 aria-label={`View cart with ${isMounted ? itemCount : 0} items`}
                             >
-                                <ShoppingBag size={24} />
+                                <ShoppingBag className="h-5 w-5 md:h-6 md:w-6" />
                                 {isMounted && itemCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-purple-500 text-white text-[10px] font-bold">
+                                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-purple-500 text-white text-[9px] md:text-[10px] font-bold">
                                         {itemCount}
                                     </span>
                                 )}
@@ -1912,7 +1912,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                                         )}
                                                         {/* Done tick overlay */}
                                                         {heroUploadState === 'done' && (
-                                                            <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-green-500/90 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full shadow">
+                                                            <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-green-500/90 text-white text-[10px] max-md:text-[9px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full shadow">
                                                                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                                                                 Analysis complete
                                                             </div>
@@ -1938,7 +1938,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                                 {heroUploadState === 'analyzing' ? (
                                                     <div className="bg-neutral-100 py-2 px-4 flex items-center justify-center gap-2 rounded-t-3xl">
                                                         <Loader2 className="w-3 h-3 text-neutral-500 animate-spin" />
-                                                        <span className="text-neutral-500 text-[10px] font-black uppercase tracking-wider">Calculating availability...</span>
+                                                        <span className="text-neutral-500 text-[10px] max-md:text-[9px] font-black uppercase tracking-wider">Calculating availability...</span>
 
                                                         {/* Inverted Corner Left */}
                                                         <div className="absolute top-full left-0 w-6 h-6 overflow-hidden">
@@ -1953,7 +1953,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                                     </div>
                                                 ) : heroUploadState === 'error' ? (
                                                     <div className="bg-red-50 py-2 px-4 flex items-center justify-center rounded-t-3xl">
-                                                        <span className="text-red-700 text-[10px] font-black uppercase tracking-wider">{heroUploadError ?? 'AI analysis is temporarily unavailable.'}</span>
+                                                        <span className="text-red-700 text-[10px] max-md:text-[9px] font-black uppercase tracking-wider">{heroUploadError ?? 'AI analysis is temporarily unavailable.'}</span>
 
                                                         {/* Inverted Corner Left */}
                                                         <div className="absolute top-full left-0 w-6 h-6 overflow-hidden">
@@ -1969,7 +1969,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                                 ) : heroAnalysis.availability === 'rush' ? (
                                                     <div className="bg-green-100/80 py-2 px-4 flex items-center justify-center gap-2 rounded-t-3xl">
                                                         <Zap className="w-3 h-3 text-green-900" />
-                                                        <span className="text-green-900 text-[10px] font-black uppercase tracking-wider">Rush Order! Ready in 60 mins</span>
+                                                        <span className="text-green-900 text-[10px] max-md:text-[9px] font-black uppercase tracking-wider">Rush Order! Ready in 60 mins</span>
 
                                                         {/* Inverted Corner Left */}
                                                         <div className="absolute top-full left-0 w-6 h-6 overflow-hidden">
@@ -1985,7 +1985,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                                 ) : heroAnalysis.availability === 'same-day' ? (
                                                     <div className="bg-blue-100/80 py-2 px-4 flex items-center justify-center gap-2 rounded-t-3xl">
                                                         <Clock className="w-3 h-3 text-blue-900" />
-                                                        <span className="text-blue-900 text-[10px] font-black uppercase tracking-wider">Same-Day Order! Ready in 3 hours</span>
+                                                        <span className="text-blue-900 text-[10px] max-md:text-[9px] font-black uppercase tracking-wider">Same-Day Order! Ready in 3 hours</span>
 
                                                         {/* Inverted Corner Left */}
                                                         <div className="absolute top-full left-0 w-6 h-6 overflow-hidden">
@@ -2001,7 +2001,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                                 ) : (
                                                     <div className="bg-blue-100/80 py-2 px-4 flex items-center justify-center gap-2 rounded-t-3xl">
                                                         <Calendar className="w-3 h-3 text-blue-900" />
-                                                        <span className="text-blue-900 text-[10px] font-black uppercase tracking-wider">Freshly Baked. Ready for Delivery Tomorrow</span>
+                                                        <span className="text-blue-900 text-[10px] max-md:text-[9px] font-black uppercase tracking-wider">Freshly Baked. Ready for Delivery Tomorrow</span>
 
                                                         {/* Inverted Corner Left */}
                                                         <div className="absolute top-full left-0 w-6 h-6 overflow-hidden">
@@ -2058,7 +2058,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                                                     router.push(`/customizing/${heroAnalysis.slug}`);
                                                                 }
                                                             }}
-                                                            className="shrink-0 flex items-center justify-center gap-1.5 bg-neutral-200 text-black border border-neutral-300 hover:bg-neutral-300 transition-colors px-6 py-3.5 disabled:opacity-40 disabled:cursor-wait rounded-2xl font-bold text-[10px] lg:text-xs active:scale-[0.98] uppercase tracking-wider whitespace-nowrap"
+                                                            className="shrink-0 flex items-center justify-center gap-1.5 bg-neutral-200 text-black border border-neutral-300 hover:bg-neutral-300 transition-colors px-6 py-3.5 disabled:opacity-40 disabled:cursor-wait rounded-2xl font-bold text-[10px] max-md:text-[9px] lg:text-xs active:scale-[0.98] uppercase tracking-wider whitespace-nowrap"
                                                         >
                                                             <ImagePlus size={12} className="shrink-0" />
                                                             {heroUploadState === 'analyzing' ? 'Analyzing…' : heroUploadState === 'error' ? 'Upload another' : 'Order This Cake'}

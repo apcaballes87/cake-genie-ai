@@ -189,9 +189,15 @@ export default function NewsletterPopup() {
   return (
     <React.Fragment>
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[69]" />
-      <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-        <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-purple-100 overflow-hidden p-8">
+      <div data-newsletter-popup-overlay className="fixed inset-0 z-[1000] bg-black/30 backdrop-blur-sm" />
+      <div data-newsletter-popup-layer className="fixed inset-0 z-[1010] flex items-center justify-center overflow-y-auto p-4">
+        <div
+          data-newsletter-popup-dialog
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="newsletter-popup-title"
+          className="relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-3xl border border-purple-100 bg-white p-8 shadow-2xl"
+        >
           {/* Close button */}
           <button
             onClick={closePopup}
@@ -205,7 +211,7 @@ export default function NewsletterPopup() {
           {status === 'success' ? (
             <div className="text-center py-6">
               <div className="text-3xl mb-3">🎉</div>
-              <h2 className="text-2xl font-extrabold text-gray-900 mb-3">YOU&apos;RE ALL SET!</h2>
+              <h2 id="newsletter-popup-title" className="text-2xl font-extrabold text-gray-900 mb-3">YOU&apos;RE ALL SET!</h2>
 
               <p className="text-base text-gray-600 mb-5">Here&apos;s your 20% off discount code:</p>
               <div className="bg-purple-50 border-2 border-dashed border-purple-300 rounded-xl py-3 px-6 inline-block mb-4 shadow-sm">
@@ -229,7 +235,7 @@ export default function NewsletterPopup() {
           ) : (
             /* ── Sign-up form ── */
             <div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-[1.15] mb-2 tracking-tight text-center">
+              <h2 id="newsletter-popup-title" className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-[1.15] mb-2 tracking-tight text-center">
                 CREATE AN ACCOUNT &amp; GET <span className="text-purple-600 italic">20% OFF</span> YOUR FIRST ORDER
               </h2>
               <p className="text-gray-500 mb-6 text-sm text-center leading-relaxed">

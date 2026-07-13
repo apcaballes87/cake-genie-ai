@@ -403,7 +403,7 @@ const ColdCakingClient: React.FC = () => {
             {/* Header */}
             <nav className={`sticky top-0 z-80 w-full border-b transition-all duration-200 ${(isScrolled || isSearchFocused) ? 'border-purple-100 bg-white/90 shadow-sm backdrop-blur-lg' : 'border-transparent bg-transparent'}`}>
                 <div className="max-w-7xl mx-auto px-4">
-                    <div className="w-full flex items-center gap-2 md:gap-4 py-[11px] md:py-[14px]">
+                    <div className="w-full flex items-center gap-2 md:gap-4 py-2.5 md:py-[14px]">
                         <button
                             onClick={() => setIsMenuOpen(true)}
                             className="p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
@@ -423,7 +423,7 @@ const ColdCakingClient: React.FC = () => {
                                     alt="Genie Logo"
                                     width={135}
                                     height={43}
-                                    className="h-[32px] md:h-[41px] w-auto object-contain"
+                                    className="h-[27px] md:h-[41px] w-auto object-contain"
                                 />
                             </Link>
 
@@ -484,9 +484,9 @@ const ColdCakingClient: React.FC = () => {
                             className="relative p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
                             aria-label={`View cart with ${isMounted ? itemCount : 0} items`}
                         >
-                            <ShoppingBag size={24} />
+                            <ShoppingBag className="h-5 w-5 md:h-6 md:w-6" />
                             {isMounted && itemCount > 0 && (
-                                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-[10px] font-bold">
+                                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-[9px] md:text-[10px] font-bold">
                                     {itemCount}
                                 </span>
                             )}

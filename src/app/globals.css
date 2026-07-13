@@ -2,6 +2,7 @@
 
 /* Genie landing-page theme tokens */
 :root {
+  --mobile-ui-scale: 1;
   --genie-primary: #A956F8;
   --genie-primary-hover: #953bf6;
   --genie-primary-strong: #9333ea;
@@ -245,18 +246,26 @@ body.genie-image-zoom-open [data-sticky-add-to-cart-bar] {
 }
 
 @media (max-width: 767px) {
-  html,
+  :root {
+    --mobile-ui-scale: 0.85;
+  }
+
+  html {
+    font-size: 85%;
+  }
+
   body {
     max-width: 100%;
     overflow-x: clip;
     overscroll-behavior-x: none;
-  }
-
-  body {
     position: relative;
     touch-action: manipulation;
-    /* Keep the mobile presentation consistent across every route. */
-    zoom: 0.8;
+    zoom: 1;
+  }
+
+  .genie-icon-button {
+    min-width: 44px;
+    min-height: 44px;
   }
 }
 

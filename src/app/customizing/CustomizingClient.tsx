@@ -3884,7 +3884,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
             {!hasVisiblePageHeading && <h2 className="sr-only">{pageDisplayTitle}</h2>}
             {/* Same-day cutoff countdown — live urgency signal */}
             {!hideBanner && (
-                <div className="w-full bg-purple-400 py-[4.5px] flex justify-center items-center">
+                <div className="w-full bg-purple-400 py-1 md:py-[4.5px] flex justify-center items-center">
                     <SameDayCutoffBanner />
                 </div>
             )}
@@ -3893,7 +3893,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                 className={`sticky top-0 z-80 w-full border-b transition-all duration-200 ${isTopSearchBarScrolled ? 'border-purple-100 bg-white/90 shadow-sm backdrop-blur-lg' : 'border-transparent bg-transparent'}`}
             >
                 <div className="w-full max-w-7xl mx-auto px-4">
-                    <div className="w-full flex items-center gap-2 md:gap-4 py-[11px] md:py-[14px]">
+                    <div className="w-full flex items-center gap-2 md:gap-4 py-2.5 md:py-[14px]">
                         <button onClick={onClose} className="p-2 genie-icon-button rounded-full shrink-0" aria-label="Go back">
                             <BackIcon />
                         </button>
@@ -3908,7 +3908,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                             />
                         </div>
                         <button onClick={() => setAppState('cart')} className="relative p-2 genie-icon-button rounded-full shrink-0" aria-label={`View cart with ${visibleItemCount} items`}>
-                            <ShoppingBag size={24} />
+                            <ShoppingBag className="h-5 w-5 md:h-6 md:w-6" />
                             {isHydrated && visibleItemCount > 0 && (
                                 <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-xs font-bold">
                                     {visibleItemCount}

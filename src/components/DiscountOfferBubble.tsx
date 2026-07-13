@@ -223,7 +223,7 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
       {/* ── Collapsed teaser bubble ── */}
       {!isExpanded ? (
         <div className={`absolute bottom-full -left-2 ${isShiftedUp ? 'mb-[76px]' : 'mb-[17px]'} animate-bounce-subtle`}>
-          <div className="relative bg-emerald-100 text-emerald-900 px-4 py-3 rounded-2xl shadow-xl border border-emerald-200 min-w-[200px] flex flex-col gap-1">
+          <div className="relative bg-emerald-100 text-emerald-900 px-4 max-md:px-3 py-3 max-md:py-2.5 rounded-2xl shadow-xl border border-emerald-200 min-w-[200px] max-md:min-w-[180px] flex flex-col gap-1">
             {/* Close */}
             <button
               onClick={(e) => { e.stopPropagation(); setIsVisible(false); }}
@@ -235,7 +235,7 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
             {/* Arrow pointing down */}
             <div className="absolute -bottom-1.5 left-6 w-3 h-3 bg-emerald-100 border-r border-b border-emerald-200 rotate-45" />
 
-            <div className="text-[11px] font-extrabold flex items-center gap-1 text-emerald-700 uppercase tracking-tight">
+            <div className="text-[11px] max-md:text-[9px] font-extrabold flex items-center gap-1 text-emerald-700 uppercase tracking-tight">
               <Sparkles className="w-3 h-3 fill-emerald-600" />
               SIGN UP &amp; GET 20% OFF!!
             </div>
@@ -245,7 +245,7 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
               <span className="text-sm text-emerald-900 font-black">₱{discountedPrice.toLocaleString()}</span>
               <button
                 onClick={() => setIsExpanded(true)}
-                className="ml-auto bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black px-3 py-1 rounded-lg transition-all active:scale-90 shadow-sm"
+                className="ml-auto bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] max-md:text-[9px] font-black px-3 py-1 rounded-lg transition-all active:scale-90 shadow-sm"
               >
                 OK
               </button>

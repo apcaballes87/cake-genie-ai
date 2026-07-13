@@ -107,7 +107,7 @@ export interface HeroActionButtonsRowProps {
 }
 
 export const HeroActionButtonsRow = ({ editedImage, isLoading, isReporting, onOpenReportModal, onUploadCakeDesign, onClearAll }: HeroActionButtonsRowProps) => {
-    const buttonClassName = 'flex items-center gap-1.5 text-[11px] font-bold py-2 px-3 rounded-full bg-white border border-slate-200 text-slate-600 shadow-sm hover:shadow-md hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap';
+    const buttonClassName = 'flex items-center gap-1.5 text-[11px] max-md:text-[9px] font-bold py-2 max-md:py-1.5 px-3 max-md:px-2.5 rounded-full bg-white border border-slate-200 text-slate-600 shadow-sm hover:shadow-md hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap max-md:min-h-[44px]';
     const iconClassName = 'w-3.5 h-3.5';
 
     return (
@@ -375,14 +375,14 @@ export const CustomizingHeroPanel = memo(({
                         </div>
                     </div>
                     <div className="pointer-events-none absolute right-1.5 top-1/2 z-20 -translate-y-1/2 rounded-full bg-black/28 px-1.5 py-2 text-white shadow-md backdrop-blur-sm">
-                        <div className="flex flex-col items-center gap-0.5 text-[8px] font-bold uppercase tracking-[0.18em] leading-none opacity-90">
+                        <div className="flex flex-col items-center gap-0.5 text-[8px] max-md:text-[7px] font-bold uppercase tracking-[0.18em] leading-none opacity-90">
                             <span aria-hidden="true">↑</span>
                             <span>Scroll</span>
                             <span aria-hidden="true">↓</span>
                         </div>
                     </div>
                     {caption ? (
-                        <div className="absolute bottom-0 left-0 right-0 text-[10px] text-slate-500 p-2 text-center bg-white/60 backdrop-blur-sm z-10 leading-tight">
+                        <div className="absolute bottom-0 left-0 right-0 text-[10px] max-md:text-[9px] text-slate-500 p-2 max-md:p-1.5 text-center bg-white/60 backdrop-blur-sm z-10 leading-tight">
                             {caption}
                         </div>
                     ) : null}
@@ -703,10 +703,10 @@ export const CustomizingHeroPanel = memo(({
                         {hasOriginalDisplayImage ? (
                             <>
                                 {showSaveDesignButton ? (
-                                    <div className="absolute bottom-4 left-4 z-10">
+                                <div className="absolute bottom-4 left-4 max-md:bottom-3 max-md:left-3 z-10">
                                         <button
                                             onClick={handleToggleSaveDesign}
-                                            className={`backdrop-blur-sm rounded-full text-[10px] max-[360px]:text-[8px] font-semibold transition-all shadow-md px-2.5 py-1 max-[360px]:px-2 max-[360px]:py-0.5 flex items-center gap-1 ${isCurrentDesignSaved ? 'bg-pink-500 text-white hover:bg-pink-600' : 'genie-btn-secondary'}`}
+                                            className={`backdrop-blur-sm rounded-full text-[10px] max-md:text-[9px] max-[360px]:text-[8px] font-semibold transition-all shadow-md px-2.5 max-md:px-2 py-1 max-[360px]:py-0.5 flex items-center gap-1 max-md:min-h-[44px] ${isCurrentDesignSaved ? 'bg-pink-500 text-white hover:bg-pink-600' : 'genie-btn-secondary'}`}
                                             aria-label={isCurrentDesignSaved ? 'Remove from saved' : 'Save this design'}
                                         >
                                             <Heart className="w-3 h-3 max-[360px]:w-2.5 max-[360px]:h-2.5" fill={isCurrentDesignSaved ? 'currentColor' : 'none'} />
@@ -716,11 +716,11 @@ export const CustomizingHeroPanel = memo(({
                                 ) : null}
 
                                 {editedImage ? (
-                                    <div className="absolute bottom-4 right-4 z-10 flex items-center gap-1 p-1 bg-white/85 backdrop-blur-md rounded-full shadow-lg border border-slate-100/60 ring-1 ring-black/5 select-none pointer-events-auto transition-all duration-300 hover:bg-white/95">
+                                <div className="absolute bottom-4 right-4 max-md:bottom-3 max-md:right-3 z-10 flex items-center gap-1 p-1 bg-white/85 backdrop-blur-md rounded-full shadow-lg border border-slate-100/60 ring-1 ring-black/5 select-none pointer-events-auto transition-all duration-300 hover:bg-white/95">
                                         <button
                                             type="button"
                                             onClick={onOriginalTabSelect}
-                                            className={`px-3.5 py-1 text-[10px] font-extrabold uppercase tracking-wider rounded-full transition-all duration-300 ${
+                                            className={`px-3.5 max-md:px-3 py-1 text-[10px] max-md:text-[9px] font-extrabold uppercase tracking-wider rounded-full transition-all duration-300 ${
                                                 activeTab === 'original'
                                                     ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
                                                     : 'text-slate-600 hover:bg-slate-100/60'
@@ -732,7 +732,7 @@ export const CustomizingHeroPanel = memo(({
                                             type="button"
                                             onClick={onCustomizedTabSelect}
                                             disabled={!editedImage}
-                                            className={`px-3.5 py-1 text-[10px] font-extrabold uppercase tracking-wider rounded-full transition-all duration-300 ${
+                                            className={`px-3.5 max-md:px-3 py-1 text-[10px] max-md:text-[9px] font-extrabold uppercase tracking-wider rounded-full transition-all duration-300 ${
                                                 activeTab === 'customized'
                                                     ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
                                                     : 'text-slate-600 hover:bg-slate-100/60 disabled:opacity-40'
@@ -744,10 +744,10 @@ export const CustomizingHeroPanel = memo(({
                                 ) : null}
 
                                 {showPriceGuarantee ? (
-                                    <div className="absolute top-3 left-3 z-10 transition-all duration-300">
-                                        <div className="bg-green-600/90 backdrop-blur-sm text-white rounded-full px-3 py-1 shadow-md text-center whitespace-nowrap">
-                                            <div className="flex items-center justify-center gap-1 text-[11px] font-semibold">
-                                                <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                                    <div className="absolute top-3 left-3 max-md:top-2.5 max-md:left-2.5 z-10 transition-all duration-300">
+                                        <div className="bg-green-600/90 backdrop-blur-sm text-white rounded-full px-3 max-md:px-2.5 py-1 shadow-md text-center whitespace-nowrap">
+                                            <div className="flex items-center justify-center gap-1 text-[11px] max-md:text-[9px] font-semibold">
+                                                <ShieldCheck className="w-3.5 h-3.5 max-md:w-3 max-md:h-3 shrink-0" />
                                                 Guaranteed Price
                                             </div>
                                         </div>
@@ -757,12 +757,12 @@ export const CustomizingHeroPanel = memo(({
                                 <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
                                     {activeHeroLoader ? (
                                         <div
-                                            className="flex h-9 px-3.5 items-center gap-2.5 rounded-full bg-white/95 text-purple-600 shadow-lg ring-1 ring-purple-100 backdrop-blur-md transition-all duration-300 animate-pulse pointer-events-none"
+                                            className="flex h-9 max-md:min-h-[44px] px-3.5 max-md:px-3 items-center gap-2.5 max-md:gap-2 rounded-full bg-white/95 text-purple-600 shadow-lg ring-1 ring-purple-100 backdrop-blur-md transition-all duration-300 animate-pulse pointer-events-none"
                                             aria-label={activeHeroLoader.label}
                                             title={activeHeroLoader.label}
                                         >
-                                            <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0 text-purple-500" />
-                                            <span className="text-[8px] font-bold text-slate-800 tracking-wider select-none whitespace-nowrap">
+                                            <Loader2 className="h-3.5 w-3.5 max-md:h-3 max-md:w-3 animate-spin shrink-0 text-purple-500" />
+                                            <span className="text-[8px] max-md:text-[7px] font-bold text-slate-800 tracking-wider select-none whitespace-nowrap">
                                                 {activeHeroLoader.text}
                                             </span>
                                         </div>
@@ -772,7 +772,7 @@ export const CustomizingHeroPanel = memo(({
                                         <button
                                             onClick={handleUndo}
                                             disabled={!canUndo || isLoading}
-                                            className="genie-btn-primary backdrop-blur-sm rounded-full text-[10px] max-[360px]:text-[8px] font-semibold px-2.5 py-1 max-[360px]:px-2 max-[360px]:py-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                                            className="genie-btn-primary backdrop-blur-sm rounded-full text-[10px] max-md:text-[9px] max-[360px]:text-[8px] font-semibold px-2.5 max-md:px-2 py-1 max-[360px]:py-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 max-md:min-h-[44px]"
                                             aria-label="Undo last change"
                                         >
                                             <ResetIcon className="w-2.5 h-2.5 max-[360px]:w-2 max-[360px]:h-2" />
@@ -813,7 +813,7 @@ export const CustomizingHeroPanel = memo(({
                 </span>
             </Link>
 
-            <span className="text-xs font-semibold uppercase tracking-wide text-green-600 text-center">
+            <span className="text-xs max-md:text-[10px] font-semibold uppercase tracking-wide text-green-600 text-center">
                 FREE Delivery within Cebu City
             </span>
 

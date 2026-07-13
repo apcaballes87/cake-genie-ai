@@ -61,53 +61,53 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onUploadClick }) => {
 
     return (
         <>
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 w-full bg-white border-t border-purple-100 py-3 px-6 grid grid-cols-5 items-center text-gray-500 z-50 pb-safe shadow-[0_-10px_30px_-24px_rgba(88,28,135,0.55)]">
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 w-full bg-white border-t border-purple-100 py-2.5 px-5 grid grid-cols-5 items-center text-gray-500 z-50 pb-safe shadow-[0_-10px_30px_-24px_rgba(88,28,135,0.55)]">
                 <button
                     onClick={() => router.push('/')}
-                    className={navItemClass('home')}
+                    className={`${navItemClass('home')} min-h-[44px] justify-center`}
                 >
-                    <Home size={22} strokeWidth={activeTab === 'home' ? 2.5 : 2} />
-                    <span className="text-[9px] font-bold">Home</span>
+                    <Home size={19} strokeWidth={activeTab === 'home' ? 2.5 : 2} />
+                    <span className="text-[8px] font-bold">Home</span>
                 </button>
 
                 <button
                     onClick={() => router.push('/customizing')}
-                    className={navItemClass('customize')}
+                    className={`${navItemClass('customize')} min-h-[44px] justify-center`}
                 >
-                    <Cake size={22} strokeWidth={activeTab === 'customize' ? 2.5 : 2} />
-                    <span className="text-[9px] font-bold">Customize</span>
+                    <Cake size={19} strokeWidth={activeTab === 'customize' ? 2.5 : 2} />
+                    <span className="text-[8px] font-bold">Customize</span>
                 </button>
 
                 <button
                     onClick={handleUploadClick}
-                    className={navItemClass('getprice')}
+                    className={`${navItemClass('getprice')} min-h-[44px] justify-center`}
                 >
-                    <ImagePlus size={22} strokeWidth={activeTab === 'getprice' ? 2.5 : 2} />
-                    <span className="text-[9px] font-bold">Get Price</span>
+                    <ImagePlus size={19} strokeWidth={activeTab === 'getprice' ? 2.5 : 2} />
+                    <span className="text-[8px] font-bold">Get Price</span>
                 </button>
 
                 <button
                     onClick={handleChatClick}
-                    className={`${navItemClass('chat')} relative`}
+                    className={`${navItemClass('chat')} relative min-h-[44px] justify-center`}
                 >
                     {showCloudIndicator && (
                         <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2" style={{ animation: 'fadeInFast 0.3s ease-out' }}>
                             <div className="relative bg-gradient-to-br from-purple-100 to-pink-50 border border-purple-200 rounded-lg px-2 py-1 shadow-md whitespace-nowrap">
-                                <p className="text-[8px] font-medium text-purple-700">Hi! If you need help we&apos;re here</p>
-                                <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-[6px] border-x-transparent border-t-[6px] border-t-purple-100"></div>
+                                <p className="text-[7px] font-medium text-purple-700">Hi! If you need help we&apos;re here</p>
+                                <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-[5px] border-x-transparent border-t-[5px] border-t-purple-100"></div>
                             </div>
                         </div>
                     )}
-                    <MessageCircle className={`w-[22px] h-[22px] ${activeTab === 'chat' ? 'genie-icon' : 'text-gray-500'}`} />
-                    <span className="text-[9px] font-bold">Chat</span>
+                    <MessageCircle className={`w-[19px] h-[19px] ${activeTab === 'chat' ? 'genie-icon' : 'text-gray-500'}`} />
+                    <span className="text-[8px] font-bold">Chat</span>
                 </button>
 
                 <button
                     onClick={() => router.push(isAuthenticated && !user?.is_anonymous ? '/account' : '/login')}
-                    className={navItemClass('profile')}
+                    className={`${navItemClass('profile')} min-h-[44px] justify-center`}
                 >
-                    <User size={22} strokeWidth={activeTab === 'profile' ? 2.5 : 2} />
-                    <span className="text-[9px] font-bold">Profile</span>
+                    <User size={19} strokeWidth={activeTab === 'profile' ? 2.5 : 2} />
+                    <span className="text-[8px] font-bold">Profile</span>
                 </button>
             </nav>
 

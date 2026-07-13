@@ -435,13 +435,13 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
             ? 'flex flex-nowrap overflow-x-auto gap-1.5 pt-1 pl-1 pr-1 pb-1 scrollbar-hide'
             : 'flex flex-wrap gap-1.5';
         const buttonClassName = tieredRow
-            ? 'shrink-0 min-h-[37px] min-w-[92px] flex items-center justify-center px-2 rounded-xl border transition-all duration-300 shadow-sm'
-            : 'min-h-[37px] min-w-[90px] flex-1 flex items-center justify-center px-3 py-1 rounded-xl border transition-all duration-300 shadow-sm';
+            ? 'shrink-0 min-h-[37px] max-md:min-h-[44px] min-w-[92px] max-md:min-w-[78px] flex items-center justify-center px-2 rounded-xl border transition-all duration-300 shadow-sm'
+            : 'min-h-[37px] max-md:min-h-[44px] min-w-[90px] max-md:min-w-[76px] flex-1 flex items-center justify-center px-3 py-1 rounded-xl border transition-all duration-300 shadow-sm';
 
         return (
             <div key={index} className="flex flex-col gap-1">
                 {currentFlavors.length > 1 && (
-                    <span className="text-[9px] font-medium text-slate-500 uppercase">{getStepOneFlavorLabel(index, currentFlavors.length)}</span>
+                    <span className="text-[9px] max-md:text-[8px] font-medium text-slate-500 uppercase">{getStepOneFlavorLabel(index, currentFlavors.length)}</span>
                 )}
                 <div className={rowClassName}>
                     {FLAVOR_OPTIONS.map((flavor) => {
@@ -494,7 +494,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                             : `${style.bg} ${style.border} ${style.text} opacity-80 hover:opacity-100 hover:scale-[1.02]`
                                 }`}
                             >
-                                <span className="text-[9px] font-bold text-center leading-none uppercase tracking-tighter">{flavor.replace(' Cake', '')}</span>
+                                <span className="text-[9px] max-md:text-[8px] font-bold text-center leading-none uppercase tracking-tighter">{flavor.replace(' Cake', '')}</span>
                             </button>
                         );
                     })}
@@ -567,7 +567,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
 
         return (
             <div className="flex flex-col gap-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cake Type</span>
+                <span className="text-[10px] max-md:text-[9px] font-bold text-slate-400 uppercase tracking-wider">Cake Type</span>
                 <div className="flex flex-nowrap overflow-x-auto gap-3 py-1 px-1 scrollbar-hide">
                     {filteredTypes.map((type) => {
                         const isSelected = cakeInfo.type === type;
@@ -576,13 +576,13 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                             <button
                                 key={type}
                                 onClick={() => onCakeInfoChange?.({ type })}
-                                className={`min-h-[32px] min-w-[90px] flex-1 flex items-center justify-center px-2 rounded-xl border transition-all duration-300 ${
+                                className={`min-h-[32px] max-md:min-h-[44px] min-w-[90px] max-md:min-w-[76px] flex-1 flex items-center justify-center px-2 rounded-xl border transition-all duration-300 ${
                                     isSelected
                                         ? 'genie-control-selected text-purple-700 scale-[1.02]'
                                         : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-purple-200 hover:bg-slate-100/50'
                                 }`}
                             >
-                                <span className="text-[9px] font-bold text-center leading-none whitespace-nowrap">{type}</span>
+                                <span className="text-[9px] max-md:text-[8px] font-bold text-center leading-none whitespace-nowrap">{type}</span>
                             </button>
                         );
                     })}
@@ -612,12 +612,12 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                     {isUpdatingDesign ? (
                         <>
                             <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            <span className="font-bold text-[10px] tracking-tight uppercase">Updating...</span>
+                            <span className="font-bold text-[10px] max-md:text-[9px] tracking-tight uppercase">Updating...</span>
                         </>
                     ) : (
                         <>
                             <MagicSparkleIcon className="w-3.5 h-3.5 text-white group-hover:rotate-12 transition-transform" />
-                            <span className="font-bold text-[10px] tracking-tight uppercase italic whitespace-nowrap">Update design changes</span>
+                            <span className="font-bold text-[10px] max-md:text-[9px] tracking-tight uppercase italic whitespace-nowrap">Update design changes</span>
                         </>
                     )}
                 </button>
@@ -645,9 +645,9 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                     setActiveCustomization('icing');
                     setSelectedItem({ id: item.id, itemCategory: 'icing', description: item.group, cakeType: cakeInfo.type });
                 }}
-                className="group flex flex-col items-center gap-1 min-w-[60px]"
+                className="group flex flex-col items-center gap-1 min-w-[60px] max-md:min-w-[51px]"
             >
-                <div className={`w-14 h-14 rounded-full border border-purple-100 overflow-hidden relative group-hover:border-purple-400 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${isSelected ? 'genie-control-selected' : isEnabled ? 'ring-2 ring-purple-400' : ''}`}>
+                <div className={`w-14 h-14 max-md:w-12 max-md:h-12 rounded-full border border-purple-100 overflow-hidden relative group-hover:border-purple-400 transition-colors bg-white p-2.5 shadow-sm flex items-center justify-center ${isSelected ? 'genie-control-selected' : isEnabled ? 'ring-2 ring-purple-400' : ''}`}>
                     <LazyImage
                         src={getIcingImage(icingDesign, item.imageType, item.isTopSpecific)}
                         alt={item.alt}
@@ -657,7 +657,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                         imageClassName="w-full h-full object-contain"
                     />
                 </div>
-                <span className="text-[10px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2 mt-0.5">{item.label}</span>
+                <span className="text-[10px] max-md:text-[9px] text-center text-slate-600 font-medium leading-tight max-w-[64px] line-clamp-2 mt-0.5">{item.label}</span>
             </button>
         );
     }) : null;
@@ -678,7 +678,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                         {/* Line 1: Icing Type */}
                         {!isCupcakes && (
                             <div className="flex flex-col gap-1 relative">
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Icing Type</span>
+                                <span className="text-[10px] max-md:text-[9px] font-bold text-slate-400 uppercase tracking-wider">Icing Type</span>
                                 <div className="flex flex-wrap gap-1.5">
                                     {[
                                         { id: 'soft_icing', label: 'Soft Icing' },
@@ -697,7 +697,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                                         setIsColorPickerOpen(true);
                                                     }
                                                 }}
-                                                className={`flex-1 min-h-[32px] flex items-center justify-center px-2.5 py-0.5 rounded-xl border transition-all duration-300 ${
+                                                className={`flex-1 min-h-[32px] max-md:min-h-[44px] flex items-center justify-center px-2.5 py-0.5 rounded-xl border transition-all duration-300 ${
                                                     isSelected 
                                                         ? 'genie-control-selected text-purple-700 scale-[1.02]' 
                                                         : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-purple-200 hover:bg-slate-100/50'
@@ -709,7 +709,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                                         style={{ backgroundColor: currentColorHex }}
                                                     />
                                                 )}
-                                                <span className="text-[9px] font-bold">{option.label}</span>
+                                                <span className="text-[9px] max-md:text-[8px] font-bold">{option.label}</span>
                                             </button>
                                         );
                                     })}
@@ -726,7 +726,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                         }`}
                                     >
                                         <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-100">
-                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Icing Colors</span>
+                                            <span className="text-[10px] max-md:text-[9px] font-bold text-slate-500 uppercase tracking-wider">Icing Colors</span>
                                             <div className="flex items-center gap-3.5">
                                                 {isStudioBackgroundEditingPending ? (
                                                     <p className="max-w-[150px] text-right text-[10px] font-semibold leading-snug text-red-600">
@@ -884,7 +884,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                             {!isTieredFlavorLayout ? (
                                 <div className="flex-1 min-w-0 flex flex-col gap-4">
                                     <div className="flex flex-col gap-1">
-                                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Flavor</span>
+                                        <span className="text-[10px] max-md:text-[9px] font-semibold text-slate-400 uppercase tracking-wider">Flavor</span>
                                         <div className="flex flex-col gap-2">
                                             {cakeInfo.flavors.map((currentFlavor, index) => renderFlavorOptions(currentFlavor, index, false))}
                                         </div>
@@ -897,7 +897,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                 {/* Line 4: Size */}
                                 {basePriceOptions && basePriceOptions.length > 0 && (
                                     <div className="flex flex-col gap-1">
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Size</span>
+                                        <span className="text-[10px] max-md:text-[9px] font-bold text-slate-400 uppercase tracking-wider">Size</span>
                                         <div 
                                             ref={sizeScrollRef}
                                             key={cakeInfo.type} 
@@ -926,8 +926,8 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                                                 setTimeout(() => scrollToCenter(sizeScrollRef.current, `[data-cakesize="${option.size.replace(/"/g, '\\"')}"]`), 50);
                                                             }}
                                                             style={{ 
-                                                                width: isRectangle ? `${diameter * 1.4}px` : `${diameter}px`, 
-                                                                height: `${diameter}px`,
+                                                                width: `calc(${isRectangle ? diameter * 1.4 : diameter}px * var(--mobile-ui-scale))`,
+                                                                height: `calc(${diameter}px * var(--mobile-ui-scale))`,
                                                                 animationDelay: `${index * 50}ms`
                                                             }}
                                                             className={`shrink-0 flex flex-col items-center justify-center border transition-all duration-500 group relative animate-fade-in-scale opacity-0 ${
@@ -952,7 +952,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                 {/* Line 5: Height */}
                                 {!isCupcakes && (
                                     <div className="flex flex-col gap-1">
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                        <span className="text-[10px] max-md:text-[9px] font-bold text-slate-400 uppercase tracking-wider">
                                             {cakeInfo.type.toLowerCase().includes('2 tier') || cakeInfo.type.toLowerCase().includes('3 tier') ? 'Height per Cake' : 'Height'}
                                         </span>
                                         <div 
@@ -982,10 +982,10 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                                             setTimeout(() => scrollToCenter(heightScrollRef.current, `[data-cakethickness="${thickness}"]`), 50);
                                                         }}
                                                         style={{ animationDelay: `${index * 50}ms` }}
-                                                        className="flex flex-col items-center gap-2 group transition-all animate-fade-in-scale opacity-0"
+                                                        className="flex flex-col items-center gap-2 group transition-all animate-fade-in-scale opacity-0 max-md:min-h-[44px]"
                                                     >
                                                         <div 
-                                                            style={{ width: `${rectWidth}px`, height: `${rectHeight}px` }}
+                                                            style={{ width: `calc(${rectWidth}px * var(--mobile-ui-scale))`, height: `calc(${rectHeight}px * var(--mobile-ui-scale))` }}
                                                             className={`rounded-lg border transition-all duration-500 flex items-center justify-center relative ${
                                                                 isSelected 
                                                                     ? 'genie-control-selected text-purple-700 z-10 scale-105 shadow-sm' 
@@ -1007,7 +1007,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                             {/* Multi-tier Flavor Rows */}
                             {isTieredFlavorLayout ? (
                                 <div className="flex flex-col gap-1">
-                                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Flavor</span>
+                                    <span className="text-[10px] max-md:text-[9px] font-semibold text-slate-400 uppercase tracking-wider">Flavor</span>
                                     <div className="flex flex-col gap-2">
                                         {cakeInfo.flavors.map((currentFlavor, index) => renderFlavorOptions(currentFlavor, index, true))}
                                     </div>
@@ -1068,7 +1068,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                             </div>
                             <div className="text-left">
                                 <span className="block text-sm font-bold leading-tight">Edit Design Details</span>
-                                <span className="block text-[10px] font-medium text-slate-500 mt-0.5">
+                                <span className="block text-[10px] max-md:text-[9px] font-medium text-slate-500 mt-0.5">
                                     {showAdvanced ? 'Hide additional options' : 'Cake type, decorations and more'}
                                 </span>
                             </div>
@@ -1150,7 +1150,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                                 setSelectedItem(null);
                                                 openTopperSheet();
                                             }}
-                                            className="genie-btn-secondary text-[10px] font-bold py-2 px-5 rounded-full"
+                                            className="genie-btn-secondary text-[10px] max-md:text-[9px] font-bold py-2 px-5 rounded-full"
                                         >
                                             Show more
                                         </button>
@@ -1158,7 +1158,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                             type="button"
                                             onClick={() => onUpdateDesign?.()}
                                             disabled={isUpdatingDesign}
-                                            className="genie-btn-primary inline-flex items-center gap-1.5 text-[10px] font-bold py-2 px-4 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="genie-btn-primary inline-flex items-center gap-1.5 text-[10px] max-md:text-[9px] font-bold py-2 px-4 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             {isUpdatingDesign ? 'Updating...' : 'Apply Design Changes'}
                                         </button>

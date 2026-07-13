@@ -159,7 +159,7 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
             {/* ========== HEADER ========== */}
             <nav className={`sticky top-0 z-80 w-full border-b transition-all duration-200 ${(isScrolled || isSearchFocused) ? 'border-purple-100 bg-white/90 shadow-sm backdrop-blur-lg' : 'border-transparent bg-transparent'}`}>
                 <div className="max-w-7xl mx-auto px-4">
-                    <div className="w-full flex items-center gap-2 md:gap-4 py-[11px] md:py-[14px]">
+                    <div className="w-full flex items-center gap-2 md:gap-4 py-2.5 md:py-[14px]">
                         <Link href="/" className="p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0" aria-label="Go back">
                             <ArrowLeft size={24} />
                         </Link>
@@ -175,7 +175,7 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
                                     alt="Genie Logo"
                                     width={135}
                                     height={43}
-                                    className="h-[32px] md:h-[41px] w-auto object-contain"
+                                    className="h-[27px] md:h-[41px] w-auto object-contain"
                                 />
                             </Link>
 
@@ -211,7 +211,7 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
                                     className="md:hidden p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors"
                                     aria-label="Search"
                                 >
-                                    <Search size={24} />
+                                    <Search size={20} />
                                 </button>
                             )}
 
@@ -227,7 +227,7 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
                                 className={`hidden md:flex p-1.5 genie-icon-button rounded-full transition-all duration-300 ${isScrolled ? 'opacity-0 pointer-events-none absolute translate-x-4' : 'opacity-100 translate-x-0'}`}
                                 aria-label="Account"
                             >
-                                <User size={22} />
+                                <User className="h-[19px] w-[19px] md:h-[22px] md:w-[22px]" />
                             </button>
 
                             {/* Cart Button */}
@@ -236,9 +236,9 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
                                 className="relative p-2 genie-icon-button rounded-full text-slate-600 hover:text-purple-700 transition-colors shrink-0"
                                 aria-label={`View cart with ${isMounted ? itemCount : 0} items`}
                             >
-                                <ShoppingBag size={24} />
+                                <ShoppingBag className="h-5 w-5 md:h-6 md:w-6" />
                                 {isMounted && itemCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-purple-500 text-white text-[10px] font-bold">
+                                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-purple-500 text-white text-[9px] md:text-[10px] font-bold">
                                         {itemCount}
                                     </span>
                                 )}
@@ -249,7 +249,7 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
             </nav>
 
             {/* Header Spacer */}
-            <div className="h-[66px] md:h-[74px]"></div>
+            <div className="h-[56px] md:h-[74px]"></div>
 
             <div className="w-full max-w-7xl mx-auto px-4">
                 {/* Header */}
@@ -303,11 +303,11 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
                                             />
                                             <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/20 to-transparent" />
                                             <div className="absolute bottom-0 left-0 right-0 p-2">
-                                                <p className="text-white text-[11px] font-bold leading-tight capitalize drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">
+                                                <p className="text-white text-[11px] max-md:text-[9px] font-bold leading-tight capitalize drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">
                                                     {cat.keyword || cat.name}
                                                 </p>
                                                 {cat.count > 0 && (
-                                                    <p className="text-white/90 text-[9px] font-medium drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)] mt-0.5">
+                                                    <p className="text-white/90 text-[9px] max-md:text-[8px] font-medium drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)] mt-0.5">
                                                         {cat.count} designs
                                                     </p>
                                                 )}

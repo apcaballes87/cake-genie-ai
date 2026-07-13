@@ -54,14 +54,14 @@ export default function PriceListHeader() {
       }`}
     >
       <div className="mx-auto max-w-7xl px-4">
-        <div className="relative flex w-full items-center justify-between py-[11px] md:py-[14px]">
+        <div className="relative flex w-full items-center justify-between py-2.5 md:py-[14px]">
           <div className="flex shrink-0 items-center gap-2 md:gap-4">
             <Link
               href="/"
-              className="rounded-full p-2 text-slate-600 transition-colors hover:text-purple-700 md:hidden"
+              className="rounded-full p-2 max-md:min-h-[44px] max-md:min-w-[44px] text-slate-600 transition-colors hover:text-purple-700 md:hidden"
               aria-label="Open Genie home"
             >
-              <Menu size={24} />
+              <Menu size={20} />
             </Link>
 
             <Link
@@ -75,7 +75,7 @@ export default function PriceListHeader() {
                 alt="Genie Logo"
                 width={135}
                 height={43}
-                className="h-[41px] w-auto object-contain"
+                className="h-[27px] md:h-[41px] w-auto object-contain"
               />
             </Link>
           </div>
@@ -91,7 +91,7 @@ export default function PriceListHeader() {
                 alt="Genie Logo"
                 width={105}
                 height={32}
-                className="h-[32px] w-auto object-contain"
+                className="h-[27px] w-auto object-contain"
               />
             </Link>
           </div>
@@ -125,10 +125,10 @@ export default function PriceListHeader() {
                   window.scrollTo({ top: 50, behavior: 'smooth' });
                   setTimeout(() => searchInputRef.current?.focus(), 50);
                 }}
-                className="rounded-full p-2 text-slate-600 transition-colors hover:text-purple-700 md:hidden"
+                className="rounded-full p-2 max-md:min-h-[44px] max-md:min-w-[44px] text-slate-600 transition-colors hover:text-purple-700 md:hidden"
                 aria-label="Search"
               >
-                <Search size={24} />
+                <Search size={20} />
               </button>
             )}
 
@@ -139,17 +139,17 @@ export default function PriceListHeader() {
               }`}
               aria-label="Account"
             >
-              <User size={22} />
+              <User className="h-[19px] w-[19px] md:h-[22px] md:w-[22px]" />
             </button>
 
             <button
               onClick={() => router.push('/cart')}
-              className="relative shrink-0 rounded-full p-2 text-slate-600 transition-colors hover:text-purple-700"
+              className="relative shrink-0 rounded-full p-2 max-md:min-h-[44px] max-md:min-w-[44px] text-slate-600 transition-colors hover:text-purple-700"
               aria-label={`View cart with ${itemCount} items`}
             >
-              <ShoppingBag size={24} />
+              <ShoppingBag className="h-5 w-5 md:h-6 md:w-6" />
               {itemCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-purple-500 text-[10px] font-bold text-white">
+                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-purple-500 text-[9px] md:text-[10px] font-bold text-white">
                   {itemCount}
                 </span>
               )}

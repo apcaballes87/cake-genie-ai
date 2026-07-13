@@ -109,7 +109,7 @@ export const CustomizingAiChatPanel = React.memo(({
     return (
         <div className={className}>
             {title && (
-                <h3 className="text-[13px] font-semibold text-slate-800 mb-2.5 px-1 flex items-center gap-2">
+                <h3 className="text-[13px] max-md:text-[11px] font-semibold text-slate-800 mb-2.5 px-1 flex items-center gap-2">
                     <Sparkles className="w-3.5 h-3.5 text-purple-500" />
                     {title}
                 </h3>
@@ -145,7 +145,7 @@ export const CustomizingAiChatPanel = React.memo(({
                     <div className="relative min-w-0 flex-1">
                         {selectedAiPromptTemplate ? (
                             <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 pr-12 shadow-sm">
-                                <div className="flex items-start gap-2 text-sm leading-6 text-slate-700">
+                                <div className="flex items-start gap-2 text-sm max-md:text-xs leading-6 max-md:leading-5 text-slate-700">
                                     <span className="min-w-0 flex-1 wrap-break-word">
                                         {selectedAiPromptTemplate.prefix}
                                         <button
@@ -168,7 +168,7 @@ export const CustomizingAiChatPanel = React.memo(({
                                 </div>
                                 {showAiPromptColorPicker && (
                                     <div className="mt-3 rounded-2xl border border-slate-100 bg-slate-50 p-3">
-                                        <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                                        <div className="mb-2 text-[11px] max-md:text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                                             Choose {selectedAiPromptTemplate.placeholderLabel}
                                         </div>
                                         <ColorPalette
@@ -192,14 +192,14 @@ export const CustomizingAiChatPanel = React.memo(({
                                     disabled={isAiProcessing || isUpdatingDesign}
                                     autoComplete="off"
                                     rows={1}
-                                    className="block w-full min-h-[39px] resize-none overflow-hidden rounded-xl bg-transparent pl-4 pr-12 py-[11px] text-[12px] leading-[17px] focus:outline-none disabled:opacity-50 disabled:bg-slate-50 placeholder:text-slate-400"
+                                    className="block w-full min-h-[39px] resize-none overflow-hidden rounded-xl bg-transparent pl-4 pr-12 py-[11px] max-md:py-2.5 text-[12px] max-md:text-[10px] leading-[17px] max-md:leading-[15px] focus:outline-none disabled:opacity-50 disabled:bg-slate-50 placeholder:text-slate-400"
                                 />
                             </div>
                         )}
                         <button
                             type="submit"
                             disabled={!chatInput.trim() || isAiProcessing || isUpdatingDesign || !!selectedAiPromptTemplate}
-                            className="absolute right-1 top-1 h-[33px] w-[33px] bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white rounded-lg transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="absolute right-1 top-1 h-[33px] w-[33px] max-md:min-h-[41px] max-md:min-w-[41px] bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white rounded-lg transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
                             aria-label="Submit AI Edit"
                         >
                             {isAiProcessing ? (
@@ -222,13 +222,13 @@ export const CustomizingAiChatPanel = React.memo(({
                                         event.preventDefault();
                                     }}
                                     onClick={() => onSuggestionSelect(suggestion)}
-                                    className={`block w-full px-3 py-2 text-left text-[12px] leading-4 transition-colors cursor-pointer active:bg-purple-100 ${selectedAiPromptIndex === index ? 'bg-purple-50 text-purple-700' : 'text-slate-700 hover:bg-slate-50'}`}
+                                    className={`block w-full px-3 py-2 text-left text-[12px] max-md:text-[10px] leading-4 transition-colors cursor-pointer active:bg-purple-100 ${selectedAiPromptIndex === index ? 'bg-purple-50 text-purple-700' : 'text-slate-700 hover:bg-slate-50'}`}
                                     aria-label={`Select suggestion: ${suggestion}`}
                                 >
                                     {template ? (
                                         <span className="wrap-break-word">
                                             {template.prefix}
-                                            <span className="mx-1 inline-flex rounded-full bg-purple-50 px-1.5 py-0.5 text-[11px] leading-4 font-bold text-purple-700">
+                                            <span className="mx-1 inline-flex rounded-full bg-purple-50 px-1.5 py-0.5 text-[11px] max-md:text-[10px] leading-4 font-bold text-purple-700">
                                                 {template.placeholderLabel}
                                             </span>
                                             {template.suffix}
@@ -255,7 +255,7 @@ export const CustomizingAiChatPanel = React.memo(({
                 )}
             </form>
             {isAiProcessing && (
-                <p className="text-[10px] text-purple-500 font-medium mt-1.5 animate-pulse flex items-center gap-1 px-1">
+                <p className="text-[10px] max-md:text-[9px] text-purple-500 font-medium mt-1.5 animate-pulse flex items-center gap-1 px-1">
                     <Loader2 className="w-3 h-3 animate-spin" /> Redesigning your cake...
                 </p>
             )}

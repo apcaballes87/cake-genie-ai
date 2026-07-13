@@ -1,5 +1,22 @@
 # Tasks
 
+## Keep the newsletter signup modal above the site header (2026-07-13)
+
+### Plan
+
+- [x] Raise the newsletter popup overlay and dialog above all shared headers.
+- [x] Keep the page chrome blurred and make the dialog viewport-safe for smaller screens.
+- [x] Add focused regression coverage for the overlay stack and close behavior.
+- [x] Run focused checks, the production build, and browser verification on desktop and mobile-sized viewports.
+
+### Review
+
+- Root cause: `NewsletterPopup` used `z-[69]`/`z-[70]`, below the shared `z-80` header, so the header covered the popup’s close button.
+- Raised the popup backdrop/dialog to `z-[1000]`/`z-[1010]`, preserving `backdrop-blur-sm` so the header and page remain blurred behind the modal.
+- Added a viewport-safe dialog height and internal scrolling for shorter screens, plus dialog semantics and focused regression coverage.
+- Verification passed: `npx vitest run src/components/NewsletterPopup.test.tsx`, scoped ESLint, `git diff --check`, `npm run build`, and browser checks at 1280×577 and 390×844. Existing workspace-root, middleware, and Browserslist warnings remain.
+
+
 ## Make mobile zoom consistent across all pages (2026-07-13)
 
 ### Plan
@@ -5153,3 +5170,16 @@
 - Applied Supabase migrations `durable_cart_auth_and_paid_item_clear` and `restrict_paid_cart_clear_to_service_role`; 34 active carts now have 30-day expiry, paid clearing is service-role-only, and only source cart rows on fully paid orders are deleted.
 - Deployed `xendit-webhook` v20 and `verify-xendit-payment` v31 with count-only cart-clear diagnostics.
 - Verification: 16 focused tests passed, `git diff --check` passed, and `npm run build` passed. One existing React test emits an `act(...)` warning in the deferred background-upload scenario.
+
+# Current task: native 100% zoom with 85% compact mobile sizing (2026-07-13)
+
+- [x] Replace the mobile body zoom override with native 100% browser/body zoom and an 85% mobile root font size.
+- [x] Reduce shared mobile headers, navigation, customizer controls, sticky cart surfaces, discount bubble, price-list controls, and shared card chrome without changing desktop sizing.
+- [x] Preserve full-width images/containers, prevent horizontal overflow, and keep primary mobile hit areas approximately 44px.
+- [x] Verify the route matrix at 390px, 500px, and 836px and run focused tests, diff checks, lint, and production build.
+
+## Review
+
+- Mobile routes now report `font-size: 13.6px`, `body` zoom `1`, and document width equal to the viewport at 390px and 500px. The populated Hello Kitty customizer and price list were visually checked; fixed bottom bars remain full-width and bottom-aligned.
+- Desktop at 836px remains native `16px` sizing with no horizontal overflow; desktop-specific base dimensions are retained through responsive overrides.
+- Verification: 39 focused tests passed, `git diff --check` passed, and `npm run build` passed. Scoped ESLint still reports the repository's existing lint debt (22 errors and 194 warnings across touched files); no new style-specific lint issue was introduced.

@@ -43,6 +43,7 @@ import { usePendingOrderRecovery } from '@/hooks/usePendingOrderRecovery';
 import { useCancelOrder } from '@/hooks/useOrders';
 import PaymentErrorBoundary from '@/components/PaymentErrorBoundary';
 import CartDateOption from './CartDateOption';
+import CartLoginModal from '@/components/CartLoginModal';
 
 const getErrorMessage = (error: unknown, fallback: string) => (
     error instanceof Error ? error.message : fallback
@@ -500,6 +501,8 @@ function CartClient() {
     const [isAddingAddress, setIsAddingAddress] = useState(false);
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
     const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+    const [isCartLoginModalOpen, setIsCartLoginModalOpen] = useState(false);
+    const [cartLoginEmail, setCartLoginEmail] = useState('');
     const [isCreatingPayment, setIsCreatingPayment] = useState(false);
     const [isRedirecting, setIsRedirecting] = useState(false);
     const [partiallyBlockedSlots, setPartiallyBlockedSlots] = useState<BlockedDateInfo[]>([]);
@@ -1451,10 +1454,9 @@ function CartClient() {
                 if (!userCreated) {
                     if (emailAlreadyExists) {
                         // Email is already registered - prompt to sign in
-                        showError('This email is already registered. Please sign in to continue.');
                         setIsPlacingOrder(false);
-                        // Optionally trigger the sign-in modal
-                        router.push('/login?redirect=%2Fcart');
+                        setCartLoginEmail(emailToRegister);
+                        setIsCartLoginModalOpen(true);
                         return;
                     }
                     throw new Error(userError?.message || 'Failed to create user account');
@@ -1672,9 +1674,9 @@ function CartClient() {
 
                 if (!userCreated) {
                     if (emailAlreadyExists) {
-                        showError('This email is already registered. Please sign in to continue.');
                         setIsPlacingOrder(false);
-                        router.push('/login?redirect=%2Fcart');
+                        setCartLoginEmail(emailToRegister);
+                        setIsCartLoginModalOpen(true);
                         return;
                     }
                     throw new Error(userError?.message || 'Failed to create user account');
@@ -1874,9 +1876,9 @@ function CartClient() {
 
                 if (!userCreated) {
                     if (emailAlreadyExists) {
-                        showError('This email is already registered. Please sign in to continue.');
                         setIsPlacingOrder(false);
-                        router.push('/login?redirect=%2Fcart');
+                        setCartLoginEmail(emailToRegister);
+                        setIsCartLoginModalOpen(true);
                         return;
                     }
                     throw new Error(userError?.message || 'Failed to create user account');
@@ -2494,7 +2496,10 @@ function CartClient() {
                                                     <p className="text-xs text-center text-slate-400">
                                                         Have an account?{' '}
                                                         <button
-                                                            onClick={() => router.push('/login?redirect=%2Fcart')}
+                                                            onClick={() => {
+                                                                setCartLoginEmail(guestEmail);
+                                                                setIsCartLoginModalOpen(true);
+                                                            }}
                                                             className="genie-link font-semibold hover:underline"
                                                             tabIndex={0}
                                                             aria-label="Sign in to your account"
@@ -2642,7 +2647,10 @@ function CartClient() {
                                                     <p className="text-xs text-center text-slate-400">
                                                         Have an account?{' '}
                                                         <button
-                                                            onClick={() => router.push('/login?redirect=%2Fcart')}
+                                                            onClick={() => {
+                                                                setCartLoginEmail(guestEmail);
+                                                                setIsCartLoginModalOpen(true);
+                                                            }}
                                                             className="genie-link font-semibold hover:underline"
                                                             tabIndex={0}
                                                             aria-label="Sign in to your account"
@@ -2919,6 +2927,15 @@ function CartClient() {
                 eventDate={eventDate}
                 isLoading={isPlacingOrder}
             />
+
+            {isCartLoginModalOpen && (
+                <CartLoginModal
+                    key={cartLoginEmail}
+                    initialEmail={cartLoginEmail}
+                    onClose={() => setIsCartLoginModalOpen(false)}
+                    onSignedIn={() => setIsCartLoginModalOpen(false)}
+                />
+            )}
         </>
     );
 }

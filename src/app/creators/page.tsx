@@ -151,7 +151,7 @@ export default function CreatorsLandingPage() {
             {/* Sticky Navigation Navbar */}
             <nav className={`sticky top-0 z-80 w-full border-b transition-all duration-200 ${(isScrolled || isSearchFocused) ? 'border-purple-100 bg-white/[0.95] shadow-sm' : 'border-transparent bg-transparent'}`}>
                 <div className="max-w-7xl mx-auto px-4">
-                    <div className="w-full flex items-center justify-between py-[11px] md:py-[14px] relative">
+                    <div className="w-full flex items-center justify-between py-2.5 md:py-[14px] relative">
                         {/* Left Side: Menu & Desktop Logo */}
                         <div className="flex items-center gap-2 md:gap-4 shrink-0">
                             <button
@@ -172,7 +172,7 @@ export default function CreatorsLandingPage() {
                                     alt="Genie Logo"
                                     width={135}
                                     height={43}
-                                    className="h-[41px] w-auto object-contain"
+                                    className="h-[35px] md:h-[41px] w-auto object-contain"
                                 />
                             </Link>
                         </div>
@@ -185,7 +185,7 @@ export default function CreatorsLandingPage() {
                                     alt="Genie Logo"
                                     width={105}
                                     height={32}
-                                    className="h-[32px] w-auto object-contain"
+                                    className="h-[27px] md:h-[32px] w-auto object-contain"
                                 />
                             </Link>
                         </div>

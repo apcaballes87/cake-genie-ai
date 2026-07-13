@@ -161,7 +161,7 @@ const IcingToolbar = memo(function IcingToolbar({
                                 </div>
                             )}
                         </button>
-                        <span className={`text-[10px] font-medium transition-colors whitespace-nowrap ${isSelected ? 'text-purple-700' : 'text-slate-600 group-hover:text-purple-600'} ${tool.disabled ? 'opacity-40' : ''}`}>
+                        <span className={`text-[10px] max-md:text-[9px] font-medium transition-colors whitespace-nowrap ${isSelected ? 'text-purple-700' : 'text-slate-600 group-hover:text-purple-600'} ${tool.disabled ? 'opacity-40' : ''}`}>
                             {tool.label}
                         </span>
                     </div>
@@ -180,7 +180,7 @@ const VisibleStatusMessage = memo(function VisibleStatusMessage({
     if (!isStudioBackgroundEditingPending) return null;
 
     return (
-        <div className="mt-2.5 flex items-center justify-center gap-2 text-[9px] font-bold text-purple-600 animate-pulse bg-purple-50/50 py-1.5 px-3 rounded-lg border border-purple-100/60 transition-all duration-300">
+        <div className="mt-2.5 flex items-center justify-center gap-2 text-[9px] max-md:text-[8px] font-bold text-purple-600 animate-pulse bg-purple-50/50 py-1.5 px-3 rounded-lg border border-purple-100/60 transition-all duration-300">
             <Loader2 className="h-3 w-3 animate-spin" />
             <span>ai is editing your background...</span>
         </div>

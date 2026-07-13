@@ -330,7 +330,7 @@ export default function PriceListBrowser({
                       return (
                         <div
                           key={`${summary.cakeType}-${selectedGroup.thickness}-${pricePoint.size}`}
-                          className="flex w-full max-w-[118px] flex-col items-center gap-2 text-center"
+                          className="flex w-full max-w-[118px] max-md:max-w-[100px] flex-col items-center gap-2 text-center"
                         >
                           <div className="relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border border-purple-300 bg-white shadow-sm shadow-purple-100/60 min-[390px]:h-28 min-[390px]:w-28">
                             <LazyImage
@@ -341,14 +341,14 @@ export default function PriceListBrowser({
                               imageClassName="object-cover opacity-[0.08]"
                             />
                             <div className="relative z-10 px-3 text-center">
-                              <div className="text-[11px] font-bold leading-4 text-purple-600">
+                              <div className="text-[11px] max-md:text-[9px] font-bold leading-4 text-purple-600">
                                 {overlayLines.map((line, index) => (
                                   <div key={`${pricePoint.size}-${line}-${index}`}>{line}</div>
                                 ))}
                               </div>
                               {hasDiscountedPrice ? (
                                 <div className="mt-1">
-                                  <div className="text-[10px] font-bold leading-4 text-slate-400 line-through">
+                                  <div className="text-[10px] max-md:text-[9px] font-bold leading-4 text-slate-400 line-through">
                                     {formatPeso(pricePoint.price)}
                                   </div>
                                   <div className="text-sm font-black leading-4 text-emerald-600">
@@ -382,7 +382,7 @@ export default function PriceListBrowser({
                             key={`${summary.cakeType}-${thickness}`}
                             type="button"
                             onClick={() => handleThicknessSelect(summary.cakeType, thickness)}
-                            className={`min-h-[60px] min-w-[80px] rounded-[1.1rem] border px-3 py-3 text-center text-base font-black transition min-[390px]:min-w-[92px] min-[390px]:text-lg ${
+                            className={`min-h-[60px] min-w-[80px] max-md:min-h-[52px] max-md:min-w-[68px] min-[390px]:min-w-[76px] md:min-w-[92px] rounded-[1.1rem] border px-3 py-3 text-center text-base font-black transition min-[390px]:text-lg ${
                               isSelected
                                 ? 'border-purple-400 bg-purple-50 text-purple-700 shadow-[0_0_0_3px_rgba(168,85,247,0.12)]'
                                 : 'border-slate-200 bg-white text-slate-700 hover:border-purple-300 hover:bg-purple-50/50'
@@ -398,7 +398,7 @@ export default function PriceListBrowser({
                   <div className="mt-5">
                     <Link
                       href="/?upload=1"
-                      className="genie-btn-primary flex w-full items-center justify-center gap-3 rounded-[1.35rem] px-6 py-[15px] text-[12px] font-bold shadow-lg shadow-purple-100/50 transition active:scale-[0.99] min-[360px]:text-[13px] min-[390px]:text-sm md:px-8 md:text-[17px] lg:text-lg"
+                      className="genie-btn-primary flex w-full items-center justify-center gap-3 rounded-[1.35rem] px-6 max-md:py-3.5 py-[15px] text-[12px] max-md:text-[10px] font-bold shadow-lg shadow-purple-100/50 transition active:scale-[0.99] min-[360px]:text-[13px] min-[390px]:text-sm md:px-8 md:text-[17px] lg:text-lg"
                     >
                       <ImagePlus size={22} className="shrink-0" />
                       <span className="text-center sm:whitespace-nowrap">Upload Your Design - Get Instant Pricing</span>

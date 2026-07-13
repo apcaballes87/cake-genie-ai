@@ -15,14 +15,14 @@ const SearchHeaderSkeleton: React.FC<{ showFilters?: boolean }> = ({ showFilters
   <>
     <div className="fixed top-0 left-0 right-0 z-80 border-b border-purple-100 bg-white/90 shadow-sm backdrop-blur-lg">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="w-full flex items-center gap-2 md:gap-4 py-[11px] md:py-[14px]">
+        <div className="w-full flex items-center gap-2 md:gap-4 py-2.5 md:py-[14px]">
           <Skeleton className="w-10 h-10 rounded-full shrink-0" />
           <Skeleton className="h-12 grow rounded-full" />
           <Skeleton className="w-10 h-10 rounded-full shrink-0" />
         </div>
       </div>
     </div>
-    <div className="h-[66px] md:h-[74px]" />
+    <div className="h-[56px] md:h-[74px]" />
     <div className="flex flex-col items-center mb-6">
       <Skeleton className="h-5 w-64 mb-4" />
       {showFilters && (
@@ -360,7 +360,7 @@ export const CustomizingPageSkeleton: React.FC = React.memo(() => (
 
     <div className="sticky top-0 z-80 w-full border-b border-purple-100 bg-white/80 backdrop-blur-lg">
       <div className="w-full max-w-7xl mx-auto px-4">
-        <div className="w-full flex items-center gap-2 md:gap-4 py-[11px] md:py-[14px]">
+        <div className="w-full flex items-center gap-2 md:gap-4 py-2.5 md:py-[14px]">
           <Skeleton className="w-10 h-10 rounded-full shrink-0" />
           <div className="relative grow">
             <Skeleton className="w-full h-12 rounded-full" />

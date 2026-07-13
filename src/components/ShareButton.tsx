@@ -32,7 +32,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
         title={showTooltip ? tooltipText : undefined}
         className={`
           flex items-center justify-center
-          w-11 h-11 sm:w-auto sm:h-12 min-[420px]:max-[639px]:px-0 min-[420px]:max-[639px]:gap-0 sm:px-4 sm:gap-2
+          w-11 h-11 max-md:min-h-[44px] max-md:min-w-[44px] sm:w-auto sm:h-12 min-[420px]:max-[639px]:px-0 min-[420px]:max-[639px]:gap-0 sm:px-4 sm:gap-2
           genie-btn-secondary
           font-bold text-sm
           rounded-xl shadow-sm
@@ -91,7 +91,7 @@ export const ChatButton: React.FC<ChatButtonProps> = ({
       title={isEffectivelyDisabled ? disabledReason : undefined}
       className={`
         flex items-center justify-center
-        w-11 h-11 sm:w-auto sm:h-12 min-[420px]:max-[639px]:px-0 min-[420px]:max-[639px]:gap-0 sm:px-4 sm:gap-2
+        w-11 h-11 max-md:min-h-[44px] max-md:min-w-[44px] sm:w-auto sm:h-12 min-[420px]:max-[639px]:px-0 min-[420px]:max-[639px]:gap-0 sm:px-4 sm:gap-2
         genie-btn-secondary
         font-bold text-sm
         rounded-xl shadow-sm

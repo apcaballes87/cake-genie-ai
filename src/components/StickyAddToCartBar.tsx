@@ -217,7 +217,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                         <span className="text-sm font-semibold text-slate-700">Analyzing...</span>
                         <div className="flex items-center gap-1">
                             <ShieldCheck className="w-2.5 h-2.5 text-green-600" />
-                            <span className="text-[9px] text-green-600 font-bold uppercase tracking-wider">Price Guaranteed</span>
+                            <span className="text-[9px] max-md:text-[8px] text-green-600 font-bold uppercase tracking-wider">Price Guaranteed</span>
                         </div>
                     </div>
                 </div>
@@ -246,12 +246,12 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                     )}
                     
                     {cakeInfo && cakeInfo.size && cakeInfo.thickness ? (
-                        <span className="text-[9px] text-slate-500 block whitespace-nowrap">{`${cakeInfo.size} ${cakeInfo.thickness.replace(' in', '" Height')}`}</span>
+                        <span className="text-[9px] max-md:text-[8px] text-slate-500 block whitespace-nowrap">{`${cakeInfo.size} ${cakeInfo.thickness.replace(' in', '" Height')}`}</span>
                     ) : (
-                        <span className="text-[10px] text-slate-500 block">Final Price</span>
+                        <span className="text-[10px] max-md:text-[9px] text-slate-500 block">Final Price</span>
                     )}
                     {ediblePhotoAddonNote && (
-                        <span className="text-[9px] text-purple-600 font-semibold block">+ Edible Photo</span>
+                        <span className="text-[9px] max-md:text-[8px] text-purple-600 font-semibold block">+ Edible Photo</span>
                     )}
                 </div>
             );
@@ -271,7 +271,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
             return (
                 <div className="bg-green-100 rounded-t-2xl">
                     <div
-                        className="max-w-4xl mx-auto flex items-start justify-center gap-2 px-1 text-green-800 text-[10px] sm:text-[11px] font-bold"
+                        className="max-w-4xl mx-auto flex items-start justify-center gap-2 px-1 text-green-800 text-[10px] max-md:text-[9px] sm:text-[11px] font-bold"
                         style={notificationBodyStyle}
                     >
                         <span>⚡</span>
@@ -284,7 +284,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
             return (
                 <div className="bg-blue-100 rounded-t-2xl">
                     <div
-                        className="max-w-4xl mx-auto flex items-start justify-center gap-2 px-1 text-blue-800 text-[10px] sm:text-[11px] font-bold"
+                        className="max-w-4xl mx-auto flex items-start justify-center gap-2 px-1 text-blue-800 text-[10px] max-md:text-[9px] sm:text-[11px] font-bold"
                         style={notificationBodyStyle}
                     >
                         <span>🕐</span>
@@ -297,7 +297,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
             return (
                 <div className="bg-slate-100 rounded-t-2xl">
                     <div
-                        className="max-w-4xl mx-auto flex items-start justify-center gap-2 px-1 text-slate-700 text-[10px] sm:text-[11px] font-bold"
+                        className="max-w-4xl mx-auto flex items-start justify-center gap-2 px-1 text-slate-700 text-[10px] max-md:text-[9px] sm:text-[11px] font-bold"
                         style={notificationBodyStyle}
                     >
                         <span>📅</span>
@@ -320,7 +320,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
         return (
             <div className="bg-red-100 rounded-t-2xl">
                 <div
-                    className="max-w-4xl mx-auto flex items-start justify-center gap-2 px-1 text-red-800 text-[10px] sm:text-[11px] font-bold"
+                    className="max-w-4xl mx-auto flex items-start justify-center gap-2 px-1 text-red-800 text-[10px] max-md:text-[9px] sm:text-[11px] font-bold"
                     style={notificationBodyStyle}
                 >
                     <span>⚠️</span>
@@ -429,7 +429,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                                 title={addToCartDisabledReason}
                                 aria-label={addToCartDisabledReason || 'Add this cake to cart'}
                                 aria-disabled={Boolean(addToCartBlockReason)}
-                                className={`flex-1 min-w-0 h-12 genie-btn-primary font-bold py-3 px-4 rounded-xl text-sm whitespace-nowrap ${addToCartBlockReason ? 'opacity-50 cursor-not-allowed shadow-md' : ''}`}
+                                className={`flex-1 min-w-0 h-12 max-md:min-h-[44px] genie-btn-primary font-bold py-3 px-4 rounded-xl text-sm whitespace-nowrap ${addToCartBlockReason ? 'opacity-50 cursor-not-allowed shadow-md' : ''}`}
                             >
                                 {isAdding ? (
                                     <><Loader2 className="w-5 h-5 animate-spin" /> {!isCompact && 'Processing...'}</>
@@ -443,7 +443,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                         </div>
                     </div>
                     {addToCartDisabledReason && (
-                        <p className="mt-2 text-center text-[10px] font-medium text-slate-500 sm:hidden">
+                        <p className="mt-2 text-center text-[10px] max-md:text-[9px] font-medium text-slate-500 sm:hidden">
                             {addToCartDisabledReason}
                         </p>
                     )}
