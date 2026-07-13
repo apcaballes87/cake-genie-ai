@@ -3,6 +3,9 @@
 
 export type GA4EventParams = Record<string, unknown>
 
+export type CartPersistenceStage = 'outbox_write' | 'auth' | 'cart_insert' | 'image_upload' | 'image_update' | 'completed'
+export type CartPersistenceSourceSurface = 'customizer' | 'shared_design' | 'unknown'
+
 export interface GA4Item {
   item_id: string
   item_name: string
@@ -66,6 +69,8 @@ function toClarityEventName(name: string): string | null {
       return 'API Customizer Cart Redirect Started'
     case 'cart_requirement_missing':
       return 'API Cart Requirement Missing'
+    case 'cart_persistence_stage':
+      return 'API Cart Persistence Stage'
     case 'checkout_place_order_clicked':
       return 'API Checkout Place Order Clicked'
     case 'checkout_create_order_failed':
@@ -351,6 +356,29 @@ export function trackCustomizerCartRedirectStarted(params: CustomizerFunnelBase 
     price_bucket: params.priceBucket,
     has_pending_design_changes: Boolean(params.hasPendingDesignChanges),
     click_to_redirect_ms: params.clickToRedirectMs,
+  })
+}
+
+export function getDurationBucket(durationMs: number): string {
+  if (durationMs < 1_000) return '<1s'
+  if (durationMs < 3_000) return '1-3s'
+  if (durationMs < 10_000) return '3-10s'
+  if (durationMs < 30_000) return '10-30s'
+  return '>30s'
+}
+
+export function trackCartPersistenceStage(params: {
+  sourceSurface: CartPersistenceSourceSurface
+  stage: CartPersistenceStage
+  status: 'success' | 'failed' | 'retryable'
+  durationMs: number
+}): void {
+  trackEvent('cart_persistence_stage', {
+    event_category: 'ecommerce_funnel',
+    source_surface: params.sourceSurface,
+    cart_stage: params.stage,
+    status: params.status,
+    duration_bucket: getDurationBucket(params.durationMs),
   })
 }
 

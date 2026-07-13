@@ -67,6 +67,19 @@ describe('StickyAddToCartBar', () => {
         expect(availability).toBeDefined();
     });
 
+    it('offers a retry action for pricing errors', () => {
+        const props = buildProps();
+        const onRetryClick = vi.fn();
+        props.price = null;
+        props.error = 'Pricing lookup timed out. Please retry.';
+        props.onRetryClick = onRetryClick;
+
+        render(<StickyAddToCartBar {...props} />);
+
+        fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+        expect(onRetryClick).toHaveBeenCalledTimes(1);
+    });
+
     it('pulls the availability bar down by the shared overlap offset', () => {
         const props = buildProps();
         props.availability = 'normal';

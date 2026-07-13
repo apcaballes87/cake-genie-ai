@@ -12,7 +12,7 @@ vi.mock('@/lib/utils/storage', () => ({
   }),
 }));
 
-import { getCartOutbox, reassignCartOutboxOwner } from './cartOutbox';
+import { CartOutboxError, getCartOutbox, reassignCartOutboxOwner } from './cartOutbox';
 
 describe('cart outbox ownership', () => {
   beforeEach(() => {
@@ -53,5 +53,23 @@ describe('cart outbox ownership', () => {
       user_id: null,
       session_id: 'other-anonymous-user',
     });
+  });
+
+  it('rejects malformed outbox data instead of silently discarding it', async () => {
+    storage.value = JSON.stringify({ not: 'an array' });
+
+    await expect(getCartOutbox()).rejects.toMatchObject<CartOutboxError>({ code: 'corrupt' });
+  });
+
+  it('fails a stalled IndexedDB read within the bounded storage timeout', async () => {
+    vi.useFakeTimers();
+    const storageModule = await import('@/lib/utils/storage');
+    vi.mocked(storageModule.getFromIndexedDB).mockImplementationOnce(() => new Promise(() => {}));
+
+    const pendingRead = expect(getCartOutbox()).rejects.toMatchObject<CartOutboxError>({ code: 'timeout' });
+    await vi.advanceTimersByTimeAsync(1_500);
+
+    await pendingRead;
+    vi.useRealTimers();
   });
 });

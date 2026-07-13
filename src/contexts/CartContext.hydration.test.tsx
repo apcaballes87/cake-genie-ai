@@ -60,12 +60,14 @@ vi.mock('@/lib/cartOutbox', () => ({
     putCartOutbox: mocks.putCartOutbox,
     removeCartOutbox: mocks.removeCartOutbox,
     reassignCartOutboxOwner: mocks.reassignCartOutboxOwner,
+    withCartOutboxRecordLock: vi.fn(async (_cartItemId: string, task: () => Promise<unknown>) => task()),
 }));
 
 vi.mock('@/components/ErrorLogger', () => ({ logErrorToSupabase: vi.fn() }));
 
 vi.mock('@/lib/analytics', () => ({
     trackAddToCart: vi.fn(),
+    trackCartPersistenceStage: vi.fn(),
     trackEvent: vi.fn(),
 }));
 

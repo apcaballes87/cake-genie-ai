@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { calculatePriceFromDatabase } from '@/services/pricingService.database';
 import { getCakeBasePriceOptions } from '@/services/supabaseService';
@@ -14,8 +14,16 @@ import {
     CakeType,
     CakeThickness,
 } from '@/types';
-import { DEFAULT_THICKNESS_MAP } from '@/constants';
+import {
+    DEFAULT_THICKNESS_MAP,
+    getEquivalentCakeTypeForIcingBase,
+    THICKNESS_OPTIONS_MAP,
+} from '@/constants';
 import { roundDownToNearest99 } from '@/lib/utils/pricing';
+import { withTimeout } from '@/lib/utils/timeout';
+import { calculateIcingTypePriceDelta, type IcingPriceOption } from '@/lib/pricing/icingTypePrice';
+
+const PRICING_QUERY_TIMEOUT_MS = 8_000;
 
 const cakeTypeDisplayMap: Record<CakeType, string> = {
     '1 Tier': '1 Tier (Soft icing)',
@@ -37,6 +45,13 @@ const pricingKeys = {
     basePrice: (type?: CakeType, thickness?: CakeThickness) =>
         ['pricing', 'base', type, thickness] as const,
     addOnPrice: (uiStateKey: string, merchantId?: string) => ['pricing', 'addon', uiStateKey, merchantId] as const,
+    icingTypePriceDelta: (
+        type?: CakeType,
+        thickness?: CakeThickness,
+        size?: string,
+        icingBase?: IcingDesignUI['base'] | null,
+        currentPrice?: number,
+    ) => ['pricing', 'icing-type-delta', type, thickness, size, icingBase, currentPrice] as const,
 };
 
 type PricingUiState = {
@@ -89,6 +104,7 @@ export const usePricing = ({
         isLoading: isFetchingBasePrice,
         error: queryError,
         isPlaceholderData,
+        refetch: refetchBasePrice,
     } = useQuery({
         queryKey: pricingKeys.basePrice(cakeInfo?.type, cakeInfo?.thickness),
         queryFn: async () => {
@@ -96,13 +112,21 @@ export const usePricing = ({
                 return { options: [], effectiveThickness: cakeInfo?.thickness };
             }
 
-            let results = await getCakeBasePriceOptions(cakeInfo.type, cakeInfo.thickness);
+            let results = await withTimeout(
+                getCakeBasePriceOptions(cakeInfo.type, cakeInfo.thickness),
+                PRICING_QUERY_TIMEOUT_MS,
+                'Pricing lookup timed out. Please retry.',
+            );
             let effectiveThickness = cakeInfo.thickness;
 
             if (results.length === 0) {
                 const defaultThickness = DEFAULT_THICKNESS_MAP[cakeInfo.type];
                 if (defaultThickness && defaultThickness !== cakeInfo.thickness) {
-                    const fallbackResults = await getCakeBasePriceOptions(cakeInfo.type, defaultThickness);
+                    const fallbackResults = await withTimeout(
+                        getCakeBasePriceOptions(cakeInfo.type, defaultThickness),
+                        PRICING_QUERY_TIMEOUT_MS,
+                        'Fallback pricing lookup timed out. Please retry.',
+                    );
                     if (fallbackResults.length > 0) {
                         results = fallbackResults;
                         effectiveThickness = defaultThickness;
@@ -120,6 +144,7 @@ export const usePricing = ({
         enabled: !!cakeInfo?.type && !!cakeInfo?.thickness && !initialPriceInfo,
         staleTime: 5 * 60 * 1000,
         placeholderData: keepPreviousData,
+        retry: false,
     });
 
     const basePriceOptions = useMemo(() => {
@@ -195,17 +220,23 @@ export const usePricing = ({
 
     const {
         data: addonPricingResult,
-        isLoading: isCalculatingAddons
+        isLoading: isCalculatingAddons,
+        refetch: refetchAddonPricing,
     } = useQuery<{ addOnPricing: AddOnPricing | null; itemPrices: Map<string, number> }>({
         queryKey: pricingKeys.addOnPrice(pricingUiStateKey, merchantId),
         queryFn: () => {
             if (!analysisResult || !uiStateForQuery) {
                 return Promise.resolve({ addOnPricing: null, itemPrices: new Map<string, number>() });
             }
-            return calculateAddOnPrice(uiStateForQuery, merchantId);
+            return withTimeout(
+                calculateAddOnPrice(uiStateForQuery, merchantId),
+                PRICING_QUERY_TIMEOUT_MS,
+                'Add-on pricing timed out. Please retry.',
+            );
         },
         enabled: !!analysisResult && !!uiStateForQuery,
         staleTime: 1 * 60 * 1000,
+        retry: false,
     });
 
     const addOnPricing = addonPricingResult?.addOnPricing;
@@ -218,6 +249,74 @@ export const usePricing = ({
 
     const basePrice = selectedPriceOption?.price;
 
+    const currentIcingBase: IcingDesignUI['base'] | null = cakeInfo && icingDesign
+        ? (cakeInfo.type.toLowerCase().includes('fondant') || icingDesign.base === 'fondant'
+            ? 'fondant'
+            : 'soft_icing')
+        : null;
+
+    const { data: icingTypePriceDeltas } = useQuery<Record<IcingDesignUI['base'], number | null>>({
+        queryKey: pricingKeys.icingTypePriceDelta(
+            cakeInfo?.type,
+            cakeInfo?.thickness,
+            cakeInfo?.size,
+            currentIcingBase,
+            basePrice,
+        ),
+        queryFn: async () => {
+            const emptyDeltas: Record<IcingDesignUI['base'], number | null> = {
+                soft_icing: null,
+                fondant: null,
+            };
+
+            if (!analysisResult || !cakeInfo || !icingDesign || !basePriceOptions || !currentIcingBase) {
+                return emptyDeltas;
+            }
+
+            const alternateBase: IcingDesignUI['base'] = currentIcingBase === 'fondant'
+                ? 'soft_icing'
+                : 'fondant';
+            const alternateType = getEquivalentCakeTypeForIcingBase(cakeInfo.type, alternateBase);
+            const alternateThicknesses = THICKNESS_OPTIONS_MAP[alternateType] || [];
+
+            try {
+                const counterpartOptions = (await Promise.all(
+                    alternateThicknesses.map(async (thickness) => {
+                        const options = await withTimeout(
+                            getCakeBasePriceOptions(alternateType, thickness),
+                            PRICING_QUERY_TIMEOUT_MS,
+                            'Icing type pricing lookup timed out.',
+                        );
+                        return options.map(option => ({ ...option, thickness }));
+                    }),
+                )).flat() as IcingPriceOption[];
+
+                return {
+                    ...emptyDeltas,
+                    [alternateBase]: calculateIcingTypePriceDelta({
+                        currentOptions: basePriceOptions,
+                        counterpartOptions,
+                        currentSize: cakeInfo.size,
+                        currentThickness: cakeInfo.thickness,
+                    }),
+                };
+            } catch {
+                // The delta is an enhancement; the main pricing query remains authoritative.
+                return emptyDeltas;
+            }
+        },
+        enabled: Boolean(
+            analysisResult
+            && cakeInfo
+            && icingDesign
+            && currentIcingBase
+            && basePriceOptions?.length
+            && basePrice !== undefined,
+        ),
+        staleTime: 1 * 60 * 1000,
+        retry: false,
+    });
+
     const finalPrice = useMemo(
         () => {
             if (basePrice === undefined || !addOnPricing) return null;
@@ -228,6 +327,10 @@ export const usePricing = ({
         [basePrice, addOnPricing]
     );
 
+    const retryPricing = useCallback(async () => {
+        await Promise.all([refetchBasePrice(), refetchAddonPricing()]);
+    }, [refetchAddonPricing, refetchBasePrice]);
+
     return {
         addOnPricing,
         itemPrices,
@@ -236,6 +339,8 @@ export const usePricing = ({
         basePriceError,
         basePrice,
         finalPrice,
+        icingTypePriceDeltas: icingTypePriceDeltas ?? { soft_icing: null, fondant: null },
+        retryPricing,
         pricingRules: null,
     };
 };

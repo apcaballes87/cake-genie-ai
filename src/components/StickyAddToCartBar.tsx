@@ -48,6 +48,7 @@ interface StickyAddToCartBarProps {
     printoutConversions?: PrintoutConversionSummary;
     onAddToCartUnavailableVisible?: (reason: AddToCartBlockReason) => void;
     onAddToCartBlockedClick?: (reason: AddToCartBlockReason) => void;
+    onRetryClick?: () => void;
 }
 
 const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
@@ -75,6 +76,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     printoutConversions,
     onAddToCartUnavailableVisible,
     onAddToCartBlockedClick,
+    onRetryClick,
 }) => {
     const announcementStateRef = React.useRef<{
         price: number | null;
@@ -224,7 +226,16 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
             );
         }
         if (isLoading) return <span className="text-sm text-slate-500">Calculating...</span>;
-        if (error) return <span className="text-sm font-semibold text-red-600">{error.includes('AI') ? 'Analysis Error' : 'Pricing Error'}</span>;
+        if (error) return (
+            <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-red-600">{error.includes('AI') ? 'Analysis Error' : 'Pricing Error'}</span>
+                {onRetryClick && !error.includes('AI') && (
+                    <button type="button" onClick={onRetryClick} className="text-xs font-bold text-purple-700 underline underline-offset-2">
+                        Retry
+                    </button>
+                )}
+            </div>
+        );
         if (price !== null) {
             const finalPriceValue = isDiscountApplied ? price * 0.8 : price;
 

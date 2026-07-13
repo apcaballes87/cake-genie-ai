@@ -463,7 +463,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
 
     // --- Context Hooks ---
     const { user, isAuthenticated } = useAuth();
-    const { itemCount: supabaseItemCount, addToCartOptimistic, addToCartWithBackgroundUpload, removeItemOptimistic, authError, isLoading: isCartLoading } = useCart();
+    const { itemCount: supabaseItemCount, addToCartWithBackgroundUpload, removeItemOptimistic, authError, isLoading: isCartLoading } = useCart();
     const { settings: availabilitySettings, loading: isLoadingAvailabilitySettings } = useAvailabilitySettings();
     const { toggleSaveDesign, isDesignSaved } = useSavedItemsActions();
     const { savedDesignHashes } = useSavedItemsData();
@@ -973,7 +973,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
 
 
     // --- Hooks ---
-    const { addOnPricing, itemPrices, basePriceOptions: hookBasePriceOptions, isFetchingBasePrice, basePriceError, basePrice, finalPrice } = usePricing({
+    const { addOnPricing, itemPrices, basePriceOptions: hookBasePriceOptions, isFetchingBasePrice, basePriceError, basePrice, finalPrice, retryPricing } = usePricing({
         analysisResult, mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo, onCakeInfoCorrection: handleCakeInfoChange, analysisId, merchantId: merchant?.merchant_id
     });
 
@@ -4485,6 +4485,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                     applyChangesLabel="Apply Design Changes"
                     onAddToCartUnavailableVisible={handleAddToCartUnavailableVisible}
                     onAddToCartBlockedClick={handleAddToCartBlockedClick}
+                    onRetryClick={basePriceError ? retryPricing : undefined}
                 />
                     </>
                 )}

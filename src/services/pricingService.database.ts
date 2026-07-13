@@ -32,7 +32,7 @@ async function getPricingRules(merchantId?: string): Promise<Map<string, Pricing
 
   let query = supabase
     .from('pricing_rules')
-    .select('*')
+    .select('rule_id, item_key, item_type, classification, size, description, price, category, quantity_rule, multiplier_rule, special_conditions, merchant_id, is_active, created_at, updated_at')
     .eq('is_active', true);
 
   if (merchantId) {

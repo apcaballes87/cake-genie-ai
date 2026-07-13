@@ -57,7 +57,7 @@ interface SharedDesignClientProps {
 export default function SharedDesignClient({ design: initialDesign }: SharedDesignClientProps) {
     const router = useRouter();
     const { user } = useAuth();
-    const { addToCartOptimistic } = useCartActions();
+    const { addToCartWithBackgroundUpload } = useCartActions();
 
     const [design] = useState<SharedDesign>(initialDesign);
 
@@ -281,9 +281,9 @@ export default function SharedDesignClient({ design: initialDesign }: SharedDesi
             // final_price = base_price + addon_price
             const addonPrice = design.final_price - design.base_price;
 
-            await addToCartOptimistic({
+            await addToCartWithBackgroundUpload({
                 user_id: user?.id || null,
-                session_id: null, // Will be handled by addToCartOptimistic/service
+                session_id: null, // The durable outbox assigns the current auth owner.
                 merchant_id: null, // Will be set when ordering from a specific merchant shop
                 product_id: null, // Shared designs don't have a catalog product link
                 cake_type: design.cake_type,
@@ -296,7 +296,10 @@ export default function SharedDesignClient({ design: initialDesign }: SharedDesi
                 original_image_url: design.original_image_url || design.customized_image_url, // Fallback if missing
                 customized_image_url: design.customized_image_url,
                 customization_details: details,
-            });
+            }, async () => ({
+                originalImageUrl: design.original_image_url || design.customized_image_url,
+                finalImageUrl: design.customized_image_url || design.original_image_url,
+            }), 'shared_design');
 
             showSuccess('Design added to cart!');
             router.push('/cart');

@@ -10,6 +10,7 @@ import {
   trackCustomizerAddToCartSaveConfirmed,
   trackCustomizerAddToCartSaveStarted,
   trackCustomizerAddToCartUnavailableVisible,
+  trackCartPersistenceStage,
   trackImageUpload,
   trackLandingCtaClick,
   trackSearch,
@@ -131,6 +132,26 @@ describe('analytics helper', () => {
     ])
     expect(clarityMock).toHaveBeenCalledWith('event', 'API Customizer Add to Cart Save Started')
     expect(clarityMock).toHaveBeenCalledWith('event', 'API Customizer Add to Cart Save Confirmed')
+  })
+
+  it('tracks cart persistence stages with low-cardinality timing buckets', () => {
+    setAnalyticsRouteTracking(true)
+    markAnalyticsReady()
+
+    trackCartPersistenceStage({
+      sourceSurface: 'shared_design',
+      stage: 'cart_insert',
+      status: 'retryable',
+      durationMs: 12_000,
+    })
+
+    expect(gtagMock).toHaveBeenCalledWith('event', 'cart_persistence_stage', {
+      event_category: 'ecommerce_funnel',
+      source_surface: 'shared_design',
+      cart_stage: 'cart_insert',
+      status: 'retryable',
+      duration_bucket: '10-30s',
+    })
   })
 
   it('tracks checkout intent and missing requirements without private field values', () => {

@@ -7,6 +7,9 @@
 const DB_NAME = 'cakegenie_db';
 const STORE_NAME = 'images';
 const DB_VERSION = 1;
+export interface IndexedDBStorageOptions {
+    throwOnError?: boolean;
+}
 
 export const initDB = (): Promise<IDBDatabase> => {
     return new Promise((resolve, reject) => {
@@ -41,7 +44,7 @@ export const initDB = (): Promise<IDBDatabase> => {
     });
 };
 
-export const saveToIndexedDB = async (key: string, value: string): Promise<void> => {
+export const saveToIndexedDB = async (key: string, value: string, options?: IndexedDBStorageOptions): Promise<void> => {
     try {
         const db = await initDB();
         return new Promise((resolve, reject) => {
@@ -54,10 +57,11 @@ export const saveToIndexedDB = async (key: string, value: string): Promise<void>
         });
     } catch (error) {
         console.error('Failed to save to IndexedDB:', error);
+        if (options?.throwOnError) throw error;
     }
 };
 
-export const getFromIndexedDB = async (key: string): Promise<string | null> => {
+export const getFromIndexedDB = async (key: string, options?: IndexedDBStorageOptions): Promise<string | null> => {
     try {
         const db = await initDB();
         return new Promise((resolve, reject) => {
@@ -70,11 +74,12 @@ export const getFromIndexedDB = async (key: string): Promise<string | null> => {
         });
     } catch (error) {
         console.error('Failed to read from IndexedDB:', error);
+        if (options?.throwOnError) throw error;
         return null;
     }
 };
 
-export const removeFromIndexedDB = async (key: string): Promise<void> => {
+export const removeFromIndexedDB = async (key: string, options?: IndexedDBStorageOptions): Promise<void> => {
     try {
         const db = await initDB();
         return new Promise((resolve, reject) => {
@@ -87,6 +92,7 @@ export const removeFromIndexedDB = async (key: string): Promise<void> => {
         });
     } catch (error) {
         console.error('Failed to delete from IndexedDB:', error);
+        if (options?.throwOnError) throw error;
     }
 };
 

@@ -21,6 +21,7 @@ import { generateCakeAnalysisSlug } from '@/lib/utils/urlHelpers';
 import { generateTagsForAnalysis } from '@/utils/tagUtils';
 import { buildCakeTitle, extractTitleInputFromAnalysis } from '@/lib/seo/cakeTitle';
 import { enrichStoredSeoDescription } from '@/lib/seo/analysisCopy';
+import { withTimeout } from '@/lib/utils/timeout';
 import {
   getDistinctiveRelatedSearchTerms,
   normalizeRelatedSearchPhrase,
@@ -29,6 +30,7 @@ import {
 
 // The default client (uses @supabase/ssr browser client)
 const supabase: SupabaseClient = getSupabaseClient();
+const CART_SERVICE_TIMEOUT_MS = 10_000;
 
 // A completely public, cookie-less client for concurrent SSR queries
 // This prevents Next.js 15's cookies() Map.set / WeakRef.deref stack overflows.
@@ -2163,11 +2165,17 @@ export async function addToCart(
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + CART_RETENTION_DAYS);
 
-    const { data, error } = await supabase
-      .from('cakegenie_cart')
-      .insert({ ...params, expires_at: expiresAt.toISOString() })
-      .select()
-      .single();
+    const { data, error } = await withTimeout(
+      Promise.resolve(
+        supabase
+          .from('cakegenie_cart')
+          .insert({ ...params, expires_at: expiresAt.toISOString() })
+          .select()
+          .single(),
+      ),
+      CART_SERVICE_TIMEOUT_MS,
+      'Cart insert timed out',
+    );
 
     if (error) {
       return { data: null, error };
@@ -2187,22 +2195,34 @@ export async function addToCartIdempotent(
   params: CakeGenieCartItem
 ): Promise<SupabaseServiceResponse<CakeGenieCartItem>> {
   try {
-    const { data, error } = await supabase
-      .from('cakegenie_cart')
-      .insert(params)
-      .select()
-      .single();
+    const { data, error } = await withTimeout(
+      Promise.resolve(
+        supabase
+          .from('cakegenie_cart')
+          .insert(params)
+          .select()
+          .single(),
+      ),
+      CART_SERVICE_TIMEOUT_MS,
+      'Cart insert timed out',
+    );
 
     if (!error && data) return { data, error: null };
 
     // PostgreSQL unique_violation. Resolve the already-created row instead of
     // issuing an upsert, which would reset cart-side abandoned-cart metadata.
     if (error?.code === '23505' && params.client_request_id) {
-      const { data: existing, error: existingError } = await supabase
-        .from('cakegenie_cart')
-        .select('*')
-        .eq('client_request_id', params.client_request_id)
-        .single();
+      const { data: existing, error: existingError } = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from('cakegenie_cart')
+            .select('*')
+            .eq('client_request_id', params.client_request_id)
+            .single(),
+        ),
+        CART_SERVICE_TIMEOUT_MS,
+        'Cart retry lookup timed out',
+      );
 
       return { data: existing || null, error: existingError };
     }
@@ -2220,16 +2240,22 @@ export async function updateCartItemImages(
   customizedImageUrl: string | null,
 ): Promise<SupabaseServiceResponse<CakeGenieCartItem>> {
   try {
-    const { data, error } = await supabase
-      .from('cakegenie_cart')
-      .update({
-        original_image_url: originalImageUrl,
-        customized_image_url: customizedImageUrl,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('cart_item_id', cartItemId)
-      .select()
-      .single();
+    const { data, error } = await withTimeout(
+      Promise.resolve(
+        supabase
+          .from('cakegenie_cart')
+          .update({
+            original_image_url: originalImageUrl,
+            customized_image_url: customizedImageUrl,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('cart_item_id', cartItemId)
+          .select()
+          .single(),
+      ),
+      CART_SERVICE_TIMEOUT_MS,
+      'Cart image update timed out',
+    );
 
     return { data: data || null, error };
   } catch (err) {
