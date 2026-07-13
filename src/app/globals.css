@@ -119,13 +119,16 @@
 }
 
 .genie-icon-button {
-  display: inline-flex;
   align-items: center;
   justify-content: center;
   background: rgba(255, 255, 255, 0.86);
   border: 1px solid rgba(169, 86, 248, 0.28);
   box-shadow: 0 12px 30px -24px rgba(88, 28, 135, 0.8);
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.genie-icon-button:not(.hidden) {
+  display: inline-flex;
 }
 
 .genie-icon-button:hover {
