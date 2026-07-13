@@ -5230,3 +5230,14 @@
 - Added `src/hooks/useImageZoomScrollLock.ts`, a reference-counted lock that fixes the body at the current scroll offset, hides document overflow, preserves scrollbar width, and restores every prior inline style plus scroll position on close/unmount.
 - Wired the lock into the shared `ImageZoomModal`, customizer hero, About permit preview, Cart image/registration-document previews, both Reviews lightboxes, and both footer DTI permit previews.
 - Verification: focused Vitest passed (5 tests), scoped ESLint passed with 0 errors and 27 existing warnings, `git diff --check` passed, `npm run build` passed, and browser checks passed on the populated customizer, Reviews, homepage/footer DTI preview, including a non-zero scroll restore check (`800` before open, `0` while locked, `800` after close).
+
+# Current task: close image zoom when the zoomed image is clicked (2026-07-13)
+
+- [x] Update shared and inline zoom image areas to close on click while preserving modal controls.
+- [x] Add regression coverage for clicking the shared zoomed image.
+- [x] Run focused tests, lint, diff checks, production build, and browser verification.
+
+## Review
+
+- Zoomed image panels now close when clicked across the customizer/shared modal, About, Cart, Reviews, and footer permit previews. Original/Customized tabs remain usable because only the image area closes the modal.
+- Verification: focused Vitest passed (6 tests), scoped ESLint passed with 0 errors and 27 existing warnings, `git diff --check` passed, `npm run build` passed, and browser verification confirmed a populated customizer image click closes the zoom and releases the scroll lock.

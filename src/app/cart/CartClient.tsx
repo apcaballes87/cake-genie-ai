@@ -2004,7 +2004,7 @@ function CartClient() {
                         role="dialog"
                         aria-modal="true"
                         aria-label={`${registrationDocument.label} document`}
-                        onClick={(event) => event.stopPropagation()}
+                        onClick={() => setRegistrationDocument(null)}
                     >
                         <button
                             type="button"
@@ -2017,7 +2017,7 @@ function CartClient() {
                         <img
                             src={registrationDocument.imageUrl}
                             alt={`${registrationDocument.label} registration document`}
-                            className="block h-auto max-h-[86vh] w-full object-contain"
+                            className="block h-auto max-h-[86vh] w-full cursor-zoom-out object-contain"
                         />
                     </div>
                 </div>
@@ -2042,8 +2042,7 @@ function CartClient() {
                         alt="Zoomed cake design"
                         width={800}
                         height={800}
-                        className="w-full h-full object-contain"
-                        onClick={(e) => e.stopPropagation()}
+                        className="w-full h-full object-contain cursor-zoom-out"
                     />
                 </div>
             )}

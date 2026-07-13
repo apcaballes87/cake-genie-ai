@@ -84,6 +84,17 @@ describe('ImageZoomModal', () => {
         );
     });
 
+    it('closes when the zoomed image is clicked', () => {
+        mockMatchMedia(false);
+        const props = buildProps();
+
+        render(<ImageZoomModal {...props} />);
+
+        fireEvent.click(screen.getByRole('img', { name: 'Original cake design' }));
+
+        expect(props.onClose).toHaveBeenCalledTimes(1);
+    });
+
     it('preserves the page position while the zoom overlay is open', () => {
         mockMatchMedia(false);
         let currentScrollY = 240;

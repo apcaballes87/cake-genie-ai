@@ -114,7 +114,10 @@ const ImageZoomModalContent = React.memo<ImageZoomModalContentProps>(({
           </button>
         </div>
 
-        <div className="relative w-full h-[75vh]">
+        <div
+          className="relative w-full h-[75vh] cursor-zoom-out"
+          onClick={onClose}
+        >
           {currentImage ? (
             <LazyImage
               src={currentImage}

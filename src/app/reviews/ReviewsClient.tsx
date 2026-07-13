@@ -356,7 +356,7 @@ const ReviewsClient: React.FC<ReviewsClientProps> = ({ initialReviews = [], erro
           >
             <X className="h-6 w-6" />
           </button>
-          <div className="relative max-w-4xl max-h-[90vh] w-full aspect-[4/3]" onClick={(e) => e.stopPropagation()}>
+          <div className="relative max-w-4xl max-h-[90vh] w-full aspect-[4/3] cursor-zoom-out" onClick={() => setLightboxImage(null)}>
             <LazyImage
               src={lightboxImage}
               alt="Enlarged review photo"

@@ -276,7 +276,7 @@ export const ReviewCard: React.FC<{
           >
             <X className="h-6 w-6" />
           </button>
-          <div className="relative max-w-4xl max-h-[90vh] w-full aspect-[4/3]" onClick={(e) => e.stopPropagation()}>
+          <div className="relative max-w-4xl max-h-[90vh] w-full aspect-[4/3] cursor-zoom-out" onClick={() => setLocalLightbox(null)}>
             <LazyImage
               src={localLightbox}
               alt="Enlarged review photo"

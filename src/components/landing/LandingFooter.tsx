@@ -123,7 +123,7 @@ export function LandingFooter({ reviewSummary }: LandingFooterProps) {
           className="fixed inset-0 z-100 flex items-start justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto"
           onClick={() => setShowDtiModal(false)}
         >
-          <div className="relative w-full max-w-5xl my-8 bg-white rounded-lg shadow-2xl p-1 animate-in fade-in zoom-in duration-300" onClick={e => e.stopPropagation()}>
+          <div className="relative w-full max-w-5xl my-8 bg-white rounded-lg shadow-2xl p-1 animate-in fade-in zoom-in duration-300 cursor-zoom-out" onClick={() => setShowDtiModal(false)}>
             <button
               className="absolute -top-12 right-0 md:-right-12 md:top-0 text-white p-2 bg-black/30 rounded-full hover:bg-black/50 transition-colors z-110"
               onClick={() => setShowDtiModal(false)}

@@ -178,7 +178,7 @@ const AboutClient: React.FC = () => {
                     >
                         <X size={24} />
                     </button>
-                    <div className="relative w-full max-w-4xl h-[80vh]" onClick={e => e.stopPropagation()}>
+                    <div className="relative w-full max-w-4xl h-[80vh] cursor-zoom-out" onClick={() => setZoomedPermit(null)}>
                         <LazyImage
                             src={zoomedPermit}
                             alt="Permit document"
