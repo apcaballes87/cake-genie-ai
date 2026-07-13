@@ -2150,17 +2150,11 @@ function CartClient() {
                             <div className="pt-4 border-t border-purple-100 space-y-4">
                                 <h2 className="text-lg font-semibold text-slate-700">Delivery Details</h2>
 
-                                {!isLoadingSettings && (
-                                    (availabilitySettings && availabilitySettings.minimum_lead_time_days > 0 && cartAvailability === 'normal') ? (
-                                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 animate-fade-in">
-                                            <strong>Note:</strong> We are observing a minimum lead time of <strong>{availabilitySettings.minimum_lead_time_days} day(s)</strong>. The first available date has been adjusted.
-                                        </div>
-                                    ) : availabilityWasOverridden ? (
-                                        <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg text-xs text-purple-800 animate-fade-in">
-                                            <strong>Note:</strong> Due to high demand, availability has been adjusted. Your order will now be processed as a <strong>{cartAvailability.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}</strong> order.
-                                        </div>
-                                    ) : null
-                                )}
+                                {!isLoadingSettings && availabilityWasOverridden ? (
+                                    <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg text-xs text-purple-800 animate-fade-in">
+                                        <strong>Note:</strong> Due to high demand, availability has been adjusted. Your order will now be processed as a <strong>{cartAvailability.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}</strong> order.
+                                    </div>
+                                ) : null}
 
                                 <div className="space-y-4">
                                     <div className="grid grid-cols-1 gap-4">
@@ -2664,7 +2658,7 @@ function CartClient() {
                                                 </div>
                                             )}
 
-                                            <div>
+                                            <div className="mt-4">
                                                 <label htmlFor="deliveryInstructions" className="block text-sm font-medium text-slate-600 mb-1">Delivery Instructions (Optional)</label>
                                                 <textarea id="deliveryInstructions" value={deliveryInstructions} onChange={(e) => setDeliveryInstructions(e.target.value)} className={inputStyle} placeholder="e.g., landmark, contact person" rows={2}></textarea>
                                             </div>
