@@ -269,7 +269,7 @@ export const usePricing = ({
                 fondant: null,
             };
 
-            if (!analysisResult || !cakeInfo || !icingDesign || !basePriceOptions || !currentIcingBase) {
+            if (!cakeInfo || !icingDesign || !basePriceOptions || !currentIcingBase) {
                 return emptyDeltas;
             }
 
@@ -306,8 +306,7 @@ export const usePricing = ({
             }
         },
         enabled: Boolean(
-            analysisResult
-            && cakeInfo
+            cakeInfo
             && icingDesign
             && currentIcingBase
             && basePriceOptions?.length
