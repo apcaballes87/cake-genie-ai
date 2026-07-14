@@ -340,7 +340,14 @@ describe('CustomizingStepSummarySections', () => {
         props.hasTopperChanges = true;
         rerender(<CustomizingStepSummarySections {...props} />);
         expect(screen.getByRole('button', { name: 'Apply Design Changes' })).toBeEnabled();
-        expect(screen.getByText('Cake Toppers')).toHaveClass('text-slate-500');
+        expect(screen.getByText('Cake Toppers')).toHaveClass(
+            'text-[10px]',
+            'max-md:text-[9px]',
+            'font-bold',
+            'uppercase',
+            'tracking-wider',
+            'text-slate-400',
+        );
     });
 
     it('keeps the decoration step visible even when no toppers or support elements were detected', () => {

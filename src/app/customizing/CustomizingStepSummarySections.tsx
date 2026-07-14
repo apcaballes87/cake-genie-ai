@@ -1119,7 +1119,9 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
 
                 {cakeInfo && !isAnalyzing && !isRejectionError && !hideStepFour && (
                     <div className={cardClassName}>
-                        <h3 className="px-1 text-sm font-semibold text-slate-500">Cake Toppers</h3>
+                        <h3 className="px-1 text-left text-[10px] max-md:text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                            Cake Toppers
+                        </h3>
                         {combinedDecorItems.length > 0 ? (
                             <div className="space-y-2">
                                 {combinedDecorItems.slice(0, 3).map((item) => (
