@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { getOrderPaymentSummary, OrderDetails, OrderPaymentSummary } from './OrdersClient';
+import { getOrderPaymentSummary, OrderCard, OrderDetails, OrderPaymentSummary, OrderStatusStepper } from './OrdersClient';
 
 vi.mock('@/hooks', () => ({
   useAuth: () => ({
@@ -15,6 +15,16 @@ vi.mock('@/components/ImageZoomModal', () => ({
 
 vi.mock('@/services/xenditService', () => ({
   createXenditPayment: vi.fn(),
+}));
+
+vi.mock('@/hooks/useOrders', () => ({
+  useCancelOrder: () => ({ mutate: vi.fn(), isPending: false, variables: undefined }),
+  useUploadPaymentProof: () => ({ mutate: vi.fn(), isPending: false }),
+  useOrders: () => ({ data: undefined, isLoading: false, isFetching: false, error: null }),
+}));
+
+vi.mock('@/hooks/useReviews', () => ({
+  useOrderReviews: () => ({ data: [], refetch: vi.fn() }),
 }));
 
 describe('OrderDetails', () => {
@@ -71,6 +81,80 @@ describe('OrderDetails', () => {
     expect(screen.getByText('AI Chat Requests:')).toBeInTheDocument();
     expect(screen.getByText('make the side pink')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /reference\.webp/i })).toHaveAttribute('href', 'https://example.com/reference.webp');
+  });
+});
+
+describe('OrderStatusStepper', () => {
+  it('renders the six delivery stages and marks the current stage', () => {
+    render(<OrderStatusStepper status="confirmed" />);
+
+    expect(screen.getByRole('region', { name: 'Order progress' })).toBeInTheDocument();
+    expect(screen.getByText('Pending')).toBeInTheDocument();
+    expect(screen.getByText('Confirmed')).toHaveAttribute('aria-current', 'step');
+    expect(screen.getByText('In Progress')).toBeInTheDocument();
+    expect(screen.getByText('Ready for Delivery')).toBeInTheDocument();
+    expect(screen.getByText('Out for Delivery')).toBeInTheDocument();
+    expect(screen.getByText('Delivered')).toBeInTheDocument();
+  });
+
+  it('greys out every stage for cancelled orders', () => {
+    render(<OrderStatusStepper status="cancelled" />);
+
+    expect(screen.getByText('Order Cancelled')).toBeInTheDocument();
+    expect(screen.getByText('Pending')).toHaveClass('text-slate-400');
+    expect(screen.getByText('Delivered')).toHaveClass('text-slate-400');
+    expect(document.querySelector('[aria-current="step"]')).not.toBeInTheDocument();
+  });
+});
+
+describe('OrderCard', () => {
+  it('keeps the Write Review label visible on the review action', () => {
+    render(
+      <OrderCard
+        order={{
+          order_id: 'order-1',
+          order_number: '1001',
+          user_id: 'user-1',
+          merchant_id: 'merchant-1',
+          guest_email: null,
+          guest_first_name: null,
+          guest_last_name: null,
+          delivery_address_id: null,
+          delivery_date: '2026-07-01',
+          delivery_time_slot: '10AM - 12NN',
+          delivery_instructions: null,
+          customer_notes: null,
+          subtotal: 1499,
+          delivery_fee: 0,
+          discount_amount: 0,
+          discount_code_id: null,
+          total_amount: 1499,
+          order_status: 'delivered',
+          payment_status: 'paid',
+          payment_method: 'xendit',
+          payment_proof_url: null,
+          created_at: '2026-06-30T10:00:00.000Z',
+          updated_at: '2026-07-01T10:00:00.000Z',
+          confirmed_at: '2026-06-30T10:01:00.000Z',
+          delivered_at: '2026-07-01T10:00:00.000Z',
+          cakegenie_order_items: [
+            {
+              item_id: 'item-1',
+              cake_type: '1 Tier',
+              cake_thickness: '4 in',
+              cake_size: '6" Round',
+              final_price: 1499,
+              original_image_url: 'https://example.com/original.webp',
+              customized_image_url: 'https://example.com/cake.webp',
+              customization_details: null,
+            },
+          ],
+        } as never}
+        onOrderUpdate={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Write Review').closest('button')).toBeInTheDocument();
   });
 });
 

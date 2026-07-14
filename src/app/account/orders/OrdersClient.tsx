@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks';
 import { showSuccess, showError } from '@/lib/utils/toast';
 import { CakeGenieOrder, CakeGenieOrderItem, PaymentStatus, OrderStatus } from '@/lib/database.types';
 import { useOrders, useUploadPaymentProof, useCancelOrder } from '@/hooks/useOrders';
-import { Loader2, ArrowLeft, ChevronDown, Package, Clock, CreditCard, CheckCircle, UploadCloud, Trash2, X, Users, Star } from 'lucide-react';
+import { Loader2, ArrowLeft, ChevronDown, Package, Clock, CreditCard, Check, CheckCircle, UploadCloud, Trash2, X, Users, Star } from 'lucide-react';
 import { OrdersSkeleton, Skeleton } from '@/components/LoadingSkeletons';
 import { ImageZoomModal } from '@/components/ImageZoomModal';
 import DetailItem from '@/components/UI/DetailItem';
@@ -82,6 +82,70 @@ const StatusBadge: React.FC<{ status: OrderStatus | PaymentStatus; type: 'order'
         <span className={`px-2 py-1 text-[10px] sm:text-xs whitespace-nowrap font-medium rounded-full ${styles[status as keyof typeof styles]}`}>
             {text}
         </span>
+    );
+};
+
+const orderProgressSteps: Array<{ status: Exclude<OrderStatus, 'cancelled'>; label: string }> = [
+    { status: 'pending', label: 'Pending' },
+    { status: 'confirmed', label: 'Confirmed' },
+    { status: 'in_progress', label: 'In Progress' },
+    { status: 'ready_for_delivery', label: 'Ready for Delivery' },
+    { status: 'out_for_delivery', label: 'Out for Delivery' },
+    { status: 'delivered', label: 'Delivered' },
+];
+
+export const OrderStatusStepper: React.FC<{ status: OrderStatus }> = ({ status }) => {
+    const isCancelled = status === 'cancelled';
+    const currentStepIndex = orderProgressSteps.findIndex((step) => step.status === status);
+    const cardStyle = isCancelled ? 'border-slate-200 bg-slate-50' : 'border-purple-100 bg-purple-50/40';
+
+    return (
+        <section aria-label="Order progress" className={`mb-5 rounded-lg border p-4 ${cardStyle}`}>
+            <div className="flex items-center justify-between gap-3 mb-3">
+                <h4 className={`text-sm font-semibold ${isCancelled ? 'text-slate-500' : 'text-slate-800'}`}>Order Progress</h4>
+                {isCancelled && (
+                    <span className="rounded-full bg-slate-200 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                        Order Cancelled
+                    </span>
+                )}
+            </div>
+            <ol className="space-y-1">
+                {orderProgressSteps.map((step, index) => {
+                    const isCurrent = !isCancelled && index === currentStepIndex;
+                    const isReached = !isCancelled && currentStepIndex >= index;
+                    const isLast = index === orderProgressSteps.length - 1;
+                    const lineStyle = !isCancelled && currentStepIndex > index ? 'bg-purple-300' : 'bg-slate-200';
+                    const markerStyle = isCancelled
+                        ? 'border-slate-300 bg-slate-100 text-slate-400'
+                        : isCurrent
+                            ? 'border-purple-600 bg-purple-600 text-white'
+                            : isReached
+                                ? 'border-purple-200 bg-purple-100 text-purple-700'
+                                : 'border-slate-200 bg-white text-slate-400';
+                    const labelStyle = isCancelled
+                        ? 'text-slate-400'
+                        : isCurrent
+                            ? 'font-semibold text-purple-800'
+                            : isReached
+                                ? 'font-medium text-slate-700'
+                                : 'text-slate-400';
+
+                    return (
+                        <li key={step.status} className="relative flex min-h-8 items-start gap-3" data-status={step.status}>
+                            {!isLast && (
+                                <span aria-hidden="true" className={`absolute left-3 top-6 h-[calc(100%-0.25rem)] w-px ${lineStyle}`} />
+                            )}
+                            <span className={`relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs ${markerStyle}`}>
+                                {isReached ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : index + 1}
+                            </span>
+                            <span className={`pt-0.5 text-sm ${labelStyle}`} aria-current={isCurrent ? 'step' : undefined}>
+                                {step.label}
+                            </span>
+                        </li>
+                    );
+                })}
+            </ol>
+        </section>
     );
 };
 
@@ -528,6 +592,7 @@ export const OrderDetails: React.FC<{ order: EnrichedOrder; onOrderUpdate: (upda
                         })}
                     </div>
                 </div>
+                <OrderStatusStepper status={details.order_status} />
                 <div>
                     <h4 className="text-sm font-semibold text-slate-800 mb-2">Delivery Details</h4>
                     <div className="p-3 bg-slate-50 rounded-lg text-xs space-y-1">
@@ -592,7 +657,7 @@ interface OrderCardProps {
     onOrderUpdate: (updatedOrder: EnrichedOrder) => void;
 }
 
-const OrderCard: React.FC<OrderCardProps> = ({ order, onOrderUpdate }) => {
+export const OrderCard: React.FC<OrderCardProps> = ({ order, onOrderUpdate }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const { user } = useAuth();
     const cancelMutation = useCancelOrder();
@@ -772,10 +837,10 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onOrderUpdate }) => {
                                         setSelectedItemForReview(null);
                                         setShowReviewForm(true);
                                     }}
-                                    className="p-2 sm:px-3 sm:py-1.5 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 shadow-sm"
+                                    className="px-2 py-1.5 sm:px-3 text-xs sm:text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 whitespace-nowrap shadow-sm"
                                 >
                                     <Star className="w-4 h-4" />
-                                    <span className="hidden sm:inline">Write Review</span>
+                                    <span>Write Review</span>
                                 </button>
                             )}
 
