@@ -47,7 +47,7 @@ export const CustomizingPostAnalysisContent = React.memo(({
 
     return (
         <div className="w-full pb-4 pt-1 space-y-4">
-            <div className="flex w-full flex-col items-center gap-2">
+            <div className="flex w-full flex-col items-center gap-2 pb-4 max-md:pt-4">
                 <button
                     type="button"
                     onClick={onUploadAnother}
