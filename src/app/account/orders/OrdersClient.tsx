@@ -85,6 +85,141 @@ const StatusBadge: React.FC<{ status: OrderStatus | PaymentStatus; type: 'order'
     );
 };
 
+type PaymentSummaryOrder = Pick<
+    CakeGenieOrder,
+    'total_amount' | 'discount_amount' | 'delivery_fee' | 'payment_status'
+> & {
+    amount_collected?: CakeGenieOrder['amount_collected'];
+};
+
+type PaymentSummaryState = 'paid' | 'due' | 'verifying' | 'refunded';
+
+interface PaymentSummaryValues {
+    total: number;
+    discount: number;
+    deliveryFee: number;
+    amountPaid: number | null;
+    balance: number | null;
+    state: PaymentSummaryState;
+}
+
+const toNonNegativeAmount = (value: unknown): number => {
+    const amount = Number(value);
+    return Number.isFinite(amount) ? Math.max(amount, 0) : 0;
+};
+
+const formatOrderCurrency = (amount: number): string => (
+    `₱${amount.toLocaleString('en-PH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    })}`
+);
+
+export const getOrderPaymentSummary = (order: PaymentSummaryOrder): PaymentSummaryValues => {
+    const total = toNonNegativeAmount(order.total_amount);
+    const discount = toNonNegativeAmount(order.discount_amount);
+    const deliveryFee = toNonNegativeAmount(order.delivery_fee);
+
+    if (order.payment_status === 'verifying') {
+        return { total, discount, deliveryFee, amountPaid: null, balance: null, state: 'verifying' };
+    }
+
+    if (order.payment_status === 'refunded') {
+        return { total, discount, deliveryFee, amountPaid: null, balance: null, state: 'refunded' };
+    }
+
+    const amountPaid = order.payment_status === 'paid'
+        ? total
+        : order.payment_status === 'partial'
+            ? Math.min(toNonNegativeAmount(order.amount_collected), total)
+            : 0;
+    const balance = Math.max(total - amountPaid, 0);
+
+    return {
+        total,
+        discount,
+        deliveryFee,
+        amountPaid,
+        balance,
+        state: balance > 0 ? 'due' : 'paid',
+    };
+};
+
+export const OrderPaymentSummary: React.FC<{ order: PaymentSummaryOrder }> = ({ order }) => {
+    const summary = getOrderPaymentSummary(order);
+    const hasBalanceDue = summary.balance !== null && summary.balance > 0;
+    const cardStyle = summary.state === 'due'
+        ? 'border-amber-200 bg-amber-50/60'
+        : summary.state === 'verifying'
+            ? 'border-blue-200 bg-blue-50/60'
+            : summary.state === 'refunded'
+                ? 'border-slate-200 bg-slate-50'
+                : 'border-green-200 bg-green-50/60';
+    const stateLabel = summary.state === 'due'
+        ? 'Balance due'
+        : summary.state === 'verifying'
+            ? 'Payment under review'
+            : summary.state === 'refunded'
+                ? 'Refunded'
+                : 'Paid in full';
+    const stateStyle = summary.state === 'due'
+        ? 'text-amber-800 bg-amber-100'
+        : summary.state === 'verifying'
+            ? 'text-blue-800 bg-blue-100'
+            : summary.state === 'refunded'
+                ? 'text-slate-700 bg-slate-200'
+                : 'text-green-800 bg-green-100';
+
+    return (
+        <div className={`mt-3 rounded-lg border p-3 ${cardStyle}`}>
+            <div className="flex items-center justify-between gap-3 mb-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Payment summary</p>
+                <span className={`rounded-full px-2 py-1 text-[10px] font-semibold whitespace-nowrap ${stateStyle}`}>
+                    {stateLabel}
+                </span>
+            </div>
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs sm:grid-cols-4">
+                <div>
+                    <dt className="text-slate-500">Total amount</dt>
+                    <dd className="mt-0.5 font-semibold text-slate-800">{formatOrderCurrency(summary.total)}</dd>
+                </div>
+                <div>
+                    <dt className="text-slate-500">Discount</dt>
+                    <dd className="mt-0.5 font-semibold text-green-700">
+                        {summary.discount > 0 ? `-${formatOrderCurrency(summary.discount)}` : formatOrderCurrency(0)}
+                    </dd>
+                </div>
+                <div>
+                    <dt className="text-slate-500">Delivery fee</dt>
+                    <dd className="mt-0.5 font-semibold text-slate-800">{formatOrderCurrency(summary.deliveryFee)}</dd>
+                </div>
+                <div>
+                    <dt className="text-slate-500">Amount paid</dt>
+                    <dd className="mt-0.5 font-semibold text-slate-800">
+                        {summary.state === 'verifying'
+                            ? 'Under review'
+                            : summary.state === 'refunded'
+                                ? 'Refunded'
+                                : formatOrderCurrency(summary.amountPaid ?? 0)}
+                    </dd>
+                </div>
+                {summary.state === 'verifying' && (
+                    <div>
+                        <dt className="text-slate-500">Balance due</dt>
+                        <dd className="mt-0.5 font-semibold text-blue-800">Under review</dd>
+                    </div>
+                )}
+                {hasBalanceDue && summary.balance !== null && (
+                    <div>
+                        <dt className="text-amber-700">Balance due</dt>
+                        <dd className="mt-0.5 font-bold text-amber-900">{formatOrderCurrency(summary.balance)}</dd>
+                    </div>
+                )}
+            </dl>
+        </div>
+    );
+};
+
 // --- Payment Upload Form ---
 const PaymentUploadForm: React.FC<{ order: EnrichedOrder; onUploadSuccess: (updatedOrder: CakeGenieOrder) => void }> = ({ order, onUploadSuccess }) => {
     const { user } = useAuth();
@@ -565,6 +700,8 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, onOrderUpdate }) => {
                         <p className="text-xs text-slate-500">{itemCount} item(s)</p>
                     </div>
                 </div>
+
+                <OrderPaymentSummary order={order} />
 
                 {/* Split Order Progress Bar (Visible in collapsed view too) */}
                 {isSplitOrder && (
