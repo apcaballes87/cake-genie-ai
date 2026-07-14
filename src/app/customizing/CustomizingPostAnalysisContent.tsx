@@ -47,29 +47,31 @@ export const CustomizingPostAnalysisContent = React.memo(({
 
     return (
         <div className="w-full pb-4 pt-1 space-y-4">
-            <button
-                type="button"
-                onClick={onUploadAnother}
-                className="genie-btn-primary mx-auto flex w-full max-w-[520px] items-center justify-center gap-2 rounded-[1.5rem] px-4 py-3 text-sm font-bold shadow-md shadow-purple-50/50 transition-transform active:scale-[0.98] md:text-base"
-            >
-                <ImagePlus size={18} className="shrink-0" aria-hidden="true" />
-                <span>Upload Any Design - Get Instant Pricing</span>
-            </button>
+            <div className="flex w-full flex-col items-center gap-2">
+                <button
+                    type="button"
+                    onClick={onUploadAnother}
+                    className="genie-btn-primary flex w-full max-w-[520px] items-center justify-center gap-2 rounded-[1.5rem] px-4 py-3 text-sm font-bold shadow-md shadow-purple-50/50 transition-transform active:scale-[0.98] md:text-base"
+                >
+                    <ImagePlus size={18} className="shrink-0" aria-hidden="true" />
+                    <span>Upload Any Design - Get Instant Pricing</span>
+                </button>
 
-            <div className="mx-auto flex w-full max-w-[520px] items-center justify-center gap-x-2 text-[9px] font-bold uppercase tracking-wide text-neutral-500 sm:text-[10px] md:text-[11px]">
-                <div className="flex items-center gap-1 whitespace-nowrap">
-                    <ImagePlus size={13} className="shrink-0 text-neutral-400" aria-hidden="true" />
-                    <span>Any Cake Image</span>
-                </div>
-                <span className="text-neutral-300" aria-hidden="true">•</span>
-                <div className="flex items-center gap-1 whitespace-nowrap">
-                    <Zap size={13} className="shrink-0 text-neutral-400" aria-hidden="true" />
-                    <span>Instant AI Pricing</span>
-                </div>
-                <span className="text-neutral-300" aria-hidden="true">•</span>
-                <div className="flex items-center gap-1 whitespace-nowrap">
-                    <Truck size={13} className="shrink-0 text-neutral-400" aria-hidden="true" />
-                    <span>Same-day Delivery</span>
+                <div className="flex w-full max-w-[520px] items-center justify-center gap-x-2 text-[9px] font-bold uppercase tracking-wide text-neutral-500 sm:text-[10px] md:text-[11px]">
+                    <div className="flex items-center gap-1 whitespace-nowrap">
+                        <ImagePlus size={13} className="shrink-0 text-neutral-400" aria-hidden="true" />
+                        <span>Any Cake Image</span>
+                    </div>
+                    <span className="text-neutral-300" aria-hidden="true">•</span>
+                    <div className="flex items-center gap-1 whitespace-nowrap">
+                        <Zap size={13} className="shrink-0 text-neutral-400" aria-hidden="true" />
+                        <span>Instant AI Pricing</span>
+                    </div>
+                    <span className="text-neutral-300" aria-hidden="true">•</span>
+                    <div className="flex items-center gap-1 whitespace-nowrap">
+                        <Truck size={13} className="shrink-0 text-neutral-400" aria-hidden="true" />
+                        <span>Same-day Delivery</span>
+                    </div>
                 </div>
             </div>
 
