@@ -4043,6 +4043,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                         photoStepNode,
                                         onUpdateDesign: onUpdateDesign,
                                         isUpdatingDesign: isUpdatingDesign,
+                                        hasTopperChanges: hasToppersChanges,
                                         dirtyFields: dirtyFields,
                                         aiChatNode: !analysisError && !hideAiChat ? (
                                             <CustomizingAiChatPanel
@@ -4157,6 +4158,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                     ) : null}
                                     onUpdateDesign={onUpdateDesign}
                                     isUpdatingDesign={isUpdatingDesign}
+                                    hasTopperChanges={hasToppersChanges}
                                     dirtyFields={dirtyFields}
                                     originalCakeType={analysisResult?.cakeType}
                                     onIcingColorRecolor={handleIcingColorToggle}

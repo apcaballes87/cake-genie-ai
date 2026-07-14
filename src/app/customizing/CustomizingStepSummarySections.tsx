@@ -62,6 +62,7 @@ interface CustomizingStepSummarySectionsProps {
     photoStepNode?: React.ReactNode;
     onUpdateDesign?: (instruction?: string, colorMeta?: { hex: string; name: string }) => void;
     isUpdatingDesign?: boolean;
+    hasTopperChanges?: boolean;
     dirtyFields?: Set<string>;
     originalCakeType?: string | null;
     /** When provided, the main color swatch row uses the mask-based instant recolor
@@ -286,6 +287,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     photoStepNode,
     onUpdateDesign,
     isUpdatingDesign,
+    hasTopperChanges = false,
     dirtyFields,
     originalCakeType,
     onIcingColorRecolor,
@@ -1117,6 +1119,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
 
                 {cakeInfo && !isAnalyzing && !isRejectionError && !hideStepFour && (
                     <div className={cardClassName}>
+                        <h3 className="px-1 text-sm font-semibold text-slate-500">Cake Toppers</h3>
                         {combinedDecorItems.length > 0 ? (
                             <div className="space-y-2">
                                 {combinedDecorItems.slice(0, 3).map((item) => (
@@ -1175,7 +1178,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                         <button
                                             type="button"
                                             onClick={() => onUpdateDesign?.()}
-                                            disabled={isUpdatingDesign}
+                                            disabled={isUpdatingDesign || !hasTopperChanges}
                                             className="genie-btn-primary inline-flex items-center gap-1.5 text-[10px] max-md:text-[9px] font-bold py-2 px-4 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             {isUpdatingDesign ? 'Updating...' : 'Apply Design Changes'}

@@ -108,6 +108,7 @@ const buildProps = (): React.ComponentProps<typeof CustomizingStepSummarySection
     onIcingTypeChange: vi.fn(),
     icingTypePriceDeltas: { soft_icing: null, fondant: 600 },
     addOnPricing: 0,
+    hasTopperChanges: false,
 });
 
 describe('CustomizingStepSummarySections', () => {
@@ -222,6 +223,7 @@ describe('CustomizingStepSummarySections', () => {
 
     it('shows only the first 3 decoration items and uses show more for overflow', () => {
         const props = buildProps();
+        props.hasTopperChanges = true;
         props.mainToppers = [
             {
                 id: 'topper-1',
@@ -286,6 +288,59 @@ describe('CustomizingStepSummarySections', () => {
 
         expect(props.setSelectedItem).toHaveBeenCalledWith(null);
         expect(props.openTopperSheet).toHaveBeenCalledWith();
+    });
+
+    it('disables Apply Design Changes until a topper toggle changes the design', () => {
+        const props = buildProps();
+        props.mainToppers = [
+            ...props.mainToppers,
+            {
+                id: 'topper-2',
+                type: 'figurine',
+                original_type: 'figurine',
+                description: 'Butterfly topper',
+                size: 'small',
+                quantity: 1,
+                group_id: 'group-2',
+                classification: 'hero',
+                isEnabled: true,
+                price: 0,
+            },
+            {
+                id: 'topper-3',
+                type: 'printout',
+                original_type: 'printout',
+                description: 'Number topper',
+                size: 'small',
+                quantity: 1,
+                group_id: 'group-3',
+                classification: 'hero',
+                isEnabled: true,
+                price: 0,
+            },
+            {
+                id: 'topper-4',
+                type: 'candle',
+                original_type: 'candle',
+                description: 'Candle topper',
+                size: 'small',
+                quantity: 1,
+                group_id: 'group-4',
+                classification: 'hero',
+                isEnabled: true,
+                price: 0,
+            },
+        ];
+
+        const { rerender } = render(<CustomizingStepSummarySections {...props} />);
+        fireEvent.click(screen.getByRole('button', { name: /Edit Design Details/i }));
+        const applyButton = screen.getByRole('button', { name: 'Apply Design Changes' });
+        expect(applyButton).toBeDisabled();
+
+        props.hasTopperChanges = true;
+        rerender(<CustomizingStepSummarySections {...props} />);
+        expect(screen.getByRole('button', { name: 'Apply Design Changes' })).toBeEnabled();
+        expect(screen.getByText('Cake Toppers')).toHaveClass('text-slate-500');
     });
 
     it('keeps the decoration step visible even when no toppers or support elements were detected', () => {
