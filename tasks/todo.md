@@ -5241,3 +5241,35 @@
 
 - Zoomed image panels now close when clicked across the customizer/shared modal, About, Cart, Reviews, and footer permit previews. Original/Customized tabs remain usable because only the image area closes the modal.
 - Verification: focused Vitest passed (6 tests), scoped ESLint passed with 0 errors and 27 existing warnings, `git diff --check` passed, `npm run build` passed, and browser verification confirmed a populated customizer image click closes the zoom and releases the scroll lock.
+
+# Current task: sequence AI chat interpretation before visual image editing (2026-07-14)
+
+## Plan
+
+- [ ] Change `submitAiChatPrompt` so `/api/ai/chat-edit` completes before any call to `handleUpdateDesign`.
+- [ ] Preserve the current analysis merge behavior, but derive explicit image-edit state overrides from the interpreted JSON so the visual edit uses the AI-updated cake state rather than relying on React state timing.
+- [ ] Stop the flow immediately for `restrictionViolation` responses; do not invoke `/api/ai/edit-image` or perform a visual revert after generation has already started.
+- [ ] Keep action-only requests from triggering image generation while preserving `update_instructions` and `add_to_cart` handling.
+- [ ] Start exactly one visual edit for valid visual requests, pass the same reference images to it, and retain a bounded user-visible loading/error path.
+- [ ] Rework the current image-edit retry so it does not create a second edit from a stale or competing state; retry only through one explicit, post-interpretation state path if the existing fallback is still required.
+- [ ] Add focused regression coverage for request ordering, state handoff, restriction short-circuiting, action-only requests, reference-image forwarding, and image-edit failure behavior.
+- [ ] Run focused Vitest tests, `git diff --check`, scoped lint for touched files, `npm run build`, and a populated `/customizing` browser check confirming that the image remains unchanged while JSON interpretation is pending and edits only begin afterward.
+
+## Intended contract
+
+```text
+AI chat submit
+  -> /api/ai/chat-edit
+  -> merge interpreted cake JSON with current state
+  -> reject/handle actions without image generation when appropriate
+  -> /api/ai/edit-image with the merged state and reference images
+  -> commit the generated image and interpreted state
+```
+
+## Scope boundary
+
+- This plan changes the user-facing `/customizing` AI-chat flow only. The upload-time `/api/ai/validate`, `/api/ai/analyze`, and background Studio sequencing remains separate and should not be changed as part of this fix unless implementation uncovers a direct shared-state regression.
+
+## Review
+
+- Plan prepared from the verified current seams in `CustomizingClient`, `useDesignUpdate`, `/api/ai/chat-edit`, and `/api/ai/edit-image`. Product code has not been changed; implementation and verification remain pending.
