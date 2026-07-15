@@ -485,7 +485,6 @@ export const CustomizingHeroPanel = memo(({
                         <div className="w-full bg-slate-200 rounded-full h-1.5 relative overflow-hidden">
                             <div className="h-full bg-linear-to-r from-pink-400 via-purple-400 to-indigo-400 progress-bar-fill" />
                         </div>
-                        <p className={`text-[10px] text-slate-500 mt-1.5 font-medium tracking-tight transition-opacity duration-300 ${isAnalysisPhraseVisible ? 'opacity-100' : 'opacity-0'}`}>{dynamicAnalysisPhrase}</p>
                     </div>
                 ) : null}
 
@@ -511,6 +510,15 @@ export const CustomizingHeroPanel = memo(({
                             <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center z-20">
                                 <MagicGlitter />
                                 <p className="mt-4 text-slate-700 font-bold drop-shadow-sm z-40 relative">Creating your cake design...</p>
+                            </div>
+                        ) : null}
+
+                        {isAnalyzing ? (
+                            <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center z-20">
+                                <MagicGlitter />
+                                <p className={`mt-4 text-slate-700 font-bold drop-shadow-sm z-40 relative transition-opacity duration-300 ${isAnalysisPhraseVisible ? 'opacity-100' : 'opacity-0'}`}>
+                                    {dynamicAnalysisPhrase}
+                                </p>
                             </div>
                         ) : null}
 
