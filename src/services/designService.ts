@@ -9,7 +9,12 @@ import {
     COLORS
 } from '@/constants';
 import { buildDecorLocalizationHint } from '@/utils/editImageTuning';
-import { buildToyToPrintoutInstruction, isToyLikeType } from '@/utils/printoutConversionPrompt';
+import {
+    buildEdibleToPrintoutInstruction,
+    buildToyToPrintoutInstruction,
+    isEdible3DTopperType,
+    isToyLikeType,
+} from '@/utils/printoutConversionPrompt';
 import type {
     HybridAnalysisResult,
     MainTopperUI,
@@ -46,6 +51,7 @@ const GENERATIVE_DESIGN_SYSTEM_INSTRUCTION = `You are a master digital cake arti
 7.  **Remove watermarks and digitally overlayed logos (If there are any).**
 8.  **IGNORE NON-DESIGN PROMPTS:** If the user's instruction or statement has nothing to do with editing the cake image (e.g., "add to cart", "pick up", "address", "payment", or date/time selections), ignore it completely and make no changes to the image.
 9.  **TOY TO PRINTOUT CONVERSIONS:** When asked to convert a toy, figurine, or plastic topper into a printout, you MUST remove the entire 3D object and replace it with a flat 2D photopaper cutout of the same subject. Keep the subject identity and placement, but eliminate all molded seams, glossy plastic volume, and full 3D toy depth.
+9a. **EDIBLE 3D TO PRINTOUT CONVERSIONS:** When asked to convert an edible 3D, gumpaste, or fondant topper into a printout, replace only the identified target with a thin, flat, cartoon-style printed cardboard cutout. Use bright flat colors, clear black vector-style outlines, and a thick solid white die-cut border. Preserve its identity, silhouette, approximate size, placement, and facing direction; add a slim stick/backing and realistic contact and cast shadows where it enters the icing. Do not leave sculpted 3D volume, molded texture, or glossy 3D shading, and do not change any other topper or cake decoration.
 10. **PRESERVE IMAGE DIMENSIONS AND CAKE-ONLY EDITING:** Edit only the cake design and explicitly requested cake-related elements. Do not modify the background, cake stand, surrounding space, camera perspective, framing, or canvas dimensions. The overall image size and aspect ratio MUST remain exactly unchanged.`;
 
 const THREE_TIER_RECONSTRUCTION_SYSTEM_INSTRUCTION = `You are a master digital cake artist tasked with reconstructing a cake design into a new 3-tier structure. You will be given an original cake image for its design language and a reference image for the 3-tier structure.
@@ -174,7 +180,12 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
             const itemChanges: string[] = [];
             const localizationHint = buildDecorLocalizationHint(t);
             if (t.type !== t.original_type) {
-                if (t.type === 'printout' && isToyLikeType(t.original_type)) {
+                if (t.type === 'printout' && isEdible3DTopperType(t.original_type)) {
+                    itemChanges.push(buildEdibleToPrintoutInstruction({
+                        description: t.description,
+                        originalType: t.original_type,
+                    }));
+                } else if (t.type === 'printout' && isToyLikeType(t.original_type)) {
                     itemChanges.push(buildToyToPrintoutInstruction({
                         description: t.description,
                         originalType: t.original_type,

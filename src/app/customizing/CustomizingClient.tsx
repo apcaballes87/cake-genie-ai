@@ -126,14 +126,7 @@ import { toast } from 'react-hot-toast';
 import { buildAiChatPromptSuggestions, shouldShowAiPromptSuggestion } from '@/utils/aiPromptSuggestions';
 import { fillAiChatPromptTemplate, parseAiChatPromptTemplate, ParsedAiChatPromptTemplate } from '@/utils/aiChatPromptComposer';
 import { mapAnalysisToState } from '@/utils/customizationMapper';
-import type { DesignPromptGenerator } from '@/hooks/useDesignUpdate';
 import { createClient } from '@/lib/supabase/client';
-import {
-    buildToyToPrintoutInstruction,
-    isToyLikeType,
-    requestMentionsPrintoutConversion,
-} from '@/utils/printoutConversionPrompt';
-import { buildDecorLocalizationHint } from '@/utils/editImageTuning';
 import type { EditImageReferenceImage } from '@/services/geminiService';
 import {
     buildCommerceOrderSnapshot,
@@ -144,6 +137,7 @@ import {
 } from '@/lib/commerce/machineReadable';
 import { buildCustomizerAgentModel } from '@/lib/commerce/customizerAgentModel';
 import { derivePrintoutConversionSummary, hasPrintoutConversion } from './printoutConversion';
+import { buildAiChatImagePrompt } from './aiChatImagePrompt';
 
 interface AvailabilityInfo {
     type: AvailabilityType;
@@ -156,55 +150,12 @@ interface AvailabilityInfo {
     borderColor: string;
 }
 
-const AI_CHAT_USER_REQUEST_REGEX = /\[USER REQUEST\]:\s*(.*)/;
 const AI_CHAT_REFERENCE_LABEL = 'Chat reference 1';
 const subscribeToHydration = () => () => { };
 
 type AiChatReferenceAttachment = {
     fileName: string;
     image: { data: string; mimeType: string };
-};
-
-const AI_CHAT_IMAGE_PROMPT_GENERATOR: DesignPromptGenerator = (
-    _originalAnalysis,
-    newCakeInfo,
-    mainToppers,
-    _supportElements,
-    _cakeMessages,
-    _icingDesign,
-    additionalInstructions,
-) => {
-    const userRequest = additionalInstructions.match(AI_CHAT_USER_REQUEST_REGEX)?.[1]?.trim()
-        ?? additionalInstructions.trim();
-
-    const toyToPrintoutTargets = requestMentionsPrintoutConversion(userRequest)
-        ? mainToppers.filter(topper =>
-            topper.isEnabled && isToyLikeType(topper.original_type || topper.type)
-        )
-        : [];
-
-    const changes = [
-        `- **⚡ PRIMARY USER REQUEST (HIGHEST PRIORITY):** ${userRequest}. Apply this user request directly to the cake image.`,
-        ...toyToPrintoutTargets.slice(0, 3).map(topper => {
-            const localizationHint = buildDecorLocalizationHint(topper);
-
-            return `- **Material conversion detail:** ${buildToyToPrintoutInstruction({
-                description: topper.description,
-                originalType: topper.original_type || topper.type,
-            })}${localizationHint ? ` ${localizationHint}` : ''}`;
-        }),
-        toyToPrintoutTargets.length > 3
-            ? `- Apply the same toy-to-printout conversion treatment to the remaining ${toyToPrintoutTargets.length - 3} toy-derived topper(s) as well.`
-            : null,
-        newCakeInfo?.size ? `- Preserve the final **cake size** as "${newCakeInfo.size}".` : null,
-        '- Preserve all other cake details that the user did not mention.',
-    ].filter(Boolean).join('\n');
-
-    return `---
-### **List of Changes to Apply**
----
-
-${changes}`;
 };
 
 const AVAILABILITY_MAP: Record<AvailabilityType, AvailabilityInfo> = {
@@ -1597,7 +1548,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
             const imageUpdatePromise = handleUpdateDesign(`[USER REQUEST]: ${currentPrompt}`, {
                 traceId,
                 source: 'ai-chat-image-edit',
-                promptGenerator: AI_CHAT_IMAGE_PROMPT_GENERATOR,
+                promptGenerator: buildAiChatImagePrompt,
                 referenceImages,
             });
 

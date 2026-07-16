@@ -190,6 +190,58 @@ describe('designService: no-op fast path', () => {
         expect(systemInstruction).toContain('TOY TO PRINTOUT CONVERSIONS');
     });
 
+    it('uses the cardboard cutout prompt when converting an edible 3D topper to printout', async () => {
+        (geminiService.editCakeImage as any).mockResolvedValueOnce('edible-to-printout-image');
+
+        await updateDesign({
+            originalImageData: mockOriginalImage,
+            analysisResult: {
+                ...mockAnalysisResult,
+                main_toppers: [{
+                    type: 'edible_3d_complex',
+                    description: 'blue dinosaur topper',
+                    quantity: 1,
+                    size: 'medium',
+                    material: 'edible',
+                    group_id: 'dinosaur-1',
+                    classification: 'hero',
+                }],
+            } as any,
+            cakeInfo: { type: '1 Tier', flavor: ['Chocolate Cake'], size: '6" Round', thickness: 'Standard' } as any,
+            mainToppers: [{
+                id: 'topper-1',
+                type: 'printout',
+                original_type: 'edible_3d_complex',
+                description: 'blue dinosaur topper',
+                quantity: 1,
+                size: 'medium',
+                material: 'edible',
+                group_id: 'dinosaur-1',
+                classification: 'hero',
+                isEnabled: true,
+                price: 0,
+                x: 140,
+                y: 140,
+            }] as any,
+            supportElements: [],
+            cakeMessages: [],
+            icingDesign: mockAnalysisResult.icing_design,
+            additionalInstructions: '',
+            threeTierReferenceImage: null,
+            traceId: 'edible-printout-trace',
+        });
+
+        const [prompt] = (geminiService.editCakeImage as any).mock.calls[0];
+
+        expect(prompt).toContain('blue dinosaur topper');
+        expect(prompt).toContain('flat, cartoon-style printable cardboard cutout');
+        expect(prompt).toContain('thick, solid white die-cut border');
+        expect(prompt).toContain('upper-right area of the cake');
+        expect(prompt).toContain('Do not change any other topper');
+        const [, , , , , systemInstruction] = (geminiService.editCakeImage as any).mock.calls[0];
+        expect(systemInstruction).toContain('EDIBLE 3D TO PRINTOUT CONVERSIONS');
+    });
+
     it('passes topper replacement images through with stable reference labels', async () => {
         (geminiService.editCakeImage as any).mockResolvedValueOnce('replacement-image-result');
 
