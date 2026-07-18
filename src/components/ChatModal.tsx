@@ -8,6 +8,8 @@ import { findAnalysisByExactHash, findSimilarAnalysisByHash, cacheAnalysisResult
 import { HybridAnalysisResult } from '@/types';
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils';
+import { ChatMessageText } from './ChatMessageText';
+import { getCustomerChatImageExtension, prepareCustomerChatImage } from './customerChatImage';
 import {
     generateServerImageFingerprint,
     toFingerprintLookup,
@@ -208,13 +210,16 @@ async function generateStableFallbackHash(base64Data: string): Promise<string | 
 
 async function analyzeImageWithCache(
     imageData: { data: string; mimeType: string },
-    imageUrl?: string
+    imageUrl?: string,
+    preparedFile?: File,
 ): Promise<{ analysis: HybridAnalysisResult | null; slug: string | null; title: string | null; price: number | null; imageUrl: string | null; cacheKey: string | null; pipeline?: string | null }> {
-    const imageSrc = `data:${imageData.mimeType};base64,${imageData.data}`;
-    const imageBlob = dataURItoBlob(imageSrc);
-    const file = new File([imageBlob], 'chat-image.webp', { type: imageData.mimeType });
-    const compressedFile = await compressImage(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1024, fileType: 'image/webp' });
-    const compressedData = await fileToBase64(new File([compressedFile], 'chat-image.webp', { type: 'image/webp' }));
+    const file = preparedFile || new File([
+        dataURItoBlob(`data:${imageData.mimeType};base64,${imageData.data}`),
+    ], 'chat-image.webp', { type: imageData.mimeType });
+    const compressedFile = preparedFile || await compressImage(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1024, fileType: 'image/webp' });
+    const compressedData = preparedFile
+        ? imageData
+        : await fileToBase64(new File([compressedFile], 'chat-image.webp', { type: 'image/webp' }));
     const fingerprint = await generateServerImageFingerprint(compressedFile);
     const cacheKey = fingerprint.pHash
         ?? await generateStableFallbackHash(imageData.data);
@@ -468,13 +473,16 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
     };
 
     const uploadImage = async (file: File): Promise<string | null> => {
-        const fileExt = file.name.split('.').pop();
+        const fileExt = getCustomerChatImageExtension(file);
         const fileName = `${conversationId}_${Date.now()}.${fileExt}`;
         const filePath = `messages/${fileName}`;
 
         const { error } = await supabase.storage
             .from('chat-images')
-            .upload(filePath, file);
+            .upload(filePath, file, {
+                contentType: file.type || 'application/octet-stream',
+                upsert: false,
+            });
 
         if (error) {
             console.error('Error uploading image:', error);
@@ -545,7 +553,8 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
         setIsUploading(true);
 
         try {
-            const imageUrl = await uploadImage(file);
+            const preparedFile = await prepareCustomerChatImage(file);
+            const imageUrl = await uploadImage(preparedFile);
             if (imageUrl) {
                 const userMessage: Message = {
                     id: `temp_${Date.now()}`,
@@ -583,7 +592,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
 
                 setIsTyping(true);
                 try {
-                    const fileData = await fileToBase64(file);
+                    const fileData = await fileToBase64(preparedFile);
                     let imageClassification: string;
                     try {
                         imageClassification = await validateCakeImage(fileData.data, fileData.mimeType, 'chat');
@@ -629,7 +638,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                         return;
                     }
 
-                    const analysisResult = await analyzeImageWithCache(fileData, imageUrl);
+                    const analysisResult = await analyzeImageWithCache(fileData, imageUrl, preparedFile);
                     if (analysisId !== activeImageAnalysisIdRef.current) return;
 
                     let botResponse = '';
@@ -890,7 +899,14 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                                                     className="rounded-lg max-w-full mb-2"
                                                 />
                                             )}
-                                            {message.text && <p className="text-sm whitespace-pre-wrap">{message.text}</p>}
+                                            {message.text && (
+                                                <ChatMessageText
+                                                    text={message.text}
+                                                    linkClassName={message.isUser
+                                                        ? 'text-white underline decoration-white/70 hover:text-purple-100'
+                                                        : 'text-purple-700 underline hover:text-purple-900'}
+                                                />
+                                            )}
                                             {productSlug && (
                                                 <ProductLinkCard slug={productSlug} supabase={supabase} />
                                             )}

@@ -5,6 +5,7 @@ export interface CompressionOptions {
   maxWidthOrHeight?: number;
   useWebWorker?: boolean;
   fileType?: string;
+  initialQuality?: number;
 }
 
 /**
