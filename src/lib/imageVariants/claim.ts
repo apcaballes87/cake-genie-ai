@@ -48,14 +48,13 @@ export interface ClaimResult {
  *
  * `effectiveSourceUrl` should be the result of `selectEffectiveSource`
  * applied to the row's `studio_edited_image_url` / `original_image_url`.
- * Passing the empty string when no source exists is harmless — the RPC
- * compares against `image_variants_indexed_source` and won't match the
- * empty string for any normal row.
+ * Pass `null` when no source exists so a terminal no-source row compares
+ * equal to its `NULL` indexed source and cannot be reclaimed repeatedly.
  */
 export async function claimRowForVariantPipeline(
     client: SupabaseClient,
     pHash: string,
-    effectiveSourceUrl: string,
+    effectiveSourceUrl: string | null,
 ): Promise<ClaimResult> {
     const { data, error } = await client.rpc(CLAIM_RPC, {
         p_hash_arg: pHash,

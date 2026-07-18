@@ -30,6 +30,10 @@ import { claimRowForVariantPipeline } from '@/lib/imageVariants/claim';
 import { selectEffectiveSource } from '@/lib/imageVariants/manifest';
 import { runVariantPipelineForRow } from '@/lib/imageVariants/runForRow';
 import { serializeManifest } from '@/lib/imageVariants/manifest';
+import {
+    shouldIgnoreUnchangedSourceUpdate,
+    type SupabaseWebhookPayload,
+} from './webhookPolicy';
 
 // Force this route onto the Node runtime — sharp can't run on the Edge
 // runtime. The `vercel.json` `functions` block raises maxDuration to 60 s
@@ -47,20 +51,6 @@ export const dynamic = 'force-dynamic';
  * URL columns; the rest of the row is read fresh during the pipeline run
  * because the webhook payload may be stale by the time we process it.
  */
-interface SupabaseWebhookPayload {
-    type: 'INSERT' | 'UPDATE' | 'DELETE';
-    table: string;
-    record?: {
-        p_hash?: string;
-        slug?: string | null;
-        studio_edited_image_url?: string | null;
-        original_image_url?: string | null;
-        [k: string]: unknown;
-    };
-    old_record?: Record<string, unknown> | null;
-    schema?: string;
-}
-
 // ---------------------------------------------------------------------------
 // Handler
 // ---------------------------------------------------------------------------
@@ -95,6 +85,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // doing work so Supabase doesn't retry.
     if (payload.type === 'DELETE') {
         return NextResponse.json({ ok: true, status: 'ignored_delete' });
+    }
+
+    // Supabase fires this webhook for every UPDATE, including the status and
+    // manifest writes made below. Reject unchanged-source UPDATEs before
+    // creating a client, claiming a row, or writing another status.
+    if (shouldIgnoreUnchangedSourceUpdate(payload)) {
+        return NextResponse.json({
+            ok: true,
+            status: 'ignored_unchanged_source',
+        });
     }
 
     const record = payload.record ?? {};
@@ -136,21 +136,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         original_image_url: originalUrl,
     });
 
-    if (!selected) {
-        // No usable source on the row. Mark skipped and exit.
-        await admin
-            .from('cakegenie_analysis_cache')
-            .update({
-                image_variants_status: 'skipped',
-                image_variants_attempted_at: new Date().toISOString(),
-            })
-            .eq('p_hash', pHash);
-
-        return NextResponse.json({ ok: true, status: 'skipped', reason: 'no_source' });
-    }
-
     // ---- 4. Single-flight claim --------------------------------------------
-    const claim = await claimRowForVariantPipeline(admin, pHash, selected.url);
+    // A no-source row claims with NULL. That lets the corrected RPC reject a
+    // repeated `skipped` webhook even when `old_record` is unexpectedly absent.
+    const claim = await claimRowForVariantPipeline(admin, pHash, selected?.url ?? null);
     if (!claim.claimed) {
         // Another worker is processing or the row is already up-to-date
         // for the same indexed source. Return 200 so Supabase doesn't retry.
@@ -160,6 +149,21 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             reason: 'claim_not_acquired',
             error: claim.error,
         });
+    }
+
+    if (!selected) {
+        // No usable source on the row. Mark skipped once; the claim's NULL
+        // effective source prevents this terminal state from being reclaimed.
+        await admin
+            .from('cakegenie_analysis_cache')
+            .update({
+                image_variants_status: 'skipped',
+                image_variants_attempted_at: new Date().toISOString(),
+                image_variants_indexed_source: null,
+            })
+            .eq('p_hash', pHash);
+
+        return NextResponse.json({ ok: true, status: 'skipped', reason: 'no_source' });
     }
 
     // ---- 5. Run pipeline ---------------------------------------------------
@@ -188,8 +192,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     if (result.status === 'failed' || !result.manifest) {
-        // Pipeline failed end-to-end. Mark failed with a structured error
-        // and let the next webhook retry pick this up.
+        // Pipeline failed end-to-end. Mark failed with a structured error.
+        // It runs again only after a source change or an explicit `pending`
+        // transition, not from this status UPDATE itself.
         const errorJson =
             result.errors.length > 0
                 ? JSON.stringify(result.errors)
