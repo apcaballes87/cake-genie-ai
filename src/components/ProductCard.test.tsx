@@ -28,8 +28,8 @@ vi.mock('next/link', () => ({
 }));
 
 vi.mock('@/components/LazyImage', () => ({
-    default: ({ alt, src }: { alt: string; src: string }) => (
-        <div data-alt={alt} data-src={src} />
+    default: ({ alt, src, variants }: { alt: string; src: string; variants?: unknown }) => (
+        <div data-alt={alt} data-src={src} data-variants={variants ? 'present' : 'none'} />
     ),
 }));
 
@@ -139,6 +139,44 @@ describe('ProductCard', () => {
 
         const image = container.querySelector('[data-src]');
         expect(image).toHaveAttribute('data-src', 'https://example.com/cake.webp');
+    });
+
+    it('does not let an original-image manifest replace a completed Studio image', () => {
+        const { container } = render(
+            <ProductCard
+                {...baseProps}
+                slug="birthday-cake"
+                studio_edited_image_url="https://example.com/studio-edited-cake.webp"
+                image_variants_indexed_source="https://example.com/cake.webp"
+                image_variants={{
+                    format: 'webp',
+                    source: 'original_image_url',
+                    variants: [{ width: 400, url: 'https://example.com/original-400.webp', bytes: 400 }],
+                }}
+            />,
+        );
+
+        const image = container.querySelector('[data-src]');
+        expect(image).toHaveAttribute('data-src', 'https://example.com/studio-edited-cake.webp');
+        expect(image).toHaveAttribute('data-variants', 'none');
+    });
+
+    it('keeps variants when their indexed source matches the preferred Studio image', () => {
+        const { container } = render(
+            <ProductCard
+                {...baseProps}
+                slug="birthday-cake"
+                studio_edited_image_url="https://example.com/studio-edited-cake.webp"
+                image_variants_indexed_source=" https://example.com/studio-edited-cake.webp "
+                image_variants={{
+                    format: 'webp',
+                    source: 'studio_edited_image_url',
+                    variants: [{ width: 400, url: 'https://example.com/studio-400.webp', bytes: 400 }],
+                }}
+            />,
+        );
+
+        expect(container.querySelector('[data-src]')).toHaveAttribute('data-variants', 'present');
     });
 
     it('appends "Cupcakes" instead of "Cake" for cupcake designs', () => {

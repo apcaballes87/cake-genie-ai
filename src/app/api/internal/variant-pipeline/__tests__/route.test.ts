@@ -7,6 +7,9 @@ import { WEBHOOK_SECRET_HEADER } from '../auth';
 const mocks = vi.hoisted(() => ({
     createClient: vi.fn(),
     from: vi.fn(),
+    select: vi.fn(),
+    selectEq: vi.fn(),
+    maybeSingle: vi.fn(),
     update: vi.fn(),
     eq: vi.fn(),
     claim: vi.fn(),
@@ -31,6 +34,20 @@ const SOURCE_A = 'https://example.com/a.jpg';
 const SOURCE_B = 'https://example.com/b.jpg';
 const P_HASH = '0123456789abcdef';
 const TEST_SECRET = 'variant-route-test-secret';
+
+function currentRow(overrides: Partial<{
+    slug: string | null;
+    studio_edited_image_url: string | null;
+    original_image_url: string | null;
+}> = {}) {
+    return {
+        p_hash: P_HASH,
+        slug: 'birthday-cake',
+        studio_edited_image_url: null,
+        original_image_url: SOURCE_A,
+        ...overrides,
+    };
+}
 
 function makeRequest(payload: SupabaseWebhookPayload): NextRequest {
     return new NextRequest('https://example.com/api/internal/variant-pipeline', {
@@ -71,7 +88,10 @@ describe('POST /api/internal/variant-pipeline', () => {
 
         mocks.eq.mockResolvedValue({ error: null });
         mocks.update.mockReturnValue({ eq: mocks.eq });
-        mocks.from.mockReturnValue({ update: mocks.update });
+        mocks.maybeSingle.mockResolvedValue({ data: currentRow(), error: null });
+        mocks.selectEq.mockReturnValue({ maybeSingle: mocks.maybeSingle });
+        mocks.select.mockReturnValue({ eq: mocks.selectEq });
+        mocks.from.mockReturnValue({ select: mocks.select, update: mocks.update });
         mocks.createClient.mockReturnValue({ from: mocks.from });
         mocks.claim.mockResolvedValue({ claimed: true });
         mocks.run.mockResolvedValue({
@@ -120,6 +140,11 @@ describe('POST /api/internal/variant-pipeline', () => {
     });
 
     it('processes an UPDATE when the effective source changes', async () => {
+        mocks.maybeSingle.mockResolvedValue({
+            data: currentRow({ original_image_url: SOURCE_B }),
+            error: null,
+        });
+
         await POST(makeRequest(payload(
             'UPDATE',
             { p_hash: P_HASH, original_image_url: SOURCE_B, image_variants_status: 'ready' },
@@ -176,6 +201,11 @@ describe('POST /api/internal/variant-pipeline', () => {
     });
 
     it('settles an INSERT with no effective source at skipped after a NULL-source claim', async () => {
+        mocks.maybeSingle.mockResolvedValue({
+            data: currentRow({ original_image_url: null }),
+            error: null,
+        });
+
         const response = await POST(makeRequest(payload('INSERT', {
             p_hash: P_HASH,
             original_image_url: null,
@@ -196,6 +226,10 @@ describe('POST /api/internal/variant-pipeline', () => {
     });
 
     it('lets the RPC settle a repeated no-source UPDATE when old_record is missing', async () => {
+        mocks.maybeSingle.mockResolvedValue({
+            data: currentRow({ original_image_url: null }),
+            error: null,
+        });
         mocks.claim.mockResolvedValue({ claimed: false });
 
         const response = await POST(makeRequest(payload('UPDATE', {
@@ -211,5 +245,71 @@ describe('POST /api/internal/variant-pipeline', () => {
             ok: true,
             reason: 'claim_not_acquired',
         }));
+    });
+
+    it('uses the latest Studio source when an INSERT payload still contains the original URL', async () => {
+        mocks.maybeSingle.mockResolvedValue({
+            data: currentRow({ studio_edited_image_url: SOURCE_B }),
+            error: null,
+        });
+
+        await POST(makeRequest(payload('INSERT', {
+            p_hash: P_HASH,
+            original_image_url: SOURCE_A,
+            studio_edited_image_url: null,
+        })));
+
+        expect(mocks.claim).toHaveBeenCalledWith(expect.anything(), P_HASH, SOURCE_B);
+        expect(mocks.run).toHaveBeenCalledWith(expect.objectContaining({
+            slug: 'birthday-cake',
+            studioEditedImageUrl: SOURCE_B,
+            originalImageUrl: SOURCE_A,
+        }));
+        expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({
+            image_variants_indexed_source: SOURCE_B,
+        }));
+    });
+
+    it('does not persist an old manifest when the source changes during processing', async () => {
+        mocks.maybeSingle
+            .mockResolvedValueOnce({ data: currentRow(), error: null })
+            .mockResolvedValueOnce({ data: currentRow(), error: null })
+            .mockResolvedValueOnce({
+                data: currentRow({ studio_edited_image_url: SOURCE_B }),
+                error: null,
+            });
+        mocks.run.mockResolvedValue({
+            status: 'ok',
+            manifest: {
+                format: 'webp',
+                source: 'original_image_url',
+                variants: [{ width: 400, url: 'https://example.com/400.webp', bytes: 400 }],
+            },
+            source: { width: 400, height: 300 },
+            selected: { column: 'original_image_url', url: SOURCE_A },
+            rehostedTo: null,
+            errors: [],
+        });
+
+        const response = await POST(makeRequest(payload('INSERT', {
+            p_hash: P_HASH,
+            original_image_url: SOURCE_A,
+        })));
+
+        expect(mocks.run).toHaveBeenCalledWith(expect.objectContaining({
+            studioEditedImageUrl: null,
+            originalImageUrl: SOURCE_A,
+        }));
+        expect(mocks.update).toHaveBeenCalledWith({
+            image_variants_status: 'pending',
+            image_variants_error: 'source_changed_during_run',
+        });
+        expect(mocks.update).not.toHaveBeenCalledWith(expect.objectContaining({
+            image_variants: expect.anything(),
+        }));
+        expect(await response.json()).toEqual({
+            ok: true,
+            status: 'source_changed_during_run',
+        });
     });
 });

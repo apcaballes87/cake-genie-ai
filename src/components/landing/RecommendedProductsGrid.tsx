@@ -24,6 +24,8 @@ interface RecommendedProduct {
     image_height?: number | null;
     /** Variant manifest jsonb. ProductCard parses it. */
     image_variants?: unknown;
+    /** Effective URL used to create image_variants, when known. */
+    image_variants_indexed_source?: string | null;
 }
 
 interface RecommendedProductsGridProps {

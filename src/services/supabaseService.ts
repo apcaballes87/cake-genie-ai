@@ -1249,7 +1249,7 @@ export async function getRecommendedProducts(
   try {
     let query = client
       .from('cakegenie_analysis_cache')
-      .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability, image_width, image_height, studio_edited_image_url, image_variants')
+      .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability, image_width, image_height, studio_edited_image_url, image_variants, image_variants_indexed_source')
       .not('original_image_url', 'is', null)
       .not('price', 'is', null)
       .neq('original_image_url', '');

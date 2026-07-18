@@ -23,7 +23,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 import { verifyWebhookSecret } from './auth';
 import { claimRowForVariantPipeline } from '@/lib/imageVariants/claim';
@@ -42,14 +42,42 @@ export const runtime = 'nodejs';
 // Disable Next.js response caching — every webhook is a unique row.
 export const dynamic = 'force-dynamic';
 
+interface VariantSourceRow {
+    p_hash: string;
+    slug: string | null;
+    studio_edited_image_url: string | null;
+    original_image_url: string | null;
+}
+
+async function readCurrentVariantSourceRow(
+    admin: SupabaseClient,
+    pHash: string,
+): Promise<{ row: VariantSourceRow | null; error: string | null }> {
+    const { data, error } = await admin
+        .from('cakegenie_analysis_cache')
+        .select('p_hash, slug, studio_edited_image_url, original_image_url')
+        .eq('p_hash', pHash)
+        .maybeSingle();
+
+    return {
+        row: (data as VariantSourceRow | null) ?? null,
+        error: error?.message ?? null,
+    };
+}
+
+function effectiveSourceUrl(row: VariantSourceRow | null): string | null {
+    if (!row) return null;
+    return selectEffectiveSource(row)?.url ?? null;
+}
+
 // ---------------------------------------------------------------------------
 // Webhook payload shape
 // ---------------------------------------------------------------------------
 
 /**
- * Supabase DB Webhook payload. We only care about `record.p_hash` and the
- * URL columns; the rest of the row is read fresh during the pipeline run
- * because the webhook payload may be stale by the time we process it.
+ * Supabase DB Webhook payload. We only trust `record.p_hash`; source URLs and
+ * the slug are read fresh from the cache row because a Studio completion can
+ * arrive while an earlier webhook job is still running.
  */
 // ---------------------------------------------------------------------------
 // Handler
@@ -99,7 +127,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const record = payload.record ?? {};
     const pHash = typeof record.p_hash === 'string' ? record.p_hash : null;
-    const recordSlug = typeof record.slug === 'string' ? record.slug : null;
     if (!pHash) {
         return NextResponse.json(
             { error: 'missing_p_hash' },
@@ -122,24 +149,27 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         auth: { persistSession: false, autoRefreshToken: false },
     });
 
-    const studioUrl =
-        typeof record.studio_edited_image_url === 'string' || record.studio_edited_image_url === null
-            ? (record.studio_edited_image_url as string | null)
-            : null;
-    const originalUrl =
-        typeof record.original_image_url === 'string' || record.original_image_url === null
-            ? (record.original_image_url as string | null)
-            : null;
-
-    const selected = selectEffectiveSource({
-        studio_edited_image_url: studioUrl,
-        original_image_url: originalUrl,
-    });
+    // Read before the claim so the RPC compares against the source that is
+    // currently authoritative, not one carried by an older webhook payload.
+    const beforeClaim = await readCurrentVariantSourceRow(admin, pHash);
+    if (beforeClaim.error) {
+        return NextResponse.json(
+            { ok: false, status: 'source_read_failed', error: beforeClaim.error },
+            { status: 500 },
+        );
+    }
+    if (!beforeClaim.row) {
+        return NextResponse.json({ ok: true, status: 'ignored_missing_row' });
+    }
 
     // ---- 4. Single-flight claim --------------------------------------------
     // A no-source row claims with NULL. That lets the corrected RPC reject a
     // repeated `skipped` webhook even when `old_record` is unexpectedly absent.
-    const claim = await claimRowForVariantPipeline(admin, pHash, selected?.url ?? null);
+    const claim = await claimRowForVariantPipeline(
+        admin,
+        pHash,
+        effectiveSourceUrl(beforeClaim.row),
+    );
     if (!claim.claimed) {
         // Another worker is processing or the row is already up-to-date
         // for the same indexed source. Return 200 so Supabase doesn't retry.
@@ -151,7 +181,55 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         });
     }
 
+    // Claiming writes `running`; re-read once more so a Studio edit that
+    // completed between the first read and the claim is the image we process.
+    const processingRowResult = await readCurrentVariantSourceRow(admin, pHash);
+    if (processingRowResult.error) {
+        return NextResponse.json(
+            { ok: false, status: 'source_read_failed', error: processingRowResult.error },
+            { status: 500 },
+        );
+    }
+    if (!processingRowResult.row) {
+        return NextResponse.json({ ok: true, status: 'ignored_missing_row' });
+    }
+
+    const processingRow = processingRowResult.row;
+    const selected = selectEffectiveSource(processingRow);
+
     if (!selected) {
+        // Check one final time before settling a no-source row. Otherwise a
+        // Studio URL written during this short branch could be masked by the
+        // skipped status while the lock is still held.
+        const beforeSkip = await readCurrentVariantSourceRow(admin, pHash);
+        if (beforeSkip.error) {
+            return NextResponse.json(
+                { ok: false, status: 'source_read_failed', error: beforeSkip.error },
+                { status: 500 },
+            );
+        }
+        if (!beforeSkip.row) {
+            return NextResponse.json({ ok: true, status: 'ignored_missing_row' });
+        }
+        if (effectiveSourceUrl(beforeSkip.row) !== null) {
+            const { error: pendingError } = await admin
+                .from('cakegenie_analysis_cache')
+                .update({
+                    image_variants_status: 'pending',
+                    image_variants_error: 'source_changed_during_run',
+                })
+                .eq('p_hash', pHash);
+
+            if (pendingError) {
+                return NextResponse.json(
+                    { ok: false, status: 'source_requeue_failed', error: pendingError.message },
+                    { status: 500 },
+                );
+            }
+
+            return NextResponse.json({ ok: true, status: 'source_changed_during_run' });
+        }
+
         // No usable source on the row. Mark skipped once; the claim's NULL
         // effective source prevents this terminal state from being reclaimed.
         await admin
@@ -169,11 +247,44 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // ---- 5. Run pipeline ---------------------------------------------------
     const result = await runVariantPipelineForRow({
         pHash,
-        slug: recordSlug,
-        studioEditedImageUrl: studioUrl,
-        originalImageUrl: originalUrl,
+        slug: processingRow.slug,
+        studioEditedImageUrl: processingRow.studio_edited_image_url,
+        originalImageUrl: processingRow.original_image_url,
         client: admin,
     });
+
+    // A Studio completion or source rewrite can happen while Sharp/storage is
+    // working. Never publish a manifest for the old source: pending is the
+    // existing one-shot retry contract, and its UPDATE webhook is explicitly
+    // allowed through webhookPolicy.
+    const beforePersist = await readCurrentVariantSourceRow(admin, pHash);
+    if (beforePersist.error) {
+        return NextResponse.json(
+            { ok: false, status: 'source_read_failed', error: beforePersist.error },
+            { status: 500 },
+        );
+    }
+    if (!beforePersist.row) {
+        return NextResponse.json({ ok: true, status: 'ignored_missing_row' });
+    }
+    if (effectiveSourceUrl(beforePersist.row) !== selected.url) {
+        const { error: pendingError } = await admin
+            .from('cakegenie_analysis_cache')
+            .update({
+                image_variants_status: 'pending',
+                image_variants_error: 'source_changed_during_run',
+            })
+            .eq('p_hash', pHash);
+
+        if (pendingError) {
+            return NextResponse.json(
+                { ok: false, status: 'source_requeue_failed', error: pendingError.message },
+                { status: 500 },
+            );
+        }
+
+        return NextResponse.json({ ok: true, status: 'source_changed_during_run' });
+    }
 
     // ---- 6. Persist outcome ------------------------------------------------
     if (result.status === 'skipped') {

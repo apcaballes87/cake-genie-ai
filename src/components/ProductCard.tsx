@@ -51,13 +51,20 @@ export interface ProductCardProps {
      * malformed, the card renders the original URL only (Req 5.2).
      *
      * Spec: .kiro/specs/cake-image-variant-pipeline/requirements.md Req 6.7
-     */
+    */
     image_variants?: unknown;
+    /**
+     * Effective URL used to generate `image_variants`. When this is present
+     * and differs from the preferred Studio/original image, the manifest is
+     * stale and must not override the preferred image while a replacement is
+     * being generated.
+     */
+    image_variants_indexed_source?: string | null;
 }
 
 type ProductCardContentProps = Pick<
     ProductCardProps,
-    'original_image_url' | 'studio_edited_image_url' | 'price' | 'availability' | 'priority' | 'image_width' | 'image_height' | 'backgroundOnly' | 'image_variants' | 'analysis_json'
+    'original_image_url' | 'studio_edited_image_url' | 'price' | 'availability' | 'priority' | 'image_width' | 'image_height' | 'backgroundOnly' | 'image_variants' | 'image_variants_indexed_source' | 'analysis_json'
 > & {
     title: string;
 };
@@ -150,13 +157,19 @@ const ProductCardContent = ({
     backgroundOnly = false,
     title,
     image_variants,
+    image_variants_indexed_source,
     analysis_json,
 }: ProductCardContentProps) => {
     const avail = availability || 'normal';
     const preferredImageUrl = getPreferredProductImageUrl(studio_edited_image_url, original_image_url);
-    // parseManifest returns null for NULL / malformed JSONB — LazyImage
-    // treats null as "no variants" and renders identically to before.
-    const variants = parseManifest(image_variants);
+    const indexedSource = image_variants_indexed_source?.trim() || null;
+    // A manifest is only safe to use when it was generated from the image we
+    // intend to show. This prevents a late original-image job from replacing a
+    // completed Studio image on landing cards. Callers that do not select the
+    // indexed source retain the legacy variant behavior until they opt in.
+    const variants = indexedSource && indexedSource !== preferredImageUrl
+        ? null
+        : parseManifest(image_variants);
     const directBackgroundImageUrl = pickFallbackSrc(variants, 1200)
         ?? (isSiteOwnedSupabasePublicImageUrl(preferredImageUrl) ? preferredImageUrl : null);
     const backgroundImageUrl = backgroundOnly
