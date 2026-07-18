@@ -527,14 +527,14 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
 
     const updateMainTopper = useCallback((id: string, updates: Partial<MainTopperUI>) => {
         baseUpdateMainTopper(id, updates);
-        if (updates.color || updates.colors || updates.isEnabled !== undefined) {
+        if (updates.color || updates.colors) {
             scrollToHero();
         }
     }, [baseUpdateMainTopper, scrollToHero]);
 
     const updateSupportElement = useCallback((id: string, updates: Partial<SupportElementUI>) => {
         baseUpdateSupportElement(id, updates);
-        if (updates.color || updates.colors || updates.isEnabled !== undefined) {
+        if (updates.color || updates.colors) {
             scrollToHero();
         }
     }, [baseUpdateSupportElement, scrollToHero]);
