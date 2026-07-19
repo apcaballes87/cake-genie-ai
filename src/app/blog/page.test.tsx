@@ -11,6 +11,14 @@ vi.mock('@/components/SEOSchemas', () => ({
   BlogSchema: () => null,
 }));
 
+vi.mock('@/components/landing/LandingHeader', () => ({
+  default: () => <header data-testid="landing-header" />,
+}));
+
+vi.mock('@/components/landing/LandingFooter', () => ({
+  LandingFooter: () => <footer data-testid="landing-footer" />,
+}));
+
 vi.mock('@/components/LazyImage', () => ({
   default: ({ alt, src }: { alt: string; src: string }) => (
     <img data-component="lazy-image" alt={alt} src={src} />
@@ -42,5 +50,7 @@ describe('BlogPage', () => {
       'src',
       'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/blogs/sample.webp',
     );
+    expect(screen.getByTestId('landing-header')).toBeInTheDocument();
+    expect(screen.getByTestId('landing-footer')).toBeInTheDocument();
   });
 });

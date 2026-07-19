@@ -1,9 +1,11 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { getAllBlogs } from '@/services/supabaseService';
-import { ArrowLeft, Calendar, ChevronRight } from 'lucide-react';
+import { Calendar, ChevronRight } from 'lucide-react';
 import { BlogSchema } from '@/components/SEOSchemas';
 import LazyImage from '@/components/LazyImage';
+import LandingHeader from '@/components/landing/LandingHeader';
+import { LandingFooter } from '@/components/landing/LandingFooter';
 
 export const revalidate = 3600; // Rebuild cache every 1 hour
 
@@ -50,20 +52,9 @@ export default async function BlogPage() {
   }));
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-pink-50 via-purple-50 to-indigo-100">
+    <div id="top" className="min-h-screen bg-linear-to-br from-pink-50 via-purple-50 to-indigo-100">
       {blogPosts.length > 0 && <BlogSchema posts={schemaPosts} />}
-      {/* Header */}
-      <div className="bg-white/80 backdrop-blur-md border-b border-purple-100">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm text-purple-600 hover:text-purple-800 transition-colors"
-          >
-            <ArrowLeft size={16} />
-            Back to Home
-          </Link>
-        </div>
-      </div>
+      <LandingHeader />
 
       <div className="max-w-4xl mx-auto px-4 py-12">
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
@@ -151,6 +142,7 @@ export default async function BlogPage() {
           </div>
         )}
       </div>
+      <LandingFooter />
     </div>
   );
 }
