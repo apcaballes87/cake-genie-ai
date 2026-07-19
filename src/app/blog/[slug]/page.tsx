@@ -2,13 +2,15 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getBlogBySlug, getAllBlogSlugs } from '@/services/supabaseService';
-import { ArrowLeft, Calendar } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { BlogContent } from './BlogContent';
 import { BlogPostingSchema, BlogBreadcrumbSchema } from '@/components/SEOSchemas';
 import { getRelatedProductsByKeywords } from '@/services/supabaseService';
 import { RelatedProductsSection } from '@/components/blog/RelatedProductsSection';
 import { BlogDesignShowcaseSection } from '@/components/blog/BlogDesignShowcaseSection';
 import LazyImage from '@/components/LazyImage';
+import LandingHeader from '@/components/landing/LandingHeader';
+import { LandingFooter } from '@/components/landing/LandingFooter';
 import {
   getBlogDesignShowcaseConfigs,
   splitBlogContentByShowcasePlaceholders,
@@ -157,7 +159,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   });
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-pink-50 via-purple-50 to-indigo-100">
+    <div id="top" className="min-h-screen bg-linear-to-br from-pink-50 via-purple-50 to-indigo-100">
       <BlogPostingSchema
         headline={post.title}
         datePublished={post.date}
@@ -172,18 +174,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         url={`https://genie.ph/blog/${post.slug}`}
       />
       <BlogBreadcrumbSchema postTitle={post.title} postSlug={post.slug} />
-      {/* Header */}
-      <div className="bg-white/80 backdrop-blur-md border-b border-purple-100 sticky top-0 z-30">
-        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link
-            href="/blog"
-            className="inline-flex items-center gap-2 text-sm text-purple-600 hover:text-purple-800 transition-colors"
-          >
-            <ArrowLeft size={16} />
-            All Posts
-          </Link>
-        </div>
-      </div>
+      <LandingHeader />
 
       <article className="max-w-3xl mx-auto px-4 py-10">
         {/* Post Header */}
@@ -288,6 +279,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           />
         )}
       </article>
+      <LandingFooter />
     </div>
   );
 }
