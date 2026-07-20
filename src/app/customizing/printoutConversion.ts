@@ -15,24 +15,23 @@ export function derivePrintoutConversionSummary(
     const toy = mainToppers.some((topper) =>
         topper.isEnabled
         && topper.type === 'printout'
-        && topper.original_type !== 'printout'
-        && TOY_LIKE_TYPES.has(topper.original_type)
+        && TOY_LIKE_TYPES.has(topper.printout_source_type ?? topper.original_type)
     );
 
     const ediblePhoto = mainToppers.some((topper) =>
         topper.isEnabled
         && topper.type === 'printout'
-        && topper.original_type === 'edible_photo_top'
+        && (topper.printout_source_type ?? topper.original_type) === 'edible_photo_top'
     ) || supportElements.some((element) =>
         element.isEnabled
         && element.type === 'support_printout'
-        && element.original_type === 'edible_photo_side'
+        && (element.printout_source_type ?? element.original_type) === 'edible_photo_side'
     );
 
     const cardstock = mainToppers.some((topper) =>
         topper.isEnabled
         && topper.type === 'printout'
-        && topper.original_type === 'cardstock'
+        && (topper.printout_source_type ?? topper.original_type) === 'cardstock'
     );
 
     return { toy, ediblePhoto, cardstock };

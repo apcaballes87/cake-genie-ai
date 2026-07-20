@@ -54,6 +54,13 @@ export function mapAnalysisToState(rawData: HybridAnalysisResult): Customization
             initialType = 'printout';
         }
 
+        const printoutSourceType = t.printout_source_type
+            ?? (t.type === 'printout' && t.original_type && t.original_type !== 'printout'
+                ? t.original_type
+                : initialType === 'printout' && t.type !== 'printout'
+                    ? t.type
+                    : undefined);
+
         return {
             ...t,
             x: t.x,
@@ -63,6 +70,7 @@ export function mapAnalysisToState(rawData: HybridAnalysisResult): Customization
             price: 0,
             original_type: t.type,
             type: initialType,
+            printout_source_type: printoutSourceType,
             replacementImage: undefined,
             original_color: t.color,
             original_colors: t.colors,
@@ -71,6 +79,11 @@ export function mapAnalysisToState(rawData: HybridAnalysisResult): Customization
 
     // 3. Support Elements
     state.supportElements = (rawData.support_elements || []).map((s): SupportElementUI => {
+        const printoutSourceType = s.printout_source_type
+            ?? (s.type === 'support_printout' && s.original_type && s.original_type !== 'support_printout'
+                ? s.original_type
+                : undefined);
+
         return {
             ...s,
             x: s.x,
@@ -80,6 +93,7 @@ export function mapAnalysisToState(rawData: HybridAnalysisResult): Customization
             price: 0,
             original_type: s.type,
             type: s.type,
+            printout_source_type: printoutSourceType,
             replacementImage: undefined,
             original_color: s.color,
             original_colors: s.colors,

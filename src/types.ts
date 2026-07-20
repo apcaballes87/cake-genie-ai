@@ -42,6 +42,7 @@ export interface MainTopper {
   color?: string;
   colors?: (string | null)[];
   original_type?: MainTopperType;
+  printout_source_type?: MainTopperType;
   original_color?: string;
   original_colors?: (string | null)[];
   subtype?: string;  // For subtype-specific pricing (e.g., 'ferrero' for chocolates)
@@ -61,6 +62,7 @@ export interface SupportElement {
   color?: string;
   colors?: (string | null)[];
   original_type?: SupportElementType;
+  printout_source_type?: SupportElementType;
   original_color?: string;
   original_colors?: (string | null)[];
   subtype?: string;  // For subtype-specific pricing (e.g., 'ferrero' for chocolates)

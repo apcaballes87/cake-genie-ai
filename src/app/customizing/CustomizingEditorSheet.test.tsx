@@ -26,6 +26,7 @@ const buildProps = (): React.ComponentProps<typeof CustomizingEditorSheet> => ({
     activeCustomization: 'options',
     activeTopperSection: null,
     showAvailabilityOffset: true,
+    showPrintoutOffset: false,
     hasCakeInfoChanges: true,
     hasPendingVisualChanges: false,
     isUpdatingDesign: false,
@@ -111,5 +112,15 @@ describe('CustomizingEditorSheet', () => {
         render(<CustomizingEditorSheet {...props} />);
 
         expect(screen.getByText('72px')).toBeInTheDocument();
+    });
+
+    it('adds the full printout notification row to the sheet offset', () => {
+        const props = buildProps();
+        props.showAvailabilityOffset = true;
+        props.showPrintoutOffset = true;
+
+        render(<CustomizingEditorSheet {...props} />);
+
+        expect(screen.getByText('132px')).toBeInTheDocument();
     });
 });

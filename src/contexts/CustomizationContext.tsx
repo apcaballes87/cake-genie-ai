@@ -388,7 +388,20 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
     };
 
     const updateMainTopper = useCallback((id: string, updates: Partial<MainTopperUI>) => {
-        setMainToppers(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+        setMainToppers(prev => prev.map(t => {
+            if (t.id !== id) return t;
+
+            const next = { ...t, ...updates };
+            if (next.type !== 'printout' || next.printout_source_type) return next;
+
+            const sourceType = t.type !== 'printout'
+                ? t.type
+                : t.original_type !== 'printout'
+                    ? t.original_type
+                    : undefined;
+
+            return sourceType ? { ...next, printout_source_type: sourceType } : next;
+        }));
         markDirty('mainToppers');
     }, []);
 
@@ -403,7 +416,20 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
     }, []);
 
     const updateSupportElement = useCallback((id: string, updates: Partial<SupportElementUI>) => {
-        setSupportElements(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
+        setSupportElements(prev => prev.map(e => {
+            if (e.id !== id) return e;
+
+            const next = { ...e, ...updates };
+            if (next.type !== 'support_printout' || next.printout_source_type) return next;
+
+            const sourceType = e.type !== 'support_printout'
+                ? e.type
+                : e.original_type !== 'support_printout'
+                    ? e.original_type
+                    : undefined;
+
+            return sourceType ? { ...next, printout_source_type: sourceType } : next;
+        }));
         markDirty('supportElements');
     }, []);
 

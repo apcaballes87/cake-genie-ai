@@ -15,7 +15,7 @@ import {
 interface DiscountOfferBubbleProps {
   basePrice: number;
   onApplied?: () => void;
-  isShiftedUp?: boolean;
+  notificationCount?: number;
 }
 
 function readStoredAppliedCode(): string {
@@ -38,7 +38,7 @@ function readStoredAppliedCode(): string {
 export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
   basePrice,
   onApplied,
-  isShiftedUp,
+  notificationCount = 0,
 }) => {
   const { user, isAuthenticated, isLoading, signUp, signInWithGoogle } = useAuth();
 
@@ -59,6 +59,16 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
 
   const discountedPrice = basePrice * 0.8;
   const savings = basePrice - discountedPrice;
+  const collapsedOffsetClass = notificationCount > 1
+    ? 'mb-[108px]'
+    : notificationCount === 1
+      ? 'mb-[76px]'
+      : 'mb-[17px]';
+  const expandedOffsetClass = notificationCount > 1
+    ? 'mb-[142px]'
+    : notificationCount === 1
+      ? 'mb-[110px]'
+      : 'mb-[30px]';
 
   /** Calls /api/signup-discount, validates the result, and persists it. */
   const applyDiscountForCurrentUser = useCallback(async (): Promise<boolean> => {
@@ -222,7 +232,7 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
     <div className="relative">
       {/* ── Collapsed teaser bubble ── */}
       {!isExpanded ? (
-        <div className={`absolute bottom-full -left-2 ${isShiftedUp ? 'mb-[76px]' : 'mb-[17px]'} animate-bounce-subtle`}>
+        <div className={`absolute bottom-full -left-2 ${collapsedOffsetClass} animate-bounce-subtle`}>
           <div className="relative bg-emerald-100 text-emerald-900 px-4 max-md:px-3 py-3 max-md:py-2.5 rounded-2xl shadow-xl border border-emerald-200 min-w-[200px] max-md:min-w-[180px] flex flex-col gap-1">
             {/* Close */}
             <button
@@ -255,7 +265,7 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
 
       ) : (
         /* ── Expanded form panel ── */
-        <div className={`absolute bottom-full -left-2 ${isShiftedUp ? 'mb-[110px]' : 'mb-[30px]'} w-72 bg-white rounded-2xl shadow-2xl border border-emerald-100 overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-300 z-50`}>
+        <div className={`absolute bottom-full -left-2 ${expandedOffsetClass} w-72 bg-white rounded-2xl shadow-2xl border border-emerald-100 overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-300 z-50`}>
           {/* Header */}
           <div className="bg-emerald-50 p-4 border-b border-emerald-100">
             <div className="flex justify-between items-start mb-1">

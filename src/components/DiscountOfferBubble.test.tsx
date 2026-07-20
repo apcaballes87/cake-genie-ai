@@ -49,6 +49,13 @@ describe('DiscountOfferBubble', () => {
     vi.stubGlobal('fetch', vi.fn());
   });
 
+  it('moves the collapsed offer above two stacked notifications', () => {
+    render(<DiscountOfferBubble basePrice={800} notificationCount={2} />);
+
+    const teaser = screen.getByText('SIGN UP & GET 20% OFF!!').parentElement?.parentElement;
+    expect(teaser).toHaveClass('mb-[108px]');
+  });
+
   it('resumes OAuth signup, validates the code, updates the sticky price, and clears pending state', async () => {
     const onApplied = vi.fn();
     window.localStorage.setItem(PENDING_SIGNUP_DISCOUNT_KEY, serializePendingSignupDiscount({

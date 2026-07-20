@@ -13,7 +13,6 @@ import type { PrintoutConversionSummary } from '@/app/customizing/printoutConver
 import {
     STICKY_ADD_TO_CART_AVAILABILITY_OVERLAP_PX,
     STICKY_ADD_TO_CART_AVAILABILITY_VERTICAL_PADDING_PX,
-    STICKY_ADD_TO_CART_PRINTOUT_OVERLAP_PX,
 } from '@/app/customizing/stickyBarLayout';
 import {
     getAddToCartBlockLabel,
@@ -270,13 +269,13 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
         return null;
     };
 
+    const notificationBodyStyle = {
+        paddingTop: '2px',
+        paddingBottom: `${STICKY_ADD_TO_CART_AVAILABILITY_VERTICAL_PADDING_PX}px`,
+    } satisfies React.CSSProperties;
+
     const renderAvailabilityNotification = () => {
         if (!availability || !showAvailability) return null;
-
-        const notificationBodyStyle = {
-            paddingTop: '2px',
-            paddingBottom: `${STICKY_ADD_TO_CART_AVAILABILITY_VERTICAL_PADDING_PX}px`,
-        } satisfies React.CSSProperties;
 
         if (availability === 'rush') {
             return (
@@ -323,19 +322,14 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     const renderPrintoutNotification = () => {
         if (!hasPrintoutConversion || !showPrintoutNotification) return null;
 
-        const notificationBodyStyle = {
-            paddingTop: '2px',
-            paddingBottom: `${STICKY_ADD_TO_CART_AVAILABILITY_VERTICAL_PADDING_PX}px`,
-        } satisfies React.CSSProperties;
-
         return (
-            <div className="bg-red-100 rounded-t-2xl">
+            <div data-printout-notification className="h-[29.5px] bg-red-100 rounded-t-2xl">
                 <div
-                    className="max-w-4xl mx-auto flex items-start justify-center gap-2 px-1 text-red-800 text-[10px] max-md:text-[9px] sm:text-[11px] font-bold"
+                    className="h-full max-w-4xl mx-auto flex items-start justify-center gap-2 px-1 text-red-800 text-[10px] max-md:text-[9px] sm:text-[11px] font-bold"
                     style={notificationBodyStyle}
                 >
                     <span>⚠️</span>
-                    <span className="text-center">
+                    <span className="min-w-0 truncate text-center">
                         {[
                             printoutConversions?.toy && 'Toy',
                             printoutConversions?.ediblePhoto && 'Edible photo',
@@ -373,12 +367,11 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                 </p>
             ) : null}
             <div className={`pointer-events-auto transition-all duration-300 max-w-4xl mx-auto w-full ${isBlurred ? 'blur-[2px] opacity-50 pointer-events-none' : ''}`}>
-                {/* Red Bar Section: Printout Conversion Warning (placed behind availability, so it comes first in DOM) */}
+                {/* Printout conversion stays in normal flow so availability cannot paint over it. */}
                 <div className={`relative z-0 grid transition-[grid-template-rows,opacity] duration-500 ease-in-out ${showPrintoutNotification ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                     <div
                         data-printout-wrapper
                         className="relative overflow-visible"
-                        style={showPrintoutNotification ? { marginBottom: `-${STICKY_ADD_TO_CART_PRINTOUT_OVERLAP_PX}px` } : undefined}
                     >
                         {renderPrintoutNotification()}
                     </div>
@@ -408,7 +401,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                                     <DiscountOfferBubble 
                                         basePrice={price} 
                                         onApplied={() => setIsDiscountApplied(true)}
-                                        isShiftedUp={hasTopNotification}
+                                        notificationCount={Number(showPrintoutNotification) + Number(showAvailability)}
                                     />
                                 )}
                             </div>

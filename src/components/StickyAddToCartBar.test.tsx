@@ -5,7 +5,6 @@ import StickyAddToCartBar from './StickyAddToCartBar';
 import {
     STICKY_ADD_TO_CART_AVAILABILITY_OVERLAP_PX,
     STICKY_ADD_TO_CART_AVAILABILITY_VERTICAL_PADDING_PX,
-    STICKY_ADD_TO_CART_PRINTOUT_OVERLAP_PX,
 } from '@/app/customizing/stickyBarLayout';
 import type { PrintoutConversionSummary } from '@/app/customizing/printoutConversion';
 
@@ -121,20 +120,33 @@ describe('StickyAddToCartBar', () => {
         expect(mainBar).toHaveClass('relative', 'z-10');
     });
 
-    it('renders one combined material-specific printout warning bar', () => {
+    it('stacks the combined printout warning above availability without collapsing its row', () => {
         const props = buildProps();
         const printoutConversions: PrintoutConversionSummary = { toy: true, ediblePhoto: true, cardstock: true };
         props.printoutConversions = printoutConversions;
+        props.availability = 'normal';
 
         const { container } = render(<StickyAddToCartBar {...props} />);
 
         const warningText = screen.getByText('Toy, Edible photo, Cardstock changed to printout');
-        expect(warningText).toBeDefined();
+        const availabilityText = screen.getByText('Standard order. Receive this by tomorrow');
+        expect(warningText).toBeInTheDocument();
+        expect(warningText).toHaveClass('min-w-0', 'truncate');
+        expect(availabilityText).toBeInTheDocument();
 
         const stickyBar = container.querySelector('[data-sticky-add-to-cart-bar]');
-        const printoutWrapper = stickyBar?.querySelector('[data-printout-wrapper]');
+        const printoutWrapper = stickyBar?.querySelector<HTMLElement>('[data-printout-wrapper]');
+        const printoutNotification = stickyBar?.querySelector<HTMLElement>('[data-printout-notification]');
+        const availabilityWrapper = stickyBar?.querySelector<HTMLElement>('[data-availability-wrapper]');
 
-        expect(printoutWrapper).toHaveStyle({ marginBottom: `-${STICKY_ADD_TO_CART_PRINTOUT_OVERLAP_PX}px` });
+        expect(printoutWrapper?.style.marginBottom).toBe('');
+        expect(printoutNotification).toHaveClass('h-[29.5px]');
+        expect(warningText.parentElement).toHaveClass('h-full', 'items-start');
+        expect(warningText.parentElement).toHaveStyle({
+            paddingTop: '2px',
+            paddingBottom: `${STICKY_ADD_TO_CART_AVAILABILITY_VERTICAL_PADDING_PX}px`,
+        });
+        expect(printoutWrapper?.compareDocumentPosition(availabilityWrapper as Node) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
 
     it('does not render a printout warning when the conversion summary is empty', () => {

@@ -44,6 +44,18 @@ describe('derivePrintoutConversionSummary', () => {
         expect(derivePrintoutConversionSummary([topper('cardstock')])).toEqual({ toy: false, ediblePhoto: false, cardstock: true });
     });
 
+    it('keeps detecting the source material after the current type becomes the committed baseline', () => {
+        expect(derivePrintoutConversionSummary([{
+            ...topper('printout'),
+            printout_source_type: 'toy',
+        }])).toEqual({ toy: true, ediblePhoto: false, cardstock: false });
+
+        expect(derivePrintoutConversionSummary([], [{
+            ...support('support_printout'),
+            printout_source_type: 'edible_photo_side',
+        }])).toEqual({ toy: false, ediblePhoto: true, cardstock: false });
+    });
+
     it('ignores disabled items and items that are already printouts', () => {
         const summary = derivePrintoutConversionSummary([
             topper('toy', 'printout', false),
