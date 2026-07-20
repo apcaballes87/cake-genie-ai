@@ -174,17 +174,17 @@ function MothersDaySchema() {
                     {
                         '@type': 'CreativeWork',
                         name: "Mother's Day Cakes",
-                        url: 'https://genie.ph/search?q=mother%27s+day+cake',
+                        url: 'https://genie.ph/collections/mothers-day-cakes',
                     },
                     {
                         '@type': 'CreativeWork',
                         name: 'Floral Cakes for Mom',
-                        url: 'https://genie.ph/search?q=floral+cake',
+                        url: 'https://genie.ph/collections/floral-cake',
                     },
                     {
                         '@type': 'CreativeWork',
                         name: 'Photo Cakes for Mom',
-                        url: 'https://genie.ph/search?q=photo+cake',
+                        url: 'https://genie.ph/collections',
                     },
                 ],
             },

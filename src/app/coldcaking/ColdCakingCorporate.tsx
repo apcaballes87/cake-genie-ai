@@ -27,12 +27,12 @@ const corporateReasons = [
 ];
 
 const occasions = [
-    { label: 'Employee Giveaways', href: '/search?q=corporate+cakes' },
-    { label: 'Team Building', href: '/search?q=team+cakes' },
-    { label: 'Client Appreciation', href: '/search?q=client+gift+cakes' },
-    { label: 'Product Launches', href: '/search?q=launch+cakes' },
-    { label: 'Holiday Gifts', href: '/search?q=holiday+cakes' },
-    { label: 'Milestone Celebrations', href: '/search?q=milestone+cakes' },
+    { label: 'Employee Giveaways', href: '/collections' },
+    { label: 'Team Building', href: '/collections' },
+    { label: 'Client Appreciation', href: '/collections' },
+    { label: 'Product Launches', href: '/collections' },
+    { label: 'Holiday Gifts', href: '/collections/christmas-cake' },
+    { label: 'Milestone Celebrations', href: '/collections' },
 ];
 
 export const ColdCakingCorporate = React.memo(() => {

@@ -9,6 +9,7 @@ import SameDayCutoffBanner from '@/components/SameDayCutoffBanner';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { COMMON_ASSETS } from '@/constants';
+import { getCuratedCollectionHref } from '@/lib/seo/collectionLinks';
 
 const subscribeToHydration = () => () => {};
 
@@ -135,7 +136,7 @@ export default function LandingHeader() {
           <Link href="/collections" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3.5 px-3 py-3.5 rounded-xl text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors font-medium text-[15px] group"><span className="text-xl w-7 text-center leading-none">🎂</span><span className="group-hover:translate-x-0.5 transition-transform duration-150">Browse Cakes</span></Link>
           <div>
             <button onClick={() => setIsOccasionOpen((prev) => !prev)} className="w-full flex items-center gap-3.5 px-3 py-3.5 rounded-xl text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors font-medium text-[15px]" aria-expanded={isOccasionOpen}><span className="text-xl w-7 text-center leading-none">🎉</span><span className="flex-1 text-left">Shop by Occasion</span><svg xmlns="http://www.w3.org/2000/svg" width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-300 ${isOccasionOpen ? 'rotate-180' : 'rotate-0'}`}><polyline points="6 9 12 15 18 9" /></svg></button>
-            <div className="overflow-hidden transition-all duration-300 ease-in-out" style={{ maxHeight: isOccasionOpen ? `${categoriesList.length * 52}px` : '0px' }}><div className="pl-10 pb-1 flex flex-col gap-0.5">{categoriesList.map((cat) => <Link key={cat.id} href={`/search?q=${encodeURIComponent(cat.name)}`} onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-purple-50 hover:text-purple-700 transition-colors text-[14px] font-medium"><span className="w-1.5 h-1.5 rounded-full bg-purple-300 shrink-0" />{cat.name}</Link>)}</div></div>
+            <div className="overflow-hidden transition-all duration-300 ease-in-out" style={{ maxHeight: isOccasionOpen ? `${categoriesList.length * 52}px` : '0px' }}><div className="pl-10 pb-1 flex flex-col gap-0.5">{categoriesList.map((cat) => <Link key={cat.id} href={getCuratedCollectionHref(cat.name)} onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-purple-50 hover:text-purple-700 transition-colors text-[14px] font-medium"><span className="w-1.5 h-1.5 rounded-full bg-purple-300 shrink-0" />{cat.name}</Link>)}</div></div>
           </div>
           {otherNavLinks.map((item) => <Link key={item.href} href={item.href} onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3.5 px-3 py-3.5 rounded-xl text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors font-medium text-[15px] group"><span className="text-xl w-7 text-center leading-none">{item.emoji}</span><span className="group-hover:translate-x-0.5 transition-transform duration-150">{item.label}</span></Link>)}
         </nav>

@@ -24,25 +24,25 @@ export function MothersDayIntroContent() {
 
           <div className="mt-4 grid grid-cols-2 gap-4 text-sm font-semibold text-purple-700 md:grid-cols-4">
             <Link
-              href="/search?q=mother%27s+day+cake"
+              href="/collections/mothers-day-cakes"
               className="rounded-lg bg-purple-50 px-4 py-2 transition hover:bg-purple-100"
             >
               Mother&apos;s Day Cakes
             </Link>
             <Link
-              href="/search?q=floral+cake"
+              href="/collections/floral-cake"
               className="rounded-lg bg-purple-50 px-4 py-2 transition hover:bg-purple-100"
             >
               Floral Cakes for Mom
             </Link>
             <Link
-              href="/search?q=photo+cake"
+              href="/collections"
               className="rounded-lg bg-purple-50 px-4 py-2 transition hover:bg-purple-100"
             >
               Photo Cakes for Mom
             </Link>
             <Link
-              href="/search?q=minimalist+cake"
+              href="/collections/minimalist-cake"
               className="rounded-lg bg-purple-50 px-4 py-2 transition hover:bg-purple-100"
             >
               Minimalist Cakes for Mom

@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { MerchantPageClient } from '../MerchantPageClient';
 import { getMerchantBySlug, getMerchantProductsWithCache } from '@/services/supabaseService';
 import { CakeGenieMerchant, CakeGenieMerchantProduct } from '@/lib/database.types';
+import { buildPositiveAggregateRating } from '@/lib/seo/aggregateRating';
 
 interface MerchantPageProps {
     params: Promise<{ merchantSlug: string }>;
@@ -75,6 +76,7 @@ export async function generateMetadata({ params }: MerchantPageProps): Promise<M
 
 // JSON-LD Schema for Local Business / Bakery
 function MerchantSchema({ merchant, products }: { merchant: CakeGenieMerchant; products: CakeGenieMerchantProduct[] }) {
+    const aggregateRating = buildPositiveAggregateRating(merchant.rating, merchant.review_count);
     const schema = {
         '@context': 'https://schema.org',
         '@type': 'Bakery',
@@ -93,13 +95,7 @@ function MerchantSchema({ merchant, products }: { merchant: CakeGenieMerchant; p
             name: merchant.city || 'Cebu City'
         },
         url: `https://genie.ph/shop/${merchant.slug}`,
-        ...(merchant.rating && {
-            aggregateRating: {
-                '@type': 'AggregateRating',
-                ratingValue: merchant.rating,
-                reviewCount: merchant.review_count
-            }
-        }),
+        ...(aggregateRating ? { aggregateRating } : {}),
         // Add products to schema for richer indexing
         ...(products.length > 0 && {
             hasOfferCatalog: {
@@ -152,4 +148,3 @@ export default async function MerchantPage({ params }: MerchantPageProps) {
         </>
     );
 }
-

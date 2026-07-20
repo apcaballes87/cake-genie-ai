@@ -37,7 +37,7 @@ const SITE_LINKS = [
 
 // Fallback collection links (will be replaced by dynamic ones)
 const FALLBACK_COLLECTIONS = [
-  { label: 'Birthday Cakes', href: '/collections/birthday-cake', keywords: ['birthday', 'bday', 'party'] },
+  { label: 'Birthday Cakes', href: '/birthday-cake-delivery-cebu-city', keywords: ['birthday', 'bday', 'party'] },
   { label: 'Wedding Cakes', href: '/collections/wedding-cake', keywords: ['wedding', 'marriage', 'bridal'] },
   { label: 'Minimalist Cakes', href: '/collections/minimalist-cake', keywords: ['minimalist', 'simple', 'clean'] },
   { label: 'Bento Cakes', href: '/collections/bento-cake', keywords: ['bento', 'lunchbox', 'small'] },

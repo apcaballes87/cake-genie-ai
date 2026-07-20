@@ -1,73 +1,81 @@
 'use client';
 
-import React, { useState } from 'react';
-import { ProductCard } from '@/components/ProductCard';
-import Masonry from 'react-masonry-css';
+import React from 'react';
+import Link from 'next/link';
+import { ProductCard, type ProductCardProps } from '@/components/ProductCard';
 import { GoogleSearchSection } from './GoogleSearchSection';
-import { fetchMoreDesigns } from '@/app/collections/actions';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 interface DesignGridWithLoadMoreProps {
-    initialDesigns: any[];
+    initialDesigns: CollectionDesign[];
     keyword: string;
     /** Collection title for enriching image alt text with gallery context */
     collectionTitle?: string;
+    currentPage?: number;
+    totalPages?: number;
+    basePath?: string;
 }
 
-export const DesignGridWithLoadMore: React.FC<DesignGridWithLoadMoreProps> = ({ initialDesigns, keyword, collectionTitle }) => {
-    const [designs, setDesigns] = useState<any[]>(initialDesigns);
-    const [offset, setOffset] = useState(30);
-    const [hasMore, setHasMore] = useState(true); // Assume true initially if we have 30 items, or check length
-    const [isLoading, setIsLoading] = useState(false);
+type CollectionDesign = Pick<
+    ProductCardProps,
+    | 'p_hash'
+    | 'original_image_url'
+    | 'studio_edited_image_url'
+    | 'price'
+    | 'keywords'
+    | 'slug'
+    | 'availability'
+    | 'analysis_json'
+    | 'image_width'
+    | 'image_height'
+    | 'image_variants'
+> & {
+    alt_text?: string | null;
+};
 
-    // If initial designs are less than 30, we probably don't have more.
+function DeferredGoogleSearchSection({ keyword }: { keyword: string }) {
+    const sentinelRef = React.useRef<HTMLDivElement>(null);
+    const [shouldLoad, setShouldLoad] = React.useState(false);
+
     React.useEffect(() => {
-        if (initialDesigns.length < 30) {
-            setHasMore(false);
-        }
-    }, [initialDesigns.length]);
+        const sentinel = sentinelRef.current;
+        if (!sentinel || shouldLoad) return;
 
-    const loadMore = async () => {
-        if (isLoading || !hasMore) return;
-        setIsLoading(true);
+        const observer = new IntersectionObserver(([entry]) => {
+            if (!entry?.isIntersecting) return;
+            setShouldLoad(true);
+            observer.disconnect();
+        }, { rootMargin: '800px 0px' });
 
-        try {
-            const newDesigns = await fetchMoreDesigns(keyword, offset);
+        observer.observe(sentinel);
+        return () => observer.disconnect();
+    }, [shouldLoad]);
 
-            if (newDesigns.length === 0) {
-                setHasMore(false);
-            } else {
-                setDesigns(prev => [...prev, ...newDesigns]);
-                setOffset(prev => prev + 30);
-                if (newDesigns.length < 30) {
-                    setHasMore(false);
-                }
-            }
-        } catch (error) {
-            console.error("Failed to load more designs", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    return (
+        <div ref={sentinelRef}>
+            {shouldLoad ? <GoogleSearchSection keyword={keyword} /> : null}
+        </div>
+    );
+}
+
+export const DesignGridWithLoadMore: React.FC<DesignGridWithLoadMoreProps> = ({
+    initialDesigns,
+    keyword,
+    collectionTitle,
+    currentPage = 1,
+    totalPages = 1,
+    basePath = '/collections',
+}) => {
+    const pageHref = (page: number) => page <= 1 ? basePath : `${basePath}?page=${page}`;
 
     return (
         <div>
             {/* Designs Grid */}
-            <Masonry
-                breakpointCols={{
-                    default: 6,
-                    1536: 6,
-                    1280: 5,
-                    1024: 4,
-                    768: 3,
-                    490: 2,
-                    0: 2
-                }}
-                className="flex w-auto -ml-4"
-                columnClassName="pl-4 bg-clip-padding"
-            >
-                {designs.map((design: any) => (
-                    <div key={`${design.slug}-${design.p_hash}`} className="mb-4">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+                {initialDesigns.map((design, index) => (
+                    <div
+                        key={`${design.slug}-${design.p_hash}`}
+                        className={index === 0 ? 'col-span-2 min-w-0 sm:col-span-1' : 'min-w-0'}
+                    >
                         <ProductCard
                             p_hash={design.p_hash}
                             original_image_url={design.original_image_url}
@@ -80,43 +88,45 @@ export const DesignGridWithLoadMore: React.FC<DesignGridWithLoadMoreProps> = ({ 
                             image_width={design.image_width}
                             image_height={design.image_height}
                             image_variants={design.image_variants}
+                            priority={index === 0}
                             collectionContext={collectionTitle}
                             listName="collection_page"
                         />
+                        <p className="mt-2 px-1 text-xs leading-5 text-slate-600">
+                            {design.alt_text || `${design.keywords || collectionTitle || 'Custom cake'} design available for customization in Cebu.`}
+                        </p>
                     </div>
                 ))}
-            </Masonry>
+            </div>
 
-            {/* Load More Button */}
-            {hasMore ? (
-                <div className="mt-12 text-center">
-                    <button
-                        onClick={loadMore}
-                        disabled={isLoading}
-                        className="px-8 py-3 bg-white text-purple-600 font-semibold rounded-full border border-purple-200 shadow-sm hover:shadow-md hover:bg-purple-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
+            <nav className="mt-12 flex items-center justify-center gap-3" aria-label="Collection pages">
+                {currentPage > 1 && (
+                    <Link
+                        rel="prev"
+                        href={pageHref(currentPage - 1)}
+                        className="rounded-full border border-purple-200 bg-white px-5 py-2.5 text-sm font-semibold text-purple-700 hover:bg-purple-50"
                     >
-                        {isLoading ? (
-                            <>
-                                <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-                                Loading...
-                            </>
-                        ) : (
-                            'Load More Designs'
-                        )}
-                    </button>
-                    {/* Render Google Search Section BELOW the button only if there are more items to load? 
-                        The user requirement: "lets put a load more button at the bottom then just under the load more button, can we add a google search results"
-                        So it should be always visible under the button.
-                    */}
-                </div>
-            ) : (
-                <div className="mt-12 text-center text-slate-500">
-                    <p>You've seen all the designs in our collection.</p>
-                </div>
-            )}
+                        Previous
+                    </Link>
+                )}
+                <span className="text-sm text-slate-500">
+                    Page {currentPage} of {totalPages}
+                </span>
+                {currentPage < totalPages && (
+                    <Link
+                        rel="next"
+                        href={pageHref(currentPage + 1)}
+                        className="rounded-full border border-purple-200 bg-white px-5 py-2.5 text-sm font-semibold text-purple-700 hover:bg-purple-50"
+                    >
+                        Next designs
+                    </Link>
+                )}
+            </nav>
 
-            {/* Google Search Section - Always visible at the bottom of the list */}
-            <GoogleSearchSection keyword={keyword} />
+            {/* Optional external inspiration should not compete with the
+                collection's above-the-fold commercial images. It loads only
+                when a visitor approaches this below-the-fold section. */}
+            <DeferredGoogleSearchSection keyword={keyword} />
         </div>
     );
 };

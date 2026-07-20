@@ -3,6 +3,7 @@ import { ShopClient } from './ShopClient';
 import { getMerchants } from '@/services/supabaseService';
 import { CakeGenieMerchant } from '@/lib/database.types';
 import { genieBusinessProfile } from '@/lib/seo/genieBusinessProfile';
+import { buildPositiveAggregateRating } from '@/lib/seo/aggregateRating';
 
 // Static metadata for SEO
 export const metadata: Metadata = {
@@ -46,10 +47,13 @@ function ShopSchema({ merchants }: { merchants: CakeGenieMerchant[] }) {
         name: 'Partner Bakeshops',
         description: 'Discover amazing bakeshops and order custom cakes from verified partners across the Philippines.',
         numberOfItems: merchants.length,
-        itemListElement: merchants.slice(0, 10).map((merchant, index) => ({
-            '@type': 'ListItem',
-            position: index + 1,
-            item: {
+        itemListElement: merchants.slice(0, 10).map((merchant, index) => {
+            const aggregateRating = buildPositiveAggregateRating(merchant.rating, merchant.review_count);
+
+            return {
+                '@type': 'ListItem',
+                position: index + 1,
+                item: {
                 '@type': 'Bakery',
                 name: merchant.business_name,
                 description: merchant.description,
@@ -60,15 +64,10 @@ function ShopSchema({ merchants }: { merchants: CakeGenieMerchant[] }) {
                     addressCountry: 'PH',
                 },
                 url: `https://genie.ph/shop/${merchant.slug}`,
-                ...(merchant.rating && {
-                    aggregateRating: {
-                        '@type': 'AggregateRating',
-                        ratingValue: merchant.rating,
-                        reviewCount: merchant.review_count,
-                    },
-                }),
-            },
-        })),
+                    ...(aggregateRating ? { aggregateRating } : {}),
+                },
+            };
+        }),
     };
 
     return (

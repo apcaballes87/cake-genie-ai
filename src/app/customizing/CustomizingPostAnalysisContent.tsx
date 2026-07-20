@@ -106,13 +106,12 @@ export const CustomizingPostAnalysisContent = React.memo(({
                                     <td className="px-4 py-2 text-slate-600">
                                         <div className="flex flex-wrap gap-1.5">
                                             {tags?.map((tag, index) => (
-                                                <a
+                                                <span
                                                     key={`${tag}-${index}`}
-                                                    href={`/search?q=${encodeURIComponent(tag)}`}
-                                                    className="text-purple-600 hover:text-purple-800 hover:underline transition-colors"
+                                                    className="text-slate-600"
                                                 >
                                                     {tag}{index < (tags?.length ?? 0) - 1 ? ',' : ''}
-                                                </a>
+                                                </span>
                                             ))}
                                         </div>
                                     </td>

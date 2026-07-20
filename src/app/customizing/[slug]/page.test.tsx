@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import RecentSearchPage, { generateMetadata } from './page';
 import { createClient } from '@/lib/supabase/server';
-import { getLowestCakeBasePriceOptions, getRelatedProductsByKeywords } from '@/services/supabaseService';
+import { getCollectionForDesignKeyword, getLowestCakeBasePriceOptions, getRelatedProductsByKeywords } from '@/services/supabaseService';
 
 let capturedInitialData: unknown;
 
@@ -59,11 +59,13 @@ vi.mock('@/lib/reviews', async () => {
   };
 });
 vi.mock('@/services/supabaseService', () => ({
+  getCollectionForDesignKeyword: vi.fn(),
   getLowestCakeBasePriceOptions: vi.fn(),
   getRelatedProductsByKeywords: vi.fn(),
 }));
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }));
 vi.mock('@/services/supabaseService', () => ({
+  getCollectionForDesignKeyword: vi.fn(),
   getLowestCakeBasePriceOptions: vi.fn(),
   getRelatedProductsByKeywords: vi.fn(),
 }));
@@ -117,6 +119,7 @@ describe('RecentSearchPage', () => {
       }),
     } as never);
     vi.mocked(getLowestCakeBasePriceOptions).mockResolvedValue([{ price: 1299, size: '6 in' }] as never);
+    vi.mocked(getCollectionForDesignKeyword).mockResolvedValue({ data: null, error: null });
     vi.mocked(getRelatedProductsByKeywords).mockResolvedValue({ data: [], error: null } as never);
   });
 
@@ -260,7 +263,7 @@ describe('RecentSearchPage', () => {
     expect(staticMarkup).toContain('srcSet="https://example.com/pink-bento-cake-400.webp 400w');
     expect(staticMarkup).toContain('"url":"https://example.com/pink-bento-cake-1200.webp"');
     expect(staticMarkup).toContain('"contentUrl":"https://example.com/pink-bento-cake-1200.webp"');
-    expect(staticMarkup).toContain('"primaryImageOfPage":{"@type":"ImageObject","url":"https://example.com/pink-bento-cake-1200.webp"');
+    expect(staticMarkup).toContain('"primaryImageOfPage":{"@type":"ImageObject","contentUrl":"https://example.com/pink-bento-cake-1200.webp","url":"https://example.com/pink-bento-cake-1200.webp"');
     expect(staticMarkup).toContain('Pink minimalist bento cake with clean icing details Custom cake design in Cebu.');
     expect(staticMarkup).toContain('"@type":"Offer"');
     expect(staticMarkup).toContain('"shippingRate":{"@type":"MonetaryAmount","currency":"PHP"');

@@ -144,6 +144,11 @@ const nextConfig: NextConfig = {
         destination: '/blog/best-play-areas-kids-birthday-parties-metro-cebu-2026',
         permanent: true,
       },
+      {
+        source: '/blog/bento-cake-designs-guide-every-style-2026',
+        destination: '/blog/bento-cake-guide-2026',
+        permanent: true,
+      },
     ]
   },
   // Remove console.log in production builds for cleaner output

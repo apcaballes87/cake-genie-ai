@@ -86,6 +86,19 @@ describe('collections category metadata', () => {
     expect(metadata.keywords).toContain('minimalist cake cebu');
   });
 
+  it('gives paginated collection pages crawlable self-canonicals', async () => {
+    const { generateMetadata } = await import('./page');
+
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ category: 'minimalist-cake' }),
+      searchParams: Promise.resolve({ page: '2' }),
+    });
+
+    expect(metadata.title).toEqual({ absolute: 'Minimalist Cake Designs in Cebu - Page 2 | Genie.ph' });
+    expect(metadata.alternates?.canonical).toBe('https://genie.ph/collections/minimalist-cake?page=2');
+    expect(metadata.openGraph?.url).toBe('https://genie.ph/collections/minimalist-cake?page=2');
+  });
+
   it('redirects non-canonical collection aliases to the official slug', async () => {
     const { default: CategoryPage } = await import('./page');
 
@@ -94,6 +107,17 @@ describe('collections category metadata', () => {
     })).rejects.toThrow('NEXT_REDIRECT');
 
     expect(permanentRedirect).toHaveBeenCalledWith('/collections/minimalist-cake');
+  });
+
+  it('consolidates exact milestone aliases into the established collection hubs', async () => {
+    const { default: CategoryPage } = await import('./page');
+
+    await expect(CategoryPage({
+      params: Promise.resolve({ category: '18th-birthday-cake' }),
+      searchParams: Promise.resolve({ page: '2' }),
+    })).rejects.toThrow('NEXT_REDIRECT');
+
+    expect(permanentRedirect).toHaveBeenCalledWith('/collections/debut-cake?page=2');
   });
 
   it('returns all indexed collection params for static generation', async () => {

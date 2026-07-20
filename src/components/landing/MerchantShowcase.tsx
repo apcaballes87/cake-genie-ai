@@ -12,7 +12,7 @@ export const MerchantShowcase = ({ merchants }: MerchantShowcaseProps) => {
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl md:text-2xl font-bold text-gray-900">Our Partner Shops</h2>
                 <Link
-                    href="/search?q=shops"
+                    href="/shop"
                     className="px-5 py-2.5 bg-white text-purple-600 font-semibold rounded-full border border-purple-200 shadow-sm hover:shadow-md hover:bg-purple-50 transition-all"
                 >
                     View All

@@ -38,10 +38,10 @@ export const IntroContent = () => {
                         No celebration is complete without a cake. At Genie.ph, we cater to all occasions:
                     </p>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm font-semibold text-purple-700 mt-4">
-                        <Link href="/search?q=birthday+cakes" className="bg-purple-50 py-2 px-4 rounded-lg hover:bg-purple-100 transition">Birthday Cakes</Link>
-                        <Link href="/search?q=wedding+cakes" className="bg-purple-50 py-2 px-4 rounded-lg hover:bg-purple-100 transition">Wedding Cakes</Link>
-                        <Link href="/search?q=anniversary+cakes" className="bg-purple-50 py-2 px-4 rounded-lg hover:bg-purple-100 transition">Anniversary Cakes</Link>
-                        <Link href="/search?q=christening+cakes" className="bg-purple-50 py-2 px-4 rounded-lg hover:bg-purple-100 transition">Christening Cakes</Link>
+                        <Link href="/birthday-cake-delivery-cebu-city" className="bg-purple-50 py-2 px-4 rounded-lg hover:bg-purple-100 transition">Birthday Cakes</Link>
+                        <Link href="/collections/wedding-cake" className="bg-purple-50 py-2 px-4 rounded-lg hover:bg-purple-100 transition">Wedding Cakes</Link>
+                        <Link href="/collections/anniversary-cake" className="bg-purple-50 py-2 px-4 rounded-lg hover:bg-purple-100 transition">Anniversary Cakes</Link>
+                        <Link href="/collections" className="bg-purple-50 py-2 px-4 rounded-lg hover:bg-purple-100 transition">Christening Cakes</Link>
                     </div>
 
                     <p className="mt-5">

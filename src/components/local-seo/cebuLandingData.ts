@@ -1,3 +1,5 @@
+import { getCuratedCollectionHref } from '@/lib/seo/collectionLinks';
+
 export type LandingPageConfig = {
   slug: string;
   metadataTitle: string;
@@ -51,7 +53,7 @@ export type LandingPageConfig = {
   finalCtaBody: string;
 };
 
-const searchHref = (query: string) => `/search?q=${encodeURIComponent(query)}`;
+const searchHref = (query: string) => getCuratedCollectionHref(query);
 
 export const CEBU_LANDING_PAGES: Record<string, LandingPageConfig> = {
   'bento-cake-cebu': {

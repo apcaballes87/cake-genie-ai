@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildSitemapChunkHints,
   getPreferredSitemapImage,
   isPastSitemapCutoff,
   toIndexableCustomizedCakeRow,
@@ -9,6 +10,24 @@ import {
 const NOW = new Date('2026-05-09T00:00:00.000Z')
 
 describe('sitemap indexability helpers', () => {
+  it('derives exact chunk boundaries without an empty trailing chunk', () => {
+    const customizedRows = Array.from({ length: 1000 }, (_, index) => ({
+      created_at: `2026-05-${String((index % 9) + 1).padStart(2, '0')}T00:00:00.000Z`,
+    })) as Parameters<typeof buildSitemapChunkHints>[0]
+    const sharedRows = Array.from({ length: 1001 }, () => ({
+      created_at: '2026-05-01T00:00:00.000Z',
+    })) as Parameters<typeof buildSitemapChunkHints>[1]
+
+    expect(buildSitemapChunkHints(customizedRows, sharedRows, NOW)).toMatchObject({
+      customizedChunkCount: 1,
+      sharedDesignChunkCount: 2,
+    })
+    expect(buildSitemapChunkHints([], [], NOW)).toMatchObject({
+      customizedChunkCount: 0,
+      sharedDesignChunkCount: 0,
+    })
+  })
+
   it('prefers the studio-edited image when it exists', () => {
     expect(getPreferredSitemapImage({
       original_image_url: 'https://example.com/original.jpg',

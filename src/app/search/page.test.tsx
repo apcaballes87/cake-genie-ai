@@ -19,7 +19,7 @@ describe('search page metadata', () => {
     searchProductsFTSCount.mockReset();
   });
 
-  it('generates correct metadata when query is provided', async () => {
+  it('generates correct noindex,follow metadata when query is provided', async () => {
     searchProductsFTSCount.mockResolvedValue(15);
 
     const { generateMetadata } = await import('./page');
@@ -35,6 +35,7 @@ describe('search page metadata', () => {
     expect(metadata.openGraph?.description).toBe('Browse 15 custom cake designs matching "Spiderman". Order from local bakeries in Cebu.');
     expect(metadata.twitter?.title).toBe('15 Cake designs for "Spiderman" | Genie.ph');
     expect(metadata.twitter?.description).toBe('Browse 15 custom cake designs matching "Spiderman". Order from local bakeries in Cebu.');
+    expect(metadata.robots).toMatchObject({ index: false, follow: true });
   });
 
   it('generates fallback metadata when query is empty', async () => {
@@ -47,5 +48,6 @@ describe('search page metadata', () => {
     expect(searchProductsFTSCount).not.toHaveBeenCalled();
     expect(metadata.title).toEqual({ absolute: 'Search Cake Designs | Genie.ph' });
     expect(metadata.description).toBe('Search for cake designs to customize. Find the perfect cake for any occasion.');
+    expect(metadata.robots).toMatchObject({ index: false, follow: true });
   });
 });

@@ -3,11 +3,11 @@ import { createClient } from '@supabase/supabase-js'
 import { getAllBlogSlugs } from '@/services/supabaseService'
 import { LOCAL_SEO_ROUTES } from '@/components/local-seo/cebuLandingData'
 import {
-    getIndexableCustomizedCakeRows,
-    getIndexableSharedDesignRows,
     getSitemapChunkHints,
+    getSitemapInventory,
     SITEMAP_CHUNK_SIZE,
 } from '@/lib/sitemap/indexability'
+import { isPublicHttpImageUrl } from '@/lib/seo/crawlerImage'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,9 +18,9 @@ export const dynamic = 'force-dynamic'
  * - Properly encodes ampersands for XML safety
  */
 const sanitizeUrl = (url: string | null | undefined): string => {
-    if (!url || url.startsWith('data:')) return ''
+    if (!isPublicHttpImageUrl(url)) return ''
     try {
-        const parsed = new URL(url)
+        const parsed = new URL(url.trim())
 
         // Only strip query params for Supabase storage URLs
         // (their query params are just signed tokens, base URL still works)
@@ -30,19 +30,14 @@ const sanitizeUrl = (url: string | null | undefined): string => {
 
         // For other URLs, keep the full URL but XML escape it
         // Next.js sitemap generator doesn't seem to always escape image URLs correctly
-        return url
+        return url.trim()
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&apos;')
     } catch {
-        return url ? url
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&apos;') : ''
+        return ''
     }
 }
 
@@ -116,7 +111,7 @@ export default async function sitemap({ id }: { id: SitemapParam }): Promise<Met
         if (idStr.startsWith('customized-cakes-')) {
             const page = parseInt(idStr.split('-').pop() || '0', 10);
             const offset = page * SITEMAP_CHUNK_SIZE;
-            const customizedCakes = await getIndexableCustomizedCakeRows();
+            const { customizedCakes } = await getSitemapInventory();
             const chunk = customizedCakes.slice(offset, offset + SITEMAP_CHUNK_SIZE);
 
             return chunk.map((cake) => ({
@@ -131,10 +126,8 @@ export default async function sitemap({ id }: { id: SitemapParam }): Promise<Met
         if (idStr.startsWith('designs-')) {
             const page = parseInt(idStr.split('-').pop() || '0', 10);
             const offset = page * SITEMAP_CHUNK_SIZE;
-            const customizedCakeSlugs = new Set((await getIndexableCustomizedCakeRows()).map((cake) => cake.slug));
-            const designs = (await getIndexableSharedDesignRows())
-                .filter((design) => !customizedCakeSlugs.has(design.url_slug))
-                .slice(offset, offset + SITEMAP_CHUNK_SIZE);
+            const { sharedDesigns } = await getSitemapInventory();
+            const designs = sharedDesigns.slice(offset, offset + SITEMAP_CHUNK_SIZE);
 
             return designs.map((design) => ({
                 url: `${baseUrl}/customizing/${design.url_slug}`,

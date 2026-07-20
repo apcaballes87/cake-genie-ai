@@ -26,6 +26,7 @@ describe('robots metadata route', () => {
     expect(generalRule?.disallow).toEqual(
       expect.arrayContaining(['/customizing?*', '/customizing/*?*']),
     );
+    expect(generalRule?.disallow).not.toContain('/search');
   });
 
   it('keeps the global sitemap stable', () => {

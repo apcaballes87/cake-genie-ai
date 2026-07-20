@@ -1619,6 +1619,17 @@ export async function getCollectionForDesignKeyword(
     }
   }
 
+  const normalizedKeyword = keyword.toLowerCase();
+  const milestoneAliases = [
+    ...(/\b18th\b|\beighteenth\b/.test(normalizedKeyword) ? ['debut-cake'] : []),
+    ...(/\b60th\b|\bsixtieth\b/.test(normalizedKeyword) ? ['senior-cake'] : []),
+  ];
+  for (const alias of milestoneAliases) {
+    if (candidateSeen.has(alias)) continue;
+    candidateSeen.add(alias);
+    orderedCandidates.push(alias);
+  }
+
   if (orderedCandidates.length === 0) {
     return { data: null, error: null };
   }
@@ -1629,7 +1640,9 @@ export async function getCollectionForDesignKeyword(
       .from('cakegenie_collections')
       .select('slug, name, item_count')
       .in('slug', orderedCandidates)
-      .gt('item_count', 1)
+      .eq('publication_status', 'published')
+      .eq('is_indexable', true)
+      .gte('item_count', 8)
       .returns<Array<{ slug: string; name: string; item_count: number }>>();
 
     if (error || !data || data.length === 0) {

@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import React, { Dispatch, SetStateAction, useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import React, { Dispatch, SetStateAction, useEffect, useLayoutEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import { useSmartBack } from '@/hooks/useSmartBack';
 import { useNavigation } from '@/contexts/NavigationContext';
@@ -404,10 +404,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         }
     }, [recordNavigation, navigationState.entrySource]);
 
-    // Hide the SSR fallback content once the interactive client has mounted.
-    // SSRCakeDetails is visible on initial paint for Googlebot image crawlability,
-    // then hidden here to avoid duplication with the interactive UI.
-    useEffect(() => {
+    // Keep the crawler-friendly SSR card visible while this streamed client
+    // boundary is pending. Hide it in the pre-paint layout phase once the
+    // interactive customizer is actually ready, avoiding both an empty
+    // full-screen fallback and a post-paint duplicate-content jump.
+    useLayoutEffect(() => {
         const ssrContent = document.getElementById('ssr-content');
         if (ssrContent) ssrContent.style.display = 'none';
     }, []);

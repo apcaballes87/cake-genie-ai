@@ -6,6 +6,7 @@ import './globals.css'
 import { Providers } from '@/components/Providers'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AnalyticsBoundary } from '@/components/AnalyticsBoundary'
+import { WebVitalsReporter } from '@/components/WebVitalsReporter'
 
 import ClientHashRedirect from '@/components/ClientHashRedirect'
 import FloatingChatBubble from '@/components/FloatingChatBubble'
@@ -132,6 +133,7 @@ export default function RootLayout({
                   enabled={shouldLoadAnalytics}
                   measurementId={GA4_MEASUREMENT_ID}
                 />
+                <WebVitalsReporter />
               </Suspense>
             )}
             <ClientHashRedirect />

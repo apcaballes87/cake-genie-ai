@@ -6,7 +6,7 @@ import { ImagePlus, Truck, Zap } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import CustomizingClient from '../CustomizingClient'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
-import { getLowestCakeBasePriceOptions, getRelatedProductsByKeywords, getCollectionForDesignKeyword } from '@/services/supabaseService'
+import { getLowestCakeBasePriceOptions, getCollectionForDesignKeyword } from '@/services/supabaseService'
 import { CakeType, CakeThickness, BasePriceInfo, HybridAnalysisResult, CakeInfoUI } from '@/types'
 import { CustomizationProvider, CustomizationState } from '@/contexts/CustomizationContext'
 import { DesignAboutSection } from '@/components/DesignAboutSection'
@@ -16,7 +16,7 @@ import { LandingFooter } from '@/components/landing/LandingFooter'
 import { mapAnalysisToState, mapProductToDefaultState } from '@/utils/customizationMapper'
 import { upgradeLegacySlug, downgradeCakeSlug } from '@/lib/utils/urlHelpers'
 import { buildDesignPageContent, generateDesignDetails, generateRichAltText, isGenericDesignDescription } from '@/utils/designContentUtils'
-import { parseManifest, buildSrcSet, pickFallbackSrc } from '@/lib/imageVariants/manifest'
+import { buildSrcSet } from '@/lib/imageVariants/manifest'
 import { normalizeCakeType } from '@/lib/utils/cakeType'
 import { buildPerDesignReviewSummary, buildReviewSummary, getThemedReviewsForSlug, getSourceSubtitle, getReviewDisplayName, getExactReviewsForSchema, type ThemedReview } from '@/lib/reviews'
 import { ReviewCard } from '@/components/ReviewsDisplay'
@@ -38,6 +38,7 @@ import {
     FALLBACK_MIN_PRICE,
 } from './metadataHelpers'
 import { buildCakeTitle, extractTitleInputFromAnalysis, extractDesignCodeFromSlug, CAKE_TITLE_BUDGET } from '@/lib/seo/cakeTitle'
+import { buildLicensedImageObject, getPublicCrawlerImageManifest, isPublicHttpImageUrl, selectCrawlerImage } from '@/lib/seo/crawlerImage'
 
 const CAKE_TYPE_THICKNESS_MAP: Record<string, CakeThickness> = {
     '1 Tier': '4 in', '2 Tier': '4 in', '3 Tier': '4 in',
@@ -73,33 +74,6 @@ const withPreferredHeroImage = <T extends DesignWithHeroImageUrls>(design: T): T
         design.original_image_url,
     ),
 });
-
-const getCanonicalCrawlerImage = (design: {
-    image_variants?: unknown;
-    original_image_url?: string | null;
-    image_width?: number | null;
-    image_height?: number | null;
-}) => {
-    const manifest = parseManifest(design.image_variants);
-    const imageUrl = pickFallbackSrc(manifest, 1200) ?? design.original_image_url ?? null;
-    const selectedVariant = imageUrl && manifest
-        ? manifest.variants.find((variant) => variant.url === imageUrl) ?? null
-        : null;
-
-    if (selectedVariant && design.image_width && design.image_height) {
-        return {
-            url: imageUrl,
-            width: selectedVariant.width,
-            height: Math.round(selectedVariant.width * (design.image_height / design.image_width)),
-        };
-    }
-
-    return {
-        url: imageUrl,
-        width: design.image_width ?? null,
-        height: design.image_height ?? null,
-    };
-};
 
 const getImageSearchAltText = (design: unknown): string => {
     const altText = generateRichAltText(design);
@@ -381,7 +355,7 @@ export async function generateMetadata(
     const description = optimizeMetaDescription(rawDescription);
 
     const canonicalUrl = `https://genie.ph/customizing/${slug}`
-    const crawlerImage = getCanonicalCrawlerImage(design);
+    const crawlerImage = selectCrawlerImage(design);
     const imageAltText = getImageSearchAltText(design);
     const metadataImages = crawlerImage.url ? [
         {
@@ -499,7 +473,7 @@ export function DesignSchema({
     // falling back to the original). After the slug-based variant re-path this URL
     // is keyword-rich, so the embedded image, JSON-LD, and sitemap all agree on one
     // descriptive URL — the key signal for Google Images.
-    const crawlerImage = getCanonicalCrawlerImage(design);
+    const crawlerImage = selectCrawlerImage(design);
     const imageUrl = crawlerImage.url;
     const imageDims = { width: crawlerImage.width, height: crawlerImage.height };
     const imageAltText = getImageSearchAltText(design);
@@ -509,39 +483,14 @@ export function DesignSchema({
     const schemaDescription = pageDescription || resolveRichDescription(design, prices);
     const sanitizedDesc = sanitize(schemaDescription);
 
-    // Detect MIME type from URL extension — 82% of stored images are .jpg (JPEG),
-    // the remainder are .webp. Hardcoding 'image/webp' was incorrect for most pages.
-    const detectMimeType = (url: string): string => {
-        const path = url.split('?')[0].toLowerCase();
-        if (path.endsWith('.webp')) return 'image/webp';
-        if (path.endsWith('.png')) return 'image/png';
-        return 'image/jpeg'; // .jpg / .jpeg / fallback
-    };
-
-    // ImageObject for better image indexing — includes licensing metadata for Google Images "Licensable" badge
-    const imageObject = imageUrl ? {
-        '@type': 'ImageObject',
+    const imageObject = imageUrl ? buildLicensedImageObject({
         url: imageUrl,
-        contentUrl: imageUrl,
-        ...(imageDims.width && { width: imageDims.width }),
-        ...(imageDims.height && { height: imageDims.height }),
-        encodingFormat: detectMimeType(imageUrl),
+        width: imageDims.width,
+        height: imageDims.height,
         name: sanitize(imageAltText),
         caption: sanitizedDesc,
-        creditText: 'Genie.ph',
-        creator: {
-            '@type': 'Organization',
-            name: 'Genie.ph'
-        },
-        copyrightHolder: {
-            '@type': 'Organization',
-            name: 'Genie.ph'
-        },
-        license: 'https://genie.ph/terms',
-        acquireLicensePage: 'https://genie.ph/terms#image-licensing',
-        copyrightNotice: '© ' + new Date().getFullYear() + ' Genie.ph',
-        representativeOfPage: false
-    } : null;
+        representativeOfPage: true,
+    }) : null;
 
     const shippingDetails = buildOfferShippingDetails();
 
@@ -601,13 +550,15 @@ export function DesignSchema({
 
     // Build a second ImageObject when a customized variant exists
     const customizedImageUrl = design.customized_image_url;
-    const customizedImageObject = (customizedImageUrl && customizedImageUrl !== imageUrl) ? {
-        '@type': 'ImageObject',
+    const customizedImageObject = (
+        isPublicHttpImageUrl(customizedImageUrl)
+        && customizedImageUrl.trim() !== imageUrl
+    ) ? buildLicensedImageObject({
         url: customizedImageUrl,
-        contentUrl: customizedImageUrl,
         name: sanitize(`Customized ${title}`),
-        creditText: 'Genie.ph',
-    } : null;
+        caption: sanitizedDesc,
+        representativeOfPage: false,
+    }) : null;
 
     // Use array when both original + customized images are available
     const schemaImage = imageObject && customizedImageObject
@@ -880,14 +831,14 @@ function SSRCakeDetails({
                     // When `image_variants` is NULL/malformed, parseManifest
                     // returns null and the renderer falls back to the original
                     // URL with no <source srcset> (Req 5.2).
-                    const heroManifest = parseManifest(design.image_variants);
-                    const heroSrc = pickFallbackSrc(heroManifest, 1200) ?? design.original_image_url;
+                    const heroManifest = getPublicCrawlerImageManifest(design.image_variants);
+                    const heroSrc = selectCrawlerImage(design).url;
                     const heroSrcSet = heroManifest ? buildSrcSet(heroManifest) : '';
                     const heroSizes = '(max-width: 640px) 92vw, (max-width: 1024px) 60vw, 800px';
 
                     return (
                         <figure className="relative w-full aspect-square bg-slate-100">
-                            <LazyImage
+                            {heroSrc && <LazyImage
                                 src={heroSrc}
                                 alt={altText}
                                 title={altText}
@@ -898,14 +849,14 @@ function SSRCakeDetails({
                                 variants={heroManifest}
                                 priority
                                 fetchPriority="high"
-                            />
+                            />}
                             <figcaption className="absolute bottom-0 left-0 right-0 text-xs text-slate-500 p-3 text-center bg-white/50 backdrop-blur-sm">
                                 {altText} — {captionText}
                             </figcaption>
                             {/* Noscript fallback for non-JS crawlers. Includes
                                 srcset so even crawlers that honor responsive
                                 images get the variants. */}
-                            <noscript>
+                            {heroSrc && <noscript>
                                 <img
                                     src={heroSrc}
                                     {...(heroSrcSet ? { srcSet: heroSrcSet, sizes: heroSizes } : {})}
@@ -915,7 +866,7 @@ function SSRCakeDetails({
                                     style={{ width: '100%', height: 'auto' }}
                                     loading="eager"
                                 />
-                            </noscript>
+                            </noscript>}
                         </figure>
                     );
                 })()}
@@ -1166,17 +1117,24 @@ function SSRDesignContent({
     description,
     faqs,
     themedReviews,
+    prices,
+    themeCollection,
 }: {
     design: any;
     description: string;
     faqs: { question: string; answer: string }[];
     themedReviews?: ThemedReview[];
+    prices?: BasePriceInfo[];
+    themeCollection?: { slug: string; name: string; item_count: number } | null;
 }) {
     const designDetails = description;
     const dynamicFAQs = faqs;
     const keywords = design.keywords || 'Custom';
     const tags = design.tags || [];
     const analysis = design.analysis_json || {};
+    const startingPrice = prices?.length
+        ? Math.min(...prices.map((price) => Number(price.price)).filter(Number.isFinite))
+        : Number(design.price) || null;
 
     return (
         <div className="w-full pb-4 pt-1 space-y-1">
@@ -1221,6 +1179,26 @@ function SSRDesignContent({
                                 <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Icing Finish</th>
                                 <td className="px-4 py-2 text-slate-600">{analysis.icing_design?.base?.replace(/_/g, ' ') || 'Standard Icing'}</td>
                             </tr>
+                            <tr className="bg-white">
+                                <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Cebu Ordering</th>
+                                <td className="px-4 py-2 text-slate-600">
+                                    Available for customization with Metro Cebu delivery or pickup options.
+                                    {startingPrice ? ` Starting prices begin at ₱${Math.round(startingPrice).toLocaleString()}.` : ''}
+                                </td>
+                            </tr>
+                            {themeCollection && (
+                                <tr className="bg-slate-50">
+                                    <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">More Designs</th>
+                                    <td className="px-4 py-2 text-slate-600">
+                                        <Link
+                                            href={`/collections/${themeCollection.slug}`}
+                                            className="font-semibold text-purple-700 hover:text-purple-900 hover:underline"
+                                        >
+                                            Browse {themeCollection.item_count.toLocaleString()} {themeCollection.name.toLowerCase()} designs
+                                        </Link>
+                                    </td>
+                                </tr>
+                            )}
                             {analysis.main_toppers?.length > 0 && (
                                 <tr className="bg-white">
                                     <th className="px-4 py-2 font-semibold text-slate-700 w-1/3">Primary Features</th>
@@ -1243,13 +1221,12 @@ function SSRDesignContent({
                                     <td className="px-4 py-2 text-slate-600">
                                         <div className="flex flex-wrap gap-1.5">
                                             {tags.map((tag: string, index: number) => (
-                                                <a
+                                                <span
                                                     key={`${tag}-${index}`}
-                                                    href={`/search?q=${encodeURIComponent(tag)}`}
-                                                    className="text-purple-600 hover:text-purple-800 hover:underline transition-colors"
+                                                    className="text-slate-600"
                                                 >
                                                     {tag}{index < tags.length - 1 ? ',' : ''}
-                                                </a>
+                                                </span>
                                             ))}
                                         </div>
                                     </td>
@@ -1401,11 +1378,20 @@ export default async function RecentSearchPage({ params }: Props) {
     let prices: BasePriceInfo[] = [];
     const relatedDesigns: any[] = [];
     const linkedMerchantProducts: LinkedMerchantProduct[] = [];
-    const themeCollection: { slug: string; name: string; item_count: number } | null = null;
-    try {
-        prices = await getLowestCakeBasePriceOptions(seoCakeType);
-    } catch (e) {
-        console.error('Error fetching SEO prices:', e);
+    let themeCollection: { slug: string; name: string; item_count: number } | null = null;
+    const [pricesResult, collectionResult] = await Promise.allSettled([
+        getLowestCakeBasePriceOptions(seoCakeType),
+        getCollectionForDesignKeyword(design.keywords),
+    ]);
+    if (pricesResult.status === 'fulfilled') {
+        prices = pricesResult.value;
+    } else {
+        console.error('Error fetching SEO prices:', pricesResult.reason);
+    }
+    if (collectionResult.status === 'fulfilled') {
+        themeCollection = collectionResult.value.data;
+    } else {
+        console.error('Error fetching theme collection:', collectionResult.reason);
     }
 
     prices = alignPriceOptionsToStartingPrice(prices, design.price ?? null);
@@ -1520,10 +1506,10 @@ export default async function RecentSearchPage({ params }: Props) {
         initialState = mapProductToDefaultState(undefined, prices);
     }
 
-    const heroPreloadManifest = parseManifest(design.image_variants);
+    const heroPreloadManifest = getPublicCrawlerImageManifest(design.image_variants);
     const heroPreloadSrcSet = heroPreloadManifest ? buildSrcSet(heroPreloadManifest) : '';
     const heroPreloadSizes = '(max-width: 768px) 100vw, 50vw';
-    const heroPreloadHref = pickFallbackSrc(heroPreloadManifest, 1200) ?? design.original_image_url;
+    const heroPreloadHref = selectCrawlerImage(design).url;
 
     return (
         <>
@@ -1546,7 +1532,7 @@ export default async function RecentSearchPage({ params }: Props) {
                 instead of downloading the original full-size upload, while the
                 href fallback still points at the exact stored hero URL when a
                 row has no valid variant manifest. */}
-            {design.original_image_url && (
+            {heroPreloadHref && (
                 <link
                     rel="preload"
                     as="image"
@@ -1566,22 +1552,9 @@ export default async function RecentSearchPage({ params }: Props) {
                 themeCollection={themeCollection}
             />
 
-            {/*
-              CLS fix: hide the SSR-only block synchronously during HTML parse,
-              before first paint, instead of waiting for the client useEffect
-              (which fires after hydration and yanks the whole client UI up by
-              the SSR block's height — a ~0.9 CLS shift).
-              SEO-neutral: the content is still present in the HTML source for
-              crawlers, and JS-rendering bots end up with display:none either
-              way. No-JS users keep seeing it (script never runs).
-              CustomizingClient's useEffect still runs as a redundant fallback.
-            */}
-            <script
-                dangerouslySetInnerHTML={{
-                    __html: "(function(){var e=document.getElementById('ssr-content');if(e){e.style.display='none';}})();",
-                }}
-            />
-
+            {/* Keep the fully rendered crawler card visible while the large
+                interactive client boundary streams. CustomizingClient swaps it
+                out in a pre-paint layout effect once hydration is ready. */}
             <Suspense fallback={<div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>}>
                 <CustomizationProvider initialData={initialState}>
                     <CustomizingClient
@@ -1591,7 +1564,16 @@ export default async function RecentSearchPage({ params }: Props) {
                         currentKeywords={design.keywords}
                         currentSlug={slug}
                         initialCaption={captionText}
-                        postEditorSlot={<SSRDesignContent design={design} description={pageContent.description} faqs={dynamicFAQs} themedReviews={themedReviews} />}
+                        postEditorSlot={(
+                            <SSRDesignContent
+                                design={design}
+                                description={pageContent.description}
+                                faqs={dynamicFAQs}
+                                themedReviews={themedReviews}
+                                prices={prices}
+                                themeCollection={themeCollection}
+                            />
+                        )}
                         hideAiChat={false}
                         enableMobileHeroPan={true}
                         reviewSummary={displayReviewSummary}

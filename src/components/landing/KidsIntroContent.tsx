@@ -20,12 +20,12 @@ function FaqItem({ question, answer }: FaqItemProps) {
 
 export function KidsIntroContent() {
   const categories = [
-    { label: 'Dinosaur Cakes', href: '/search?q=dinosaur%20cake' },
-    { label: 'Princess Cakes', href: '/search?q=princess%20cake' },
-    { label: 'Superhero Cakes', href: '/search?q=superhero%20cake' },
-    { label: 'Cocomelon Cakes', href: '/search?q=cocomelon%20cake' },
-    { label: 'Cartoon Cakes', href: '/search?q=character%20cake' },
-    { label: 'Toy Story Cakes', href: '/search?q=toy%20story%20cake' },
+    { label: 'Dinosaur Cakes', href: '/collections/dinosaurs-cake' },
+    { label: 'Princess Cakes', href: '/collections/princess-cake' },
+    { label: 'Superhero Cakes', href: '/collections' },
+    { label: 'Cocomelon Cakes', href: '/collections/cocomelon-cake' },
+    { label: 'Cartoon Cakes', href: '/collections' },
+    { label: 'Toy Story Cakes', href: '/collections/toy-story-cake' },
   ];
 
   const pricingCards = [

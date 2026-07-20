@@ -166,17 +166,17 @@ function KidsPartySchema() {
           {
             '@type': 'CreativeWork',
             name: 'Dinosaur Cakes',
-            url: 'https://genie.ph/search?q=dinosaur%20cake',
+            url: 'https://genie.ph/collections/dinosaurs-cake',
           },
           {
             '@type': 'CreativeWork',
             name: 'Princess Cakes',
-            url: 'https://genie.ph/search?q=princess%20cake',
+            url: 'https://genie.ph/collections/princess-cake',
           },
           {
             '@type': 'CreativeWork',
             name: 'Superhero Cakes',
-            url: 'https://genie.ph/search?q=superhero%20cake',
+            url: 'https://genie.ph/collections',
           },
         ],
       },

@@ -137,13 +137,12 @@ export const CustomizingSupplementalContent = React.memo(({
                                 <h3 className="text-xs font-medium text-slate-500 mb-2">Related Tags</h3>
                                 <div className="flex flex-wrap gap-2">
                                     {product.tags?.map((tag, index) => (
-                                        <a
+                                        <span
                                             key={`${tag}-${index}`}
-                                            href={`/search?q=${encodeURIComponent(tag)}`}
-                                            className="px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-full hover:bg-purple-100 hover:text-purple-700 transition-colors cursor-pointer"
+                                            className="px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-full"
                                         >
                                             {tag}
-                                        </a>
+                                        </span>
                                     ))}
                                 </div>
                             </div>

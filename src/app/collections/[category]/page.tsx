@@ -6,10 +6,16 @@ import { getAI } from '@/lib/ai/client'
 import { generateDynamicCollectionDescription } from '@/utils/designContentUtils'
 import { cache } from 'react'
 import { buildFAQPageSchema } from '@/lib/seo/schema'
+import { buildLicensedImageObject, getPublicCrawlerImageManifest, selectCrawlerImage } from '@/lib/seo/crawlerImage'
+import {
+    PRIORITY_COLLECTION_SEO,
+    resolvePriorityCollectionSlug,
+} from '@/lib/seo/priorityCollections'
 
 export const revalidate = 3600; // ISR: revalidate every hour
 
 const COLLECTION_SEO_FALLBACKS: Record<string, { description: string; keywords: string[] }> = {
+    ...PRIORITY_COLLECTION_SEO,
     'pickleball-cake': {
         description: 'Browse pickleball cake designs with paddles, courts, balls, and sporty birthday details. Perfect for pickleball lovers, club parties, and tournament celebrations. Get instant pricing and order custom pickleball cakes on Genie.ph.',
         keywords: [
@@ -26,7 +32,10 @@ const COLLECTION_SEO_FALLBACKS: Record<string, { description: string; keywords: 
 
 type Props = {
     params: Promise<{ category: string }>
+    searchParams?: Promise<{ page?: string | string[] }>
 }
+
+export const COLLECTION_PAGE_SIZE = 30;
 
 type CategoryDesign = NonNullable<Awaited<ReturnType<typeof getDesignsByKeyword>>['data']>[number];
 
@@ -52,6 +61,17 @@ function humanizeSlug(slug: string): string {
         .split('-')
         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
+}
+
+export function parseCollectionPage(value: string | string[] | undefined): number {
+    const rawValue = Array.isArray(value) ? value[0] : value;
+    const parsed = Number.parseInt(rawValue || '1', 10);
+    return Number.isFinite(parsed) && parsed >= 1 ? parsed : 1;
+}
+
+function buildCollectionPageUrl(category: string, page: number): string {
+    const baseUrl = `https://genie.ph/collections/${category}`;
+    return page <= 1 ? baseUrl : `${baseUrl}?page=${page}`;
 }
 
 function normalizeWhitespace(value: string): string {
@@ -89,6 +109,12 @@ function buildCollectionHeading(label: string): string {
 
 function buildCollectionMetaTitle(label: string): string {
     return `${buildCollectionHeading(label)} in Cebu | Genie.ph`;
+}
+
+function buildPaginatedCollectionMetaTitle(label: string, page: number): string {
+    return page <= 1
+        ? buildCollectionMetaTitle(label)
+        : `${buildCollectionHeading(label)} in Cebu - Page ${page} | Genie.ph`;
 }
 
 function extractTagHighlights(tags?: string[] | null): string[] {
@@ -191,6 +217,11 @@ function buildCollectionFaqItems(readableTitle: string) {
     ];
 }
 
+function selectCollectionCrawlerImage(collection: CollectionRecord | null, design?: CategoryDesign | null) {
+    const sampleImage = selectCrawlerImage({ original_image_url: collection?.sample_image });
+    return sampleImage.url ? sampleImage : selectCrawlerImage(design || {});
+}
+
 const getCachedCollectionDescription = cache(async (category: string, title: string, collection: CollectionRecord | null) => {
     let description = collection?.description || COLLECTION_SEO_FALLBACKS[category]?.description || null;
 
@@ -221,27 +252,30 @@ const getCachedCollectionDescription = cache(async (category: string, title: str
 });
 
 export async function generateMetadata(
-    { params }: Props
+    { params, searchParams }: Props
 ): Promise<Metadata> {
     const { category } = await params
-    const { data: collection } = await getCollectionBySlug(category);
+    const requestedCategory = resolvePriorityCollectionSlug(category);
+    const page = parseCollectionPage((await searchParams)?.page);
+    const { data: collection } = await getCollectionBySlug(requestedCategory);
     if (collection && !isPublishedCollection(collection)) {
         return {
             title: { absolute: 'Cake Collection | Genie.ph' },
             robots: { index: false, follow: false },
         };
     }
-    const canonicalCategory = collection?.slug || category;
+    const canonicalCategory = collection?.slug || requestedCategory;
     const title = collection?.name || humanizeSlug(category);
     const resolvedDesc = await getCachedCollectionDescription(category, title, collection);
     const description = buildCollectionMetaDescription(collection, title, category, resolvedDesc);
 
     const { data: designs } = await getDesignsByKeyword(canonicalCategory, 1);
-    const ogImage = collection?.sample_image || designs?.[0]?.original_image_url;
+    const ogImage = selectCollectionCrawlerImage(collection, designs?.[0]);
     const collectionHeading = buildCollectionHeading(title);
+    const pageUrl = buildCollectionPageUrl(canonicalCategory, page);
 
     return {
-        title: { absolute: buildCollectionMetaTitle(title) },
+        title: { absolute: buildPaginatedCollectionMetaTitle(title, page) },
         description,
         keywords: buildCollectionKeywords(title, category, collection?.tags),
         robots: {
@@ -257,33 +291,33 @@ export async function generateMetadata(
         },
         category: 'Cake Design Collections',
         alternates: {
-            canonical: `https://genie.ph/collections/${canonicalCategory}`,
+            canonical: pageUrl,
         },
         openGraph: {
-            title: buildCollectionMetaTitle(title),
+            title: buildPaginatedCollectionMetaTitle(title, page),
             description,
-            url: `https://genie.ph/collections/${canonicalCategory}`,
+            url: pageUrl,
             type: 'website',
             siteName: 'Genie.ph',
             locale: 'en_PH',
-            ...(ogImage ? {
+            ...(ogImage.url ? {
                 images: [{
-                    url: ogImage,
-                    width: 1200,
-                    height: 630,
+                    url: ogImage.url,
+                    width: ogImage.width || 1200,
+                    height: ogImage.height || 1200,
                     alt: `${collectionHeading} on Genie.ph`,
                 }],
             } : {}),
         },
         twitter: {
             card: 'summary_large_image',
-            title: buildCollectionMetaTitle(title),
+            title: buildPaginatedCollectionMetaTitle(title, page),
             description,
-            ...(ogImage ? {
+            ...(ogImage.url ? {
                 images: [{
-                    url: ogImage,
-                    width: 1200,
-                    height: 630,
+                    url: ogImage.url,
+                    width: ogImage.width || 1200,
+                    height: ogImage.height || 1200,
                     alt: `${collectionHeading} on Genie.ph`,
                 }],
             } : {}),
@@ -299,9 +333,19 @@ export async function generateStaticParams() {
         .map((collection) => ({ category: collection.slug }));
 }
 
-export default async function CategoryPage({ params }: Props) {
+export default async function CategoryPage({ params, searchParams }: Props) {
     const { category } = await params
-    const { data: collection } = await getCollectionBySlug(category);
+    const requestedCategory = resolvePriorityCollectionSlug(category);
+    const currentPage = parseCollectionPage((await searchParams)?.page);
+
+    if (requestedCategory !== category) {
+        const destination = currentPage <= 1
+            ? `/collections/${requestedCategory}`
+            : `/collections/${requestedCategory}?page=${currentPage}`;
+        permanentRedirect(destination);
+    }
+
+    const { data: collection } = await getCollectionBySlug(requestedCategory);
 
     if (collection && !isPublishedCollection(collection)) {
         return notFound();
@@ -317,15 +361,40 @@ export default async function CategoryPage({ params }: Props) {
     const pageDescription = buildCollectionMetaDescription(collection, readableTitle, category, resolvedDesc);
     const collectionHeading = buildCollectionHeading(readableTitle);
     const tagHighlights = extractTagHighlights(collection?.tags);
-    const { data: designs } = await getDesignsByKeyword(canonicalCategory, 30);
+    const totalDesignCount = collection?.item_count || 0;
+    const totalPages = Math.max(1, Math.ceil(totalDesignCount / COLLECTION_PAGE_SIZE));
+    if (currentPage > totalPages) {
+        return notFound();
+    }
+    const pageOffset = (currentPage - 1) * COLLECTION_PAGE_SIZE;
+    const { data: rawDesigns } = await getDesignsByKeyword(canonicalCategory, COLLECTION_PAGE_SIZE, pageOffset);
+    const designs = (rawDesigns || []).map((design) => {
+        const image = selectCrawlerImage(design);
+        return {
+            ...design,
+            original_image_url: image.url,
+            studio_edited_image_url: null,
+            image_variants: getPublicCrawlerImageManifest(design.image_variants),
+        };
+    }).filter((design) => Boolean(design.original_image_url));
 
-    if (!designs || designs.length === 0) {
+    if (designs.length === 0) {
         return notFound();
     }
 
-    const pageUrl = `https://genie.ph/collections/${canonicalCategory}`;
+    const pageUrl = buildCollectionPageUrl(canonicalCategory, currentPage);
     const topDesigns = designs.slice(0, 12);
     const faqSchema = buildFAQPageSchema(buildCollectionFaqItems(readableTitle), pageUrl);
+
+    const primaryImage = selectCollectionCrawlerImage(collection, designs[0]);
+    const primaryImageObject = primaryImage.url ? buildLicensedImageObject({
+        url: primaryImage.url,
+        width: primaryImage.width,
+        height: primaryImage.height,
+        name: collectionHeading,
+        caption: pageDescription,
+        representativeOfPage: true,
+    }) : null;
 
     const jsonLd = [
         {
@@ -341,15 +410,7 @@ export default async function CategoryPage({ params }: Props) {
                 ? `${normalizeCollectionBaseName(readableTitle)} cake designs for Cebu celebrations featuring ${tagHighlights.join(', ')}.`
                 : `${normalizeCollectionBaseName(readableTitle)} cake designs available for customization and ordering in Cebu, Philippines.`,
             mainEntity: { '@id': `${pageUrl}#itemlist` },
-            ...(collection?.sample_image || designs[0]?.original_image_url
-                ? {
-                    primaryImageOfPage: {
-                        '@type': 'ImageObject',
-                        url: collection?.sample_image || designs[0]?.original_image_url,
-                        representativeOfPage: true,
-                    },
-                }
-                : {}),
+            ...(primaryImageObject ? { primaryImageOfPage: primaryImageObject } : {}),
         },
         {
             '@context': 'https://schema.org',
@@ -357,14 +418,26 @@ export default async function CategoryPage({ params }: Props) {
             '@id': `${pageUrl}#itemlist`,
             name: collectionHeading,
             itemListOrder: 'https://schema.org/ItemListOrderAscending',
-            numberOfItems: designs.length,
-            itemListElement: topDesigns.map((design: CategoryDesign, index: number) => ({
-                '@type': 'ListItem',
-                position: index + 1,
-                url: `https://genie.ph/customizing/${design.slug}`,
-                name: buildItemListName(design, readableTitle),
-                ...(design.original_image_url ? { image: design.original_image_url } : {}),
-            })),
+            numberOfItems: totalDesignCount || designs.length,
+            itemListElement: topDesigns.map((design: CategoryDesign, index: number) => {
+                const image = selectCrawlerImage(design);
+                const imageObject = image.url ? buildLicensedImageObject({
+                    url: image.url,
+                    width: image.width,
+                    height: image.height,
+                    name: buildItemListName(design, readableTitle),
+                    caption: design.alt_text || `${buildItemListName(design, readableTitle)} available in Cebu.`,
+                    representativeOfPage: false,
+                }) : null;
+
+                return {
+                    '@type': 'ListItem',
+                    position: pageOffset + index + 1,
+                    url: `https://genie.ph/customizing/${design.slug}`,
+                    name: buildItemListName(design, readableTitle),
+                    ...(imageObject ? { image: imageObject } : {}),
+                };
+            }),
         },
         {
             '@context': 'https://schema.org',
@@ -397,6 +470,9 @@ export default async function CategoryPage({ params }: Props) {
                 heading={collectionHeading}
                 intro={pageDescription}
                 tagHighlights={tagHighlights}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                basePath={`/collections/${canonicalCategory}`}
             />
         </>
     )

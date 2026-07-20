@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getIndexableCustomizedCakeRows } from "@/lib/sitemap/indexability";
+import { isPublicHttpImageUrl } from "@/lib/seo/crawlerImage";
 
 export const dynamic = "force-dynamic";
 
@@ -12,15 +13,15 @@ const LICENSE_URL = "https://genie.ph/terms";
  * Strips query params from Supabase storage URLs and XML-escapes all others.
  */
 const sanitizeUrl = (url: string | null | undefined): string => {
-  if (!url || url.startsWith("data:")) return "";
+  if (!isPublicHttpImageUrl(url)) return "";
   try {
-    const parsed = new URL(url);
+    const parsed = new URL(url.trim());
     if (parsed.hostname.includes("supabase")) {
       return `${parsed.origin}${parsed.pathname}`;
     }
-    return escapeXml(url);
+    return escapeXml(url.trim());
   } catch {
-    return url ? escapeXml(url) : "";
+    return "";
   }
 };
 
@@ -80,6 +81,38 @@ type BlogImageSitemapRow = {
   image: string | null;
   excerpt: string | null;
 };
+
+type CollectionImageSitemapRow = {
+  slug: string;
+  name: string;
+  description: string | null;
+  tags: string[] | null;
+  sample_image: string | null;
+  item_count: number;
+  publication_status: string;
+  is_indexable: boolean;
+};
+
+const PRIORITY_IMAGE_COLLECTIONS = new Set([
+  "bento-cake",
+  "katseye-cake",
+  "kuromi-cake",
+  "minecraft-cake",
+  "graduation-cake",
+  "debut-cake",
+  "30th-birthday-cake",
+  "senior-cake",
+]);
+
+const GENERIC_COLLECTION_TERMS = new Set([
+  "cake",
+  "cakes",
+  "custom cake",
+  "birthday",
+  "birthday cake",
+  "cebu",
+  "genie.ph",
+]);
 
 function getMerchantSlug(
   value: ProductImageSitemapRow["merchant"],
@@ -219,7 +252,11 @@ export async function GET() {
   // Each collection page gets its top design images in the image sitemap
   const { data: collections } = await supabase
     .from("cakegenie_collections")
-    .select("slug, name, description");
+    .select("slug, name, description, tags, sample_image, item_count, publication_status, is_indexable")
+    .eq("publication_status", "published")
+    .eq("is_indexable", true)
+    .gte("item_count", 8)
+    .returns<CollectionImageSitemapRow[]>();
 
   const collectionEntries: string[] = [];
   if (collections && collections.length > 0) {
@@ -236,14 +273,20 @@ export async function GET() {
         .toLowerCase()
         .replace(/-/g, " ");
       const colSlugName = (col.slug || "").replace(/-/g, " ");
+      const collectionTerms = [
+        colName,
+        colSlugName,
+        ...(col.tags || []).map((tag) => tag.toLowerCase()),
+      ].filter((term) => term.length >= 3 && !GENERIC_COLLECTION_TERMS.has(term));
+      const imageLimit = PRIORITY_IMAGE_COLLECTIONS.has(col.slug) ? 12 : 5;
 
-      // Find up to 5 designs that match this collection's slug/name in keywords
+      // Find public images that match this collection's slug, name, or curated tags.
       const matchingDesigns = [];
       for (let i = 0; i < processedItems.length; i++) {
         const { item, searchKw } = processedItems[i];
-        if (searchKw.includes(colName) || searchKw.includes(colSlugName)) {
+        if (collectionTerms.some((term) => searchKw.includes(term))) {
           matchingDesigns.push(item);
-          if (matchingDesigns.length >= 5) break; // Break early once we have 5 matches
+          if (matchingDesigns.length >= imageLimit) break;
         }
       }
 

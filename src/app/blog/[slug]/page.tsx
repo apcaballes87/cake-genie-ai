@@ -16,6 +16,7 @@ import {
   splitBlogContentByShowcasePlaceholders,
 } from '@/components/blog/getBlogDesignShowcase';
 import { SUPPORT_PAGE_PATHS } from '@/lib/seo/publicOrderFacts';
+import { selectCrawlerImage } from '@/lib/seo/crawlerImage';
 
 export const revalidate = 3600; // Rebuild cached post pages every 1 hour
 
@@ -74,6 +75,7 @@ export async function generateMetadata({
   }
 
   const pageTitle = post.title.includes('Genie.ph') ? post.title : `${post.title} | Genie.ph`;
+  const featuredImage = selectCrawlerImage({ original_image_url: post.image });
 
   const keywords = post.keywords ? post.keywords.split(',').map((k: string) => k.trim()).filter(Boolean) : [];
 
@@ -92,13 +94,13 @@ export async function generateMetadata({
       modifiedTime: getBlogModifiedTime(post) || undefined,
       authors: [post.author],
       tags: keywords.length > 0 ? keywords : undefined,
-      images: post.image ? [{ url: post.image, width: 1200, height: 630, alt: post.title }] : [],
+      images: featuredImage.url ? [{ url: featuredImage.url, width: featuredImage.width || 1200, height: featuredImage.height || 630, alt: post.title }] : [],
     },
     twitter: {
       card: 'summary_large_image',
       title: post.title,
       description: post.excerpt,
-      images: post.image ? [{ url: post.image, width: 1200, height: 630, alt: post.title }] : [],
+      images: featuredImage.url ? [{ url: featuredImage.url, width: featuredImage.width || 1200, height: featuredImage.height || 630, alt: post.title }] : [],
     },
   };
 }
@@ -112,6 +114,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   }
 
   const showcaseConfigs = getBlogDesignShowcaseConfigs(post);
+  const featuredImage = selectCrawlerImage({ original_image_url: post.image });
   const contentSegments = splitBlogContentByShowcasePlaceholders(post.content);
 
   let relatedDesigns: BlogRelatedProduct[] = [];
@@ -166,7 +169,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         dateModified={getBlogModifiedTime(post) || post.date}
         authorName={post.author}
         authorUrl={post.author_url}
-        image={post.image}
+        image={featuredImage.url || undefined}
         imageWidth={post.image ? 1200 : undefined}
         imageHeight={post.image ? 630 : undefined}
         imageAlt={post.title}
@@ -204,18 +207,20 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         </header>
 
         {/* Featured Image */}
-        {post.image && (
+        {featuredImage.url && (
           <figure className="mb-8">
-            <LazyImage
-              src={post.image}
-              alt={post.title}
-              width={1200}
-              height={630}
-              sizes="(max-width: 768px) 100vw, 768px"
-              priority
-              className="w-full rounded-xl shadow-md"
-              imageClassName="h-auto w-full rounded-xl"
-            />
+            <div className="relative aspect-[40/21] overflow-hidden rounded-xl bg-slate-100 shadow-md">
+              <LazyImage
+                src={featuredImage.url}
+                alt={post.title}
+                fill
+                sizes="(max-width: 768px) 100vw, 768px"
+                priority
+                fetchPriority="high"
+                className="rounded-xl"
+                imageClassName="object-cover rounded-xl"
+              />
+            </div>
             <figcaption className="mt-2 text-sm text-gray-500">
               {post.title}
             </figcaption>

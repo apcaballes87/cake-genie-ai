@@ -21,6 +21,7 @@ import { ColdCakingFAQ } from './ColdCakingFAQ';
 import { ColdCakingPhotoStep } from './ColdCakingPhotoStep';
 import { ColdCakingCorporate } from './ColdCakingCorporate';
 import MobileBottomNav from '@/components/MobileBottomNav';
+import { getCuratedCollectionHref } from '@/lib/seo/collectionLinks';
 
 const ImageUploader = dynamic(
     () => import('@/components/ImageUploader').then((mod) => mod.ImageUploader),
@@ -739,7 +740,7 @@ const ColdCakingClient: React.FC = () => {
                                 {categoriesList.map((cat) => (
                                     <Link
                                         key={cat.id}
-                                        href={`/search?q=${encodeURIComponent(cat.name)}`}
+                                        href={getCuratedCollectionHref(cat.name)}
                                         onClick={() => setIsMenuOpen(false)}
                                         className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-purple-50 hover:text-purple-700 transition-colors text-[14px] font-medium"
                                     >

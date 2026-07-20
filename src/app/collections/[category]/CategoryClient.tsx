@@ -13,8 +13,10 @@ interface Design {
     slug: string;
     p_hash: string;
     original_image_url: string;
+    studio_edited_image_url?: string | null;
     price: number | null;
-    keywords: string | string[];
+    keywords: string;
+    alt_text?: string | null;
     availability?: string | null;
     analysis_json?: {
         cakeType?: string;
@@ -23,6 +25,7 @@ interface Design {
     };
     image_width?: number | null;
     image_height?: number | null;
+    image_variants?: unknown;
 }
 
 interface CategoryClientProps {
@@ -35,6 +38,9 @@ interface CategoryClientProps {
     heading: string;
     intro: string;
     tagHighlights: string[];
+    currentPage: number;
+    totalPages: number;
+    basePath: string;
 }
 
 function buildFaqItems(readableTitle: string) {
@@ -66,6 +72,9 @@ const CategoryClient: React.FC<CategoryClientProps> = ({
     heading,
     intro,
     tagHighlights,
+    currentPage,
+    totalPages,
+    basePath,
 }) => {
     const router = useRouter();
     const { itemCount } = useCart();
@@ -166,7 +175,14 @@ const CategoryClient: React.FC<CategoryClientProps> = ({
                     )}
                 </header>
 
-                <DesignGridWithLoadMore initialDesigns={designs} keyword={keyword} collectionTitle={readableTitle} />
+                <DesignGridWithLoadMore
+                    initialDesigns={designs}
+                    keyword={keyword}
+                    collectionTitle={readableTitle}
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    basePath={basePath}
+                />
 
                 <section className="mt-16 border-t border-slate-200 pt-10">
                     <div className="max-w-5xl grid gap-8 lg:grid-cols-[1.4fr_1fr]">

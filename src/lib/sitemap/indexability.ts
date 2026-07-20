@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
+import { unstable_cache } from 'next/cache'
 import { upgradeLegacySlug } from '@/lib/utils/urlHelpers'
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase/env'
-import { parseManifest, pickFallbackSrc } from '@/lib/imageVariants/manifest'
+import { selectCrawlerImage } from '@/lib/seo/crawlerImage'
 
 export const SITEMAP_CHUNK_SIZE = 1000
 export const CUSTOMIZING_SITEMAP_MIN_AGE_DAYS = 2
@@ -65,6 +66,11 @@ export type SitemapChunkHints = {
   customizedLastMod: string
   sharedDesignChunkCount: number
   sharedDesignLastMod: string
+}
+
+export type SitemapInventory = {
+  customizedCakes: IndexableCustomizedCakeRow[]
+  sharedDesigns: IndexableSharedDesignRow[]
 }
 
 function getSupabaseClient() {
@@ -161,107 +167,27 @@ export function isPastSitemapCutoff(createdAt: string, now = new Date()): boolea
 }
 
 export function getPreferredSitemapImage(row: ImageLikeRow): string | null {
-  // Prefer the actually-rendered hero image (largest variant ≤ 1200) so the
-  // image embedded on the PDP, the JSON-LD ImageObject, and this sitemap entry
-  // all reference the SAME URL. After the slug-based variant re-path that URL
-  // is keyword-rich. Falls back to the descriptive source URLs when a row has
-  // no usable variant manifest yet (parity preserved either way).
-  const manifest = parseManifest(row.image_variants)
-  const variantUrl = pickFallbackSrc(manifest, 1200)
-  if (variantUrl) {
-    return variantUrl
+  return selectCrawlerImage(row).url
+}
+
+export function buildSitemapChunkHints(
+  customizedCakes: IndexableCustomizedCakeRow[],
+  sharedDesigns: IndexableSharedDesignRow[],
+  now = new Date(),
+): SitemapChunkHints {
+  const fallbackLastMod = now.toISOString()
+
+  return {
+    customizedChunkCount: Math.ceil(customizedCakes.length / SITEMAP_CHUNK_SIZE),
+    customizedLastMod: customizedCakes[0]?.created_at || fallbackLastMod,
+    sharedDesignChunkCount: Math.ceil(sharedDesigns.length / SITEMAP_CHUNK_SIZE),
+    sharedDesignLastMod: sharedDesigns[0]?.created_at || fallbackLastMod,
   }
-
-  const candidates = [
-    row.studio_edited_image_url,
-    row.original_image_url,
-    row.customized_image_url,
-  ]
-
-  for (const candidate of candidates) {
-    if (typeof candidate === 'string' && candidate.trim()) {
-      return candidate.trim()
-    }
-  }
-
-  return null
 }
 
 export async function getSitemapChunkHints(now = new Date()): Promise<SitemapChunkHints> {
-  const supabase = getSupabaseClient()
-  const cutoffDate = getSitemapCutoffDate(now)
-  const fallbackLastMod = now.toISOString()
-
-  const [
-    { count: customizedCount, error: customizedCountError },
-    { data: latestCustomizedRows, error: latestCustomizedError },
-    { count: sharedDesignCount, error: sharedDesignCountError },
-    { data: latestSharedRows, error: latestSharedError },
-  ] = await Promise.all([
-    // Count query applies the same server-side filters as the generation query.
-    // Additional JavaScript-level filters (adult terms, generic text, legacy slugs)
-    // are applied during row fetching — this count may be slightly higher than the
-    // actual indexable count, which is safe (results in one empty trailing chunk at most).
-    supabase
-      .from('cakegenie_analysis_cache')
-      .select('slug', { count: 'exact', head: true })
-      .not('slug', 'is', null)
-      .not('image_width', 'is', null)
-      .not('image_height', 'is', null)
-      .gte('image_width', MIN_SITEMAP_IMAGE_DIMENSION)
-      .gte('image_height', MIN_SITEMAP_IMAGE_DIMENSION)
-      .or('seo_title.not.is.null,alt_text.not.is.null,keywords.not.is.null')
-      .lte('created_at', cutoffDate),
-    supabase
-      .from('cakegenie_analysis_cache')
-      .select('created_at')
-      .not('slug', 'is', null)
-      .not('image_width', 'is', null)
-      .not('image_height', 'is', null)
-      .gte('image_width', MIN_SITEMAP_IMAGE_DIMENSION)
-      .gte('image_height', MIN_SITEMAP_IMAGE_DIMENSION)
-      .or('seo_title.not.is.null,alt_text.not.is.null,keywords.not.is.null')
-      .lte('created_at', cutoffDate)
-      .order('created_at', { ascending: false })
-      .limit(1),
-    supabase
-      .from('cakegenie_shared_designs')
-      .select('url_slug', { count: 'exact', head: true })
-      .not('url_slug', 'is', null)
-      .or('title.not.is.null,alt_text.not.is.null,description.not.is.null')
-      .lte('created_at', cutoffDate),
-    supabase
-      .from('cakegenie_shared_designs')
-      .select('created_at')
-      .not('url_slug', 'is', null)
-      .or('title.not.is.null,alt_text.not.is.null,description.not.is.null')
-      .lte('created_at', cutoffDate)
-      .order('created_at', { ascending: false })
-      .limit(1),
-  ])
-
-  if (customizedCountError) {
-    throw new Error(`Failed to count sitemap-ready customized cakes: ${customizedCountError.message}`)
-  }
-
-  if (latestCustomizedError) {
-    throw new Error(`Failed to fetch latest customized-cake sitemap date: ${latestCustomizedError.message}`)
-  }
-
-  if (sharedDesignCountError) {
-    throw new Error(`Failed to count sitemap-ready shared designs: ${sharedDesignCountError.message}`)
-  }
-
-  if (latestSharedError) {
-    throw new Error(`Failed to fetch latest shared-design sitemap date: ${latestSharedError.message}`)
-  }
-
-  return {
-    customizedChunkCount: Math.ceil((customizedCount || 0) / SITEMAP_CHUNK_SIZE),
-    customizedLastMod: latestCustomizedRows?.[0]?.created_at || fallbackLastMod,
-    sharedDesignChunkCount: Math.ceil((sharedDesignCount || 0) / SITEMAP_CHUNK_SIZE),
-    sharedDesignLastMod: latestSharedRows?.[0]?.created_at || fallbackLastMod,
-  }
+  const { customizedCakes, sharedDesigns } = await getSitemapInventory()
+  return buildSitemapChunkHints(customizedCakes, sharedDesigns, now)
 }
 
 export function toIndexableCustomizedCakeRow(
@@ -340,65 +266,104 @@ export function toIndexableSharedDesignRow(
   }
 }
 
-async function fetchAllCustomizedCakeRows(): Promise<RawCustomizedCakeRow[]> {
-  const supabase = getSupabaseClient()
-  const rows: RawCustomizedCakeRow[] = []
-  const cutoffDate = getSitemapCutoffDate()
-  let offset = 0
-
-  while (true) {
-    const { data, error } = await supabase
-      .from('cakegenie_analysis_cache')
-      .select('slug, created_at, seo_title, alt_text, keywords, original_image_url, studio_edited_image_url, image_variants, image_width, image_height')
-      .not('slug', 'is', null)
-      .lte('created_at', cutoffDate)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + SUPABASE_BATCH_SIZE - 1)
-      .returns<RawCustomizedCakeRow[]>()
-
-    if (error) {
-      throw new Error(`Failed to fetch sitemap-ready customized cakes: ${error.message}`)
-    }
-
-    if (!data?.length) {
-      break
-    }
-
-    rows.push(...data)
-
-    if (data.length < SUPABASE_BATCH_SIZE) {
-      break
-    }
-
-    offset += SUPABASE_BATCH_SIZE
-  }
-
-  return rows
-}
-
-async function fetchAllSharedDesignRows(): Promise<RawSharedDesignRow[]> {
+async function fetchCustomizedCakePage(offset: number): Promise<RawCustomizedCakeRow[]> {
   const supabase = getSupabaseClient()
   const cutoffDate = getSitemapCutoffDate()
   const { data, error } = await supabase
-    .from('cakegenie_shared_designs')
-    // The live shared-design table does not consistently expose measured image
-    // dimensions, so keep sitemap generation on the stable common columns.
-    .select('url_slug, created_at, title, alt_text, description, original_image_url, customized_image_url')
-    .not('url_slug', 'is', null)
+    .from('cakegenie_analysis_cache')
+    .select('slug, created_at, seo_title, alt_text, keywords, original_image_url, studio_edited_image_url, image_variants, image_width, image_height')
+    .not('slug', 'is', null)
     .lte('created_at', cutoffDate)
     .order('created_at', { ascending: false })
-    .returns<RawSharedDesignRow[]>()
+    .range(offset, offset + SUPABASE_BATCH_SIZE - 1)
+    .returns<RawCustomizedCakeRow[]>()
 
   if (error) {
-    throw new Error(`Failed to fetch sitemap-ready shared designs: ${error.message}`)
+    throw new Error(`Failed to fetch sitemap-ready customized cakes: ${error.message}`)
   }
 
   return data || []
 }
 
-export async function getIndexableCustomizedCakeRows(): Promise<IndexableCustomizedCakeRow[]> {
+async function fetchSharedDesignPage(
+  offset: number,
+  imageSource: 'customized' | 'original',
+): Promise<RawSharedDesignRow[]> {
+  const supabase = getSupabaseClient()
+  const cutoffDate = getSitemapCutoffDate()
+  const commonQuery = supabase
+    .from('cakegenie_shared_designs')
+    .select(imageSource === 'customized'
+      ? 'url_slug, created_at, title, alt_text, description, original_image_url, customized_image_url'
+      : 'url_slug, created_at, title, alt_text, description, original_image_url')
+    .not('url_slug', 'is', null)
+    .lte('created_at', cutoffDate)
+    .order('created_at', { ascending: false })
+    .range(offset, offset + SUPABASE_BATCH_SIZE - 1)
+
+  // Some legacy shared rows store multi-megabyte data URLs. Filter them in
+  // PostgREST before selecting the image field so they never enter crawler
+  // output or breach Next.js's per-entry cache limit. The original-image pass
+  // provides the fallback inventory; duplicate slugs are removed downstream.
+  const { data, error } = imageSource === 'customized'
+    ? await commonQuery.like('customized_image_url', 'http%')
+    : await commonQuery.like('original_image_url', 'http%')
+
+  if (error) {
+    throw new Error(`Failed to fetch sitemap-ready shared designs: ${error.message}`)
+  }
+
+  const rows = (data || []) as unknown as Array<
+    Omit<RawSharedDesignRow, 'customized_image_url'> & {
+      customized_image_url?: string | null
+    }
+  >
+
+  return rows.map((row) => ({
+    ...row,
+    customized_image_url: imageSource === 'customized'
+      ? (row.customized_image_url ?? null)
+      : null,
+  }))
+}
+
+// A full inventory is currently well above Next.js's 2 MB per-entry data-cache
+// limit. Cache deterministic database pages instead, then assemble the exact
+// filtered inventory in memory. This preserves the 30-minute refresh behavior
+// without silently falling back to an uncached multi-megabyte query.
+const getCachedCustomizedCakePage = unstable_cache(
+  fetchCustomizedCakePage,
+  ['sitemap-customized-cake-page-v3'],
+  { revalidate: 1800 },
+)
+
+const getCachedSharedDesignPage = unstable_cache(
+  fetchSharedDesignPage,
+  ['sitemap-shared-design-page-v3'],
+  { revalidate: 1800 },
+)
+
+async function fetchAllPages<T>(
+  fetchPage: (offset: number) => Promise<T[]>,
+): Promise<T[]> {
+  const rows: T[] = []
+  let offset = 0
+
+  while (true) {
+    const page = await fetchPage(offset)
+    rows.push(...page)
+
+    if (page.length < SUPABASE_BATCH_SIZE) {
+      return rows
+    }
+
+    offset += SUPABASE_BATCH_SIZE
+  }
+}
+
+async function buildIndexableCustomizedCakeRows(): Promise<IndexableCustomizedCakeRow[]> {
   const seenSlugs = new Set<string>()
-  const rows = await fetchAllCustomizedCakeRows()
+  const rows = await fetchAllPages(getCachedCustomizedCakePage)
   const results: IndexableCustomizedCakeRow[] = []
 
   for (const row of rows) {
@@ -414,9 +379,13 @@ export async function getIndexableCustomizedCakeRows(): Promise<IndexableCustomi
   return results
 }
 
-export async function getIndexableSharedDesignRows(): Promise<IndexableSharedDesignRow[]> {
+async function buildIndexableSharedDesignRows(): Promise<IndexableSharedDesignRow[]> {
   const seenSlugs = new Set<string>()
-  const rows = await fetchAllSharedDesignRows()
+  const [customizedImageRows, originalImageRows] = await Promise.all([
+    fetchAllPages((offset) => getCachedSharedDesignPage(offset, 'customized')),
+    fetchAllPages((offset) => getCachedSharedDesignPage(offset, 'original')),
+  ])
+  const rows = [...customizedImageRows, ...originalImageRows]
   const results: IndexableSharedDesignRow[] = []
 
   for (const row of rows) {
@@ -430,4 +399,25 @@ export async function getIndexableSharedDesignRows(): Promise<IndexableSharedDes
   }
 
   return results
+}
+
+export async function getIndexableCustomizedCakeRows(): Promise<IndexableCustomizedCakeRow[]> {
+  return buildIndexableCustomizedCakeRows()
+}
+
+export async function getIndexableSharedDesignRows(): Promise<IndexableSharedDesignRow[]> {
+  return buildIndexableSharedDesignRows()
+}
+
+export async function getSitemapInventory(): Promise<SitemapInventory> {
+  const [customizedCakes, allSharedDesigns] = await Promise.all([
+    getIndexableCustomizedCakeRows(),
+    getIndexableSharedDesignRows(),
+  ])
+  const customizedSlugs = new Set(customizedCakes.map((cake) => cake.slug))
+
+  return {
+    customizedCakes,
+    sharedDesigns: allSharedDesigns.filter((design) => !customizedSlugs.has(design.url_slug)),
+  }
 }

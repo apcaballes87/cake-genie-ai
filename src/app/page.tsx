@@ -75,17 +75,17 @@ function WebSiteSchema() {
                     {
                         '@type': 'CreativeWork',
                         name: 'Minimalist Cakes',
-                        url: 'https://genie.ph/search?q=minimalist+cakes'
+                        url: 'https://genie.ph/collections/minimalist-cake'
                     },
                     {
                         '@type': 'CreativeWork',
                         name: 'Bento Cakes',
-                        url: 'https://genie.ph/search?q=bento+cakes'
+                        url: 'https://genie.ph/collections/bento-cake'
                     },
                     {
                         '@type': 'CreativeWork',
                         name: 'Wedding Cakes',
-                        url: 'https://genie.ph/search?q=wedding'
+                        url: 'https://genie.ph/collections/wedding-cake'
                     },
                     {
                         '@type': 'CreativeWork',
