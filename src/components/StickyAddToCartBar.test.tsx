@@ -140,7 +140,7 @@ describe('StickyAddToCartBar', () => {
         const availabilityWrapper = stickyBar?.querySelector<HTMLElement>('[data-availability-wrapper]');
 
         expect(printoutWrapper?.style.marginBottom).toBe('');
-        expect(printoutNotification).toHaveClass('h-[29.5px]', 'translate-y-[4px]');
+        expect(printoutNotification).toHaveClass('h-[29.5px]', 'translate-y-[8px]');
         expect(warningText.parentElement).toHaveClass('h-full', 'items-start');
         expect(warningText.parentElement).toHaveStyle({
             paddingTop: '2px',

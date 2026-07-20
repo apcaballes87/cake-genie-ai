@@ -323,7 +323,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
         if (!hasPrintoutConversion || !showPrintoutNotification) return null;
 
         return (
-            <div data-printout-notification className="h-[29.5px] translate-y-[4px] bg-red-100 rounded-t-2xl">
+            <div data-printout-notification className="h-[29.5px] translate-y-[8px] bg-red-100 rounded-t-2xl">
                 <div
                     className="h-full max-w-4xl mx-auto flex items-start justify-center gap-2 px-1 text-red-800 text-[10px] max-md:text-[9px] sm:text-[11px] font-bold"
                     style={notificationBodyStyle}
