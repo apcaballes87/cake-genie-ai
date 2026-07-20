@@ -542,6 +542,7 @@ export async function updateDesign({
     requestSource,
     promptGenerator, // ADDED
     referenceImages = [],
+    signal,
 }: {
     originalImageData: { data: string; mimeType: string } | null;
     analysisResult: HybridAnalysisResult | null;
@@ -555,6 +556,7 @@ export async function updateDesign({
     traceId?: string;
     requestSource?: string;
     referenceImages?: EditImageReferenceImage[];
+    signal?: AbortSignal;
     // ADDED: Optional prompt generator function
     promptGenerator?: (
         originalAnalysis: HybridAnalysisResult | null,
@@ -566,6 +568,10 @@ export async function updateDesign({
         additionalInstructions: string
     ) => string;
 }): Promise<{ image: string, prompt: string, systemInstruction: string }> {
+
+    if (signal?.aborted) {
+        throw new DOMException('The design update was cancelled.', 'AbortError');
+    }
 
     // 1. Validate inputs
     if (!originalImageData || !icingDesign || !cakeInfo) {
@@ -707,6 +713,7 @@ ${colorChanges.join('\n')}`;
                 effectiveTraceId,
                 requestSource,
                 allReferenceImages,
+                signal,
             ),
             timeoutPromise
         ]);

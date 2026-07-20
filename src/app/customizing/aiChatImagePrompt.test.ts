@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CakeInfoUI, IcingDesignUI, MainTopperUI } from '@/types';
-import { buildAiChatImagePrompt } from './aiChatImagePrompt';
+import { buildAiChatImagePrompt, buildAiChatVisualChangeSummary } from './aiChatImagePrompt';
 
 describe('buildAiChatImagePrompt', () => {
     it('adds target-specific edible topper conversion details to an AI chat image request', () => {
@@ -68,5 +68,48 @@ describe('buildAiChatImagePrompt', () => {
         expect(prompt).toContain('upper-right area of the cake');
         expect(prompt).toContain('flat, cartoon-style printable cardboard cutout');
         expect(prompt).toContain('Preserve the final **cake size** as "6" Round".');
+    });
+
+    it('carries verified fondant option changes into the visual edit prompt', () => {
+        const cakeInfo: CakeInfoUI = {
+            type: '1 Tier Fondant',
+            thickness: '5 in',
+            size: '6" Round Fondant',
+            flavors: ['Ube Cake'],
+        };
+        const icingDesign: IcingDesignUI = {
+            base: 'fondant',
+            color_type: 'single',
+            colors: { side: '#FFFFFF', top: '#FFFFFF' },
+            border_top: false,
+            border_base: false,
+            drip: false,
+            gumpasteBaseBoard: false,
+            dripPrice: 0,
+            gumpasteBaseBoardPrice: 0,
+        };
+        const summary = buildAiChatVisualChangeSummary({
+            changedPaths: ['cakeInfo.type', 'cakeInfo.size', 'cakeInfo.thickness', 'icingDesign.base'],
+            cakeInfo,
+            icingDesign,
+            mainToppers: [],
+            supportElements: [],
+            cakeMessages: [],
+        });
+
+        const prompt = buildAiChatImagePrompt(
+            null,
+            cakeInfo,
+            [],
+            [],
+            [],
+            icingDesign,
+            `[USER REQUEST]: please change to fondant\n[NORMALIZED CHANGES]:\n${summary}`,
+        );
+
+        expect(summary).toContain('1 Tier Fondant, 6" Round Fondant, 5 in');
+        expect(summary).toContain('Use fondant');
+        expect(prompt).toContain('Verified option changes (authoritative)');
+        expect(prompt).toContain('Use fondant');
     });
 });

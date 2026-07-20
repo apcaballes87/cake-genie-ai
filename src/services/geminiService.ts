@@ -329,6 +329,7 @@ export async function editCakeImage(
     traceId?: string,
     requestSource?: string,
     referenceImages: EditImageReferenceImage[] = [],
+    signal?: AbortSignal,
 ): Promise<string> {
     const effectiveTraceId = traceId ?? `edit-image-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const startedAt = Date.now();
@@ -377,6 +378,7 @@ export async function editCakeImage(
 
         const response = await fetch('/api/ai/edit-image', {
             method: 'POST',
+            signal,
             headers: {
                 'Content-Type': 'application/json',
                 'x-ai-trace-id': effectiveTraceId,

@@ -65,7 +65,7 @@ interface CustomizationContextType {
     syncAnalysisResultWithCurrentState: () => void;
     getSyncedAnalysisResult: () => HybridAnalysisResult | null;
     clearDirtyState: () => void;
-    applyFullCustomizationState: (state: CustomizationState) => void;
+    applyFullCustomizationState: (state: CustomizationState, options?: ApplyFullCustomizationStateOptions) => void;
     handleSwitchToSoftIcing: () => void;
     seoMetadata: CacheSEOMetadata | null;
     setSEOMetadata: (metadata: CacheSEOMetadata | null) => void;
@@ -89,6 +89,11 @@ export interface CustomizationState {
     availability?: AvailabilityType;
     aiChatHistory?: AiChatHistoryEntry[];
     chatHistory?: string[];
+}
+
+export interface ApplyFullCustomizationStateOptions {
+    markDirty?: boolean;
+    dirtyFields?: string[];
 }
 
 export function CustomizationProvider({ children, initialData }: { children: React.ReactNode; initialData?: CustomizationState }) {
@@ -481,7 +486,8 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
                 if (newDesign.drip !== prevIcing.drip) newDirtyFields.add('icingDesign.drip');
                 if (newDesign.gumpasteBaseBoard !== prevIcing.gumpasteBaseBoard) newDirtyFields.add('icingDesign.gumpasteBaseBoard');
                 if (newDesign.border_top !== prevIcing.border_top) newDirtyFields.add('icingDesign.border_top');
-                if (newDesign.border_base !== prevIcing.border_base) newDirtyFields.add('icingDesign.base');
+                if (newDesign.border_base !== prevIcing.border_base) newDirtyFields.add('icingDesign.border_base');
+                if (newDesign.base !== prevIcing.base) newDirtyFields.add('icingDesign.base');
                 if (newDesign.color_type !== prevIcing.color_type) newDirtyFields.add('icingDesign.color_type');
 
                 // Compare color fields
@@ -615,7 +621,10 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
 
     }, [dirtyFields]);
 
-    const applyFullCustomizationState = useCallback((state: CustomizationState) => {
+    const applyFullCustomizationState = useCallback((
+        state: CustomizationState,
+        options: ApplyFullCustomizationStateOptions = {},
+    ) => {
         if (state.cakeInfo !== undefined) setCakeInfo(state.cakeInfo ?? null);
         if (state.mainToppers !== undefined) setMainToppers(state.mainToppers);
         if (state.supportElements !== undefined) setSupportElements(state.supportElements);
@@ -630,8 +639,8 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         }
         if (state.analysisResult !== undefined) setAnalysisResult(state.analysisResult ?? null);
         if (state.analysisId !== undefined) setAnalysisId(state.analysisId ?? null);
-        setIsCustomizationDirty(false);
-        setDirtyFields(new Set());
+        setIsCustomizationDirty(options.markDirty ?? false);
+        setDirtyFields(new Set(options.markDirty ? options.dirtyFields ?? [] : []));
     }, []);
 
     useEffect(() => {

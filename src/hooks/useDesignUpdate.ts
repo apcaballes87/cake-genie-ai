@@ -41,6 +41,7 @@ export interface DesignUpdateStateOverrides {
 export interface HandleDesignUpdateOptions {
     traceId?: string;
     source?: string;
+    signal?: AbortSignal;
     promptGenerator?: DesignPromptGenerator;
     stateOverrides?: DesignUpdateStateOverrides;
     colorMeta?: { hex: string; name: string }; // ADDED
@@ -167,6 +168,7 @@ export const useDesignUpdate = ({
     ) => {
         const traceId = options?.traceId ?? createAiTraceId('design');
         const requestSource = options?.source ?? 'manual-design-update';
+        const requestSignal = options?.signal;
         const resolvedAnalysisResult = options?.stateOverrides?.analysisResult ?? analysisResult;
         const resolvedCakeInfo = options?.stateOverrides?.cakeInfo ?? cakeInfo;
         const resolvedMainToppers = options?.stateOverrides?.mainToppers ?? mainToppers;
@@ -177,6 +179,10 @@ export const useDesignUpdate = ({
         const resolvedPromptGenerator = options?.promptGenerator ?? promptGenerator;
         const colorMeta = options?.colorMeta;
         const referenceImages = options?.referenceImages ?? [];
+
+        if (requestSignal?.aborted) {
+            throw new DOMException('The design update was cancelled.', 'AbortError');
+        }
 
         if (inFlightPromiseRef.current) {
             return inFlightPromiseRef.current;
@@ -202,7 +208,12 @@ export const useDesignUpdate = ({
             setError(null);
             setIsSafetyFallback(false);
 
-            console.log(`🤖 [AI DESIGN UPDATE] Started automated AI image edit: overrideInstruction="${overrideInstruction || 'none'}", requestSource="${requestSource}", traceId="${traceId}"`);
+            console.log('🤖 [AI DESIGN UPDATE] Started automated AI image edit', {
+                hasOverrideInstruction: Boolean(overrideInstruction),
+                instructionLength: overrideInstruction?.length ?? 0,
+                requestSource,
+                traceId,
+            });
 
             // Hoist outside try so the catch block can reference it in the safety fallback
             // For icing recolor (colorMeta is present), we bypass the editedImage to use
@@ -255,7 +266,12 @@ export const useDesignUpdate = ({
                     requestSource,
                     promptGenerator: resolvedPromptGenerator,
                     referenceImages,
+                    signal: requestSignal,
                 });
+
+                if (requestSignal?.aborted) {
+                    throw new DOMException('The design update was cancelled.', 'AbortError');
+                }
 
                 lastGenerationInfoRef.current = { prompt, systemInstruction };
                 onSuccess(editedImageResult, currentBaseImageData);
@@ -311,6 +327,10 @@ export const useDesignUpdate = ({
                 return editedImageResult;
 
             } catch (err) {
+                if (requestSignal?.aborted || (err instanceof DOMException && err.name === 'AbortError')) {
+                    throw err;
+                }
+
                 const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred while updating the design.';
 
                 // Check for safety/policy blocking errors

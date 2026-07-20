@@ -167,6 +167,33 @@ describe('useDesignUpdate', () => {
         expect(onSuccess).toHaveBeenCalledWith('reference-image-result', baseProps.originalImageData);
     });
 
+    it('does not apply a stale image result after its request is aborted', async () => {
+        let resolveUpdate!: (value: { image: string; prompt: string; systemInstruction: string }) => void;
+        vi.mocked(updateDesign).mockImplementation(
+            () => new Promise((resolve) => { resolveUpdate = resolve; }),
+        );
+        const onSuccess = vi.fn();
+        const controller = new AbortController();
+        const { result } = renderHook(() => useDesignUpdate({ ...baseProps, onSuccess }));
+
+        let request!: Promise<string>;
+        act(() => {
+            request = result.current.handleUpdateDesign('[USER REQUEST]: change to fondant', {
+                source: 'ai-chat-image-edit',
+                signal: controller.signal,
+            });
+        });
+
+        controller.abort();
+        await act(async () => {
+            resolveUpdate({ image: 'stale-image', prompt: 'prompt', systemInstruction: 'system' });
+            await expect(request).rejects.toMatchObject({ name: 'AbortError' });
+        });
+
+        expect(updateDesign).toHaveBeenCalledWith(expect.objectContaining({ signal: controller.signal }));
+        expect(onSuccess).not.toHaveBeenCalled();
+    });
+
     it('uses the latest edited image as the base for the next design update', async () => {
         vi.mocked(updateDesign).mockResolvedValueOnce({
             image: 'next-image',

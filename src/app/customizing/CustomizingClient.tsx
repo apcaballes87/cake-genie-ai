@@ -125,7 +125,6 @@ import { AppState } from '@/hooks/useAppNavigation';
 import { toast } from 'react-hot-toast';
 import { buildAiChatPromptSuggestions, shouldShowAiPromptSuggestion } from '@/utils/aiPromptSuggestions';
 import { fillAiChatPromptTemplate, parseAiChatPromptTemplate, ParsedAiChatPromptTemplate } from '@/utils/aiChatPromptComposer';
-import { mapAnalysisToState } from '@/utils/customizationMapper';
 import { createClient } from '@/lib/supabase/client';
 import type { EditImageReferenceImage } from '@/services/geminiService';
 import {
@@ -137,7 +136,13 @@ import {
 } from '@/lib/commerce/machineReadable';
 import { buildCustomizerAgentModel } from '@/lib/commerce/customizerAgentModel';
 import { derivePrintoutConversionSummary, hasPrintoutConversion } from './printoutConversion';
-import { buildAiChatImagePrompt } from './aiChatImagePrompt';
+import { buildAiChatImagePrompt, buildAiChatVisualChangeSummary } from './aiChatImagePrompt';
+import {
+    validateAiChatEditResponse,
+    type AiChatAction,
+    type AiChatCustomizationSnapshot,
+} from './aiChatEditContract';
+import { executeAiChatEditFlow } from './aiChatEditFlow';
 
 interface AvailabilityInfo {
     type: AvailabilityType;
@@ -465,6 +470,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     const addToCartInFlightRef = useRef(false);
     const addToCartResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const aiChatHistoryRef = useRef<AiChatHistoryEntry[]>([]);
+    const aiChatRequestInFlightRef = useRef(false);
+    const aiChatRequestIdRef = useRef<string | null>(null);
+    const aiChatAbortControllerRef = useRef<AbortController | null>(null);
+    const onAddToCartRef = useRef<(() => Promise<void>) | null>(null);
     // Kept in sync with `hasPendingVisualChanges` (declared later via useMemo) so that
     // onAddToCart can read it without a forward-reference TypeScript error.
     const hasPendingVisualChangesRef = useRef(false);
@@ -608,10 +617,17 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
             if (addToCartResetTimeoutRef.current !== null) {
                 clearTimeout(addToCartResetTimeoutRef.current);
             }
+            aiChatAbortControllerRef.current?.abort();
         };
     }, []);
 
     const handleImageSelect = useCallback((file: File) => {
+        aiChatAbortControllerRef.current?.abort();
+        aiChatAbortControllerRef.current = null;
+        aiChatRequestIdRef.current = null;
+        aiChatRequestInFlightRef.current = false;
+        setIsAiProcessing(false);
+
         // Reset associations with original design/slug
         setHasNewUpload(true);
         if (typeof window !== 'undefined') {
@@ -1445,6 +1461,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         originalImageData,
     ]);
 
+    useEffect(() => {
+        onAddToCartRef.current = onAddToCart;
+    }, [onAddToCart]);
+
     const handleAddToCartUnavailableVisible = useCallback((reason: AddToCartBlockReason) => {
         trackCustomizerAddToCartUnavailableVisible({
             sourceSurface: getCustomizerAnalyticsSourceSurface(product, recentSearchDesign, originalImageData),
@@ -1517,187 +1537,255 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     }, [supabase, user]);
 
     const submitAiChatPrompt = useCallback(async (prompt: string) => {
-
         const currentPrompt = prompt.trim();
-        if (!currentPrompt || !analysisResult || isAiProcessing || isUpdatingDesign) return;
+        if (
+            !currentPrompt
+            || !analysisResult
+            || !cakeInfo
+            || !icingDesign
+            || isAiProcessing
+            || isUpdatingDesign
+            || aiChatRequestInFlightRef.current
+        ) return;
 
+        const syncedAnalysis = getSyncedAnalysisResult() || analysisResult;
+        const currentState: AiChatCustomizationSnapshot = {
+            cakeInfo: { ...cakeInfo, flavors: [...cakeInfo.flavors] },
+            mainToppers: mainToppers.map(topper => ({ ...topper })),
+            supportElements: supportElements.map(element => ({ ...element })),
+            cakeMessages: cakeMessages.map(message => ({ ...message })),
+            icingDesign: {
+                ...icingDesign,
+                base: icingDesign.base === 'fondant' ? 'fondant' : 'soft_icing',
+                colors: { ...icingDesign.colors },
+            },
+            additionalInstructions,
+            analysisResult: syncedAnalysis,
+        };
+        const requestCustomization = JSON.parse(JSON.stringify(
+            currentState,
+            (key, value) => key === 'replacementImage' ? undefined : value,
+        )) as AiChatCustomizationSnapshot;
         const traceId = `ai-chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         const currentAttachment = aiChatReferenceAttachment;
         const referenceImages = aiChatReferenceImages;
-        let resolveMergedAnalysis: ((value: HybridAnalysisResult) => void) | undefined;
-        let rejectMergedAnalysis: ((reason?: unknown) => void) | undefined;
+        const abortController = new AbortController();
+        let timedOut = false;
+        let didApplyDesignState = false;
+        let didStartImageEdit = false;
+        const assertActiveRequest = () => {
+            if (abortController.signal.aborted || aiChatRequestIdRef.current !== traceId) {
+                throw new DOMException('The AI chat request was cancelled.', 'AbortError');
+            }
+        };
 
+        aiChatRequestInFlightRef.current = true;
+        aiChatRequestIdRef.current = traceId;
+        aiChatAbortControllerRef.current = abortController;
         setIsAiProcessing(true);
-        setChatInput('');
 
         try {
-            const { entry, uploadFailed } = await persistAiChatHistoryEntry(currentPrompt, currentAttachment);
-            appendAiChatHistoryEntry(entry);
-            if (uploadFailed) {
-                showInfo('We used your AI chat request, but could not save the attached reference image link.');
-            }
+            const flowResult = await executeAiChatEditFlow({
+                currentState,
+                interpret: async () => {
+                    const timeoutId = setTimeout(() => {
+                        timedOut = true;
+                        abortController.abort();
+                    }, 55_000);
 
-            const syncedAnalysis = getSyncedAnalysisResult() || analysisResult;
-            const mergedAnalysisReady = new Promise<HybridAnalysisResult>((resolve, reject) => {
-                resolveMergedAnalysis = resolve;
-                rejectMergedAnalysis = reject;
-            });
-
-            // 1. Fire Image Edit (runs in background, hook manages state/error)
-            // We keep this fully parallel and drive the first image pass directly from the
-            // raw user request + normal image-edit system instruction selection.
-            const imageUpdatePromise = handleUpdateDesign(`[USER REQUEST]: ${currentPrompt}`, {
-                traceId,
-                source: 'ai-chat-image-edit',
-                promptGenerator: buildAiChatImagePrompt,
-                referenceImages,
-            });
-
-            imageUpdatePromise.catch(err => {
-                void (async () => {
                     try {
-                        const mergedAnalysisForRetry = await mergedAnalysisReady;
-                        const mappedState = mapAnalysisToState(mergedAnalysisForRetry);
-                        const fallbackCakeInfo = cakeInfo ? {
-                            ...cakeInfo,
-                            type: mergedAnalysisForRetry.cakeType ?? cakeInfo.type,
-                            thickness: mergedAnalysisForRetry.cakeThickness ?? cakeInfo.thickness,
-                        } : mappedState.cakeInfo ?? null;
+                        const response = await fetch('/api/ai/chat-edit', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'x-ai-trace-id': traceId,
+                                'x-ai-request-source': 'ai-chat-json-edit',
+                            },
+                            signal: abortController.signal,
+                            body: JSON.stringify({
+                                prompt: currentPrompt,
+                                currentCustomization: requestCustomization,
+                                referenceImages,
+                            }),
+                        });
 
-                        if (!fallbackCakeInfo || !mappedState.icingDesign) {
-                            throw err;
+                        const responseData = await response.json().catch(() => ({}));
+                        assertActiveRequest();
+                        if (!response.ok) {
+                            throw new Error(
+                                typeof responseData?.error === 'string'
+                                    ? responseData.error
+                                    : 'Failed to interpret your cake update.',
+                            );
                         }
 
-                        await handleUpdateDesign(`[USER REQUEST]: ${currentPrompt}`, {
-                            traceId: `${traceId}-retry`,
-                            source: 'ai-chat-image-edit-retry',
+                        const validation = validateAiChatEditResponse(responseData, currentState);
+                        if (!validation.success) {
+                            console.warn(`[AI TRACE ${traceId}] ai-chat:validation-failed`, {
+                                validationResult: validation.kind,
+                            });
+                            throw new Error('The AI returned an invalid cake update. Please try again.');
+                        }
+                        return validation.data;
+                    } finally {
+                        clearTimeout(timeoutId);
+                    }
+                },
+                onInterpreted: async () => {
+                    assertActiveRequest();
+                    const { entry, uploadFailed } = await persistAiChatHistoryEntry(currentPrompt, currentAttachment);
+                    assertActiveRequest();
+                    appendAiChatHistoryEntry(entry);
+                    if (uploadFailed) {
+                        showInfo('We used your AI chat request, but could not save the attached reference image link.');
+                    }
+                },
+                applyState: editResult => {
+                    assertActiveRequest();
+                    didApplyDesignState = true;
+                    const dirtyStateFields = Array.from(new Set(editResult.changedPaths.map(path => {
+                        if (path.startsWith('cakeInfo.')) return 'cakeInfo';
+                        if (path.startsWith('mainToppers.')) return 'mainToppers';
+                        if (path.startsWith('supportElements.')) return 'supportElements';
+                        if (path.startsWith('cakeMessages.')) return 'cakeMessages';
+                        return path;
+                    })));
+                    applyFullCustomizationState({
+                        ...editResult.nextState,
+                        analysisId,
+                    }, {
+                        markDirty: editResult.requiresImageEdit,
+                        dirtyFields: dirtyStateFields,
+                    });
+                    if (editResult.requiresImageEdit) {
+                        showSuccess('Cake options updated. Generating the preview...');
+                    }
+                },
+                editImage: async editResult => {
+                    assertActiveRequest();
+                    didStartImageEdit = true;
+                    const nextState = editResult.nextState;
+                    const visualChangeSummary = buildAiChatVisualChangeSummary({
+                        changedPaths: editResult.changedPaths,
+                        cakeInfo: nextState.cakeInfo,
+                        icingDesign: nextState.icingDesign,
+                        mainToppers: nextState.mainToppers,
+                        supportElements: nextState.supportElements,
+                        cakeMessages: nextState.cakeMessages,
+                    });
+                    await handleUpdateDesign(
+                        `[USER REQUEST]: ${currentPrompt}\n[NORMALIZED CHANGES]:\n${visualChangeSummary}`,
+                        {
+                            traceId,
+                            source: 'ai-chat-image-edit',
+                            promptGenerator: buildAiChatImagePrompt,
                             stateOverrides: {
-                                analysisResult: syncedAnalysis,
-                                cakeInfo: fallbackCakeInfo,
-                                mainToppers: mappedState.mainToppers ?? [],
-                                supportElements: mappedState.supportElements ?? [],
-                                cakeMessages: mappedState.cakeMessages ?? [],
-                                icingDesign: mappedState.icingDesign,
+                                analysisResult: editResult.syncedAnalysisResult,
+                                cakeInfo: nextState.cakeInfo,
+                                mainToppers: nextState.mainToppers,
+                                supportElements: nextState.supportElements,
+                                cakeMessages: nextState.cakeMessages,
+                                icingDesign: nextState.icingDesign,
+                                additionalInstructions: nextState.additionalInstructions,
                             },
                             referenceImages,
-                        });
-                    } catch (retryErr) {
-                        // Image generation failed in background
-                    }
-                })();
-            });
-
-            // 2. Fire Chat Edit (waits for JSON to update UI)
-            const response = await fetch('/api/ai/chat-edit', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-ai-trace-id': traceId,
-                    'x-ai-request-source': 'ai-chat-json-edit',
+                            signal: abortController.signal,
+                        },
+                    );
+                    assertActiveRequest();
                 },
-                body: JSON.stringify({
-                    prompt: currentPrompt,
-                    currentAnalysis: syncedAnalysis,
-                    referenceImages,
-                }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to update design');
-            }
-
-            const data = await response.json();
-            const aiResponse = data.analysis_json;
-
-            // Handle Design Restriction Violations
-            if (aiResponse.restrictionViolation) {
-                // 1. Show descriptive error toast
-                showError(aiResponse.restrictionViolation);
-
-                // 2. Cancel/Revert the visual track
-                // Since handleUpdateDesign might have already finished or be in flight,
-                // we set the edited image back to the "original" state (pre-generation).
-                // If we have previousImageData, used that, otherwise originalImagePreview.
-                const revertImage = previousImageData
-                    ? `data:${previousImageData.mimeType};base64,${previousImageData.data}`
-                    : (originalImagePreview || '');
-
-                setEditedImage(revertImage);
-
-                // Also ensure we stay on the current tab if image update hasn't finished yet
-                // (though hook might have already switched it)
-
-                // We stop here and do NOT apply the JSON changes
-                return;
-            }
-
-            // DEFENSIVE MERGE: The AI sometimes returns partial JSON, omitting fields
-            // it didn't change. We must merge with the synced state so missing fields
-            // fall back to current values instead of becoming undefined (which wipes data).
-            const mergedAnalysis = {
-                ...syncedAnalysis,           // start with everything we sent
-                ...aiResponse,               // overlay what AI returned
-                // For arrays/objects, only use AI's version if it actually returned them
-                cake_messages: aiResponse.cake_messages ?? syncedAnalysis.cake_messages,
-                main_toppers: aiResponse.main_toppers ?? syncedAnalysis.main_toppers,
-                support_elements: aiResponse.support_elements ?? syncedAnalysis.support_elements,
-                icing_design: aiResponse.icing_design ?? syncedAnalysis.icing_design,
-            };
-
-            // Clear dirty state so AI changes take precedence over previous manual overrides
-            clearDirtyState();
-
-            // Apply the merged analysis as if it was analyzed from an image
-            // This instantly updates UI toggles, price, and tags 
-            setPendingAnalysisData(mergedAnalysis);
-            resolveMergedAnalysis?.(mergedAnalysis);
-
-            // Notify user while image is still spinning
-            showSuccess('AI applied changes! Image is generating...');
-            setAiChatReferenceAttachment(null);
-
-            // 3. Handle extra actions (add to cart, update instructions)
-            if (aiResponse.actions && Array.isArray(aiResponse.actions)) {
-                for (const action of aiResponse.actions) {
-                    if (action.type === 'update_instructions' && action.content) {
+                runAction: async (action: AiChatAction) => {
+                    assertActiveRequest();
+                    if (action.type === 'update_instructions') {
                         const newInstructions = additionalInstructions
                             ? `${additionalInstructions}\n${action.content}`
                             : action.content;
                         onAdditionalInstructionsChange(newInstructions);
                         showSuccess('Added a note to your instructions!');
+                        return;
                     }
-                    if (action.type === 'add_to_cart') {
-                        // Short delay to allow design changes to be reflected in UI first
-                        setTimeout(() => {
-                            void onAddToCart();
-                        }, 1200);
-                    }
-                }
+                    await onAddToCartRef.current?.();
+                },
+            });
+            assertActiveRequest();
+
+            const reconciledState = flowResult.editResult?.nextState ?? currentState;
+            const changedCategories = Array.from(new Set(
+                (flowResult.editResult?.changedPaths ?? []).map(path => path.split('.')[0]),
+            ));
+            console.info(`[AI TRACE ${traceId}] ai-chat:complete`, {
+                outcome: flowResult.effectiveOutcome,
+                validationResult: 'valid',
+                changedCategories,
+                icingBaseBefore: currentState.icingDesign.base,
+                icingBaseAfter: reconciledState.icingDesign.base,
+                cakeFamilyBefore: currentState.cakeInfo.type.replace(/ Fondant$/, ''),
+                cakeFamilyAfter: reconciledState.cakeInfo.type.replace(/ Fondant$/, ''),
+                actionTypes: flowResult.response.actions.map(action => action.type),
+                imageEditRan: flowResult.imageEdited,
+            });
+
+            if (flowResult.effectiveOutcome === 'restriction') {
+                showError(flowResult.response.message || 'That change is not available for this cake.');
+                return;
+            }
+            if (flowResult.effectiveOutcome === 'clarification') {
+                showInfo(flowResult.response.message || 'Please be more specific about what you want to change.');
+                return;
+            }
+            if (flowResult.effectiveOutcome === 'noop') {
+                showInfo(flowResult.response.message || 'I could not find a supported cake option to change.');
+                return;
             }
 
+            setChatInput('');
+            setAiChatReferenceAttachment(null);
+            if (flowResult.effectiveOutcome === 'design_change') {
+                showSuccess(flowResult.imageEdited ? 'AI applied your cake changes!' : 'Cake options updated!');
+            }
         } catch (err: unknown) {
-            rejectMergedAnalysis?.(err);
-            showError(err instanceof Error ? err.message : 'Failed to process your request. Please try again.');
+            if (aiChatRequestIdRef.current !== traceId) return;
+
+            console.error(`[AI TRACE ${traceId}] ai-chat:failed`, {
+                timedOut,
+                optionsApplied: didApplyDesignState,
+                imageEditRan: didStartImageEdit,
+            });
+
+            if (timedOut) {
+                showError('The AI request timed out. Your prompt is still here so you can try again.');
+            } else if (didApplyDesignState && didStartImageEdit) {
+                showError('Cake options were updated, but the image preview failed. Apply the design changes to retry.');
+            } else if (!abortController.signal.aborted) {
+                showError(err instanceof Error ? err.message : 'Failed to process your request. Please try again.');
+            }
         } finally {
-            setIsAiProcessing(false);
+            if (aiChatRequestIdRef.current === traceId) {
+                aiChatRequestInFlightRef.current = false;
+                aiChatRequestIdRef.current = null;
+                aiChatAbortControllerRef.current = null;
+                setIsAiProcessing(false);
+            }
         }
     }, [
-        analysisResult,
-        cakeInfo,
-        clearDirtyState,
-        getSyncedAnalysisResult,
-        handleUpdateDesign,
-        isAiProcessing,
-        isUpdatingDesign,
-        setPendingAnalysisData,
         additionalInstructions,
         aiChatReferenceAttachment,
         aiChatReferenceImages,
-        onAdditionalInstructionsChange,
-        onAddToCart,
+        analysisId,
+        analysisResult,
         appendAiChatHistoryEntry,
+        applyFullCustomizationState,
+        cakeInfo,
+        cakeMessages,
+        getSyncedAnalysisResult,
+        handleUpdateDesign,
+        icingDesign,
+        isAiProcessing,
+        isUpdatingDesign,
+        mainToppers,
+        onAdditionalInstructionsChange,
         persistAiChatHistoryEntry,
+        supportElements,
     ]);
 
     const handleChatSubmit = useCallback(async (e?: React.FormEvent) => {

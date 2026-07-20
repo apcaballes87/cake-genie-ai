@@ -30,7 +30,7 @@ const buildProps = () => ({
     isUpdatingDesign: false,
     attachedImageName: null as string | null,
     isAttachmentUploading: false,
-    onSubmit: vi.fn(),
+    onSubmit: vi.fn((event?: React.FormEvent<HTMLFormElement>) => event?.preventDefault()),
     onAttachmentSelect: vi.fn(),
     onAttachmentClear: vi.fn(),
     onTemplateColorPickerToggle: vi.fn(),
@@ -43,7 +43,7 @@ const buildProps = () => ({
 });
 
 describe('CustomizingAiChatPanel', () => {
-    it('renders free-text mode and forwards primary interactions without submitting on Enter', () => {
+    it('renders free-text mode, forwards primary interactions, and submits once on Enter', () => {
         const props = buildProps();
 
         render(<CustomizingAiChatPanel {...props} />);
@@ -76,6 +76,61 @@ describe('CustomizingAiChatPanel', () => {
         expect(props.onInputInteract).toHaveBeenCalledTimes(2);
         expect(props.onInputChange).toHaveBeenCalledWith('make it pastel blue');
         expect(props.onSuggestionSelect).toHaveBeenCalledWith('add butterflies');
+        expect(props.onSubmit).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps Shift+Enter as a newline without submitting', () => {
+        const props = buildProps();
+
+        render(<CustomizingAiChatPanel {...props} />);
+
+        fireEvent.keyDown(screen.getByPlaceholderText('✨ Tell Genie your cake design wish...'), {
+            key: 'Enter',
+            shiftKey: true,
+        });
+
+        expect(props.onInputKeyDown).toHaveBeenCalledTimes(1);
+        expect(props.onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('does not submit during IME composition', () => {
+        const props = buildProps();
+
+        render(<CustomizingAiChatPanel {...props} />);
+
+        fireEvent.keyDown(screen.getByPlaceholderText('✨ Tell Genie your cake design wish...'), {
+            key: 'Enter',
+            isComposing: true,
+        });
+
+        expect(props.onInputKeyDown).toHaveBeenCalledTimes(1);
+        expect(props.onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('ignores repeated Enter keydown events', () => {
+        const props = buildProps();
+
+        render(<CustomizingAiChatPanel {...props} />);
+        const input = screen.getByPlaceholderText('✨ Tell Genie your cake design wish...');
+
+        fireEvent.keyDown(input, { key: 'Enter' });
+        fireEvent.keyDown(input, { key: 'Enter', repeat: true });
+
+        expect(props.onInputKeyDown).toHaveBeenCalledTimes(2);
+        expect(props.onSubmit).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not submit when the parent consumes Enter for suggestion handling', () => {
+        const props = buildProps();
+        props.onInputKeyDown = vi.fn(event => event.preventDefault());
+
+        render(<CustomizingAiChatPanel {...props} />);
+
+        fireEvent.keyDown(screen.getByPlaceholderText('✨ Tell Genie your cake design wish...'), {
+            key: 'Enter',
+        });
+
+        expect(props.onInputKeyDown).toHaveBeenCalledTimes(1);
         expect(props.onSubmit).not.toHaveBeenCalled();
     });
 

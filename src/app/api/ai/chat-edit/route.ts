@@ -1,334 +1,440 @@
+import { Type } from '@google/genai';
 import { NextRequest, NextResponse } from 'next/server';
-import { Type } from "@google/genai";
+
+import {
+    AI_CHAT_ACTION_TYPES,
+    AI_CHAT_CAKE_FAMILIES,
+    AI_CHAT_CAKE_FLAVORS,
+    AI_CHAT_CAKE_THICKNESSES,
+    AI_CHAT_EDIT_OUTCOMES,
+    AI_CHAT_ICING_BASES,
+    AI_CHAT_ICING_COLOR_TYPES,
+    AI_CHAT_MAIN_TOPPER_TYPES,
+    AI_CHAT_MESSAGE_POSITIONS,
+    AI_CHAT_MESSAGE_TYPES,
+    AI_CHAT_OPERATION_TYPES,
+    AI_CHAT_SIZES,
+    AI_CHAT_SUPPORT_ELEMENT_TYPES,
+    AI_CHAT_TOPPER_CLASSIFICATIONS,
+    type AiChatCustomizationSnapshot,
+    validateAiChatEditResponse,
+} from '@/app/customizing/aiChatEditContract';
+import { COLORS } from '@/constants';
 import { getAI } from '@/lib/ai/client';
-import { createClient } from '@/lib/supabase/client';
-import { getDynamicTypeEnums } from '@/lib/ai/utils';
 import { normalizeAiRouteError } from '@/lib/ai/routeError';
 
 export const maxDuration = 60;
 
-export async function POST(req: NextRequest) {
-    const traceId = req.headers.get('x-ai-trace-id') ?? `chat-edit-route-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const requestSource = req.headers.get('x-ai-request-source') ?? 'unknown';
-    const startedAt = Date.now();
+const APPROVED_COLOR_HEX = COLORS.map(color => color.hex);
 
-    try {
-        const body = await req.json();
-        const { prompt, currentAnalysis, referenceImages } = body;
-        const validReferenceImages = Array.isArray(referenceImages)
-            ? referenceImages.filter((reference) =>
-                Boolean(reference?.image?.data && reference?.image?.mimeType)
-            )
-            : [];
+const colorSchema = {
+    type: Type.STRING,
+    enum: APPROVED_COLOR_HEX,
+};
 
-        console.log(`[AI TRACE ${traceId}] /api/ai/chat-edit:start`, {
-            requestSource,
-            promptLength: typeof prompt === 'string' ? prompt.length : 0,
-            mainTopperCount: Array.isArray(currentAnalysis?.main_toppers) ? currentAnalysis.main_toppers.length : 0,
-            supportElementCount: Array.isArray(currentAnalysis?.support_elements) ? currentAnalysis.support_elements.length : 0,
-            cakeMessageCount: Array.isArray(currentAnalysis?.cake_messages) ? currentAnalysis.cake_messages.length : 0,
-            referenceImageCount: validReferenceImages.length,
-        });
+const nullableColorSchema = {
+    ...colorSchema,
+    nullable: true,
+};
 
-        if (!prompt || !currentAnalysis) {
-            return NextResponse.json(
-                { error: 'Missing prompt or currentAnalysis in request body.' },
-                { status: 400 }
-            );
-        }
+const topperInputProperties = {
+    type: { type: Type.STRING, enum: [...AI_CHAT_MAIN_TOPPER_TYPES] },
+    description: { type: Type.STRING },
+    size: { type: Type.STRING, enum: [...AI_CHAT_SIZES] },
+    quantity: { type: Type.INTEGER },
+    groupId: { type: Type.STRING },
+    classification: { type: Type.STRING, enum: [...AI_CHAT_TOPPER_CLASSIFICATIONS] },
+    material: { type: Type.STRING },
+    color: colorSchema,
+    colors: { type: Type.ARRAY, items: nullableColorSchema },
+    x: { type: Type.NUMBER },
+    y: { type: Type.NUMBER },
+};
 
-        const supabase = createClient();
-        const typeEnums = await getDynamicTypeEnums(supabase);
+const supportInputProperties = {
+    type: { type: Type.STRING, enum: [...AI_CHAT_SUPPORT_ELEMENT_TYPES] },
+    description: { type: Type.STRING },
+    size: { type: Type.STRING, enum: [...AI_CHAT_SIZES] },
+    groupId: { type: Type.STRING },
+    material: { type: Type.STRING },
+    color: colorSchema,
+    colors: { type: Type.ARRAY, items: nullableColorSchema },
+    quantity: { type: Type.INTEGER },
+    x: { type: Type.NUMBER },
+    y: { type: Type.NUMBER },
+};
 
-        const aiClient = getAI(req);
+const messageInputProperties = {
+    type: { type: Type.STRING, enum: [...AI_CHAT_MESSAGE_TYPES] },
+    text: { type: Type.STRING },
+    position: { type: Type.STRING, enum: [...AI_CHAT_MESSAGE_POSITIONS] },
+    color: colorSchema,
+    x: { type: Type.NUMBER },
+    y: { type: Type.NUMBER },
+};
 
-        const hybridAnalysisResponseSchema = {
+const buildOperationSchema = (
+    inputProperties: Record<string, unknown>,
+    addRequired: string[],
+) => ({
+    type: Type.OBJECT,
+    properties: {
+        operation: { type: Type.STRING, enum: [...AI_CHAT_OPERATION_TYPES] },
+        id: {
+            type: Type.STRING,
+            description: 'Required for update/remove. Must exactly match one existing stable ID.',
+        },
+        item: {
+            type: Type.OBJECT,
+            properties: inputProperties,
+            required: addRequired,
+        },
+        changes: {
+            type: Type.OBJECT,
+            properties: inputProperties,
+        },
+    },
+    required: ['operation'],
+});
+
+const chatEditResponseSchema = {
+    type: Type.OBJECT,
+    properties: {
+        outcome: { type: Type.STRING, enum: [...AI_CHAT_EDIT_OUTCOMES] },
+        patch: {
             type: Type.OBJECT,
             properties: {
-                cakeType: { type: Type.STRING },
-                cakeThickness: { type: Type.STRING },
-                main_toppers: {
-                    type: Type.ARRAY,
-                    items: {
-                        type: Type.OBJECT,
-                        properties: {
-                            x: { type: Type.NUMBER },
-                            y: { type: Type.NUMBER },
-                            type: {
-                                type: Type.STRING,
-                                enum: typeEnums.mainTopperTypes
-                            },
-                            material: { type: Type.STRING },
-                            group_id: { type: Type.STRING },
-                            classification: { type: Type.STRING, enum: ['hero', 'support'] },
-                            size: { type: Type.STRING, enum: ['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge'] },
-                            quantity: { type: Type.INTEGER },
-                            digits: { type: Type.INTEGER },
-                            description: { type: Type.STRING },
-                        },
-                        required: ['type', 'material', 'group_id', 'classification', 'size', 'quantity', 'description'],
-                    },
-                },
-                support_elements: {
-                    type: Type.ARRAY,
-                    items: {
-                        type: Type.OBJECT,
-                        properties: {
-                            x: { type: Type.NUMBER },
-                            y: { type: Type.NUMBER },
-                            type: {
-                                type: Type.STRING,
-                                enum: typeEnums.supportElementTypes
-                            },
-                            material: { type: Type.STRING },
-                            group_id: { type: Type.STRING },
-                            color: { type: Type.STRING },
-                            colors: { type: Type.ARRAY, items: { type: Type.STRING } },
-                            size: { type: Type.STRING, enum: ['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge'] },
-                            quantity: { type: Type.INTEGER },
-                            description: { type: Type.STRING },
-                        },
-                        required: ['type', 'material', 'group_id', 'color', 'size', 'quantity', 'description'],
-                    },
-                },
-                cake_messages: {
-                    type: Type.ARRAY,
-                    items: {
-                        type: Type.OBJECT,
-                        properties: {
-                            x: { type: Type.NUMBER },
-                            y: { type: Type.NUMBER },
-                            text: { type: Type.STRING },
-                            type: { type: Type.STRING },
-                            color: { type: Type.STRING },
-                            position: { type: Type.STRING, description: "Must be exactly 'top', 'side' (for front), or 'base_board'." },
-                        },
-                        required: ['text', 'type', 'color', 'position'],
-                    },
-                },
-                icing_design: {
+                cake: {
                     type: Type.OBJECT,
                     properties: {
-                        base: { type: Type.STRING },
-                        color_type: { type: Type.STRING },
+                        family: { type: Type.STRING, enum: [...AI_CHAT_CAKE_FAMILIES] },
+                        thickness: { type: Type.STRING, enum: [...AI_CHAT_CAKE_THICKNESSES] },
+                        size: { type: Type.STRING },
+                        flavors: {
+                            type: Type.ARRAY,
+                            items: { type: Type.STRING, enum: [...AI_CHAT_CAKE_FLAVORS] },
+                        },
+                    },
+                },
+                icing: {
+                    type: Type.OBJECT,
+                    properties: {
+                        base: { type: Type.STRING, enum: [...AI_CHAT_ICING_BASES] },
+                        colorType: { type: Type.STRING, enum: [...AI_CHAT_ICING_COLOR_TYPES] },
                         colors: {
                             type: Type.OBJECT,
                             properties: {
-                                top: { type: Type.STRING },
-                                side: { type: Type.STRING },
-                                gumpasteBaseBoardColor: { type: Type.STRING },
-                                drip: { type: Type.STRING },
-                                borderTop: { type: Type.STRING },
-                                borderBase: { type: Type.STRING },
+                                side: colorSchema,
+                                top: colorSchema,
+                                gumpasteBaseBoardColor: colorSchema,
                             },
                         },
                         drip: { type: Type.BOOLEAN },
-                        border_top: { type: Type.BOOLEAN },
-                        border_base: { type: Type.BOOLEAN },
+                        borderTop: { type: Type.BOOLEAN },
+                        borderBase: { type: Type.BOOLEAN },
                         gumpasteBaseBoard: { type: Type.BOOLEAN },
                     },
-                    required: ['base', 'color_type', 'colors', 'drip', 'border_top', 'border_base', 'gumpasteBaseBoard'],
                 },
-                restrictionViolation: { 
-                    type: Type.STRING, 
-                    description: "If the user request violates a design rule (e.g. Bento restrictions), explain WHY here and do NOT apply the change. Leave null or empty if valid." 
-                },
-                keyword: { type: Type.STRING },
-                alt_text: { type: Type.STRING },
-                seo_title: { type: Type.STRING },
-                seo_description: { type: Type.STRING },
-                actions: {
+                topperOperations: {
                     type: Type.ARRAY,
-                    items: {
-                        type: Type.OBJECT,
-                        properties: {
-                            type: {
-                                type: Type.STRING,
-                                enum: ['add_to_cart', 'update_instructions'],
-                            },
-                            content: {
-                                type: Type.STRING,
-                                description: 'For update_instructions, this should be the extracted note from the user statement.',
-                            },
-                        },
-                        required: ['type'],
-                    },
+                    items: buildOperationSchema(topperInputProperties, [
+                        'type',
+                        'description',
+                        'size',
+                        'quantity',
+                        'groupId',
+                        'classification',
+                    ]),
+                },
+                supportOperations: {
+                    type: Type.ARRAY,
+                    items: buildOperationSchema(supportInputProperties, [
+                        'type',
+                        'description',
+                        'size',
+                        'groupId',
+                    ]),
+                },
+                messageOperations: {
+                    type: Type.ARRAY,
+                    items: buildOperationSchema(messageInputProperties, [
+                        'type',
+                        'text',
+                        'position',
+                        'color',
+                    ]),
                 },
             },
-            required: ['cakeType', 'main_toppers', 'support_elements', 'cake_messages', 'icing_design'],
-        };
+        },
+        actions: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    type: { type: Type.STRING, enum: [...AI_CHAT_ACTION_TYPES] },
+                    content: { type: Type.STRING },
+                },
+                required: ['type'],
+            },
+        },
+        message: { type: Type.STRING },
+    },
+    required: ['outcome', 'actions'],
+};
 
-        const systemInstruction = `You are an expert cake design AI assistant. The user wants to modify their cake design.
-You are given the CURRENT cake design analysis JSON. Return a NEW, COMPLETE cake design analysis JSON that reflects the user's requested changes.
+const systemInstruction = `You translate a customer's cake-edit request into a MINIMAL structured patch. Never return a full cake analysis and never copy unchanged fields into the patch.
 
-ABSOLUTELY CRITICAL: You MUST return the COMPLETE JSON with ALL fields from the input. Do NOT omit any fields.
-If the user only asks to change one thing (like a message color), you still MUST return every single field that was in the input (cakeType, cakeThickness, main_toppers, support_elements, cake_messages, icing_design, keyword, etc).
-Omitting a field will DELETE that data. Every field from the input MUST appear in your output.
+Return exactly this top-level JSON contract:
+{
+  "outcome": "design_change" | "action_only" | "restriction" | "clarification" | "noop",
+  "patch"?: { "cake"?, "icing"?, "topperOperations"?, "supportOperations"?, "messageOperations"? },
+  "actions": [],
+  "message"?: "short customer-facing explanation"
+}
 
---- DESIGN RESTRICTIONS & SAFEGUARDS ---
-Check the current "cakeType" and existing elements before applying ANY changes. 
+OUTCOME RULES
+- design_change: at least one requested design change; patch is required. Mixed design changes and actions also use design_change.
+- action_only: one or more supported actions and no design change; omit patch.
+- restriction: the request violates a rule below; omit patch and provide message.
+- clarification: the requested target is missing or ambiguous; omit patch and provide a concise question.
+- noop: unsupported conversation or a request that would not change anything; omit patch and return no actions.
 
-1. BENTO CAKE RESTRICTIONS (If cakeType is 'Bento'):
-   - FLAVORS: Only "Chocolate Cake" and "Vanilla Cake" are allowed. If the user asks for "Ube" or "Mocha", REJECT it.
-   - POSITION: Bento cakes are too small for board messages. Do NOT allow any message with position: "base_board".
-   - ICING FEATURES: Bento cakes CANNOT have "border_base" (Bottom Border) or "gumpasteBaseBoard" (Covered Board). If user asks for these, REJECT it.
-   - DIMENSIONS: Strictly "2 in" thickness and "4\" Round" size. If user asks to change these for Bento, ignore or reject.
+CAKE AND ICING
+- cake.family is base-neutral and must be one of: ${AI_CHAT_CAKE_FAMILIES.join(', ')}.
+- "please change to fondant" means patch.icing.base = "fondant". Do not invent a cake family, size, thickness, flavor, or decoration change. The application deterministically maps the current family to its Fondant cake type and compatible size/thickness.
+- "change to soft icing" or "remove fondant" means patch.icing.base = "soft_icing" with the same preservation rule.
+- Only set cake.family when the customer explicitly asks to change cake family/tier/shape. Never emit Fondant in cake.family.
+- Closed cake thicknesses: ${AI_CHAT_CAKE_THICKNESSES.join(', ')}. Closed flavors: ${AI_CHAT_CAKE_FLAVORS.join(', ')}.
+- Cake colors go in patch.icing.colors. "make the cake mint green" sets side and top to #98FF98; preserve unrelated effects.
+- Drip, top border, bottom border, and covered base board are patch.icing.drip, borderTop, borderBase, and gumpasteBaseBoard booleans. Never model them as support elements.
+- Use a six-digit HEX color from the approved palette. Common mappings: mint #98FF98, navy #000080, pink #FFC0CB, light pink #FFB6C1, gold #FFD700, white #FFFFFF, black #000000.
 
-2. EDIBLE PHOTO RESTRICTIONS:
-   - If a main_topper with type "edible_photo_top" exists, the user CANNOT change the "top" icing color (icing_design.colors.top). The photo covers the entire top surface.
+TARGETED OPERATIONS
+- Existing toppers, support elements, and messages have stable IDs in CURRENT CUSTOMIZATION.
+- To update/remove an existing item, use {"operation":"update","id":"exact-id","changes":{...}} or {"operation":"remove","id":"exact-id"}.
+- Never identify an existing target by array index, description, group ID, text, or a made-up ID. Copy its exact stable ID.
+- If the wording could refer to zero or multiple existing items, return clarification with no patch. Never update/remove multiple items as a guess.
+- To add an item, use {"operation":"add","item":{...}} with all required fields and no ID.
+- Topper types: ${AI_CHAT_MAIN_TOPPER_TYPES.join(', ')}.
+- Support types: ${AI_CHAT_SUPPORT_ELEMENT_TYPES.join(', ')}.
+- Topper classification rules: printed graphics/photos/characters use printout; solid single-color metallic/glitter toppers use cardstock; physical objects use toy/figurine; handmade animal or character toppers use edible_3d_complex.
 
-3. HANDLING VIOLATIONS:
-   - If a request violates any of the above, set the "restrictionViolation" field to a polite explanation (e.g., "Sorry, Bento cakes don't support bottom borders or board messages.").
-   - When a violation is found, do NOT apply that specific change to the JSON. Revert that field to its current value.
+MESSAGES
+- Message types: ${AI_CHAT_MESSAGE_TYPES.join(', ')}. Positions: ${AI_CHAT_MESSAGE_POSITIONS.join(', ')}.
+- "front", "front side", or "face" maps to side; "bottom", "board", or "base" maps to base_board.
+- "change the message to Happy Birthday" updates the one unambiguous existing message by its exact ID. If there are zero or multiple messages and the customer did not uniquely identify one, return clarification.
+- Adding a new message uses a message add operation, normally type icing_script and color #000000 unless specified.
 
---- TOPPER & ELEMENT TYPES ---
-You MUST strictly follow these classifications for any new or modified items. Do NOT use generic types like "topper".
+RESTRICTIONS
+- While the cake remains Bento, it only supports Chocolate Cake or Vanilla Cake, thickness 2 in, its fixed size, no base_board message, no bottom border, and no covered base board.
+- A Fondant request on a current Bento cake is allowed: emit only patch.icing.base = "fondant". The application will convert it to the default 1 Tier Fondant option, matching the manual control.
+- If an enabled edible_photo_top topper exists, the top icing color cannot be changed.
+- For a restricted request, return outcome restriction, actions [], a polite message, and no patch.
 
-Valid Main Topper Types:
-${typeEnums.mainTopperTypes.join(', ')}
+ACTIONS
+- "add to cart", "buy this", or "order this" adds {"type":"add_to_cart"}.
+- Delivery/pickup details or special order notes add {"type":"update_instructions","content":"the extracted note"}.
+- A request may combine a design patch with actions. Chitchat and unsupported commands are noop.
 
-Valid Support Element Types:
-${typeEnums.supportElementTypes.join(', ')}
+EXAMPLES
+- Current soft-icing 1 Tier + "please change to fondant" -> {"outcome":"design_change","patch":{"icing":{"base":"fondant"}},"actions":[]}.
+- Current fondant 2 Tier + "make it soft icing and blue" -> {"outcome":"design_change","patch":{"icing":{"base":"soft_icing","colors":{"side":"#0000FF","top":"#0000FF"}}},"actions":[]}.
+- "add gold drip" -> {"outcome":"design_change","patch":{"icing":{"drip":true}},"actions":[]}.
+- "change message msg-2 to Happy Birthday" -> a message update using id msg-2 and changes {"text":"Happy Birthday"}.
+- "remove the flower" when multiple flower elements exist -> clarification, no patch.
+- A forbidden Bento bottom border -> restriction, no patch.
+- "add to cart" -> {"outcome":"action_only","actions":[{"type":"add_to_cart"}]}.
 
-CLASSIFICATION RULES:
-1. "printout": Use for toppers with printed graphics, photos, character images (My Melody, Disney, etc), or multi-color printed text.
-2. "cardstock": Use ONLY for solid single-color metallic or glitter toppers without printed graphics.
-3. "edible_photo_top": Use for photos printed on edible icing/sugar sheets placed on top.
-4. "toy" / "figurine": Use for non-edible physical objects.
-5. "edible_3d_ordinary" / "edible_3d_complex": Use for gumpaste/fondant hand-made shapes. This includes object-based toppers like animals (e.g., bear, lion), sculpted characters, or intricate hand-molded items. If a user asks for an "animal topper", it MUST be classified as "edible_3d_complex".
+Use the reference images only to interpret the requested change. Preserve every unrelated field. Return JSON only.`;
 
---- UI MAPPING & INSTRUCTIONS ---
-COLORS:
-You must strictly use these HEX codes for colors whenever possible to match our UI palette:
-Dark Red: #8B0000, Red: #FF0000, Coral: #FF7F50, Orange: #FFA500, Peach: #FFDAB9, Gold: #FFD700, Yellow: #FFFF00, Light Yellow: #FFFFE0, Champagne: #F7E7CE, Ivory: #FFFFF0, Beige: #F5F5DC, Green: #008000, Light Green: #90EE90, Mint: #98FF98, Teal: #008080, Navy: #000080, Blue: #0000FF, Light Blue: #87CEEB, Purple: #800080, Lavender: #E6E6FA, Hot Pink: #FF69B4, Pink: #FFC0CB, Light Pink: #FFB6C1, Rose Gold: #B76E79, Brown: #8B4513, Tan: #D2B48C, Silver: #C0C0C0, White: #FFFFFF, Black: #000000.
-If a user asks for a vague color like "mint green" or "dark blue", pick the closest hex from this list (e.g. Mint: #98FF98, Navy: #000080). Do not use color words like "blue".
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null && !Array.isArray(value);
 
-CAKE MESSAGES:
-- Text: Managed in "cake_messages" array. To "change the message to X", FIND the existing object and CHANGE its "text".
-- Color: Change the "color" property to the HEX code.
-- Position: Valid values are exactly "top", "side", or "base_board".
-  - If user says "front", "front side", or "face": set position to "side".
-  - If user says "bottom", "board", or "base": set position to "base_board".
-  - If user says "top": set position to "top".
+const isCustomizationSnapshot = (value: unknown): value is AiChatCustomizationSnapshot =>
+    isRecord(value)
+    && isRecord(value.cakeInfo)
+    && isRecord(value.icingDesign)
+    && isRecord(value.analysisResult)
+    && Array.isArray(value.mainToppers)
+    && Array.isArray(value.supportElements)
+    && Array.isArray(value.cakeMessages)
+    && typeof value.additionalInstructions === 'string';
 
-ICING DESIGN & EFFECTS:
-- "colors" object under "icing_design" has keys: side (required), top, gumpasteBaseBoardColor. All values are HEX codes from the approved palette.
-- Drip: If user asks for a drip (e.g., "add gold drip"), set icing_design.drip = true. To remove, set drip = false. (No color in colors object; drip color is inferred from side/top).
-- Borders: "Top border" -> set border_top = true. "Bottom border" -> set border_base = true. (No color in colors object; border color is inferred from side/top).
-- Base Board: "Base board" -> set gumpasteBaseBoard = true AND set colors.gumpasteBaseBoardColor to the matching HEX.
-- Cake Color: "make the cake [color]" -> change colors.side and colors.top to the matching HEX code. Side is the primary color for slugs/filters.
+const getCakeFamily = (cakeType: unknown): string | undefined => {
+    if (typeof cakeType !== 'string') return undefined;
+    return cakeType.replace(/ Fondant$/, '');
+};
 
-CRITICAL RULES:
-1. All colors must be valid CSS HEX codes from the approved palette above.
-2. Set booleans strictly to true or false.
-3. NEVER add "drip", "border", or "board" to support_elements. They MUST ONLY BE CONFIGURED inside the icing_design object.
-4. Do NOT remove any existing message or element unless explicitly asked to "remove" or "delete" it.
-5. The "colors" object does NOT contain drip, borderTop, or borderBase keys. Those are separate boolean flags at icing_design level.
+const getChangeCategories = (patch: Record<string, unknown> | undefined): string[] => {
+    if (!patch) return [];
+    const categories: string[] = [];
+    if ('cake' in patch) categories.push('cake');
+    if ('icing' in patch) categories.push('icing');
+    if ('topperOperations' in patch) categories.push('toppers');
+    if ('supportOperations' in patch) categories.push('support');
+    if ('messageOperations' in patch) categories.push('messages');
+    return categories;
+};
 
-EXAMPLES:
-- Prompt: "add message Happy Birthday in front side" -> Action: add to cake_messages { text: "Happy Birthday", position: "side", type: "icing_script", color: "#000000" }.
-- Prompt: "make the cake mint green" -> Action: set icing_design.colors.side and icing_design.colors.top to "#98FF98". Return ALL other fields unchanged.
-- Prompt: "add a gold drip" -> Action: set icing_design.drip = true. Return ALL other fields unchanged.
-- Prompt: "add top border" -> Action: set icing_design.border_top = true. Return ALL other fields unchanged.
+const stringifyCustomizationForModel = (snapshot: AiChatCustomizationSnapshot): string =>
+    JSON.stringify(snapshot, (key, value) => key === 'replacementImage' ? undefined : value, 2);
 
-Return the FULL, COMPLETE updated JSON with every field from the input included.
- 
---- ACTIONS & NON-DESIGN PROMPTS ---
-1. Add to Cart: If the user says "add to cart", "buy this", "order this", or similar, add an object to the "actions" array: { "type": "add_to_cart" }.
-2. Additional Instructions: If the user provides delivery details, pickup times, address, or special notes (e.g., "this is for my daughter's birthday", "for pickup tomorrow at 10am", "deliver to 123 Street"), add an object to the "actions" array: { "type": "update_instructions", "content": "THE EXTRACTED NOTE" }.
-3. You can combine actions and design changes. If the user says "make it pink and add to cart", perform the design change AND add the action.
-4. If the user's statement is ONLY a non-design interaction that we don't support (e.g., "how are you?", "tell me a joke"), return the input JSON exactly as is with an empty actions array.`;
+export async function POST(req: NextRequest) {
+    const traceId = req.headers.get('x-ai-trace-id')
+        ?? `chat-edit-route-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const startedAt = Date.now();
 
-        const promptText = `
-User Prompt: ${prompt}
+    try {
+        const body: unknown = await req.json();
+        if (!isRecord(body)) {
+            return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
+        }
 
-Current Cake Design JSON:
-${JSON.stringify(currentAnalysis, null, 2)}
-`;
+        const prompt = typeof body.prompt === 'string' ? body.prompt.trim() : '';
+        const currentCustomization = body.currentCustomization;
+        if (!prompt || !isCustomizationSnapshot(currentCustomization)) {
+            return NextResponse.json(
+                { error: 'Missing prompt or valid currentCustomization in request body.' },
+                { status: 400 },
+            );
+        }
+
+        const validReferenceImages = Array.isArray(body.referenceImages)
+            ? body.referenceImages.filter(reference =>
+                isRecord(reference)
+                && isRecord(reference.image)
+                && typeof reference.image.data === 'string'
+                && reference.image.data.length > 0
+                && typeof reference.image.mimeType === 'string'
+                && reference.image.mimeType.length > 0
+            )
+            : [];
+
+        const icingBaseBefore = typeof currentCustomization.icingDesign.base === 'string'
+            ? currentCustomization.icingDesign.base
+            : undefined;
+        const cakeFamilyBefore = getCakeFamily(currentCustomization.cakeInfo.type);
+
+        console.log(`[AI TRACE ${traceId}] /api/ai/chat-edit:start`, {
+            icingBaseBefore,
+            cakeFamilyBefore,
+        });
 
         const parts: Array<
             | { text: string }
             | { inlineData: { data: string; mimeType: string } }
         > = [];
 
-        validReferenceImages.forEach((reference) => {
+        validReferenceImages.forEach(reference => {
+            const image = reference.image as Record<string, unknown>;
             parts.push({
                 inlineData: {
-                    data: reference.image.data,
-                    mimeType: reference.image.mimeType,
+                    data: image.data as string,
+                    mimeType: image.mimeType as string,
                 },
             });
             parts.push({
-                text: `${reference.label || 'Reference image'} is an additional ${reference.targetType || 'design reference'} labeled "${reference.targetDescription || 'unnamed reference'}". Use it to interpret the user's requested change, but preserve all other cake details unless the user explicitly asks for them to change.`,
+                text: `${typeof reference.label === 'string' ? reference.label : 'Reference image'} is an additional ${typeof reference.targetType === 'string' ? reference.targetType : 'design reference'} labeled "${typeof reference.targetDescription === 'string' ? reference.targetDescription : 'unnamed reference'}". Use it only to interpret the requested change.`,
             });
         });
 
-        parts.push({ text: promptText });
+        parts.push({
+            text: `CUSTOMER REQUEST:\n${prompt}\n\nCURRENT CUSTOMIZATION (stable IDs are authoritative):\n${stringifyCustomizationForModel(currentCustomization)}`,
+        });
 
+        const aiClient = getAI(req);
         const response = await aiClient.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: [
-                {
-                    role: 'user',
-                    parts,
-                },
-            ],
+            model: 'gemini-2.5-flash',
+            contents: [{ role: 'user', parts }],
             config: {
                 systemInstruction,
                 responseMimeType: 'application/json',
-                responseSchema: hybridAnalysisResponseSchema as any,
+                responseSchema: chatEditResponseSchema,
                 temperature: 0,
             },
         });
 
-        console.log(`[AI TRACE ${traceId}] /api/ai/chat-edit:model-response`, {
-            requestSource,
-            model: 'gemini-2.5-flash',
-            durationMs: Date.now() - startedAt,
-        });
-
         const jsonText = (response.text || '').trim();
-        let result;
+        let parsedResponse: unknown;
         try {
-            result = JSON.parse(jsonText);
-        } catch (e) {
-            console.error("Failed to parse AI response:", jsonText);
-            console.error(`[AI TRACE ${traceId}] /api/ai/chat-edit:parse-error`, {
-                requestSource,
+            parsedResponse = JSON.parse(jsonText);
+        } catch {
+            console.error(`[AI TRACE ${traceId}] /api/ai/chat-edit:invalid-response`, {
+                validationKind: 'invalid_json',
                 durationMs: Date.now() - startedAt,
             });
             return NextResponse.json(
-                { error: 'Invalid response format from AI' },
-                { status: 500 }
+                { error: 'AI returned an invalid cake design update.' },
+                { status: 502 },
             );
         }
 
+        const validation = validateAiChatEditResponse(parsedResponse, {
+            mainToppers: currentCustomization.mainToppers,
+            supportElements: currentCustomization.supportElements,
+            cakeMessages: currentCustomization.cakeMessages,
+        });
+        if (!validation.success) {
+            if (validation.kind === 'ambiguous_target') {
+                const clarificationResponse = {
+                    outcome: 'clarification' as const,
+                    actions: [],
+                    message: 'I could not identify exactly one cake detail to change. Please tell me which specific item you mean.',
+                };
+                console.log(`[AI TRACE ${traceId}] /api/ai/chat-edit:success`, {
+                    outcome: clarificationResponse.outcome,
+                    actionTypes: [],
+                    changeCategories: [],
+                    icingBaseBefore,
+                    icingBaseRequested: undefined,
+                    cakeFamilyBefore,
+                    visualRequested: false,
+                    durationMs: Date.now() - startedAt,
+                });
+                return NextResponse.json(clarificationResponse);
+            }
+
+            console.error(`[AI TRACE ${traceId}] /api/ai/chat-edit:invalid-response`, {
+                validationKind: validation.kind,
+                durationMs: Date.now() - startedAt,
+            });
+            return NextResponse.json(
+                { error: 'AI returned an invalid cake design update.' },
+                { status: 502 },
+            );
+        }
+
+        const patch = validation.data.patch as Record<string, unknown> | undefined;
+        const icingPatch = isRecord(patch?.icing) ? patch.icing : undefined;
+        const actionTypes = [...new Set(validation.data.actions.map(action => action.type))];
+
         console.log(`[AI TRACE ${traceId}] /api/ai/chat-edit:success`, {
-            requestSource,
+            outcome: validation.data.outcome,
+            actionTypes,
+            changeCategories: getChangeCategories(patch),
+            icingBaseBefore,
+            icingBaseRequested: typeof icingPatch?.base === 'string' ? icingPatch.base : undefined,
+            cakeFamilyBefore,
+            visualRequested: validation.data.outcome === 'design_change',
             durationMs: Date.now() - startedAt,
         });
 
-        return NextResponse.json({ analysis_json: result });
-
-    } catch (error: any) {
-        console.error('Error in /api/ai/chat-edit:', error);
-
+        return NextResponse.json(validation.data);
+    } catch (error: unknown) {
         const normalizedError = normalizeAiRouteError(error, {
             defaultMessage: 'Failed to update cake design. Please try again.',
             quotaMessage: 'AI design updates are temporarily unavailable due to quota limits. Please try again later.',
         });
 
         console.error(`[AI TRACE ${traceId}] /api/ai/chat-edit:error`, {
-            requestSource,
             durationMs: Date.now() - startedAt,
             status: normalizedError.status,
-            message: normalizedError.message,
-            rawStatus: error?.status,
+            errorName: error instanceof Error ? error.name : 'unknown',
         });
 
         return NextResponse.json(
             { error: normalizedError.message },
-            { status: normalizedError.status }
+            { status: normalizedError.status },
         );
     }
 }

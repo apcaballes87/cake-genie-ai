@@ -101,6 +101,22 @@ export const CustomizingAiChatPanel = React.memo(({
         if (event.defaultPrevented) {
             return;
         }
+
+        if (
+            event.key !== 'Enter' ||
+            event.shiftKey ||
+            event.repeat ||
+            event.nativeEvent.isComposing ||
+            !chatInput.trim() ||
+            isAiProcessing ||
+            isUpdatingDesign ||
+            selectedAiPromptTemplate
+        ) {
+            return;
+        }
+
+        event.preventDefault();
+        event.currentTarget.form?.requestSubmit();
     };
     const suggestionsPlacementClassName = suggestionsPlacement === 'below'
         ? 'top-full mt-2 slide-in-from-top-2'
