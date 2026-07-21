@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import Link from 'next/link';
 
 import AnimatedBlobs from '@/components/UI/AnimatedBlobs';
 import { LandingFooter } from '@/components/landing/LandingFooter';
@@ -97,6 +98,13 @@ export default async function PriceListPage() {
             </h1>
             <p className="mt-5 max-w-3xl text-base leading-8 text-slate-600 md:text-lg">
               Browse the starting base prices for each cake type, compare sizes, and use the ranges below as your planning guide before you customize your final design.
+            </p>
+            <p className="mt-3 text-sm leading-7 text-slate-600">
+              Need a practical visual starting point?{' '}
+              <Link href="/collections/minimalist-cake" className="font-semibold text-purple-700 hover:text-purple-900 hover:underline">
+                Browse minimalist cake designs in Cebu
+              </Link>{' '}
+              before comparing sizes and finishes.
             </p>
             <div className="mt-6 rounded-[1.75rem] border border-amber-200 bg-amber-50/90 p-5 shadow-sm">
               <p className="text-sm leading-7 text-amber-950">

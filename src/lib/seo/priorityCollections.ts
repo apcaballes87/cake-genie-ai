@@ -10,10 +10,26 @@ export const PRIORITY_COLLECTION_ALIASES: Record<string, string> = {
   '60th-birthday-cakes': 'senior-cake',
 }
 
+export const FEATURED_COLLECTION_LINKS = [
+  { slug: 'bento-cake', label: 'Bento Cake Designs' },
+  { slug: 'minimalist-cake', label: 'Minimalist Cake Designs' },
+  { slug: 'katseye-cake', label: 'KATSEYE Cake Designs' },
+  { slug: 'kuromi-cake', label: 'Kuromi Cake Designs' },
+  { slug: 'minecraft-cake', label: 'Minecraft Cake Designs' },
+  { slug: 'graduation-cake', label: 'Graduation Cake Designs' },
+  { slug: 'debut-cake', label: '18th Birthday & Debut Cake Designs' },
+  { slug: '30th-birthday-cake', label: '30th Birthday Cake Designs' },
+  { slug: 'senior-cake', label: '60th Birthday Cake Designs' },
+] as const
+
 export const PRIORITY_COLLECTION_SEO: Record<string, PriorityCollectionSeo> = {
   'bento-cake': {
     description: 'Browse bento cake designs for birthdays, monthsaries, and small gifts in Cebu. Compare styles, open any design for instant starting-price context, and customize its message, colors, and size for Metro Cebu delivery or pickup.',
     keywords: ['bento cake design', 'bento cake price cebu', 'mini cake cebu', 'korean bento cake'],
+  },
+  'minimalist-cake': {
+    description: 'Compare Korean-style, pastel, vintage-piped, and simple birthday cakes in Cebu. Open a design to customize its message, colors, and size and see starting prices.',
+    keywords: ['minimalist cake design', 'minimalist cake cebu', 'korean minimalist cake', 'simple birthday cake cebu'],
   },
   'katseye-cake': {
     description: 'Explore Katseye cake designs inspired by the group’s music, colors, logos, and fan celebrations. Open a distinct design to customize its message, size, and finish, then check pricing and Metro Cebu ordering options.',

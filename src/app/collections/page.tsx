@@ -1,7 +1,8 @@
-import { Suspense } from 'react';
+import Link from 'next/link'
 import { getDesignCategories } from '@/services/supabaseService'
 import CollectionsClient from './CollectionsClient'
 import { buildMarketingPageMetadata } from '@/lib/utils/metadata'
+import { FEATURED_COLLECTION_LINKS } from '@/lib/seo/priorityCollections'
 
 export const revalidate = 3600; // ISR: revalidate every hour
 
@@ -11,7 +12,44 @@ export const metadata = buildMarketingPageMetadata({
     canonicalPath: 'https://genie.ph/collections',
 })
 
-function CollectionPageSchema({ categories }: { categories: any[] }) {
+type CollectionsPageProps = {
+    searchParams?: Promise<{ page?: string | string[] }>
+}
+
+type CollectionCategory = NonNullable<Awaited<ReturnType<typeof getDesignCategories>>['data']>[number]
+
+export function parseCollectionsPage(value: string | string[] | undefined): number {
+    const rawValue = Array.isArray(value) ? value[0] : value
+    const parsed = Number.parseInt(rawValue || '1', 10)
+    return Number.isFinite(parsed) && parsed >= 1 ? parsed : 1
+}
+
+export function FeaturedCollectionLinks() {
+    return (
+        <section className="mb-10 rounded-2xl border border-purple-100 bg-purple-50/60 p-5" aria-labelledby="featured-collections-heading">
+            <h2 id="featured-collections-heading" className="text-lg font-bold text-slate-800">
+                Featured Cake Collections
+            </h2>
+            <p className="mt-1 text-sm text-slate-600">
+                Start with a popular Cebu cake theme, then open any design to customize it and check pricing.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+                {FEATURED_COLLECTION_LINKS.map((collection) => (
+                    <Link
+                        key={collection.slug}
+                        href={`/collections/${collection.slug}`}
+                        prefetch={false}
+                        className="rounded-full border border-purple-200 bg-white px-4 py-2 text-sm font-semibold text-purple-700 transition-colors hover:bg-purple-100"
+                    >
+                        {collection.label}
+                    </Link>
+                ))}
+            </div>
+        </section>
+    )
+}
+
+function CollectionPageSchema({ categories }: { categories: CollectionCategory[] }) {
     const schema = {
         '@context': 'https://schema.org',
         '@type': 'CollectionPage',
@@ -29,7 +67,7 @@ function CollectionPageSchema({ categories }: { categories: any[] }) {
             '@type': 'ItemList',
             name: 'Cake Design Categories',
             numberOfItems: categories.length,
-            itemListElement: categories.map((cat: any, i: number) => ({
+            itemListElement: categories.map((cat, i) => ({
                 '@type': 'ListItem',
                 position: i + 1,
                 name: cat.keyword,
@@ -47,21 +85,21 @@ function CollectionPageSchema({ categories }: { categories: any[] }) {
     );
 }
 
-export default async function CollectionsPage() {
+export default async function CollectionsPage({ searchParams }: CollectionsPageProps) {
     const categoriesRes = await getDesignCategories().catch(() => ({ data: [], error: null }));
 
     const categories = categoriesRes.data || [];
+    const initialPage = parseCollectionsPage((await searchParams)?.page)
 
     return (
         <>
             <CollectionPageSchema categories={categories} />
-            <Suspense fallback={
-                <div className="min-h-screen flex items-center justify-center">
-                    <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-                </div>
-            }>
-                <CollectionsClient categories={categories} />
-            </Suspense>
+            <CollectionsClient
+                key={initialPage}
+                categories={categories}
+                initialPage={initialPage}
+                featuredCollections={<FeaturedCollectionLinks />}
+            />
         </>
     );
 }

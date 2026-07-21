@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useState, useCallback, useEffect, useRef, useSyncExternalStore, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowLeft, ShoppingBag, Search, User, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -27,6 +27,8 @@ interface Category {
 
 interface CollectionsClientProps {
     categories: Category[];
+    initialPage: number;
+    featuredCollections: ReactNode;
 }
 
 const ITEMS_PER_PAGE = 30;
@@ -47,7 +49,9 @@ const getPageNumbers = (current: number, total: number): (number | string)[] => 
 };
 
 const CollectionsClient: React.FC<CollectionsClientProps> = ({
-    categories
+    categories,
+    initialPage,
+    featuredCollections,
 }) => {
     const router = useRouter();
     const { isAuthenticated, user } = useAuth();
@@ -66,27 +70,17 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
         clearCustomization
     } = useCakeCustomization();
 
-    const searchParams = useSearchParams();
-    const pageParam = searchParams.get('page');
-
-    const [currentPage, setCurrentPage] = useState(1);
+    const [currentPage, setCurrentPage] = useState(initialPage);
     const [searchQuery, setSearchQuery] = useState('');
     const [isFetchingWebImage, setIsFetchingWebImage] = useState(false);
-    const [isMounted, setIsMounted] = useState(false);
+    const isMounted = useSyncExternalStore(
+        () => () => undefined,
+        () => true,
+        () => false,
+    );
     const [isScrolled, setIsScrolled] = useState(false);
     const [isSearchFocused, setIsSearchFocused] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-        if (pageParam) {
-            const p = parseInt(pageParam, 10);
-            if (!isNaN(p) && p > 0) {
-                setCurrentPage(p);
-            }
-        } else {
-            setCurrentPage(1);
-        }
-    }, [pageParam]);
 
     const totalPages = Math.ceil(categories.length / ITEMS_PER_PAGE);
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -109,8 +103,6 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     }, [router, totalPages]);
-
-    useEffect(() => { setIsMounted(true); }, []);
 
     useEffect(() => {
         const updateScrollState = () => {
@@ -263,6 +255,8 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
                             </p>
                         </div>
                     </div>
+
+                    {featuredCollections}
 
                     {trendingCategories.length > 0 && (
                         <section className="mb-10">

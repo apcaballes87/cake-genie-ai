@@ -176,7 +176,7 @@ export const CEBU_LANDING_PAGES: Record<string, LandingPageConfig> = {
     relatedLinks: [
       { label: 'Cake Delivery Cebu', href: '/cake-delivery-cebu' },
       { label: 'Birthday Cake Delivery Cebu City', href: '/birthday-cake-delivery-cebu-city' },
-      { label: 'Search minimalist bento cakes', href: searchHref('minimalist bento cake') },
+      { label: 'Browse Minimalist Cake Designs', href: '/collections/minimalist-cake' },
       { label: 'Customize your own cake', href: '/customizing' },
     ],
     finalCtaTitle: 'Need a bento cake in Cebu today?',
@@ -304,7 +304,7 @@ export const CEBU_LANDING_PAGES: Record<string, LandingPageConfig> = {
       { label: 'Cake Delivery Cebu City', href: '/cake-delivery-cebu-city' },
       { label: 'Birthday Cake Delivery Cebu City', href: '/birthday-cake-delivery-cebu-city' },
       { label: 'Kids Party Cakes Cebu', href: '/kids-party-cakes-cebu' },
-      { label: 'Browse more custom cakes', href: '/collections' },
+      { label: 'Browse Minimalist Cake Designs', href: '/collections/minimalist-cake' },
     ],
     finalCtaTitle: 'Ready to lock in cake delivery anywhere in Metro Cebu?',
     finalCtaBody:
@@ -336,7 +336,7 @@ export const CEBU_LANDING_PAGES: Record<string, LandingPageConfig> = {
     },
     secondaryCta: {
       label: 'See Cebu City Cake Ideas',
-      href: searchHref('cebu city cake delivery minimalist birthday cake'),
+      href: '/collections/minimalist-cake',
     },
     coverageIntro:
       'This page leans into exact Cebu City buyer needs: faster local expectation-setting, more practical delivery language, and cleaner paths for urgent celebrations.',
@@ -558,7 +558,7 @@ export const CEBU_LANDING_PAGES: Record<string, LandingPageConfig> = {
       { label: 'Cake Delivery Cebu City', href: '/cake-delivery-cebu-city' },
       { label: 'Cake Delivery Cebu', href: '/cake-delivery-cebu' },
       { label: 'Kids Party Cakes Cebu', href: '/kids-party-cakes-cebu' },
-      { label: 'Search minimalist birthday cakes', href: searchHref('minimalist birthday cake') },
+      { label: 'Browse Minimalist Birthday Cake Designs', href: '/collections/minimalist-cake' },
     ],
     finalCtaTitle: 'Need a birthday cake in Cebu City before the moment passes?',
     finalCtaBody:

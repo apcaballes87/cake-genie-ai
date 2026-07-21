@@ -18,16 +18,16 @@ export interface BlogCommercialLinks {
 }
 
 const KNOWN_COLLECTION_TARGETS = [
-  { slug: 'super-mario', label: 'Super Mario', patterns: ['super mario', 'mario bros', 'mario'] },
-  { slug: 'hello-kitty', label: 'Hello Kitty', patterns: ['hello kitty'] },
-  { slug: 'minecraft', label: 'Minecraft', patterns: ['minecraft'] },
-  { slug: 'pokemon', label: 'Pokemon', patterns: ['pokemon', 'pikachu'] },
-  { slug: 'cocomelon', label: 'Cocomelon', patterns: ['cocomelon'] },
-  { slug: 'minimalist', label: 'Minimalist', patterns: ['minimalist'] },
-  { slug: 'wedding', label: 'Wedding', patterns: ['wedding', 'engagement'] },
-  { slug: 'unicorn', label: 'Unicorn', patterns: ['unicorn'] },
-  { slug: 'frozen', label: 'Frozen', patterns: ['frozen', 'elsa', 'anna', 'olaf'] },
-  { slug: 'bento', label: 'Bento', patterns: ['bento'] },
+  { slug: 'super-mario-cake', label: 'Super Mario', patterns: ['super mario', 'mario bros', 'mario'] },
+  { slug: 'hello-kitty-cake', label: 'Hello Kitty', patterns: ['hello kitty'] },
+  { slug: 'minecraft-cake', label: 'Minecraft', patterns: ['minecraft'] },
+  { slug: 'pokemon-cake', label: 'Pokemon', patterns: ['pokemon', 'pikachu'] },
+  { slug: 'cocomelon-cake', label: 'Cocomelon', patterns: ['cocomelon'] },
+  { slug: 'minimalist-cake', label: 'Minimalist', patterns: ['minimalist'] },
+  { slug: 'wedding-cake', label: 'Wedding', patterns: ['wedding', 'engagement'] },
+  { slug: 'unicorn-cake', label: 'Unicorn', patterns: ['unicorn'] },
+  { slug: 'frozen-cake', label: 'Frozen', patterns: ['frozen', 'elsa', 'anna', 'olaf'] },
+  { slug: 'bento-cake', label: 'Bento', patterns: ['bento'] },
   { slug: 'birthday', label: 'Birthday', patterns: ['birthday', 'debut'] },
 ] as const;
 
