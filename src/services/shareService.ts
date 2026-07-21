@@ -5,6 +5,7 @@ import { generateUrlSlug } from '@/lib/utils/urlHelpers';
 import { generateContributorDiscountCode } from './incentiveService';
 import { notifyIndexNow } from './indexNowService';
 import { CartItemDetails } from '@/types';
+import { getSeoImageUploadHeaders } from '@/lib/seo/storageImageHeaders';
 
 const supabase = getSupabaseClient();
 
@@ -40,6 +41,7 @@ async function uploadImageToStorage(imageDataUri: string, designId: string): Pro
       .upload(filePath, blob, {
         contentType: 'image/jpeg',
         upsert: true, // Allow overwriting if exists
+        headers: getSeoImageUploadHeaders(),
       });
 
     if (error) {

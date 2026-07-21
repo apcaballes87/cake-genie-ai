@@ -10,6 +10,7 @@ import {
 import { getAI } from '@/lib/ai/client';
 import { normalizeAiRouteError } from '@/lib/ai/routeError';
 import { createPublicServerSupabaseClient } from '@/lib/supabase/publicServer';
+import { getSeoImageUploadHeaders } from '@/lib/seo/storageImageHeaders';
 
 const MODEL_NAME = 'gemini-3.1-flash-lite-image';
 const STORAGE_BUCKET = 'cakegenie';
@@ -484,6 +485,7 @@ export async function runImageStudioJob({
       .upload(storagePath, watermarkedBuffer, {
         contentType: 'image/webp',
         upsert: true,
+        headers: getSeoImageUploadHeaders(),
       });
 
     if (uploadError) {

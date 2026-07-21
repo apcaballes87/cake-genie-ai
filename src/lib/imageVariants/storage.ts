@@ -13,6 +13,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { STORAGE_BASE_URL, STORAGE_BUCKETS } from '@/constants';
+import { getSeoImageUploadHeaders } from '@/lib/seo/storageImageHeaders';
 
 /** The bucket all variants live in (Req 2.1). */
 const VARIANT_BUCKET = STORAGE_BUCKETS.cakegenie;
@@ -125,6 +126,7 @@ export async function uploadVariant(
             contentType: VARIANT_CONTENT_TYPE,
             cacheControl: VARIANT_CACHE_CONTROL_MAX_AGE_SECONDS,
             upsert: true,
+            headers: getSeoImageUploadHeaders(),
         });
 
     if (error) {

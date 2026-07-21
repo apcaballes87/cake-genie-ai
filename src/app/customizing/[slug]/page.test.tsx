@@ -719,6 +719,12 @@ describe('RecentSearchPage', () => {
       const metadata = await generateMetadata({ params: Promise.resolve({ slug: design.slug }) }, {} as never);
 
       const expectedImage = 'https://example.com/variants/pickleball-sky-blue-rectangle-cake-f8b0/1200.webp';
+      expect(metadata.robots).toMatchObject({
+        index: true,
+        follow: true,
+        'max-image-preview': 'large',
+        googleBot: expect.objectContaining({ 'max-image-preview': 'large' }),
+      });
       expect(metadata.openGraph?.images).toEqual([
         expect.objectContaining({
           url: expectedImage,

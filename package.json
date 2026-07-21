@@ -12,6 +12,7 @@
     "index:typesense": "tsx scripts/index-typesense.ts",
     "cleanup:abandoned-orders": "tsx scripts/test-cleanup-abandoned-orders.ts",
     "backfill:variants": "tsx scripts/backfill-image-variants.ts",
+    "backfill:bing-images": "tsx scripts/backfill-bing-image-eligibility.ts",
     "backfill:phash": "tsx scripts/backfill-server-phashes.ts",
     "reconcile:local": "tsx scripts/reconcile-batch-local.ts"
   },

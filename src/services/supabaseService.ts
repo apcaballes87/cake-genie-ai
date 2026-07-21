@@ -21,6 +21,7 @@ import { generateCakeAnalysisSlug } from '@/lib/utils/urlHelpers';
 import { generateTagsForAnalysis } from '@/utils/tagUtils';
 import { buildCakeTitle, extractTitleInputFromAnalysis } from '@/lib/seo/cakeTitle';
 import { enrichStoredSeoDescription } from '@/lib/seo/analysisCopy';
+import { getSeoImageUploadHeaders } from '@/lib/seo/storageImageHeaders';
 import { withTimeout } from '@/lib/utils/timeout';
 import {
   getDistinctiveRelatedSearchTerms,
@@ -1045,6 +1046,7 @@ export async function cacheAnalysisResult(
           .upload(filePath, webpBlob, {
             contentType: 'image/webp',
             upsert: true,
+            headers: getSeoImageUploadHeaders(),
           });
 
         if (uploadError) {

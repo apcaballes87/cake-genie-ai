@@ -8,6 +8,7 @@ import { buildImageStudioPrompt, buildImageStudioSystemInstruction, getImageStud
 import { buildIcingConversionPrompt } from '@/lib/icingConversionPrompt';
 import { ICING_LAYER_SYSTEM_INSTRUCTION, CURRENT_MASK_VERSION } from '@/services/icingMaskService';
 import { createAdminServerSupabaseClient } from '@/lib/supabase/adminServer';
+import { getSeoImageUploadHeaders } from '@/lib/seo/storageImageHeaders';
 
 const STUDIO_MODEL = 'gemini-3.1-flash-lite-image';
 const MASK_MODEL = 'gemini-3.1-flash-lite-image';
@@ -273,7 +274,11 @@ async function importStage(run: BatchRun, items: BatchItem[], stage: Stage, maxI
         const path = getImageStudioStoragePath({ slug: latestSlug, pHash: item.p_hash });
         const webp = await sharp(image).webp({ quality: 92, effort: 4 }).toBuffer();
         const metadata = await sharp(webp).metadata().catch(() => null);
-        const { error: uploadError } = await admin.storage.from(STORAGE_BUCKET).upload(path, webp, { contentType: 'image/webp', upsert: true });
+        const { error: uploadError } = await admin.storage.from(STORAGE_BUCKET).upload(path, webp, {
+          contentType: 'image/webp',
+          upsert: true,
+          headers: getSeoImageUploadHeaders(),
+        });
         throwIfSupabaseError(uploadError, `Upload studio image ${path}`);
         const { data } = admin.storage.from(STORAGE_BUCKET).getPublicUrl(path);
         const { error: cacheUpdateError } = await admin
