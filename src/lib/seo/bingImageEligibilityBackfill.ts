@@ -34,6 +34,17 @@ export type PublicImageSnapshot = {
 export type StorageUpdateClient = {
   storage: {
     from(bucket: string): {
+      list(
+        path: string,
+        options: { search: string; limit: number },
+      ): Promise<{
+        data: Array<{ name: string; metadata?: Record<string, unknown> | null }> | null;
+        error: { message: string } | null;
+      }>;
+      download(path: string): Promise<{
+        data: Blob | null;
+        error: { message: string } | null;
+      }>;
       update(
         path: string,
         body: Uint8Array,
@@ -126,6 +137,61 @@ function addVerificationCacheBust(value: string): string {
   return url.toString();
 }
 
+function metadataString(metadata: Record<string, unknown>, key: string): string | null {
+  const value = metadata[key];
+  return typeof value === 'string' && value.trim() ? value : null;
+}
+
+async function readStoredImageSnapshot(
+  client: StorageUpdateClient,
+  object: StorageObjectReference,
+): Promise<PublicImageSnapshot> {
+  const slashIndex = object.objectPath.lastIndexOf('/');
+  const directory = slashIndex === -1 ? '' : object.objectPath.slice(0, slashIndex);
+  const fileName = object.objectPath.slice(slashIndex + 1);
+  const bucket = client.storage.from(object.bucket);
+
+  const { data: listed, error: listError } = await bucket.list(directory, {
+    search: fileName,
+    limit: 100,
+  });
+  if (listError) {
+    throw new Error(`Storage metadata lookup failed for ${object.objectPath}: ${listError.message}`);
+  }
+
+  const item = listed?.find((candidate) => candidate.name === fileName);
+  if (!item) {
+    throw new Error(`Storage object was not found at the exact selected path: ${object.objectPath}`);
+  }
+
+  const { data: blob, error: downloadError } = await bucket.download(object.objectPath);
+  if (downloadError || !blob) {
+    throw new Error(`Storage download failed for ${object.objectPath}: ${downloadError?.message ?? 'empty response'}`);
+  }
+
+  const metadata = item.metadata ?? {};
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  if (bytes.byteLength === 0) {
+    throw new Error(`Storage object was empty: ${object.objectPath}`);
+  }
+
+  const contentType = metadataString(metadata, 'mimetype') ?? blob.type;
+  if (!contentType.startsWith('image/')) {
+    throw new Error(`Expected an image object, received ${contentType || 'unknown'}: ${object.objectPath}`);
+  }
+
+  const imageMetadata = await sharp(bytes).metadata();
+  return {
+    bytes,
+    sha256: createHash('sha256').update(bytes).digest('hex'),
+    contentType,
+    cacheControl: metadataString(metadata, 'cacheControl'),
+    xRobotsTag: metadataString(metadata, 'xRobotsTag'),
+    width: imageMetadata.width ?? null,
+    height: imageMetadata.height ?? null,
+  };
+}
+
 export async function readPublicImageSnapshot(
   publicUrl: string,
   fetchImpl: FetchLike = fetch,
@@ -171,13 +237,11 @@ export async function ensurePublicImageEligibility({
   publicUrl,
   expectedSupabaseOrigin,
   apply,
-  fetchImpl = fetch,
 }: {
   client: StorageUpdateClient;
   publicUrl: string;
   expectedSupabaseOrigin: string;
   apply: boolean;
-  fetchImpl?: FetchLike;
 }): Promise<ImageEligibilityResult> {
   const object = parseGenieStorageObjectUrl(publicUrl, expectedSupabaseOrigin);
 
@@ -188,7 +252,10 @@ export async function ensurePublicImageEligibility({
     throw new Error(`Refusing non-eligible or malformed storage URL: ${publicUrl}`);
   }
 
-  const before = await readPublicImageSnapshot(object.publicUrl, fetchImpl);
+  // Read from the authenticated Storage origin. Reading the public URL here
+  // would warm a stale restrictive Smart CDN response immediately before the
+  // byte-identical metadata rewrite.
+  const before = await readStoredImageSnapshot(client, object);
   if (before.xRobotsTag?.trim().toLowerCase() === SEO_IMAGE_X_ROBOTS_TAG) {
     return {
       url: object.publicUrl,
@@ -223,7 +290,7 @@ export async function ensurePublicImageEligibility({
     throw new Error(`Storage update failed for ${object.objectPath}: ${error.message}`);
   }
 
-  const after = await readPublicImageSnapshot(object.publicUrl, fetchImpl);
+  const after = await readStoredImageSnapshot(client, object);
   if (after.sha256 !== before.sha256) {
     throw new Error(`Byte hash changed after eligibility update: ${object.publicUrl}`);
   }
