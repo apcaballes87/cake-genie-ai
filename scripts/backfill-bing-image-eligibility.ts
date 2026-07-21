@@ -377,6 +377,26 @@ async function main(): Promise<void> {
     console.log(JSON.stringify(summary, null, 2));
 
     if (verification.blocked.length > 0) {
+      const storageEvidenceResults = await mapWithConcurrency(
+        verification.blocked.map((result) => result.url),
+        BING_IMAGE_BACKFILL_CONCURRENCY,
+        (publicUrl) => ensurePublicImageEligibility({
+          client: supabase,
+          publicUrl,
+          expectedSupabaseOrigin: supabaseUrl,
+          apply: false,
+        }),
+      );
+      const storageEvidence = new Map<string, unknown>();
+      storageEvidenceResults.forEach((result, index) => {
+        const url = verification.blocked[index].url;
+        storageEvidence.set(url, result.status === 'fulfilled'
+          ? result.value
+          : {
+              error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+            });
+      });
+
       writeSupportReport({
         generatedAt: new Date().toISOString(),
         stage: 'public-verification',
@@ -384,6 +404,7 @@ async function main(): Promise<void> {
         blocked: verification.blocked.map((result) => ({
           ...result,
           pageUrls: pageUrlsByImage.get(result.url) ?? [],
+          storage: storageEvidence.get(result.url),
         })),
         externalSkipped: externalInventoryImages,
       });
