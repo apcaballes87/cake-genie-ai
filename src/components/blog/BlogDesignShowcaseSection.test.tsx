@@ -45,7 +45,7 @@ describe('BlogDesignShowcaseSection', () => {
 
     expect(screen.getByRole('link', { name: 'Browse Minimalist Cake Designs' })).toHaveAttribute(
       'href',
-      '/collections/minimalist',
+      '/collections/minimalist-cake',
     );
   });
 

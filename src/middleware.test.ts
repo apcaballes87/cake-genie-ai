@@ -20,6 +20,7 @@ function makeRequest(url: string, init: { headers?: Record<string, string> } = {
 
 describe('middleware', () => {
     beforeEach(() => {
+        vi.unstubAllGlobals();
         vi.resetModules();
         mockCheckRateLimit.mockReset();
         mockCheckRateLimit.mockResolvedValue({
@@ -28,6 +29,38 @@ describe('middleware', () => {
             limit: 5,
             reset: Date.now() + 60000,
         });
+    });
+
+    it('allows the last valid server-rendered collection directory page', async () => {
+        const fetchMock = vi.fn().mockResolvedValue(new Response(null, {
+            status: 206,
+            headers: { 'content-range': '0-0/232' },
+        }));
+        vi.stubGlobal('fetch', fetchMock);
+
+        const response = await middleware(makeRequest('http://localhost/collections?page=8'));
+
+        expect(response.status).toBe(200);
+        expect(fetchMock).toHaveBeenCalledWith(
+            expect.objectContaining({ pathname: '/rest/v1/cakegenie_collections' }),
+            expect.objectContaining({
+                headers: expect.objectContaining({ Prefer: 'count=exact', Range: '0-0' }),
+                next: { revalidate: 3600 },
+            }),
+        );
+    });
+
+    it('returns a real HTTP 404 beyond the current collection directory total', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, {
+            status: 206,
+            headers: { 'content-range': '0-0/232' },
+        })));
+
+        const response = await middleware(makeRequest('http://localhost/collections?page=9'));
+
+        expect(response.status).toBe(404);
+        expect(response.headers.get('x-robots-tag')).toBe('noindex, follow');
+        expect(await response.text()).toBe('Not Found');
     });
 
     it('should bypass rate limiting for non-API routes', async () => {

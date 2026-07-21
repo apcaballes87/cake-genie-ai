@@ -12,7 +12,8 @@ const singleAfterAnalysisCacheSelectMock = vi.fn();
 const eqAfterUpdateMock = vi.fn();
 const selectAfterUpdateMock = vi.fn();
 const maybeSingleAfterUpdateMock = vi.fn();
-const maybeSingleMock = vi.fn();
+const productSizesMaybeSingleMock = vi.fn();
+const analysisCacheMaybeSingleMock = vi.fn();
 const fromMock = vi.fn();
 const rpcMock = vi.fn();
 const fetchMock = vi.fn();
@@ -33,7 +34,7 @@ productSizesQuery.select = vi.fn(() => productSizesQuery);
 productSizesQuery.eq = vi.fn(() => productSizesQuery);
 productSizesQuery.order = vi.fn(() => productSizesQuery);
 productSizesQuery.limit = vi.fn(() => productSizesQuery);
-productSizesQuery.maybeSingle = maybeSingleMock;
+productSizesQuery.maybeSingle = productSizesMaybeSingleMock;
 
 const analysisCacheUpsertQuery = {
   select: selectAfterUpsertMock,
@@ -50,7 +51,7 @@ const analysisCacheQuery = {
 const analysisCacheSelectQuery = {
   eq: eqAfterAnalysisCacheSelectMock,
   single: singleAfterAnalysisCacheSelectMock,
-  maybeSingle: maybeSingleMock,
+  maybeSingle: analysisCacheMaybeSingleMock,
 };
 
 const analysisCacheUpdateSelectQuery = {
@@ -128,7 +129,8 @@ describe('cacheAnalysisResult', () => {
     maybeSingleAfterUpdateMock.mockReset().mockResolvedValue({ data: { id: 'cache-row-id' }, error: null });
     eqAfterUpdateMock.mockReset().mockReturnValue(analysisCacheUpdateEqQuery);
     updateMock.mockReset().mockReturnValue(analysisCacheUpdateQuery);
-    maybeSingleMock.mockReset().mockResolvedValue({ data: { price: 999 }, error: null });
+    productSizesMaybeSingleMock.mockReset().mockResolvedValue({ data: { price: 999 }, error: null });
+    analysisCacheMaybeSingleMock.mockReset().mockResolvedValue({ data: { price: 999 }, error: null });
     rpcMock.mockReset().mockResolvedValue({ data: [], error: null });
     getDesignAvailabilityMock.mockReset().mockReturnValue('normal');
     fromMock.mockReset().mockImplementation((table: string) => {
@@ -229,7 +231,7 @@ describe('cacheAnalysisResult', () => {
       data: { id: 'new-cache-row-id' },
       error: null,
     });
-    maybeSingleMock.mockResolvedValue({
+    analysisCacheMaybeSingleMock.mockResolvedValue({
       data: {
         id: 'new-cache-row-id',
         analysis_json: {
@@ -302,7 +304,7 @@ describe('cacheAnalysisResult', () => {
   it('does not overwrite an existing completed analysis row while preparing Studio', async () => {
     const { prepareStudioEditCacheRow } = await import('./supabaseService');
     maybeSingleAfterUpsertMock.mockResolvedValue({ data: null, error: null });
-    maybeSingleMock.mockResolvedValue({
+    analysisCacheMaybeSingleMock.mockResolvedValue({
       data: {
         id: 'completed-cache-row-id',
         analysis_json: {
@@ -391,7 +393,7 @@ describe('cacheAnalysisResult', () => {
   ])('applies Studio retry policy for $label', async ({ row, shouldTriggerStudioEdit }) => {
     const { prepareStudioEditCacheRow } = await import('./supabaseService');
     maybeSingleAfterUpsertMock.mockResolvedValue({ data: null, error: null });
-    maybeSingleMock.mockResolvedValue({
+    analysisCacheMaybeSingleMock.mockResolvedValue({
       data: {
         id: 'existing-cache-row-id',
         analysis_json: {
@@ -670,7 +672,7 @@ describe('cacheAnalysisResult', () => {
 
   it("writes original_image_url if persistSourceAsset is 'if_missing' and the record doesn't have an image", async () => {
     const { cacheAnalysisResult } = await import('./supabaseService');
-    maybeSingleMock.mockResolvedValue({ data: null, error: null });
+    analysisCacheMaybeSingleMock.mockResolvedValue({ data: null, error: null });
 
     await cacheAnalysisResult(
       '1234abcd5678ef90',
@@ -703,7 +705,7 @@ describe('cacheAnalysisResult', () => {
 
   it("does not write original_image_url if persistSourceAsset is 'if_missing' and the record already has an image", async () => {
     const { cacheAnalysisResult } = await import('./supabaseService');
-    maybeSingleMock.mockResolvedValue({ data: { original_image_url: 'https://example.com/existing.webp' }, error: null });
+    analysisCacheMaybeSingleMock.mockResolvedValue({ data: { original_image_url: 'https://example.com/existing.webp' }, error: null });
 
     await cacheAnalysisResult(
       '1234abcd5678ef90',

@@ -54,16 +54,16 @@ vi.mock('@/services/supabaseService', () => ({
 }));
 
 describe('customizing page discovery links', () => {
-  it('promotes collection hubs instead of legacy customizing category routes', async () => {
+  it('promotes canonical commercial and collection hubs instead of legacy customizing category routes', async () => {
     const { default: CustomizingPage } = await import('./page');
 
     const page = await CustomizingPage({ searchParams: Promise.resolve({}) });
     render(page);
     const staticMarkup = renderToStaticMarkup(page);
 
-    expect(screen.getByRole('link', { name: 'Birthday Cake Designs' })).toHaveAttribute('href', '/collections/birthday-cakes');
+    expect(screen.getByRole('link', { name: 'Birthday Cake Designs' })).toHaveAttribute('href', '/birthday-cake-delivery-cebu-city');
     expect(screen.getByRole('link', { name: 'Wedding Cake Designs' })).toHaveAttribute('href', '/collections/wedding-cake');
-    expect(staticMarkup).toContain('https://genie.ph/collections/birthday-cakes');
+    expect(staticMarkup).toContain('https://genie.ph/birthday-cake-delivery-cebu-city');
     expect(staticMarkup).not.toContain('https://genie.ph/customizing/category/birthday-cakes');
   });
 

@@ -4,7 +4,10 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   cacheControlMaxAge,
   ensurePublicImageEligibility,
+  isPublicImageRobotsEligible,
   parseGenieStorageObjectUrl,
+  readCanonicalPublicImageHeaders,
+  waitForPublicImageEligibility,
   type StorageUpdateClient,
 } from './bingImageEligibilityBackfill';
 
@@ -57,6 +60,24 @@ function makeClient({
   return { client, list, download, update };
 }
 
+function publicResponse(
+  xRobotsTag: string | null,
+  options: { status?: number; contentType?: string; cfCacheStatus?: string } = {},
+): Response {
+  const headers = new Headers({
+    'content-type': options.contentType ?? 'image/webp',
+    'content-range': 'bytes 0-0/100',
+    'cache-control': 'public, max-age=31536000',
+    'cf-cache-status': options.cfCacheStatus ?? 'HIT',
+  });
+  if (xRobotsTag) headers.set('x-robots-tag', xRobotsTag);
+
+  return new Response(Uint8Array.from([0]), {
+    status: options.status ?? 206,
+    headers,
+  });
+}
+
 describe('Bing image eligibility backfill', () => {
   it('accepts only the Genie public bucket and approved SEO object paths', () => {
     expect(parseGenieStorageObjectUrl(IMAGE_URL, SUPABASE_ORIGIN)).toMatchObject({
@@ -88,18 +109,49 @@ describe('Bing image eligibility backfill', () => {
     expect(cacheControlMaxAge(null)).toBe('0');
   });
 
-  it('is dry-run by default and reports the current restrictive header', async () => {
+  it('requires all without any conflicting restrictive directive', () => {
+    expect(isPublicImageRobotsEligible('all')).toBe(true);
+    expect(isPublicImageRobotsEligible('ALL')).toBe(true);
+    expect(isPublicImageRobotsEligible('all, noimageindex')).toBe(false);
+    expect(isPublicImageRobotsEligible('none, all')).toBe(false);
+    expect(isPublicImageRobotsEligible(null)).toBe(false);
+  });
+
+  it('checks the exact canonical URL with a one-byte public GET', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(publicResponse('all'));
+
+    const result = await readCanonicalPublicImageHeaders(IMAGE_URL, fetchImpl);
+
+    expect(result).toMatchObject({
+      url: IMAGE_URL,
+      status: 206,
+      xRobotsTag: 'all',
+      eligible: true,
+    });
+    expect(fetchImpl).toHaveBeenCalledWith(IMAGE_URL, expect.objectContaining({
+      method: 'GET',
+      headers: expect.objectContaining({ range: 'bytes=0-0' }),
+    }));
+    expect(fetchImpl.mock.calls[0][0]).not.toContain('?');
+  });
+
+  it('reports internal-eligible but publicly blocked objects in dry-run mode', async () => {
     const bytes = await makeWebp();
-    const { client, update } = makeClient({ beforeBytes: bytes });
+    const { client, update } = makeClient({ beforeBytes: bytes, initialRobotsTag: 'all' });
 
     const result = await ensurePublicImageEligibility({
       client,
       publicUrl: IMAGE_URL,
       expectedSupabaseOrigin: SUPABASE_ORIGIN,
       apply: false,
+      fetchImpl: vi.fn().mockResolvedValue(publicResponse('none')),
     });
 
-    expect(result).toMatchObject({ status: 'dry-run', priorRobotsTag: 'none' });
+    expect(result).toMatchObject({
+      status: 'public-blocked',
+      priorRobotsTag: 'all',
+      publicSnapshot: { eligible: false, xRobotsTag: 'none' },
+    });
     expect(update).not.toHaveBeenCalled();
   });
 
@@ -112,9 +164,10 @@ describe('Bing image eligibility backfill', () => {
       publicUrl: IMAGE_URL,
       expectedSupabaseOrigin: SUPABASE_ORIGIN,
       apply: true,
+      fetchImpl: vi.fn().mockResolvedValue(publicResponse('none')),
     });
 
-    expect(result.status).toBe('updated');
+    expect(result.status).toBe('updated-pending-public');
     expect(update).toHaveBeenCalledWith(
       'variants/minimalist-cake-ffff/800.webp',
       expect.any(Uint8Array),
@@ -126,19 +179,64 @@ describe('Bing image eligibility backfill', () => {
     );
   });
 
-  it('skips an object that is already eligible', async () => {
+  it('skips only when the canonical public GET is already eligible', async () => {
     const bytes = await makeWebp();
-    const { client, update } = makeClient({ beforeBytes: bytes, initialRobotsTag: 'all' });
+    const { client, update, list, download } = makeClient({ beforeBytes: bytes, initialRobotsTag: 'none' });
 
     const result = await ensurePublicImageEligibility({
       client,
       publicUrl: IMAGE_URL,
       expectedSupabaseOrigin: SUPABASE_ORIGIN,
       apply: true,
+      fetchImpl: vi.fn().mockResolvedValue(publicResponse('all')),
     });
 
     expect(result.status).toBe('already-eligible');
     expect(update).not.toHaveBeenCalled();
+    expect(list).not.toHaveBeenCalled();
+    expect(download).not.toHaveBeenCalled();
+  });
+
+  it('polls blocked public GET responses until the canonical URL is eligible', async () => {
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(publicResponse('none'))
+      .mockResolvedValueOnce(publicResponse('all', { cfCacheStatus: 'MISS' }));
+    const sleepImpl = vi.fn().mockResolvedValue(undefined);
+
+    const result = await waitForPublicImageEligibility({
+      urls: [IMAGE_URL],
+      fetchImpl,
+      sleepImpl,
+      timeoutMs: 15_000,
+      intervalMs: 15_000,
+      concurrency: 1,
+    });
+
+    expect(result).toMatchObject({ attempts: 2, blocked: [] });
+    expect(result.eligible).toEqual([
+      expect.objectContaining({ url: IMAGE_URL, eligible: true, cfCacheStatus: 'MISS' }),
+    ]);
+    expect(sleepImpl).toHaveBeenCalledWith(15_000);
+  });
+
+  it('hard-fails public verification when none remains after the timeout', async () => {
+    const result = await waitForPublicImageEligibility({
+      urls: [IMAGE_URL],
+      fetchImpl: vi.fn().mockImplementation(async () => publicResponse('all, noimageindex')),
+      sleepImpl: vi.fn().mockResolvedValue(undefined),
+      timeoutMs: 15_000,
+      intervalMs: 15_000,
+      concurrency: 1,
+    });
+
+    expect(result.attempts).toBe(2);
+    expect(result.eligible).toEqual([]);
+    expect(result.blocked).toEqual([
+      expect.objectContaining({
+        url: IMAGE_URL,
+        snapshot: expect.objectContaining({ eligible: false, xRobotsTag: 'all, noimageindex' }),
+      }),
+    ]);
   });
 
   it('fails when a storage rewrite changes the image bytes', async () => {
@@ -151,6 +249,7 @@ describe('Bing image eligibility backfill', () => {
       publicUrl: IMAGE_URL,
       expectedSupabaseOrigin: SUPABASE_ORIGIN,
       apply: true,
+      fetchImpl: vi.fn().mockResolvedValue(publicResponse('none')),
     })).rejects.toThrow('Byte hash changed');
   });
 
@@ -161,6 +260,7 @@ describe('Bing image eligibility backfill', () => {
       publicUrl: 'https://images.example.com/cake.webp',
       expectedSupabaseOrigin: SUPABASE_ORIGIN,
       apply: true,
+      fetchImpl: vi.fn(),
     });
 
     expect(result.status).toBe('external-skipped');

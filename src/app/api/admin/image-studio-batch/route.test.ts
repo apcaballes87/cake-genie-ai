@@ -33,7 +33,10 @@ describe('/api/admin/image-studio-batch', () => {
 
     await POST(req);
 
-    expect(submitNextImageStudioBatch).toHaveBeenCalledWith(12, req);
+    expect(submitNextImageStudioBatch).toHaveBeenCalledWith(12, req, {
+      selectionMode: 'pending',
+      offset: 0,
+    });
   });
 
   it('forwards the Vercel request context when refreshing a batch', async () => {

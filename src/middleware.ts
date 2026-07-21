@@ -31,6 +31,58 @@ const rateLimitStore = new Map<string, { count: number; resetTime: number }>()
 const RATE_LIMIT_WINDOW = 60 * 1000 // 1 minute
 const RATE_LIMIT_MAX = 60 // max requests per window
 const CUSTOMIZING_SHORT_HASH_ALIAS_RE = /^\/customizing\/([^/]*-[a-f0-9]{4})\/?$/i
+const COLLECTIONS_PER_PAGE = 30
+
+async function getPublishedCollectionCount(): Promise<number | null> {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()
+    if (!supabaseUrl || !supabaseKey) return null
+
+    const url = new URL('/rest/v1/cakegenie_collections', supabaseUrl)
+    url.searchParams.set('select', 'slug')
+    url.searchParams.set('publication_status', 'eq.published')
+    url.searchParams.set('is_indexable', 'eq.true')
+    url.searchParams.set('item_count', 'gte.8')
+
+    try {
+        const response = await fetch(url, {
+            headers: {
+                apikey: supabaseKey,
+                Authorization: `Bearer ${supabaseKey}`,
+                Prefer: 'count=exact',
+                Range: '0-0',
+            },
+            next: { revalidate: 3600 },
+        })
+        if (!response.ok) return null
+
+        const total = response.headers.get('content-range')?.match(/\/(\d+)$/)?.[1]
+        return total ? Number.parseInt(total, 10) : null
+    } catch {
+        return null
+    }
+}
+
+async function rejectInvalidCollectionDirectoryPage(request: NextRequest): Promise<NextResponse | null> {
+    if (request.nextUrl.pathname !== '/collections') return null
+
+    const requestedPage = Number.parseInt(request.nextUrl.searchParams.get('page') || '1', 10)
+    if (!Number.isFinite(requestedPage) || requestedPage <= 1) return null
+
+    const totalCount = await getPublishedCollectionCount()
+    if (totalCount === null) return null
+
+    const totalPages = Math.max(1, Math.ceil(totalCount / COLLECTIONS_PER_PAGE))
+    if (requestedPage <= totalPages) return null
+
+    return new NextResponse('Not Found', {
+        status: 404,
+        headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'X-Robots-Tag': 'noindex, follow',
+        },
+    })
+}
 
 function withInternalTrafficCookie(pathname: string, response: NextResponse): NextResponse {
     if (!shouldMarkInternalTraffic(pathname)) {
@@ -106,6 +158,9 @@ export async function middleware(request: NextRequest) {
     }
 
     // === END BOT BLOCKING ===
+
+    const invalidCollectionPage = await rejectInvalidCollectionDirectoryPage(request)
+    if (invalidCollectionPage) return invalidCollectionPage
 
     // Edge Rate Limiting check
     const isAiRoute = pathname.startsWith('/api/ai/analyze') || pathname.startsWith('/api/ai/edit-image')

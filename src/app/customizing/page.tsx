@@ -317,7 +317,7 @@ export default async function CustomizingPage(props: CustomizingPageProps) {
                 <div className="flex flex-wrap gap-2">
                     {THEMES.map(({ href, label }) => (
                         <Link
-                            key={href}
+                            key={`${href}-${label}`}
                             href={href}
                             className="genie-btn-secondary px-3 py-1.5 rounded-full text-xs font-medium"
                         >
