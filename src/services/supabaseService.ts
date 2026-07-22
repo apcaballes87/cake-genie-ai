@@ -23,6 +23,7 @@ import { buildCakeTitle, extractTitleInputFromAnalysis } from '@/lib/seo/cakeTit
 import { enrichStoredSeoDescription } from '@/lib/seo/analysisCopy';
 import { getSeoImageUploadHeaders } from '@/lib/seo/storageImageHeaders';
 import { withTimeout } from '@/lib/utils/timeout';
+import { buildCollectionSearchPlan } from '@/lib/collections/searchPlan';
 import {
   getDistinctiveRelatedSearchTerms,
   normalizeRelatedSearchPhrase,
@@ -1341,111 +1342,6 @@ export async function getPopularDesigns(
 }
 
 /**
- * Builds a Supabase OR-filter string that matches products across
- * keywords (text), alt_text (text), slug (text), and tags (array)
- * for each collection tag. This allows a product to appear in any
- * collection where at least one field matches any of its tags.
- */
-/**
- * Strips " Cakes", " Cake", " Themed", etc. from a collection name to get at the core keyword.
- */
-const cleanCollectionName = (name: string): string => {
-    return name
-        .replace(/(?:\s+Cakes?|\s+Themed|\s+Design|\s+Collections?)$/i, '')
-        .trim();
-};
-
-/**
- * Maps a collection's clean keyword to a canonical icing_colors bucket
- * (if the collection is a color collection). Sub-colors like "lavender" or
- * "sage green" map to their parent bucket. Returns null for non-color
- * collections so the existing tag/keyword matching path is used.
- *
- * icing_colors is the analyst's normalized "side color" of the cake — far
- * more accurate than the noisy `tags` array (which includes accent colors).
- * See cakegenie_analysis_cache.icing_colors and the
- * `get_closest_icing_color()` function for the canonical bucket list.
- */
-const COLOR_CANONICAL: Record<string, string> = {
-    white: 'white',
-    black: 'black',
-    blue: 'blue',
-    pink: 'pink',
-    yellow: 'yellow',
-    purple: 'purple',
-    lavender: 'purple',    // lavender is a sub-color of purple
-    red: 'red',
-    green: 'green',
-    sage: 'green',        // sage green maps to green
-    'sage green': 'green',
-    emerald: 'green',     // emerald green maps to green
-    'emerald green': 'green',
-    orange: 'orange',
-    brown: 'brown',
-    gold: 'yellow',       // gold is rare; treat as a yellow variant
-    silver: 'white',      // silver accents usually ride on white
-    maroon: 'red',
-    teal: 'blue',
-    cream: 'white',
-    ivory: 'white',
-};
-
-const canonicalColorFor = (cleanKeyword: string): string | null => {
-    return COLOR_CANONICAL[cleanKeyword] || null;
-};
-
-/**
- * Builds a Supabase OR-filter string that matches products against
- * the core keyword derived from the collection name.
- *
- * For color collections (cleanKeyword matches COLOR_CANONICAL), only
- * `icing_colors.eq.<canonical>` is used. The tag/keyword/slug fallbacks
- * are skipped because they produce noisy results (e.g. a teal cake with
- * yellow stars gets tagged "yellow" but is not actually a yellow cake).
- *
- * As the icing_colors column is backfilled for more designs, the
- * collection's item_count will grow automatically.
- */
-const buildCollectionOrFilter = (collectionName: string, collectionTags: string[] = []): string => {
-    const keyword = cleanCollectionName(collectionName);
-    const cleanKeyword = keyword.toLowerCase();
-
-    if (!cleanKeyword) return 'id.eq.-1'; // Should not happen with valid names
-
-    const filters: string[] = [];
-
-    // 0. Color collection: strict match on icing_colors ONLY.
-    // No keyword/slug/multi-word tag fallbacks — those are too noisy
-    // for color matching and pull in accent-only designs.
-    const canonical = canonicalColorFor(cleanKeyword);
-    if (canonical) {
-        filters.push(`icing_colors.eq.${canonical}`);
-        return filters.join(',');
-    }
-
-    // 1. Exact match in tags array
-    filters.push(`tags.cs.{"${cleanKeyword}"}`);
-
-    // 2. Keyword match in keywords field (text search)
-    filters.push(`keywords.ilike.%${cleanKeyword}%`);
-
-    // 3. Slug match
-    const slugKeyword = cleanKeyword.replace(/\s+/g, '-');
-    filters.push(`slug.ilike.%${slugKeyword}%`);
-
-    // 4. (Optional) If we still want some tags but only very specific ones (length > 1 word)
-    for (const tag of collectionTags) {
-        const cleanTag = tag.trim().toLowerCase();
-        if (cleanTag === cleanKeyword || cleanTag.split(/\s+/).length < 2) continue;
-
-        // Only add multi-word tags from the collection's tag list for precision
-        filters.push(`tags.cs.{"${cleanTag}"}`);
-    }
-
-    return filters.join(',');
-};
-
-/**
  * Fetches design categories from the cakegenie_collections table.
  */
 export async function getDesignCategories(customClient?: SupabaseClient): Promise<SupabaseServiceResponse<{ keyword: string; slug: string; count: number; sample_image: string, description?: string; collection_type?: string; trend_score?: number | null }[]>> {
@@ -1704,8 +1600,8 @@ export async function getCollectionBySlug(slug: string): Promise<SupabaseService
 
 /**
  * Fetches designs matching a specific keyword or category slug.
- * Matches against product keywords, alt_text, slug, and tags array.
- * If the slug maps to a collection, its tags are used for wide matching.
+ * Theme collections use the same ranked FTS contract as `/api/search`.
+ * Color collections use normalized cake-side color instead of accent tags.
  */
 export async function getDesignsByKeyword(keywordOrSlug: string, limit: number = 50, offset: number = 0): Promise<SupabaseServiceResponse<any[]>> {
   try {
@@ -1713,39 +1609,22 @@ export async function getDesignsByKeyword(keywordOrSlug: string, limit: number =
     const { data: collection } = await getCollectionBySlug(keywordOrSlug);
     const normalizedKeyword = decodeURIComponent(collection?.slug || keywordOrSlug).replace(/-/g, ' ').trim();
 
-    // Build the FTS query.
-    // For collections: use ONLY the cleaned collection name (single key term).
-    // Joining all tags with spaces would produce an AND query in tsquery,
-    // which is far too restrictive — most products only match one tag, not all.
-    // A single term uses stemming (airplane = airplanes) and searches the full
-    // search_vector including analysis_json, finding more results than ILIKE.
-    // For raw keyword searches: normalize slug-like paths such as "pickleball-cake"
-    // into spaced phrases so collection pages can still resolve even before a
-    // corresponding collections-table row exists.
-    const ftsQuery = collection ? cleanCollectionName(collection.name) : normalizedKeyword;
+    const searchPlan = buildCollectionSearchPlan(collection?.name || normalizedKeyword);
 
-    // During `next build`, dozens of category/customizing pages can prerender in
-    // parallel. The FTS RPC is useful at runtime, but it is the path most likely
-    // to hit Supabase statement timeouts under static-build fan-out.
-    if (process.env.NEXT_PHASE !== 'phase-production-build') {
-      // Step 2: Use FTS search (ranked, searches keywords + analysis_json + alt_text + slug)
-      const ftsResult = await searchProductsFTS(ftsQuery, limit, offset);
-      if (ftsResult.data && ftsResult.data.length > 0) {
-        return ftsResult;
-      }
+    if (searchPlan.kind === 'text') {
+      // Keep search's indexed relevance ranking, but require whole lexemes in
+      // primary keyword/tag fields and never use fuzzy or prefix fallback.
+      return searchCollectionProducts(searchPlan.query, limit, offset);
     }
 
-    // Step 3: FTS returned nothing, or we intentionally skipped it during the
-    // production build — fall back to ILIKE.
-    const orFilters = collection
-      ? buildCollectionOrFilter(collection.name, collection.tags || [])
-      : buildCollectionOrFilter(normalizedKeyword);
+    // Color collections deliberately use the analyzed cake-side color and do
+    // not fall back to accent tags or substring matching.
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
       .select('slug, keywords, original_image_url, price, alt_text, usage_count, p_hash, availability, analysis_json, image_width, image_height, studio_edited_image_url, image_variants, icing_colors')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
-      .or(orFilters)
+      .eq('icing_colors', searchPlan.icingColor)
       .order('usage_count', { ascending: false })
       .limit(limit)
       .range(offset, offset + limit - 1);
@@ -1759,6 +1638,40 @@ export async function getDesignsByKeyword(keywordOrSlug: string, limit: number =
   } catch (err) {
     console.error('Exception fetching designs by keyword/slug:', err);
     return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Counts collection members with the same matching contract used by the grid.
+ */
+export async function getDesignCountByKeyword(keywordOrSlug: string): Promise<number> {
+  try {
+    const { data: collection } = await getCollectionBySlug(keywordOrSlug);
+    const normalizedKeyword = decodeURIComponent(collection?.slug || keywordOrSlug)
+      .replace(/-/g, ' ')
+      .trim();
+    const searchPlan = buildCollectionSearchPlan(collection?.name || normalizedKeyword);
+
+    if (searchPlan.kind === 'text') {
+      return searchCollectionProductsCount(searchPlan.query);
+    }
+
+    const { count, error } = await supabase
+      .from('cakegenie_analysis_cache')
+      .select('id', { count: 'exact', head: true })
+      .not('original_image_url', 'is', null)
+      .not('slug', 'is', null)
+      .eq('icing_colors', searchPlan.icingColor);
+
+    if (error) {
+      console.warn('Collection count fallback error:', error);
+      return 0;
+    }
+
+    return count || 0;
+  } catch (err) {
+    console.warn('Exception counting designs by keyword/slug:', err);
+    return 0;
   }
 }
 
@@ -1966,6 +1879,32 @@ export async function getRelatedProductsByKeywords(
 // Full-Text Search (PostgreSQL FTS + pg_trgm)
 // =============================================================================
 
+async function hydrateSearchProductRows(client: SupabaseClient, rows: any[]): Promise<any[]> {
+  const needsStudioHydration = rows.some((item: any) => item.studio_edited_image_url === undefined);
+  if (!needsStudioHydration) return rows.map(applyImageFallback);
+
+  const pHashes = rows
+    .map((item: any) => item.p_hash)
+    .filter((pHash: any): pHash is string => typeof pHash === 'string' && pHash.trim().length > 0);
+  if (pHashes.length === 0) return rows.map(applyImageFallback);
+
+  const { data: studioRows, error: studioError } = await client
+    .from('cakegenie_analysis_cache')
+    .select('p_hash, original_image_url, studio_edited_image_url')
+    .in('p_hash', pHashes);
+  if (studioError || !studioRows) return rows.map(applyImageFallback);
+
+  const studioByHash = new Map(studioRows.map((row) => [row.p_hash, row]));
+  return rows.map((item: any) => {
+    const studioRow = studioByHash.get(item.p_hash);
+    return applyImageFallback({
+      ...item,
+      original_image_url: item.original_image_url ?? studioRow?.original_image_url ?? null,
+      studio_edited_image_url: item.studio_edited_image_url ?? studioRow?.studio_edited_image_url ?? null,
+    });
+  });
+}
+
 /**
  * Full-text search for products using PostgreSQL FTS + pg_trgm.
  * Replaces ILIKE-based search with ranked, typo-tolerant results.
@@ -2003,44 +1942,66 @@ export async function searchProductsFTS(
       return { data: null, error };
     }
 
-    const rows = data || [];
-    const needsStudioHydration = rows.some((item: any) => item.studio_edited_image_url === undefined);
-
-    if (needsStudioHydration) {
-      const pHashes = rows
-        .map((item: any) => item.p_hash)
-        .filter((pHash: any): pHash is string => typeof pHash === 'string' && pHash.trim().length > 0);
-
-      if (pHashes.length > 0) {
-        const { data: studioRows, error: studioError } = await client
-          .from('cakegenie_analysis_cache')
-          .select('p_hash, original_image_url, studio_edited_image_url')
-          .in('p_hash', pHashes);
-
-        if (!studioError && studioRows) {
-          const studioByHash = new Map(
-            studioRows.map((row) => [row.p_hash, row]),
-          );
-
-          return {
-            data: rows.map((item: any) => {
-              const studioRow = studioByHash.get(item.p_hash);
-              return applyImageFallback({
-                ...item,
-                original_image_url: item.original_image_url ?? studioRow?.original_image_url ?? null,
-                studio_edited_image_url: item.studio_edited_image_url ?? studioRow?.studio_edited_image_url ?? null,
-              });
-            }),
-            error: null,
-          };
-        }
-      }
-    }
-
-    return { data: rows.map(applyImageFallback), error: null };
+    return { data: await hydrateSearchProductRows(client, data || []), error: null };
   } catch (err) {
     console.error('Exception in FTS search:', err);
     return { data: null, error: err as Error };
+  }
+}
+
+/**
+ * Precision-only collection search: whole lexemes in weight-A keyword/tag
+ * fields, with no shopper-search prefix or fuzzy fallback.
+ */
+export async function searchCollectionProducts(
+  query: string,
+  limit: number = 30,
+  offset: number = 0,
+): Promise<SupabaseServiceResponse<any[]>> {
+  const client = typeof window === 'undefined' ? publicSupabaseClient : supabase;
+  try {
+    const cleanQuery = query.trim().toLowerCase();
+    if (!cleanQuery) return { data: [], error: null };
+
+    const { data, error } = await client.rpc('search_collection_products', {
+      p_query: cleanQuery,
+      p_limit: limit,
+      p_offset: offset,
+      p_icing_colors: null,
+    });
+
+    if (error) {
+      console.error('Collection search error:', error);
+      return { data: null, error };
+    }
+
+    return { data: await hydrateSearchProductRows(client, data || []), error: null };
+  } catch (err) {
+    console.error('Exception in collection search:', err);
+    return { data: null, error: err as Error };
+  }
+}
+
+export async function searchCollectionProductsCount(query: string): Promise<number> {
+  const client = typeof window === 'undefined' ? publicSupabaseClient : supabase;
+  try {
+    const cleanQuery = query.trim().toLowerCase();
+    if (!cleanQuery) return 0;
+
+    const { data, error } = await client.rpc('search_collection_products_count', {
+      p_query: cleanQuery,
+      p_icing_colors: null,
+    });
+
+    if (error) {
+      console.warn('Collection search count error:', error);
+      return 0;
+    }
+
+    return typeof data === 'number' ? data : 0;
+  } catch (err) {
+    console.warn('Exception in collection search count:', err);
+    return 0;
   }
 }
 

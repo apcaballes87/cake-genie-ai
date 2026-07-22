@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 const getCollectionBySlug = vi.fn();
 const getDesignCategories = vi.fn();
+const getDesignCountByKeyword = vi.fn();
 const getDesignsByKeyword = vi.fn();
 const notFound = vi.fn();
 const categoryClientProps = vi.fn();
@@ -18,6 +19,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/services/supabaseService', () => ({
   getCollectionBySlug,
   getDesignCategories,
+  getDesignCountByKeyword,
   getDesignsByKeyword,
 }));
 
@@ -32,6 +34,7 @@ describe('collections category metadata', () => {
   beforeEach(() => {
     getCollectionBySlug.mockReset();
     getDesignCategories.mockReset();
+    getDesignCountByKeyword.mockReset();
     getDesignsByKeyword.mockReset();
     notFound.mockReset();
     categoryClientProps.mockReset();
@@ -71,6 +74,7 @@ describe('collections category metadata', () => {
       ],
       error: null,
     });
+    getDesignCountByKeyword.mockResolvedValue(718);
   });
 
   it('uses the canonical collection slug and stronger metadata for alias routes', async () => {
@@ -81,6 +85,7 @@ describe('collections category metadata', () => {
     });
 
     expect(getCollectionBySlug).toHaveBeenCalledWith('minimalist-cakes');
+    expect(getDesignCountByKeyword).toHaveBeenCalledWith('minimalist-cake');
     expect(getDesignsByKeyword).toHaveBeenCalledWith('minimalist-cake', 1);
     expect(metadata.title).toEqual({ absolute: 'Minimalist Cake Designs in Cebu | Genie.ph' });
     expect(metadata.description).toContain('Browse 718 minimalist cake designs on Genie.ph.');
@@ -126,14 +131,13 @@ describe('collections category metadata', () => {
     expect(permanentRedirect).toHaveBeenCalledWith('/collections/debut-cake?page=2');
   });
 
-  it('returns all indexed collection params for static generation', async () => {
+  it('pre-renders only featured indexed collections to keep build search bounded', async () => {
     const { generateStaticParams } = await import('./page');
 
     const params = await generateStaticParams();
 
     expect(params).toEqual([
       { category: 'minimalist-cake' },
-      { category: 'pickleball-cake' },
     ]);
   });
 

@@ -1,6 +1,11 @@
 import { Metadata } from 'next'
 import { notFound, permanentRedirect } from 'next/navigation'
-import { getDesignCategories, getDesignsByKeyword, getCollectionBySlug } from '@/services/supabaseService'
+import {
+    getDesignCategories,
+    getDesignCountByKeyword,
+    getDesignsByKeyword,
+    getCollectionBySlug,
+} from '@/services/supabaseService'
 import CategoryClient from '@/app/collections/[category]/CategoryClient'
 import { getAI } from '@/lib/ai/client'
 import { generateDynamicCollectionDescription } from '@/utils/designContentUtils'
@@ -8,6 +13,7 @@ import { cache } from 'react'
 import { buildFAQPageSchema } from '@/lib/seo/schema'
 import { buildLicensedImageObject, getPublicCrawlerImageManifest, selectCrawlerImage } from '@/lib/seo/crawlerImage'
 import {
+    FEATURED_COLLECTION_LINKS,
     PRIORITY_COLLECTION_SEO,
     resolvePriorityCollectionSlug,
 } from '@/lib/seo/priorityCollections'
@@ -143,12 +149,14 @@ function buildCollectionMetaDescription(
     collection: CollectionRecord | null, 
     readableTitle: string, 
     fallbackCategory: string,
-    resolvedDescription?: string | null
+    resolvedDescription?: string | null,
+    resolvedCount?: number,
 ): string {
     const defaultName = normalizeCollectionBaseName(readableTitle || humanizeSlug(fallbackCategory));
     const collectionName = defaultName.toLowerCase();
-    const countText = collection?.item_count && collection.item_count > 0
-        ? `Browse ${collection.item_count.toLocaleString()} ${collectionName} designs on Genie.ph.`
+    const designCount = resolvedCount ?? collection?.item_count ?? 0;
+    const countText = designCount > 0
+        ? `Browse ${designCount.toLocaleString()} ${collectionName} designs on Genie.ph.`
         : `Browse ${collectionName} designs on Genie.ph.`;
     const tagHighlights = extractTagHighlights(collection?.tags);
     const tagText = tagHighlights.length > 0
@@ -251,6 +259,10 @@ const getCachedCollectionDescription = cache(async (category: string, title: str
     return description;
 });
 
+const getCachedCollectionDesignCount = cache(async (category: string) => (
+    getDesignCountByKeyword(category)
+));
+
 export async function generateMetadata(
     { params, searchParams }: Props
 ): Promise<Metadata> {
@@ -267,7 +279,14 @@ export async function generateMetadata(
     const canonicalCategory = collection?.slug || requestedCategory;
     const title = collection?.name || humanizeSlug(category);
     const resolvedDesc = await getCachedCollectionDescription(category, title, collection);
-    const description = buildCollectionMetaDescription(collection, title, category, resolvedDesc);
+    const liveDesignCount = await getCachedCollectionDesignCount(canonicalCategory);
+    const description = buildCollectionMetaDescription(
+        collection,
+        title,
+        category,
+        resolvedDesc,
+        liveDesignCount,
+    );
 
     const { data: designs } = await getDesignsByKeyword(canonicalCategory, 1);
     const ogImage = selectCollectionCrawlerImage(collection, designs?.[0]);
@@ -327,9 +346,17 @@ export async function generateMetadata(
 
 export async function generateStaticParams() {
     const { data: categories } = await getDesignCategories();
+    const availableSlugs = new Set(
+        (categories || [])
+            .filter((collection) => (collection.count || 0) > 0)
+            .map((collection) => collection.slug),
+    );
 
-    return (categories || [])
-        .filter((collection) => (collection.count || 0) > 0)
+    // Pre-render only the small featured set. The remaining collection pages
+    // are generated on demand with ISR, keeping build-time FTS concurrency low
+    // without changing their public URLs or indexability.
+    return FEATURED_COLLECTION_LINKS
+        .filter((collection) => availableSlugs.has(collection.slug))
         .map((collection) => ({ category: collection.slug }));
 }
 
@@ -358,10 +385,16 @@ export default async function CategoryPage({ params, searchParams }: Props) {
     const canonicalCategory = collection?.slug || category;
     const readableTitle = collection?.name || humanizeSlug(category);
     const resolvedDesc = await getCachedCollectionDescription(category, readableTitle, collection);
-    const pageDescription = buildCollectionMetaDescription(collection, readableTitle, category, resolvedDesc);
+    const totalDesignCount = await getCachedCollectionDesignCount(canonicalCategory);
+    const pageDescription = buildCollectionMetaDescription(
+        collection,
+        readableTitle,
+        category,
+        resolvedDesc,
+        totalDesignCount,
+    );
     const collectionHeading = buildCollectionHeading(readableTitle);
     const tagHighlights = extractTagHighlights(collection?.tags);
-    const totalDesignCount = collection?.item_count || 0;
     let totalPages = Math.max(1, Math.ceil(totalDesignCount / COLLECTION_PAGE_SIZE));
     if (currentPage > totalPages) {
         return notFound();
@@ -472,7 +505,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
                 readableTitle={readableTitle}
                 category={canonicalCategory}
                 description={resolvedDesc}
-                designCount={collection?.item_count || designs.length}
+                designCount={totalDesignCount || designs.length}
                 heading={collectionHeading}
                 intro={pageDescription}
                 tagHighlights={tagHighlights}

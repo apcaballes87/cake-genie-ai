@@ -5,6 +5,7 @@ import {
   normalizeTrendCollectionSlug,
   resolveCollectionPublicationStatus,
 } from '@/lib/collections/quality';
+import { getCollectionSearchMetadata } from '@/lib/collections/searchMetadata';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -67,25 +68,6 @@ function hasTrendEvidence(idea: DataForSeoIdea): boolean {
   const volume = idea.keyword_info?.search_volume || 0;
   const trend = idea.keyword_info?.search_volume_trend;
   return volume > 0 || Math.max(trend?.monthly || 0, trend?.quarterly || 0, trend?.yearly || 0) > 0;
-}
-
-function buildCacheFilter(keyword: string): string {
-  const normalized = keyword
-    .toLowerCase()
-    .replace(/\b(cakes?|designs?|ideas?|themed|theme|birthday|custom|order|delivery|cebu|philippines)\b/g, ' ')
-    .replace(/[^a-z0-9\s-]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  const slug = normalized.replace(/\s+/g, '-');
-
-  if (!normalized) return 'id.eq.-1';
-
-  return [
-    `keywords.ilike.%${normalized}%`,
-    `alt_text.ilike.%${normalized}%`,
-    `slug.ilike.%${slug}%`,
-    `tags.cs.{"${normalized}"}`,
-  ].join(',');
 }
 
 function buildDescription(name: string): string {
@@ -159,25 +141,26 @@ export async function GET(request: Request) {
         continue;
       }
 
-      const cacheFilter = buildCacheFilter(keyword);
-      const { data: designs, error: designsError } = await admin
-        .from('cakegenie_analysis_cache')
-        .select('original_image_url,studio_edited_image_url,usage_count')
-        .not('original_image_url', 'is', null)
-        .not('slug', 'is', null)
-        .not('price', 'is', null)
-        .or(cacheFilter)
-        .order('usage_count', { ascending: false })
-        .limit(100);
-
-      if (designsError) {
-        results.push({ keyword, slug, status: 'rejected', reason: designsError.message });
+      let metadata;
+      try {
+        metadata = await getCollectionSearchMetadata(admin, keyword);
+      } catch (error) {
+        results.push({
+          keyword,
+          slug,
+          status: 'rejected',
+          reason: error instanceof Error ? error.message : 'collection-search-failed',
+        });
         continue;
       }
 
-      const matchedDesignCount = designs?.length || 0;
-      const studioImages = (designs || []).filter((design) => design.studio_edited_image_url?.trim());
-      const sampleImage = studioImages[0]?.studio_edited_image_url || designs?.[0]?.original_image_url || null;
+      const {
+        matchedDesignCount,
+        studioImageCount,
+        sampleImage,
+        sampleSlug,
+        searchQuery,
+      } = metadata;
       const qualityInput = {
         matchedDesignCount,
         sampleImage,
@@ -200,7 +183,7 @@ export async function GET(request: Request) {
           sample_image: sampleImage,
           item_count: matchedDesignCount,
           matched_design_count: matchedDesignCount,
-          studio_image_count: studioImages.length,
+          studio_image_count: studioImageCount,
           collection_type: 'entertainment',
           trend_source: 'dataforseo',
           trend_score: getTrendScore(idea),
@@ -217,7 +200,9 @@ export async function GET(request: Request) {
         slug,
         status: publicationStatus,
         matchedDesignCount,
-        studioImageCount: studioImages.length,
+        studioImageCount,
+        searchQuery,
+        sampleSlug,
       });
       existingBySlug.set(slug, { slug, publication_status: publicationStatus, trend_source: 'dataforseo' });
     }

@@ -8,6 +8,10 @@
         {
             "path": "/api/collections/trends/cron",
             "schedule": "0 2 * * 1"
+        },
+        {
+            "path": "/api/collections/refresh/cron",
+            "schedule": "0 3 * * 1"
         }
     ],
     "functions": {
