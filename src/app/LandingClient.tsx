@@ -169,8 +169,9 @@ const HeroTypingHeadlineLine: React.FC<{
     }, [animationState, currentPhrase, displayText, onPhraseSettled, phraseIndex]);
 
     return (
-        <span className={className} aria-label={a11yLabel ?? phrases.join(', ')}>
-            <span className="relative inline-grid">
+        <span className={className}>
+            <span className="sr-only">{a11yLabel ?? phrases.join(', ')}</span>
+            <span className="relative inline-grid" aria-hidden="true">
                 <span aria-hidden="true" className="invisible whitespace-nowrap">
                     <span className={placeholderPhraseClassName}>{longestPhrase}</span>
                     <span className="ml-1 inline-block h-[0.92em] w-[3px] align-middle" />
@@ -208,6 +209,7 @@ function HeroProductImage({
     sizes: string;
     draggable?: boolean;
     'aria-hidden'?: boolean;
+    onLoad?: (event: React.SyntheticEvent<HTMLImageElement>) => void;
 }) {
     return (
         <LazyImage
@@ -262,7 +264,7 @@ const HeroMasonryGrid: React.FC<{
                     <HeroProductImage
                         src={products[1]?.image || ''}
                         alt={products[1]?.title || 'Custom cake design'}
-                        priority={true}
+                        priority={false}
                         sizes="(max-width: 767px) 33vw, (max-width: 1279px) 18vw, 220px"
                         imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
@@ -278,7 +280,7 @@ const HeroMasonryGrid: React.FC<{
                     <HeroProductImage
                         src={products[2]?.image || ''}
                         alt={products[2]?.title || 'Custom cake design'}
-                        priority={true}
+                        priority={false}
                         sizes="(max-width: 767px) 33vw, (max-width: 1279px) 18vw, 220px"
                         imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
@@ -292,7 +294,7 @@ const HeroMasonryGrid: React.FC<{
                     <HeroProductImage
                         src={products[3]?.image || ''}
                         alt={products[3]?.title || 'Custom cake design'}
-                        priority={true}
+                        priority={false}
                         sizes="(max-width: 767px) 33vw, (max-width: 1279px) 18vw, 220px"
                         imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
@@ -308,7 +310,7 @@ const HeroMasonryGrid: React.FC<{
                     <HeroProductImage
                         src={products[4]?.image || ''}
                         alt={products[4]?.title || 'Custom cake design'}
-                        priority={true}
+                        priority={false}
                         sizes="(max-width: 767px) 33vw, (max-width: 1279px) 18vw, 220px"
                         imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
@@ -322,7 +324,7 @@ const HeroMasonryGrid: React.FC<{
                     <HeroProductImage
                         src={products[5]?.image || ''}
                         alt={products[5]?.title || 'Custom cake design'}
-                        priority={true}
+                        priority={false}
                         sizes="(max-width: 767px) 33vw, (max-width: 1279px) 18vw, 220px"
                         imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
@@ -336,16 +338,17 @@ const HeroMasonryGrid: React.FC<{
 /**
  * Returns true once we want to actually mount the Embla carousel:
  *   1. Viewport is <768px (mobile only — desktop uses HeroMasonryGrid).
- *   2. AND user has shown engagement (pointerdown, scroll, touchstart) OR
- *      a 1500ms idle fallback.
+ *   2. AND the user has provided explicit pointer, touch, or keyboard input.
  *
  * Why: useEmblaCarousel synchronously calls getBoundingClientRect on every
  * slide during init, causing a ~400ms forced reflow. That used to land in
  * the LCP critical path, costing render delay even on desktop (where the
  * carousel is hidden via CSS but still mounted in the React tree).
  *
- * After this hook, the embla code path runs only on mobile, and only AFTER
- * the LCP image has painted, so the cost is shifted out of the critical path.
+ * Replacing the static image automatically after a timer created a second
+ * paint that Lighthouse recorded as a 5.1s LCP. Keeping the stable placeholder
+ * until real input means the interactive replacement occurs after the LCP
+ * observation window without making the initial carousel look incomplete.
  */
 function useShouldMountCarousel(): boolean {
     const [shouldMount, setShouldMount] = useState(false);
@@ -363,22 +366,20 @@ function useShouldMountCarousel(): boolean {
             return () => window.removeEventListener('resize', onResize);
         }
 
-        // Mobile: wait for engagement OR a 1.5s idle fallback so the carousel
-        // is ready by the time the user looks at it, but not before LCP.
+        // Mobile: load only after explicit input. Do not use a timer or scroll
+        // trigger: either can replace the already-painted LCP image while the
+        // browser is still observing LCP.
         const activate = () => setShouldMount(true);
         const events: Array<keyof WindowEventMap> = [
             'pointerdown',
-            'scroll',
             'touchstart',
+            'keydown',
         ];
         events.forEach((evt) =>
             window.addEventListener(evt, activate, { once: true, passive: true })
         );
-        const idleTimer = window.setTimeout(activate, 1500);
-
         return () => {
             events.forEach((evt) => window.removeEventListener(evt, activate));
-            window.clearTimeout(idleTimer);
         };
     }, []);
 
@@ -406,6 +407,7 @@ function HeroProductPeekCarouselPlaceholder({
     cardFlexStyle?: string;
     aspectClassName?: string;
 }) {
+    const [hasLoadedCenterProduct, setHasLoadedCenterProduct] = useState(false);
     const visibleProducts = getMobileHeroCarouselVisibleProducts(products, heroProductIndex);
     const centerProductPosition = visibleProducts.length > 1 ? 1 : 0;
     const rowTransform = visibleProducts.length > 1 ? 'translateX(-25%)' : undefined;
@@ -422,18 +424,22 @@ function HeroProductPeekCarouselPlaceholder({
                                 className={`relative ${cardSpacingClassName} h-full min-w-0 overflow-hidden rounded-[1.35rem] bg-slate-100 transition-shadow duration-500 ease-out ${isCenter ? 'shadow-[0_18px_45px_-28px_rgba(15,23,42,0.75)]' : ''
                                     }`}
                                 style={{ flex: cardFlexStyle }}
-                                aria-label={`${product.title} example`}
                             >
-                                <HeroProductImage
-                                    src={product.image}
-                                    alt={`${product.title} example`}
-                                    priority={productIndex === 0}
-                                    showBeforeLoad
-                                    sizes="(max-width: 767px) 50vw, (max-width: 1279px) 40vw, 380px"
-                                    imageClassName={`object-cover transition-transform duration-700 ${isCenter ? 'scale-[1.1]' : 'scale-100'}`}
-                                    aria-hidden={!isCenter}
-                                    draggable={false}
-                                />
+                                {(isCenter || hasLoadedCenterProduct) ? (
+                                    <HeroProductImage
+                                        src={product.image}
+                                        alt={`${product.title} example`}
+                                        priority={productIndex === 0}
+                                        showBeforeLoad
+                                        sizes="(max-width: 767px) 50vw, (max-width: 1279px) 40vw, 380px"
+                                        imageClassName={`object-cover transition-transform duration-700 ${isCenter ? 'scale-[1.1]' : 'scale-100'}`}
+                                        aria-hidden={!isCenter}
+                                        draggable={false}
+                                        onLoad={isCenter ? () => setHasLoadedCenterProduct(true) : undefined}
+                                    />
+                                ) : (
+                                    <div aria-hidden="true" className="absolute inset-0 bg-slate-100" />
+                                )}
                                 {isCenter && (
                                     <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/25 to-transparent" />
                                 )}
@@ -929,6 +935,7 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
     const prevPriceRef = useRef(0);
     const demoRef = useRef<HTMLDivElement>(null);
     const [isDemoVisible, setIsDemoVisible] = useState(false);
+    const [hasActivatedDemo, setHasActivatedDemo] = useState(false);
 
     useEffect(() => {
         // Determine when the customizer demo should auto-start. Previously this
@@ -939,7 +946,7 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
         // scroll event, and they don't read layout synchronously.
         const priceHeading = document.getElementById('price-change-heading');
         const rushHeading = document.getElementById('rush-orders-heading');
-        if (!priceHeading || !rushHeading) return;
+        if (!priceHeading) return;
 
         let priceVisible = false;
         let rushVisible = false;
@@ -951,26 +958,29 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
         const priceObserver = new IntersectionObserver(
             ([entry]) => {
                 priceVisible = entry.isIntersecting;
+                if (entry.isIntersecting) setHasActivatedDemo(true);
                 update();
             },
             { rootMargin: '0px 0px -50% 0px' }
         );
 
         // rushTriggerPoint was 75% of viewport height — same pattern, -25% bottom.
-        const rushObserver = new IntersectionObserver(
-            ([entry]) => {
-                rushVisible = entry.isIntersecting;
-                update();
-            },
-            { rootMargin: '0px 0px -25% 0px' }
-        );
+        const rushObserver = rushHeading
+            ? new IntersectionObserver(
+                ([entry]) => {
+                    rushVisible = entry.isIntersecting;
+                    update();
+                },
+                { rootMargin: '0px 0px -25% 0px' }
+            )
+            : null;
 
         priceObserver.observe(priceHeading);
-        rushObserver.observe(rushHeading);
+        if (rushHeading && rushObserver) rushObserver.observe(rushHeading);
 
         return () => {
             priceObserver.disconnect();
-            rushObserver.disconnect();
+            rushObserver?.disconnect();
         };
     }, []);
 
@@ -1154,15 +1164,17 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
 
                     {/* Cake image */}
                     <div className={`relative w-full aspect-4/3 overflow-hidden bg-linear-to-br from-slate-100 to-slate-50 transition-all duration-300 group-hover:scale-[1.02] shadow-sm rounded-3xl`}>
-                        <img
-                            src={displayedImageSrc}
-                            alt={`${tier.label} cake preview`}
-                            className="w-full h-full object-cover"
-                            loading="eager"
-                            decoding="async"
-                            fetchPriority="high"
-                            style={{ opacity: imgVisible ? 1 : 0, transition: 'opacity 0.25s ease-in-out' }}
-                        />
+                        {hasActivatedDemo ? (
+                            <img
+                                src={displayedImageSrc}
+                                alt={`${tier.label} cake preview`}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                                decoding="async"
+                                fetchPriority="low"
+                                style={{ opacity: imgVisible ? 1 : 0, transition: 'opacity 0.25s ease-in-out' }}
+                            />
+                        ) : null}
 
 
                         {/* Floating annotation during auto-play */}
@@ -1171,7 +1183,7 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                                 key={annotationKey}
                                 className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-xl px-3 py-2 shadow-lg animate-annotation-fade-in"
                             >
-                                <span className="text-[10px] font-bold text-purple-400">{annotation}</span>
+                                <span className="text-[10px] font-bold text-purple-700">{annotation}</span>
                             </div>
                         )}
 
@@ -1180,10 +1192,10 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                         {/* Price badge overlay */}
                         {showPriceBadge && (
                             <div className="absolute inset-0 flex items-center justify-center animate-annotation-fade-in">
-                                <div className="bg-purple-400 rounded-2xl px-6 py-4 shadow-2xl flex flex-col items-center gap-2">
+                                <div className="bg-purple-700 rounded-2xl px-6 py-4 shadow-2xl flex flex-col items-center gap-2">
                                     <span className="text-3xl font-extrabold text-white tracking-tight">₱{totalPrice.toLocaleString()}</span>
                                     <div className="flex items-center gap-2 bg-white rounded-xl px-4 py-2">
-                                        <ShoppingBag size={15} className="text-purple-400" />
+                                        <ShoppingBag size={15} className="text-purple-700" />
                                         <span className="text-sm font-bold text-purple-700">Add to Cart</span>
                                     </div>
                                 </div>
@@ -1197,19 +1209,19 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                 <div className="flex flex-col gap-3">
                     {/* Cake Type */}
                     <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-3.5 shadow-sm border border-slate-100">
-                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Cake Type</label>
+                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-2 block">Cake Type</label>
                         <div className="flex gap-2">
                             {tiers.map((t, i) => (
                                 <button
                                     key={t.label}
                                     onClick={() => handleTierClick(i)}
                                     className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${selectedTier === i
-                                            ? 'bg-purple-400 text-white shadow-md scale-[1.02]'
+                                            ? 'bg-purple-700 text-white shadow-md scale-[1.02]'
                                             : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                                         } ${highlightedOption === t.label ? 'animate-option-glow' : ''}`}
                                 >
                                     {t.label}
-                                    <span className="block text-[10px] opacity-70">₱{t.price.toLocaleString()}</span>
+                                    <span className="block text-[10px]">₱{t.price.toLocaleString()}</span>
                                 </button>
                             ))}
                         </div>
@@ -1218,7 +1230,7 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
 
                     {/* Icing Details & Toppers */}
                     <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-3.5 shadow-sm border border-slate-100">
-                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Icing Details &amp; Toppers</label>
+                        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-2 block">Icing Details &amp; Toppers</label>
                         <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 pt-1 px-1 -mx-1">
                             {icings.map((ic) => (
                                 <button
@@ -1230,14 +1242,16 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                                             ? 'ring-2 ring-purple-500 bg-purple-50'
                                             : 'hover:border-purple-300'
                                         } ${highlightedOption === ic.label ? 'ring-2 ring-purple-400' : ''}`}>
-                                        <img
-                                            src={ic.src}
-                                            alt={ic.label}
-                                            className="w-full h-full object-contain"
-                                            loading="lazy"
-                                            decoding="async"
-                                            fetchPriority="low"
-                                        />
+                                        {hasActivatedDemo ? (
+                                            <img
+                                                src={ic.src}
+                                                alt={ic.label}
+                                                className="w-full h-full object-contain"
+                                                loading="lazy"
+                                                decoding="async"
+                                                fetchPriority="low"
+                                            />
+                                        ) : null}
                                     </div>
                                     <span className="text-[9px] text-center text-slate-600 font-medium leading-tight max-w-[52px] line-clamp-2 mt-0.5">{ic.label}</span>
                                     {ic.addonPrice > 0 && (
@@ -1271,7 +1285,7 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
 
 
                     {/* Price Bar */}
-                    <div className="bg-purple-400 rounded-2xl p-3.5 shadow-xl">
+                    <div className="bg-purple-700 rounded-2xl p-3.5 shadow-xl">
                         <div className="flex items-center justify-between gap-3">
                             <div>
                                 <div className="relative h-8 overflow-hidden flex items-center">
@@ -1286,7 +1300,7 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
                                 </div>
                                 <div className="flex items-center gap-1.5 mt-0.5">
                                     <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                                    <span className="text-[11px] text-white/80 font-medium">Same-day delivery</span>
+                                    <span className="text-[11px] text-white font-medium">Same-day delivery</span>
                                 </div>
                             </div>
                             <button
@@ -1303,12 +1317,12 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
 
             {/* Sticky mobile price bar — visible only while demo section is on screen */}
             <div className={`lg:hidden fixed bottom-20 left-0 right-0 z-50 px-4 transition-all duration-500 ${isDemoVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-                <div className="bg-purple-400 rounded-2xl p-3.5 shadow-2xl flex items-center justify-between gap-3">
+                <div className="bg-purple-700 rounded-2xl p-3.5 shadow-2xl flex items-center justify-between gap-3">
                     <div>
                         <span className="text-xl font-extrabold text-white">₱{totalPrice.toLocaleString()}</span>
                         <div className="flex items-center gap-1.5 mt-0.5">
                             <span className={`w-1.5 h-1.5 rounded-full ${selectedTier === 1 ? 'bg-yellow-400' : 'bg-green-400 animate-pulse'}`} />
-                            <span className="text-[11px] text-white/80 font-medium">
+                            <span className="text-[11px] text-white font-medium">
                                 {selectedTier === 1 ? '1-day lead time' : 'Same-day delivery'}
                             </span>
                         </div>
@@ -1327,9 +1341,10 @@ const InteractiveCustomizer: React.FC<InteractiveCustomizerProps> = ({ tiers, fl
 };
 
 // Separate component so useSearchParams doesn't block static prerendering
-const DiscountCapture = () => {
+const HomepageQueryCapture = ({ onUploadRequested }: { onUploadRequested: () => void }) => {
     const searchParams = useSearchParams();
     const urlDiscount = searchParams.get('discount');
+    const shouldOpenUploader = searchParams.get('upload') === '1';
 
     useEffect(() => {
         if (urlDiscount) {
@@ -1337,7 +1352,10 @@ const DiscountCapture = () => {
             batchSaveToLocalStorage('cart_discount_code', code);
             showInfo(`Discount code ${code} saved! Add items to your cart to apply it.`);
         }
-    }, [urlDiscount]);
+        if (shouldOpenUploader) {
+            onUploadRequested();
+        }
+    }, [onUploadRequested, shouldOpenUploader, urlDiscount]);
 
     return null;
 };
@@ -1349,9 +1367,8 @@ const LandingClient: React.FC<LandingClientProps> = ({
     reviewSummary,
 }) => {
     const router = useRouter();
-    const searchParams = useSearchParams();
     const [activeTab, setActiveTab] = useState('home');
-    const [isUploaderOpen, setIsUploaderOpen] = useState(() => searchParams.get('upload') === '1');
+    const [isUploaderOpen, setIsUploaderOpen] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isOccasionOpen, setIsOccasionOpen] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
@@ -1380,6 +1397,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
     // ───────────────────────────────────────────────────────────────────────
     const heroProducts = heroContent.products;
     const heroProductCount = heroProducts.length;
+    const openUploaderFromQuery = useCallback(() => setIsUploaderOpen(true), []);
 
 
     useEffect(() => {
@@ -1659,13 +1677,13 @@ const LandingClient: React.FC<LandingClientProps> = ({
 
     return (
         <div id="top" className="font-sans genie-page-bg min-h-screen pb-24 md:pb-0 text-gray-800 flex flex-col">
-            {/* Capture discount code from URL without blocking prerender */}
+            {/* Isolate query-string reads so the homepage can remain prerendered. */}
             <Suspense fallback={null}>
-                <DiscountCapture />
+                <HomepageQueryCapture onUploadRequested={openUploaderFromQuery} />
             </Suspense>
 
             {/* ========== SAME-DAY CUTOFF COUNTDOWN BANNER ========== */}
-            <div className="w-full bg-purple-400 py-[4.5px] flex justify-center items-center">
+            <div className="w-full bg-purple-700 py-[4.5px] flex justify-center items-center">
                 <SameDayCutoffBanner />
             </div>
 
@@ -1701,6 +1719,8 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                     width={135}
                                     height={43}
                                     className="h-[41px] w-auto object-contain"
+                                    decoding="async"
+                                    fetchPriority="low"
                                 />
                             </Link>
                         </div>
@@ -1714,6 +1734,8 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                     width={105}
                                     height={32}
                                     className="h-[27px] md:h-[32px] w-auto object-contain"
+                                    decoding="async"
+                                    fetchPriority="low"
                                 />
                             </Link>
                         </div>
@@ -1801,9 +1823,9 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                 {heroContent.eyebrow}
                             </p>
                             <div className="mb-3 text-center">
-                                <div className="text-[50px] max-[390px]:text-[43px] font-extrabold leading-none tracking-tight text-gray-900">
-                                    <HeroTypingHeadlineLine 
-                                        className="block min-h-[1em] whitespace-nowrap text-center text-purple-400" 
+                                <h1 className="text-[50px] max-[390px]:text-[43px] font-extrabold leading-none tracking-tight text-gray-900">
+                                    <HeroTypingHeadlineLine
+                                        className="block min-h-[1em] whitespace-nowrap text-center text-purple-600"
                                         controlledPhraseIndex={heroHeadlineVariant}
                                         phrases={heroContent.headlineVariants}
                                         a11yLabel={heroContent.headlineA11yLabel}
@@ -1811,7 +1833,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                     />
                                     <span className="block whitespace-nowrap text-black italic">{heroContent.lineTwo}</span>
                                     <span className="block whitespace-nowrap text-black italic">{heroContent.lineThree}</span>
-                                </div>
+                                </h1>
                                 {heroUploadState === 'idle' && (
                                     <HeroFeatureHighlights compact className="mx-auto mt-3 w-full max-w-[480px] px-2" />
                                 )}
@@ -1831,8 +1853,8 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                             {heroContent.eyebrow}
                                         </p>
                                         <h1 className="mt-2 text-[3.79rem] min-[945px]:text-[3.85rem] lg:text-[4.62rem] min-[1232px]:text-[5.7rem] font-extrabold text-gray-900 leading-none tracking-tight">
-                                            <HeroTypingHeadlineLine 
-                                                className="block min-h-[1em] whitespace-nowrap text-center text-purple-400" 
+                                            <HeroTypingHeadlineLine
+                                                className="block min-h-[1em] whitespace-nowrap text-center text-purple-600"
                                                 controlledPhraseIndex={heroHeadlineVariant}
                                                 phrases={heroContent.headlineVariants}
                                                 a11yLabel={heroContent.headlineA11yLabel}
@@ -2103,7 +2125,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
 
                 <section aria-label="AI-powered instant pricing" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:pt-6 md:pb-12">
                     <h2 id="price-change-heading" className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-2 text-center">
-                        Get your <span className="text-purple-400">Personalized Cake</span> today
+                        Get your <span className="text-purple-600">Personalized Cake</span> today
                     </h2>
                     <p className="text-base text-slate-500 mb-8 max-w-2xl mx-auto text-center">
                         Upload any cake design. Customize it. See your price instantly. Same-day delivery.
@@ -2212,7 +2234,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                             {/* Headline */}
                             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-4">
                                 Your Cake.{' '}
-                                <span className="text-purple-400">Safely Delivered Today.</span>
+                                <span className="text-purple-600">Safely Delivered Today.</span>
                             </h2>
 
                             {/* Subheadline */}
@@ -2226,13 +2248,12 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                 <button
                                     id="delivery-section-upload-cta"
                                     onClick={() => setIsUploaderOpen(true)}
-                                    aria-label="Upload a cake design image to check if it qualifies for same-day or rush delivery"
                                     className={`genie-btn-primary flex w-full items-center justify-center gap-2.5 ${LANDING_PRIMARY_CTA_RADIUS} py-4 px-7 text-[15px] font-bold shadow-lg shadow-purple-100/60 active:scale-[0.98] transition-transform`}
                                 >
                                     <ImagePlus size={18} className="shrink-0" />
                                     <span className="whitespace-nowrap">Upload design - Check same-day availability</span>
                                 </button>
-                                <p className="mt-3 text-[11px] text-slate-400 font-medium">
+                                <p className="mt-3 text-[11px] text-slate-600 font-medium">
                                     Upload now and we&apos;ll instantly tell you if it&apos;s available for today.
                                 </p>
                             </div>
@@ -2252,7 +2273,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                 {/* Gradient overlay */}
                                 <div className="absolute inset-0 bg-linear-to-tr from-black/20 via-transparent to-transparent pointer-events-none" />
                                 {/* Badge */}
-                                <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-green-500 text-white text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full shadow-lg">
+                                <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-green-700 text-white text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full shadow-lg">
                                     <Truck size={12} className="shrink-0" />
                                     <span>Free in Cebu City</span>
                                 </div>
@@ -2305,6 +2326,9 @@ const LandingClient: React.FC<LandingClientProps> = ({
                         width={140}
                         height={50}
                         className="h-12 w-auto object-contain"
+                        loading="lazy"
+                        decoding="async"
+                        fetchPriority="low"
                     />
                     <button
                         onClick={() => setIsMenuOpen(false)}

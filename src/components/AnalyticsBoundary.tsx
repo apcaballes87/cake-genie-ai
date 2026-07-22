@@ -1,6 +1,6 @@
 'use client'
 
-import { useLayoutEffect } from 'react'
+import { useEffect } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import {
   INTERNAL_TRAFFIC_COOKIE_NAME,
@@ -46,7 +46,7 @@ export function AnalyticsBoundary({ enabled, measurementId }: AnalyticsBoundaryP
   const searchParamString = searchParams.toString()
   const { user, isAuthenticated } = useAuth()
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (!enabled) return
 
     const isTrackable = isAnalyticsTrackablePath(pathname)

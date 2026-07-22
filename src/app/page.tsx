@@ -6,7 +6,7 @@ import { getRecommendedProducts, getHomepageBlogPreviews } from '@/services/supa
 import { RecommendedProductsSection, IntroContent } from '@/components/landing';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import { LandingPageSkeleton } from '@/components/LoadingSkeletons';
-import { createClient } from '@/lib/supabase/server';
+import { createPublicServerSupabaseClient } from '@/lib/supabase/publicServer';
 import { buildReviewSummary, normalizePublicReviews, REVIEW_SELECT } from '@/lib/reviews';
 import HomepageAeoSections from '@/components/seo/HomepageAeoSections';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -171,7 +171,9 @@ function HomepageFAQSchema() {
 }
 
 async function getHomepageReviews() {
-    const supabase: SupabaseClient = await createClient();
+    // Homepage reviews are public data. A cookie-aware client calls cookies(),
+    // making the entire route dynamic and defeating the hourly ISR contract.
+    const supabase: SupabaseClient = createPublicServerSupabaseClient();
 
     const [{ data: reviewRows, error }, { data: ratingRows }] = await Promise.all([
         supabase
@@ -202,8 +204,9 @@ async function getHomepageReviews() {
  * blocks, blog previews via the parent LandingClient). It also resolves the
  * review summary used by the hero's "★★★★★ N happy customers" line.
  *
- * Wrapped in <Suspense> at the call site so the hero in <LandingClient>
- * paints immediately while this streams in.
+ * All queries use cookie-free public clients, so Next can resolve this into
+ * the hourly ISR snapshot instead of making the homepage request-dynamic.
+ * Suspense still provides a safe fallback during an uncached regeneration.
  */
 async function LandingDataSections() {
     const [recommendedProductsRes, blogsRes, homepageReviews] = await Promise.all([
@@ -245,20 +248,10 @@ export default function Home() {
     return (
         <>
             {/*
-              LCP preload: the hero masonry grid renders 6 cake-card images
-              that are roughly equal in size, so the LCP element is whichever
-              one happens to win the layout race — it's not deterministic
-              between minimalist/photo/floral/vintage/doodle/bento. Preloading
-              just one was a coin flip, so we preload all six. They're small
-              webp files (~20-40 KB each) and they're all above the fold, so
-              shipping them in parallel is the right call.
-
-              The first <link> uses fetchPriority="high" so the browser still
-              treats the leftmost card (the most likely LCP candidate on
-              wide viewports) as the highest priority. The other five queue
-              right behind at default priority — without these hints they
-              were starting after the LandingClient bundle hydrated, costing
-              ~700 ms of LCP load delay.
+              Mobile Lighthouse consistently identifies the first minimalist
+              card as LCP. Preloading all six hero images made the other five
+              compete with that critical request on throttled mobile networks,
+              so only the actual LCP candidate receives a global preload.
             */}
             <link
                 rel="preload"
@@ -266,21 +259,22 @@ export default function Home() {
                 href={HOMEPAGE_ASSETS.heroProducts.minimalist}
                 fetchPriority="high"
             />
-            <link rel="preload" as="image" href={HOMEPAGE_ASSETS.heroProducts.vintage} />
-            <link rel="preload" as="image" href={HOMEPAGE_ASSETS.heroProducts.doodle} />
-            <link rel="preload" as="image" href={HOMEPAGE_ASSETS.heroProducts.photo} />
-            <link rel="preload" as="image" href={HOMEPAGE_ASSETS.heroProducts.floral} />
-            <link rel="preload" as="image" href={HOMEPAGE_ASSETS.heroProducts.bento} />
+            {/* Desktop's measured LCP is the transition image below the hero. */}
+            <link
+                rel="preload"
+                as="image"
+                href={HOMEPAGE_ASSETS.transition}
+                media="(min-width: 768px)"
+                fetchPriority="high"
+            />
             <WebSiteSchema />
             <HomepageFAQSchema />
             <AnimatedBlobs />
             {/*
-              The hero (LandingClient with empty data) renders immediately so
-              the LCP element is in the static HTML. We don't wait on Supabase
-              for reviews/products/blog before painting — those stream in via
-              the Suspense boundary below. HeroReviewSummary already handles
-              an undefined reviewSummary by showing a "Verified" fallback, so
-              the hero looks complete even before the data lands.
+              Public homepage data is resolved into the static ISR snapshot,
+              so the complete hero and its LCP image are present in cached HTML.
+              The Suspense fallback covers an uncached regeneration without
+              turning the route back into request-time dynamic rendering.
             */}
             <Suspense fallback={<LandingPageSkeleton />}>
                 <LandingDataSections />

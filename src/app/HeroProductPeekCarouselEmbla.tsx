@@ -144,16 +144,21 @@ export default function HeroProductPeekCarouselEmbla({
                     })}
                 </div>
             </div>
-            <div className="absolute bottom-3 left-0 right-0 z-30 flex justify-center gap-1.5">
+            <div className="absolute bottom-0 left-0 right-0 z-30 flex justify-center">
                 {products.map((_, i) => (
                     <button
                         key={i}
                         type="button"
                         onClick={() => handleProductClick(i)}
                         aria-label={`View ${products[i].title}`}
-                        className={`h-1.5 rounded-full transition-all duration-300 ${i === heroProductIndex ? 'w-5 bg-white shadow-sm' : 'w-1.5 bg-white/55 hover:bg-white/80'
-                            }`}
-                    />
+                        className="group flex h-8 w-8 items-center justify-center rounded-full"
+                    >
+                        <span
+                            aria-hidden="true"
+                            className={`h-1.5 rounded-full transition-all duration-300 ${i === heroProductIndex ? 'w-5 bg-white shadow-sm' : 'w-1.5 bg-white/55 group-hover:bg-white/80'
+                                }`}
+                        />
+                    </button>
                 ))}
             </div>
         </div>

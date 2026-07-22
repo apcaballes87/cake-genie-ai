@@ -15,5 +15,7 @@ describe('LandingFooter', () => {
 
     expect(markup).toContain('5.0/5 based on 6 Happy Customers.')
     expect(markup).not.toContain('4.8/5 based on 6 public reviews.')
+    expect(markup).toContain('aria-label="DTI Registered - view registration"')
+    expect(markup).not.toContain('<h4')
   })
 })

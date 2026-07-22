@@ -26,8 +26,12 @@ vi.mock('@/components/landing/LandingFooter', () => ({
   LandingFooter: () => <div>Footer</div>,
 }));
 
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: vi.fn().mockRejectedValue(new Error('No database in unit test')),
+vi.mock('@/lib/supabase/publicServer', () => ({
+  createPublicServerSupabaseClient: vi.fn(() => ({
+    from: vi.fn(() => {
+      throw new Error('No database in unit test');
+    }),
+  })),
 }));
 
 describe('home page SEO schema', () => {

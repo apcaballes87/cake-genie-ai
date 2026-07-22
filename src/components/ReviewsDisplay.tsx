@@ -70,9 +70,9 @@ export const ReviewCard: React.FC<{
                   type="button"
                   className="absolute inset-0 w-full h-full text-left cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-pink-400 focus:rounded-lg"
                   onClick={() => setLocalLightbox(review.original_image_url!)}
-                  aria-label="View original inspiration design"
+                  aria-label="Cake Inspo - view original inspiration design"
                 >
-                  <span className="absolute top-1.5 left-1.5 z-10 px-1 py-0.5 text-[7px] min-[400px]:text-[8px] font-extrabold tracking-wider text-pink-700 bg-pink-50/90 backdrop-blur-xs rounded-md shadow-xs uppercase border border-pink-100 whitespace-nowrap">
+                  <span className="absolute top-1.5 left-1.5 z-10 px-1 py-0.5 text-[7px] min-[400px]:text-[8px] font-extrabold tracking-wider text-[#be185d] bg-pink-50/90 backdrop-blur-xs rounded-md shadow-xs uppercase border border-pink-100 whitespace-nowrap">
                     Cake Inspo
                   </span>
                   <LazyImage
@@ -93,7 +93,7 @@ export const ReviewCard: React.FC<{
                   type="button"
                   className="absolute inset-0 w-full h-full text-left cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-purple-400 focus:rounded-lg"
                   onClick={() => setLocalLightbox(review.finished_image_url!)}
-                  aria-label="View finished masterpiece cake"
+                  aria-label="Final Product - view finished custom cake"
                 >
                   <span className="absolute top-1.5 left-1.5 z-10 px-1 py-0.5 text-[7px] min-[400px]:text-[8px] font-extrabold tracking-wider text-purple-700 bg-purple-50/90 backdrop-blur-xs rounded-md shadow-xs uppercase border border-purple-100 whitespace-nowrap">
                     Final Product
@@ -124,14 +124,14 @@ export const ReviewCard: React.FC<{
                       {displayName}
                     </span>
                     {(review.is_verified || review.user_id) && (
-                      <span className="inline-flex items-center gap-0.5 mt-0.5 text-[9px] font-bold text-emerald-600 bg-emerald-50/80 px-1.5 py-0.2 rounded-full border border-emerald-100">
+                      <span className="inline-flex items-center gap-0.5 mt-0.5 text-[9px] font-bold text-[#047857] bg-emerald-50/80 px-1.5 py-0.2 rounded-full border border-emerald-100">
                         <ShieldCheck className="w-2.5 h-2.5" />
                         Verified Purchase
                       </span>
                     )}
                   </div>
                 </div>
-                <span className="text-[11px] text-slate-400 font-medium">{formatDate(review.created_at)}</span>
+                <span className="text-[11px] text-slate-600 font-medium">{formatDate(review.created_at)}</span>
               </div>
 
               {/* Stars + rating */}
@@ -180,7 +180,7 @@ export const ReviewCard: React.FC<{
                 <p className="font-semibold text-slate-800">{displayName}</p>
                 <div className="flex items-center gap-2">
                   <StarRating rating={review.rating} />
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs text-slate-600">
                     {formatDate(review.created_at)}
                   </span>
                 </div>
@@ -254,7 +254,7 @@ export const ReviewCard: React.FC<{
             </div>
             <span className="text-sm font-semibold text-slate-700">Merchant Response</span>
             {review.merchant_response_at && (
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-slate-600">
                 {formatDate(review.merchant_response_at)}
               </span>
             )}
@@ -326,7 +326,7 @@ const ReviewsDisplay: React.FC<ReviewsDisplayProps> = ({
       <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
         <Star className="w-12 h-12 mx-auto text-slate-300 mb-3" />
         <p className="text-slate-500">No reviews yet</p>
-        <p className="text-sm text-slate-400 mt-1">Be the first to leave a review!</p>
+        <p className="text-sm text-slate-600 mt-1">Be the first to leave a review!</p>
       </div>
     );
   }
@@ -381,7 +381,7 @@ export const ReviewSummary: React.FC<ReviewSummaryProps> = ({
                     style={{ width: `${percentage}%` }}
                   />
                 </div>
-                <span className="text-xs text-slate-400 w-8 text-right">{count}</span>
+                <span className="text-xs text-slate-600 w-8 text-right">{count}</span>
               </div>
             );
           })}

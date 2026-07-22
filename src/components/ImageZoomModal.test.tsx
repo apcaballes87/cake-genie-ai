@@ -38,7 +38,7 @@ function mockMatchMedia(matches: boolean) {
 
 describe('ImageZoomModal', () => {
     beforeEach(() => {
-        document.head.innerHTML = '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">';
+        document.head.innerHTML = '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">';
     });
 
     afterEach(() => {
@@ -80,7 +80,7 @@ describe('ImageZoomModal', () => {
 
         expect(document.body).not.toHaveClass('genie-image-zoom-open');
         expect(document.querySelector('meta[name="viewport"]')?.getAttribute('content')).toBe(
-            'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover',
+            'width=device-width, initial-scale=1, viewport-fit=cover',
         );
     });
 
@@ -124,7 +124,7 @@ describe('ImageZoomModal', () => {
         render(<ImageZoomModal {...props} />);
 
         expect(document.querySelector('meta[name="viewport"]')?.getAttribute('content')).toBe(
-            'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover',
+            'width=device-width, initial-scale=1, viewport-fit=cover',
         );
     });
 });

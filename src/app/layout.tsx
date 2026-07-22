@@ -23,8 +23,6 @@ const inter = Inter({ subsets: ['latin'], display: 'optional' })
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: 'cover',
 }
 
@@ -163,7 +161,7 @@ export default function RootLayout({
             </Script>
             <Script
               src={`https://www.googletagmanager.com/gtag/js?id=${GA4_MEASUREMENT_ID}`}
-              strategy="afterInteractive"
+              strategy="lazyOnload"
             />
           </>
         )}

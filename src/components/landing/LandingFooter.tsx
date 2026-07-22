@@ -56,7 +56,7 @@ export function LandingFooter({ reviewSummary }: LandingFooterProps) {
             <span className="hidden md:inline text-gray-300">|</span>
             <span className="hidden md:inline text-gray-600">{countLabel}</span>
             <span className="hidden md:inline text-gray-300">|</span>
-            <span className="flex items-center gap-1 text-green-500 font-bold">Verified</span>
+            <span className="flex items-center gap-1 text-green-700 font-bold">Verified</span>
           </div>
         </div>
       </div>
@@ -65,14 +65,14 @@ export function LandingFooter({ reviewSummary }: LandingFooterProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-8">
             <div className="md:col-span-2">
-              <img src={COMMON_ASSETS.logo} alt="Genie Logo" width={150} height={40} className="h-10 w-auto object-contain mb-4" />
+              <img src={COMMON_ASSETS.logo} alt="Genie Logo" width={150} height={40} className="h-10 w-auto object-contain mb-4" loading="lazy" decoding="async" fetchPriority="low" />
               <div className="text-gray-600 text-sm leading-relaxed mb-4 space-y-3"><p>Genie.ph is where spontaneous celebrations get the cake they deserve. Custom cakes, ordered in minutes, delivered today across Metro Cebu. Your cake wish, granted.</p><p>Our delivery network covers Metro Cebu, including Cebu City, Mandaue City, Lapu-Lapu City, and Talisay City. Genie.ph specializes in custom birthday cakes, minimalist wedding cakes, personalized bento cakes, and edible photo prints with secure online payments via Maya and GCash.</p></div>
               <div className="space-y-2 text-sm text-gray-600 mb-4"><div className="flex items-center gap-2"><Mail size={15} className="genie-icon shrink-0" /><span>{genieBusinessProfile.supportEmail}</span></div><div className="flex items-center gap-2"><Phone size={15} className="genie-icon shrink-0" /><span>{genieBusinessProfile.phoneDisplay}</span></div></div>
               <div className="flex flex-wrap items-center gap-3">
                 <button 
                   onClick={() => setShowDtiModal(true)}
                   className="genie-btn-secondary px-3 py-1.5 rounded-md text-xs font-semibold cursor-pointer"
-                  aria-label="View DTI Registration"
+                  aria-label="DTI Registered - view registration"
                 >
                   <ShieldCheck size={14} />
                   DTI Registered
@@ -106,13 +106,13 @@ export function LandingFooter({ reviewSummary }: LandingFooterProps) {
               </div>
             </div>
             <div className="grid grid-cols-2 md:contents gap-8">
-              <nav aria-label="Explore links"><h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Explore</h4><ul className="space-y-2.5 text-sm text-gray-600">{exploreLinks.map((item) => { const [href, label] = item.split('|'); return <li key={href}><Link href={href} className="genie-link">{label}</Link></li>; })}</ul></nav>
-              <nav aria-label="Help links"><h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Help</h4><ul className="space-y-2.5 text-sm text-gray-600">{helpLinks.map((item) => { const [href, label] = item.split('|'); return <li key={href}><Link href={href} className="genie-link">{label}</Link></li>; })}</ul></nav>
+              <nav aria-label="Explore links"><p className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-4">Explore</p><ul className="space-y-2.5 text-sm text-gray-600">{exploreLinks.map((item) => { const [href, label] = item.split('|'); return <li key={href}><Link href={href} className="genie-link">{label}</Link></li>; })}</ul></nav>
+              <nav aria-label="Help links"><p className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-4">Help</p><ul className="space-y-2.5 text-sm text-gray-600">{helpLinks.map((item) => { const [href, label] = item.split('|'); return <li key={href}><Link href={href} className="genie-link">{label}</Link></li>; })}</ul></nav>
             </div>
           </div>
 
           <div className="mt-12 pt-6 border-t border-purple-200 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-xs text-gray-400">© 2025 Genie.ph | Alalai Information Technology Solutions</p>
+            <p className="text-xs text-gray-600">© 2025 Genie.ph | Alalai Information Technology Solutions</p>
             <a href="#top" className="genie-btn-primary p-2.5 rounded-xl" aria-label="Back to top"><ChevronUp size={20} /></a>
           </div>
       </div>
@@ -122,11 +122,15 @@ export function LandingFooter({ reviewSummary }: LandingFooterProps) {
         <div
           className="fixed inset-0 z-100 flex items-start justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto"
           onClick={() => setShowDtiModal(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="DTI registration preview"
         >
           <div className="relative w-full max-w-5xl my-8 bg-white rounded-lg shadow-2xl p-1 animate-in fade-in zoom-in duration-300 cursor-zoom-out" onClick={() => setShowDtiModal(false)}>
             <button
               className="absolute -top-12 right-0 md:-right-12 md:top-0 text-white p-2 bg-black/30 rounded-full hover:bg-black/50 transition-colors z-110"
               onClick={() => setShowDtiModal(false)}
+              aria-label="Close DTI registration preview"
             >
               <X size={24} />
             </button>
