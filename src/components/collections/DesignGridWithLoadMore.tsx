@@ -1,9 +1,22 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Masonry from 'react-masonry-css';
 import { ProductCard, type ProductCardProps } from '@/components/ProductCard';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { fetchMoreDesigns } from '@/app/collections/actions';
 import { GoogleSearchSection } from './GoogleSearchSection';
+
+const COLLECTION_PAGE_SIZE = 30;
+const SEARCH_RESULTS_BREAKPOINTS = {
+    default: 6,
+    1536: 6,
+    1280: 5,
+    1024: 4,
+    768: 3,
+    640: 2,
+};
 
 interface DesignGridWithLoadMoreProps {
     initialDesigns: CollectionDesign[];
@@ -65,17 +78,59 @@ export const DesignGridWithLoadMore: React.FC<DesignGridWithLoadMoreProps> = ({
     totalPages = 1,
     basePath = '/collections',
 }) => {
+    const [designs, setDesigns] = useState<CollectionDesign[]>(initialDesigns);
+    const [nextOffset, setNextOffset] = useState(currentPage * COLLECTION_PAGE_SIZE);
+    const [loadedThroughPage, setLoadedThroughPage] = useState(currentPage);
+    const [isLoading, setIsLoading] = useState(false);
     const pageHref = (page: number) => page <= 1 ? basePath : `${basePath}?page=${page}`;
+    const hasMore = loadedThroughPage < totalPages;
+
+    useEffect(() => {
+        setDesigns(initialDesigns);
+        setNextOffset(currentPage * COLLECTION_PAGE_SIZE);
+        setLoadedThroughPage(currentPage);
+        setIsLoading(false);
+    }, [currentPage, initialDesigns, keyword]);
+
+    const loadMore = async () => {
+        if (isLoading || !hasMore) return;
+        setIsLoading(true);
+
+        try {
+            const result = await fetchMoreDesigns(keyword, nextOffset);
+            const nextDesigns = result.designs as CollectionDesign[];
+
+            setDesigns((previousDesigns) => {
+                const existingDesigns = new Set(
+                    previousDesigns.map((design) => design.slug || design.p_hash),
+                );
+                const uniqueDesigns = nextDesigns.filter(
+                    (design) => !existingDesigns.has(design.slug || design.p_hash),
+                );
+                return [...previousDesigns, ...uniqueDesigns];
+            });
+            setNextOffset((offset) => offset + COLLECTION_PAGE_SIZE);
+            setLoadedThroughPage((page) => (
+                result.reachedEnd
+                    ? totalPages
+                    : Math.min(page + 1, totalPages)
+            ));
+        } catch (error) {
+            console.error('Failed to load more collection designs', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     return (
         <div>
-            {/* Designs Grid */}
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-                {initialDesigns.map((design, index) => (
-                    <div
-                        key={`${design.slug}-${design.p_hash}`}
-                        className={index === 0 ? 'col-span-2 min-w-0 sm:col-span-1' : 'min-w-0'}
-                    >
+            <Masonry
+                breakpointCols={SEARCH_RESULTS_BREAKPOINTS}
+                className="flex -ml-3 w-auto"
+                columnClassName="pl-3 bg-clip-padding"
+            >
+                {designs.map((design, index) => (
+                    <div key={`${design.slug}-${design.p_hash}`} className="mb-3">
                         <ProductCard
                             p_hash={design.p_hash}
                             original_image_url={design.original_image_url}
@@ -88,40 +143,37 @@ export const DesignGridWithLoadMore: React.FC<DesignGridWithLoadMoreProps> = ({
                             image_width={design.image_width}
                             image_height={design.image_height}
                             image_variants={design.image_variants}
-                            priority={index === 0}
+                            priority={index < 4}
                             collectionContext={collectionTitle}
                             listName="collection_page"
                         />
-                        <p className="mt-2 px-1 text-xs leading-5 text-slate-600">
-                            {design.alt_text || `${design.keywords || collectionTitle || 'Custom cake'} design available for customization in Cebu.`}
-                        </p>
                     </div>
                 ))}
-            </div>
+            </Masonry>
 
-            <nav className="mt-12 flex items-center justify-center gap-3" aria-label="Collection pages">
-                {currentPage > 1 && (
-                    <Link
-                        rel="prev"
-                        href={pageHref(currentPage - 1)}
-                        className="rounded-full border border-purple-200 bg-white px-5 py-2.5 text-sm font-semibold text-purple-700 hover:bg-purple-50"
-                    >
-                        Previous
-                    </Link>
-                )}
-                <span className="text-sm text-slate-500">
-                    Page {currentPage} of {totalPages}
-                </span>
-                {currentPage < totalPages && (
+            {hasMore && (
+                <div className="flex justify-center mt-6 mb-2">
                     <Link
                         rel="next"
-                        href={pageHref(currentPage + 1)}
-                        className="rounded-full border border-purple-200 bg-white px-5 py-2.5 text-sm font-semibold text-purple-700 hover:bg-purple-50"
+                        href={pageHref(loadedThroughPage + 1)}
+                        onClick={(event) => {
+                            event.preventDefault();
+                            void loadMore();
+                        }}
+                        aria-disabled={isLoading}
+                        className={`px-6 py-2.5 text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-full border border-purple-200 transition-colors flex items-center gap-2 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                        Next designs
+                        {isLoading ? (
+                            <>
+                                <LoadingSpinner />
+                                Loading...
+                            </>
+                        ) : (
+                            <>Load more designs</>
+                        )}
                     </Link>
-                )}
-            </nav>
+                </div>
+            )}
 
             {/* Optional external inspiration should not compete with the
                 collection's above-the-fold commercial images. It loads only

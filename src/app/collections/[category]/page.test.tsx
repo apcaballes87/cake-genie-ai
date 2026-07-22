@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { renderToStaticMarkup } from 'react-dom/server';
 
 const getCollectionBySlug = vi.fn();
 const getDesignCategories = vi.fn();
 const getDesignsByKeyword = vi.fn();
 const notFound = vi.fn();
+const categoryClientProps = vi.fn();
 const permanentRedirect = vi.fn(() => {
   throw new Error('NEXT_REDIRECT');
 });
@@ -20,7 +22,10 @@ vi.mock('@/services/supabaseService', () => ({
 }));
 
 vi.mock('@/app/collections/[category]/CategoryClient', () => ({
-  default: () => <div data-testid="collection-client" />,
+  default: (props: unknown) => {
+    categoryClientProps(props);
+    return <div data-testid="collection-client" />;
+  },
 }));
 
 describe('collections category metadata', () => {
@@ -29,6 +34,7 @@ describe('collections category metadata', () => {
     getDesignCategories.mockReset();
     getDesignsByKeyword.mockReset();
     notFound.mockReset();
+    categoryClientProps.mockReset();
     permanentRedirect.mockClear();
 
     getCollectionBySlug.mockResolvedValue({
@@ -129,5 +135,23 @@ describe('collections category metadata', () => {
       { category: 'minimalist-cake' },
       { category: 'pickleball-cake' },
     ]);
+  });
+
+  it('does not offer another page when the live result slice is already short', async () => {
+    const { default: CategoryPage } = await import('./page');
+
+    const page = await CategoryPage({
+      params: Promise.resolve({ category: 'minimalist-cake' }),
+      searchParams: Promise.resolve({ page: '2' }),
+    });
+    renderToStaticMarkup(page);
+
+    expect(getDesignsByKeyword).toHaveBeenCalledWith('minimalist-cake', 30, 30);
+    expect(categoryClientProps).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentPage: 2,
+        totalPages: 2,
+      }),
+    );
   });
 });

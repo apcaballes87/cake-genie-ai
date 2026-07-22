@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import React from 'react';
-import { render } from '@testing-library/react';
+import { fireEvent, render } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 
 import LazyImage from './LazyImage';
@@ -166,5 +166,20 @@ describe('LazyImage', () => {
         const img = container.querySelector('img');
         expect(img).not.toBeNull();
         expect(img!.getAttribute('src')).toBe('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
+    });
+
+    it('covers a failed image with the neutral image placeholder', () => {
+        const { container } = render(
+            <LazyImage src="https://x.example.com/missing.jpg" alt="Missing cake design description" priority />,
+        );
+
+        const img = container.querySelector('img');
+        expect(img).not.toBeNull();
+        fireEvent.error(img!);
+
+        const errorPlaceholder = container.querySelector('.lucide-image-off')?.parentElement;
+        expect(errorPlaceholder).not.toBeNull();
+        expect(errorPlaceholder?.className).toContain('absolute');
+        expect(errorPlaceholder?.className).toContain('z-10');
     });
 });

@@ -362,12 +362,18 @@ export default async function CategoryPage({ params, searchParams }: Props) {
     const collectionHeading = buildCollectionHeading(readableTitle);
     const tagHighlights = extractTagHighlights(collection?.tags);
     const totalDesignCount = collection?.item_count || 0;
-    const totalPages = Math.max(1, Math.ceil(totalDesignCount / COLLECTION_PAGE_SIZE));
+    let totalPages = Math.max(1, Math.ceil(totalDesignCount / COLLECTION_PAGE_SIZE));
     if (currentPage > totalPages) {
         return notFound();
     }
     const pageOffset = (currentPage - 1) * COLLECTION_PAGE_SIZE;
     const { data: rawDesigns } = await getDesignsByKeyword(canonicalCategory, COLLECTION_PAGE_SIZE, pageOffset);
+    // Collection counters can lag behind the live search contract. A short
+    // server page is definitive: do not show a load-more control that can only
+    // fetch an empty page because the stored item_count is stale.
+    if ((rawDesigns || []).length < COLLECTION_PAGE_SIZE) {
+        totalPages = currentPage;
+    }
     const designs = (rawDesigns || []).map((design) => {
         const image = selectCrawlerImage(design);
         return {
