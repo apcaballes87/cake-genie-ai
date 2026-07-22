@@ -6,13 +6,12 @@ import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import Link from 'next/link';
-import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import LazyImage from '@/components/LazyImage';
 import { showError, showLoading, showInfo } from '@/lib/utils/toast';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import SameDayCutoffBanner from '@/components/SameDayCutoffBanner';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { BlogHomepagePreview } from '@/services/supabaseService';
+import type { BlogHomepagePreview } from '@/services/supabaseService';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation } from '@/contexts/NavigationContext';
@@ -53,6 +52,11 @@ import {
 
 const ImageUploader = dynamic(
     () => import('@/components/ImageUploader').then((mod) => mod.ImageUploader),
+    { ssr: false }
+);
+
+const LazySearchAutocomplete = dynamic(
+    () => import('@/components/SearchAutocomplete').then((mod) => mod.SearchAutocomplete),
     { ssr: false }
 );
 
@@ -1576,6 +1580,12 @@ const LandingClient: React.FC<LandingClientProps> = ({
     const [isSearchFocused, setIsSearchFocused] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
 
+    useEffect(() => {
+        if (!isSearchFocused) return;
+        const frame = window.requestAnimationFrame(() => searchInputRef.current?.focus());
+        return () => window.cancelAnimationFrame(frame);
+    }, [isSearchFocused]);
+
     const handleSearch = (query: string) => {
         recordNavigation('search', 'home');
         router.push(`/search?q=${encodeURIComponent(query)}`);
@@ -1742,18 +1752,48 @@ const LandingClient: React.FC<LandingClientProps> = ({
 
                         {/* Search Bar - transition between states */}
                         <div className={`flex-1 mx-2 md:mx-4 transition-all duration-300 ${(isScrolled || isSearchFocused) ? 'opacity-100 translate-x-0' : 'hidden md:block md:opacity-100 md:translate-x-0 opacity-0 translate-x-4 pointer-events-none md:pointer-events-auto'}`}>
-                            <SearchAutocomplete
-                                inputRef={searchInputRef}
-                                onFocus={() => setIsSearchFocused(true)}
-                                onBlur={() => setIsSearchFocused(false)}
-                                onSearch={handleSearch}
-                                onUploadClick={() => setIsUploaderOpen(true)}
-                                placeholder="Search for other designs..."
-                                value={searchQuery}
-                                onChange={setSearchQuery}
-                                showUploadButton={false}
-                                inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-purple-100 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
-                            />
+                            {isSearchFocused ? (
+                                <LazySearchAutocomplete
+                                    inputRef={searchInputRef}
+                                    onFocus={() => setIsSearchFocused(true)}
+                                    onBlur={() => setIsSearchFocused(false)}
+                                    onSearch={handleSearch}
+                                    onUploadClick={() => setIsUploaderOpen(true)}
+                                    placeholder="Search for other designs..."
+                                    value={searchQuery}
+                                    onChange={setSearchQuery}
+                                    showUploadButton={false}
+                                    inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-purple-100 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
+                                />
+                            ) : (
+                                <div className="relative w-full">
+                                    <input
+                                        ref={searchInputRef}
+                                        type="text"
+                                        value={searchQuery}
+                                        onChange={(event) => setSearchQuery(event.target.value)}
+                                        onFocus={() => setIsSearchFocused(true)}
+                                        onKeyDown={(event) => {
+                                            if (event.key === 'Enter' && searchQuery.trim()) {
+                                                handleSearch(searchQuery.trim());
+                                            }
+                                        }}
+                                        placeholder="Search for other designs..."
+                                        className="w-full pl-5 pr-12 py-3 text-sm bg-white border-purple-100 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (searchQuery.trim()) handleSearch(searchQuery.trim());
+                                            else setIsSearchFocused(true);
+                                        }}
+                                        className="absolute inset-y-0 right-0 flex items-center px-4 text-slate-500 hover:text-purple-600"
+                                        aria-label="Search"
+                                    >
+                                        <Search size={20} />
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
                         {/* Right Side: Actions & Cart */}

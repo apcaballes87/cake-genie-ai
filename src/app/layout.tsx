@@ -7,6 +7,7 @@ import { Providers } from '@/components/Providers'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AnalyticsBoundary } from '@/components/AnalyticsBoundary'
 import { WebVitalsReporter } from '@/components/WebVitalsReporter'
+import { DeferredGoogleAnalyticsScript } from '@/components/DeferredGoogleAnalyticsScript'
 
 import ClientHashRedirect from '@/components/ClientHashRedirect'
 import FloatingChatBubble from '@/components/FloatingChatBubble'
@@ -159,10 +160,7 @@ export default function RootLayout({
                 window.gtag('js', new Date());
               `}
             </Script>
-            <Script
-              src={`https://www.googletagmanager.com/gtag/js?id=${GA4_MEASUREMENT_ID}`}
-              strategy="lazyOnload"
-            />
+            <DeferredGoogleAnalyticsScript measurementId={GA4_MEASUREMENT_ID} />
           </>
         )}
       </body>

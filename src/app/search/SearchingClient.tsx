@@ -97,7 +97,7 @@ const SearchingClient: React.FC = () => {
     // Internal FTS results state
     const [internalResults, setInternalResults] = useState<any[]>([]);
     const [internalTotal, setInternalTotal] = useState(0);
-    const [isInternalLoading, setIsInternalLoading] = useState(false);
+    const [isInternalLoading, setIsInternalLoading] = useState(Boolean(initialQuery.trim()));
     const [isLoadingMore, setIsLoadingMore] = useState(false);
 
     // Filter and Sort state
@@ -203,6 +203,7 @@ const SearchingClient: React.FC = () => {
         setSearchInput,
         handleSearch,
     } = useSearchEngine({
+        initialQuery,
         appState: 'searching',
         setAppState,
         handleImageUpload: handleAppImageUpload,

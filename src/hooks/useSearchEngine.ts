@@ -18,6 +18,7 @@ declare global {
 }
 
 interface UseSearchEngineProps {
+  initialQuery?: string;
   appState: AppState;
   setAppState: (state: AppState) => void;
   handleImageUpload: (file: File, imageUrl?: string) => Promise<unknown>;
@@ -59,6 +60,7 @@ const fetchWithTimeout = (
 
 
 export const useSearchEngine = ({
+  initialQuery = '',
   appState,
   setAppState,
   handleImageUpload,
@@ -68,14 +70,24 @@ export const useSearchEngine = ({
 }: UseSearchEngineProps) => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [isSearching, setIsSearching] = useState(false);
+  const normalizedInitialQuery = initialQuery.trim();
+  const initialQueryRef = useRef(normalizedInitialQuery);
+  const [isSearching, setIsSearching] = useState(Boolean(normalizedInitialQuery));
   const [isCSELoaded, setIsCSELoaded] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState(normalizedInitialQuery);
+  const [searchInput, setSearchInput] = useState(normalizedInitialQuery);
   const [searchTrigger, setSearchTrigger] = useState(0); // Add trigger for forcing re-searches
   const cseElementRef = useRef<GoogleCSEElement | null>(null);
   const isProcessingUrlRef = useRef(false);
   const hasExecutedRef = useRef(false);
+
+  useEffect(() => {
+    const query = initialQueryRef.current;
+    if (!query) return;
+
+    trackStartDesign('search');
+    trackSearchTerm(query).catch(() => {});
+  }, []);
 
   /**
    * Waits for Google CSE to load the high-resolution image in its modal/popup.

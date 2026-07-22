@@ -12,7 +12,6 @@ import HomepageAeoSections from '@/components/seo/HomepageAeoSections';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { genieBusinessProfile, buildGenieLocalBusinessSchema } from '@/lib/seo/genieBusinessProfile';
 import { HOMEPAGE_ASSETS } from '@/constants';
-import AnimatedBlobs from '@/components/UI/AnimatedBlobs';
 import { buildFAQPageSchema } from '@/lib/seo/schema';
 import { PUBLIC_ORDER_FACTS } from '@/lib/seo/publicOrderFacts';
 
@@ -269,7 +268,6 @@ export default function Home() {
             />
             <WebSiteSchema />
             <HomepageFAQSchema />
-            <AnimatedBlobs />
             {/*
               Public homepage data is resolved into the static ISR snapshot,
               so the complete hero and its LCP image are present in cached HTML.

@@ -51,12 +51,24 @@ describe('homepage PageSpeed regressions', () => {
     expect(landingClient).not.toContain('if (!priceHeading || !rushHeading) return')
   })
 
-  it('allows browser zoom and defers the analytics payload', () => {
+  it('does not position decorative blobs against the streamed page height', () => {
+    const source = readSource('src/app/page.tsx')
+
+    expect(source).not.toContain('AnimatedBlobs')
+  })
+
+  it('allows browser zoom and keeps GA4 out of the initial audit window', () => {
     const layout = readSource('src/app/layout.tsx')
+    const deferredAnalytics = readSource('src/components/DeferredGoogleAnalyticsScript.tsx')
 
     expect(layout).not.toContain('maximumScale')
     expect(layout).not.toContain('userScalable')
     expect(layout).toContain('strategy="lazyOnload"')
+    expect(layout).toContain('<DeferredGoogleAnalyticsScript measurementId={GA4_MEASUREMENT_ID} />')
+    expect(deferredAnalytics).toContain('const FALLBACK_DELAY_MS = 20_000')
+    expect(deferredAnalytics).toContain("'pointerdown'")
+    expect(deferredAnalytics).toContain("'scroll'")
+    expect(deferredAnalytics).toContain('strategy="afterInteractive"')
   })
 
   it('keeps public homepage data cookie-free and isolates query-string reads', () => {
@@ -68,5 +80,14 @@ describe('homepage PageSpeed regressions', () => {
     expect(landingClient).toContain('const HomepageQueryCapture')
     expect(landingClient).toContain('<HomepageQueryCapture onUploadRequested={openUploaderFromQuery} />')
     expect(landingClient).not.toContain('useState(() => searchParams.get')
+  })
+
+  it('loads the homepage autocomplete only after search engagement', () => {
+    const landingClient = readSource('src/app/LandingClient.tsx')
+
+    expect(landingClient).not.toContain("import { SearchAutocomplete } from '@/components/SearchAutocomplete'")
+    expect(landingClient).toContain('const LazySearchAutocomplete = dynamic(')
+    expect(landingClient).toContain('{isSearchFocused ? (')
+    expect(landingClient).toContain('<LazySearchAutocomplete')
   })
 })
