@@ -1,4 +1,8 @@
 import { isIndexableCollection } from '@/lib/collections/quality';
+import {
+  buildCollectionSearchPlan,
+  type CollectionSearchPlan,
+} from '@/lib/collections/searchPlan';
 import { slugToTitle } from '@/lib/utils/pinterest';
 
 export const PINTEREST_FEED_LIMIT = 200;
@@ -56,22 +60,15 @@ export function normalizePinterestFeedLimit(value: string | null): number {
   return Math.min(parsed, PINTEREST_FEED_LIMIT);
 }
 
-export function buildPinterestCollectionSearchTerms(collection: PinterestFeedCollection): string[] {
-  const rawTerms = [
-    collection.name,
-    collection.slug?.replace(/-/g, ' '),
-    ...(collection.tags || []),
-  ];
-
-  const seen = new Set<string>();
-  return rawTerms
-    .map((term) => term?.trim().toLowerCase())
-    .filter((term): term is string => Boolean(term && term.length >= 3))
-    .filter((term) => {
-      if (seen.has(term)) return false;
-      seen.add(term);
-      return true;
-    });
+/**
+ * Board feeds must use the exact same membership rule as their collection page.
+ * Tags are intentionally excluded: broad tag matching previously admitted
+ * unrelated designs into theme-specific Pinterest boards.
+ */
+export function buildPinterestCollectionSearchPlan(
+  collection: PinterestFeedCollection,
+): CollectionSearchPlan {
+  return buildCollectionSearchPlan(collection.name || collection.slug || '');
 }
 
 export function sanitizeXml(text: string): string {

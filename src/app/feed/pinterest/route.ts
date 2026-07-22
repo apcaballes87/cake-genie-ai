@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest } from 'next/server';
 import {
-  buildPinterestCollectionSearchTerms,
+  buildPinterestCollectionSearchPlan,
   buildPinterestFeedItems,
   isPinterestCollectionFeedReady,
   normalizePinterestFeedLimit,
@@ -22,6 +22,13 @@ type FeedQueryError = {
 type SupabaseFeedQuery<T> = {
   abortSignal: (signal: AbortSignal) => PromiseLike<{ data: T[] | null; error: FeedQueryError | null }>;
 };
+
+type PinterestCollectionSearchRow = {
+  slug?: string | null;
+};
+
+const PINTEREST_FEED_DESIGN_FIELDS =
+  'slug, keywords, original_image_url, studio_edited_image_url, alt_text, seo_description, price, created_at, image_width, image_height';
 
 async function runFeedQuery<T>(query: SupabaseFeedQuery<T>, label: string): Promise<T[]> {
   const controller = new AbortController();
@@ -81,35 +88,57 @@ export async function GET(request: NextRequest) {
       feedTitle = `${collection.name} - Genie.ph`;
       feedDescription = collection.description || `${collection.name} cake designs from Genie.ph`;
 
-      // Build search terms from collection name + tags
-      const searchTerms = buildPinterestCollectionSearchTerms(collection);
-      const orFilter = searchTerms
-        .map(term => {
-          return [
-            `keywords.ilike.%${term}%`,
-            `alt_text.ilike.%${term}%`,
-            `slug.ilike.%${term.replace(/\s+/g, '-')}%`,
-          ].join(',');
-        })
-        .join(',');
+      const searchPlan = buildPinterestCollectionSearchPlan(collection);
 
-      const data = await runFeedQuery<PinterestFeedDesign>(supabase
-        .from('cakegenie_analysis_cache')
-        .select('slug, keywords, original_image_url, studio_edited_image_url, alt_text, seo_description, price, created_at, image_width, image_height')
-        .not('studio_edited_image_url', 'is', null)
-        .not('slug', 'is', null)
-        .not('price', 'is', null)
-        .or(orFilter)
-        .order('created_at', { ascending: false })
-        .limit(limit), `board:${board}`);
+      if (searchPlan.kind === 'color') {
+        const data = await runFeedQuery<PinterestFeedDesign>(supabase
+          .from('cakegenie_analysis_cache')
+          .select(PINTEREST_FEED_DESIGN_FIELDS)
+          .not('studio_edited_image_url', 'is', null)
+          .not('slug', 'is', null)
+          .not('price', 'is', null)
+          .eq('icing_colors', searchPlan.icingColor)
+          .order('created_at', { ascending: false })
+          .limit(limit), `board:${board}`);
 
-      designs = [...(data || [])].reverse(); // Pinterest wants oldest first within the selected feed window.
+        designs = [...data].reverse();
+      } else if (searchPlan.query) {
+        // The collection RPC caps each page at 100 rows, so fetch two ranked
+        // pages before hydrating those exact members with RSS-only fields.
+        const searchPages = await Promise.all([0, 100].map((offset) => (
+          runFeedQuery<PinterestCollectionSearchRow>(supabase
+            .rpc('search_collection_products', {
+              p_query: searchPlan.query.toLowerCase(),
+              p_limit: 100,
+              p_offset: offset,
+              p_icing_colors: null,
+            }), `board:${board}:members:${offset}`)
+        )));
+        const memberSlugs = Array.from(new Set(
+          searchPages.flat()
+            .map((design) => design.slug?.trim())
+            .filter((slug): slug is string => Boolean(slug)),
+        ));
+
+        if (memberSlugs.length > 0) {
+          const data = await runFeedQuery<PinterestFeedDesign>(supabase
+            .from('cakegenie_analysis_cache')
+            .select(PINTEREST_FEED_DESIGN_FIELDS)
+            .in('slug', memberSlugs)
+            .not('studio_edited_image_url', 'is', null)
+            .not('price', 'is', null)
+            .order('created_at', { ascending: false })
+            .limit(limit), `board:${board}:rss-fields`);
+
+          designs = [...data].reverse(); // Pinterest wants oldest first within the selected feed window.
+        }
+      }
     }
   } else {
     // All latest designs
     const data = await runFeedQuery<PinterestFeedDesign>(supabase
       .from('cakegenie_analysis_cache')
-      .select('slug, keywords, original_image_url, studio_edited_image_url, alt_text, seo_description, price, created_at, image_width, image_height')
+      .select(PINTEREST_FEED_DESIGN_FIELDS)
       .not('studio_edited_image_url', 'is', null)
       .not('slug', 'is', null)
       .not('price', 'is', null)

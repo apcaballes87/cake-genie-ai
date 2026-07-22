@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildPinterestFeedItems,
+  buildPinterestCollectionSearchPlan,
   isPinterestCollectionFeedReady,
   normalizePinterestFeedLimit,
   sanitizePinterestImageUrl,
@@ -37,6 +38,28 @@ describe('Pinterest RSS feed helpers', () => {
     expect(normalizePinterestFeedLimit('500')).toBe(200);
     expect(normalizePinterestFeedLimit('25')).toBe(25);
     expect(normalizePinterestFeedLimit('not-a-number')).toBe(200);
+  });
+
+  it('uses the collection precision matcher rather than broad board tags', () => {
+    expect(buildPinterestCollectionSearchPlan({
+      name: 'Christening Boy Cake',
+      slug: 'christening-boy-cake',
+      tags: ['baby cake', 'birthday cake'],
+    })).toEqual({
+      kind: 'text',
+      query: 'Christening Boy',
+      icingColor: null,
+    });
+
+    expect(buildPinterestCollectionSearchPlan({
+      name: 'Lavender Cakes',
+      slug: 'lavender-cakes',
+      tags: ['purple cake'],
+    })).toEqual({
+      kind: 'color',
+      query: 'Lavender',
+      icingColor: 'purple',
+    });
   });
 
   it('strips Supabase query tokens and rejects non-public image URLs', () => {
