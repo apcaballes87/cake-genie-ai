@@ -104,6 +104,22 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('Use `edible_photo_print` only for smaller edible printed cutouts or printed pieces placed on the side of the cake');
   });
 
+  it('normalizes unsupported semi-3D portrait reliefs to an edible photo on top', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(prompt).toContain('UNSUPPORTED SEMI-3D PORTRAIT RELIEF TO EDIBLE PHOTO TOP');
+    expect(prompt).toContain('This is a business fulfillment normalization that overrides the literal material and depth rules below.');
+    expect(prompt).toContain('a recognizable human or pet likeness');
+    expect(prompt).toContain('a flat-backed, low-relief, bas-relief, embossed, or semi-3D portrait attached to or lying across the cake top');
+    expect(prompt).toContain('modeled nose, cheeks, lips, eyelids, ears, hair strands or curls, facial likeness, neck, shoulders, or clothing');
+    expect(prompt).toContain('classify the whole portrait as one `edible_photo_top` item');
+    expect(prompt).toContain('Use `material: "waferpaper"`, `classification: "hero"`, `size: "large"`, and `quantity: 1`.');
+    expect(prompt).toContain('Do NOT output the portrait as `edible_3d_complex`, `edible_3d_ordinary`, `edible_2d_shapes`, `edible_2d_support`, or `edible_logo_2d`.');
+    expect(prompt).toContain('Do not itemize the portrait hair, eyes, nose, mouth, ears, face, neck, or clothing as separate decorations.');
+    expect(prompt).toContain('A true freestanding, fully sculpted figurine with visible all-around body depth may remain `edible_3d_complex`.');
+    expect(prompt).toContain('Describe the fulfillable result as an edible photo portrait on top, not as a sculpted fondant portrait.');
+  });
+
   it('keeps edible 2D logo craft classification in the fallback prompt source', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 

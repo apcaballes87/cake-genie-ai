@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.27 Version - Placement-Specific Intricate Icing Doodles**
+**v3.28 Version - Semi-3D Portrait Relief Fulfillment**
 ═══════════════════════════════════════════════════════════════════════════════
 
 ## ROLE
@@ -121,6 +121,46 @@ Use `edible_photo_top` when an edible image/photo/printed graphic covers the top
 Use `edible_photo_print` only for smaller edible printed cutouts or printed pieces placed on the side of the cake, not for a full top panel and not for a full side wrap.
 
 If the image is the main flat printed design on the cake top, choose `edible_photo_top`, not `edible_photo_print` and not `printout`.
+
+### UNSUPPORTED SEMI-3D PORTRAIT RELIEF TO EDIBLE PHOTO TOP
+
+This is a business fulfillment normalization that overrides the literal material and depth rules below.
+
+Genie.ph cannot fulfill a detailed custom human or pet likeness as a
+flat-backed sculpted fondant/gumpaste portrait relief. These designs require
+too much precision in the face, expression, anatomy, and hair to reproduce
+consistently. Convert the unsupported portrait artwork into a printed edible
+photo placed flat on the cake top.
+
+A design qualifies only when BOTH are true:
+1. The focal artwork is a recognizable human or pet likeness.
+2. It is a flat-backed, low-relief, bas-relief, embossed, or semi-3D portrait attached to or lying across the cake top, rather than a freestanding figure that can be viewed from all sides.
+
+Strong visual cues include a modeled nose, cheeks, lips, eyelids, ears, hair strands or curls, facial likeness, neck, shoulders, or clothing. The portrait
+is usually a dominant face or bust spread across a substantial part of the
+top surface.
+
+For every qualifying design, classify the whole portrait as one `edible_photo_top` item, even when the source image visibly uses fondant or gumpaste.
+Use `material: "waferpaper"`, `classification: "hero"`, `size: "large"`, and `quantity: 1`.
+Use one descriptive group ID such as `portrait_edible_photo_top`.
+The printed replacement may be a portrait panel placed on top and does not
+need to cover every edge of the top surface.
+
+Do NOT output the portrait as `edible_3d_complex`, `edible_3d_ordinary`, `edible_2d_shapes`, `edible_2d_support`, or `edible_logo_2d`.
+Do not itemize the portrait hair, eyes, nose, mouth, ears, face, neck, or clothing as separate decorations.
+Analyze surrounding names, ages, messages, borders, stars, hearts, and other
+simple accents separately using their normal rules.
+
+Do not apply this conversion to:
+- a true freestanding, fully sculpted figurine with visible all-around body depth.
+- simple molded smiley faces, sun/moon faces, icons, medallions, or non-likeness decorative faces; use the ordinary molded-item rules.
+- a cake body shaped as an entire head or face; use the whole-head cake rules.
+- shallow logos, names, or brand panels; use `edible_logo_2d`.
+
+A true freestanding, fully sculpted figurine with visible all-around body depth may remain `edible_3d_complex`.
+
+Describe the fulfillable result as an edible photo portrait on top, not as a sculpted fondant portrait.
+Apply this wording to `alt_text`, `seo_title`, and `seo_description`.
 
 ### EDIBLE 2D LOGO CRAFT TOPPERS
 
@@ -437,6 +477,7 @@ Classify as `edible_3d_complex` if the figure has **ANY** of these:
 - bunny ears with facial features - eyes and mouth (always treat it as 1 set item)
 - do not classify it as an edible 3d complex if a character,  animal or human (head or whole body) is only flat 2d edible topper and only lying down on the cake - you can classify it as "edible_2d_support"
 - Facial features alone are not enough for `edible_3d_complex` if the item is clearly molded, stamped, flat-backed, shallow-relief, or a simple repeated decorative shape.
+- Fulfillment exception: a detailed flat-backed semi-3D human or pet portrait relief on the cake top must follow the edible-photo conversion rule above and become `edible_photo_top`.
 
 #### MOLDED CELESTIAL / SYMBOL TOPPERS
 
@@ -1358,6 +1399,7 @@ Use ONLY these exact hex codes:
 ✅ 2-cue material rule
 ✅ Ratio-based sizing (edible 3D)
 ✅ **PRINTOUT vs CARDSTOCK vs TOY: 3D-animated graphics on flat surface = PRINTOUT**
+✅ **Detailed flat-backed semi-3D human/pet portrait relief on top = edible_photo_top**
 ✅ **CROWNS & TIARAS: Metal/Plastic/Rhinestone = TOY**
 ✅ **Acrylic and wooden toppers = CARDSTOCK**
 ✅ Grouping: bundles, panels, counts
@@ -1369,20 +1411,23 @@ Use ONLY these exact hex codes:
 ## CRITICAL REMINDERS (NEVER FORGET)
 
 1. **EDIBLE 3D COMPLEX vs ORDINARY (HIGHEST PRIORITY for v3.3):**
-   - Animals/characters WITH faces, expressions, clothes → **edible_3d_complex**
-   - Simple shapes, bows, balls, basic items → **edible_3d_ordinary**
-   - **COUNT MULTIPLE FIGURES** - If 4 bears, quantity = 4, NOT quantity = 1
-2. **PRINTOUT vs TOY:**
-   - 3D-animated/CGI-style characters on FLAT paper = **PRINTOUT** (NOT toy)
-   - Only classify as TOY if it's an actual 3D molded plastic object with real depth
-3. **PRINTOUT vs CARDSTOCK:**
-   - ANY character images, graphics, logos, multi-color designs → **PRINTOUT**
-   - Cardstock is VERY RARE - only solid-color glitter items with NO printed graphics
-   - Acrylic toppers and wooden toppers → **CARDSTOCK**
-4. **CROWNS/TIARAS:** Classify physical 3D crowns as **TOY**, never cardstock.
-5. **GUMPASTE BOARD:** Only true if board is colored (NOT white/gold/silver). Set colors.gumpasteBaseBoardColor
-6. **Colors:** Use EXACT HEX CODES from palette, NOT color names
-7. **Description:** Do NOT mention material type in the description field
+    - Animals/characters WITH faces, expressions, clothes → **edible_3d_complex**
+    - Simple shapes, bows, balls, basic items → **edible_3d_ordinary**
+    - **COUNT MULTIPLE FIGURES** - If 4 bears, quantity = 4, NOT quantity = 1
+2. **SEMI-3D PORTRAIT RELIEF FULFILLMENT:**
+   - Detailed human/pet likeness modeled as a flat-backed relief across the cake top → **edible_photo_top**
+   - Do not price or describe the portrait as a custom sculpted fondant figure
+3. **PRINTOUT vs TOY:**
+    - 3D-animated/CGI-style characters on FLAT paper = **PRINTOUT** (NOT toy)
+    - Only classify as TOY if it's an actual 3D molded plastic object with real depth
+4. **PRINTOUT vs CARDSTOCK:**
+    - ANY character images, graphics, logos, multi-color designs → **PRINTOUT**
+    - Cardstock is VERY RARE - only solid-color glitter items with NO printed graphics
+    - Acrylic toppers and wooden toppers → **CARDSTOCK**
+5. **CROWNS/TIARAS:** Classify physical 3D crowns as **TOY**, never cardstock.
+6. **GUMPASTE BOARD:** Only true if board is colored (NOT white/gold/silver). Set colors.gumpasteBaseBoardColor
+7. **Colors:** Use EXACT HEX CODES from palette, NOT color names
+8. **Description:** Do NOT mention material type in the description field
 
 ----
 
