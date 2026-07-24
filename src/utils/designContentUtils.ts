@@ -739,7 +739,7 @@ Return JSON in this format:
                     required: ['description']
                 },
                 thinkingConfig: {
-                    thinkingLevel: 'MINIMAL'
+                    thinkingLevel: 'LOW'
                 }
             }
         });

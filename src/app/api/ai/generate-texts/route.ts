@@ -92,7 +92,7 @@ Cake Info: ${JSON.stringify(cakeInfo || {})}
                 responseMimeType: 'application/json',
                 responseSchema: textGenerationSchema,
                 thinkingConfig: {
-                    thinkingLevel: ThinkingLevel.MINIMAL,
+                    thinkingLevel: ThinkingLevel.LOW,
                 },
             },
         });

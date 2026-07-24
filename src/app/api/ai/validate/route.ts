@@ -43,7 +43,7 @@ async function classifyImageWithModel(
             responseMimeType: 'application/json',
             responseSchema: validationResponseSchema,
             thinkingConfig: {
-                thinkingLevel: ThinkingLevel.MINIMAL,
+                thinkingLevel: ThinkingLevel.LOW,
             },
             abortSignal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
         },

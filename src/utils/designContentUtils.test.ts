@@ -218,7 +218,7 @@ describe('generateDynamicCollectionDescription', () => {
         };
         expect(args.model).toBe('gemini-3.5-flash-lite');
         expect(args.config?.responseMimeType).toBe('application/json');
-        expect(args.config?.thinkingConfig?.thinkingLevel).toBe('MINIMAL');
+        expect(args.config?.thinkingConfig?.thinkingLevel).toBe('LOW');
 
         // Assert prompt contains elements of the designs context
         const promptText = args.contents[0].parts[0].text;

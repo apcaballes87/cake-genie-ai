@@ -20,7 +20,7 @@
 | **Thinking Config** | `thinkingLevel: ThinkingLevel.MINIMAL/LOW/MEDIUM/HIGH` | `thinkingBudget`, `includeThoughts` |
 | **Thinking Config (`thinkingLevel`)**:
 
-- Supported for `gemini-3.5-flash-lite`; use `MINIMAL` for the current high-volume analysis routes
+- Supported for `gemini-3.5-flash-lite`; use `LOW` for the current high-volume analysis routes
 - Image models use their own modality-specific configuration
 
 ### Why This Matters
@@ -54,7 +54,7 @@ import { GoogleGenAI, Modality, Type, ThinkingLevel } from "@google/genai";
 config: {
     // ... other config
     thinkingConfig: {
-        thinkingLevel: ThinkingLevel.MINIMAL,  // or LOW, MEDIUM, HIGH
+        thinkingLevel: ThinkingLevel.LOW,  // or MINIMAL, MEDIUM, HIGH
     },
 }
 ```
@@ -113,11 +113,11 @@ model: "gemini-pro"
 
 | Function | File | ThinkingLevel | Purpose |
 | :--- | :--- | :--- | :--- |
-| `validateCakeImage` | geminiService.ts | MINIMAL | Simple image classification |
+| `validateCakeImage` | geminiService.ts | LOW | Simple image classification |
 | `analyzeCakeWithHybridCoordinates` | geminiService.ts | MEDIUM | Full spatial analysis |
-| `analyzeCakeFeaturesOnly` | geminiService.ts | MINIMAL | Fast feature detection |
+| `analyzeCakeFeaturesOnly` | geminiService.ts | LOW | Fast feature detection |
 | `enrichAnalysisWithCoordinates` | geminiService.ts | HIGH | Precise coordinate calculation |
-| `generateShareableTexts` | geminiService.ts | MINIMAL | SEO text generation |
+| `generateShareableTexts` | geminiService.ts | LOW | SEO text generation |
 | `editCakeImage` | geminiService.ts | N/A | Image editing (Nano Banana 2) |
 
 ---
