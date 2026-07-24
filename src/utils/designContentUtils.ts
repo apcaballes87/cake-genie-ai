@@ -676,7 +676,7 @@ export interface AIApiClient {
 }
 
 /**
- * Dynamically generates a descriptive collection-level summary using Gemini 3.1 Flash Lite.
+ * Dynamically generates a descriptive collection-level summary using Gemini 3.5 Flash Lite.
  * Analyzes the top designs in the collection to extract common themes, colors, and toppers.
  * Enforces strict GMC compliance (no prices, no URLs, no transaction CTAs).
  */
@@ -727,7 +727,7 @@ Return JSON in this format:
 `;
 
         const response = await aiClient.models.generateContent({
-            model: 'gemini-3.1-flash-lite',
+            model: 'gemini-3.5-flash-lite',
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
             config: {
                 responseMimeType: 'application/json',
@@ -738,7 +738,6 @@ Return JSON in this format:
                     },
                     required: ['description']
                 },
-                temperature: 0.7,
                 thinkingConfig: {
                     thinkingLevel: 'LOW'
                 }

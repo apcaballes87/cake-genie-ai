@@ -15,7 +15,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 const genAI = new GoogleGenAI({ apiKey: geminiKey });
 
 // We'll use the model mentioned in the codebase
-const modelName = "gemini-3.1-flash-lite";
+const modelName = "gemini-3.5-flash-lite";
 
 async function getImageAsBase64(url: string): Promise<{ data: string; mimeType: string }> {
     const response = await fetch(url);
@@ -95,7 +95,6 @@ Respond strictly in JSON format with:
                     }],
                     config: {
                         responseMimeType: 'application/json',
-                        temperature: 0,
                     },
                 });
 

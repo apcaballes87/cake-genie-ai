@@ -16,12 +16,12 @@
 | **SDK Version** | `^1.38.0` or later | Any version below 1.38.0 |
 | **Server-side Auth** | Vertex AI + Workload Identity Federation (WIF) | JSON service account keys or Gemini API keys in API routes |
 | **Vertex Location** | `global` for preview Gemini models | `us-central1` for Gemini 3 preview routes |
-| **Model Name** | `gemini-3.1-flash-lite-preview`, `gemini-3-pro-image-preview` | `gemini-2.0-flash`, `gemini-1.5-pro`, etc. |
+| **Model Name** | `gemini-3.5-flash-lite`, `gemini-3.1-flash-lite-image` | `gemini-3.1-flash-lite-preview`, `gemini-2.0-flash`, `gemini-1.5-pro`, etc. |
 | **Thinking Config** | `thinkingLevel: ThinkingLevel.MINIMAL/LOW/MEDIUM/HIGH` | `thinkingBudget`, `includeThoughts` |
 | **Thinking Config (`thinkingLevel`)**:
 
-- REQUIRED for `gemini-3.1-flash-lite-preview`
-- NOT SUPPORTED for `gemini-3-pro-image-preview`
+- Supported for `gemini-3.5-flash-lite`; use `LOW` for the current analysis routes
+- Image models use their own modality-specific configuration
 
 ### Why This Matters
 
@@ -30,6 +30,7 @@
 3. The `includeThoughts: true` pattern is **incorrect** for Gemini 3
 4. **Production API routes** authenticate through Vertex AI using WIF, not static keys
 5. **Preview Gemini models** can fail on regional endpoints unless routed through `global`
+6. **Gemini 3.5 Flash-Lite** is GA and requires removing `temperature`, `top_p`, and `top_k` from requests
 
 ### Authentication Path (Server Routes)
 
@@ -162,5 +163,5 @@ model: "gemini-pro"
 
 ---
 
-*Last updated: 2026-04-25*
+*Last updated: 2026-07-24*
 *This file should be updated whenever critical configurations change.*

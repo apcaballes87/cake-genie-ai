@@ -60,12 +60,11 @@ async function rewriteMetadata(currentMetadata: any): Promise<any | null> {
 
   try {
     const response = await aiClient.models.generateContent({
-      model: "gemini-3.1-flash-lite",
+      model: "gemini-3.5-flash-lite",
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       config: {
         responseMimeType: 'application/json',
         responseSchema: metadataSchema,
-        temperature: 0,
       },
     });
 

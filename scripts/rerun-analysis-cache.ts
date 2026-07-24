@@ -295,7 +295,7 @@ async function analyzeImageUrl(
     delete (cachedConfig as { systemInstruction?: unknown }).systemInstruction;
     try {
       response = await aiClient.models.generateContent({
-        model: 'gemini-3.1-flash-lite',
+        model: 'gemini-3.5-flash-lite',
         contents: [{
           role: 'user',
           parts: [{ inlineData: { mimeType: 'image/webp', data: base64Image } }],
@@ -309,7 +309,7 @@ async function analyzeImageUrl(
     } catch (error) {
       console.warn(`Cached prompt generation failed for ${imageUrl}. Retrying without cache.`, error);
       response = await aiClient.models.generateContent({
-        model: 'gemini-3.1-flash-lite',
+        model: 'gemini-3.5-flash-lite',
         contents: [{
           role: 'user',
           parts: [
@@ -325,7 +325,7 @@ async function analyzeImageUrl(
     }
   } else {
     response = await aiClient.models.generateContent({
-      model: 'gemini-3.1-flash-lite',
+      model: 'gemini-3.5-flash-lite',
       contents: [{
         role: 'user',
         parts: [

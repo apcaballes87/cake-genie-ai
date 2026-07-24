@@ -264,7 +264,7 @@ export async function getOrCreatePromptCache(
         
         console.info(`[AI Cache] Cache not found. Creating new cached content for version ${version}...`);
         const newCache = await aiClient.caches.create({
-            model: 'gemini-3.1-flash-lite',
+            model: 'gemini-3.5-flash-lite',
             config: {
                 contents: [
                     { role: 'user', parts: [{ text: promptText }] }

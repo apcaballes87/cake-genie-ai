@@ -59,8 +59,8 @@ async function runBenchmark() {
     
     console.log(`Fallback Prompt length: ${fallbackPrompt.length} chars`);
 
-    // 1. Gemini 3.1 Flash-Lite on Vertex AI (Existing vision stack - UNCACHED)
-    console.log("\n1. Running Gemini 3.1 Flash-Lite (Existing Vision Stack - UNCACHED)...");
+    // 1. Gemini 3.5 Flash-Lite on Vertex AI (Existing vision stack - UNCACHED)
+    console.log("\n1. Running Gemini 3.5 Flash-Lite (Existing Vision Stack - UNCACHED)...");
     const geminiWarmLatencies: number[] = [];
 
     // Run 4 times (first is cold, next 3 are warm)
@@ -68,7 +68,7 @@ async function runBenchmark() {
         const start = performance.now();
         try {
             const response = await ai.models.generateContent({
-                model: "gemini-3.1-flash-lite",
+                model: "gemini-3.5-flash-lite",
                 contents: [{
                     role: 'user',
                     parts: [
@@ -80,7 +80,6 @@ async function runBenchmark() {
                     systemInstruction: SYSTEM_INSTRUCTION,
                     responseMimeType: 'application/json',
                     responseSchema: responseSchema,
-                    temperature: 0,
                     thinkingConfig: {
                         thinkingLevel: ThinkingLevel.MINIMAL
                     }
@@ -105,8 +104,8 @@ async function runBenchmark() {
     if (geminiAvg) console.log(`   -> Average Warm Latency: ${geminiAvg.toFixed(2)} ms`);
 
 
-    // 2. Gemini 3.1 Flash-Lite on Vertex AI WITH Context Caching (CACHED)
-    console.log("\n2. Running Gemini 3.1 Flash-Lite (Vertex AI - PROMPT CACHED)...");
+    // 2. Gemini 3.5 Flash-Lite on Vertex AI WITH Context Caching (CACHED)
+    console.log("\n2. Running Gemini 3.5 Flash-Lite (Vertex AI - PROMPT CACHED)...");
     const cachedWarmLatencies: number[] = [];
     let cache: any = null;
 
@@ -114,7 +113,7 @@ async function runBenchmark() {
         console.log("   Creating Vertex AI Context Cache (Prompt Cache)...");
         const cacheStart = performance.now();
         cache = await ai.caches.create({
-            model: 'gemini-3.1-flash-lite',
+            model: 'gemini-3.5-flash-lite',
             config: {
                 contents: [
                     { role: 'user', parts: [{ text: fallbackPrompt }] }
@@ -131,14 +130,13 @@ async function runBenchmark() {
         for (let i = 0; i < 4; i++) {
             const start = performance.now();
             const response = await ai.models.generateContent({
-                model: 'gemini-3.1-flash-lite',
+                model: 'gemini-3.5-flash-lite',
                 contents: [
                     { inlineData: { mimeType: imgData.mimeType, data: imgData.data } }
                 ],
                 config: {
                     responseMimeType: 'application/json',
                     responseSchema: responseSchema,
-                    temperature: 0,
                     thinkingConfig: {
                         thinkingLevel: ThinkingLevel.MINIMAL
                     },
@@ -193,7 +191,7 @@ async function runBenchmark() {
         console.log("     * Gemini Flash-Lite (Uncached): 800ms TTFT + (500 tokens / 120 TPS = 4.17s decoding) = ~5.0 seconds.");
         console.log("     * Gemini Flash-Lite (CACHED): ~200ms TTFT + (500 tokens / 120 TPS = 4.17s decoding) = ~4.4 seconds (mostly decoding cost).");
         console.log("     * Groq Llama 3.2 Vision: 1.0s Vision encoder TTFT + (500 tokens / 800 TPS = 0.62s decoding) = ~1.6 seconds.");
-        console.log("     * Llama 3.2 11B Vision on Groq will be ~3x FASTER than Gemini 3.1 Flash-Lite for this detailed generative analysis!");
+        console.log("     * Llama 3.2 11B Vision on Groq will be ~3x FASTER than Gemini 3.5 Flash-Lite for this detailed generative analysis!");
     } else {
         console.log("   - GROQ_API_KEY found. Sending requests to Groq...");
         const groqWarmLatencies: number[] = [];
@@ -256,8 +254,8 @@ async function runBenchmark() {
     console.log("\n==================================================");
     console.log("                  BENCHMARK SUMMARY               ");
     console.log("==================================================");
-    if (geminiAvg) console.log(`- Gemini 3.1 Flash-Lite (Uncached)     : ${geminiAvg.toFixed(2)} ms`);
-    if (cachedAvg) console.log(`- Gemini 3.1 Flash-Lite (Prompt Cached): ${cachedAvg.toFixed(2)} ms`);
+    if (geminiAvg) console.log(`- Gemini 3.5 Flash-Lite (Uncached)     : ${geminiAvg.toFixed(2)} ms`);
+    if (cachedAvg) console.log(`- Gemini 3.5 Flash-Lite (Prompt Cached): ${cachedAvg.toFixed(2)} ms`);
     if (groqKey && groqAvg) console.log(`- Llama 3.2 11B Vision (Groq)          : ${groqAvg.toFixed(2)} ms`);
     console.log("==================================================");
 }

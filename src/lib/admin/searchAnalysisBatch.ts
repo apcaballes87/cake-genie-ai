@@ -10,7 +10,7 @@ import { getAnalysisPromptWithFallback } from '@/services/prompts/promptLoader';
 import { cacheAnalysisResult } from '@/services/supabaseService';
 import type { HybridAnalysisResult } from '@/types';
 
-const MODEL = 'gemini-3.1-flash-lite';
+const MODEL = 'gemini-3.5-flash-lite';
 const STORAGE_BUCKET = 'cakegenie';
 const MAX_BATCH_SIZE = 1000;
 const PROBE_SIZE = 3;
@@ -86,11 +86,10 @@ export function selectEligibleSearchAnalysisItems(items: QueueItem[], limit = MA
 }
 
 export function buildSearchAnalysisBatchGenerationConfig(requestConfig: Record<string, unknown>) {
-  const { responseMimeType, responseSchema, temperature, thinkingConfig } = requestConfig;
+  const { responseMimeType, responseSchema, thinkingConfig } = requestConfig;
   return {
     ...(responseMimeType ? { responseMimeType } : {}),
     ...(responseSchema ? { responseSchema } : {}),
-    ...(typeof temperature === 'number' ? { temperature } : {}),
     ...(thinkingConfig ? { thinkingConfig } : {}),
   };
 }

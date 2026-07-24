@@ -42,7 +42,6 @@ async function classifyImageWithModel(
         config: {
             responseMimeType: 'application/json',
             responseSchema: validationResponseSchema,
-            temperature: 0,
             thinkingConfig: {
                 thinkingLevel: ThinkingLevel.LOW,
             },
@@ -71,8 +70,8 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const primaryModel = useCase === 'chat' ? 'gemini-2.5-flash' : 'gemini-3.1-flash-lite';
-        const fallbackModel = 'gemini-3.1-flash-lite';
+        const primaryModel = useCase === 'chat' ? 'gemini-2.5-flash' : 'gemini-3.5-flash-lite';
+        const fallbackModel = 'gemini-3.5-flash-lite';
 
         let result;
         try {

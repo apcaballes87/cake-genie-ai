@@ -123,8 +123,8 @@ async function runBenchmark() {
     const embedAvg = embedLatencies.length ? (embedLatencies.reduce((a, b) => a + b) / embedLatencies.length) : 0;
     if (embedAvg) console.log(`   -> Average Warm Latency: ${embedAvg.toFixed(2)} ms`);
 
-    // 3. Gemini 3.1 Flash-Lite (gemini-3.1-flash-lite)
-    console.log("\n3. Running Gemini 3.1 Flash-Lite (gemini-3.1-flash-lite) - Generative Analysis...");
+    // 3. Gemini 3.5 Flash-Lite (gemini-3.5-flash-lite)
+    console.log("\n3. Running Gemini 3.5 Flash-Lite (gemini-3.5-flash-lite) - Generative Analysis...");
     const genLatencies: number[] = [];
     
     // Run 4 times: run 1 is cold run, runs 2-4 are warm runs
@@ -132,7 +132,7 @@ async function runBenchmark() {
         const start = performance.now();
         try {
             const response = await ai.models.generateContent({
-                model: 'gemini-3.1-flash-lite',
+                model: 'gemini-3.5-flash-lite',
                 contents: [{
                     role: 'user',
                     parts: [
@@ -142,7 +142,6 @@ async function runBenchmark() {
                 }],
                 config: {
                     responseMimeType: 'application/json',
-                    temperature: 0,
                     thinkingConfig: {
                         thinkingLevel: ThinkingLevel.MINIMAL
                     }
@@ -229,7 +228,7 @@ async function runBenchmark() {
     console.log("==================================================");
     console.log(`- Local Perceptual Hashing (ahash)     : ${hashDuration.toFixed(2)} ms`);
     if (embedAvg) console.log(`- Multimodal Embedding (Vertex AI REST): ${embedAvg.toFixed(2)} ms`);
-    if (genAvg) console.log(`- Gemini 3.1 Flash-Lite (Generative)   : ${genAvg.toFixed(2)} ms`);
+    if (genAvg) console.log(`- Gemini 3.5 Flash-Lite (Generative)   : ${genAvg.toFixed(2)} ms`);
     console.log("==================================================");
 }
 

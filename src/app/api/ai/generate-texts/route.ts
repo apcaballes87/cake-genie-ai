@@ -81,7 +81,7 @@ Cake Info: ${JSON.stringify(cakeInfo || {})}
 
         const aiClient = getAI(req);
         const response = await aiClient.models.generateContent({
-            model: "gemini-3.1-flash-lite",
+            model: "gemini-3.5-flash-lite",
             contents: [{
                 role: 'user',
                 parts: [
@@ -91,7 +91,6 @@ Cake Info: ${JSON.stringify(cakeInfo || {})}
             config: {
                 responseMimeType: 'application/json',
                 responseSchema: textGenerationSchema,
-                temperature: 0.7, // Slightly higher creative temperature for copy
                 thinkingConfig: {
                     thinkingLevel: ThinkingLevel.LOW,
                 },

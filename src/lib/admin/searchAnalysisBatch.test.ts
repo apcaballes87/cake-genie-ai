@@ -161,7 +161,6 @@ describe('search analysis batch helpers', () => {
     const line = JSON.parse(buildSearchAnalysisBatchInputLine(item() as QueueItem, 'analyze exactly', {
       systemInstruction: 'be exact',
       responseMimeType: 'application/json',
-      temperature: 0,
     }));
     expect(line).toEqual({
       customId: 'b',
@@ -172,7 +171,6 @@ describe('search analysis batch helpers', () => {
         systemInstruction: { parts: [{ text: 'be exact' }] },
         generationConfig: {
           responseMimeType: 'application/json',
-          temperature: 0,
         },
       },
     });
@@ -183,12 +181,10 @@ describe('search analysis batch helpers', () => {
       systemInstruction: 'not here',
       responseMimeType: 'application/json',
       responseSchema: { type: 'OBJECT' },
-      temperature: 0,
       thinkingConfig: { thinkingLevel: 'LOW' },
     })).toEqual({
       responseMimeType: 'application/json',
       responseSchema: { type: 'OBJECT' },
-      temperature: 0,
       thinkingConfig: { thinkingLevel: 'LOW' },
     });
   });

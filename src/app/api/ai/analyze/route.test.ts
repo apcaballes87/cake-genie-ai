@@ -85,7 +85,7 @@ describe('POST /api/ai/analyze', () => {
         expect(response.status).toBe(200);
         expect(payload.title).toBe('Ocean Mermaid Cake');
         expect(mockGenerateContent).toHaveBeenCalledWith(
-            expect.objectContaining({ model: 'gemini-3.1-flash-lite' })
+            expect.objectContaining({ model: 'gemini-3.5-flash-lite' })
         );
     });
 
@@ -107,7 +107,7 @@ describe('POST /api/ai/analyze', () => {
         expect(response.status).toBe(200);
         expect(payload.title).toBe('Ocean Mermaid Cake');
         expect(mockGenerateContent).toHaveBeenCalledWith(
-            expect.objectContaining({ model: 'gemini-3.1-flash-lite' })
+            expect.objectContaining({ model: 'gemini-3.5-flash-lite' })
         );
     });
 
