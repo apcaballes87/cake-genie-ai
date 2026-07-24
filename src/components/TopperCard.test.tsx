@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { TopperCard } from './TopperCard';
-import { MainTopperUI } from '@/types';
+import { MainTopperUI, SupportElementUI } from '@/types';
 
 // Mock the icons and components that are not needed for this test
 vi.mock('./icons', () => ({
@@ -101,6 +101,22 @@ describe('TopperCard - Color Customization', () => {
   it('shows color palette for edible_3d_ordinary', () => {
     const item = createMockTopper('edible_3d_ordinary', 'Gumpaste Ball');
     render(<TopperCard {...defaultProps} item={item} />);
+    expect(screen.getByTestId('color-palette')).toBeInTheDocument();
+  });
+
+  it('labels and keeps the intricate top doodle color-editable', () => {
+    const item = createMockTopper('icing_doodle_intricate_top', 'Detailed portrait');
+    render(<TopperCard {...defaultProps} item={item} />);
+
+    expect(screen.getByText('Intricate Top Doodle')).toBeInTheDocument();
+    expect(screen.getByTestId('color-palette')).toBeInTheDocument();
+  });
+
+  it('labels and keeps the intricate side doodle color-editable', () => {
+    const item = createMockTopper('icing_doodle_intricate_side', 'Detailed side icons');
+    render(<TopperCard {...defaultProps} type="element" item={item as unknown as SupportElementUI} />);
+
+    expect(screen.getByText('Intricate Side Doodles')).toBeInTheDocument();
     expect(screen.getByTestId('color-palette')).toBeInTheDocument();
   });
 });

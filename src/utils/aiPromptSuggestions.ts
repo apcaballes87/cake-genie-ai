@@ -5,7 +5,14 @@ import { hexToColorNameProse } from '@/utils/colorUtils';
 const HEX_COLOR_REGEX = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i;
 const COLORABLE_ITEM_TYPES = new Set([
     'edible_3d_complex', 'edible_3d_ordinary', 'edible_3d_support', 'edible_2d_support', 'edible_flowers', 'icing_doodle',
+    'icing_doodle_intricate', 'icing_doodle_intricate_top', 'icing_doodle_intricate_side',
     'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread', 'meringue_pop',
+]);
+const ICING_DOODLE_TYPES = new Set([
+    'icing_doodle',
+    'icing_doodle_intricate',
+    'icing_doodle_intricate_top',
+    'icing_doodle_intricate_side',
 ]);
 const MESSAGE_POSITION_LABELS = {
     top: 'top',
@@ -83,7 +90,7 @@ const hasHumanFigureDescription = (description?: string | null): boolean => {
 
 const canChangeDecorColor = (item: EditableDecor): boolean => {
     const originalType = getOriginalType(item);
-    return originalType === 'icing_doodle'
+    return ICING_DOODLE_TYPES.has(originalType)
         || COLORABLE_ITEM_TYPES.has(originalType)
         || Boolean(cleanText(item.color) || cleanText(item.original_color));
 };
@@ -115,7 +122,7 @@ const canReplaceDecorImage = (item: EditableDecor): boolean => {
     const itemType = item.type;
     const isPrintoutOrPhoto = ['printout', 'edible_photo_top', 'support_printout', 'edible_photo_side'].includes(itemType);
     const isHumanFigure = hasHumanFigureDescription(item.description);
-    const isReplaceableIcingFigure = ['icing_doodle', 'icing_palette_knife'].includes(itemType) && isHumanFigure;
+    const isReplaceableIcingFigure = (ICING_DOODLE_TYPES.has(itemType) || itemType === 'icing_palette_knife') && isHumanFigure;
     const isReplaceableGumpasteFigure = ['edible_3d_complex', 'edible_3d_ordinary', 'edible_3d_support'].includes(itemType) && isHumanFigure;
 
     return isPrintoutOrPhoto || isReplaceableIcingFigure || isReplaceableGumpasteFigure;

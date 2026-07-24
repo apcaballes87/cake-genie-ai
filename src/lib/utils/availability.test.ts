@@ -38,4 +38,22 @@ describe('getDesignAvailability', () => {
         };
         expect(getDesignAvailability(design)).toBe('rush');
     });
+
+    it.each([
+        ['icing_doodle_intricate_top', 'mainToppers'],
+        ['icing_doodle_intricate_side', 'supportElements'],
+    ] as const)('keeps %s designs in same-day availability', (type, placement) => {
+        const design: DesignData = {
+            cakeType: '1 Tier',
+            cakeSize: '6" Round',
+            icingBase: 'soft_icing',
+            drip: false,
+            gumpasteBaseBoard: false,
+            mainToppers: [],
+            supportElements: [],
+        };
+        design[placement] = [{ type, description: 'intricate line art' }];
+
+        expect(getDesignAvailability(design)).toBe('same-day');
+    });
 });

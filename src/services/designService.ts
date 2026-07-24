@@ -72,6 +72,12 @@ const THREE_TIER_RECONSTRUCTION_SYSTEM_INSTRUCTION = `You are a master digital c
 8.  **IGNORE NON-DESIGN PROMPTS:** If the user's instruction or statement has nothing to do with editing the cake design (e.g., "add to cart", "pick up", "address", "payment", or date/time selections), ignore it completely and make no changes to the image.`;
 
 const getReplacementReferenceLabel = (index: number) => `Replacement reference ${index + 1}`;
+const ICING_DOODLE_TYPES = new Set([
+    'icing_doodle',
+    'icing_doodle_intricate',
+    'icing_doodle_intricate_top',
+    'icing_doodle_intricate_side',
+]);
 
 const collectReplacementReferenceImages = (
     mainToppers: MainTopperUI[],
@@ -197,7 +203,7 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
             if (t.replacementImage) {
                 const replacementReferenceLabel = replacementReferenceImages[replacementReferenceIndex]?.label ?? 'the matching replacement reference image';
                 replacementReferenceIndex += 1;
-                if (t.type === 'icing_doodle') {
+                if (ICING_DOODLE_TYPES.has(t.type)) {
                     itemChanges.push(`**redraw it based on ${replacementReferenceLabel}**. The new drawing must be in the same **piped icing doodle style** as the original cake. Capture the likeness from the reference photo but render it as a simple, elegant line art portrait using piped icing.`);
                 } else if (t.type === 'icing_palette_knife') {
                     const isFigure = t.description.toLowerCase().includes('person') ||
@@ -260,7 +266,7 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
             if (s.replacementImage) {
                 const replacementReferenceLabel = replacementReferenceImages[replacementReferenceIndex]?.label ?? 'the matching replacement reference image';
                 replacementReferenceIndex += 1;
-                if (s.type === 'icing_doodle') {
+                if (ICING_DOODLE_TYPES.has(s.type)) {
                     itemChanges.push(`**redraw it based on ${replacementReferenceLabel}**. The new drawing must be in the same **piped icing doodle style** as the original cake. Capture the likeness from the reference photo but render it as a simple, elegant line art portrait using piped icing.`);
                 } else if (s.type === 'icing_palette_knife') {
                     const isFigure = s.description.toLowerCase().includes('person') ||

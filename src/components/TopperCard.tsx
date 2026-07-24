@@ -13,19 +13,19 @@ const toTitleCase = (value: string) => value
 export const topperTypeDisplayMap: Record<MainTopperType, string> = {
     'edible_3d_complex': 'Gumpaste (Complex)', 'edible_3d_ordinary': 'Gumpaste (Ordinary)', 'printout': 'Printout', 'edible_photo_top': 'Printout (Edible)', 'edible_photo_print': 'Printout (Edible)', 'edible_logo_2d': 'Edible Logo (2D)',
     'toy': 'Toy', 'figurine': 'Figurine (Simpler)', 'plastic_ball': 'Plastic Ball', 'cardstock': 'Cardstock', 'candle': 'Candle', 'edible_2d_shapes': 'Gumpaste (2D)', 'edible_flowers': 'Edible Flowers',
-    'icing_doodle': 'Piped Doodles', 'icing_doodle_intricate': 'Piped Doodles', 'icing_palette_knife': 'Palette Knife Finish', 'icing_palette_knife_intricate': 'Palette Knife Finish', 'icing_brush_stroke': 'Brush Stroke Finish',
+    'icing_doodle': 'Piped Doodles', 'icing_doodle_intricate': 'Piped Doodles', 'icing_doodle_intricate_top': 'Intricate Top Doodle', 'icing_palette_knife': 'Palette Knife Finish', 'icing_palette_knife_intricate': 'Palette Knife Finish', 'icing_brush_stroke': 'Brush Stroke Finish',
     'icing_splatter': 'Splatter Finish', 'icing_minimalist_spread': 'Minimalist Spread', 'icing_decorations': 'Icing Decorations', 'meringue_pop': 'Meringue Pop',
 };
 export const originalTypeLabelMap: Record<MainTopperType, string> = {
     'edible_3d_complex': '3D Complex', 'edible_3d_ordinary': '3D Ordinary', 'figurine': 'Figurine', 'toy': 'Toy', 'plastic_ball': 'Plastic Ball', 'cardstock': 'Cardstock',
     'edible_photo_top': 'Edible Photo', 'edible_photo_print': 'Edible Photo', 'edible_logo_2d': 'Edible Logo', 'printout': 'Printout', 'candle': 'Candle', 'edible_2d_shapes': '2D Shapes', 'edible_flowers': 'Edible Flowers',
-    'icing_doodle': 'Piped Doodles', 'icing_doodle_intricate': 'Piped Doodles', 'icing_palette_knife': 'Palette Knife Finish', 'icing_palette_knife_intricate': 'Palette Knife Finish', 'icing_brush_stroke': 'Brush Stroke Finish',
+    'icing_doodle': 'Piped Doodles', 'icing_doodle_intricate': 'Piped Doodles', 'icing_doodle_intricate_top': 'Intricate Top Doodle', 'icing_palette_knife': 'Palette Knife Finish', 'icing_palette_knife_intricate': 'Palette Knife Finish', 'icing_brush_stroke': 'Brush Stroke Finish',
     'icing_splatter': 'Splatter Finish', 'icing_minimalist_spread': 'Minimalist Spread', 'icing_decorations': 'Icing Decorations', 'meringue_pop': 'Meringue Pop',
 };
 export const supportTypeDisplayMap: Record<SupportElementType, string> = {
     'edible_3d_support': 'Gumpaste (3D)', 'edible_2d_support': 'Gumpaste (2D)', 'chocolates': 'Chocolates',
     'sprinkles': 'Sprinkles', 'premium_sprinkles': 'Premium Sprinkles', 'dragees': 'Dragees (Pearls)', 'support_printout': 'Printout', 'edible_photo_side': 'Printout (Edible)', 'edible_photo_print': 'Printout (Edible)',
-    'isomalt': 'Isomalt (Sugar Glass)', 'edible_flowers': 'Edible Flowers', 'icing_doodle': 'Piped Doodles', 'icing_palette_knife': 'Palette Knife Finish',
+    'isomalt': 'Isomalt (Sugar Glass)', 'edible_flowers': 'Edible Flowers', 'icing_doodle': 'Piped Doodles', 'icing_doodle_intricate_side': 'Intricate Side Doodles', 'icing_palette_knife': 'Palette Knife Finish',
     'icing_brush_stroke': 'Brush Stroke Finish', 'icing_splatter': 'Splatter Finish', 'icing_minimalist_spread': 'Minimalist Spread',
     'plastic_ball': 'Plastic Ball', 'plastic_ball_regular': 'Plastic Ball', 'plastic_ball_disco': 'Disco Ball',
     'macarons': 'Macarons', 'meringue': 'Meringue', 'gumpaste_bundle': 'Gumpaste Bundle', 'candy': 'Candy',
@@ -34,11 +34,17 @@ export const supportTypeDisplayMap: Record<SupportElementType, string> = {
     'thin_fabric_ribbon_bows': 'Thin Fabric Ribbon Bows', 'satin_ribbon': 'Satin/Organza Ribbon', 'edible_lollipops': 'Edible Lollipops', 'printout': 'Printout',
 };
 export const COLORABLE_ITEM_TYPES: Array<MainTopperType | SupportElementType> = [
-    'edible_3d_complex', 'edible_3d_ordinary', 'edible_logo_2d', 'edible_3d_support', 'edible_2d_support', 'edible_flowers', 'icing_doodle',
+    'edible_3d_complex', 'edible_3d_ordinary', 'edible_logo_2d', 'edible_3d_support', 'edible_2d_support', 'edible_flowers', 'icing_doodle', 'icing_doodle_intricate', 'icing_doodle_intricate_top', 'icing_doodle_intricate_side',
     'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread', 'meringue_pop',
     'isomalt', 'macarons', 'meringue', 'icing_decorations', 'gumpaste_panel', 'gumpaste_creations',
     'marshmallows',
 ];
+const ICING_DOODLE_TYPES = new Set<string>([
+    'icing_doodle',
+    'icing_doodle_intricate',
+    'icing_doodle_intricate_top',
+    'icing_doodle_intricate_side',
+]);
 
 export const TopperCard: React.FC<{
     item: MainTopperUI | SupportElementUI;
@@ -78,11 +84,12 @@ export const TopperCard: React.FC<{
     const hasMaterialOptions = isNumberTopper || isOriginalPrintoutTopper || canBeSwitchedToPrintoutTopper || isCardstock || isToyOrFigurine || isWrapSwitchable || isGumpasteSwitchable || isOriginalPrintoutElement;
 
     const isPrintoutOrPhoto = item.type === 'printout' || item.type === 'edible_photo_top' || item.type === 'support_printout' || item.type === 'edible_photo_side' || item.type === 'edible_photo_print';
-    const isDoodle = item.original_type === 'icing_doodle';
+    const originalItemType = (item.original_type as string | undefined) ?? item.type;
+    const isDoodle = ICING_DOODLE_TYPES.has(originalItemType);
     const isPaletteKnife = item.type === 'icing_palette_knife';
     const canChangeMultipleColors = isPaletteKnife && 'colors' in item && item.colors && item.colors.length > 0;
     const canChangeColor = (isDoodle || COLORABLE_ITEM_TYPES.includes(item.type as MainTopperType | SupportElementType)) && !canChangeMultipleColors;
-    const isReplaceableIcingFigure = (item.type === 'icing_doodle' || item.type === 'icing_palette_knife') && isHumanFigure;
+    const isReplaceableIcingFigure = (ICING_DOODLE_TYPES.has(item.type) || item.type === 'icing_palette_knife') && isHumanFigure;
     const isReplaceableGumpasteFigure = (item.type === 'edible_3d_complex' || item.type === 'edible_3d_ordinary' || item.type === 'edible_3d_support') && isHumanFigure;
 
     const materialLabel = isTopper ? topperTypeDisplayMap[item.type as MainTopperType] : supportTypeDisplayMap[item.type as SupportElementType];

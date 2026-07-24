@@ -127,6 +127,10 @@ export const calculatePrice = (
                     nonGumpasteTotal += price;
                 }
                 break;
+            case 'icing_doodle_intricate_top':
+                price = 200;
+                nonGumpasteTotal += price;
+                break;
             case 'icing_palette_knife':
                 const isIntricateMain = topper.description?.toLowerCase().includes('intricate');
                 if (topper.size === 'large' && isIntricateMain) {
@@ -258,6 +262,10 @@ export const calculatePrice = (
                     // To make it eligible, change to: supportGumpasteRawTotal += price;
                     nonGumpasteTotal += price;
                 }
+                break;
+            case 'icing_doodle_intricate_side':
+                price = 200;
+                nonGumpasteTotal += price;
                 break;
 
             case 'icing_palette_knife':

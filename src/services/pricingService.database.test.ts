@@ -82,6 +82,38 @@ const pricingRows: PricingRule[] = [
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
   },
+  {
+    rule_id: 6,
+    item_key: 'icing_doodle_intricate_top',
+    item_type: 'icing_doodle_intricate_top',
+    classification: 'non-gumpaste',
+    size: null,
+    description: 'Full intricate icing doodle on the cake top',
+    price: 200,
+    category: 'main_topper',
+    quantity_rule: null,
+    multiplier_rule: null,
+    special_conditions: null,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    rule_id: 7,
+    item_key: 'icing_doodle_intricate_side',
+    item_type: 'icing_doodle_intricate_side',
+    classification: 'non-gumpaste',
+    size: null,
+    description: 'Full intricate icing doodle covering the cake sides',
+    price: 200,
+    category: 'support_element',
+    quantity_rule: null,
+    multiplier_rule: null,
+    special_conditions: null,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+  },
 ];
 
 vi.mock('@/lib/supabase/client', () => ({
@@ -218,6 +250,41 @@ describe('calculatePriceFromDatabase', () => {
     expect(itemPrices.get('flowers-1')).toBe(30);
     expect(addOnPricing.addOnPrice).toBe(30);
     expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining('fresh_flowers'));
+  });
+
+  it('adds one flat ₱200 charge for each full intricate top and side doodle region', async () => {
+    const { calculatePriceFromDatabase } = await import('./pricingService.database');
+
+    const topDoodle = {
+      id: 'doodle-top',
+      type: 'icing_doodle_intricate_top',
+      material: 'icing',
+      description: 'large intricate line-art portrait',
+      quantity: 8,
+      isEnabled: true,
+      size: 'large',
+    } as unknown as MainTopperUI;
+    const sideDoodle = {
+      id: 'doodle-side',
+      type: 'icing_doodle_intricate_side',
+      material: 'icing',
+      description: 'coordinated intricate hobby icon side wrap',
+      quantity: 12,
+      isEnabled: true,
+      size: 'large',
+    } as unknown as SupportElementUI;
+
+    const { addOnPricing, itemPrices } = await calculatePriceFromDatabase({
+      mainToppers: [topDoodle],
+      supportElements: [sideDoodle],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
+    });
+
+    expect(itemPrices.get('doodle-top')).toBe(200);
+    expect(itemPrices.get('doodle-side')).toBe(200);
+    expect(addOnPricing.addOnPrice).toBe(400);
   });
 
   it('calculates cupcake topper prices correctly (Option B - Flat Maximum)', async () => {

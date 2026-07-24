@@ -74,6 +74,20 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).not.toContain('Basic roses without fine detail');
   });
 
+  it('splits full intricate icing doodles into flat top and side regions', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(prompt).toContain('INTRICATE ICING DOODLE PLACEMENT AND PRICING PRECEDENCE');
+    expect(prompt).toContain('Use `icing_doodle_intricate_top` when an intricate drawing is the dominant artwork on the cake top.');
+    expect(prompt).toContain('Use `icing_doodle_intricate_side` when coordinated intricate drawings cover a substantial portion of the cake sides');
+    expect(prompt).toContain('one `icing_doodle_intricate_top` item and one `icing_doodle_intricate_side` item');
+    expect(prompt).toContain('Always use `quantity: 1` for each qualifying top or side region.');
+    expect(prompt).toContain('Recognizable portraits, objects, scenes, or coordinated line-art compositions take precedence over `icing_decorations`.');
+    expect(prompt).toContain('large portrait of a person using an inhaler on the cake top -> `icing_doodle_intricate_top`');
+    expect(prompt).toContain('many coordinated hobby icons covering the cake sides -> `icing_doodle_intricate_side`');
+    expect(prompt).not.toContain('If the doodle is intricate, keep `type: "icing_doodle"`');
+  });
+
   it('keeps candle classification in the fallback prompt source', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 

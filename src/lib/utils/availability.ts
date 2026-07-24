@@ -4,6 +4,13 @@ import { CakeInfoUI, MainTopperUI, SupportElementUI, IcingDesignUI, CartItem, Ca
 
 export type AvailabilityType = 'rush' | 'same-day' | 'normal';
 
+const ICING_DOODLE_TYPES = new Set([
+    'icing_doodle',
+    'icing_doodle_intricate',
+    'icing_doodle_intricate_top',
+    'icing_doodle_intricate_side',
+]);
+
 // This is the data structure needed by the function, which can be constructed
 // from either a CartItem or the state in the customizing page.
 export interface DesignData {
@@ -50,7 +57,7 @@ export function getDesignAvailability(design: DesignData): AvailabilityType {
         (item.type === 'edible_3d_support' && !item.description.toLowerCase().includes('dots')) || // Small non-dot gumpaste items (was 'small_gumpaste')
         item.type === 'edible_photo_top' ||
         item.type === 'edible_photo_side' ||
-        item.type === 'icing_doodle' // Piped doodles require more time than rush orders.
+        ICING_DOODLE_TYPES.has(item.type) // Piped doodles require more time than rush orders.
     );
 
     if (hasSameDayDecorations) {
