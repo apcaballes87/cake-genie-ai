@@ -139,7 +139,7 @@ async function callAiWithRetry(promptInput: string, attempt = 1): Promise<Genera
         responseMimeType: 'application/json',
         responseSchema: responseSchema,
         thinkingConfig: {
-          thinkingLevel: ThinkingLevel.LOW,
+          thinkingLevel: ThinkingLevel.MINIMAL,
         },
       },
     });
