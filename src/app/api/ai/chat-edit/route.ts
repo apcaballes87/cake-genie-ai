@@ -277,20 +277,47 @@ const getChangeCategories = (patch: Record<string, unknown> | undefined): string
     return categories;
 };
 
-const SIMPLE_PRINTOUT_TOPPER_REQUEST = /\b(?:change|switch|convert|make)\s+(?:the\s+)?topper\s+(?:to|into|as)\s+(?:a\s+)?printout\b/i;
+const SIMPLE_PRINTOUT_TOPPER_REQUEST = /^(?:please\s+)?(?:change|switch|convert|make)\s+(?:the\s+)?(?:(.*?)\s+)?topper\s+(?:to|into|as)\s+(?:a\s+)?printout[.!]?$/i;
+
+const normalizeTopperLabel = (value: string): string[] => value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(word => word.length > 0 && !['a', 'an', 'the'].includes(word));
 
 const getDirectPrintoutTopperResponse = (
     prompt: string,
     customization: AiChatCustomizationSnapshot,
 ): AiChatEditResponse | null => {
-    if (!SIMPLE_PRINTOUT_TOPPER_REQUEST.test(prompt)) return null;
+    const requestMatch = prompt.match(SIMPLE_PRINTOUT_TOPPER_REQUEST);
+    if (!requestMatch) return null;
 
-    // "The topper" is only safe to resolve without the model when exactly one main
-    // topper is enabled. Otherwise the usual targeted AI flow can ask for clarity.
+    const requestedLabel = requestMatch[1]?.trim() ?? '';
+    const requestedWords = normalizeTopperLabel(requestedLabel);
     const enabledToppers = customization.mainToppers.filter(topper => topper.isEnabled);
-    if (enabledToppers.length !== 1) return null;
+    const matchingToppers = requestedWords.length === 0
+        ? enabledToppers
+        : enabledToppers.filter(topper => {
+            const topperWords = new Set(normalizeTopperLabel(topper.description));
+            return requestedWords.every(word => topperWords.has(word));
+        });
 
-    const [topper] = enabledToppers;
+    // Avoid a model round-trip for a clear printout conversion. A request that
+    // cannot identify exactly one enabled main topper gets a useful clarification
+    // instead of an opaque provider/validation failure.
+    if (matchingToppers.length !== 1) {
+        const targetDescription = requestedLabel ? ` matching "${requestedLabel}"` : '';
+        return {
+            outcome: 'clarification',
+            actions: [],
+            message: matchingToppers.length === 0
+                ? `I could not find one enabled topper${targetDescription}. Please use the topper label shown in the cake options.`
+                : `I found multiple enabled toppers${targetDescription}. Please tell me which one to change.`,
+        };
+    }
+
+    const [topper] = matchingToppers;
     if (topper.type === 'printout') {
         return {
             outcome: 'noop',

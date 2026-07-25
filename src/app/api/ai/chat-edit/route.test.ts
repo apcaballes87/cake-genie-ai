@@ -217,15 +217,16 @@ describe('/api/ai/chat-edit', () => {
         await expect(response.json()).resolves.toEqual(modelResponse);
     });
 
-    it('converts one unambiguous topper to a printout without relying on the model response', async () => {
+    it('converts one named topper to a printout without relying on the model response', async () => {
         const response = await callRoute({
-            prompt: 'change the topper to printout',
+            prompt: 'change the girl topper to printout',
             currentCustomization: {
                 ...currentCustomization,
                 mainToppers: [{
                     ...currentCustomization.mainToppers[0],
                     type: 'toy',
                     original_type: 'toy',
+                    description: 'Girl figurine topper',
                 }],
             },
         });
@@ -241,6 +242,29 @@ describe('/api/ai/chat-edit', () => {
                 }],
             },
             actions: [],
+        });
+        expect(generateContent).not.toHaveBeenCalled();
+    });
+
+    it('returns a clarification instead of calling the model when a named topper is not found', async () => {
+        const response = await callRoute({
+            prompt: 'change the girl topper to printout',
+            currentCustomization: {
+                ...currentCustomization,
+                mainToppers: [{
+                    ...currentCustomization.mainToppers[0],
+                    type: 'toy',
+                    original_type: 'toy',
+                    description: 'Boy figurine topper',
+                }],
+            },
+        });
+
+        expect(response.status).toBe(200);
+        await expect(response.json()).resolves.toEqual({
+            outcome: 'clarification',
+            actions: [],
+            message: 'I could not find one enabled topper matching "girl". Please use the topper label shown in the cake options.',
         });
         expect(generateContent).not.toHaveBeenCalled();
     });
