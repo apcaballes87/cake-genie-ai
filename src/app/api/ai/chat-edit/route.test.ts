@@ -217,6 +217,34 @@ describe('/api/ai/chat-edit', () => {
         await expect(response.json()).resolves.toEqual(modelResponse);
     });
 
+    it('converts one unambiguous topper to a printout without relying on the model response', async () => {
+        const response = await callRoute({
+            prompt: 'change the topper to printout',
+            currentCustomization: {
+                ...currentCustomization,
+                mainToppers: [{
+                    ...currentCustomization.mainToppers[0],
+                    type: 'toy',
+                    original_type: 'toy',
+                }],
+            },
+        });
+
+        expect(response.status).toBe(200);
+        await expect(response.json()).resolves.toEqual({
+            outcome: 'design_change',
+            patch: {
+                topperOperations: [{
+                    operation: 'update',
+                    id: 'topper-1',
+                    changes: { type: 'printout' },
+                }],
+            },
+            actions: [],
+        });
+        expect(generateContent).not.toHaveBeenCalled();
+    });
+
     it('rejects semantically invalid closed-enum output with a safe 502', async () => {
         generateContent.mockResolvedValueOnce({
             text: JSON.stringify({

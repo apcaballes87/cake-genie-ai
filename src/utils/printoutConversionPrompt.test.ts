@@ -36,12 +36,12 @@ describe('printout conversion prompts', () => {
         expect(prompt).toContain('Do NOT leave any 3D edible/gumpaste volume');
     });
 
-    it('finds edible 3D conversion targets and ignores disabled or already-printout toppers', () => {
+    it('finds reconciled edible 3D printout targets and ignores unchanged or disabled toppers', () => {
         const targets = getPrintoutConversionTargets('change the edible toppers to printout cardboard cutouts', [
-            makeTopper(),
-            makeTopper({ id: 'topper-2', description: 'pink bear', original_type: 'edible_3d_ordinary' }),
-            makeTopper({ id: 'topper-3', description: 'already printed', type: 'printout' }),
-            makeTopper({ id: 'topper-4', description: 'disabled dinosaur', isEnabled: false }),
+            makeTopper({ type: 'printout' }),
+            makeTopper({ id: 'topper-2', type: 'printout', description: 'pink bear', original_type: 'edible_3d_ordinary' }),
+            makeTopper({ id: 'topper-3', description: 'unchanged dinosaur' }),
+            makeTopper({ id: 'topper-4', type: 'printout', description: 'disabled dinosaur', isEnabled: false }),
         ]);
 
         expect(targets.map((topper) => topper.description)).toEqual(['blue dinosaur topper', 'pink bear']);

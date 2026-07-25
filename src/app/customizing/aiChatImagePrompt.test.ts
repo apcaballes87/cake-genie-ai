@@ -24,7 +24,7 @@ describe('buildAiChatImagePrompt', () => {
         const mainToppers: MainTopperUI[] = [
             {
                 id: 'topper-1',
-                type: 'edible_3d_complex',
+                type: 'printout',
                 original_type: 'edible_3d_complex',
                 description: 'blue dinosaur topper',
                 size: 'medium',
@@ -38,7 +38,7 @@ describe('buildAiChatImagePrompt', () => {
             },
             {
                 id: 'topper-2',
-                type: 'edible_3d_ordinary',
+                type: 'printout',
                 original_type: 'edible_3d_ordinary',
                 description: 'pink bear topper',
                 size: 'medium',

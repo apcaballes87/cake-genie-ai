@@ -65,7 +65,9 @@ export const getPrintoutConversionTargets = (
     return mainToppers.filter((topper) => {
         const sourceType = topper.original_type || topper.type;
         return topper.isEnabled
-            && topper.type !== 'printout'
+            // The AI-chat image prompt receives the reconciled state, where the
+            // selected topper has already changed to `printout`.
+            && topper.type === 'printout'
             && (isToyLikeType(sourceType) || isEdible3DTopperType(sourceType));
     });
 };

@@ -18,6 +18,7 @@ let pricingRulesCache: {
 
 const CACHE_KEY_PREFIX = 'pricing_rules_';
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const ZERO_COST_SUPPORT_ELEMENT_TYPES = new Set(['icing_decorations']);
 
 async function getPricingRules(merchantId?: string): Promise<Map<string, PricingRule[]>> {
   const now = Date.now();
@@ -252,6 +253,13 @@ export async function calculatePriceFromDatabase(
     const genericRules = rules.get(effectiveType);
     const rule = findMatch(genericRules || []);
 
+    // Icing decorations are part of the analyzed cake image but currently carry no
+    // add-on charge. Keep that intentional zero-price fallback quiet until a paid
+    // pricing rule is introduced.
+    if (!rule && category === 'support_element' && ZERO_COST_SUPPORT_ELEMENT_TYPES.has(effectiveType)) {
+      return undefined;
+    }
+
     if (!rule) {
       console.warn(`No pricing rule found for: type="${type}" (mapped to "${effectiveType}"), size="${size}", subtype="${subtype}", category="${category}"`);
     }
@@ -336,7 +344,7 @@ export async function calculatePriceFromDatabase(
 
     let price = 0;
     // Fallback to coverage if size is missing (backward compatibility)
-    const effectiveSize = element.size || (element as any).coverage;
+    const effectiveSize = element.size || (element as SupportElementUI & { coverage?: string }).coverage;
     const rule = getRule(element.type, effectiveSize, 'support_element', element.subtype);
 
     if (rule) {

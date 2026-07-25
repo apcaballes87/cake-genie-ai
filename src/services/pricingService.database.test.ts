@@ -252,6 +252,31 @@ describe('calculatePriceFromDatabase', () => {
     expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining('fresh_flowers'));
   });
 
+  it('keeps zero-cost icing decorations out of the price without a missing-rule warning', async () => {
+    const { calculatePriceFromDatabase } = await import('./pricingService.database');
+    const warnSpy = vi.spyOn(console, 'warn');
+    const icingDecoration = {
+      id: 'icing-decoration-1',
+      type: 'icing_decorations',
+      description: 'Blue icing stars',
+      quantity: 1,
+      isEnabled: true,
+      size: 'tiny',
+    } as SupportElementUI;
+
+    const { addOnPricing, itemPrices } = await calculatePriceFromDatabase({
+      mainToppers: [],
+      supportElements: [icingDecoration],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
+    });
+
+    expect(itemPrices.get('icing-decoration-1')).toBe(0);
+    expect(addOnPricing.addOnPrice).toBe(0);
+    expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining('icing_decorations'));
+  });
+
   it('adds one flat ₱200 charge for each full intricate top and side doodle region', async () => {
     const { calculatePriceFromDatabase } = await import('./pricingService.database');
 

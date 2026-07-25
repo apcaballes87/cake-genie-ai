@@ -17,6 +17,7 @@ import {
     AI_CHAT_SUPPORT_ELEMENT_TYPES,
     AI_CHAT_TOPPER_CLASSIFICATIONS,
     type AiChatCustomizationSnapshot,
+    type AiChatEditResponse,
     validateAiChatEditResponse,
 } from '@/app/customizing/aiChatEditContract';
 import { COLORS } from '@/constants';
@@ -276,6 +277,41 @@ const getChangeCategories = (patch: Record<string, unknown> | undefined): string
     return categories;
 };
 
+const SIMPLE_PRINTOUT_TOPPER_REQUEST = /\b(?:change|switch|convert|make)\s+(?:the\s+)?topper\s+(?:to|into|as)\s+(?:a\s+)?printout\b/i;
+
+const getDirectPrintoutTopperResponse = (
+    prompt: string,
+    customization: AiChatCustomizationSnapshot,
+): AiChatEditResponse | null => {
+    if (!SIMPLE_PRINTOUT_TOPPER_REQUEST.test(prompt)) return null;
+
+    // "The topper" is only safe to resolve without the model when exactly one main
+    // topper is enabled. Otherwise the usual targeted AI flow can ask for clarity.
+    const enabledToppers = customization.mainToppers.filter(topper => topper.isEnabled);
+    if (enabledToppers.length !== 1) return null;
+
+    const [topper] = enabledToppers;
+    if (topper.type === 'printout') {
+        return {
+            outcome: 'noop',
+            actions: [],
+            message: 'That topper is already a printout.',
+        };
+    }
+
+    return {
+        outcome: 'design_change',
+        patch: {
+            topperOperations: [{
+                operation: 'update',
+                id: topper.id,
+                changes: { type: 'printout' },
+            }],
+        },
+        actions: [],
+    };
+};
+
 const stringifyCustomizationForModel = (snapshot: AiChatCustomizationSnapshot): string =>
     JSON.stringify(snapshot, (key, value) => key === 'replacementImage' ? undefined : value, 2);
 
@@ -319,6 +355,22 @@ export async function POST(req: NextRequest) {
             icingBaseBefore,
             cakeFamilyBefore,
         });
+
+        const directResponse = getDirectPrintoutTopperResponse(prompt, currentCustomization);
+        if (directResponse) {
+            console.log(`[AI TRACE ${traceId}] /api/ai/chat-edit:success`, {
+                outcome: directResponse.outcome,
+                actionTypes: [],
+                changeCategories: directResponse.patch ? ['toppers'] : [],
+                icingBaseBefore,
+                icingBaseRequested: undefined,
+                cakeFamilyBefore,
+                visualRequested: directResponse.outcome === 'design_change',
+                resolution: 'deterministic-printout-topper',
+                durationMs: Date.now() - startedAt,
+            });
+            return NextResponse.json(directResponse);
+        }
 
         const parts: Array<
             | { text: string }
