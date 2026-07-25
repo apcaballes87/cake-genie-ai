@@ -120,7 +120,7 @@ describe('/api/ai/chat-edit', () => {
         await expect(response.json()).resolves.toEqual(modelResponse);
 
         const modelCall = generateContent.mock.calls[0][0];
-        expect(modelCall.model).toBe('gemini-2.5-flash');
+        expect(modelCall.model).toBe('gemini-3.1-flash-lite');
         expect(modelCall.config.temperature).toBe(0);
         expect(modelCall.config.responseMimeType).toBe('application/json');
         expect(modelCall.config.systemInstruction).toContain(
@@ -217,56 +217,57 @@ describe('/api/ai/chat-edit', () => {
         await expect(response.json()).resolves.toEqual(modelResponse);
     });
 
-    it('converts one named topper to a printout without relying on the model response', async () => {
-        const response = await callRoute({
-            prompt: 'change the girl topper to printout',
-            currentCustomization: {
-                ...currentCustomization,
-                mainToppers: [{
-                    ...currentCustomization.mainToppers[0],
-                    type: 'toy',
-                    original_type: 'toy',
-                    description: 'Girl figurine topper',
-                }],
-            },
-        });
-
-        expect(response.status).toBe(200);
-        await expect(response.json()).resolves.toEqual({
+    it('uses Gemini to convert every enabled topper to printout when the customer requests all toppers', async () => {
+        const modelResponse = {
             outcome: 'design_change',
             patch: {
-                topperOperations: [{
-                    operation: 'update',
-                    id: 'topper-1',
-                    changes: { type: 'printout' },
-                }],
+                topperOperations: [
+                    {
+                        operation: 'update',
+                        id: 'topper-1',
+                        changes: { type: 'printout' },
+                    },
+                    {
+                        operation: 'update',
+                        id: 'topper-2',
+                        changes: { type: 'printout' },
+                    },
+                ],
             },
             actions: [],
-        });
-        expect(generateContent).not.toHaveBeenCalled();
-    });
+        };
+        generateContent.mockResolvedValueOnce({ text: JSON.stringify(modelResponse) });
 
-    it('returns a clarification instead of calling the model when a named topper is not found', async () => {
         const response = await callRoute({
-            prompt: 'change the girl topper to printout',
+            prompt: 'change all the topper to printout',
             currentCustomization: {
                 ...currentCustomization,
-                mainToppers: [{
-                    ...currentCustomization.mainToppers[0],
-                    type: 'toy',
-                    original_type: 'toy',
-                    description: 'Boy figurine topper',
-                }],
+                mainToppers: [
+                    {
+                        ...currentCustomization.mainToppers[0],
+                        type: 'toy',
+                        original_type: 'toy',
+                        description: 'Girl figurine topper',
+                    },
+                    {
+                        ...currentCustomization.mainToppers[0],
+                        id: 'topper-2',
+                        type: 'edible_3d_complex',
+                        original_type: 'edible_3d_complex',
+                        description: 'Boy figurine topper',
+                    },
+                ],
             },
         });
 
         expect(response.status).toBe(200);
-        await expect(response.json()).resolves.toEqual({
-            outcome: 'clarification',
-            actions: [],
-            message: 'I could not find one enabled topper matching "girl". Please use the topper label shown in the cake options.',
-        });
-        expect(generateContent).not.toHaveBeenCalled();
+        await expect(response.json()).resolves.toEqual(modelResponse);
+        const modelCall = generateContent.mock.calls[0][0];
+        expect(modelCall.model).toBe('gemini-3.1-flash-lite');
+        expect(modelCall.config.systemInstruction).toContain(
+            '"change all the toppers to printout"',
+        );
+        expect(modelCall.contents[0].parts.at(-1).text).toContain('"id": "topper-2"');
     });
 
     it('rejects semantically invalid closed-enum output with a safe 502', async () => {

@@ -17,7 +17,6 @@ import {
     AI_CHAT_SUPPORT_ELEMENT_TYPES,
     AI_CHAT_TOPPER_CLASSIFICATIONS,
     type AiChatCustomizationSnapshot,
-    type AiChatEditResponse,
     validateAiChatEditResponse,
 } from '@/app/customizing/aiChatEditContract';
 import { COLORS } from '@/constants';
@@ -214,7 +213,9 @@ TARGETED OPERATIONS
 - Existing toppers, support elements, and messages have stable IDs in CURRENT CUSTOMIZATION.
 - To update/remove an existing item, use {"operation":"update","id":"exact-id","changes":{...}} or {"operation":"remove","id":"exact-id"}.
 - Never identify an existing target by array index, description, group ID, text, or a made-up ID. Copy its exact stable ID.
-- If the wording could refer to zero or multiple existing items, return clarification with no patch. Never update/remove multiple items as a guess.
+- "change all the toppers to printout" (or an equivalent all/every request) explicitly means update every enabled main topper to type "printout". Emit one update operation for each existing target using its exact stable ID; do not ask for clarification.
+- For a named request such as "change the girl topper to printout", use the current cake design and topper descriptions to find one matching enabled main topper, then emit an update using its exact stable ID. If no single target can be identified, return clarification with no patch.
+- If the wording does not explicitly request all/every items and could refer to zero or multiple existing items, return clarification with no patch. Never update/remove multiple items as a guess.
 - To add an item, use {"operation":"add","item":{...}} with all required fields and no ID.
 - Topper types: ${AI_CHAT_MAIN_TOPPER_TYPES.join(', ')}.
 - Support types: ${AI_CHAT_SUPPORT_ELEMENT_TYPES.join(', ')}.
@@ -277,68 +278,6 @@ const getChangeCategories = (patch: Record<string, unknown> | undefined): string
     return categories;
 };
 
-const SIMPLE_PRINTOUT_TOPPER_REQUEST = /^(?:please\s+)?(?:change|switch|convert|make)\s+(?:the\s+)?(?:(.*?)\s+)?topper\s+(?:to|into|as)\s+(?:a\s+)?printout[.!]?$/i;
-
-const normalizeTopperLabel = (value: string): string[] => value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim()
-    .split(/\s+/)
-    .filter(word => word.length > 0 && !['a', 'an', 'the'].includes(word));
-
-const getDirectPrintoutTopperResponse = (
-    prompt: string,
-    customization: AiChatCustomizationSnapshot,
-): AiChatEditResponse | null => {
-    const requestMatch = prompt.match(SIMPLE_PRINTOUT_TOPPER_REQUEST);
-    if (!requestMatch) return null;
-
-    const requestedLabel = requestMatch[1]?.trim() ?? '';
-    const requestedWords = normalizeTopperLabel(requestedLabel);
-    const enabledToppers = customization.mainToppers.filter(topper => topper.isEnabled);
-    const matchingToppers = requestedWords.length === 0
-        ? enabledToppers
-        : enabledToppers.filter(topper => {
-            const topperWords = new Set(normalizeTopperLabel(topper.description));
-            return requestedWords.every(word => topperWords.has(word));
-        });
-
-    // Avoid a model round-trip for a clear printout conversion. A request that
-    // cannot identify exactly one enabled main topper gets a useful clarification
-    // instead of an opaque provider/validation failure.
-    if (matchingToppers.length !== 1) {
-        const targetDescription = requestedLabel ? ` matching "${requestedLabel}"` : '';
-        return {
-            outcome: 'clarification',
-            actions: [],
-            message: matchingToppers.length === 0
-                ? `I could not find one enabled topper${targetDescription}. Please use the topper label shown in the cake options.`
-                : `I found multiple enabled toppers${targetDescription}. Please tell me which one to change.`,
-        };
-    }
-
-    const [topper] = matchingToppers;
-    if (topper.type === 'printout') {
-        return {
-            outcome: 'noop',
-            actions: [],
-            message: 'That topper is already a printout.',
-        };
-    }
-
-    return {
-        outcome: 'design_change',
-        patch: {
-            topperOperations: [{
-                operation: 'update',
-                id: topper.id,
-                changes: { type: 'printout' },
-            }],
-        },
-        actions: [],
-    };
-};
-
 const stringifyCustomizationForModel = (snapshot: AiChatCustomizationSnapshot): string =>
     JSON.stringify(snapshot, (key, value) => key === 'replacementImage' ? undefined : value, 2);
 
@@ -383,22 +322,6 @@ export async function POST(req: NextRequest) {
             cakeFamilyBefore,
         });
 
-        const directResponse = getDirectPrintoutTopperResponse(prompt, currentCustomization);
-        if (directResponse) {
-            console.log(`[AI TRACE ${traceId}] /api/ai/chat-edit:success`, {
-                outcome: directResponse.outcome,
-                actionTypes: [],
-                changeCategories: directResponse.patch ? ['toppers'] : [],
-                icingBaseBefore,
-                icingBaseRequested: undefined,
-                cakeFamilyBefore,
-                visualRequested: directResponse.outcome === 'design_change',
-                resolution: 'deterministic-printout-topper',
-                durationMs: Date.now() - startedAt,
-            });
-            return NextResponse.json(directResponse);
-        }
-
         const parts: Array<
             | { text: string }
             | { inlineData: { data: string; mimeType: string } }
@@ -423,7 +346,7 @@ export async function POST(req: NextRequest) {
 
         const aiClient = getAI(req);
         const response = await aiClient.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3.1-flash-lite',
             contents: [{ role: 'user', parts }],
             config: {
                 systemInstruction,
