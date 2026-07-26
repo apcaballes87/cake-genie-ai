@@ -90,9 +90,13 @@ export function buildSearchAnalysisResponseSchema(typeEnums: TypeEnums) {
             required: process.env.ENFORCE_SIDE_COLOR === 'true' ? ['side'] : [],
           },
           drip: { type: Type.BOOLEAN }, border_top: { type: Type.BOOLEAN },
-          border_base: { type: Type.BOOLEAN }, gumpasteBaseBoard: { type: Type.BOOLEAN },
+          border_base: { type: Type.BOOLEAN },
+          gumpasteBaseBoard: {
+            type: Type.BOOLEAN,
+            description: 'REQUIRED. True only when visual construction cues show that the cake board surface is fully or mostly covered by one continuous fondant/gumpaste layer. Board color alone does not decide this.',
+          },
         },
-        required: ['base', 'color_type', 'colors'],
+        required: ['base', 'color_type', 'colors', 'gumpasteBaseBoard'],
       },
       keyword: { type: Type.STRING },
       alt_text: {

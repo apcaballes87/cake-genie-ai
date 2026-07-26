@@ -120,6 +120,19 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('Describe the fulfillable result as an edible photo portrait on top, not as a sculpted fondant portrait.');
   });
 
+  it('detects continuous gumpaste-covered baseboards without excluding colors', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(prompt).toContain('Judge the board from visible construction cues in the image.');
+    expect(prompt).toContain('do not use the board color as the deciding');
+    expect(prompt).toContain('The covering may be white, ivory, gold, silver, black, pastel, or any other');
+    expect(prompt).toContain('White, gold, and silver do NOT automatically mean a standard uncovered');
+    expect(prompt).toContain('reflective foil cake drum');
+    expect(prompt).toContain('When evidence of a smooth continuous covering is visible, prefer');
+    expect(prompt).toContain('Whenever `gumpasteBaseBoard` is true, set');
+    expect(prompt).not.toContain('Only true if board is colored (NOT white/gold/silver)');
+  });
+
   it('keeps edible 2D logo craft classification in the fallback prompt source', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 

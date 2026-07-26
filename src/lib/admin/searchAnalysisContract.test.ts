@@ -45,6 +45,8 @@ describe('search analysis contract', () => {
     expect(schema.properties.main_toppers.items.properties.type.enum).not.toContain('icing_doodle_intricate');
     expect(schema.properties.support_elements.items.properties.type.enum).toContain('icing_doodle_intricate_side');
     expect(schema.properties).not.toHaveProperty('is_tall_proportion');
+    expect(schema.properties.icing_design.required).toContain('gumpasteBaseBoard');
+    expect(schema.properties.icing_design.properties.gumpasteBaseBoard.type).toBeDefined();
   });
 
   it('keeps the model-provided thickness and only normalizes coordinates', () => {

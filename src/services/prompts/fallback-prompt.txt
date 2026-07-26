@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.28 Version - Semi-3D Portrait Relief Fulfillment**
+**v3.29 Version - Reliable Gumpaste-Covered Baseboard Detection**
 ═══════════════════════════════════════════════════════════════════════════════
 
 ## ROLE
@@ -536,6 +536,7 @@ Common `edible_3d_ordinary` molded items include:
 - crowns
 - plaques
 - medallions
+- mermaid tail
 - simple molded animals or icons without detailed sculpted bodies
 
 Use `edible_3d_complex` only when the item requires clear hand-sculpted
@@ -580,6 +581,7 @@ Classify as `edible_3d_ordinary` if ALL of these are true:
 - circle or sphere shaped with simple smiley face.
 - rainbow toppers, 3d clouds, 3d spherical sun
 - Simple non-flower shapes such as balls, cubes, clouds, peaches, and plain bows
+- mermaid tail
 - Do NOT include flowers here; use `edible_flowers`
 
 
@@ -1227,6 +1229,24 @@ If the side is NOT visible (obscured, single-angle shot, or fully covered by dec
 `gumpasteBaseBoard: true` means the actual cake board surface itself is fully
 or mostly covered/wrapped with a smooth sheet of fondant/gumpaste.
 
+Judge the board from visible construction cues in the image. Do not require
+certainty about the material and do not use the board color as the deciding
+factor.
+
+Set `gumpasteBaseBoard: true` when the visible board surface between the cake
+and the outer board edge appears to be one deliberate, continuous, smooth
+fondant/gumpaste covering. Strong visual cues include:
+- a broad, uniform matte or softly finished surface extending around the cake
+- a deliberate matching or contrasting board color rather than an exposed
+  commercial cake-board finish
+- a smooth covered top surface and, when visible, a neatly finished or wrapped
+  outer edge
+
+The covering may be white, ivory, gold, silver, black, pastel, or any other
+color. White, gold, and silver do NOT automatically mean a standard uncovered
+board. A metallic-colored fondant/gumpaste covering is still
+`gumpasteBaseBoard: true` when it has the smooth continuous covered appearance.
+
 Do NOT set `gumpasteBaseBoard: true` just because there are gumpaste/fondant
 letters, flowers, stars, figurines, messages, ribbons, pearls, or decorations
 sitting on top of a normal cake board.
@@ -1241,13 +1261,21 @@ Base-board messages are not base-board covering:
   not gumpasteBaseBoard
 
 Set `gumpasteBaseBoard: true` only when the board surface itself appears
-covered as one continuous fondant/gumpaste layer, usually with a smooth colored
-surface extending around the cake.
+covered as one continuous fondant/gumpaste layer. The covering can match the
+cake color and does not need to be brightly colored.
 
-If the board is plain white, silver, gold, cardboard, acrylic, or a standard
-cake board, set `gumpasteBaseBoard: false`.
+Set `gumpasteBaseBoard: false` when the visible board instead looks like bare
+cardboard, acrylic, wood, a reflective foil cake drum, a printed commercial
+cake board, or another standard uncovered board. A colored board is still
+false when it visibly has one of these uncovered finishes.
 
-When uncertain, default to `gumpasteBaseBoard: false`.
+When evidence of a smooth continuous covering is visible, prefer
+`gumpasteBaseBoard: true`. Default to false only when the board is not visible
+enough to assess or no visual covering cues are present.
+
+Whenever `gumpasteBaseBoard` is true, set
+`colors.gumpasteBaseBoardColor` to the closest approved palette hex for the
+dominant visible board-covering color.
 
 ---
 
@@ -1425,7 +1453,7 @@ Use ONLY these exact hex codes:
     - Cardstock is VERY RARE - only solid-color glitter items with NO printed graphics
     - Acrylic toppers and wooden toppers → **CARDSTOCK**
 5. **CROWNS/TIARAS:** Classify physical 3D crowns as **TOY**, never cardstock.
-6. **GUMPASTE BOARD:** Only true if board is colored (NOT white/gold/silver). Set colors.gumpasteBaseBoardColor
+6. **GUMPASTE BOARD:** Use visible continuous covering cues, not color. White/gold/silver can be true; reflective foil, acrylic, cardboard, and standard uncovered boards are false. When true, set colors.gumpasteBaseBoardColor.
 7. **Colors:** Use EXACT HEX CODES from palette, NOT color names
 8. **Description:** Do NOT mention material type in the description field
 
