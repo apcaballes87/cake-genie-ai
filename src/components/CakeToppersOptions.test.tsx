@@ -6,8 +6,8 @@ import { CakeToppersOptions } from './CakeToppersOptions';
 import type { MainTopperUI, SupportElementUI } from '@/types';
 
 vi.mock('./TopperCard', () => ({
-    TopperCard: ({ item, type }: { item: { description: string }, type: 'topper' | 'element' }) => (
-        <div data-testid={`${type}-card`}>{item.description}</div>
+    TopperCard: ({ item, type, expanded }: { item: { description: string }, type: 'topper' | 'element', expanded: boolean }) => (
+        <div data-testid={`${type}-card`} data-expanded={expanded}>{item.description}</div>
     ),
 }));
 
@@ -105,5 +105,15 @@ describe('CakeToppersOptions', () => {
         expect(screen.queryByText('Main Toppers (1)')).not.toBeInTheDocument();
         expect(screen.queryByText('Support Elements (1)')).not.toBeInTheDocument();
         expect(screen.getByTestId('element-card')).toHaveTextContent('Ferrero cluster');
+    });
+
+    it('expands a requested topper card when opening its editor from a notification', () => {
+        renderCakeToppersOptions({
+            visibleSections: 'main',
+            expandedItemId: 'topper-1',
+            mainToppers: [createMainTopper()],
+        });
+
+        expect(screen.getByTestId('topper-card')).toHaveAttribute('data-expanded', 'true');
     });
 });

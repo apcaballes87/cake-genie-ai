@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { MainTopperUI, SupportElementUI } from '@/types';
-import { derivePrintoutConversionSummary, hasPrintoutConversion } from './printoutConversion';
+import { derivePrintoutConversionSummary, getPrintoutConversionTarget, hasPrintoutConversion } from './printoutConversion';
 
 const topper = (original_type: MainTopperUI['original_type'], type: MainTopperUI['type'] = 'printout', isEnabled = true) => ({
     id: original_type,
@@ -64,5 +64,26 @@ describe('derivePrintoutConversionSummary', () => {
 
         expect(summary).toEqual({ toy: false, ediblePhoto: false, cardstock: false });
         expect(hasPrintoutConversion(summary)).toBe(false);
+    });
+
+    it('returns the converted toy topper first so its editor can open from the notice', () => {
+        const target = getPrintoutConversionTarget([
+            topper('cardstock'),
+            topper('toy'),
+        ]);
+
+        expect(target).toEqual(expect.objectContaining({
+            itemCategory: 'topper',
+            item: expect.objectContaining({ id: 'toy' }),
+        }));
+    });
+
+    it('falls back to the converted edible-photo support element when no main topper matches', () => {
+        const target = getPrintoutConversionTarget([], [support('edible_photo_side')]);
+
+        expect(target).toEqual(expect.objectContaining({
+            itemCategory: 'element',
+            item: expect.objectContaining({ id: 'edible_photo_side' }),
+        }));
     });
 });

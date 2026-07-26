@@ -45,6 +45,7 @@ interface StickyAddToCartBarProps {
     ediblePhotoAddonNote?: boolean;
     isBlurred?: boolean;
     printoutConversions?: PrintoutConversionSummary;
+    onPrintoutNotificationClick?: () => void;
     onAddToCartUnavailableVisible?: (reason: AddToCartBlockReason) => void;
     onAddToCartBlockedClick?: (reason: AddToCartBlockReason) => void;
     onRetryClick?: () => void;
@@ -73,6 +74,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     ediblePhotoAddonNote = false,
     isBlurred = false,
     printoutConversions,
+    onPrintoutNotificationClick,
     onAddToCartUnavailableVisible,
     onAddToCartBlockedClick,
     onRetryClick,
@@ -324,8 +326,11 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
 
         return (
             <div data-printout-notification className="h-[29.5px] translate-y-[8px] bg-red-100 rounded-t-2xl">
-                <div
-                    className="h-full max-w-4xl mx-auto flex items-start justify-center gap-2 px-1 text-red-800 text-[10px] max-md:text-[9px] sm:text-[11px] font-bold"
+                <button
+                    type="button"
+                    onClick={onPrintoutNotificationClick}
+                    aria-label="View the topper changed to printout"
+                    className="h-full w-full max-w-4xl mx-auto flex items-start justify-center gap-2 px-1 text-red-800 text-[10px] max-md:text-[9px] sm:text-[11px] font-bold cursor-pointer hover:bg-red-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-inset"
                     style={notificationBodyStyle}
                 >
                     <span>⚠️</span>
@@ -336,7 +341,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                             printoutConversions?.cardstock && 'Cardstock',
                         ].filter(Boolean).join(', ')} changed to printout
                     </span>
-                </div>
+                </button>
             </div>
         );
     };

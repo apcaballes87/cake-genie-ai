@@ -135,7 +135,7 @@ import {
     getLeadTimeLabel,
 } from '@/lib/commerce/machineReadable';
 import { buildCustomizerAgentModel } from '@/lib/commerce/customizerAgentModel';
-import { derivePrintoutConversionSummary, hasPrintoutConversion } from './printoutConversion';
+import { derivePrintoutConversionSummary, getPrintoutConversionTarget, hasPrintoutConversion } from './printoutConversion';
 import { buildAiChatImagePrompt, buildAiChatVisualChangeSummary } from './aiChatImagePrompt';
 import {
     validateAiChatEditResponse,
@@ -3052,6 +3052,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     const [wasUpdating, setWasUpdating] = useState(false);
     // --- UI State ---
     const [activeTopperSection, setActiveTopperSection] = useState<'main' | 'support' | null>(null);
+    const [expandedTopperItemId, setExpandedTopperItemId] = useState<string | null>(null);
 
     // Draft state snapshot for Step 2, 3, 4
     const [draftSnapshot, setDraftSnapshot] = useState<{
@@ -3087,6 +3088,21 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         setActiveTopperSection(section);
         setActiveCustomization('toppers');
     }, []);
+
+    const openPrintoutConversionTarget = useCallback(() => {
+        const target = getPrintoutConversionTarget(mainToppers, supportElements);
+        if (!target) return;
+
+        if (target.itemCategory === 'topper') {
+            setSelectedItem({ ...target.item, itemCategory: 'topper' });
+            setActiveTopperSection('main');
+        } else {
+            setSelectedItem({ ...target.item, itemCategory: 'element' });
+            setActiveTopperSection('support');
+        }
+        setExpandedTopperItemId(target.item.id);
+        setActiveCustomization('toppers');
+    }, [mainToppers, supportElements]);
 
     const hasTypeChanges = useMemo(() => {
         if (!analysisResult?.cakeType || !cakeInfo?.type) return false;
@@ -4391,6 +4407,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                         }
                         setActiveCustomization(null);
                         setActiveTopperSection(null);
+                        setExpandedTopperItemId(null);
                         setSelectedItem(null);
                     }}
 
@@ -4455,6 +4472,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                 ? selectedItem
                                 : null
                         }
+                        expandedTopperItemId={expandedTopperItemId}
                     />
 
                     <CustomizingPhotosPanel
@@ -4529,6 +4547,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                     cakeInfo={cakeInfo}
                     availability={hideStickyBar ? undefined : availabilityType}
                     printoutConversions={hideStickyBar ? undefined : printoutConversions}
+                    onPrintoutNotificationClick={openPrintoutConversionTarget}
                     hasPendingDesignChanges={hideStickyBar ? false : hasPendingVisualChanges}
                     onApplyChangesClick={handleApplyPendingDesignChanges}
                     isApplyingChanges={hideStickyBar ? false : isUpdatingDesign}

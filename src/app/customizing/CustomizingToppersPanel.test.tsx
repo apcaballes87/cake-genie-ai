@@ -11,12 +11,14 @@ vi.mock('@/components/CakeToppersOptions', () => ({
         visibleSections,
         isAnalyzing,
         markerMap,
+        expandedItemId,
     }: {
         mainToppers: MainTopperUI[];
         supportElements: SupportElementUI[];
         visibleSections?: 'all' | 'main' | 'support';
         isAnalyzing?: boolean;
         markerMap: Map<string, string>;
+        expandedItemId?: string | null;
     }) => (
         <div>
             <span>{mainToppers.length} main toppers</span>
@@ -24,6 +26,7 @@ vi.mock('@/components/CakeToppersOptions', () => ({
             <span>{visibleSections ?? 'all'}</span>
             <span>{isAnalyzing ? 'analyzing' : 'ready'}</span>
             <span>{markerMap.size} markers</span>
+            <span>{expandedItemId ?? 'no expanded topper'}</span>
         </div>
     ),
 }));
@@ -153,5 +156,14 @@ describe('CustomizingToppersPanel', () => {
         expect(screen.getByText('0 main toppers')).toBeInTheDocument();
         expect(screen.getByText('1 support elements')).toBeInTheDocument();
         expect(screen.getByText('support')).toBeInTheDocument();
+    });
+
+    it('forwards the requested expanded topper to the detail cards', () => {
+        const props = buildProps();
+        props.expandedTopperItemId = 'topper-1';
+
+        render(<CustomizingToppersPanel {...props} />);
+
+        expect(screen.getByText('topper-1')).toBeInTheDocument();
     });
 });

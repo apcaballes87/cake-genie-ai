@@ -149,6 +149,18 @@ describe('StickyAddToCartBar', () => {
         expect(printoutWrapper?.compareDocumentPosition(availabilityWrapper as Node) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
 
+    it('opens the converted topper editor when the printout notification is clicked', () => {
+        const props = buildProps();
+        const onPrintoutNotificationClick = vi.fn();
+        props.printoutConversions = { toy: true, ediblePhoto: false, cardstock: false };
+        props.onPrintoutNotificationClick = onPrintoutNotificationClick;
+
+        render(<StickyAddToCartBar {...props} />);
+
+        fireEvent.click(screen.getByRole('button', { name: 'View the topper changed to printout' }));
+        expect(onPrintoutNotificationClick).toHaveBeenCalledTimes(1);
+    });
+
     it('does not render a printout warning when the conversion summary is empty', () => {
         const props = buildProps();
         props.printoutConversions = { toy: false, ediblePhoto: false, cardstock: false };

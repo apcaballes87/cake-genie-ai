@@ -1,5 +1,5 @@
 'use client';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { MainTopperUI, SupportElementUI } from '@/types';
 
 import { ChevronDownIcon } from './icons';
@@ -20,6 +20,7 @@ interface CakeToppersOptionsProps {
     visibleSections?: 'all' | 'main' | 'support';
     onSectionClick?: (section: 'main' | 'support') => void;
     isCupcake?: boolean;
+    expandedItemId?: string | null;
 }
 
 import { TopperCard } from './TopperCard';
@@ -38,7 +39,8 @@ export const CakeToppersOptions: React.FC<CakeToppersOptionsProps> = ({
     mode = 'detailed',
     visibleSections = 'all',
     onSectionClick,
-    isCupcake = false
+    isCupcake = false,
+    expandedItemId: requestedExpandedItemId = null,
 }) => {
     const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
     const [isMainExpanded, setIsMainExpanded] = useState(true);
@@ -46,6 +48,10 @@ export const CakeToppersOptions: React.FC<CakeToppersOptionsProps> = ({
     const showMainSection = visibleSections === 'all' || visibleSections === 'main';
     const showSupportSection = visibleSections === 'all' || visibleSections === 'support';
     const showDetailedSectionHeaders = visibleSections === 'all';
+
+    useEffect(() => {
+        setExpandedItemId(requestedExpandedItemId);
+    }, [requestedExpandedItemId]);
 
     const mainTopperCount = useMemo(
         () => mainToppers.reduce((sum, topper) => sum + (topper.quantity || 1), 0),
