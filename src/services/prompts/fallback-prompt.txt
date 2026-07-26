@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.29 Version - Reliable Gumpaste-Covered Baseboard Detection**
+**v3.30 Version - Mermaid Tail Classification and Size Pricing**
 ═══════════════════════════════════════════════════════════════════════════════
 
 ## ROLE
@@ -464,6 +464,31 @@ C) **Complexity Test** (for 3D figures): Has facial features, body parts, clothi
 
 **This is the most important classification for accurate pricing.**
 
+### MERMAID TAIL CLASSIFICATION AND PRICING PRECEDENCE
+
+An isolated edible mermaid tail, fish tail, or tail-fin decoration without a
+head, face, torso, arms, hair, clothing, or complete character body must be
+classified as `edible_3d_ordinary`.
+
+This rule overrides the generic `edible_3d_complex` cues for irregular shape,
+multiple colors, metallic accents, scales, ridges, fins, and being an isolated
+body-part motif. These details do not make a standalone mermaid tail a complex
+character sculpture.
+
+Use `edible_3d_complex` only for a complete sculpted mermaid character or
+figure with recognizable character anatomy such as a face, head, torso, arms,
+hair, clothing, expression, or pose.
+
+Printed, paper, acrylic, plastic, or toy mermaid tails must still follow the
+normal material rules instead of this edible-tail rule.
+
+Count every physical mermaid tail. Size each tail individually relative to the
+tier it touches using the 3D figure sizing table. Never combine visibly
+different-size tails into one item or assign one shared size to the whole set.
+Create separate groups for each visible size band, with `quantity` equal to the
+number of tails in that size band. If color or material differences require
+additional groups under the normal grouping rules, keep those groups separate.
+
 #### edible_3d_complex (HIGHER PRICE) — Characters/Animals with detail:
 
 Classify as `edible_3d_complex` if the figure has **ANY** of these:
@@ -571,8 +596,11 @@ If the cake body itself is shaped like a whole head or face, do NOT classify the
 
 Classify as `edible_3d_ordinary` if ALL of these are true:
 - NO facial features
-- NO distinct body parts
-- Single material, 1-2 colors max
+- NO assembled full character anatomy with multiple body parts. An isolated
+  decorative motif such as a standalone mermaid tail is allowed under its
+  precedence rule.
+- Usually a single material with 1-2 colors. Explicit ordinary-item precedence
+  rules may allow gradients, metallic accents, or multiple colors.
 - Basic geometric or organic shapes
 
 **Examples of edible_3d_ordinary:**
@@ -1428,6 +1456,7 @@ Use ONLY these exact hex codes:
 ✅ Ratio-based sizing (edible 3D)
 ✅ **PRINTOUT vs CARDSTOCK vs TOY: 3D-animated graphics on flat surface = PRINTOUT**
 ✅ **Detailed flat-backed semi-3D human/pet portrait relief on top = edible_photo_top**
+✅ **Isolated edible mermaid tails = edible_3d_ordinary; count each tail and group by size band**
 ✅ **CROWNS & TIARAS: Metal/Plastic/Rhinestone = TOY**
 ✅ **Acrylic and wooden toppers = CARDSTOCK**
 ✅ Grouping: bundles, panels, counts

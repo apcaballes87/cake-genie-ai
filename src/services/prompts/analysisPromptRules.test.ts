@@ -88,6 +88,24 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).not.toContain('If the doodle is intricate, keep `type: "icing_doodle"`');
   });
 
+  it('classifies isolated edible mermaid tails as ordinary and groups them by size', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(prompt).toContain('MERMAID TAIL CLASSIFICATION AND PRICING PRECEDENCE');
+    expect(prompt).toContain('complete character body must be');
+    expect(prompt).toContain('classified as `edible_3d_ordinary`');
+    expect(prompt).toContain('overrides the generic `edible_3d_complex` cues for irregular shape');
+    expect(prompt).toContain('multiple colors, metallic accents, scales, ridges, fins');
+    expect(prompt).toContain('Use `edible_3d_complex` only for a complete sculpted mermaid character');
+    expect(prompt).toContain('Printed, paper, acrylic, plastic, or toy mermaid tails must still follow the');
+    expect(prompt).toContain('Count every physical mermaid tail.');
+    expect(prompt).toContain('Never combine visibly');
+    expect(prompt).toContain('Create separate groups for each visible size band');
+    expect(prompt).toContain('An isolated');
+    expect(prompt).toContain('decorative motif such as a standalone mermaid tail is allowed under its');
+    expect(prompt).not.toContain('- NO distinct body parts');
+  });
+
   it('keeps candle classification in the fallback prompt source', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
