@@ -106,9 +106,9 @@ const buildProps = (): React.ComponentProps<typeof CustomizingStepSummarySection
     openTopperSheet: vi.fn(),
     onCakeInfoChange: vi.fn(),
     onIcingTypeChange: vi.fn(),
+    onIcingDesignChange: vi.fn(),
     icingTypePriceDeltas: { soft_icing: null, fondant: 600 },
     addOnPricing: 0,
-    hasTopperChanges: false,
 });
 
 describe('CustomizingStepSummarySections', () => {
@@ -223,7 +223,6 @@ describe('CustomizingStepSummarySections', () => {
 
     it('shows only the first 3 decoration items and uses show more for overflow', () => {
         const props = buildProps();
-        props.hasTopperChanges = true;
         props.mainToppers = [
             {
                 id: 'topper-1',
@@ -332,14 +331,9 @@ describe('CustomizingStepSummarySections', () => {
             },
         ];
 
-        const { rerender } = render(<CustomizingStepSummarySections {...props} />);
+        render(<CustomizingStepSummarySections {...props} />);
         fireEvent.click(screen.getByRole('button', { name: /Edit Design Details/i }));
-        const applyButton = screen.getByRole('button', { name: 'Apply Design Changes' });
-        expect(applyButton).toBeDisabled();
-
-        props.hasTopperChanges = true;
-        rerender(<CustomizingStepSummarySections {...props} />);
-        expect(screen.getByRole('button', { name: 'Apply Design Changes' })).toBeEnabled();
+        expect(screen.queryByRole('button', { name: 'Apply Design Changes' })).not.toBeInTheDocument();
         expect(screen.getByText('Cake Toppers')).toHaveClass(
             'text-[10px]',
             'max-md:text-[9px]',
@@ -409,11 +403,8 @@ describe('CustomizingStepSummarySections', () => {
         expect(cakeTypeLabel).toBeInTheDocument();
     });
 
-    it('calls onDisableMask and onUpdateDesign when (fix icing color) button is clicked', () => {
+    it('does not offer a manual AI icing-color action', () => {
         const props = buildProps();
-        props.onDisableMask = vi.fn();
-        props.onUpdateDesign = vi.fn();
-        props.isMaskActive = true;
 
         render(<CustomizingStepSummarySections {...props} />);
 
@@ -421,21 +412,28 @@ describe('CustomizingStepSummarySections', () => {
         const softIcingBtn = screen.getByRole('button', { name: /Soft Icing/i });
         fireEvent.click(softIcingBtn);
 
-        // Click the "Fix Icing Color" button
-        const fixBtn = screen.getByRole('button', { name: /Fix Icing Color/i });
-        fireEvent.click(fixBtn);
+        expect(screen.queryByRole('button', { name: /Fix Icing Color/i })).not.toBeInTheDocument();
+    });
 
-        expect(props.onDisableMask).toHaveBeenCalled();
-        expect(props.onUpdateDesign).toHaveBeenCalledWith(
-            undefined,
-            expect.objectContaining({ hex: '#f5deb3' })
-        );
+    it('saves an icing swatch change without applying the image', () => {
+        const props = buildProps();
+
+        render(<CustomizingStepSummarySections {...props} />);
+        fireEvent.click(screen.getByRole('button', { name: /Soft Icing/i }));
+        fireEvent.click(screen.getByTitle('red'));
+
+        expect(props.onIcingDesignChange).toHaveBeenCalledWith(expect.objectContaining({
+            colors: expect.objectContaining({
+                top: '#EF4444',
+                side: '#EF4444',
+            }),
+        }));
+        expect(screen.queryByRole('button', { name: /Fix Icing Color|Apply Design Changes/i })).not.toBeInTheDocument();
     });
 
     it('hides the fix icing color button and shows a wait notice during background edits', () => {
         const props = buildProps();
         props.isStudioBackgroundEditingPending = true;
-        props.isMaskActive = true;
 
         render(<CustomizingStepSummarySections {...props} />);
 

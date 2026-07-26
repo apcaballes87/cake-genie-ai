@@ -13,16 +13,12 @@ import {
     THICKNESS_OPTIONS_MAP,
     FLAVOR_OPTIONS
 } from '@/constants';
-import { getIcingBucketName } from '@/utils/colorUtils';
 import { getIcingImage, type IcingImageType } from '@/utils/icingImage';
-import { MagicSparkleIcon } from '@/components/icons';
 import { roundDownToNearest99 } from '@/lib/utils/pricing';
 import type { BasePriceInfo, CakeInfoUI, CakeMessageUI, ClusteredMarker, IcingDesignUI, IcingGroup, MainTopperType, MainTopperUI, SupportElementType, SupportElementUI } from '@/types';
 
 type LayoutMode = 'mobile' | 'desktop';
 type StepOneItemKind = 'type' | 'size' | 'height' | 'flavor' | 'icing';
-type MaskStatus = 'idle' | 'generating' | 'ready' | 'error';
-
 interface CustomizingStepSummarySectionsProps {
     layout: LayoutMode;
     cakeInfo: CakeInfoUI | null;
@@ -60,31 +56,11 @@ interface CustomizingStepSummarySectionsProps {
     hideStepOne?: boolean;
     hideStepFour?: boolean;
     photoStepNode?: React.ReactNode;
-    onUpdateDesign?: (instruction?: string, colorMeta?: { hex: string; name: string }) => void;
     isUpdatingDesign?: boolean;
-    hasTopperChanges?: boolean;
     dirtyFields?: Set<string>;
-    originalCakeType?: string | null;
-    /** When provided, the main color swatch row uses the mask-based instant recolor
-     *  instead of calling onUpdateDesign (Gemini) for icing body color changes. */
-    onIcingColorRecolor?: (hex: string, name: string, nextDesign?: IcingDesignUI) => void;
-    /** When provided, a "Recolor Icing" button is shown at the end of the color swatch row
-     *  to let users regenerate the icing mask for better quality. */
-    onRegenerateMask?: () => void;
-    /** Disables the mask overlay, reverting to the original un-recolored image.
-     *  Called when the user clicks the same color again (toggle), the main circle, or the default color. */
-    onDisableMask?: () => void;
-    onToggleMask?: () => void;
-    /** Whether the mask recolor overlay is currently active (showing a recolored image). */
-    isMaskActive?: boolean;
-    /** When true, shows a pulsing 'Loading Different Icing Colors' hint below the color swatches
-     *  while the AI icing mask is being generated silently in the background. */
-    isGeneratingMask?: boolean;
     /** Disables swatch clicks while the studio background edit is in flight (avoids stale
      *  recolors on top of a pre-existing studio edit). */
     isStudioBackgroundEditingPending?: boolean;
-    /** Status of the mask overlay; used to render a hint (pulse / error) and gate swatch clicks. */
-    maskStatus?: MaskStatus;
     isCupcake?: boolean;
 }
 
@@ -287,20 +263,10 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     hideStepOne,
     hideStepFour,
     photoStepNode,
-    onUpdateDesign,
     isUpdatingDesign,
-    hasTopperChanges = false,
     dirtyFields,
-    originalCakeType,
-    onIcingColorRecolor,
-    onRegenerateMask,
-    onDisableMask,
-    onToggleMask,
-    isMaskActive = false,
-    isGeneratingMask = false,
     isStudioBackgroundEditingPending = false,
     isCupcake = false,
-    maskStatus = 'idle',
 }: CustomizingStepSummarySectionsProps) {
     // Default position when "+ Add" is clicked: Bento → front (side), all others → base_board
     const [showIcingChoice, setShowIcingChoice] = React.useState(true);
@@ -309,13 +275,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     const colorPickerRef = React.useRef<HTMLDivElement | null>(null);
 
     const currentColorHex = icingDesign?.colors?.side || icingDesign?.colors?.top || '#FFFFFF';
-
-    const handleFixIcingColor = () => {
-        onDisableMask?.();
-        const currentColorName = getIcingBucketName(currentColorHex);
-        onUpdateDesign?.(undefined, { hex: currentColorHex, name: currentColorName || '' });
-        setIsColorPickerOpen(false);
-    };
 
     React.useEffect(() => {
         const handleClickOutside = (event: MouseEvent | TouchEvent) => {
@@ -596,43 +555,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
             </div>
         );
     })() : null;
-    const cakeTypeUpdateNode = cakeInfo ? (() => {
-        const normalizeType = (type: string) => type.replace(/\s+Fondant$/i, '').trim();
-        const currentBaseType = normalizeType(cakeInfo.type);
-        const originalBaseType = originalCakeType ? normalizeType(originalCakeType) : null;
-        const isTypeDirty = originalBaseType && currentBaseType !== originalBaseType;
-        const isUpdateableType = ['Bento', '1 Tier', 'Square', 'Rectangle'].includes(currentBaseType);
-
-        if (!isTypeDirty || !isUpdateableType) {
-            return null;
-        }
-
-        return (
-            <div className="mt-3 px-1 animate-in fade-in slide-in-from-top-2 duration-300 flex flex-col items-center">
-                <button
-                    onClick={() => onUpdateDesign?.()}
-                    disabled={isUpdatingDesign}
-                    className="w-auto px-8 py-2 rounded-full genie-btn-primary flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.98] group relative overflow-hidden"
-                >
-                    <div className="absolute inset-0 bg-linear-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
-                    {isUpdatingDesign ? (
-                        <>
-                            <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            <span className="font-bold text-[10px] max-md:text-[9px] tracking-tight uppercase">Updating...</span>
-                        </>
-                    ) : (
-                        <>
-                            <MagicSparkleIcon className="w-3.5 h-3.5 text-white group-hover:rotate-12 transition-transform" />
-                            <span className="font-bold text-[10px] max-md:text-[9px] tracking-tight uppercase italic whitespace-nowrap">Update design changes</span>
-                        </>
-                    )}
-                </button>
-                <p className="text-[9px] text-slate-400 mt-1.5 text-center font-medium italic opacity-80">
-                    ✨ This will update the cake shape/type using AI
-                </p>
-            </div>
-        );
-    })() : null;
     const icingSummaryItems = icingDesign && cakeInfo ? [
         { id: 'icing-edit-drip', description: 'Drip', label: 'Drip', alt: 'Drip', imageType: 'drip' as const, group: 'drip' as IcingGroup, enabled: icingDesign.drip },
         { id: 'icing-edit-borderTop', description: 'Top Border', label: 'Top Border', alt: 'Top Border', imageType: 'borderTop' as const, group: 'border_top' as IcingGroup, enabled: icingDesign.border_top },
@@ -752,19 +674,9 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                             <div className="flex items-center gap-3.5">
                                                 {isStudioBackgroundEditingPending ? (
                                                     <p className="max-w-[150px] text-right text-[10px] font-semibold leading-snug text-red-600">
-                                                        Please wait while we're editing the background.
+                                                        Please wait while we&apos;re editing the background.
                                                     </p>
-                                                ) : (
-                                                    <button
-                                                        type="button"
-                                                        onClick={handleFixIcingColor}
-                                                        disabled={isUpdatingDesign || maskStatus === 'generating' || !isMaskActive}
-                                                        className="px-4 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider bg-purple-600 text-white hover:bg-purple-700 transition-all shadow-md hover:shadow-lg shadow-purple-600/25 hover:shadow-purple-600/35 disabled:opacity-50 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed active:scale-95"
-                                                        title="Permanently recolor using AI image edit"
-                                                    >
-                                                        Fix Icing Color
-                                                    </button>
-                                                )}
+                                                ) : null}
                                                 <button 
                                                     type="button"
                                                     onClick={() => setIsColorPickerOpen(false)}
@@ -776,59 +688,20 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2 px-1 pb-0.5 md:gap-3">
-                                            {/* Color toggle switch — ON shows chosen color, OFF shows gray */}
-                                            {onDisableMask && onIcingColorRecolor ? (() => {
-                                                const activeColor = icingDesign?.colors?.side || icingDesign?.colors?.top || '#FFFFFF';
-                                                const handleToggle = () => {
-                                                     if (onToggleMask) {
-                                                         onToggleMask();
-                                                     } else if (isMaskActive) {
-                                                         onDisableMask?.();
-                                                     } else {
-                                                         const colorName = getIcingBucketName(activeColor);
-                                                         onIcingColorRecolor?.(activeColor, colorName);
-                                                     }
-                                                 };
-                                                const isToggleDisabled = isUpdatingDesign || isStudioBackgroundEditingPending || maskStatus === 'generating';
-                                                return (
-                                                    <div className="flex flex-col items-center gap-0.5 shrink-0">
-                                                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                                                            Icing
-                                                        </span>
-                                                        <button
-                                                            type="button"
-                                                            onClick={handleToggle}
-                                                            disabled={isToggleDisabled}
-                                                            aria-label={isMaskActive ? 'Turn off icing recolor' : 'Turn on icing recolor'}
-                                                            title={isMaskActive ? 'Turn off icing recolor' : 'Turn on icing recolor'}
-                                                            className={`relative w-[52px] h-[28px] md:w-[60px] md:h-[32px] rounded-full shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-purple-300 ${isToggleDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                            style={{ backgroundColor: isMaskActive ? activeColor : '#cbd5e1' }}
-                                                        >
-                                                            {/* Knob */}
-                                                            <span
-                                                                className="absolute top-[3px] md:top-[4px] w-[22px] h-[22px] md:w-[24px] md:h-[24px] rounded-full bg-white shadow transition-all duration-300"
-                                                                style={{ left: isMaskActive ? 'calc(100% - 25px)' : '3px' }}
-                                                            />
-                                                        </button>
-                                                    </div>
-                                                );
-                                            })() : (
-                                                <div className="flex flex-col items-center gap-0.5 shrink-0">
-                                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Main</span>
-                                                    <div
-                                                        className="md:w-10 md:h-10 w-[34px] h-[34px] rounded-full border-2 border-white shadow-md ring-1 ring-slate-100 shrink-0"
-                                                        style={{ backgroundColor: icingDesign?.colors?.side || icingDesign?.colors?.top || '#FFFFFF' }}
-                                                    />
-                                                </div>
-                                            )}
+                                            <div className="flex flex-col items-center gap-0.5 shrink-0">
+                                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Main</span>
+                                                <div
+                                                    className="md:w-10 md:h-10 w-[34px] h-[34px] rounded-full border-2 border-white shadow-md ring-1 ring-slate-100 shrink-0"
+                                                    style={{ backgroundColor: icingDesign?.colors?.side || icingDesign?.colors?.top || '#FFFFFF' }}
+                                                />
+                                            </div>
 
                                             <div className="w-px md:h-10 h-[34px] bg-slate-100 shrink-0" />
 
                                             <div className="flex-1 overflow-x-auto scrollbar-hide">
                                                 <div className="flex gap-1 py-0.5 px-1">
                                                     {THEME_COLORS.map((color) => {
-                                                        const currentColorName = getIcingBucketName(currentColorHex);
-                                                        const isSwatchDisabled = isUpdatingDesign || isStudioBackgroundEditingPending || maskStatus === 'generating';
+                                                        const isSwatchDisabled = isUpdatingDesign || isStudioBackgroundEditingPending;
 
                                                         return (
                                                             <button
@@ -846,14 +719,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                                                             },
                                                                         };
                                                                         onIcingDesignChange?.(nextDesign);
-                                                                    }
-                                                                    if (onIcingColorRecolor) {
-                                                                        onIcingColorRecolor(color.hex, color.name, nextDesign);
-                                                                    } else {
-                                                                        const instruction = currentColorName
-                                                                            ? `Change the dominant color of the cake from ${currentColorName} to ${color.name}.`
-                                                                            : `Change the dominant color theme of the cake to ${color.name}.`;
-                                                                        onUpdateDesign?.(instruction, { hex: color.hex, name: color.name });
                                                                     }
                                                                     setIsColorPickerOpen(false);
                                                                 }}
@@ -875,24 +740,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                                             </button>
                                                         );
                                                     })}
-                                                    {onRegenerateMask && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={onRegenerateMask}
-                                                            disabled={isUpdatingDesign || isStudioBackgroundEditingPending || maskStatus === 'generating'}
-                                                            className={`group relative flex flex-col items-center gap-1 shrink-0 transition-transform active:scale-95 ${isUpdatingDesign || isStudioBackgroundEditingPending || maskStatus === 'generating' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                            title="Recolor icing"
-                                                        >
-                                                            <div className="md:w-8 md:h-8 w-[27px] h-[27px] rounded-full border border-dashed border-slate-300 shadow-sm flex items-center justify-center bg-slate-50 group-hover:border-purple-300 group-hover:bg-purple-50 transition-all">
-                                                                <svg className="w-3.5 h-3.5 text-slate-400 group-hover:text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                                                </svg>
-                                                            </div>
-                                                            <span className="text-[7px] font-medium text-slate-500 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                Recolor Icing
-                                                            </span>
-                                                        </button>
-                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -1114,7 +961,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                     <div className={cardClassName}>
                         <div className="flex flex-col gap-2 px-1 pb-2">
                             {cakeTypeSelectorNode}
-                            {cakeTypeUpdateNode}
                         </div>
                     </div>
                 )}
@@ -1178,14 +1024,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                             className="genie-btn-secondary text-[10px] max-md:text-[9px] font-bold py-2 px-5 rounded-full"
                                         >
                                             Show more
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => onUpdateDesign?.()}
-                                            disabled={isUpdatingDesign || !hasTopperChanges}
-                                            className="genie-btn-primary inline-flex items-center gap-1.5 text-[10px] max-md:text-[9px] font-bold py-2 px-4 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            {isUpdatingDesign ? 'Updating...' : 'Apply Design Changes'}
                                         </button>
                                     </div>
                                 )}

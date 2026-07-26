@@ -43,10 +43,6 @@ const buildProps = (): React.ComponentProps<typeof StickyAddToCartBar> => ({
     warningDescription: null,
     onWarningClick: undefined,
     availability: undefined,
-    hasPendingDesignChanges: false,
-    onApplyChangesClick: vi.fn(),
-    isApplyingChanges: false,
-    applyChangesLabel: 'Apply Changes',
 });
 
 describe('StickyAddToCartBar', () => {

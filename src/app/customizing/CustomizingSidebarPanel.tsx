@@ -15,7 +15,6 @@ interface CustomizingSidebarPanelProps {
     onGoBackHome?: () => void;
     onBrowseGallery?: () => void;
     onSearchDesigns?: () => void;
-    onUpdateDesign?: () => void;
     isUpdatingDesign?: boolean;
     dirtyFields?: Set<string>;
     className?: string;
@@ -30,7 +29,6 @@ export const CustomizingSidebarPanel = memo(function CustomizingSidebarPanel({
     onGoBackHome,
     onBrowseGallery,
     onSearchDesigns,
-    onUpdateDesign,
     isUpdatingDesign,
     dirtyFields,
     className = 'w-full flex-col gap-2 hidden md:flex',
@@ -71,7 +69,6 @@ export const CustomizingSidebarPanel = memo(function CustomizingSidebarPanel({
                     <CustomizingStepSummarySections
                         {...stepSummaryProps}
                         layout="desktop"
-                        onUpdateDesign={onUpdateDesign}
                         isUpdatingDesign={isUpdatingDesign}
                         dirtyFields={dirtyFields}
                     />

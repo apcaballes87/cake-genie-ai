@@ -27,61 +27,30 @@ const buildProps = (): React.ComponentProps<typeof CustomizingEditorSheet> => ({
     activeTopperSection: null,
     showAvailabilityOffset: true,
     showPrintoutOffset: false,
-    hasCakeInfoChanges: true,
-    hasPendingVisualChanges: false,
-    isUpdatingDesign: false,
-    hasOriginalImageData: true,
-    isEmpty: false,
     onClose: vi.fn(),
-    onApplyOptions: vi.fn(),
-    onApplyPendingDesignChanges: vi.fn(),
     children: <div>panel-content</div>,
 });
 
 describe('CustomizingEditorSheet', () => {
-    it('renders the options title and apply-changes action', () => {
+    it('renders the options title without a manual apply action', () => {
         const props = buildProps();
 
         render(<CustomizingEditorSheet {...props} />);
 
         expect(screen.getByText('Cake Options')).toBeInTheDocument();
         expect(screen.getByText('100px')).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: /apply changes/i }));
-        expect(props.onApplyOptions).toHaveBeenCalledTimes(1);
+        expect(screen.queryByRole('button', { name: /apply changes/i })).not.toBeInTheDocument();
         expect(screen.getByText('panel-content')).toBeInTheDocument();
     });
 
-    it('keeps the options apply action visible but disabled when nothing changed', () => {
-        const props = buildProps();
-        props.hasCakeInfoChanges = false;
-
-        render(<CustomizingEditorSheet {...props} />);
-
-        expect(screen.getByRole('button', { name: /apply changes/i })).toBeDisabled();
-    });
-
-    it('renders the visual apply action and disables it without image data', () => {
+    it('does not render a visual apply action', () => {
         const props = buildProps();
         props.activeCustomization = 'icing';
-        props.hasCakeInfoChanges = false;
-        props.hasPendingVisualChanges = true;
-        props.hasOriginalImageData = false;
 
         render(<CustomizingEditorSheet {...props} />);
 
         expect(screen.getByText('Icing Colors')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /apply all changes/i })).toBeDisabled();
-    });
-
-    it('keeps the visual apply action visible but disabled with no pending changes', () => {
-        const props = buildProps();
-        props.activeCustomization = 'icing';
-        props.hasCakeInfoChanges = false;
-        props.hasPendingVisualChanges = false;
-
-        render(<CustomizingEditorSheet {...props} />);
-
-        expect(screen.getByRole('button', { name: /apply all changes/i })).toBeDisabled();
+        expect(screen.queryByRole('button', { name: /apply all changes/i })).not.toBeInTheDocument();
     });
 
     it('uses topper-specific titles and forwards close interactions', () => {

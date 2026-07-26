@@ -7,7 +7,6 @@ import { ColorPalette } from '@/components/ColorPalette';
 import MagicGlitter from '@/components/MagicGlitter';
 import { ResetIcon } from '@/components/icons';
 import { DEFAULT_ICING_DESIGN } from '@/constants';
-import { getIcingBucketName } from '@/utils/colorUtils';
 import { getIcingImage, type IcingImageType } from '@/utils/icingImage';
 import type { CakeType, ClusteredMarker, IcingColorDetails, IcingDesign, IcingDesignUI, IcingGroup, MainTopperUI } from '@/types';
 
@@ -21,14 +20,6 @@ interface CustomizingIcingEditorPanelProps {
     onSelectItem: (item: ClusteredMarker | null) => void;
     onIcingDesignChange: (nextDesign: IcingDesignUI) => void;
     onRevert: () => void;
-    /**
-     * Optional mask-based instant recolor action. When provided, the Body/Top/Side
-     * icing color circles call this (in addition to updating icing design state) so
-     * the displayed image is recolored client-side without a Gemini round trip.
-     * The icing design state still updates via onIcingDesignChange to keep the data
-     * model (icingDesign.colors.top/side) in sync — this only changes the image.
-     */
-    onIcingColorRecolor?: (hex: string, name: string, nextDesign?: IcingDesignUI) => void;
     /**
      * When true, a loading spinner is shown over the affected icing color group while
      * the one-time mask is generated. All other controls stay enabled and responsive.
@@ -209,7 +200,6 @@ export const CustomizingIcingEditorPanel = memo(function CustomizingIcingEditorP
     onSelectItem,
     onIcingDesignChange,
     onRevert,
-    onIcingColorRecolor,
     isGeneratingMask = false,
     isStudioBackgroundEditingPending = false,
     maskStatus = 'idle',
@@ -241,10 +231,6 @@ export const CustomizingIcingEditorPanel = memo(function CustomizingIcingEditorP
                 colors,
             };
             onIcingDesignChange(nextDesign);
-            // Body / top / side groups drive the mask-based instant recolor.
-            if (!isToggle && onIcingColorRecolor) {
-                onIcingColorRecolor(newHex, getIcingBucketName(newHex), nextDesign);
-            }
         };
 
         return (

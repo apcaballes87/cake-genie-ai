@@ -465,7 +465,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     const aiChatDesktopInputRef = useRef<HTMLTextAreaElement>(null);
     const chatEndMobileRef = useRef<HTMLDivElement>(null);
     const chatEndDesktopRef = useRef<HTMLDivElement>(null);
-    const isDraftApplied = useRef(false);
     const committedStateRef = useRef<CustomizationState | null>(null);
     const addToCartInFlightRef = useRef(false);
     const addToCartResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -484,8 +483,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         analysisResult, analysisId, isAnalyzing, analysisError, isCustomizationDirty, dirtyFields,
         setIsAnalyzing, setAnalysisError, setPendingAnalysisData, setIsCustomizationDirty,
         handleCakeInfoChange,
-        updateMainTopper: baseUpdateMainTopper, removeMainTopper, onMainTopperChange,
-        updateSupportElement: baseUpdateSupportElement, removeSupportElement, onSupportElementChange,
+        updateMainTopper: baseUpdateMainTopper, removeMainTopper,
+        updateSupportElement: baseUpdateSupportElement, removeSupportElement,
         updateCakeMessage, removeCakeMessage,
         onIcingDesignChange: baseOnIcingDesignChange, onAdditionalInstructionsChange, handleTopperImageReplace,
         handleSupportElementImageReplace, clearCustomization, initializeDefaultState,
@@ -1043,34 +1042,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         },
     });
 
-    const onUpdateDesign = useCallback((instruction?: string, colorMeta?: { hex: string; name: string }) => {
-        handleUpdateDesign(instruction, { colorMeta });
-        scrollToHero();
-    }, [handleUpdateDesign, scrollToHero]);
-
-
-    // Icing color changes use the existing AI image-edit path directly.
-    const handleIcingColorToggle = useCallback((hex: string, name: string, nextDesign?: IcingDesignUI) => {
-        const resolvedIcingDesign = nextDesign || (icingDesign ? {
-            ...icingDesign,
-            colors: {
-                ...icingDesign.colors,
-                top: hex,
-                side: hex,
-            }
-        } : undefined);
-
-        handleUpdateDesign(undefined, {
-            colorMeta: { hex, name },
-            stateOverrides: {
-                icingDesign: resolvedIcingDesign,
-            }
-        });
-        setActiveCustomization(null);
-        scrollToHero();
-    }, [icingDesign, handleUpdateDesign, setActiveCustomization, scrollToHero]);
-
-
     const { isShareModalOpen, shareData, isSavingDesign, handleShare, createShareLink, closeShareModal } = useDesignSharing({
         slug: (persistedSlug || slug || seoMetadata?.slug) as string || null,
         originalImageUrl: seoMetadata?.original_image_url || null,
@@ -1259,8 +1230,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
             //    • Otherwise just upload what we already have.
             const uploadCartItemImages = (ownerId: string): Promise<{ originalImageUrl: string; finalImageUrl: string }> => {
                 if (hasPendingVisualChangesRef.current && originalImageData) {
-                    isDraftApplied.current = true;
-
                     return handleUpdateDesign()
                         .then((freshEditedImage) =>
                             uploadCartImages({
@@ -3054,36 +3023,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     const [activeTopperSection, setActiveTopperSection] = useState<'main' | 'support' | null>(null);
     const [expandedTopperItemId, setExpandedTopperItemId] = useState<string | null>(null);
 
-    // Draft state snapshot for Step 2, 3, 4
-    const [draftSnapshot, setDraftSnapshot] = useState<{
-        icingDesign: IcingDesignUI | null;
-        cakeMessages: CakeMessageUI[];
-        mainToppers: MainTopperUI[];
-        supportElements: SupportElementUI[];
-    } | null>(null);
-
-
-    // Capture snapshot when a customization panel is opened
-    useEffect(() => {
-        if (activeCustomization && !draftSnapshot) {
-            setDraftSnapshot({
-                icingDesign: icingDesign ? JSON.parse(JSON.stringify(icingDesign)) : null,
-                cakeMessages: JSON.parse(JSON.stringify(cakeMessages)),
-                mainToppers: JSON.parse(JSON.stringify(mainToppers)),
-                supportElements: JSON.parse(JSON.stringify(supportElements)),
-            });
-            isDraftApplied.current = false;
-        } else if (!activeCustomization) {
-            setDraftSnapshot(null);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeCustomization]);
-
-
-
-
-
-
     const openTopperSheet = useCallback((section: 'main' | 'support' | null = null) => {
         setActiveTopperSection(section);
         setActiveCustomization('toppers');
@@ -3224,20 +3163,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         })));
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [clearMessageTexts, analysisResult]);
-
-    const handleApplyPendingDesignChanges = useCallback(() => {
-        if (isUpdatingDesign || !originalImageData || !hasPendingVisualChanges) {
-            return;
-        }
-
-        isDraftApplied.current = true;
-        void onUpdateDesign();
-        setActiveCustomization(null);
-        setActiveTopperSection(null);
-        setSelectedItem(null);
-    }, [hasPendingVisualChanges, isUpdatingDesign, onUpdateDesign, originalImageData]);
-
-
 
     // Show icing guide when image preview is available (before analysis completes)
     useEffect(() => {
@@ -4099,9 +4024,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                         separateIcingStep,
                                         hideStepFour,
                                         photoStepNode,
-                                        onUpdateDesign: onUpdateDesign,
                                         isUpdatingDesign: isUpdatingDesign,
-                                        hasTopperChanges: hasToppersChanges,
                                         dirtyFields: dirtyFields,
                                         aiChatNode: !analysisError && !hideAiChat ? (
                                             <CustomizingAiChatPanel
@@ -4135,7 +4058,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                                 title="Step 4: Change Icing Colors"
                                             />
                                         ) : null,
-                                        onIcingColorRecolor: handleIcingColorToggle,
                                     }}
                                 />
                             ) : analysisError ? (
@@ -4216,12 +4138,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                             placeholder="✨ Describe the icing colors you want..."
                                         />
                                     ) : null}
-                                    onUpdateDesign={onUpdateDesign}
                                     isUpdatingDesign={isUpdatingDesign}
-                                    hasTopperChanges={hasToppersChanges}
                                     dirtyFields={dirtyFields}
-                                    originalCakeType={analysisResult?.cakeType}
-                                    onIcingColorRecolor={handleIcingColorToggle}
                                     isStudioBackgroundEditingPending={isStudioBackgroundEditingPending}
                                 />
                             )}
@@ -4265,7 +4183,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                 onGoBackHome={() => router.push('/')}
                                 onBrowseGallery={() => router.push('/collections')}
                                 onSearchDesigns={() => router.push('/search?focus=1')}
-                                onUpdateDesign={onUpdateDesign}
                                 isUpdatingDesign={isUpdatingDesign}
                                 dirtyFields={dirtyFields}
                                 className="w-full flex flex-col gap-2"
@@ -4305,7 +4222,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                     hideStepOne,
                                     hideStepFour,
                                     photoStepNode,
-                                    originalCakeType: analysisResult?.cakeType,
                                     aiChatNode: !analysisError && !hideAiChat ? (
                                         <CustomizingAiChatPanel
                                             className="w-full"
@@ -4338,7 +4254,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                             suggestionsPlacement="below"
                                         />
                                     ) : null,
-                                    onIcingColorRecolor: handleIcingColorToggle,
                                     isStudioBackgroundEditingPending: isStudioBackgroundEditingPending,
                                 }}
                             />
@@ -4385,34 +4300,13 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                     hideAiChat={hideAiChat}
                     showAvailabilityOffset={!hideStickyBar && Boolean(availabilityType) && !isAnalyzing}
                     showPrintoutOffset={!hideStickyBar && hasPrintoutConversionNotice && !isAnalyzing}
-                    hasCakeInfoChanges={dirtyFields.has('cakeInfo')}
-                    hasPendingVisualChanges={hasPendingVisualChanges}
-                    isUpdatingDesign={isUpdatingDesign}
-                    hasOriginalImageData={Boolean(originalImageData)}
-                    isEmpty={
-                        (activeCustomization === 'toppers' && (
-                            (activeTopperSection === 'main' && mainToppers.length === 0) ||
-                            (activeTopperSection === 'support' && supportElements.length === 0)
-                        ))
-                    }
                     onClose={() => {
-                        if (!isDraftApplied.current && draftSnapshot) {
-                            baseOnIcingDesignChange(draftSnapshot.icingDesign!);
-                            // Messages are auto-saved on every edit — do NOT revert them on close.
-                            if (activeCustomization !== 'messages') {
-                                baseOnCakeMessageChange(draftSnapshot.cakeMessages);
-                            }
-                            onMainTopperChange(draftSnapshot.mainToppers);
-                            onSupportElementChange(draftSnapshot.supportElements);
-                        }
                         setActiveCustomization(null);
                         setActiveTopperSection(null);
                         setExpandedTopperItemId(null);
                         setSelectedItem(null);
                     }}
 
-                    onApplyOptions={() => setActiveCustomization(null)}
-                    onApplyPendingDesignChanges={handleApplyPendingDesignChanges}
                 >
                     <CustomizingOptionsPanel
                         isVisible={activeCustomization === 'options'}
@@ -4434,7 +4328,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                         mainToppers={mainToppers}
                         onSelectItem={setSelectedItem}
                         onIcingDesignChange={onIcingDesignChange}
-                        onIcingColorRecolor={handleIcingColorToggle}
                         isStudioBackgroundEditingPending={isStudioBackgroundEditingPending}
                         onRevert={() => {
                             const revertTo = committedStateRef.current?.icingDesign ?? analysisResult?.icing_design;
@@ -4548,10 +4441,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                     availability={hideStickyBar ? undefined : availabilityType}
                     printoutConversions={hideStickyBar ? undefined : printoutConversions}
                     onPrintoutNotificationClick={openPrintoutConversionTarget}
-                    hasPendingDesignChanges={hideStickyBar ? false : hasPendingVisualChanges}
-                    onApplyChangesClick={handleApplyPendingDesignChanges}
-                    isApplyingChanges={hideStickyBar ? false : isUpdatingDesign}
-                    applyChangesLabel="Apply Design Changes"
                     onAddToCartUnavailableVisible={handleAddToCartUnavailableVisible}
                     onAddToCartBlockedClick={handleAddToCartBlockedClick}
                     onRetryClick={basePriceError ? retryPricing : undefined}

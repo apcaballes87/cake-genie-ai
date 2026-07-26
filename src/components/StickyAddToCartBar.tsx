@@ -38,10 +38,6 @@ interface StickyAddToCartBarProps {
     onWarningClick?: () => void;
     availability?: AvailabilityType;
     className?: string;
-    hasPendingDesignChanges?: boolean;
-    onApplyChangesClick?: () => void;
-    isApplyingChanges?: boolean;
-    applyChangesLabel?: string;
     ediblePhotoAddonNote?: boolean;
     isBlurred?: boolean;
     printoutConversions?: PrintoutConversionSummary;
@@ -68,9 +64,6 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     onWarningClick,
     availability,
     className,
-    hasPendingDesignChanges = false,
-    onApplyChangesClick,
-    isApplyingChanges = false,
     ediblePhotoAddonNote = false,
     isBlurred = false,
     printoutConversions,
@@ -96,7 +89,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     const showAvailability = Boolean(availability && !isAnalyzing && !error);
     const showPrintoutNotification = Boolean(hasPrintoutConversion && !isAnalyzing && !error);
     const hasTopNotification = !error && (showAvailability || showPrintoutNotification);
-    const show = Boolean(price !== null || error || isAnalyzing || hasPendingDesignChanges || isApplyingChanges || availability || hasPrintoutConversion);
+    const show = Boolean(price !== null || error || isAnalyzing || availability || hasPrintoutConversion);
     const addToCartBlockReason = getAddToCartBlockReason({
         isAdding,
         isAnalyzing,
@@ -106,11 +99,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
         hasCakeInfo: Boolean(cakeInfo),
     });
     const addToCartDisabledReason = getAddToCartBlockLabel(addToCartBlockReason);
-    const shareDisabledReason = isApplyingChanges
-        ? 'Apply pending changes before sharing'
-        : !canShare
-            ? 'Customize design to share'
-            : undefined;
+    const shareDisabledReason = !canShare ? 'Customize design to share' : undefined;
 
 
     const [isCompact, setIsCompact] = React.useState(false);
@@ -415,7 +404,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                             <ShareButton
                                 onClick={onShareClick}
                                 isLoading={isSharing}
-                                disabled={!canShare || isApplyingChanges}
+                                disabled={!canShare}
                                 disabledReason={shareDisabledReason}
                                 className="shrink-0"
                                 showText={!isCompact}
