@@ -6,6 +6,7 @@ import AiChatHistoryDetails from './AiChatHistoryDetails';
 import { LoadingSpinner } from './LoadingSpinner';
 import { TrashIcon, MagicSparkleIcon } from './icons';
 import LazyImage from './LazyImage';
+import { supportTypeDisplayMap, topperTypeDisplayMap } from './TopperCard';
 
 // Helper to render color values with inline swatches
 // Handles both pure hex codes (#FF69B4) and text with embedded hex codes
@@ -67,6 +68,11 @@ const renderColorValue = (value: string): React.ReactNode => {
 
     return <span className="inline-flex flex-wrap items-center gap-0.5">{parts}</span>;
 };
+
+const formatCustomizationItem = (
+    item: { description: string; type: string },
+    typeDisplayMap: Record<string, string>,
+) => `${item.description} (${typeDisplayMap[item.type] || item.type.replace(/_/g, ' ')})`;
 
 interface CartItemCardProps {
     item: CartItem;
@@ -138,7 +144,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom, app
                         </div>
                     </div>
                 </div>
-                <details className="w-full">
+                <details className="w-full" open>
                     <summary className="text-xs font-semibold text-slate-600 cursor-pointer">View Customization Details</summary>
                     <div className="mt-2 pl-2 border-l-2 border-purple-100 space-y-1.5 text-xs text-slate-500">
                         <DetailItem label="Type" value={`${item.type}, ${item.thickness}, ${item.size}`} />
@@ -149,8 +155,8 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom, app
                                 <DetailItem key={idx} label={`${tierLabels[idx]} Flavor`} value={flavor} />
                             ))
                         )}
-                        {item.details.mainToppers.length > 0 && <DetailItem label="Main Toppers" value={item.details.mainToppers.map(t => t.description).join(', ')} />}
-                        {item.details.supportElements.length > 0 && <DetailItem label="Support" value={item.details.supportElements.map(s => s.description).join(', ')} />}
+                        {item.details.mainToppers.length > 0 && <DetailItem label="Main Toppers" value={item.details.mainToppers.map(t => formatCustomizationItem(t, topperTypeDisplayMap)).join(', ')} />}
+                        {item.details.supportElements.length > 0 && <DetailItem label="Support" value={item.details.supportElements.map(s => formatCustomizationItem(s, supportTypeDisplayMap)).join(', ')} />}
                         {item.details.cakeMessages.map((msg, idx) => (
                             <DetailItem
                                 key={idx}
@@ -231,7 +237,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom, app
                     </div>
                 </div>
             </div>
-            <details className="w-full">
+            <details className="w-full" open>
                 <summary className="text-xs font-semibold text-slate-600 cursor-pointer">View Customization Details</summary>
                 <div className="mt-2 pl-2 border-l-2 border-purple-100 space-y-1.5 text-xs text-slate-500">
                     <DetailItem label="Type" value={`${item.type}, ${item.thickness}, ${item.size}`} />
@@ -242,8 +248,8 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom, app
                             <DetailItem key={idx} label={`${tierLabels[idx]} Flavor`} value={flavor} />
                         ))
                     )}
-                    {item.details.mainToppers.length > 0 && <DetailItem label="Main Toppers" value={item.details.mainToppers.map(t => t.description).join(', ')} />}
-                    {item.details.supportElements.length > 0 && <DetailItem label="Support" value={item.details.supportElements.map(s => s.description).join(', ')} />}
+                    {item.details.mainToppers.length > 0 && <DetailItem label="Main Toppers" value={item.details.mainToppers.map(t => formatCustomizationItem(t, topperTypeDisplayMap)).join(', ')} />}
+                    {item.details.supportElements.length > 0 && <DetailItem label="Support" value={item.details.supportElements.map(s => formatCustomizationItem(s, supportTypeDisplayMap)).join(', ')} />}
                     {item.details.cakeMessages.map((msg, idx) => (
                         <DetailItem
                             key={idx}

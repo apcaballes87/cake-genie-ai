@@ -16,8 +16,24 @@ describe('CartItemCard', () => {
       totalPrice: 1499,
       details: {
         flavors: ['Chocolate Cake'],
-        mainToppers: [],
-        supportElements: [],
+        mainToppers: [
+          {
+            type: 'printout',
+            description: 'Gold crown with colorful jewels',
+            size: 'medium',
+            quantity: 1,
+            group_id: 'topper-1',
+            classification: 'hero',
+          },
+        ],
+        supportElements: [
+          {
+            type: 'support_printout',
+            description: 'Butterflies',
+            size: 'small',
+            group_id: 'support-1',
+          },
+        ],
         cakeMessages: [],
         icingDesign: {
           base: 'soft_icing',
@@ -49,5 +65,37 @@ describe('CartItemCard', () => {
     expect(screen.getByText('AI Chat Requests:')).toBeInTheDocument();
     expect(screen.getByText('make the side pink')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /reference\.webp/i })).toHaveAttribute('href', 'https://example.com/reference.webp');
+    expect(screen.getByText('Gold crown with colorful jewels (Printout)')).toBeInTheDocument();
+    expect(screen.getByText('Butterflies (Printout)')).toBeInTheDocument();
+    expect(screen.getByText('View Customization Details').closest('details')).toHaveAttribute('open');
+  });
+
+  it('keeps customization details expanded while a cart item is still saving', () => {
+    const item: CartItem = {
+      id: 'pending-cart-item',
+      image: 'https://example.com/cake.webp',
+      status: 'pending',
+      type: '1 Tier',
+      thickness: '4 in',
+      size: '6" Round',
+      totalPrice: 1499,
+      details: {
+        flavors: ['Chocolate Cake'],
+        mainToppers: [],
+        supportElements: [],
+        cakeMessages: [],
+        icingDesign: {
+          base: 'soft_icing',
+          drip: false,
+          gumpasteBaseBoard: false,
+          colors: {},
+        },
+        additionalInstructions: '',
+      },
+    };
+
+    render(<CartItemCard item={item} onRemove={vi.fn()} onZoom={vi.fn()} />);
+
+    expect(screen.getByText('View Customization Details').closest('details')).toHaveAttribute('open');
   });
 });
