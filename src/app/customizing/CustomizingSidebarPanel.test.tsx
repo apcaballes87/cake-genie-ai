@@ -4,8 +4,23 @@ import { describe, expect, it, vi } from 'vitest';
 import { CustomizingSidebarPanel } from './CustomizingSidebarPanel';
 
 vi.mock('./CustomizingStepSummarySections', () => ({
-    CustomizingStepSummarySections: ({ layout }: { layout: string }) => (
-        <div data-testid="step-summary-panel">summary-{layout}</div>
+    CustomizingStepSummarySections: ({
+        layout,
+        hasToppersChanges,
+        onApplyTopperChanges,
+    }: {
+        layout: string;
+        hasToppersChanges?: boolean;
+        onApplyTopperChanges?: () => void;
+    }) => (
+        <button
+            type="button"
+            data-testid="step-summary-panel"
+            data-has-topper-changes={hasToppersChanges ? 'true' : 'false'}
+            onClick={onApplyTopperChanges}
+        >
+            summary-{layout}
+        </button>
     ),
 }));
 
@@ -65,6 +80,20 @@ describe('CustomizingSidebarPanel', () => {
 
         expect(screen.queryByTestId('ai-chat-panel')).not.toBeInTheDocument();
         expect(screen.getByTestId('step-summary-panel')).toHaveTextContent('summary-desktop');
+    });
+
+    it('forwards the pending-topper Apply Design controls to the desktop summary', () => {
+        const props = buildProps();
+        const onApplyTopperChanges = vi.fn();
+        props.stepSummaryProps.hasToppersChanges = true;
+        props.stepSummaryProps.onApplyTopperChanges = onApplyTopperChanges;
+
+        render(<CustomizingSidebarPanel {...props} />);
+
+        const summary = screen.getByTestId('step-summary-panel');
+        expect(summary).toHaveAttribute('data-has-topper-changes', 'true');
+        summary.click();
+        expect(onApplyTopperChanges).toHaveBeenCalledOnce();
     });
 
     it('accepts a custom container class for mobile loading usage', () => {

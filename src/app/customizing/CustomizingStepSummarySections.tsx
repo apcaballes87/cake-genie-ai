@@ -62,6 +62,8 @@ interface CustomizingStepSummarySectionsProps {
      *  recolors on top of a pre-existing studio edit). */
     isStudioBackgroundEditingPending?: boolean;
     isCupcake?: boolean;
+    hasToppersChanges?: boolean;
+    onApplyTopperChanges?: () => void;
 }
 
 const findScrollableParent = (element: HTMLElement | null): HTMLElement | null => {
@@ -267,6 +269,8 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     dirtyFields,
     isStudioBackgroundEditingPending = false,
     isCupcake = false,
+    hasToppersChanges = false,
+    onApplyTopperChanges,
 }: CustomizingStepSummarySectionsProps) {
     // Default position when "+ Add" is clicked: Bento → front (side), all others → base_board
     const [showIcingChoice, setShowIcingChoice] = React.useState(true);
@@ -1013,8 +1017,16 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                     </div>
                                 ))}
 
-                                {combinedDecorItems.length > 3 && (
-                                    <div className="flex items-center justify-center gap-2 pt-1">
+                                <div className="flex items-center justify-center gap-2 pt-1">
+                                    <button
+                                        type="button"
+                                        onClick={onApplyTopperChanges}
+                                        disabled={!hasToppersChanges || isUpdatingDesign}
+                                        className="genie-btn-primary text-[10px] max-md:text-[9px] font-bold py-2 px-5 rounded-full disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        Apply Design
+                                    </button>
+                                    {combinedDecorItems.length > 3 && (
                                         <button
                                             type="button"
                                             onClick={() => {
@@ -1025,8 +1037,8 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                         >
                                             Show more
                                         </button>
-                                    </div>
-                                )}
+                                    )}
+                                </div>
                             </div>
                         ) : (
                             <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-purple-100 bg-white/90 text-left">

@@ -76,7 +76,12 @@ interface ImageContextType {
     ) => Promise<void>;
     loadImageWithoutAnalysis: (imageUrl: string, options?: LoadImageWithoutAnalysisOptions) => Promise<{ data: string; mimeType: string }>;
     handleSave: () => Promise<void>;
-    uploadCartImages: (options?: { editedImageDataUri?: string | null; userId?: string; slug?: string }) => Promise<{ originalImageUrl: string; finalImageUrl: string }>;
+    uploadCartImages: (options?: {
+        editedImageDataUri?: string | null;
+        userId?: string;
+        slug?: string;
+        cartItemId?: string;
+    }) => Promise<{ originalImageUrl: string; finalImageUrl: string }>;
     clearImages: () => void;
     seoMetadata: CacheSEOMetadata | null;
     isAnalysisCached: boolean;
@@ -1023,7 +1028,12 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
     }, [editedImage]);
 
     const uploadCartImages = useCallback(async (
-        options: { editedImageDataUri?: string | null; userId?: string; slug?: string } = {}
+        options: {
+            editedImageDataUri?: string | null;
+            userId?: string;
+            slug?: string;
+            cartItemId?: string;
+        } = {}
     ): Promise<{ originalImageUrl: string; finalImageUrl: string }> => {
         if (!originalImagePreview) {
             throw new Error("Cannot upload to cart: original image is missing.");
@@ -1046,7 +1056,11 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         }
 
         const slug = options.slug;
+        const cartItemId = options.cartItemId;
         const storageFolder = 'customizations';
+        const cartStoragePrefix = cartItemId
+            ? `${storageFolder}/${userId}/cart/${cartItemId}`
+            : null;
 
         // 1. Handle Original Image
         let originalImageUrl = originalImagePreview;
@@ -1055,9 +1069,11 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         if (!isPermanentUrl(originalImagePreview)) {
             const originalImageBlob = dataURItoBlob(originalImagePreview);
             // Use slug if available, else random UUID
-            originalImageFileName = slug
-                ? `${storageFolder}/${userId}/${slug}.webp`
-                : `${storageFolder}/${userId}/${uuidv4()}.webp`;
+            originalImageFileName = cartStoragePrefix
+                ? `${cartStoragePrefix}-original.webp`
+                : slug
+                    ? `${storageFolder}/${userId}/${slug}.webp`
+                    : `${storageFolder}/${userId}/${uuidv4()}.webp`;
 
             const { error: originalUploadError } = await supabase.storage
                 .from('cakegenie')
@@ -1079,9 +1095,11 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             const editedImageFile = new File([editedImageBlob], 'edited-design.webp', { type: 'image/webp' });
             const compressedEditedFile = await compressImage(editedImageFile, { maxSizeMB: 1, fileType: 'image/webp' });
 
-            const editedImageFileName = slug
-                ? `${storageFolder}/${userId}/${slug}_edited.webp`
-                : `${storageFolder}/${userId}/${uuidv4()}.webp`;
+            const editedImageFileName = cartStoragePrefix
+                ? `${cartStoragePrefix}-edited.webp`
+                : slug
+                    ? `${storageFolder}/${userId}/${slug}_edited.webp`
+                    : `${storageFolder}/${userId}/${uuidv4()}.webp`;
 
             const { error: editedUploadError } = await supabase.storage
                 .from('cakegenie')

@@ -42,10 +42,30 @@ export interface HandleDesignUpdateOptions {
     traceId?: string;
     source?: string;
     signal?: AbortSignal;
+    /**
+     * Requests with the same key share one in-flight promise. Different visual
+     * snapshots must use different keys so one preview cannot satisfy another.
+     */
+    requestKey?: string;
+    /**
+     * Pins the request to the image visible when the caller captured its state.
+     * URLs are resolved to bytes before the AI request is sent.
+     */
+    baseImage?: { data: string; mimeType: string } | string | null;
+    /**
+     * Cart previews are generated for their cart row only. Explicit editor
+     * actions keep the default behavior and commit the result through onSuccess.
+     */
+    commitResult?: boolean;
     promptGenerator?: DesignPromptGenerator;
     stateOverrides?: DesignUpdateStateOverrides;
     colorMeta?: { hex: string; name: string }; // ADDED
     referenceImages?: EditImageReferenceImage[];
+    /**
+     * A safety fallback retains the previous image. Callers that need a preview
+     * to reflect a specific visual change (such as cart checkout) must opt out.
+     */
+    allowSafetyFallback?: boolean;
 }
 
 interface UseDesignUpdateProps {
@@ -123,7 +143,8 @@ export const useDesignUpdate = ({
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const lastGenerationInfoRef = useRef<{ prompt: string; systemInstruction: string; } | null>(null);
-    const inFlightPromiseRef = useRef<Promise<string> | null>(null);
+    const inFlightPromisesRef = useRef<Map<string, Promise<string>>>(new Map());
+    const activeRequestCountRef = useRef(0);
     const [isSafetyFallback, setIsSafetyFallback] = useState(false);
 
     // Local cache for color variants (maps colorHex.toLowerCase() -> imageUrl)
@@ -169,6 +190,10 @@ export const useDesignUpdate = ({
         const traceId = options?.traceId ?? createAiTraceId('design');
         const requestSource = options?.source ?? 'manual-design-update';
         const requestSignal = options?.signal;
+        const requestKey = options?.requestKey ?? 'default';
+        const commitResult = options?.commitResult ?? true;
+        const hasBaseImageOverride = options && Object.prototype.hasOwnProperty.call(options, 'baseImage');
+        const selectedBaseImage = hasBaseImageOverride ? options.baseImage : editedImage;
         const resolvedAnalysisResult = options?.stateOverrides?.analysisResult ?? analysisResult;
         const resolvedCakeInfo = options?.stateOverrides?.cakeInfo ?? cakeInfo;
         const resolvedMainToppers = options?.stateOverrides?.mainToppers ?? mainToppers;
@@ -179,13 +204,15 @@ export const useDesignUpdate = ({
         const resolvedPromptGenerator = options?.promptGenerator ?? promptGenerator;
         const colorMeta = options?.colorMeta;
         const referenceImages = options?.referenceImages ?? [];
+        const allowSafetyFallback = options?.allowSafetyFallback ?? true;
 
         if (requestSignal?.aborted) {
             throw new DOMException('The design update was cancelled.', 'AbortError');
         }
 
-        if (inFlightPromiseRef.current) {
-            return inFlightPromiseRef.current;
+        const inFlightRequest = inFlightPromisesRef.current.get(requestKey);
+        if (inFlightRequest) {
+            return inFlightRequest;
         }
 
 
@@ -193,17 +220,26 @@ export const useDesignUpdate = ({
         trackUpdateDesign();
 
         // Guard against missing critical data which is checked in the service, but good to have here too.
-        const syncEditedImageData = parseDataUriImage(editedImage);
+        const syncEditedImageData = typeof selectedBaseImage === 'string'
+            ? parseDataUriImage(selectedBaseImage)
+            : selectedBaseImage ?? null;
+        const canResolveSelectedBaseUrl = typeof selectedBaseImage === 'string'
+            && /^https?:\/\//i.test(selectedBaseImage);
         const canResolveStudioFallbackBase =
             requestSource === 'icing-mask-fallback' && !!studioEditedImageUrl && !syncEditedImageData;
 
-        if ((!syncEditedImageData && !originalImageData && !canResolveStudioFallbackBase) || !resolvedIcingDesign || !resolvedCakeInfo) {
+        if (
+            (!syncEditedImageData && !canResolveSelectedBaseUrl && !originalImageData && !canResolveStudioFallbackBase)
+            || !resolvedIcingDesign
+            || !resolvedCakeInfo
+        ) {
             const missingDataError = "Cannot update design: missing original image, icing design, or cake info.";
             // setError(missingDataError); // Removed per instruction
             throw new Error(missingDataError);
         }
 
         const requestPromise = (async () => {
+            activeRequestCountRef.current += 1;
             setIsLoading(true);
             setError(null);
             setIsSafetyFallback(false);
@@ -220,9 +256,13 @@ export const useDesignUpdate = ({
             // the clean raw image (studioEditedImageUrl if present, or originalImageData).
             let currentBaseImageData: { data: string; mimeType: string } | null = colorMeta
                 ? null
-                : parseDataUriImage(editedImage);
+                : syncEditedImageData;
 
             try {
+                if (!currentBaseImageData && canResolveSelectedBaseUrl && typeof selectedBaseImage === 'string') {
+                    currentBaseImageData = await fetchUrlAsBase64(selectedBaseImage);
+                }
+
                 if (!currentBaseImageData && studioEditedImageUrl) {
                     try {
                         currentBaseImageData = await fetchUrlAsBase64(studioEditedImageUrl);
@@ -238,7 +278,9 @@ export const useDesignUpdate = ({
                     const cachedUrl = localCacheRef.current[colorMeta.hex.toLowerCase()];
                     if (cachedUrl) {
                         console.log(`🎯 Color Variant Cache Hit! Instantly loading ${colorMeta.name} (${colorMeta.hex})`);
-                        onSuccess(cachedUrl, currentBaseImageData);
+                        if (commitResult) {
+                            onSuccess(cachedUrl, currentBaseImageData);
+                        }
                         return cachedUrl;
                     }
                 }
@@ -274,7 +316,9 @@ export const useDesignUpdate = ({
                 }
 
                 lastGenerationInfoRef.current = { prompt, systemInstruction };
-                onSuccess(editedImageResult, currentBaseImageData);
+                if (commitResult) {
+                    onSuccess(editedImageResult, currentBaseImageData);
+                }
 
                 // --- Background Cache Save (on Miss) ---
                 if (colorMeta && cacheId) {
@@ -339,7 +383,7 @@ export const useDesignUpdate = ({
                     errorMessage.toLowerCase().includes('blocked') ||
                     errorMessage.toLowerCase().includes('policy');
 
-                if (isSafetyError) {
+                if (isSafetyError && allowSafetyFallback) {
                     setIsSafetyFallback(true);
 
                     // Fallback: Use the current working base image, falling back to the
@@ -347,8 +391,10 @@ export const useDesignUpdate = ({
                     const safeBaseImageData = currentBaseImageData ?? originalImageData;
                     if (safeBaseImageData) {
                         const originalImageSrc = `data:${safeBaseImageData.mimeType};base64,${safeBaseImageData.data}`;
-                        // Call onSuccess with the original image so the flow continues
-                        onSuccess(originalImageSrc, safeBaseImageData);
+                        if (commitResult) {
+                            // Call onSuccess with the original image so the flow continues
+                            onSuccess(originalImageSrc, safeBaseImageData);
+                        }
                         // Return the original image so the caller (handleAddToCart) can proceed
                         return originalImageSrc;
                     }
@@ -357,13 +403,18 @@ export const useDesignUpdate = ({
                 setError(errorMessage);
                 throw err; // Re-throw other errors to be caught by the caller
             } finally {
-                setIsLoading(false);
-                inFlightPromiseRef.current = null;
+                activeRequestCountRef.current = Math.max(0, activeRequestCountRef.current - 1);
+                setIsLoading(activeRequestCountRef.current > 0);
+                queueMicrotask(() => {
+                    if (inFlightPromisesRef.current.get(requestKey) === requestPromise) {
+                        inFlightPromisesRef.current.delete(requestKey);
+                    }
+                });
             }
 
         })();
 
-        inFlightPromiseRef.current = requestPromise;
+        inFlightPromisesRef.current.set(requestKey, requestPromise);
         return requestPromise;
     }, [
         originalImageData,

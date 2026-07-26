@@ -16,6 +16,11 @@ export interface CartOutboxRecord {
   attempts: number;
   stage: CartOutboxStage;
   sourceSurface?: CartOutboxSourceSurface;
+  /**
+   * The optimistic image is only a placeholder. It must never be promoted to
+   * the final cart preview if the matching AI generation task is unavailable.
+   */
+  requiresFreshPreview?: boolean;
   lastError?: string;
   nextAttemptAt?: string;
 }

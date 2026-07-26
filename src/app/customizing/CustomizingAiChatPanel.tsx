@@ -132,7 +132,7 @@ export const CustomizingAiChatPanel = React.memo(({
                     {title}
                 </h3>
             )}
-            <form onSubmit={(event) => { void onSubmit(event); }} className="relative" ref={containerRef}>
+            <form onSubmit={(event) => { void onSubmit(event); }} className="relative px-[2px]" ref={containerRef}>
                 <input
                     ref={fileInputRef}
                     type="file"
@@ -197,7 +197,7 @@ export const CustomizingAiChatPanel = React.memo(({
                                 )}
                             </div>
                         ) : (
-                            <div className="relative min-h-[41px] max-md:min-h-[33px] rounded-xl border border-slate-200 bg-white shadow-sm transition-all focus-within:border-transparent focus-within:ring-2 focus-within:ring-inset focus-within:ring-purple-500">
+                            <div className="relative min-h-[41px] max-md:min-h-[33px] rounded-xl border border-slate-200 bg-white shadow-sm transition-all focus-within:border-transparent focus-within:ring-2 focus-within:ring-purple-500">
                                 <textarea
                                     ref={inputRef}
                                     value={chatInput}

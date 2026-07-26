@@ -1,7 +1,9 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { User } from '@supabase/supabase-js';
 import { CartProvider, cleanupExpiredLocalStorage, useCartActions, useCartData } from './CartContext';
+import type { CakeGenieCartItem } from '@/lib/database.types';
+import type { CartOutboxRecord } from '@/lib/cartOutbox';
 
 const mocks = vi.hoisted(() => ({
     authUser: null as User | null,
@@ -18,6 +20,7 @@ const mocks = vi.hoisted(() => ({
     putCartOutbox: vi.fn(),
     removeCartOutbox: vi.fn(),
     reassignCartOutboxOwner: vi.fn(),
+    backgroundUploadTask: vi.fn(),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -102,7 +105,6 @@ function deferred<T>() {
 function BackgroundUploadProbe() {
     const { cartItems, itemCount } = useCartData();
     const { addToCartWithBackgroundUpload } = useCartActions();
-    const upload = deferred<{ originalImageUrl: string; finalImageUrl: string }>();
 
     return (
         <div>
@@ -128,7 +130,9 @@ function BackgroundUploadProbe() {
                             customized_image_url: 'data:image/png;base64,custom',
                             customization_details: {},
                         },
-                        () => upload.promise
+                        mocks.backgroundUploadTask,
+                        'customizer',
+                        { requiresFreshPreview: true },
                     );
                 }}
             >
@@ -183,6 +187,8 @@ describe('CartProvider hydration', () => {
         mocks.putCartOutbox.mockResolvedValue(undefined);
         mocks.removeCartOutbox.mockResolvedValue(undefined);
         mocks.reassignCartOutboxOwner.mockResolvedValue(0);
+        mocks.backgroundUploadTask.mockImplementation(() => new Promise(() => undefined));
+        vi.useRealTimers();
     });
 
     it('keeps the first render SSR-safe before loading cached cart items after mount', async () => {
@@ -377,5 +383,127 @@ describe('CartProvider hydration', () => {
             expect(screen.getByTestId('cart-count')).toHaveTextContent('1');
             expect(screen.getByTestId('pending-state')).toHaveTextContent('pending');
         });
+    });
+
+    it('lets an AI-backed preview run past 30 seconds and persists its exact URLs before the cart update', async () => {
+        vi.useFakeTimers();
+        const upload = deferred<{ originalImageUrl: string; finalImageUrl: string }>();
+        let insertedItem: CakeGenieCartItem | null = null;
+        mocks.backgroundUploadTask.mockReturnValue(upload.promise);
+        mocks.addToCartIdempotent.mockImplementation(async (item: CakeGenieCartItem) => {
+            insertedItem = item;
+            return { data: item, error: null };
+        });
+        mocks.updateCartItemImages.mockImplementation(async (
+            cartItemId: string,
+            originalImageUrl: string | null,
+            customizedImageUrl: string | null,
+        ) => ({
+            data: {
+                ...(insertedItem ?? {}),
+                cart_item_id: cartItemId,
+                original_image_url: originalImageUrl,
+                customized_image_url: customizedImageUrl,
+            },
+            error: null,
+        }));
+
+        render(
+            <CartProvider>
+                <BackgroundUploadProbe />
+            </CartProvider>
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: 'add' }));
+        await act(async () => {
+            for (let i = 0; i < 8; i += 1) await Promise.resolve();
+        });
+
+        expect(mocks.backgroundUploadTask).toHaveBeenCalledWith(
+            'anonymous-user',
+            expect.any(String),
+        );
+        expect(mocks.updateCartItemImages).not.toHaveBeenCalled();
+
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(31_000);
+        });
+        expect(mocks.updateCartItemImages).not.toHaveBeenCalled();
+
+        await act(async () => {
+            upload.resolve({
+                originalImageUrl: 'https://example.com/cart/item-original.webp',
+                finalImageUrl: 'https://example.com/cart/item-both-toppers-off.webp',
+            });
+            for (let i = 0; i < 8; i += 1) await Promise.resolve();
+        });
+
+        expect(mocks.putCartOutbox).toHaveBeenCalledWith(expect.objectContaining({
+            stage: 'image_update',
+            requiresFreshPreview: true,
+            cartItem: expect.objectContaining({
+                original_image_url: 'https://example.com/cart/item-original.webp',
+                customized_image_url: 'https://example.com/cart/item-both-toppers-off.webp',
+            }),
+        }));
+        expect(mocks.updateCartItemImages).toHaveBeenCalledWith(
+            expect.any(String),
+            'https://example.com/cart/item-original.webp',
+            'https://example.com/cart/item-both-toppers-off.webp',
+        );
+        vi.useRealTimers();
+    });
+
+    it('does not promote an optimistic image when a required generation task is unavailable', async () => {
+        const pendingRecord: CartOutboxRecord = {
+            cartItem: {
+                cart_item_id: 'pending-generated-preview',
+                client_request_id: 'pending-generated-preview',
+                user_id: null,
+                session_id: 'anonymous-user',
+                merchant_id: null,
+                product_id: null,
+                cake_type: 'Round',
+                cake_thickness: 'Regular',
+                cake_size: '6 inch',
+                base_price: 1000,
+                addon_price: 0,
+                final_price: 1000,
+                quantity: 1,
+                original_image_url: 'data:image/png;base64,original',
+                customized_image_url: 'data:image/png;base64,stale-image-a',
+                customization_details: {},
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                expires_at: new Date(Date.now() + 60_000).toISOString(),
+            },
+            createdAt: new Date().toISOString(),
+            attempts: 0,
+            stage: 'image_upload' as const,
+            sourceSurface: 'customizer' as const,
+            requiresFreshPreview: true,
+        };
+        mocks.getCartOutbox.mockResolvedValue([pendingRecord]);
+        mocks.addToCartIdempotent.mockImplementation(async (item: CakeGenieCartItem) => ({
+            data: item,
+            error: null,
+        }));
+
+        render(
+            <CartProvider>
+                <CartCountProbe renderCounts={[]} />
+            </CartProvider>
+        );
+
+        await waitFor(() => {
+            expect(mocks.putCartOutbox).toHaveBeenCalledWith(expect.objectContaining({
+                requiresFreshPreview: true,
+                lastError: expect.stringMatching(/matching design task/i),
+                cartItem: expect.objectContaining({
+                    customized_image_url: 'data:image/png;base64,stale-image-a',
+                }),
+            }));
+        });
+        expect(mocks.updateCartItemImages).not.toHaveBeenCalled();
     });
 });

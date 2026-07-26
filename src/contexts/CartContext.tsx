@@ -247,7 +247,11 @@ type BackgroundUploadResult = {
 
 type BackgroundUploadTask =
     | Promise<BackgroundUploadResult>
-    | ((ownerId: string) => Promise<BackgroundUploadResult>);
+    | ((ownerId: string, cartItemId: string) => Promise<BackgroundUploadResult>);
+
+type BackgroundUploadOptions = {
+    requiresFreshPreview?: boolean;
+};
 
 interface CartDataType {
     cartItems: (CakeGenieCartItem & { merchant?: CakeGenieMerchant; isPending?: boolean })[];
@@ -282,6 +286,7 @@ interface CartActionsType {
         initialItem: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'>,
         uploadTask: BackgroundUploadTask,
         sourceSurface?: CartOutboxSourceSurface,
+        options?: BackgroundUploadOptions,
     ) => Promise<void>;
 }
 
@@ -322,6 +327,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const previousUserRef = useRef<User | null | undefined>(undefined);
     const cartItemsRef = useRef(cartItems);
     const outboxInFlightRef = useRef(new Set<string>());
+    const backgroundUploadTasksRef = useRef(new Map<string, BackgroundUploadTask>());
 
     useEffect(() => {
         cartItemsRef.current = cartItems;
@@ -694,10 +700,15 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         uploadTask?: BackgroundUploadTask,
     ) => {
         const requestId = record.cartItem.cart_item_id;
+        if (uploadTask) {
+            backgroundUploadTasksRef.current.set(requestId, uploadTask);
+        }
+        const registeredUploadTask = uploadTask ?? backgroundUploadTasksRef.current.get(requestId);
         if (record.nextAttemptAt && new Date(record.nextAttemptAt).getTime() > Date.now()) return;
         if (outboxInFlightRef.current.has(requestId)) return;
         outboxInFlightRef.current.add(requestId);
 
+        let workingRecord = record;
         let stage: CartOutboxStage = record.stage;
         try {
             stage = 'auth';
@@ -725,7 +736,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             };
 
             // UI-only fields are intentionally excluded from the database row.
-            const { isPending: _isPending, merchant: _merchant, ...cartItemForInsert } = record.cartItem as CakeGenieCartItem & {
+            const { isPending: _isPending, merchant: _merchant, ...cartItemForInsert } = workingRecord.cartItem as CakeGenieCartItem & {
                 isPending?: boolean;
                 merchant?: CakeGenieMerchant;
             };
@@ -735,11 +746,11 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 ...cartItemForInsert,
                 user_id: owner.user_id,
                 session_id: owner.session_id,
-                original_image_url: isPermanentCartImageUrl(record.cartItem.original_image_url)
-                    ? record.cartItem.original_image_url
+                original_image_url: isPermanentCartImageUrl(workingRecord.cartItem.original_image_url)
+                    ? workingRecord.cartItem.original_image_url
                     : null,
-                customized_image_url: isPermanentCartImageUrl(record.cartItem.customized_image_url)
-                    ? record.cartItem.customized_image_url
+                customized_image_url: isPermanentCartImageUrl(workingRecord.cartItem.customized_image_url)
+                    ? workingRecord.cartItem.customized_image_url
                     : null,
             };
 
@@ -762,25 +773,64 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 ? { ...persisted, isPending: true }
                 : item));
 
-            stage = 'image_upload';
-            const imageUploadStartedAt = Date.now();
-            const uploaded = uploadTask
-                ? await withTimeout(
-                    typeof uploadTask === 'function' ? uploadTask(owner.ownerId) : uploadTask,
-                    CART_IMAGE_TIMEOUT_MS,
-                    'Cart image processing timed out',
-                )
-                : await withTimeout(
-                    uploadOutboxImages(record.cartItem, owner.ownerId),
-                    CART_IMAGE_TIMEOUT_MS,
-                    'Cart image upload timed out',
-                );
-            trackCartPersistenceStage({
-                sourceSurface: record.sourceSurface || 'unknown',
-                stage: 'image_upload',
-                status: 'success',
-                durationMs: Date.now() - imageUploadStartedAt,
-            });
+            const hasPersistedUpload = workingRecord.stage === 'image_update'
+                && isPermanentCartImageUrl(workingRecord.cartItem.customized_image_url);
+            let uploaded: BackgroundUploadResult;
+
+            if (hasPersistedUpload) {
+                uploaded = {
+                    originalImageUrl: workingRecord.cartItem.original_image_url || '',
+                    finalImageUrl: workingRecord.cartItem.customized_image_url || '',
+                };
+            } else {
+                if (!registeredUploadTask && workingRecord.requiresFreshPreview) {
+                    throw new Error('The accurate cart preview is still waiting for its matching design task.');
+                }
+
+                stage = 'image_upload';
+                const imageUploadStartedAt = Date.now();
+                // AI-backed tasks own their 180-second generation timeout. Do not
+                // cut them off at the generic 30-second image-upload boundary.
+                uploaded = registeredUploadTask
+                    ? await (
+                        typeof registeredUploadTask === 'function'
+                            ? registeredUploadTask(owner.ownerId, requestId)
+                            : registeredUploadTask
+                    )
+                    : await withTimeout(
+                        uploadOutboxImages(workingRecord.cartItem, owner.ownerId),
+                        CART_IMAGE_TIMEOUT_MS,
+                        'Cart image upload timed out',
+                    );
+
+                if (!isPermanentCartImageUrl(uploaded.finalImageUrl)) {
+                    throw new Error('Cart preview upload did not return a permanent image URL.');
+                }
+
+                trackCartPersistenceStage({
+                    sourceSurface: workingRecord.sourceSurface || 'unknown',
+                    stage: 'image_upload',
+                    status: 'success',
+                    durationMs: Date.now() - imageUploadStartedAt,
+                });
+
+                // Save the completed upload before the database update. If that
+                // update is retried, it resumes with these exact URLs instead of
+                // re-uploading the optimistic image captured before generation.
+                stage = 'image_update';
+                workingRecord = {
+                    ...workingRecord,
+                    cartItem: {
+                        ...workingRecord.cartItem,
+                        original_image_url: uploaded.originalImageUrl || null,
+                        customized_image_url: uploaded.finalImageUrl || null,
+                    },
+                    stage: 'image_update',
+                    lastError: undefined,
+                    nextAttemptAt: undefined,
+                };
+                await putCartOutbox(workingRecord);
+            }
 
             stage = 'image_update';
             const imageUpdateStartedAt = Date.now();
@@ -803,18 +853,19 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
             setCartItems(previous => previous.map(item => item.cart_item_id === requestId ? completed : item));
             await removeCartOutbox(requestId);
+            backgroundUploadTasksRef.current.delete(requestId);
             trackCartPersistenceStage({
-                sourceSurface: record.sourceSurface || 'unknown',
+                sourceSurface: workingRecord.sourceSurface || 'unknown',
                 stage: 'completed',
                 status: 'success',
-                durationMs: Date.now() - new Date(record.createdAt).getTime(),
+                durationMs: Date.now() - new Date(workingRecord.createdAt).getTime(),
             });
         } catch (error) {
             const errorDetails = getCartOutboxErrorDetails(error, stage);
-            const nextAttemptAt = new Date(Date.now() + getCartOutboxRetryDelayMs(record.attempts + 1)).toISOString();
+            const nextAttemptAt = new Date(Date.now() + getCartOutboxRetryDelayMs(workingRecord.attempts + 1)).toISOString();
             const failedRecord: CartOutboxRecord = {
-                ...record,
-                attempts: record.attempts + 1,
+                ...workingRecord,
+                attempts: workingRecord.attempts + 1,
                 stage,
                 lastError: errorDetails.message,
                 nextAttemptAt,
@@ -825,10 +876,10 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 console.error('Failed to persist cart retry record:', outboxError);
             }
             trackCartPersistenceStage({
-                sourceSurface: record.sourceSurface || 'unknown',
+                sourceSurface: workingRecord.sourceSurface || 'unknown',
                 stage: stage === 'auth_owner' ? 'auth' : stage === 'outbox_write' ? 'outbox_write' : stage,
                 status: 'retryable',
-                durationMs: Math.max(0, Date.now() - new Date(record.createdAt).getTime()),
+                durationMs: Math.max(0, Date.now() - new Date(workingRecord.createdAt).getTime()),
             });
             setCartItems(previous => previous.map(item => item.cart_item_id === requestId
                 ? { ...item, isPending: true }
@@ -869,6 +920,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         initialItem: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'>,
         uploadTask: BackgroundUploadTask,
         sourceSurface: CartOutboxSourceSurface = 'customizer',
+        options: BackgroundUploadOptions = {},
     ) => {
         const tempId = uuidv4();
         const now = new Date().toISOString();
@@ -887,6 +939,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
 
         setCartItems(prevItems => [tempItem, ...prevItems]);
+        backgroundUploadTasksRef.current.set(tempId, uploadTask);
 
         // GA4: fire add_to_cart for the background-upload path too.
         trackAddToCart({
@@ -900,14 +953,16 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // (and before CustomizingClient redirects), but the optimistic state is
         // rendered immediately rather than waiting for IndexedDB.
         const outboxStartedAt = Date.now();
+        const outboxRecord: CartOutboxRecord = {
+            cartItem: tempItem,
+            createdAt: now,
+            attempts: 0,
+            stage: 'outbox_write',
+            sourceSurface,
+            requiresFreshPreview: options.requiresFreshPreview ?? false,
+        };
         try {
-            await putCartOutbox({
-                cartItem: tempItem,
-                createdAt: now,
-                attempts: 0,
-                stage: 'outbox_write',
-                sourceSurface,
-            });
+            await putCartOutbox(outboxRecord);
             trackCartPersistenceStage({
                 sourceSurface,
                 stage: 'outbox_write',
@@ -915,6 +970,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 durationMs: Date.now() - outboxStartedAt,
             });
         } catch (error) {
+            backgroundUploadTasksRef.current.delete(tempId);
             trackCartPersistenceStage({
                 sourceSurface,
                 stage: 'outbox_write',
@@ -924,13 +980,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             throw error;
         }
 
-        void processCartOutboxRecord({
-            cartItem: tempItem,
-            createdAt: now,
-            attempts: 0,
-            stage: 'outbox_write',
-            sourceSurface,
-        }, uploadTask);
+        void processCartOutboxRecord(outboxRecord, uploadTask);
     }, [processCartOutboxRecord]);
 
     useEffect(() => {
@@ -990,6 +1040,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const originalCart = [...cartItemsRef.current];
 
         setCartItems(prev => prev.filter(item => item.cart_item_id !== cartItemId));
+        backgroundUploadTasksRef.current.delete(cartItemId);
         await removeCartOutbox(cartItemId);
 
         try {
@@ -1052,6 +1103,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const clearCart = useCallback(() => {
         setCartItems([]);
+        backgroundUploadTasksRef.current.clear();
         setDeliveryDetails(null);
         if (typeof window !== 'undefined') {
             batchRemoveFromLocalStorage('cart_event_date');

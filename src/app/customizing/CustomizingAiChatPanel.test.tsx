@@ -72,7 +72,9 @@ describe('CustomizingAiChatPanel', () => {
         expect(inputWrapper?.className).toContain('border');
         expect(inputWrapper?.className).toContain('min-h-[41px]');
         expect(inputWrapper?.className).toContain('max-md:min-h-[33px]');
-        expect(inputWrapper?.className).toContain('focus-within:ring-inset');
+        expect(inputWrapper?.className).toContain('focus-within:ring-2');
+        expect(inputWrapper?.className).not.toContain('focus-within:ring-inset');
+        expect(input.closest('form')?.className).toContain('px-[2px]');
         fireEvent.focus(input);
         fireEvent.click(input);
         fireEvent.change(input, { target: { value: 'make it pastel blue' } });

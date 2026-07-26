@@ -19,6 +19,8 @@ const {
   toFingerprintLookupMock,
   showErrorMock,
   showStatusMock,
+  storageUploadMock,
+  storageGetPublicUrlMock,
 } = vi.hoisted(() => ({
   dismissToastMock: vi.fn(),
   fileToBase64Mock: vi.fn(),
@@ -33,6 +35,8 @@ const {
   toFingerprintLookupMock: vi.fn(),
   showErrorMock: vi.fn(),
   showStatusMock: vi.fn(),
+  storageUploadMock: vi.fn(),
+  storageGetPublicUrlMock: vi.fn(),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -56,7 +60,12 @@ vi.mock('@/services/geminiService', () => ({
 vi.mock('@/lib/supabase/client', () => ({
   createClient: () => ({
     from: vi.fn(),
-    storage: { from: vi.fn() },
+    storage: {
+      from: vi.fn(() => ({
+        upload: storageUploadMock,
+        getPublicUrl: storageGetPublicUrlMock,
+      })),
+    },
   }),
 }));
 
@@ -117,6 +126,10 @@ describe('ImageContext', () => {
     });
     validateCakeImageMock.mockResolvedValue('valid_single_cake');
     compressImageMock.mockImplementation(async (file: File) => file);
+    storageUploadMock.mockResolvedValue({ error: null });
+    storageGetPublicUrlMock.mockImplementation((path: string) => ({
+      data: { publicUrl: `https://example.com/storage/${path}` },
+    }));
     findSimilarAnalysisByHashMock.mockResolvedValue(null);
     generateServerImageFingerprintMock.mockResolvedValue({
       pHash: 'abc123def4567890',
@@ -366,6 +379,59 @@ describe('ImageContext', () => {
       keyword: 'purple cake',
     }));
     expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('uses cart-item-specific storage paths for repeated additions of the same slug', async () => {
+    const { result } = renderHook(() => useImageManagement(), { wrapper });
+
+    act(() => {
+      result.current.setOriginalImageData({
+        data: 'original-cart-image',
+        mimeType: 'image/webp',
+      });
+      result.current.setEditedImage('data:image/webp;base64,edited-cart-image');
+    });
+
+    let firstUpload!: { originalImageUrl: string; finalImageUrl: string };
+    let secondUpload!: { originalImageUrl: string; finalImageUrl: string };
+    await act(async () => {
+      firstUpload = await result.current.uploadCartImages({
+        userId: 'owner-1',
+        slug: 'same-cake',
+        cartItemId: 'cart-item-a',
+        editedImageDataUri: 'data:image/webp;base64,topper-a-off',
+      });
+      secondUpload = await result.current.uploadCartImages({
+        userId: 'owner-1',
+        slug: 'same-cake',
+        cartItemId: 'cart-item-b',
+        editedImageDataUri: 'data:image/webp;base64,both-toppers-off',
+      });
+    });
+
+    expect(storageUploadMock).toHaveBeenCalledWith(
+      'customizations/owner-1/cart/cart-item-a-original.webp',
+      expect.any(Blob),
+      expect.objectContaining({ upsert: true }),
+    );
+    expect(storageUploadMock).toHaveBeenCalledWith(
+      'customizations/owner-1/cart/cart-item-a-edited.webp',
+      expect.any(File),
+      expect.objectContaining({ upsert: true }),
+    );
+    expect(storageUploadMock).toHaveBeenCalledWith(
+      'customizations/owner-1/cart/cart-item-b-original.webp',
+      expect.any(Blob),
+      expect.objectContaining({ upsert: true }),
+    );
+    expect(storageUploadMock).toHaveBeenCalledWith(
+      'customizations/owner-1/cart/cart-item-b-edited.webp',
+      expect.any(File),
+      expect.objectContaining({ upsert: true }),
+    );
+    expect(firstUpload.finalImageUrl).not.toBe(secondUpload.finalImageUrl);
+    expect(firstUpload.finalImageUrl).toContain('cart-item-a-edited.webp');
+    expect(secondUpload.finalImageUrl).toContain('cart-item-b-edited.webp');
   });
 
   it('intercepts selfie rejection and converts it into a composite edible photo cake', async () => {

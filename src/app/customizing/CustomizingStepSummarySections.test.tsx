@@ -289,8 +289,10 @@ describe('CustomizingStepSummarySections', () => {
         expect(props.openTopperSheet).toHaveBeenCalledWith();
     });
 
-    it('disables Apply Design Changes until a topper toggle changes the design', () => {
+    it('places Apply Design beside Show more and only enables it after topper changes', () => {
         const props = buildProps();
+        props.hasToppersChanges = false;
+        props.onApplyTopperChanges = vi.fn();
         props.mainToppers = [
             ...props.mainToppers,
             {
@@ -331,9 +333,19 @@ describe('CustomizingStepSummarySections', () => {
             },
         ];
 
-        render(<CustomizingStepSummarySections {...props} />);
+        const { rerender } = render(<CustomizingStepSummarySections {...props} />);
         fireEvent.click(screen.getByRole('button', { name: /Edit Design Details/i }));
-        expect(screen.queryByRole('button', { name: 'Apply Design Changes' })).not.toBeInTheDocument();
+        const applyDesign = screen.getByRole('button', { name: 'Apply Design' });
+        const showMore = screen.getByRole('button', { name: 'Show more' });
+        expect(applyDesign).toBeDisabled();
+        expect(applyDesign.parentElement).toContainElement(showMore);
+
+        rerender(<CustomizingStepSummarySections {...props} hasToppersChanges />);
+
+        const enabledApplyDesign = screen.getByRole('button', { name: 'Apply Design' });
+        expect(enabledApplyDesign).toBeEnabled();
+        fireEvent.click(enabledApplyDesign);
+        expect(props.onApplyTopperChanges).toHaveBeenCalledTimes(1);
         expect(screen.getByText('Cake Toppers')).toHaveClass(
             'text-[10px]',
             'max-md:text-[9px]',

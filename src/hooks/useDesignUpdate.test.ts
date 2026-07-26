@@ -71,6 +71,55 @@ describe('useDesignUpdate', () => {
         expect(onSuccess).toHaveBeenCalledWith('edited-image', baseProps.originalImageData);
     });
 
+    it('keeps different visual request keys independent even when they overlap', async () => {
+        const resolvers: Array<(value: { image: string; prompt: string; systemInstruction: string }) => void> = [];
+        vi.mocked(updateDesign).mockImplementation(
+            () => new Promise((resolve) => { resolvers.push(resolve); }),
+        );
+        const onSuccess = vi.fn();
+        const topperAOff = [{ id: 'topper-a', isEnabled: false }] as never;
+        const bothToppersOff = [
+            { id: 'topper-a', isEnabled: false },
+            { id: 'topper-b', isEnabled: false },
+        ] as never;
+        const { result } = renderHook(() => useDesignUpdate({ ...baseProps, onSuccess }));
+
+        let firstRequest!: Promise<string>;
+        let secondRequest!: Promise<string>;
+        act(() => {
+            firstRequest = result.current.handleUpdateDesign(undefined, {
+                requestKey: 'cart-item-a',
+                commitResult: false,
+                stateOverrides: { mainToppers: topperAOff },
+            });
+            secondRequest = result.current.handleUpdateDesign(undefined, {
+                requestKey: 'cart-item-b',
+                commitResult: false,
+                stateOverrides: { mainToppers: bothToppersOff },
+            });
+        });
+
+        expect(firstRequest).not.toBe(secondRequest);
+        expect(updateDesign).toHaveBeenCalledTimes(2);
+        expect(updateDesign).toHaveBeenNthCalledWith(1, expect.objectContaining({
+            mainToppers: topperAOff,
+        }));
+        expect(updateDesign).toHaveBeenNthCalledWith(2, expect.objectContaining({
+            mainToppers: bothToppersOff,
+        }));
+
+        await act(async () => {
+            resolvers[1]({ image: 'both-off-image', prompt: 'p2', systemInstruction: 's2' });
+            await expect(secondRequest).resolves.toBe('both-off-image');
+            expect(result.current.isLoading).toBe(true);
+            resolvers[0]({ image: 'topper-a-off-image', prompt: 'p1', systemInstruction: 's1' });
+            await expect(firstRequest).resolves.toBe('topper-a-off-image');
+        });
+
+        expect(onSuccess).not.toHaveBeenCalled();
+        expect(result.current.isLoading).toBe(false);
+    });
+
     it('allows a new update after the previous one finishes', async () => {
         vi.mocked(updateDesign)
             .mockResolvedValueOnce({ image: 'first-image', prompt: 'p1', systemInstruction: 's1' })
@@ -90,6 +139,20 @@ describe('useDesignUpdate', () => {
         expect(updateDesign).toHaveBeenCalledTimes(2);
         expect(onSuccess).toHaveBeenNthCalledWith(1, 'first-image', baseProps.originalImageData);
         expect(onSuccess).toHaveBeenNthCalledWith(2, 'second-image', baseProps.originalImageData);
+    });
+
+    it('rejects instead of keeping a stale image when a precise preview is required', async () => {
+        vi.mocked(updateDesign).mockRejectedValueOnce(new Error('Image request blocked by safety settings'));
+        const onSuccess = vi.fn();
+        const { result } = renderHook(() => useDesignUpdate({ ...baseProps, onSuccess }));
+
+        await act(async () => {
+            await expect(result.current.handleUpdateDesign(undefined, {
+                allowSafetyFallback: false,
+            })).rejects.toThrow('Image request blocked by safety settings');
+        });
+
+        expect(onSuccess).not.toHaveBeenCalled();
     });
 
     it('passes state and prompt overrides through to updateDesign', async () => {
@@ -222,6 +285,42 @@ describe('useDesignUpdate', () => {
             data: 'edited-base64-data',
             mimeType: 'image/webp',
         });
+    });
+
+    it('resolves an explicit permanent base image without committing a cart preview', async () => {
+        const fetchMock = vi.fn().mockResolvedValue({
+            ok: true,
+            blob: vi.fn().mockResolvedValue(new Blob(['cart-base'], { type: 'image/webp' })),
+        });
+        vi.stubGlobal('fetch', fetchMock);
+        fileToBase64Mock.mockResolvedValue({
+            data: 'resolved-cart-base',
+            mimeType: 'image/webp',
+        });
+        vi.mocked(updateDesign).mockResolvedValueOnce({
+            image: 'cart-only-result',
+            prompt: 'cart-prompt',
+            systemInstruction: 'cart-system',
+        });
+        const onSuccess = vi.fn();
+        const { result } = renderHook(() => useDesignUpdate({ ...baseProps, onSuccess }));
+
+        await act(async () => {
+            await result.current.handleUpdateDesign(undefined, {
+                requestKey: 'cart-item-url-base',
+                baseImage: 'https://example.com/applied-design.webp',
+                commitResult: false,
+            });
+        });
+
+        expect(fetchMock).toHaveBeenCalled();
+        expect(updateDesign).toHaveBeenCalledWith(expect.objectContaining({
+            originalImageData: {
+                data: 'resolved-cart-base',
+                mimeType: 'image/webp',
+            },
+        }));
+        expect(onSuccess).not.toHaveBeenCalled();
     });
 
     it('uses the studio-edited image bytes for icing-mask fallback requests', async () => {

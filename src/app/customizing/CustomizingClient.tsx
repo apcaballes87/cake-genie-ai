@@ -126,7 +126,6 @@ import { useDesignUpdate } from '@/hooks/useDesignUpdate';
 import { useDesignSharing } from '@/hooks/useDesignSharing';
 import { useAvailabilitySettings } from '@/hooks/useAvailabilitySettings';
 import { useSearchEngine } from '@/hooks/useSearchEngine';
-import { AppState } from '@/hooks/useAppNavigation';
 import { toast } from 'react-hot-toast';
 import { buildAiChatPromptSuggestions, shouldShowAiPromptSuggestion } from '@/utils/aiPromptSuggestions';
 import { fillAiChatPromptTemplate, parseAiChatPromptTemplate, ParsedAiChatPromptTemplate } from '@/utils/aiChatPromptComposer';
@@ -540,8 +539,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         scrollToHero();
     }, [baseOnCakeMessageChange, scrollToHero]);
 
+    const [hasPendingDecorationPreview, setHasPendingDecorationPreview] = useState(false);
+
     const updateMainTopper = useCallback((id: string, updates: Partial<MainTopperUI>) => {
         baseUpdateMainTopper(id, updates);
+        setHasPendingDecorationPreview(true);
         if (updates.color || updates.colors) {
             scrollToHero();
         }
@@ -549,6 +551,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
 
     const updateSupportElement = useCallback((id: string, updates: Partial<SupportElementUI>) => {
         baseUpdateSupportElement(id, updates);
+        setHasPendingDecorationPreview(true);
         if (updates.color || updates.colors) {
             scrollToHero();
         }
@@ -619,6 +622,46 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         });
         setActiveTab(returnState.activeTab);
     }, [applyFullCustomizationState]);
+
+    const openCartFromCustomizer = useCallback(() => {
+        const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+
+        writeCustomizerCartReturnState({
+            returnUrl: returnTo,
+            customization: {
+                cakeInfo,
+                mainToppers,
+                supportElements,
+                cakeMessages,
+                icingDesign,
+                additionalInstructions,
+                analysisResult,
+                analysisId,
+                availability: baseAvailability,
+                aiChatHistory,
+            },
+            activeTab: editedImage ? 'customized' : activeTab,
+            isCustomizationDirty,
+            dirtyFields: Array.from(dirtyFields),
+        });
+        router.push(buildCartReturnUrl(returnTo));
+    }, [
+        activeTab,
+        additionalInstructions,
+        aiChatHistory,
+        analysisId,
+        analysisResult,
+        baseAvailability,
+        cakeInfo,
+        cakeMessages,
+        dirtyFields,
+        editedImage,
+        icingDesign,
+        isCustomizationDirty,
+        mainToppers,
+        router,
+        supportElements,
+    ]);
 
 
     // Open pre-selection modal when arriving from search with analysis already in progress
@@ -1058,6 +1101,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
             setOriginalImageData(baseImageData); // Update originalImageData in sync
             syncAnalysisResultWithCurrentState();
             clearDirtyState();
+            setHasPendingDecorationPreview(false);
         },
     });
 
@@ -1241,40 +1285,55 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         setIsAddingToCart(true);
 
         try {
-            // 1. Decide the upload task.
-            //    • If there are pending visual changes (e.g. unapplied message edits), kick off
-            //      the AI image edit in the background.  The cart item is added immediately with
-            //      the current image as a placeholder (CartItemCard renders a spinner overlay),
-            //      and when Gemini + upload both finish the cart swaps in the final image.
-            //    • Otherwise just upload what we already have.
-            const uploadCartItemImages = (ownerId: string): Promise<{ originalImageUrl: string; finalImageUrl: string }> => {
-                if (hasPendingVisualChangesRef.current && originalImageData) {
-                    return handleUpdateDesign()
-                        .then((freshEditedImage) =>
-                            uploadCartImages({
-                                editedImageDataUri: freshEditedImage ?? editedImage,
-                                userId: ownerId,
-                                slug: typeof slug === 'string' ? slug : undefined,
-                            })
-                        )
-                        .catch(() =>
-                            // If AI edit fails, fall back to uploading the current image
-                            uploadCartImages({
-                                editedImageDataUri: editedImage,
-                                userId: ownerId,
-                                slug: typeof slug === 'string' ? slug : undefined,
-                            })
-                        );
+            // Freeze the exact visual request at click time. The cart upload runs
+            // after navigation, so it must not read later toggles or editor images.
+            const requiresFreshPreview = hasPendingVisualChangesRef.current;
+            const visualStateSnapshot = structuredClone({
+                analysisResult,
+                cakeInfo,
+                mainToppers,
+                supportElements,
+                cakeMessages,
+                icingDesign,
+                additionalInstructions,
+            });
+            const baseImageSnapshot = editedImage
+                ?? (originalImageData ? { ...originalImageData } : null);
+            const optimisticEditedImageSnapshot = editedImage;
+
+            // Start the image work only after the optimistic cart item is written. The
+            // cart route can therefore load immediately and display its existing pending
+            // preview state while the accurate replacement image is generated.
+            const uploadCartItemImages = async (
+                ownerId: string,
+                cartItemId: string,
+            ): Promise<{ originalImageUrl: string; finalImageUrl: string }> => {
+                let previewImage = optimisticEditedImageSnapshot;
+
+                if (requiresFreshPreview) {
+                    if (!baseImageSnapshot) {
+                        throw new Error('Cannot generate the cart preview because its base image is missing.');
+                    }
+                    previewImage = await handleUpdateDesign(undefined, {
+                        source: 'cart-preview-apply',
+                        allowSafetyFallback: false,
+                        requestKey: `cart-preview-${cartItemId}`,
+                        baseImage: baseImageSnapshot,
+                        commitResult: false,
+                        stateOverrides: visualStateSnapshot,
+                    });
                 }
 
                 return uploadCartImages({
-                    editedImageDataUri: editedImage,
+                    editedImageDataUri: previewImage,
                     userId: ownerId,
                     slug: typeof slug === 'string' ? slug : undefined,
+                    cartItemId,
                 });
             };
 
-            // 2. Prepare optimistic placeholders (current image, may be old — spinner covers it)
+            // 2. The cart displays the current preview under its pending spinner until
+            // the background task above replaces it with the newly applied design.
             const optimisticOriginal = originalImagePreview || '';
             const optimisticCustomized = editedImage || '';
             const persistedAiChatHistory = aiChatHistoryRef.current;
@@ -1382,7 +1441,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
 
             // 4. Wait only for the durable IndexedDB outbox write. The network cart save
             // and preview upload continue through the outbox after the redirect.
-            await addToCartWithBackgroundUpload(cartItem, uploadCartItemImages);
+            await addToCartWithBackgroundUpload(
+                cartItem,
+                uploadCartItemImages,
+                'customizer',
+                { requiresFreshPreview },
+            );
 
             trackCustomizerAddToCartSaveConfirmed({
                 ...analyticsBase,
@@ -1395,26 +1459,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                 priceBucket: getAnalyticsValueBucket((effectivePrice || 0) + ediblePhotoAddonPrice),
                 clickToRedirectMs: Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - addToCartClickStartedAt),
             });
-            const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-            writeCustomizerCartReturnState({
-                returnUrl: returnTo,
-                customization: {
-                    cakeInfo,
-                    mainToppers,
-                    supportElements,
-                    cakeMessages,
-                    icingDesign,
-                    additionalInstructions,
-                    analysisResult,
-                    analysisId,
-                    availability: baseAvailability,
-                    aiChatHistory,
-                },
-                activeTab: editedImage ? 'customized' : activeTab,
-                isCustomizationDirty,
-                dirtyFields: Array.from(dirtyFields),
-            });
-            router.push(buildCartReturnUrl(returnTo));
+            openCartFromCustomizer();
         } catch (err) {
             addToCartInFlightRef.current = false;
             setIsAddingToCart(false);
@@ -1473,6 +1518,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         slug,
         handleUpdateDesign,
         originalImageData,
+        openCartFromCustomizer,
     ]);
 
     useEffect(() => {
@@ -3004,11 +3050,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         if (!query || !query.trim()) return;
         router.push(`/search?q=${encodeURIComponent(query.trim())}`);
     };
-    const setAppState = (state: AppState) => {
-        if (state === 'landing') router.push('/');
-        if (state === 'cart') router.push('/cart');
-    };
-
     const onCakeInfoChange = handleCakeInfoChange;
     const onTopperImageReplace = handleTopperImageReplace;
     const onSupportElementImageReplace = handleSupportElementImageReplace;
@@ -3135,44 +3176,28 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         });
     }, [cakeMessages, analysisResult]);
 
-    const checkItemChanged = useCallback((item: MainTopperUI | SupportElementUI) => {
-        // If it was originally detected but now disabled
-        if (!item.isEnabled) return true;
+    // This is a direct interaction latch, not a derived dirty-state comparison.
+    // A topper/support toggle must make Apply Design actionable in the same render.
+    const hasToppersChanges = hasPendingDecorationPreview
+        || dirtyFields.has('mainToppers')
+        || dirtyFields.has('supportElements');
 
-        // Check type change
-        if (item.type !== item.original_type) return true;
+    const handleApplyTopperChanges = useCallback(async () => {
+        if (!hasToppersChanges || isUpdatingDesign) return;
 
-        // Check color change
-        const color1 = item.color?.toLowerCase() || '';
-        const color2 = item.original_color?.toLowerCase() || '';
-        if (color1 !== color2) return true;
-
-        // Check colors array change
-        const colors1 = (item.colors || []).filter(c => c).map(c => c!.toLowerCase()).sort();
-        const colors2 = (item.original_colors || []).filter(c => c).map(c => c!.toLowerCase()).sort();
-        if (JSON.stringify(colors1) !== JSON.stringify(colors2)) return true;
-
-        // Check replacement image
-        if (item.replacementImage) return true;
-
-        return false;
-    }, []);
-
-    const hasToppersChanges = useMemo(() => {
-        if (!mainToppers || !supportElements) return false;
-        return mainToppers.some(checkItemChanged) || supportElements.some(checkItemChanged);
-    }, [mainToppers, supportElements, checkItemChanged]);
-
-    const hasPhotoChanges = useMemo(() => {
-        if (!mainToppers || !supportElements) return false;
-        const photoToppers = mainToppers.filter(t => t.original_type === 'edible_photo_top');
-        const photoSupport = supportElements.filter(s => s.original_type === 'edible_photo_side');
-        return photoToppers.some(checkItemChanged) || photoSupport.some(checkItemChanged);
-    }, [mainToppers, supportElements, checkItemChanged]);
+        try {
+            await handleUpdateDesign(undefined, {
+                source: 'topper-summary-apply',
+                allowSafetyFallback: false,
+            });
+        } catch {
+            showError('We could not apply your design changes. Please try again.');
+        }
+    }, [handleUpdateDesign, hasToppersChanges, isUpdatingDesign]);
 
     const hasPendingVisualChanges = useMemo(() => {
-        return hasIcingChanges || hasMessageChanges || hasToppersChanges || hasPhotoChanges || hasTypeChanges || additionalInstructions.trim().length > 0;
-    }, [hasIcingChanges, hasMessageChanges, hasToppersChanges, hasPhotoChanges, hasTypeChanges, additionalInstructions]);
+        return hasIcingChanges || hasMessageChanges || hasToppersChanges || hasTypeChanges || additionalInstructions.trim().length > 0;
+    }, [hasIcingChanges, hasMessageChanges, hasToppersChanges, hasTypeChanges, additionalInstructions]);
 
     // Ref kept in sync so onAddToCart (declared earlier) can read the latest value without
     // triggering a "used before declaration" TypeScript error from the useMemo above.
@@ -3939,7 +3964,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                 inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-purple-100 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
                             />
                         </div>
-                        <button onClick={() => setAppState('cart')} className="relative p-2 genie-icon-button rounded-full shrink-0" aria-label={`View cart with ${visibleItemCount} items`}>
+                        <button onClick={openCartFromCustomizer} className="relative p-2 genie-icon-button rounded-full shrink-0" aria-label={`View cart with ${visibleItemCount} items`}>
                             <ShoppingBag className="h-5 w-5 md:h-6 md:w-6" />
                             {isHydrated && visibleItemCount > 0 && (
                                 <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-white text-xs font-bold">
@@ -4074,6 +4099,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                         hideStepFour,
                                         photoStepNode,
                                         isUpdatingDesign: isUpdatingDesign,
+                                        hasToppersChanges,
+                                        onApplyTopperChanges: handleApplyTopperChanges,
                                         dirtyFields: dirtyFields,
                                         aiChatNode: !analysisError && !hideAiChat ? (
                                             <CustomizingAiChatPanel
@@ -4188,6 +4215,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                         />
                                     ) : null}
                                     isUpdatingDesign={isUpdatingDesign}
+                                    hasToppersChanges={hasToppersChanges}
+                                    onApplyTopperChanges={handleApplyTopperChanges}
                                     dirtyFields={dirtyFields}
                                     isStudioBackgroundEditingPending={isStudioBackgroundEditingPending}
                                 />
@@ -4271,6 +4300,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                     hideStepOne,
                                     hideStepFour,
                                     photoStepNode,
+                                    hasToppersChanges,
+                                    onApplyTopperChanges: handleApplyTopperChanges,
                                     aiChatNode: !analysisError && !hideAiChat ? (
                                         <CustomizingAiChatPanel
                                             className="w-full"
