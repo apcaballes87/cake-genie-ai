@@ -706,10 +706,10 @@ export const CustomizingHeroPanel = memo(({
                                 <div className="absolute bottom-4 left-4 max-md:bottom-3 max-md:left-3 z-10">
                                         <button
                                             onClick={handleToggleSaveDesign}
-                                            className={`backdrop-blur-sm rounded-full text-[10px] max-md:text-[9px] max-[360px]:text-[8px] font-semibold transition-all shadow-md px-2.5 max-md:px-2 py-1 max-[360px]:py-0.5 flex items-center gap-1 max-md:min-h-[44px] ${isCurrentDesignSaved ? 'bg-pink-500 text-white hover:bg-pink-600' : 'genie-btn-secondary'}`}
+                                            className={`backdrop-blur-sm rounded-full text-[10px] font-semibold transition-all shadow-md px-[10px] py-[4px] flex items-center !gap-[8px] ${isCurrentDesignSaved ? 'bg-pink-500 text-white hover:bg-pink-600' : 'genie-btn-secondary'}`}
                                             aria-label={isCurrentDesignSaved ? 'Remove from saved' : 'Save this design'}
                                         >
-                                            <Heart className="w-3 h-3 max-[360px]:w-2.5 max-[360px]:h-2.5" fill={isCurrentDesignSaved ? 'currentColor' : 'none'} />
+                                            <Heart className="w-[12px] h-[12px]" fill={isCurrentDesignSaved ? 'currentColor' : 'none'} />
                                             {isCurrentDesignSaved ? 'Saved' : 'Save'}
                                         </button>
                                     </div>
@@ -772,10 +772,10 @@ export const CustomizingHeroPanel = memo(({
                                         <button
                                             onClick={handleUndo}
                                             disabled={!canUndo || isLoading}
-                                            className="genie-btn-primary backdrop-blur-sm rounded-full text-[10px] max-md:text-[9px] max-[360px]:text-[8px] font-semibold px-2.5 max-md:px-2 py-1 max-[360px]:py-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 max-md:min-h-[44px]"
+                                            className="genie-btn-primary backdrop-blur-sm rounded-full text-[10px] font-semibold px-[10px] py-[4px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center !gap-[8px]"
                                             aria-label="Undo last change"
                                         >
-                                            <ResetIcon className="w-2.5 h-2.5 max-[360px]:w-2 max-[360px]:h-2" />
+                                            <ResetIcon className="w-[10px] h-[10px]" />
                                             Undo
                                         </button>
                                     ) : null}

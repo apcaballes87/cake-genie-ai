@@ -155,7 +155,17 @@ describe('CustomizingHeroPanel', () => {
         expect(props.onUndo).toHaveBeenCalledTimes(1);
         expect(props.onOpenReportModal).toHaveBeenCalledTimes(1);
         expect(props.onClearAll).toHaveBeenCalledTimes(1);
-        expect(screen.getByRole('button', { name: 'Save this design' })).toBeInTheDocument();
+        const saveButton = screen.getByRole('button', { name: 'Save this design' });
+        const undoButton = screen.getByRole('button', { name: 'Undo last change' });
+        expect(saveButton).toBeInTheDocument();
+        expect(saveButton.className).not.toContain('max-md:min-h-[44px]');
+        expect(undoButton.className).not.toContain('max-md:min-h-[44px]');
+        expect(saveButton.className).not.toContain('max-md:text-[9px]');
+        expect(undoButton.className).not.toContain('max-md:text-[9px]');
+        expect(saveButton.className).toContain('px-[10px]');
+        expect(saveButton.className).toContain('py-[4px]');
+        expect(undoButton.className).toContain('px-[10px]');
+        expect(undoButton.className).toContain('py-[4px]');
         expect(screen.queryByRole('button', { name: 'Upload Cake Design' })).not.toBeInTheDocument();
     });
 

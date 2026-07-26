@@ -28,6 +28,7 @@ const buildProps = () => ({
     selectedAiPromptIndex: 0,
     isAiProcessing: false,
     isUpdatingDesign: false,
+    statusMessage: null as string | null,
     attachedImageName: null as string | null,
     isAttachmentUploading: false,
     onSubmit: vi.fn((event?: React.FormEvent<HTMLFormElement>) => event?.preventDefault()),
@@ -54,19 +55,24 @@ describe('CustomizingAiChatPanel', () => {
         const inputWrapper = input.parentElement;
         expect(input.tagName).toBe('TEXTAREA');
         expect(uploadButton.className).toContain('h-[41px]');
+        expect(uploadButton.className).toContain('max-md:h-[33px]');
         expect(uploadButton.className).toContain('w-[41px]');
         expect(submitButton.className).toContain('h-[33px]');
+        expect(submitButton.className).toContain('max-md:h-[27px]');
         expect(submitButton.className).toContain('w-[33px]');
         expect(submitButton.className).not.toContain('max-md:min-h-[41px]');
         expect(submitButton.className).not.toContain('max-md:min-w-[41px]');
         expect(input).toHaveClass('block');
         expect(input.className).toContain('min-h-[39px]');
+        expect(input.className).toContain('max-md:min-h-[31px]');
         expect(input.className).toContain('text-[12px]');
         expect(input.className).toContain('leading-[17px]');
         expect(input).toHaveClass('pr-12');
         expect(inputWrapper?.className).toContain('rounded-xl');
         expect(inputWrapper?.className).toContain('border');
         expect(inputWrapper?.className).toContain('min-h-[41px]');
+        expect(inputWrapper?.className).toContain('max-md:min-h-[33px]');
+        expect(inputWrapper?.className).toContain('focus-within:ring-inset');
         fireEvent.focus(input);
         fireEvent.click(input);
         fireEvent.change(input, { target: { value: 'make it pastel blue' } });
@@ -168,6 +174,18 @@ describe('CustomizingAiChatPanel', () => {
         fireEvent.submit(container.querySelector('form') as HTMLFormElement);
 
         expect(props.onSubmit).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows an AI reply below the composer without the processing animation', () => {
+        const props = buildProps();
+        props.statusMessage = 'I could not find a supported cake option to change.';
+
+        render(<CustomizingAiChatPanel {...props} />);
+
+        const status = screen.getByRole('status');
+        expect(status).toHaveTextContent(props.statusMessage);
+        expect(status.parentElement?.className).not.toContain('animate-pulse');
+        expect(screen.queryByText('Redesigning your cake...')).not.toBeInTheDocument();
     });
 
     it('supports attaching and removing a reference image', () => {

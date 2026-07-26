@@ -24,6 +24,7 @@ interface CustomizingAiChatPanelProps {
     selectedAiPromptIndex: number;
     isAiProcessing: boolean;
     isUpdatingDesign: boolean;
+    statusMessage?: string | null;
     attachedImageName?: string | null;
     isAttachmentUploading?: boolean;
     onSubmit: (event?: React.FormEvent<HTMLFormElement>) => void | Promise<void>;
@@ -55,6 +56,7 @@ export const CustomizingAiChatPanel = React.memo(({
     selectedAiPromptIndex,
     isAiProcessing,
     isUpdatingDesign,
+    statusMessage,
     attachedImageName,
     isAttachmentUploading = false,
     onSubmit,
@@ -150,7 +152,7 @@ export const CustomizingAiChatPanel = React.memo(({
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isAttachmentDisabled}
                         aria-label="Attach reference image"
-                        className="shrink-0 h-[41px] w-[41px] rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-purple-200 hover:bg-purple-50 hover:text-purple-700 disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center"
+                        className="shrink-0 h-[41px] max-md:h-[33px] w-[41px] rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-purple-200 hover:bg-purple-50 hover:text-purple-700 disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center"
                     >
                         {isAttachmentUploading ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -195,7 +197,7 @@ export const CustomizingAiChatPanel = React.memo(({
                                 )}
                             </div>
                         ) : (
-                            <div className="relative min-h-[41px] rounded-xl border border-slate-200 bg-white shadow-sm transition-all focus-within:border-transparent focus-within:ring-2 focus-within:ring-purple-500">
+                            <div className="relative min-h-[41px] max-md:min-h-[33px] rounded-xl border border-slate-200 bg-white shadow-sm transition-all focus-within:border-transparent focus-within:ring-2 focus-within:ring-inset focus-within:ring-purple-500">
                                 <textarea
                                     ref={inputRef}
                                     value={chatInput}
@@ -208,14 +210,14 @@ export const CustomizingAiChatPanel = React.memo(({
                                     disabled={isAiProcessing || isUpdatingDesign}
                                     autoComplete="off"
                                     rows={1}
-                                    className="block w-full min-h-[39px] resize-none overflow-hidden rounded-xl bg-transparent pl-4 pr-12 py-[11px] max-md:py-2.5 text-[12px] max-md:text-[10px] leading-[17px] max-md:leading-[15px] focus:outline-none disabled:opacity-50 disabled:bg-slate-50 placeholder:text-slate-400"
+                                    className="block w-full min-h-[39px] max-md:min-h-[31px] resize-none overflow-hidden rounded-xl bg-transparent pl-4 pr-12 py-[11px] max-md:py-2.5 text-[12px] max-md:text-[10px] leading-[17px] max-md:leading-[15px] focus:outline-none disabled:opacity-50 disabled:bg-slate-50 placeholder:text-slate-400"
                                 />
                             </div>
                         )}
                         <button
                             type="submit"
                             disabled={!chatInput.trim() || isAiProcessing || isUpdatingDesign || !!selectedAiPromptTemplate}
-                            className="absolute right-1 top-1 h-[33px] w-[33px] bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white rounded-lg transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="absolute right-1 top-1 h-[33px] max-md:h-[27px] w-[33px] bg-linear-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white rounded-lg transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
                             aria-label="Submit AI Edit"
                         >
                             {isAiProcessing ? (
@@ -270,9 +272,13 @@ export const CustomizingAiChatPanel = React.memo(({
                     </div>
                 )}
             </form>
-            {isAiProcessing && (
-                <p className="text-[10px] max-md:text-[9px] text-purple-500 font-medium mt-1.5 animate-pulse flex items-center gap-1 px-1">
-                    <Loader2 className="w-3 h-3 animate-spin" /> Redesigning your cake...
+            {(isAiProcessing || statusMessage) && (
+                <p className={`text-[10px] max-md:text-[9px] text-purple-500 font-medium mt-1.5 flex items-center gap-1 px-1${isAiProcessing ? ' animate-pulse' : ''}`}>
+                    {isAiProcessing ? (
+                        <><Loader2 className="w-3 h-3 animate-spin" /> Redesigning your cake...</>
+                    ) : (
+                        <span role="status" aria-live="polite">{statusMessage}</span>
+                    )}
                 </p>
             )}
         </div>

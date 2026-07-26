@@ -582,6 +582,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     const [searchInput, setSearchInput] = useState('');
     const [chatInput, setChatInput] = useState('');
     const [isAiProcessing, setIsAiProcessing] = useState(false);
+    const [aiChatStatusMessage, setAiChatStatusMessage] = useState<string | null>(null);
     const [aiChatReferenceAttachment, setAiChatReferenceAttachment] = useState<AiChatReferenceAttachment | null>(null);
     const [isAiChatAttachmentUploading, setIsAiChatAttachmentUploading] = useState(false);
     const [showAiPromptSuggestions, setShowAiPromptSuggestions] = useState(false);
@@ -1582,6 +1583,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         aiChatRequestInFlightRef.current = true;
         aiChatRequestIdRef.current = traceId;
         aiChatAbortControllerRef.current = abortController;
+        setAiChatStatusMessage(null);
         setIsAiProcessing(true);
 
         try {
@@ -1637,7 +1639,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                     assertActiveRequest();
                     appendAiChatHistoryEntry(entry);
                     if (uploadFailed) {
-                        showInfo('We used your AI chat request, but could not save the attached reference image link.');
+                        setAiChatStatusMessage('We used your AI chat request, but could not save the attached reference image link.');
                     }
                 },
                 applyState: editResult => {
@@ -1658,7 +1660,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                         dirtyFields: dirtyStateFields,
                     });
                     if (editResult.requiresImageEdit) {
-                        showSuccess('Cake options updated. Generating the preview...');
+                        setAiChatStatusMessage('Cake options updated. Generating the preview...');
                     }
                 },
                 editImage: async editResult => {
@@ -1701,7 +1703,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                             ? `${additionalInstructions}\n${action.content}`
                             : action.content;
                         onAdditionalInstructionsChange(newInstructions);
-                        showSuccess('Added a note to your instructions!');
+                        setAiChatStatusMessage('Added a note to your instructions!');
                         return;
                     }
                     await onAddToCartRef.current?.();
@@ -1726,22 +1728,22 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
             });
 
             if (flowResult.effectiveOutcome === 'restriction') {
-                showError(flowResult.response.message || 'That change is not available for this cake.');
+                setAiChatStatusMessage(flowResult.response.message || 'That change is not available for this cake.');
                 return;
             }
             if (flowResult.effectiveOutcome === 'clarification') {
-                showInfo(flowResult.response.message || 'Please be more specific about what you want to change.');
+                setAiChatStatusMessage(flowResult.response.message || 'Please be more specific about what you want to change.');
                 return;
             }
             if (flowResult.effectiveOutcome === 'noop') {
-                showInfo(flowResult.response.message || 'I could not find a supported cake option to change.');
+                setAiChatStatusMessage(flowResult.response.message || 'I could not find a supported cake option to change.');
                 return;
             }
 
             setChatInput('');
             setAiChatReferenceAttachment(null);
             if (flowResult.effectiveOutcome === 'design_change') {
-                showSuccess(flowResult.imageEdited ? 'AI applied your cake changes!' : 'Cake options updated!');
+                setAiChatStatusMessage(flowResult.response.message || (flowResult.imageEdited ? 'AI applied your cake changes!' : 'Cake options updated!'));
             }
         } catch (err: unknown) {
             if (aiChatRequestIdRef.current !== traceId) return;
@@ -1753,11 +1755,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
             });
 
             if (timedOut) {
-                showError('The AI request timed out. Your prompt is still here so you can try again.');
+                setAiChatStatusMessage('The AI request timed out. Your prompt is still here so you can try again.');
             } else if (didApplyDesignState && didStartImageEdit) {
-                showError('Cake options were updated, but the image preview failed. Apply the design changes to retry.');
+                setAiChatStatusMessage('Cake options were updated, but the image preview failed. Apply the design changes to retry.');
             } else if (!abortController.signal.aborted) {
-                showError(err instanceof Error ? err.message : 'Failed to process your request. Please try again.');
+                setAiChatStatusMessage(err instanceof Error ? err.message : 'Failed to process your request. Please try again.');
             }
         } finally {
             if (aiChatRequestIdRef.current === traceId) {
@@ -4099,6 +4101,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                                 selectedAiPromptIndex={selectedAiPromptIndex}
                                                 isAiProcessing={isAiProcessing}
                                                 isUpdatingDesign={isUpdatingDesign}
+                                                statusMessage={aiChatStatusMessage}
                                                 attachedImageName={aiChatReferenceAttachment?.fileName ?? null}
                                                 isAttachmentUploading={isAiChatAttachmentUploading}
                                                 onSubmit={handleChatSubmit}
@@ -4180,6 +4183,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                             selectedAiPromptIndex={selectedAiPromptIndex}
                                             isAiProcessing={isAiProcessing}
                                             isUpdatingDesign={isUpdatingDesign}
+                                            statusMessage={aiChatStatusMessage}
                                             attachedImageName={aiChatReferenceAttachment?.fileName ?? null}
                                             isAttachmentUploading={isAiChatAttachmentUploading}
                                             onSubmit={handleChatSubmit}
@@ -4300,6 +4304,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                             selectedAiPromptIndex={selectedAiPromptIndex}
                                             isAiProcessing={isAiProcessing}
                                             isUpdatingDesign={isUpdatingDesign}
+                                            statusMessage={aiChatStatusMessage}
                                             attachedImageName={aiChatReferenceAttachment?.fileName ?? null}
                                             isAttachmentUploading={isAiChatAttachmentUploading}
                                             onSubmit={handleChatSubmit}
