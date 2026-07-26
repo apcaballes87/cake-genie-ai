@@ -52,6 +52,7 @@ import {
     trackViewItem,
 } from '@/lib/analytics';
 import { getAddToCartBlockReason, type AddToCartBlockReason } from '@/lib/customizerAddToCart';
+import { buildCartReturnUrl } from '@/lib/cartReturnNavigation';
 import ReportModal from '../../components/ReportModal';
 import ShareModal from '../../components/ShareModal';
 import ChatModal from '../../components/ChatModal';
@@ -1376,7 +1377,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                 priceBucket: getAnalyticsValueBucket((effectivePrice || 0) + ediblePhotoAddonPrice),
                 clickToRedirectMs: Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - addToCartClickStartedAt),
             });
-            router.push('/cart');
+            const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+            router.push(buildCartReturnUrl(returnTo));
         } catch (err) {
             addToCartInFlightRef.current = false;
             setIsAddingToCart(false);

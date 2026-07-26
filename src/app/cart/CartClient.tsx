@@ -45,6 +45,7 @@ import PaymentErrorBoundary from '@/components/PaymentErrorBoundary';
 import CartDateOption from './CartDateOption';
 import CartLoginModal from '@/components/CartLoginModal';
 import { useImageZoomScrollLock } from '@/hooks/useImageZoomScrollLock';
+import { getCustomizerCartReturnUrl } from '@/lib/cartReturnNavigation';
 
 const getErrorMessage = (error: unknown, fallback: string) => (
     error instanceof Error ? error.message : fallback
@@ -401,6 +402,7 @@ function CartClient() {
     const searchParams = useSearchParams();
     const { goBack } = useSmartBack('cart');
     const recordNavigation = useRecordNavigation();
+    const customizerReturnUrl = getCustomizerCartReturnUrl(searchParams.get('returnTo'));
 
     // Record that the user is on the cart page so the context tracks it.
     useEffect(() => {
@@ -1984,6 +1986,10 @@ function CartClient() {
     }, [removeItemOptimistic]);
 
     const handleClose = () => {
+        if (customizerReturnUrl) {
+            router.push(customizerReturnUrl);
+            return;
+        }
         goBack();
     };
 
