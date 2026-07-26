@@ -53,6 +53,10 @@ import {
 } from '@/lib/analytics';
 import { getAddToCartBlockReason, type AddToCartBlockReason } from '@/lib/customizerAddToCart';
 import { buildCartReturnUrl } from '@/lib/cartReturnNavigation';
+import {
+    takeCustomizerCartReturnState,
+    writeCustomizerCartReturnState,
+} from '@/lib/customizerCartReturnState';
 import ReportModal from '../../components/ReportModal';
 import ShareModal from '../../components/ShareModal';
 import ChatModal from '../../components/ChatModal';
@@ -467,6 +471,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     const chatEndMobileRef = useRef<HTMLDivElement>(null);
     const chatEndDesktopRef = useRef<HTMLDivElement>(null);
     const committedStateRef = useRef<CustomizationState | null>(null);
+    const restoredCartReturnUrlRef = useRef<string | null>(null);
     const addToCartInFlightRef = useRef(false);
     const addToCartResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const aiChatHistoryRef = useRef<AiChatHistoryEntry[]>([]);
@@ -601,6 +606,19 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     const [studioEditStatus, setStudioEditStatus] = useState<string | null>(
         recentSearchDesign?.studio_edit_status || null
     );
+
+    useEffect(() => {
+        const returnUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+        const returnState = takeCustomizerCartReturnState(returnUrl);
+        if (!returnState) return;
+
+        restoredCartReturnUrlRef.current = returnUrl;
+        applyFullCustomizationState(returnState.customization, {
+            markDirty: returnState.isCustomizationDirty,
+            dirtyFields: returnState.dirtyFields,
+        });
+        setActiveTab(returnState.activeTab);
+    }, [applyFullCustomizationState]);
 
 
     // Open pre-selection modal when arriving from search with analysis already in progress
@@ -1378,6 +1396,24 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                 clickToRedirectMs: Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - addToCartClickStartedAt),
             });
             const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+            writeCustomizerCartReturnState({
+                returnUrl: returnTo,
+                customization: {
+                    cakeInfo,
+                    mainToppers,
+                    supportElements,
+                    cakeMessages,
+                    icingDesign,
+                    additionalInstructions,
+                    analysisResult,
+                    analysisId,
+                    availability: baseAvailability,
+                    aiChatHistory,
+                },
+                activeTab: editedImage ? 'customized' : activeTab,
+                isCustomizationDirty,
+                dirtyFields: Array.from(dirtyFields),
+            });
             router.push(buildCartReturnUrl(returnTo));
         } catch (err) {
             addToCartInFlightRef.current = false;
@@ -1427,6 +1463,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         availabilityType,
         availabilitySettings?.minimum_lead_time_days,
         analysisId,
+        analysisResult,
+        aiChatHistory,
+        activeTab,
+        baseAvailability,
+        dirtyFields,
+        isCustomizationDirty,
         router,
         slug,
         handleUpdateDesign,
@@ -1923,6 +1965,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     // Handle product prop loading (from SEO-friendly routes like /shop/[merchant]/[product]/customize)
     // AND recent search designs (from /customizing/[slug])
     useEffect(() => {
+        const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+        if (restoredCartReturnUrlRef.current === currentUrl) {
+            return;
+        }
+
         const urlParams = new URLSearchParams(window.location.search);
         const sourceParam = resolveEntrySourceParam(urlParams);
 
