@@ -27,6 +27,10 @@ export async function generateMetadata(
         description: query
             ? `Browse ${countText.toLowerCase()}custom cake designs matching "${query}". Order from local bakeries in Cebu.`
             : 'Search for cake designs to customize. Find the perfect cake for any occasion.',
+        // Query strings represent transient searches, not distinct SEO pages.
+        // Keep them noindexed, and give crawlers one stable canonical endpoint
+        // instead of treating every spelling or filter combination as its own URL.
+        canonicalPath: 'https://genie.ph/search',
         follow: true,
     })
 }

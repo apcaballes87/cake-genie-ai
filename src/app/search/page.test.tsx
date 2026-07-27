@@ -35,6 +35,7 @@ describe('search page metadata', () => {
     expect(metadata.openGraph?.description).toBe('Browse 15 custom cake designs matching "Spiderman". Order from local bakeries in Cebu.');
     expect(metadata.twitter?.title).toBe('15 Cake designs for "Spiderman" | Genie.ph');
     expect(metadata.twitter?.description).toBe('Browse 15 custom cake designs matching "Spiderman". Order from local bakeries in Cebu.');
+    expect(metadata.alternates?.canonical).toBe('https://genie.ph/search');
     expect(metadata.robots).toMatchObject({ index: false, follow: true });
   });
 
@@ -48,6 +49,7 @@ describe('search page metadata', () => {
     expect(searchProductsFTSCount).not.toHaveBeenCalled();
     expect(metadata.title).toEqual({ absolute: 'Search Cake Designs | Genie.ph' });
     expect(metadata.description).toBe('Search for cake designs to customize. Find the perfect cake for any occasion.');
+    expect(metadata.alternates?.canonical).toBe('https://genie.ph/search');
     expect(metadata.robots).toMatchObject({ index: false, follow: true });
   });
 });
