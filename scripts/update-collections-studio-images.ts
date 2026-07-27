@@ -24,7 +24,7 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
 export async function refreshCollections(isDryRun: boolean, targetSlugs?: string[]) {
   let query = supabase
     .from('cakegenie_collections')
-    .select('id,name,slug,item_count,matched_design_count,studio_image_count,sample_image,publication_status')
+    .select('id,name,slug,search_query,item_count,matched_design_count,studio_image_count,sample_image,publication_status')
     .order('slug', { ascending: true });
 
   if (targetSlugs && targetSlugs.length > 0) {
@@ -39,7 +39,11 @@ export async function refreshCollections(isDryRun: boolean, targetSlugs?: string
 
   for (const collection of collections || []) {
     try {
-      const metadata = await getCollectionSearchMetadata(supabase, collection.name);
+      const metadata = await getCollectionSearchMetadata(
+        supabase,
+        collection.name,
+        collection.search_query,
+      );
       const qualityInput = {
         matchedDesignCount: metadata.matchedDesignCount,
         sampleImage: metadata.sampleImage,

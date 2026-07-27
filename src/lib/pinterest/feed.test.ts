@@ -62,6 +62,19 @@ describe('Pinterest RSS feed helpers', () => {
     });
   });
 
+  it('uses an explicit collection membership query when one is set', () => {
+    expect(buildPinterestCollectionSearchPlan({
+      name: 'Dancer Cake',
+      slug: 'dancer-cake',
+      search_query: 'dance',
+      tags: ['dancer cake', 'dance cake'],
+    })).toEqual({
+      kind: 'text',
+      query: 'dance',
+      icingColor: null,
+    });
+  });
+
   it('strips Supabase query tokens and rejects non-public image URLs', () => {
     expect(sanitizePinterestImageUrl('https://abc.supabase.co/storage/v1/object/public/cakes/a.webp?token=secret'))
       .toBe('https://abc.supabase.co/storage/v1/object/public/cakes/a.webp');

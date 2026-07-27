@@ -42,8 +42,11 @@ export function cleanCollectionSearchQuery(name: string): string {
     .trim();
 }
 
-export function buildCollectionSearchPlan(name: string): CollectionSearchPlan {
-  const query = cleanCollectionSearchQuery(name);
+export function buildCollectionSearchPlan(
+  name: string,
+  searchQuery?: string | null,
+): CollectionSearchPlan {
+  const query = cleanCollectionSearchQuery(searchQuery?.trim() || name);
   const icingColor = COLOR_CANONICAL[query.toLowerCase()] || null;
 
   return icingColor

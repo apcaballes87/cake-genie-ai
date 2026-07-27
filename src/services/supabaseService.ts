@@ -1609,7 +1609,10 @@ export async function getDesignsByKeyword(keywordOrSlug: string, limit: number =
     const { data: collection } = await getCollectionBySlug(keywordOrSlug);
     const normalizedKeyword = decodeURIComponent(collection?.slug || keywordOrSlug).replace(/-/g, ' ').trim();
 
-    const searchPlan = buildCollectionSearchPlan(collection?.name || normalizedKeyword);
+    const searchPlan = buildCollectionSearchPlan(
+      collection?.name || normalizedKeyword,
+      collection?.search_query,
+    );
 
     if (searchPlan.kind === 'text') {
       // Keep search's indexed relevance ranking, but require whole lexemes in
@@ -1650,7 +1653,10 @@ export async function getDesignCountByKeyword(keywordOrSlug: string): Promise<nu
     const normalizedKeyword = decodeURIComponent(collection?.slug || keywordOrSlug)
       .replace(/-/g, ' ')
       .trim();
-    const searchPlan = buildCollectionSearchPlan(collection?.name || normalizedKeyword);
+    const searchPlan = buildCollectionSearchPlan(
+      collection?.name || normalizedKeyword,
+      collection?.search_query,
+    );
 
     if (searchPlan.kind === 'text') {
       return searchCollectionProductsCount(searchPlan.query);

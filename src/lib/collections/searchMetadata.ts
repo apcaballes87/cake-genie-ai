@@ -40,8 +40,9 @@ function pickSample(rows: HydratedImageRow[]) {
 export async function getCollectionSearchMetadata(
   client: SupabaseClient,
   collectionName: string,
+  searchQuery?: string | null,
 ): Promise<CollectionSearchMetadata> {
-  const plan = buildCollectionSearchPlan(collectionName);
+  const plan = buildCollectionSearchPlan(collectionName, searchQuery);
   if (!plan.query) {
     return {
       matchedDesignCount: 0,

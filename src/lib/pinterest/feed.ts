@@ -11,6 +11,7 @@ export const PINTEREST_DESCRIPTION_MAX_LENGTH = 800;
 export type PinterestFeedCollection = {
   name?: string | null;
   slug?: string | null;
+  search_query?: string | null;
   tags?: string[] | null;
   description?: string | null;
   item_count?: number | null;
@@ -68,7 +69,10 @@ export function normalizePinterestFeedLimit(value: string | null): number {
 export function buildPinterestCollectionSearchPlan(
   collection: PinterestFeedCollection,
 ): CollectionSearchPlan {
-  return buildCollectionSearchPlan(collection.name || collection.slug || '');
+  return buildCollectionSearchPlan(
+    collection.name || collection.slug || '',
+    collection.search_query,
+  );
 }
 
 export function sanitizeXml(text: string): string {

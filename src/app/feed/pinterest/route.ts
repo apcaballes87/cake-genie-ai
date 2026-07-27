@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
     // Fetch collection info
     const { data: collection } = await supabase
       .from('cakegenie_collections')
-      .select('name, slug, tags, description, item_count, publication_status, is_indexable')
+      .select('name, slug, search_query, tags, description, item_count, publication_status, is_indexable')
       .eq('slug', board)
       .single();
 

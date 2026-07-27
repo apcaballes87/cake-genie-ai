@@ -12,6 +12,7 @@ type CollectionRow = {
   id: string;
   name: string;
   slug: string;
+  search_query: string | null;
   item_count: number | null;
   matched_design_count: number | null;
   studio_image_count: number | null;
@@ -28,7 +29,7 @@ export async function GET(request: Request) {
     const admin = createAdminServerSupabaseClient();
     const { data, error } = await admin
       .from('cakegenie_collections')
-      .select('id,name,slug,item_count,matched_design_count,studio_image_count,sample_image,publication_status')
+      .select('id,name,slug,search_query,item_count,matched_design_count,studio_image_count,sample_image,publication_status')
       .order('id', { ascending: true });
 
     if (error) throw error;
@@ -40,7 +41,11 @@ export async function GET(request: Request) {
       const batch = collections.slice(index, index + CONCURRENCY);
       const batchResults = await Promise.all(batch.map(async (collection) => {
         try {
-          const metadata = await getCollectionSearchMetadata(admin, collection.name);
+          const metadata = await getCollectionSearchMetadata(
+            admin,
+            collection.name,
+            collection.search_query,
+          );
           const qualityInput = {
             matchedDesignCount: metadata.matchedDesignCount,
             sampleImage: metadata.sampleImage,

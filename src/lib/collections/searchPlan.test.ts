@@ -37,4 +37,12 @@ describe('collection search plan', () => {
       icingColor: null,
     });
   });
+
+  it('uses an explicit collection search query when the buyer-facing name differs', () => {
+    expect(buildCollectionSearchPlan('Dancer Cake', 'dance')).toEqual({
+      kind: 'text',
+      query: 'dance',
+      icingColor: null,
+    });
+  });
 });
