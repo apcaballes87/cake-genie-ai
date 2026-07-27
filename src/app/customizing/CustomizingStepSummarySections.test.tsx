@@ -427,19 +427,21 @@ describe('CustomizingStepSummarySections', () => {
         expect(screen.queryByRole('button', { name: /Fix Icing Color/i })).not.toBeInTheDocument();
     });
 
-    it('saves an icing swatch change without applying the image', () => {
+    it('forwards a swatch selection with the exact next icing design for image application', () => {
         const props = buildProps();
+        props.onIcingColorSelect = vi.fn();
 
         render(<CustomizingStepSummarySections {...props} />);
         fireEvent.click(screen.getByRole('button', { name: /Soft Icing/i }));
         fireEvent.click(screen.getByTitle('red'));
 
-        expect(props.onIcingDesignChange).toHaveBeenCalledWith(expect.objectContaining({
+        expect(props.onIcingColorSelect).toHaveBeenCalledWith(expect.objectContaining({
             colors: expect.objectContaining({
                 top: '#EF4444',
                 side: '#EF4444',
             }),
-        }));
+        }), { name: 'red', hex: '#EF4444' });
+        expect(props.onIcingDesignChange).not.toHaveBeenCalled();
         expect(screen.queryByRole('button', { name: /Fix Icing Color|Apply Design Changes/i })).not.toBeInTheDocument();
     });
 

@@ -477,6 +477,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     const aiChatRequestInFlightRef = useRef(false);
     const aiChatRequestIdRef = useRef<string | null>(null);
     const aiChatAbortControllerRef = useRef<AbortController | null>(null);
+    const icingColorUpdateInFlightRef = useRef(false);
     const onAddToCartRef = useRef<(() => Promise<void>) | null>(null);
     // Kept in sync with `hasPendingVisualChanges` (declared later via useMemo) so that
     // onAddToCart can read it without a forward-reference TypeScript error.
@@ -1104,6 +1105,40 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
             setHasPendingDecorationPreview(false);
         },
     });
+
+    const handleIcingColorSelect = useCallback(async (
+        nextDesign: IcingDesignUI,
+        color: { hex: string; name: string },
+    ) => {
+        if (icingColorUpdateInFlightRef.current || isUpdatingDesign || !icingDesign) {
+            return;
+        }
+
+        const previousDesign = icingDesign;
+        icingColorUpdateInFlightRef.current = true;
+        onIcingDesignChange(nextDesign);
+
+        try {
+            await handleUpdateDesign(
+                `[USER REQUEST]: Apply ${color.name} icing (${color.hex}) to the cake icing body only. ` +
+                `Recolor the top and side frosting evenly. Preserve every topper, message, piping detail, drip, base board, cake shape, lighting, and background.`,
+                {
+                    source: 'icing-color-swatch',
+                    requestKey: 'icing-color-swatch',
+                    allowSafetyFallback: false,
+                    stateOverrides: {
+                        icingDesign: nextDesign,
+                    },
+                },
+            );
+        } catch {
+            // Keep the selected swatch truthful when a precise image update fails.
+            onIcingDesignChange(previousDesign);
+            showError('We could not apply that icing color. Please try again.');
+        } finally {
+            icingColorUpdateInFlightRef.current = false;
+        }
+    }, [handleUpdateDesign, icingDesign, isUpdatingDesign, onIcingDesignChange]);
 
     const { isShareModalOpen, shareData, isSavingDesign, handleShare, createShareLink, closeShareModal } = useDesignSharing({
         slug: (persistedSlug || slug || seoMetadata?.slug) as string || null,
@@ -4177,6 +4212,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                     onCakeInfoChange={onCakeInfoChange}
                                     onIcingTypeChange={handleIcingTypeChange}
                                     onIcingDesignChange={onIcingDesignChange}
+                                    onIcingColorSelect={handleIcingColorSelect}
                                     icingTypePriceDeltas={icingTypePriceDeltas}
                                     addOnPricing={addOnPricing?.addOnPrice ?? 0}
                                     separateIcingStep={separateIcingStep}
@@ -4294,6 +4330,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                     onCakeInfoChange,
                                     onIcingTypeChange: handleIcingTypeChange,
                                     onIcingDesignChange,
+                                    onIcingColorSelect: handleIcingColorSelect,
                                     icingTypePriceDeltas,
                                     addOnPricing: addOnPricing?.addOnPrice ?? 0,
                                     separateIcingStep,

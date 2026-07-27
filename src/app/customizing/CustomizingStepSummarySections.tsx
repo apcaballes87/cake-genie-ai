@@ -49,6 +49,7 @@ interface CustomizingStepSummarySectionsProps {
     onCakeInfoChange?: (updates: Partial<CakeInfoUI>, options?: { isSystemCorrection?: boolean }) => void;
     onIcingTypeChange?: (newType: IcingDesignUI['base']) => void;
     onIcingDesignChange?: (newDesign: IcingDesignUI) => void;
+    onIcingColorSelect?: (newDesign: IcingDesignUI, color: { hex: string; name: string }) => void;
     icingTypePriceDeltas?: Partial<Record<IcingDesignUI['base'], number | null>>;
     addOnPricing?: number;
     separateIcingStep?: boolean;
@@ -258,6 +259,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     onCakeInfoChange,
     onIcingTypeChange,
     onIcingDesignChange,
+    onIcingColorSelect,
     icingTypePriceDeltas,
     addOnPricing = 0,
     separateIcingStep = false,
@@ -714,6 +716,15 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                                                     if (isSwatchDisabled) return;
                                                                     let nextDesign: IcingDesignUI | undefined = undefined;
                                                                     if (icingDesign) {
+                                                                        const hasSameBodyColor = [icingDesign.colors.top, icingDesign.colors.side]
+                                                                            .filter((value): value is string => Boolean(value))
+                                                                            .every(value => value.toLowerCase() === color.hex.toLowerCase());
+
+                                                                        if (hasSameBodyColor) {
+                                                                            setIsColorPickerOpen(false);
+                                                                            return;
+                                                                        }
+
                                                                         nextDesign = {
                                                                             ...icingDesign,
                                                                             colors: {
@@ -722,7 +733,11 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                                                                 side: color.hex,
                                                                             },
                                                                         };
-                                                                        onIcingDesignChange?.(nextDesign);
+                                                                        if (onIcingColorSelect) {
+                                                                            onIcingColorSelect(nextDesign, color);
+                                                                        } else {
+                                                                            onIcingDesignChange?.(nextDesign);
+                                                                        }
                                                                     }
                                                                     setIsColorPickerOpen(false);
                                                                 }}
