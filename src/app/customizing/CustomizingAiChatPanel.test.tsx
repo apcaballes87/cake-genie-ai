@@ -75,6 +75,7 @@ describe('CustomizingAiChatPanel', () => {
         expect(inputWrapper?.className).toContain('focus-within:ring-2');
         expect(inputWrapper?.className).not.toContain('focus-within:ring-inset');
         expect(input.closest('form')?.className).toContain('px-[2px]');
+        expect(input.closest('form')?.className).toContain('md:pt-1');
         fireEvent.focus(input);
         fireEvent.click(input);
         fireEvent.change(input, { target: { value: 'make it pastel blue' } });
@@ -99,6 +100,25 @@ describe('CustomizingAiChatPanel', () => {
 
         expect(props.onInputKeyDown).toHaveBeenCalledTimes(1);
         expect(props.onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('recalculates the compact textarea height after a viewport resize', () => {
+        const props = buildProps();
+        vi.useFakeTimers();
+
+        try {
+            render(<CustomizingAiChatPanel {...props} />);
+
+            const input = screen.getByPlaceholderText('✨ Tell Genie your cake design wish...');
+            Object.defineProperty(input, 'scrollHeight', { configurable: true, value: 54 });
+
+            fireEvent(window, new Event('resize'));
+            vi.runAllTimers();
+
+            expect(input.style.height).toBe('54px');
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('does not submit during IME composition', () => {

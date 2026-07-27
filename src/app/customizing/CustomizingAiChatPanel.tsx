@@ -80,21 +80,44 @@ export const CustomizingAiChatPanel = React.memo(({
     React.useLayoutEffect(() => {
         if (selectedAiPromptTemplate) return;
 
-        const textarea = inputRef.current;
-        if (!textarea) return;
+        const resizeTextarea = () => {
+            const textarea = inputRef.current;
+            if (!textarea) return;
 
-        const computedStyle = window.getComputedStyle(textarea);
-        const lineHeight = Number.parseFloat(computedStyle.lineHeight);
-        const verticalPadding = Number.parseFloat(computedStyle.paddingTop) + Number.parseFloat(computedStyle.paddingBottom);
-        const minHeight = Number.parseFloat(computedStyle.minHeight);
-        const baseHeight = Number.isFinite(minHeight) ? minHeight : 39;
-        const maxHeight = ((Number.isFinite(lineHeight) ? lineHeight : 18) * 3) + verticalPadding;
+            const computedStyle = window.getComputedStyle(textarea);
+            const lineHeight = Number.parseFloat(computedStyle.lineHeight);
+            const paddingTop = Number.parseFloat(computedStyle.paddingTop);
+            const paddingBottom = Number.parseFloat(computedStyle.paddingBottom);
+            const verticalPadding = (Number.isFinite(paddingTop) ? paddingTop : 0)
+                + (Number.isFinite(paddingBottom) ? paddingBottom : 0);
+            const minHeight = Number.parseFloat(computedStyle.minHeight);
+            const baseHeight = Number.isFinite(minHeight) ? minHeight : 39;
+            const maxHeight = ((Number.isFinite(lineHeight) ? lineHeight : 18) * 3) + verticalPadding;
 
-        textarea.style.height = 'auto';
-        const measuredHeight = Math.min(textarea.scrollHeight, maxHeight);
-        const shouldKeepCompactHeight = measuredHeight <= baseHeight + 4;
-        textarea.style.height = `${shouldKeepCompactHeight ? baseHeight : Math.max(baseHeight, measuredHeight)}px`;
-        textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'auto' : 'hidden';
+            textarea.style.height = 'auto';
+            const measuredHeight = Math.min(textarea.scrollHeight, maxHeight);
+            const shouldKeepCompactHeight = measuredHeight <= baseHeight + 4;
+            textarea.style.height = `${shouldKeepCompactHeight ? baseHeight : Math.max(baseHeight, measuredHeight)}px`;
+            textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'auto' : 'hidden';
+        };
+
+        resizeTextarea();
+
+        let resizeFrame: number | undefined;
+        const handleViewportResize = () => {
+            if (resizeFrame !== undefined) {
+                window.cancelAnimationFrame(resizeFrame);
+            }
+            resizeFrame = window.requestAnimationFrame(resizeTextarea);
+        };
+
+        window.addEventListener('resize', handleViewportResize);
+        return () => {
+            window.removeEventListener('resize', handleViewportResize);
+            if (resizeFrame !== undefined) {
+                window.cancelAnimationFrame(resizeFrame);
+            }
+        };
     }, [chatInput, inputRef, selectedAiPromptTemplate]);
 
     const handleTextareaKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -132,7 +155,7 @@ export const CustomizingAiChatPanel = React.memo(({
                     {title}
                 </h3>
             )}
-            <form onSubmit={(event) => { void onSubmit(event); }} className="relative px-[2px]" ref={containerRef}>
+            <form onSubmit={(event) => { void onSubmit(event); }} className="relative px-[2px] md:pt-1" ref={containerRef}>
                 <input
                     ref={fileInputRef}
                     type="file"
