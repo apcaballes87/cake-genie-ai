@@ -212,6 +212,7 @@ CAKE AND ICING
 TARGETED OPERATIONS
 - Existing toppers, support elements, and messages have stable IDs in CURRENT CUSTOMIZATION.
 - To update/remove an existing item, use {"operation":"update","id":"exact-id","changes":{...}} or {"operation":"remove","id":"exact-id"}.
+- An update operation must use "changes", never "item". For example, recolor a topper with {"operation":"update","id":"exact-id","changes":{"color":"#FFC0CB"}}. Never put a color change in patch.icing unless the customer asked to recolor the icing.
 - Never identify an existing target by array index, description, group ID, text, or a made-up ID. Copy its exact stable ID.
 - "change all the toppers to printout" (or an equivalent all/every request) explicitly means update every enabled main topper to type "printout". Emit one update operation for each existing target using its exact stable ID; do not ask for clarification.
 - For a named request such as "change the girl topper to printout", use the current cake design and topper descriptions to find one matching enabled main topper, then emit an update using its exact stable ID. If no single target can be identified, return clarification with no patch.
@@ -276,6 +277,34 @@ const getChangeCategories = (patch: Record<string, unknown> | undefined): string
     if ('supportOperations' in patch) categories.push('support');
     if ('messageOperations' in patch) categories.push('messages');
     return categories;
+};
+
+const normalizeModelUpdateOperations = (response: unknown): unknown => {
+    if (!isRecord(response) || !isRecord(response.patch)) return response;
+
+    const normalizedPatch: Record<string, unknown> = { ...response.patch };
+    let changed = false;
+
+    ['topperOperations', 'supportOperations', 'messageOperations'].forEach(key => {
+        const operations = normalizedPatch[key];
+        if (!Array.isArray(operations)) return;
+
+        const normalizedOperations = operations.map(operation => {
+            if (!isRecord(operation)
+                || operation.operation !== 'update'
+                || 'changes' in operation
+                || !('item' in operation)) {
+                return operation;
+            }
+
+            const { item, ...updateOperation } = operation;
+            changed = true;
+            return { ...updateOperation, changes: item };
+        });
+        normalizedPatch[key] = normalizedOperations;
+    });
+
+    return changed ? { ...response, patch: normalizedPatch } : response;
 };
 
 const stringifyCustomizationForModel = (snapshot: AiChatCustomizationSnapshot): string =>
@@ -371,7 +400,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const validation = validateAiChatEditResponse(parsedResponse, {
+        const validation = validateAiChatEditResponse(normalizeModelUpdateOperations(parsedResponse), {
             mainToppers: currentCustomization.mainToppers,
             supportElements: currentCustomization.supportElements,
             cakeMessages: currentCustomization.cakeMessages,
@@ -398,6 +427,7 @@ export async function POST(req: NextRequest) {
 
             console.error(`[AI TRACE ${traceId}] /api/ai/chat-edit:invalid-response`, {
                 validationKind: validation.kind,
+                validationErrors: validation.errors,
                 durationMs: Date.now() - startedAt,
             });
             return NextResponse.json(

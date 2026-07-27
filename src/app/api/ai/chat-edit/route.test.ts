@@ -129,6 +129,9 @@ describe('/api/ai/chat-edit', () => {
         expect(modelCall.config.systemInstruction).toContain(
             'application deterministically maps the current family to its Fondant cake type',
         );
+        expect(modelCall.config.systemInstruction).toContain(
+            'An update operation must use "changes", never "item".',
+        );
         expect(
             modelCall.config.responseSchema.properties.patch.properties.icing.properties.base.enum,
         ).toEqual(['soft_icing', 'fondant']);
@@ -215,6 +218,41 @@ describe('/api/ai/chat-edit', () => {
 
         expect(response.status).toBe(200);
         await expect(response.json()).resolves.toEqual(modelResponse);
+    });
+
+    it('normalizes Gemini update payloads that use item instead of changes', async () => {
+        generateContent.mockResolvedValueOnce({
+            text: JSON.stringify({
+                outcome: 'design_change',
+                patch: {
+                    topperOperations: [
+                        {
+                            operation: 'update',
+                            id: 'topper-1',
+                            item: { color: '#FFC0CB' },
+                        },
+                    ],
+                },
+                actions: [],
+            }),
+        });
+
+        const response = await callRoute({ prompt: 'change the topper color to pink' });
+
+        expect(response.status).toBe(200);
+        await expect(response.json()).resolves.toEqual({
+            outcome: 'design_change',
+            patch: {
+                topperOperations: [
+                    {
+                        operation: 'update',
+                        id: 'topper-1',
+                        changes: { color: '#FFC0CB' },
+                    },
+                ],
+            },
+            actions: [],
+        });
     });
 
     it('uses Gemini to convert every enabled topper to printout when the customer requests all toppers', async () => {
