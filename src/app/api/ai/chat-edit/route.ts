@@ -216,6 +216,7 @@ TARGETED OPERATIONS
 - Never identify an existing target by array index, description, group ID, text, or a made-up ID. Copy its exact stable ID.
 - "change all the toppers to printout" (or an equivalent all/every request) explicitly means update every enabled main topper to type "printout". Emit one update operation for each existing target using its exact stable ID; do not ask for clarification.
 - For a named request such as "change the girl topper to printout", use the current cake design and topper descriptions to find one matching enabled main topper, then emit an update using its exact stable ID. If no single target can be identified, return clarification with no patch.
+- If a requested topper is not present on the cake, return clarification with a customer-facing message such as "I can't find a girl topper on this cake to edit." Never invent an ID or return a malformed patch.
 - If the wording does not explicitly request all/every items and could refer to zero or multiple existing items, return clarification with no patch. Never update/remove multiple items as a guess.
 - To add an item, use {"operation":"add","item":{...}} with all required fields and no ID.
 - Topper types: ${AI_CHAT_MAIN_TOPPER_TYPES.join(', ')}.
@@ -307,6 +308,44 @@ const normalizeModelUpdateOperations = (response: unknown): unknown => {
     return changed ? { ...response, patch: normalizedPatch } : response;
 };
 
+const getInvalidModelResponseClarification = (
+    errors: string[],
+    customization: AiChatCustomizationSnapshot,
+) => {
+    if (errors.some(error => error.startsWith('patch.topperOperations'))) {
+        const hasEnabledTopper = customization.mainToppers.some(topper => topper.isEnabled);
+        return {
+            outcome: 'clarification' as const,
+            actions: [],
+            message: hasEnabledTopper
+                ? "I couldn't find a matching topper on this cake to edit. Please name the topper you mean."
+                : "This cake doesn't have a topper I can edit.",
+        };
+    }
+
+    if (errors.some(error => error.startsWith('patch.supportOperations'))) {
+        return {
+            outcome: 'clarification' as const,
+            actions: [],
+            message: "I couldn't find a matching cake detail to edit. Please name the decoration you mean.",
+        };
+    }
+
+    if (errors.some(error => error.startsWith('patch.messageOperations'))) {
+        return {
+            outcome: 'clarification' as const,
+            actions: [],
+            message: "I couldn't find a matching cake message to edit. Please tell me which message you mean.",
+        };
+    }
+
+    return {
+        outcome: 'clarification' as const,
+        actions: [],
+        message: "I couldn't apply that cake change. Please describe the item and change in another way.",
+    };
+};
+
 const stringifyCustomizationForModel = (snapshot: AiChatCustomizationSnapshot): string =>
     JSON.stringify(snapshot, (key, value) => key === 'replacementImage' ? undefined : value, 2);
 
@@ -394,10 +433,7 @@ export async function POST(req: NextRequest) {
                 validationKind: 'invalid_json',
                 durationMs: Date.now() - startedAt,
             });
-            return NextResponse.json(
-                { error: 'AI returned an invalid cake design update.' },
-                { status: 502 },
-            );
+            return NextResponse.json(getInvalidModelResponseClarification([], currentCustomization));
         }
 
         const validation = validateAiChatEditResponse(normalizeModelUpdateOperations(parsedResponse), {
@@ -407,11 +443,10 @@ export async function POST(req: NextRequest) {
         });
         if (!validation.success) {
             if (validation.kind === 'ambiguous_target') {
-                const clarificationResponse = {
-                    outcome: 'clarification' as const,
-                    actions: [],
-                    message: 'I could not identify exactly one cake detail to change. Please tell me which specific item you mean.',
-                };
+                const clarificationResponse = getInvalidModelResponseClarification(
+                    validation.errors,
+                    currentCustomization,
+                );
                 console.log(`[AI TRACE ${traceId}] /api/ai/chat-edit:success`, {
                     outcome: clarificationResponse.outcome,
                     actionTypes: [],
@@ -431,8 +466,7 @@ export async function POST(req: NextRequest) {
                 durationMs: Date.now() - startedAt,
             });
             return NextResponse.json(
-                { error: 'AI returned an invalid cake design update.' },
-                { status: 502 },
+                getInvalidModelResponseClarification(validation.errors, currentCustomization),
             );
         }
 

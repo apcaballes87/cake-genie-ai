@@ -132,6 +132,9 @@ describe('/api/ai/chat-edit', () => {
         expect(modelCall.config.systemInstruction).toContain(
             'An update operation must use "changes", never "item".',
         );
+        expect(modelCall.config.systemInstruction).toContain(
+            "I can't find a girl topper on this cake to edit.",
+        );
         expect(
             modelCall.config.responseSchema.properties.patch.properties.icing.properties.base.enum,
         ).toEqual(['soft_icing', 'fondant']);
@@ -308,7 +311,7 @@ describe('/api/ai/chat-edit', () => {
         expect(modelCall.contents[0].parts.at(-1).text).toContain('"id": "topper-2"');
     });
 
-    it('rejects semantically invalid closed-enum output with a safe 502', async () => {
+    it('turns semantically invalid model output into a customer-facing clarification', async () => {
         generateContent.mockResolvedValueOnce({
             text: JSON.stringify({
                 outcome: 'design_change',
@@ -319,9 +322,24 @@ describe('/api/ai/chat-edit', () => {
 
         const response = await callRoute();
 
-        expect(response.status).toBe(502);
+        expect(response.status).toBe(200);
         await expect(response.json()).resolves.toEqual({
-            error: 'AI returned an invalid cake design update.',
+            outcome: 'clarification',
+            actions: [],
+            message: "I couldn't apply that cake change. Please describe the item and change in another way.",
+        });
+    });
+
+    it('turns malformed model JSON into a customer-facing clarification', async () => {
+        generateContent.mockResolvedValueOnce({ text: 'not JSON' });
+
+        const response = await callRoute({ prompt: 'change the cake color' });
+
+        expect(response.status).toBe(200);
+        await expect(response.json()).resolves.toEqual({
+            outcome: 'clarification',
+            actions: [],
+            message: "I couldn't apply that cake change. Please describe the item and change in another way.",
         });
     });
 
@@ -342,13 +360,19 @@ describe('/api/ai/chat-edit', () => {
             }),
         });
 
-        const response = await callRoute({ prompt: 'change the topper to blue' });
+        const response = await callRoute({
+            prompt: 'change the unicorn topper to blue',
+            currentCustomization: {
+                ...currentCustomization,
+                mainToppers: [],
+            },
+        });
 
         expect(response.status).toBe(200);
         await expect(response.json()).resolves.toEqual({
             outcome: 'clarification',
             actions: [],
-            message: 'I could not identify exactly one cake detail to change. Please tell me which specific item you mean.',
+            message: "This cake doesn't have a topper I can edit.",
         });
     });
 
