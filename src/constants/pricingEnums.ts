@@ -24,6 +24,7 @@ export const MAIN_TOPPER_TYPES = [
     // Current types
     'edible_3d_complex',
     'edible_3d_ordinary',
+    'edible_2d_complex',
     'printout',
     'toy',
     'figurine',

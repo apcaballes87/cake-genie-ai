@@ -39,6 +39,23 @@ describe('getDesignAvailability', () => {
         expect(getDesignAvailability(design)).toBe('rush');
     });
 
+    it('returns normal for complex 2D handmade edible artwork', () => {
+        const design: DesignData = {
+            cakeType: '1 Tier',
+            cakeSize: '6" Round',
+            icingBase: 'soft_icing',
+            drip: false,
+            gumpasteBaseBoard: false,
+            mainToppers: [{
+                type: 'edible_2d_complex',
+                description: 'flat-backed shallow-relief Roblox character face',
+            }],
+            supportElements: [],
+        };
+
+        expect(getDesignAvailability(design)).toBe('normal');
+    });
+
     it.each([
         ['icing_doodle_intricate_top', 'mainToppers'],
         ['icing_doodle_intricate_side', 'supportElements'],

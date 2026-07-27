@@ -11,13 +11,13 @@ const toTitleCase = (value: string) => value
 
 // Constants
 export const topperTypeDisplayMap: Record<MainTopperType, string> = {
-    'edible_3d_complex': 'Gumpaste (Complex)', 'edible_3d_ordinary': 'Gumpaste (Ordinary)', 'printout': 'Printout', 'edible_photo_top': 'Printout (Edible)', 'edible_photo_print': 'Printout (Edible)', 'edible_logo_2d': 'Edible Logo (2D)',
+    'edible_3d_complex': 'Gumpaste (Complex)', 'edible_2d_complex': 'Gumpaste (2D Complex)', 'edible_3d_ordinary': 'Gumpaste (Ordinary)', 'printout': 'Printout', 'edible_photo_top': 'Printout (Edible)', 'edible_photo_print': 'Printout (Edible)', 'edible_logo_2d': 'Edible Logo (2D)',
     'toy': 'Toy', 'figurine': 'Figurine (Simpler)', 'plastic_ball': 'Plastic Ball', 'cardstock': 'Cardstock', 'candle': 'Candle', 'edible_2d_shapes': 'Gumpaste (2D)', 'edible_flowers': 'Edible Flowers',
     'icing_doodle': 'Piped Doodles', 'icing_doodle_intricate': 'Piped Doodles', 'icing_doodle_intricate_top': 'Intricate Top Doodle', 'icing_palette_knife': 'Palette Knife Finish', 'icing_palette_knife_intricate': 'Palette Knife Finish', 'icing_brush_stroke': 'Brush Stroke Finish',
     'icing_splatter': 'Splatter Finish', 'icing_minimalist_spread': 'Minimalist Spread', 'icing_decorations': 'Icing Decorations', 'meringue_pop': 'Meringue Pop',
 };
 export const originalTypeLabelMap: Record<MainTopperType, string> = {
-    'edible_3d_complex': '3D Complex', 'edible_3d_ordinary': '3D Ordinary', 'figurine': 'Figurine', 'toy': 'Toy', 'plastic_ball': 'Plastic Ball', 'cardstock': 'Cardstock',
+    'edible_3d_complex': '3D Complex', 'edible_2d_complex': '2D Complex', 'edible_3d_ordinary': '3D Ordinary', 'figurine': 'Figurine', 'toy': 'Toy', 'plastic_ball': 'Plastic Ball', 'cardstock': 'Cardstock',
     'edible_photo_top': 'Edible Photo', 'edible_photo_print': 'Edible Photo', 'edible_logo_2d': 'Edible Logo', 'printout': 'Printout', 'candle': 'Candle', 'edible_2d_shapes': '2D Shapes', 'edible_flowers': 'Edible Flowers',
     'icing_doodle': 'Piped Doodles', 'icing_doodle_intricate': 'Piped Doodles', 'icing_doodle_intricate_top': 'Intricate Top Doodle', 'icing_palette_knife': 'Palette Knife Finish', 'icing_palette_knife_intricate': 'Palette Knife Finish', 'icing_brush_stroke': 'Brush Stroke Finish',
     'icing_splatter': 'Splatter Finish', 'icing_minimalist_spread': 'Minimalist Spread', 'icing_decorations': 'Icing Decorations', 'meringue_pop': 'Meringue Pop',
@@ -34,7 +34,7 @@ export const supportTypeDisplayMap: Record<SupportElementType, string> = {
     'thin_fabric_ribbon_bows': 'Thin Fabric Ribbon Bows', 'satin_ribbon': 'Satin/Organza Ribbon', 'edible_lollipops': 'Edible Lollipops', 'printout': 'Printout',
 };
 export const COLORABLE_ITEM_TYPES: Array<MainTopperType | SupportElementType> = [
-    'edible_3d_complex', 'edible_3d_ordinary', 'edible_logo_2d', 'edible_3d_support', 'edible_2d_support', 'edible_flowers', 'icing_doodle', 'icing_doodle_intricate', 'icing_doodle_intricate_top', 'icing_doodle_intricate_side',
+    'edible_3d_complex', 'edible_2d_complex', 'edible_3d_ordinary', 'edible_logo_2d', 'edible_3d_support', 'edible_2d_support', 'edible_flowers', 'icing_doodle', 'icing_doodle_intricate', 'icing_doodle_intricate_top', 'icing_doodle_intricate_side',
     'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread', 'meringue_pop',
     'isomalt', 'macarons', 'meringue', 'icing_decorations', 'gumpaste_panel', 'gumpaste_creations',
     'marshmallows',
@@ -72,10 +72,10 @@ export const TopperCard: React.FC<{
         descriptionString.toLowerCase().includes('figure') ||
         descriptionString.toLowerCase().includes('silhouette');
 
-    const isNumberTopper = isTopper && descriptionString.toLowerCase().includes('number') && ['edible_3d_complex', 'edible_3d_ordinary', 'candle', 'printout'].includes(item.original_type);
-    const is3DFlower = isTopper && ['edible_3d_complex', 'edible_3d_ordinary'].includes(item.original_type) && descriptionString.toLowerCase().includes('flower');
+    const isNumberTopper = isTopper && descriptionString.toLowerCase().includes('number') && ['edible_3d_complex', 'edible_2d_complex', 'edible_3d_ordinary', 'candle', 'printout'].includes(item.original_type);
+    const is3DFlower = isTopper && ['edible_3d_complex', 'edible_2d_complex', 'edible_3d_ordinary'].includes(item.original_type) && descriptionString.toLowerCase().includes('flower');
     const isOriginalPrintoutTopper = isTopper && item.original_type === 'printout' && !isNumberTopper;
-    const canBeSwitchedToPrintoutTopper = isTopper && ['edible_3d_complex', 'edible_3d_ordinary'].includes(item.original_type) && !is3DFlower && !isNumberTopper;
+    const canBeSwitchedToPrintoutTopper = isTopper && ['edible_3d_complex', 'edible_2d_complex', 'edible_3d_ordinary'].includes(item.original_type) && !is3DFlower && !isNumberTopper;
     const isCardstock = isTopper && item.original_type === 'cardstock';
     const isToyOrFigurine = isTopper && ['toy', 'figurine', 'plastic_ball'].includes(item.original_type);
     const isWrapSwitchable = !isTopper && item.original_type === 'edible_photo_side';
@@ -90,7 +90,7 @@ export const TopperCard: React.FC<{
     const canChangeMultipleColors = isPaletteKnife && 'colors' in item && item.colors && item.colors.length > 0;
     const canChangeColor = (isDoodle || COLORABLE_ITEM_TYPES.includes(item.type as MainTopperType | SupportElementType)) && !canChangeMultipleColors;
     const isReplaceableIcingFigure = (ICING_DOODLE_TYPES.has(item.type) || item.type === 'icing_palette_knife') && isHumanFigure;
-    const isReplaceableGumpasteFigure = (item.type === 'edible_3d_complex' || item.type === 'edible_3d_ordinary' || item.type === 'edible_3d_support') && isHumanFigure;
+    const isReplaceableGumpasteFigure = ['edible_3d_complex', 'edible_2d_complex', 'edible_3d_ordinary', 'edible_3d_support'].includes(String(item.type)) && isHumanFigure;
 
     const materialLabel = isTopper ? topperTypeDisplayMap[item.type as MainTopperType] : supportTypeDisplayMap[item.type as SupportElementType];
     const editableColors = canChangeMultipleColors && 'colors' in item ? item.colors : null;

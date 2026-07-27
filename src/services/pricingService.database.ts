@@ -119,7 +119,7 @@ export async function calculatePriceFromDatabase(
 
     const getCupcakeItemPrice = (type: string): number => {
       if (type === 'edible_3d_complex') return 300;
-      if (['edible_photo_top', 'edible_photo_print', 'edible_photo_side'].includes(type)) return 200;
+      if (['edible_2d_complex', 'edible_photo_top', 'edible_photo_print', 'edible_photo_side'].includes(type)) return 200;
       if ([
         'edible_3d_ordinary',
         'edible_3d_support',

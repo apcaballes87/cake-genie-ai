@@ -114,6 +114,45 @@ const pricingRows: PricingRule[] = [
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
   },
+  ...([
+    ['tiny', 50],
+    ['xsmall', 75],
+    ['small', 100],
+    ['medium', 200],
+    ['large', 300],
+    ['xlarge', 400],
+  ] as const).map(([size, price], index): PricingRule => ({
+    rule_id: 8 + index,
+    item_key: `edible_2d_complex_${size}`,
+    item_type: 'edible_2d_complex',
+    classification: 'hero',
+    size,
+    description: `Complex 2D edible artwork (${size})`,
+    price,
+    category: 'main_topper',
+    quantity_rule: 'per_piece',
+    multiplier_rule: null,
+    special_conditions: null,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+  })),
+  {
+    rule_id: 14,
+    item_key: 'gumpaste_bundle_small',
+    item_type: 'gumpaste_bundle',
+    classification: 'support',
+    size: 'small',
+    description: 'Allowance-eligible support bundle',
+    price: 100,
+    category: 'support_element',
+    quantity_rule: 'per_piece',
+    multiplier_rule: null,
+    special_conditions: { allowance_eligible: true },
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+  },
 ];
 
 vi.mock('@/lib/supabase/client', () => ({
@@ -312,6 +351,77 @@ describe('calculatePriceFromDatabase', () => {
     expect(addOnPricing.addOnPrice).toBe(400);
   });
 
+  it.each([
+    ['tiny', 50],
+    ['xsmall', 75],
+    ['small', 100],
+    ['medium', 200],
+    ['large', 300],
+    ['xlarge', 400],
+  ] as const)('prices %s edible_2d_complex artwork from its Supabase size rule at ₱%i', async (size, expectedPrice) => {
+    const { calculatePriceFromDatabase } = await import('./pricingService.database');
+    const warnSpy = vi.spyOn(console, 'warn');
+    const topper = {
+      id: `complex-2d-${size}`,
+      type: 'edible_2d_complex',
+      description: `${size} layered Roblox character face`,
+      quantity: 1,
+      isEnabled: true,
+      size,
+    } as MainTopperUI;
+
+    const { addOnPricing, itemPrices } = await calculatePriceFromDatabase({
+      mainToppers: [topper],
+      supportElements: [],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
+    });
+
+    expect(itemPrices.get(topper.id)).toBe(expectedPrice);
+    expect(addOnPricing.addOnPrice).toBe(expectedPrice);
+    expect(warnSpy.mock.calls.flat().join(' ')).not.toContain('edible_2d_complex');
+  });
+
+  it('multiplies edible_2d_complex pricing per piece and keeps hero pricing outside the support allowance', async () => {
+    const { calculatePriceFromDatabase } = await import('./pricingService.database');
+    const warnSpy = vi.spyOn(console, 'warn');
+    const topper = {
+      id: 'complex-2d-multiple',
+      type: 'edible_2d_complex',
+      description: 'three small layered character plaques',
+      quantity: 3,
+      isEnabled: true,
+      size: 'small',
+    } as MainTopperUI;
+    const allowanceEligibleSupport = {
+      id: 'support-bundle',
+      type: 'gumpaste_bundle',
+      material: 'edible_fondant',
+      description: 'small support bundle',
+      quantity: 1,
+      isEnabled: true,
+      size: 'small',
+    } as SupportElementUI;
+
+    const { addOnPricing, itemPrices } = await calculatePriceFromDatabase({
+      mainToppers: [topper],
+      supportElements: [allowanceEligibleSupport],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
+    });
+
+    expect(itemPrices.get(topper.id)).toBe(300);
+    expect(itemPrices.get(allowanceEligibleSupport.id)).toBe(100);
+    expect(addOnPricing.addOnPrice).toBe(300);
+    expect(addOnPricing.breakdown).toContainEqual({
+      item: 'Gumpaste Allowance',
+      price: -100,
+    });
+    expect(warnSpy.mock.calls.flat().join(' ')).not.toContain('edible_2d_complex');
+  });
+
   it('calculates cupcake topper prices correctly (Option B - Flat Maximum)', async () => {
     const { calculatePriceFromDatabase } = await import('./pricingService.database');
 
@@ -343,6 +453,14 @@ describe('calculatePriceFromDatabase', () => {
       id: 'complex-1',
       type: 'edible_3d_complex',
       description: 'Character figure',
+      quantity: 1,
+      isEnabled: true,
+    } as MainTopperUI;
+
+    const complex2dEdibleTopper = {
+      id: 'complex-2d-1',
+      type: 'edible_2d_complex',
+      description: 'Layered Roblox character face',
       quantity: 1,
       isEnabled: true,
     } as MainTopperUI;
@@ -407,6 +525,17 @@ describe('calculatePriceFromDatabase', () => {
     expect(resSimple.itemPrices.get('simple-1')).toBe(100);
     expect(resSimple.addOnPricing.addOnPrice).toBe(100);
 
+    // Test complex 2D only (200), between simple/ordinary (100) and complex 3D (300)
+    const resComplex2d = await calculatePriceFromDatabase({
+      mainToppers: [complex2dEdibleTopper],
+      supportElements: [],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: 'Cupcake' } as CakeInfoUI,
+    });
+    expect(resComplex2d.itemPrices.get('complex-2d-1')).toBe(200);
+    expect(resComplex2d.addOnPricing.addOnPrice).toBe(200);
+
     // Test photo only (200)
     const resPhoto = await calculatePriceFromDatabase({
       mainToppers: [ediblePhotoTopper],
@@ -429,10 +558,10 @@ describe('calculatePriceFromDatabase', () => {
     expect(resComplex.itemPrices.get('complex-1')).toBe(300);
     expect(resComplex.addOnPricing.addOnPrice).toBe(300);
 
-    // Test Option B: Flat maximum for mixed toppers (printout, simple, and complex)
-    // Capped at complex (300)
+    // Test Option B: Flat maximum for mixed toppers across all three edible craft bands
+    // Capped at complex 3D (300), with complex 2D retained at 200 per item.
     const resMixed = await calculatePriceFromDatabase({
-      mainToppers: [printoutTopper, simpleEdibleTopper, complexEdibleTopper],
+      mainToppers: [printoutTopper, simpleEdibleTopper, complex2dEdibleTopper, complexEdibleTopper],
       supportElements: [],
       cakeMessages: [],
       icingDesign: {} as IcingDesignUI,
@@ -440,6 +569,7 @@ describe('calculatePriceFromDatabase', () => {
     });
     expect(resMixed.itemPrices.get('printout-1')).toBe(0);
     expect(resMixed.itemPrices.get('simple-1')).toBe(100);
+    expect(resMixed.itemPrices.get('complex-2d-1')).toBe(200);
     expect(resMixed.itemPrices.get('complex-1')).toBe(300);
     expect(resMixed.addOnPricing.addOnPrice).toBe(300);
     expect(resMixed.addOnPricing.breakdown[0].item).toContain('Character figure');

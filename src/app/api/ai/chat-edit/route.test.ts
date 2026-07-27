@@ -150,6 +150,16 @@ describe('/api/ai/chat-edit', () => {
             'Cupcake',
             'Bento Cupcake Set',
         ]);
+        expect(
+            modelCall.config.responseSchema.properties.patch.properties.topperOperations.items
+                .properties.item.properties.type.enum,
+        ).toContain('edible_2d_complex');
+        expect(modelCall.config.systemInstruction).toContain(
+            'flat-backed or shallow-relief uses edible_2d_complex',
+        );
+        expect(modelCall.config.systemInstruction).toContain(
+            'freestanding and sculpted with full depth use edible_3d_complex',
+        );
         expect(modelCall.contents[0].parts.at(-1).text).toContain('CURRENT CUSTOMIZATION');
         expect(modelCall.contents[0].parts.at(-1).text).toContain('"id": "topper-1"');
     });

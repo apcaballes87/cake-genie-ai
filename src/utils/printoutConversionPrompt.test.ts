@@ -47,6 +47,24 @@ describe('printout conversion prompts', () => {
         expect(targets.map((topper) => topper.description)).toEqual(['blue dinosaur topper', 'pink bear']);
     });
 
+    it('converts complex 2D handmade edible artwork to a printout target', () => {
+        const target = makeTopper({
+            type: 'printout',
+            original_type: 'edible_2d_complex',
+            description: 'layered Roblox character face',
+            size: 'large',
+        });
+        const targets = getPrintoutConversionTargets('change the Roblox face to a printout', [target]);
+        const detail = buildPrintoutConversionDetail(target);
+
+        expect(targets).toEqual([target]);
+        expect(detail).toContain(
+            'complex 2D handmade edible/gumpaste artwork identified as "layered Roblox character face"',
+        );
+        expect(detail).toContain('remove its handmade layered fondant or shallow-relief construction');
+        expect(detail).toContain('Do NOT leave any layered fondant pieces');
+    });
+
     it('adds the analyzed target location to the conversion detail', () => {
         const detail = buildPrintoutConversionDetail(makeTopper({
             x: 140,

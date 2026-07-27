@@ -2,13 +2,13 @@ import type { MainTopperUI } from '@/types';
 import { buildDecorLocalizationHint } from '@/utils/editImageTuning';
 
 const TOY_LIKE_TYPES = ['toy', 'figurine', 'plastic_ball'] as const;
-const EDIBLE_3D_TOPPER_TYPES = ['edible_3d_complex', 'edible_3d_ordinary'] as const;
+const EDIBLE_CHARACTER_TOPPER_TYPES = ['edible_3d_complex', 'edible_2d_complex', 'edible_3d_ordinary'] as const;
 
 export const isToyLikeType = (type?: string | null): boolean =>
     Boolean(type && TOY_LIKE_TYPES.includes(type as typeof TOY_LIKE_TYPES[number]));
 
 export const isEdible3DTopperType = (type?: string | null): boolean =>
-    Boolean(type && EDIBLE_3D_TOPPER_TYPES.includes(type as typeof EDIBLE_3D_TOPPER_TYPES[number]));
+    Boolean(type && EDIBLE_CHARACTER_TOPPER_TYPES.includes(type as typeof EDIBLE_CHARACTER_TOPPER_TYPES[number]));
 
 export const requestMentionsPrintoutConversion = (request: string): boolean => {
     const normalized = request.toLowerCase();
@@ -49,11 +49,20 @@ export const buildEdibleToPrintoutInstruction = ({
     originalType?: string | null;
 }): string => {
     const subject = description?.trim() || 'the topper';
-    const sourceLabel = originalType === 'edible_3d_complex'
-        ? 'complex 3D edible/gumpaste topper'
-        : '3D edible/gumpaste topper';
+    const isComplex2D = originalType === 'edible_2d_complex';
+    const sourceLabel = isComplex2D
+        ? 'complex 2D handmade edible/gumpaste artwork'
+        : originalType === 'edible_3d_complex'
+            ? 'complex 3D edible/gumpaste topper'
+            : '3D edible/gumpaste topper';
+    const sourceRemoval = isComplex2D
+        ? 'Completely remove its handmade layered fondant or shallow-relief construction and replace it with a thin 2D printed-cardstock topper of the same subject.'
+        : 'Completely remove its edible 3D volume and replace it with a thin 2D printed-cardstock topper of the same subject.';
+    const prohibitedSourceFeatures = isComplex2D
+        ? 'Do NOT leave any layered fondant pieces, raised shallow-relief details, molded texture, or handmade gumpaste thickness on this target.'
+        : 'Do NOT leave any 3D edible/gumpaste volume, molded texture, rounded sculpted form, or glossy 3D shading on this target.';
 
-    return `convert only the existing ${sourceLabel} identified as "${subject}" into a flat, cartoon-style printable cardboard cutout. Completely remove its edible 3D volume and replace it with a thin 2D printed-cardstock topper of the same subject. Render this 2D cardboard cutout with bright flat colors, clear black vector-style outlines, and a thick, solid white die-cut border around its entire silhouette, like printed cardstock. Preserve the subject's identity, recognizable silhouette, approximate size, placement, and facing direction. Insert it into the icing with a slim stick or backing and blend it into the realistic cake scene with natural contact and accurate cast shadows on the frosting. Do not change any other topper, message, icing, or cake decoration. Do NOT leave any 3D edible/gumpaste volume, molded texture, rounded sculpted form, or glossy 3D shading on this target.`;
+    return `convert only the existing ${sourceLabel} identified as "${subject}" into a flat, cartoon-style printable cardboard cutout. ${sourceRemoval} Render this 2D cardboard cutout with bright flat colors, clear black vector-style outlines, and a thick, solid white die-cut border around its entire silhouette, like printed cardstock. Preserve the subject's identity, recognizable silhouette, approximate size, placement, and facing direction. Insert it into the icing with a slim stick or backing and blend it into the realistic cake scene with natural contact and accurate cast shadows on the frosting. Do not change any other topper, message, icing, or cake decoration. ${prohibitedSourceFeatures}`;
 };
 
 export const getPrintoutConversionTargets = (

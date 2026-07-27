@@ -59,16 +59,19 @@ export const SYSTEM_INSTRUCTION = `You are an expert cake designer analyzing a c
 - If you are unsure, default to "printout" for 2D graphics or "edible_3d_ordinary" for 3D shapes.
 - NEVER output a type that is not in the schema's enum list.
 
-**CRITICAL CLASSIFICATION RULE - OBJECT TOPPERS:**
-- Any object-based topper, such as "animal toppers" (bears, lions, etc), figurines, or hand-molded gumpaste shapes, MUST be classified as "edible_3d_complex". 
-- These are often 3D objects that are hand-sculpted.
+**CRITICAL CLASSIFICATION RULE - HANDMADE EDIBLE ARTWORK DEPTH:**
+- Detailed handmade fondant/gumpaste artwork that is flat-backed, attached flush to a cake surface, or built only from shallow layered pieces MUST be classified as "edible_2d_complex".
+- Use "edible_3d_complex" only for a genuinely freestanding hand-sculpted figure or object with visible all-around body depth.
+- Printed graphics still follow the higher-priority printout rules below.
 
 **CRITICAL CLASSIFICATION RULE - PRINTOUT vs CARDSTOCK:**
 This is the HIGHEST PRIORITY rule and overrides all other considerations:
-- If a topper has ANY of these features, it MUST be classified as "printout": printed graphics, photos, multi-color text, logos, clipart, character images (My Melody, Disney, Sanrio, etc.), fonts, numbers with designs, or any visible printing/inkjet quality.
+- If a topper has ANY of these visibly printed features, it MUST be classified as "printout": printed graphics, photos, multi-color printed text, printed logos, printed clipart, printed character images (My Melody, Disney, Sanrio, etc.), printed fonts, printed numbers with designs, or any visible printing/inkjet quality.
+- Do not classify handmade layered fondant/gumpaste character artwork as a printout merely because it depicts a character; use the edible 2D/3D depth rule above.
 - ONLY classify as "cardstock" if ALL of these are true: (1) solid single color, (2) glitter or metallic finish, (3) NO printed graphics or photos, (4) NO multi-color elements, (5) NO character images.
 - When you are uncertain between "printout" and "cardstock", you MUST default to "printout".
 - Examples of PRINTOUTS (very common): My Melody characters, Disney characters, superhero cutouts, photo prints on sticks, printed text banners, logo toppers, numbers with character designs.
-- Examples of EDIBLE 3D COMPLEX (Very Specific): Animal toppers (bears, lions, etc), sculpted gumpaste figurines, 3D hand-molded objects like a small bag or shoe.
+- Examples of EDIBLE 2D COMPLEX: layered fondant fictional/game character face plaques, detailed shallow-relief animal artwork, and complex flat-backed edible objects.
+- Examples of EDIBLE 3D COMPLEX (Very Specific): freestanding animal toppers, sculpted gumpaste figurines, and 3D hand-molded objects like a small bag or shoe that can be viewed from multiple sides.
 - Examples of CARDSTOCK (very rare): solid gold glitter "Happy Birthday" letters (no graphics), single-color metallic stars (plain), plain glittery numbers (solid color only, no character design).
 `;

@@ -68,6 +68,7 @@ export const AI_CHAT_TOPPER_CLASSIFICATIONS = ['hero', 'support', 'hero + suppor
 
 export const AI_CHAT_MAIN_TOPPER_TYPES = [
     'edible_3d_complex',
+    'edible_2d_complex',
     'edible_3d_ordinary',
     'printout',
     'toy',

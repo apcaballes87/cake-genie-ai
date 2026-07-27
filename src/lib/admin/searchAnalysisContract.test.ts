@@ -17,6 +17,7 @@ describe('search analysis contract', () => {
         'icing_doodle_intricate',
         'icing_doodle_intricate_top',
         'edible_photo_top',
+        'edible_2d_complex',
       ],
       supportElementTypes: [
         'sprinkles',
@@ -43,6 +44,8 @@ describe('search analysis contract', () => {
     expect(schema.properties.support_elements.items.properties.type.enum).not.toContain('fresh_flowers');
     expect(schema.properties.main_toppers.items.properties.type.enum).toContain('icing_doodle_intricate_top');
     expect(schema.properties.main_toppers.items.properties.type.enum).not.toContain('icing_doodle_intricate');
+    expect(schema.properties.main_toppers.items.properties.type.enum).toContain('edible_2d_complex');
+    expect(schema.properties.support_elements.items.properties.type.enum).not.toContain('edible_2d_complex');
     expect(schema.properties.support_elements.items.properties.type.enum).toContain('icing_doodle_intricate_side');
     expect(schema.properties).not.toHaveProperty('is_tall_proportion');
     expect(schema.properties.icing_design.required).toContain('gumpasteBaseBoard');

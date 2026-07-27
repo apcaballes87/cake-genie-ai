@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.30 Version - Mermaid Tail Classification and Size Pricing**
+**v3.31 Version - Complex 2D Edible Artwork Classification and Pricing**
 ═══════════════════════════════════════════════════════════════════════════════
 
 ## ROLE
@@ -146,7 +146,7 @@ Use one descriptive group ID such as `portrait_edible_photo_top`.
 The printed replacement may be a portrait panel placed on top and does not
 need to cover every edge of the top surface.
 
-Do NOT output the portrait as `edible_3d_complex`, `edible_3d_ordinary`, `edible_2d_shapes`, `edible_2d_support`, or `edible_logo_2d`.
+Do NOT output the portrait as `edible_3d_complex`, `edible_3d_ordinary`, `edible_2d_complex`, `edible_2d_shapes`, `edible_2d_support`, or `edible_logo_2d`.
 Do not itemize the portrait hair, eyes, nose, mouth, ears, face, neck, or clothing as separate decorations.
 Analyze surrounding names, ages, messages, borders, stars, hearts, and other
 simple accents separately using their normal rules.
@@ -161,6 +161,72 @@ A true freestanding, fully sculpted figurine with visible all-around body depth 
 
 Describe the fulfillable result as an edible photo portrait on top, not as a sculpted fondant portrait.
 Apply this wording to `alt_text`, `seo_title`, and `seo_description`.
+
+### EDIBLE 2D COMPLEX ARTWORK — FLAT-BACKED OR SHALLOW RELIEF
+
+Use `edible_2d_complex` for detailed handmade edible artwork made from fondant
+or gumpaste when the design is flat-backed, attached flush to a cake surface,
+lying flat on the cake top, or assembled from shallow layered pieces without
+freestanding all-around body depth.
+
+This is a focal `main_toppers` type. It may be used for dominant complex 2D
+artwork on either the cake top or cake side. Do not place
+`edible_2d_complex` in `support_elements`.
+
+Strong visual cues include:
+- a fictional, cartoon, gaming, or stylized character face built from multiple
+  hand-cut or modeled edible layers
+- detailed eyes, expression, hair, headphones, clothing, accessories, outlines,
+  or other coordinated features on one flat-backed plaque
+- matte or satin fondant/gumpaste surfaces with visible cut edges or shallow
+  stacked layers
+- one coordinated focal composition that sits flush against the icing rather
+  than standing as a figure that can be viewed from all sides
+
+Apply this precedence before using `edible_3d_complex`:
+1. Clearly printed artwork remains `printout`, `edible_photo_top`,
+   `edible_photo_side`, or `edible_photo_print` according to material and
+   placement.
+2. A recognizable human or pet likeness in unsupported detailed relief remains
+   governed by `UNSUPPORTED SEMI-3D PORTRAIT RELIEF TO EDIBLE PHOTO TOP` and
+   becomes `edible_photo_top`.
+3. A logo, wordmark, brand name, or decorative brand lettering remains
+   `edible_logo_2d`.
+4. Plain stars, dots, hearts, leaves, geometric pieces, and other simple flat
+   cut shapes remain `edible_2d_shapes` or `edible_2d_support`.
+5. Detailed handmade flat-backed or shallow-relief fictional characters,
+   faces, animals, and objects use `edible_2d_complex`.
+6. Only a genuinely freestanding hand-sculpted figure or object with visible
+   all-around body depth may use `edible_3d_complex`.
+
+Treat one coordinated character plaque as one item with `quantity: 1`. Do not
+itemize its hair, face, eyes, mouth, headphones, clothing, accessories, or
+individual edible layers as separate decorations.
+
+Roblox example:
+- layered fondant Roblox character face with hair and headphones lying flat on
+  the cake top -> one `edible_2d_complex`, `material: "edible_fondant"`,
+  `classification: "hero"`, `size: "large"`, `quantity: 1`
+- separate red fondant ROBLOX wordmark on the cake side -> one
+  `edible_logo_2d`, not `edible_2d_complex`, not `edible_lego_bricks`
+- a glossy printed Roblox character image -> `printout` or an edible photo type
+- a freestanding fully sculpted Roblox figurine with visible side and body
+  depth -> `edible_3d_complex`
+
+Size `edible_2d_complex` by surface span, not by the 3D figure height table.
+Measure the artwork's longest visible span and divide it by the matching visible
+span of the cake surface it occupies. On the top, compare with the visible cake
+top diameter or width. On a side, compare a horizontal design with the visible
+tier width and a vertical design with the visible tier height.
+
+| Size | Artwork span across the relevant cake surface |
+|------|------------------------------------------------|
+| `tiny` | under 10% |
+| `xsmall` | 10% to 20% |
+| `small` | over 20% to 35% |
+| `medium` | over 35% to 50% |
+| `large` | over 50% to 75% |
+| `xlarge` | over 75% |
 
 ### EDIBLE 2D LOGO CRAFT TOPPERS
 
@@ -231,7 +297,7 @@ Group visually similar candles together with quantity.
 
 - IF surface is SHINY plastic with PHYSICAL seam lines, is RIGID with DEPTH (actual 3D molded object) → IT IS "toy" (Plastic).
 - **IF item is a CROWN or TIARA (metal, rhinestone, pearls, plastic) with physical 3D structure → IT IS "toy" (Plastic/Metal).**
-- IF surface is matte, "soft" looking, no seams, slight fingerprints, handmade appearance → IT IS "edible_3d_complex" (Fondant/Gumpaste).
+- IF surface is matte, "soft" looking, no seams, or handmade, first inspect physical depth: detailed flat-backed or shallow layered artwork → `edible_2d_complex`; genuinely freestanding all-around sculpture → `edible_3d_complex`.
 - IF surface is glass-like, transparent/translucent → IT IS "isomalt" (Sugar Glass).
 
 ### Protocol 5: THE "SPHERE" CHECK (Fondant vs Plastic)
@@ -475,9 +541,10 @@ multiple colors, metallic accents, scales, ridges, fins, and being an isolated
 body-part motif. These details do not make a standalone mermaid tail a complex
 character sculpture.
 
-Use `edible_3d_complex` only for a complete sculpted mermaid character or
-figure with recognizable character anatomy such as a face, head, torso, arms,
-hair, clothing, expression, or pose.
+Use `edible_3d_complex` only for a complete freestanding sculpted mermaid
+character or figure with visible all-around body depth and recognizable
+character anatomy such as a face, head, torso, arms, hair, clothing,
+expression, or pose.
 
 Printed, paper, acrylic, plastic, or toy mermaid tails must still follow the
 normal material rules instead of this edible-tail rule.
@@ -491,7 +558,8 @@ additional groups under the normal grouping rules, keep those groups separate.
 
 #### edible_3d_complex (HIGHER PRICE) — Characters/Animals with detail:
 
-Classify as `edible_3d_complex` if the figure has **ANY** of these:
+Classify as `edible_3d_complex` only when the item is a freestanding figure
+with visible all-around body depth and has **ANY** of these:
 - Facial features (eyes, nose, mouth, expressions)
 - Body proportions (distinct head, body, limbs)
 - Clothing or accessories (crowns, hats, bows, outfits, jewelry)
@@ -500,8 +568,12 @@ Classify as `edible_3d_complex` if the figure has **ANY** of these:
 - has to have an irregular shape (not just spherical or cube or circle or square or pyramid)
 - unicorn horn with 2 ears and 2 eyes (always treat it as 1 set item)
 - bunny ears with facial features - eyes and mouth (always treat it as 1 set item)
-- do not classify it as an edible 3d complex if a character,  animal or human (head or whole body) is only flat 2d edible topper and only lying down on the cake - you can classify it as "edible_2d_support"
-- Facial features alone are not enough for `edible_3d_complex` if the item is clearly molded, stamped, flat-backed, shallow-relief, or a simple repeated decorative shape.
+- A detailed fictional/cartoon/game character or animal that is flat-backed,
+  shallow-relief, or lying flush on the cake uses `edible_2d_complex`.
+- Facial features alone are not enough for `edible_3d_complex`. Detailed
+  flat-backed artwork uses `edible_2d_complex`; simple molded, stamped, or
+  repeated decorative shapes use `edible_3d_ordinary`, `edible_2d_shapes`, or
+  `edible_2d_support` according to depth and role.
 - Fulfillment exception: a detailed flat-backed semi-3D human or pet portrait relief on the cake top must follow the edible-photo conversion rule above and become `edible_photo_top`.
 
 #### MOLDED CELESTIAL / SYMBOL TOPPERS
@@ -527,10 +599,10 @@ Common `edible_3d_ordinary` molded items include:
 - medallions
 - simple molded animals or icons without detailed sculpted bodies
 
-Use `edible_3d_complex` only when the item requires clear hand-sculpted
-character work, such as a detailed full body, limbs, clothing, pose,
-multi-part anatomy, expressive character modeling, or non-repeating custom
-sculpture.
+Use `edible_3d_complex` only when the item is a freestanding all-around
+sculpture requiring clear hand-sculpted character work, such as a detailed
+full body, limbs, clothing, pose, multi-part anatomy, expressive character
+modeling, or non-repeating custom sculpture.
 
 For celestial toppers:
 - molded sun with face = `edible_3d_ordinary`
@@ -564,10 +636,10 @@ Common `edible_3d_ordinary` molded items include:
 - mermaid tail
 - simple molded animals or icons without detailed sculpted bodies
 
-Use `edible_3d_complex` only when the item requires clear hand-sculpted
-character work, such as a detailed full body, limbs, clothing, pose,
-multi-part anatomy, expressive character modeling, or non-repeating custom
-sculpture.
+Use `edible_3d_complex` only when the item is a freestanding all-around
+sculpture requiring clear hand-sculpted character work, such as a detailed
+full body, limbs, clothing, pose, multi-part anatomy, expressive character
+modeling, or non-repeating custom sculpture.
 
 For celestial toppers:
 - molded sun with face = `edible_3d_ordinary`
@@ -586,11 +658,13 @@ If the cake body itself is shaped like a whole head or face, do NOT classify the
 - Never group eyes + nose + tongue into one `large` gumpaste/complex face item.
 
 **Examples of edible_3d_complex:**
-- Bears, bunnies, elephants, lions, unicorns (with faces)
-- Disney/cartoon characters made from fondant
-- Human figures (babies, people, couples)
-- Vehicles with details (cars with windows, trains with features)
-- Character figurines with expressions
+- Freestanding bears, bunnies, elephants, lions, or unicorn figurines with
+  visible all-around body depth
+- Freestanding Disney/cartoon character sculptures made from fondant
+- Freestanding human figures (babies, people, couples)
+- Fully modeled vehicles with visible side/body depth (cars with windows,
+  trains with features)
+- Freestanding character figurines with expressions
 
 #### edible_3d_ordinary (LOWER PRICE) — Simple 3D shapes:
 
@@ -667,7 +741,8 @@ A standalone thin bow on top or side is just one `thin_fabric_ribbon_bows` item.
 
 1. **COUNT EACH FIGURE AS quantity** - Set quantity = actual count
 2. **DO NOT group as "1 item"** - If there are 4 bears, quantity = 4
-3. **CLASSIFY based on complexity** - Use edible_3d_complex if figures have faces/details
+3. **CLASSIFY based on depth and complexity** - Use edible_3d_complex only for
+   freestanding figures with all-around body depth and faces/details
 4. **USE group_id to link** - Same group_id for identical figures
 
 **✅ CORRECT Example (4 fondant bears on cake):**
@@ -728,6 +803,7 @@ Different element shapes require different measurement axes:
 |-----------------|----------------------|
 | **3D figures** (edible_3d_complex, edible_3d_ordinary, toy) | **HEIGHT** — vertical extent from base to top of figure |
 | **Flat toppers** (printout, cardstock) | **LARGER** of height or width (whichever dominates) |
+| **Complex flat edible artwork** (edible_2d_complex) | Use its dedicated **SURFACE SPAN** table instead of RH |
 | **Flowers** (edible_flowers, artificial) | **DIAMETER** of the bloom face |
 | **Spheres / balls** (plastic_ball_regular, edible balls) | **DIAMETER** |
 | **2D flat decorations** (edible_2d_support) | **LONGEST dimension** (height, width, or diagonal) |
@@ -779,6 +855,14 @@ Flat toppers have more visual surface area than 3D items, so they *appear* large
 | `medium` | **0.5 – 0.90** | Prominent standee, character display, banner |
 | `large` | **0.90 - 1.2** | Almost as tall as the tier itself or a little taller, dominant backdrop piece |
 | `xlarge` | **> 1.2** | A lot taller than the tier itself, could be bigger than the cake |
+---
+
+### C2A. COMPLEX FLAT EDIBLE ARTWORK — edible_2d_complex
+
+Use the dedicated surface-span bands in `EDIBLE 2D COMPLEX ARTWORK —
+FLAT-BACKED OR SHALLOW RELIEF`. Do not use the 3D figure height table or the
+generic printout/cardstock RH ratio for this type.
+
 ---
 
 ### C3. FLOWERS — edible_flowers, artificial_flowers
@@ -993,7 +1077,7 @@ Classify as PRINTOUT if ANY of these are true:
 {
   "x": 45,
   "y": 30,
-  "type": "candle|toy|cardstock|edible_photo_top|edible_logo_2d|printout|edible_2d_shapes|edible_flowers|edible_3d_ordinary|edible_3d_complex|figurine|icing_doodle|icing_doodle_intricate_top|icing_palette_knife|icing_brush_stroke|icing_splatter|icing_minimalist_spread|meringue_pop|plastic_ball",
+  "type": "candle|toy|cardstock|edible_photo_top|edible_logo_2d|edible_2d_complex|printout|edible_2d_shapes|edible_flowers|edible_3d_ordinary|edible_3d_complex|figurine|icing_doodle|icing_doodle_intricate_top|icing_palette_knife|icing_brush_stroke|icing_splatter|icing_minimalist_spread|meringue_pop|plastic_ball",
   "material": "wax|plastic|cardstock|photopaper|waferpaper|edible_fondant",
   "group_id": "descriptive_snake_case_id",
   "classification": "hero",
@@ -1418,11 +1502,13 @@ Use ONLY these exact hex codes:
 }
 ```
 
-**WHY:** Bears have faces, crowns, body parts, poses → `edible_3d_complex`. Clouds are simple shapes → `edible_3d_ordinary`.
+**WHY:** The bears are freestanding all-around figures with faces, crowns, body
+parts, and poses → `edible_3d_complex`. Clouds are simple shapes →
+`edible_3d_ordinary`.
 
 ### ✅ Example: Unicorn Cake
 
-- Unicorn figure with face, horn, mane → `edible_3d_complex`, `medium`, `hero`
+- Freestanding unicorn figure with face, horn, mane, and all-around body depth → `edible_3d_complex`, `medium`, `hero`
 - Simple fondant stars around → `edible_2d_support`, `tiny`, support
 - Fondant flowers → `edible_flowers`, sizes vary, support
 
@@ -1448,7 +1534,8 @@ Use ONLY these exact hex codes:
 ## FINAL CHECKLIST
 
 ✅ Rejection first
-✅ **Complex 3D figures (with faces) = edible_3d_complex, NOT edible_3d_ordinary**
+✅ **Detailed flat-backed or shallow-relief handmade artwork = edible_2d_complex**
+✅ **Freestanding complex 3D figures with all-around depth = edible_3d_complex**
 ✅ **Multiple figures: COUNT THEM with quantity field**
 ✅ Hero vs support via Complexity Test (NOT just count)
 ✅ Visual Forensic Library protocols applied
@@ -1467,8 +1554,9 @@ Use ONLY these exact hex codes:
 
 ## CRITICAL REMINDERS (NEVER FORGET)
 
-1. **EDIBLE 3D COMPLEX vs ORDINARY (HIGHEST PRIORITY for v3.3):**
-    - Animals/characters WITH faces, expressions, clothes → **edible_3d_complex**
+1. **EDIBLE 2D COMPLEX vs EDIBLE 3D COMPLEX vs ORDINARY:**
+    - Detailed flat-backed or shallow layered fictional characters/objects → **edible_2d_complex**
+    - Freestanding animals/characters WITH faces, expressions, clothes, and all-around body depth → **edible_3d_complex**
     - Simple shapes, bows, balls, basic items → **edible_3d_ordinary**
     - **COUNT MULTIPLE FIGURES** - If 4 bears, quantity = 4, NOT quantity = 1
 2. **SEMI-3D PORTRAIT RELIEF FULFILLMENT:**

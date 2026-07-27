@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { describe, expect, it } from 'vitest';
 
+import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
 import { getAnalysisPromptWithFallback, loadFallbackAnalysisPrompt } from './promptLoader';
 
 const rootDir = process.cwd();
@@ -96,7 +97,7 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('classified as `edible_3d_ordinary`');
     expect(prompt).toContain('overrides the generic `edible_3d_complex` cues for irregular shape');
     expect(prompt).toContain('multiple colors, metallic accents, scales, ridges, fins');
-    expect(prompt).toContain('Use `edible_3d_complex` only for a complete sculpted mermaid character');
+    expect(prompt).toContain('Use `edible_3d_complex` only for a complete freestanding sculpted mermaid');
     expect(prompt).toContain('Printed, paper, acrylic, plastic, or toy mermaid tails must still follow the');
     expect(prompt).toContain('Count every physical mermaid tail.');
     expect(prompt).toContain('Never combine visibly');
@@ -132,10 +133,39 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('modeled nose, cheeks, lips, eyelids, ears, hair strands or curls, facial likeness, neck, shoulders, or clothing');
     expect(prompt).toContain('classify the whole portrait as one `edible_photo_top` item');
     expect(prompt).toContain('Use `material: "waferpaper"`, `classification: "hero"`, `size: "large"`, and `quantity: 1`.');
-    expect(prompt).toContain('Do NOT output the portrait as `edible_3d_complex`, `edible_3d_ordinary`, `edible_2d_shapes`, `edible_2d_support`, or `edible_logo_2d`.');
+    expect(prompt).toContain('Do NOT output the portrait as `edible_3d_complex`, `edible_3d_ordinary`, `edible_2d_complex`, `edible_2d_shapes`, `edible_2d_support`, or `edible_logo_2d`.');
     expect(prompt).toContain('Do not itemize the portrait hair, eyes, nose, mouth, ears, face, neck, or clothing as separate decorations.');
     expect(prompt).toContain('A true freestanding, fully sculpted figurine with visible all-around body depth may remain `edible_3d_complex`.');
     expect(prompt).toContain('Describe the fulfillable result as an edible photo portrait on top, not as a sculpted fondant portrait.');
+  });
+
+  it('classifies detailed flat-backed edible artwork as edible 2D complex without stealing adjacent types', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(prompt).toContain('EDIBLE 2D COMPLEX ARTWORK — FLAT-BACKED OR SHALLOW RELIEF');
+    expect(prompt).toContain('Use `edible_2d_complex` for detailed handmade edible artwork made from fondant');
+    expect(prompt).toContain('Do not place\n`edible_2d_complex` in `support_elements`.');
+    expect(prompt).toContain('A recognizable human or pet likeness in unsupported detailed relief remains');
+    expect(prompt).toContain('A logo, wordmark, brand name, or decorative brand lettering remains\n   `edible_logo_2d`.');
+    expect(prompt).toContain('Plain stars, dots, hearts, leaves, geometric pieces, and other simple flat');
+    expect(prompt).toContain('Only a genuinely freestanding hand-sculpted figure or object with visible');
+    expect(prompt).toContain('Treat one coordinated character plaque as one item with `quantity: 1`.');
+    expect(prompt).toContain('layered fondant Roblox character face with hair and headphones lying flat on');
+    expect(prompt).toContain('`classification: "hero"`, `size: "large"`, `quantity: 1`');
+    expect(prompt).toContain('separate red fondant ROBLOX wordmark on the cake side -> one');
+    expect(prompt).toContain('`edible_logo_2d`, not `edible_2d_complex`, not `edible_lego_bricks`');
+    expect(prompt).toContain('Size `edible_2d_complex` by surface span, not by the 3D figure height table.');
+    expect(prompt).toContain('| `tiny` | under 10% |');
+    expect(prompt).toContain('| `xsmall` | 10% to 20% |');
+    expect(prompt).toContain('| `small` | over 20% to 35% |');
+    expect(prompt).toContain('| `medium` | over 35% to 50% |');
+    expect(prompt).toContain('| `large` | over 50% to 75% |');
+    expect(prompt).toContain('| `xlarge` | over 75% |');
+    expect(prompt).toContain('"type": "candle|toy|cardstock|edible_photo_top|edible_logo_2d|edible_2d_complex|printout');
+
+    expect(SYSTEM_INSTRUCTION).toContain('flat-backed, attached flush to a cake surface, or built only from shallow layered pieces MUST be classified as "edible_2d_complex"');
+    expect(SYSTEM_INSTRUCTION).toContain('Use "edible_3d_complex" only for a genuinely freestanding hand-sculpted figure or object with visible all-around body depth.');
+    expect(SYSTEM_INSTRUCTION).toContain('Do not classify handmade layered fondant/gumpaste character artwork as a printout merely because it depicts a character');
   });
 
   it('detects continuous gumpaste-covered baseboards without excluding colors', () => {
@@ -157,7 +187,7 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('EDIBLE 2D LOGO CRAFT TOPPERS');
     expect(prompt).toContain('Use `edible_logo_2d` for flat or shallow-relief edible logo/name/brand panels made from gumpaste or fondant craft');
     expect(prompt).toContain('matte fondant Yonex logo letters on a side panel -> `edible_logo_2d`');
-    expect(prompt).toContain('"type": "candle|toy|cardstock|edible_photo_top|edible_logo_2d|printout');
+    expect(prompt).toContain('"type": "candle|toy|cardstock|edible_photo_top|edible_logo_2d|edible_2d_complex|printout');
   });
 
   it('keeps edible Lego brick classification in the fallback prompt source', () => {

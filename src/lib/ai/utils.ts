@@ -53,7 +53,7 @@ export async function getDynamicTypeEnums(supabase: any) {
     });
 
     const mainTopperPriority = [
-        'candle', 'edible_photo_top', 'edible_logo_2d', 'printout', 'cardstock', 'edible_2d_shapes',
+        'candle', 'edible_photo_top', 'edible_logo_2d', 'edible_2d_complex', 'printout', 'cardstock', 'edible_2d_shapes',
         'edible_flowers', 'edible_3d_ordinary', 'edible_3d_complex', 'figurine', 'toy',
         'icing_doodle', 'icing_doodle_intricate_top', 'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter',
         'icing_minimalist_spread', 'meringue_pop', 'plastic_ball'

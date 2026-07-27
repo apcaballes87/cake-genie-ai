@@ -115,6 +115,7 @@ const toTitleCase = (value: string) => value
 
 const topperMaterialLabelMap: Record<MainTopperType, string> = {
     edible_3d_complex: 'Gumpaste (Complex)',
+    edible_2d_complex: 'Gumpaste (2D Complex)',
     edible_3d_ordinary: 'Gumpaste (Ordinary)',
     printout: 'Printout',
     toy: 'Toy',

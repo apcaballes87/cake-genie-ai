@@ -132,6 +132,45 @@ describe('validateAiChatEditResponse', () => {
         expect(result.success).toBe(true);
     });
 
+    it('accepts edible_2d_complex as a main topper type but not as a support type', () => {
+        const current = makeSnapshot();
+        const mainTopperResult = validateAiChatEditResponse(
+            designResponse({
+                topperOperations: [{
+                    operation: 'add',
+                    item: {
+                        type: 'edible_2d_complex',
+                        description: 'layered Roblox character face',
+                        size: 'large',
+                        quantity: 1,
+                        groupId: 'roblox-character-face',
+                        classification: 'hero',
+                        material: 'edible_gumpaste',
+                    },
+                }],
+            }),
+            current,
+        );
+        const supportResult = validateAiChatEditResponse({
+            outcome: 'design_change',
+            patch: {
+                supportOperations: [{
+                    operation: 'add',
+                    item: {
+                        type: 'edible_2d_complex',
+                        description: 'layered Roblox character face',
+                        size: 'large',
+                        groupId: 'roblox-character-face',
+                    },
+                }],
+            },
+            actions: [],
+        }, current);
+
+        expect(mainTopperResult.success).toBe(true);
+        expect(supportResult).toMatchObject({ success: false, kind: 'invalid' });
+    });
+
     it('rejects open enums, malformed HEX colors, unknown keys, and invalid outcomes', () => {
         const result = validateAiChatEditResponse({
             outcome: 'changed',

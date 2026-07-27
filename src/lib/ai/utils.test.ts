@@ -98,4 +98,31 @@ describe('getDynamicTypeEnums', () => {
     expect(result.supportElementTypes).toContain('icing_doodle_intricate_side');
     expect(result.supportElementTypes).not.toContain('icing_doodle_intricate_top');
   });
+
+  it('keeps edible 2D complex artwork in main toppers only', async () => {
+    const eq = vi.fn().mockResolvedValue({
+      data: [
+        {
+          item_type: 'edible_2d_complex',
+          item_key: 'edible_2d_complex_large',
+          category: 'main_topper',
+          sub_item_type: null,
+        },
+      ],
+      error: null,
+    });
+
+    const supabase = {
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq,
+        })),
+      })),
+    };
+
+    const result = await getDynamicTypeEnums(supabase);
+
+    expect(result.mainTopperTypes).toContain('edible_2d_complex');
+    expect(result.supportElementTypes).not.toContain('edible_2d_complex');
+  });
 });

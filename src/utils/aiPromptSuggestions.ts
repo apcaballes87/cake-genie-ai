@@ -4,7 +4,7 @@ import { hexToColorNameProse } from '@/utils/colorUtils';
 
 const HEX_COLOR_REGEX = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i;
 const COLORABLE_ITEM_TYPES = new Set([
-    'edible_3d_complex', 'edible_3d_ordinary', 'edible_3d_support', 'edible_2d_support', 'edible_flowers', 'icing_doodle',
+    'edible_3d_complex', 'edible_2d_complex', 'edible_3d_ordinary', 'edible_3d_support', 'edible_2d_support', 'edible_flowers', 'icing_doodle',
     'icing_doodle_intricate', 'icing_doodle_intricate_top', 'icing_doodle_intricate_side',
     'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread', 'meringue_pop',
 ]);
@@ -103,12 +103,12 @@ const canChangeDecorMultipleColors = (item: EditableDecor): boolean => {
 const canChangeTopperMaterial = (topper: EditableDecor): boolean => {
     const originalType = getOriginalType(topper);
     const description = cleanText(topper.description).toLowerCase();
-    const isNumberTopper = description.includes('number') && ['edible_3d_complex', 'edible_3d_ordinary', 'candle', 'printout'].includes(originalType);
-    const is3DFlower = ['edible_3d_complex', 'edible_3d_ordinary'].includes(originalType) && description.includes('flower');
+    const isNumberTopper = description.includes('number') && ['edible_3d_complex', 'edible_2d_complex', 'edible_3d_ordinary', 'candle', 'printout'].includes(originalType);
+    const is3DFlower = ['edible_3d_complex', 'edible_2d_complex', 'edible_3d_ordinary'].includes(originalType) && description.includes('flower');
 
     return isNumberTopper
         || originalType === 'printout'
-        || (['edible_3d_complex', 'edible_3d_ordinary', 'edible_photo_top'].includes(originalType) && !is3DFlower && !isNumberTopper)
+        || (['edible_3d_complex', 'edible_2d_complex', 'edible_3d_ordinary', 'edible_photo_top'].includes(originalType) && !is3DFlower && !isNumberTopper)
         || originalType === 'cardstock'
         || ['toy', 'figurine', 'plastic_ball'].includes(originalType);
 };
@@ -123,7 +123,7 @@ const canReplaceDecorImage = (item: EditableDecor): boolean => {
     const isPrintoutOrPhoto = ['printout', 'edible_photo_top', 'support_printout', 'edible_photo_side'].includes(itemType);
     const isHumanFigure = hasHumanFigureDescription(item.description);
     const isReplaceableIcingFigure = (ICING_DOODLE_TYPES.has(itemType) || itemType === 'icing_palette_knife') && isHumanFigure;
-    const isReplaceableGumpasteFigure = ['edible_3d_complex', 'edible_3d_ordinary', 'edible_3d_support'].includes(itemType) && isHumanFigure;
+    const isReplaceableGumpasteFigure = ['edible_3d_complex', 'edible_2d_complex', 'edible_3d_ordinary', 'edible_3d_support'].includes(itemType) && isHumanFigure;
 
     return isPrintoutOrPhoto || isReplaceableIcingFigure || isReplaceableGumpasteFigure;
 };

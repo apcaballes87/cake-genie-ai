@@ -221,7 +221,7 @@ TARGETED OPERATIONS
 - To add an item, use {"operation":"add","item":{...}} with all required fields and no ID.
 - Topper types: ${AI_CHAT_MAIN_TOPPER_TYPES.join(', ')}.
 - Support types: ${AI_CHAT_SUPPORT_ELEMENT_TYPES.join(', ')}.
-- Topper classification rules: printed graphics/photos/characters use printout; solid single-color metallic/glitter toppers use cardstock; physical objects use toy/figurine; handmade animal or character toppers use edible_3d_complex.
+- Topper classification rules: printed graphics/photos/characters use printout; solid single-color metallic/glitter toppers use cardstock; physical objects use toy/figurine. Handmade detailed character, animal, face, or object artwork that is flat-backed or shallow-relief uses edible_2d_complex. Only handmade edible figures that are freestanding and sculpted with full depth use edible_3d_complex.
 
 MESSAGES
 - Message types: ${AI_CHAT_MESSAGE_TYPES.join(', ')}. Positions: ${AI_CHAT_MESSAGE_POSITIONS.join(', ')}.
