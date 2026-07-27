@@ -49,19 +49,19 @@ describe('search analysis contract', () => {
     expect(schema.properties.icing_design.properties.gumpasteBaseBoard.type).toBeDefined();
   });
 
-  it('keeps the model-provided thickness and only normalizes coordinates', () => {
+  it('keeps the model-provided thickness without fabricating coordinates', () => {
     const result = postProcessSearchAnalysisResult({
       cakeThickness: '6 in',
       is_tall_proportion: true,
-      main_toppers: [{ x: 88, y: 44 }],
-      support_elements: [{ x: 22, y: 11 }],
-      cake_messages: [{ x: 77, y: 55 }],
+      main_toppers: [{}],
+      support_elements: [{}],
+      cake_messages: [{}],
     });
 
     expect(result.cakeThickness).toBe('6 in');
     expect(result).not.toHaveProperty('is_tall_proportion');
-    expect(result.main_toppers).toEqual([{ x: 0, y: 0 }]);
-    expect(result.support_elements).toEqual([{ x: 0, y: 0 }]);
-    expect(result.cake_messages).toEqual([{ x: 0, y: 0 }]);
+    expect(result.main_toppers).toEqual([{}]);
+    expect(result.support_elements).toEqual([{}]);
+    expect(result.cake_messages).toEqual([{}]);
   });
 });

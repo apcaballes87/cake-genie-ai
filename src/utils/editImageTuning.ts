@@ -26,22 +26,23 @@ const hasTargetedDecorEdit = (item: EditableDecor): boolean =>
     Boolean(item.original_color && item.color && item.original_color !== item.color) ||
     hasColorsChanged(item);
 
-const getReferencePoint = (x?: number, y?: number, bbox?: BoundingBox) => {
-    if (bbox) {
-        return {
-            x: bbox.x + bbox.width / 2,
-            y: bbox.y - bbox.height / 2,
-        };
+const getReferencePoint = (bbox?: BoundingBox) => {
+    if (!bbox ||
+        !Number.isFinite(bbox.x) ||
+        !Number.isFinite(bbox.y) ||
+        !Number.isFinite(bbox.width) ||
+        !Number.isFinite(bbox.height) ||
+        !Number.isFinite(bbox.confidence) ||
+        bbox.width <= 0 ||
+        bbox.height <= 0 ||
+        bbox.confidence <= 0) {
+        return null;
     }
 
-    if (typeof x === 'number' || typeof y === 'number') {
-        return {
-            x: x ?? 0,
-            y: y ?? 0,
-        };
-    }
-
-    return null;
+    return {
+        x: bbox.x + bbox.width / 2,
+        y: bbox.y - bbox.height / 2,
+    };
 };
 
 export const buildDecorLocalizationHint = (item: {
@@ -49,7 +50,10 @@ export const buildDecorLocalizationHint = (item: {
     y?: number;
     bbox?: BoundingBox;
 }): string | null => {
-    const point = getReferencePoint(item.x, item.y, item.bbox);
+    // Search-analysis rows historically used x/y = 0 as a placeholder. A
+    // directional prompt must therefore be backed by a verified detection box,
+    // never by bare coordinates that may not describe a real decoration.
+    const point = getReferencePoint(item.bbox);
     if (!point) return null;
 
     const horizontal = point.x < -90 ? 'left' : point.x > 90 ? 'right' : 'center';

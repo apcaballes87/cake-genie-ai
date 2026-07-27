@@ -79,6 +79,22 @@ const ICING_DOODLE_TYPES = new Set([
     'icing_doodle_intricate_side',
 ]);
 
+const isGroupedDecor = (item: MainTopperUI | SupportElementUI) => (item.quantity ?? 1) > 1;
+
+const getDecorPromptTarget = (
+    item: MainTopperUI | SupportElementUI,
+    targetType: 'main topper' | 'support element'
+) => {
+    if (isGroupedDecor(item)) {
+        return `all matching ${targetType}s "${item.description}" throughout the cake`;
+    }
+
+    return `the ${targetType} "${item.description}"`;
+};
+
+const getGroupedDecorScopeInstruction = (item: MainTopperUI | SupportElementUI) =>
+    isGroupedDecor(item) ? 'Apply every listed change to every matching instance. ' : '';
+
 const collectReplacementReferenceImages = (
     mainToppers: MainTopperUI[],
     supportElements: SupportElementUI[]
@@ -181,10 +197,11 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
     // 2. Topper Changes
     mainToppers.forEach(t => {
         if (!t.isEnabled) {
-            changes.push(`- **Remove the main topper** described as: "${t.description}".`);
+            changes.push(`- **Remove ${getDecorPromptTarget(t, 'main topper')}.**`);
         } else {
             const itemChanges: string[] = [];
-            const localizationHint = buildDecorLocalizationHint(t);
+            const isGrouped = isGroupedDecor(t);
+            const localizationHint = isGrouped ? null : buildDecorLocalizationHint(t);
             if (t.type !== t.original_type) {
                 if (t.type === 'printout' && isEdible3DTopperType(t.original_type)) {
                     itemChanges.push(buildEdibleToPrintoutInstruction({
@@ -243,12 +260,12 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
                 if (isTexturedIcing) {
                     itemChanges.push(`**change the color texture** to color **${colorName(t.color)}**. Simply shift the hue of the existing texture to the new color.`);
                 } else {
-                    itemChanges.push(`recolor it to **${colorName(t.color)}**`);
+                    itemChanges.push(`recolor ${isGrouped ? 'all matching instances' : 'it'} to **${colorName(t.color)}**`);
                 }
             }
 
             if (itemChanges.length > 0) {
-                changes.push(`- For the main topper "${t.description}": ${itemChanges.join(' and ')}.${localizationHint ? ` ${localizationHint}` : ''}`);
+                changes.push(`- For ${getDecorPromptTarget(t, 'main topper')}: ${getGroupedDecorScopeInstruction(t)}${itemChanges.join(' and ')}.${localizationHint ? ` ${localizationHint}` : ''}`);
             }
         }
     });
@@ -256,10 +273,11 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
     // 3. Support Element Changes
     supportElements.forEach(s => {
         if (!s.isEnabled) {
-            changes.push(`- **Remove the support element** described as: "${s.description}".`);
+            changes.push(`- **Remove ${getDecorPromptTarget(s, 'support element')}.**`);
         } else {
             const itemChanges: string[] = [];
-            const localizationHint = buildDecorLocalizationHint(s);
+            const isGrouped = isGroupedDecor(s);
+            const localizationHint = isGrouped ? null : buildDecorLocalizationHint(s);
             if (s.type !== s.original_type) {
                 itemChanges.push(`change its material to **${s.type}**`);
             }
@@ -309,12 +327,12 @@ const EDIT_CAKE_PROMPT_TEMPLATE = (
                 if (isTexturedIcing) {
                     itemChanges.push(`**rehue the texture** to a monochromatic palette based on the new color **${colorName(s.color)}**. It is critical that you **PRESERVE THE ORIGINAL STROKES, TEXTURE, AND LIGHTING (shadows/highlights)**. Simply shift the hue of the existing texture to the new color, maintaining all its original detail and form.`);
                 } else {
-                    itemChanges.push(`recolor it to **${colorName(s.color)}**`);
+                    itemChanges.push(`recolor ${isGrouped ? 'all matching instances' : 'it'} to **${colorName(s.color)}**`);
                 }
             }
 
             if (itemChanges.length > 0) {
-                changes.push(`- For the support element "${s.description}": ${itemChanges.join(' and ')}.${localizationHint ? ` ${localizationHint}` : ''}`);
+                changes.push(`- For ${getDecorPromptTarget(s, 'support element')}: ${getGroupedDecorScopeInstruction(s)}${itemChanges.join(' and ')}.${localizationHint ? ` ${localizationHint}` : ''}`);
             }
         }
     });

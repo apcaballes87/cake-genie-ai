@@ -48,7 +48,17 @@ describe('printout conversion prompts', () => {
     });
 
     it('adds the analyzed target location to the conversion detail', () => {
-        const detail = buildPrintoutConversionDetail(makeTopper({ x: 140, y: 140 }));
+        const detail = buildPrintoutConversionDetail(makeTopper({
+            x: 140,
+            y: 140,
+            bbox: {
+                x: 110,
+                y: 140,
+                width: 60,
+                height: 60,
+                confidence: 0.95,
+            },
+        }));
 
         expect(detail).toContain('blue dinosaur topper');
         expect(detail).toContain('upper-right area of the cake');

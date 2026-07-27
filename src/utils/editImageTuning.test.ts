@@ -34,6 +34,14 @@ const createSupportElement = (overrides: Partial<SupportElementUI> = {}): Suppor
 });
 
 describe('editImageTuning', () => {
+    it('does not localize bare coordinates without a verified bounding box', () => {
+        expect(buildDecorLocalizationHint({ x: 0, y: 0 })).toBeNull();
+        expect(buildDecorLocalizationHint({ x: 140, y: 140 })).toBeNull();
+        expect(buildDecorLocalizationHint({
+            bbox: { x: 0, y: 0, width: 40, height: 40, confidence: 0 },
+        })).toBeNull();
+    });
+
     it('builds an upper-center localization hint from bbox data', () => {
         const hint = buildDecorLocalizationHint({
             bbox: {

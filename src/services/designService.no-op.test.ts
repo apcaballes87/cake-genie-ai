@@ -222,6 +222,13 @@ describe('designService: no-op fast path', () => {
                 price: 0,
                 x: 140,
                 y: 140,
+                bbox: {
+                    x: 110,
+                    y: 140,
+                    width: 60,
+                    height: 60,
+                    confidence: 0.95,
+                },
             }] as any,
             supportElements: [],
             cakeMessages: [],
@@ -240,6 +247,90 @@ describe('designService: no-op fast path', () => {
         expect(prompt).toContain('Do not change any other topper');
         const [, , , , , systemInstruction] = (geminiService.editCakeImage as any).mock.calls[0];
         expect(systemInstruction).toContain('EDIBLE 3D TO PRINTOUT CONVERSIONS');
+    });
+
+    it('targets every matching grouped decor instance without a fabricated region', async () => {
+        (geminiService.editCakeImage as any).mockResolvedValueOnce('grouped-decor-image');
+
+        await updateDesign({
+            originalImageData: mockOriginalImage,
+            analysisResult: mockAnalysisResult,
+            cakeInfo: {
+                type: '1 Tier',
+                flavors: ['Chocolate Cake'],
+                size: '6" Round',
+                thickness: '3 in',
+            },
+            mainToppers: [{
+                id: 'topper-group-1',
+                type: 'edible_flowers',
+                original_type: 'edible_flowers',
+                description: 'blue flower toppers',
+                quantity: 3,
+                size: 'small',
+                material: 'gumpaste',
+                group_id: 'blue_flowers',
+                classification: 'hero',
+                color: '#000000',
+                original_color: '#0000FF',
+                isEnabled: true,
+                price: 0,
+                bbox: {
+                    x: -20,
+                    y: 140,
+                    width: 60,
+                    height: 60,
+                    confidence: 0.95,
+                },
+            }],
+            supportElements: [{
+                id: 'support-group-1',
+                type: 'edible_flowers',
+                original_type: 'edible_flowers',
+                description: 'red rose flowers',
+                quantity: 4,
+                size: 'medium',
+                material: 'gumpaste',
+                group_id: 'red_roses',
+                color: '#000000',
+                original_color: '#8B0000',
+                isEnabled: true,
+                price: 0,
+                x: 0,
+                y: 0,
+                bbox: {
+                    x: -20,
+                    y: 140,
+                    width: 60,
+                    height: 60,
+                    confidence: 0.95,
+                },
+            }, {
+                id: 'support-group-2',
+                type: 'dragees',
+                original_type: 'dragees',
+                description: 'gold bead accents',
+                quantity: 5,
+                size: 'small',
+                material: 'sugar pearls',
+                group_id: 'gold_beads',
+                isEnabled: false,
+                price: 0,
+            }],
+            cakeMessages: [],
+            icingDesign: mockAnalysisResult.icing_design,
+            additionalInstructions: '',
+            threeTierReferenceImage: null,
+            traceId: 'grouped-decor-trace',
+        });
+
+        const prompt = vi.mocked(geminiService.editCakeImage).mock.calls[0]?.[0];
+
+        expect(prompt).toContain('For all matching main toppers "blue flower toppers" throughout the cake: Apply every listed change to every matching instance. recolor all matching instances to **Black (#000000)**');
+        expect(prompt).toContain('For all matching support elements "red rose flowers" throughout the cake: Apply every listed change to every matching instance. recolor all matching instances to **Black (#000000)**');
+        expect(prompt).toContain('Remove all matching support elements "gold bead accents" throughout the cake');
+        expect(prompt).not.toContain('middle-center area of the cake');
+        expect(prompt).not.toContain('Keep the edit tightly confined to that localized region');
     });
 
     it('passes topper replacement images through with stable reference labels', async () => {

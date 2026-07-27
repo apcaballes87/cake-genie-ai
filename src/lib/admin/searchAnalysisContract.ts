@@ -149,11 +149,5 @@ export function buildSearchAnalysisGenerationConfig(typeEnums: TypeEnums) {
 export function postProcessSearchAnalysisResult<T extends object>(result: T): T {
   const mutableResult = result as T & Record<string, unknown>;
   delete mutableResult.is_tall_proportion;
-
-  for (const key of ['main_toppers', 'support_elements', 'cake_messages']) {
-    if (Array.isArray(mutableResult[key])) {
-      (mutableResult[key] as Array<Record<string, unknown>>).forEach((item) => { item.x = 0; item.y = 0; });
-    }
-  }
   return result;
 }
