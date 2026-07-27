@@ -37,6 +37,24 @@ interface RecommendedProductsGridProps {
     listName?: string;
     emptyStateText?: string;
     loadMoreEnabled?: boolean;
+    /** Keep the initial homepage preview balanced at desktop breakpoints. */
+    limitInitialProductsAtDesktopBreakpoints?: boolean;
+}
+
+const RECOMMENDED_PRODUCTS_PAGE_SIZE = 12;
+
+function getInitialProductVisibilityClass(index: number, shouldLimit: boolean) {
+    if (!shouldLimit) return '';
+
+    if (index >= 10 && index < RECOMMENDED_PRODUCTS_PAGE_SIZE) {
+        return 'min-[768px]:max-[1025px]:hidden min-[1025px]:max-[1281px]:hidden';
+    }
+
+    if (index >= 8 && index < 10) {
+        return 'min-[768px]:max-[1025px]:hidden';
+    }
+
+    return '';
 }
 
 const RecommendedProductsGridComponent = ({
@@ -48,10 +66,11 @@ const RecommendedProductsGridComponent = ({
     listName = 'recommended',
     emptyStateText = 'No recommended cakes found at the moment.',
     loadMoreEnabled = true,
+    limitInitialProductsAtDesktopBreakpoints = false,
 }: RecommendedProductsGridProps) => {
     const [products, setProducts] = useState<RecommendedProduct[]>(initialProducts);
     const [offset, setOffset] = useState(initialProducts.length);
-    const [hasMore, setHasMore] = useState(loadMoreEnabled && initialProducts.length >= 8);
+    const [hasMore, setHasMore] = useState(loadMoreEnabled && initialProducts.length >= RECOMMENDED_PRODUCTS_PAGE_SIZE);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const gridRef = useRef<HTMLDivElement>(null);
     // Track which products have already been reported in a view_item_list event
@@ -92,11 +111,11 @@ const RecommendedProductsGridComponent = ({
 
     const fetchMoreProducts = useCallback(async (currentOffset: number) => {
         try {
-            const { data, error } = await getRecommendedProducts(8, currentOffset, queryOptions);
+            const { data, error } = await getRecommendedProducts(RECOMMENDED_PRODUCTS_PAGE_SIZE, currentOffset, queryOptions);
 
             if (data) {
                 setProducts(prev => [...prev, ...data]);
-                if (data.length < 8) {
+                if (data.length < RECOMMENDED_PRODUCTS_PAGE_SIZE) {
                     setHasMore(false);
                 }
             } else {
@@ -113,7 +132,7 @@ const RecommendedProductsGridComponent = ({
         const currentOffset = offset;
         setIsLoadingMore(true);
         fetchMoreProducts(currentOffset);
-        setOffset(currentOffset + 8);
+        setOffset(currentOffset + RECOMMENDED_PRODUCTS_PAGE_SIZE);
     };
 
     return (
@@ -144,7 +163,10 @@ const RecommendedProductsGridComponent = ({
                         columnClassName="pl-4 md:pl-5 lg:pl-6 bg-clip-padding"
                     >
                         {products.map((item, index) => (
-                            <div key={`${item.p_hash}-${index}`} className="mb-2 md:mb-3">
+                            <div
+                                key={`${item.p_hash}-${index}`}
+                                className={`mb-2 md:mb-3 ${getInitialProductVisibilityClass(index, limitInitialProductsAtDesktopBreakpoints)}`}
+                            >
                                 <ProductCard
                                     p_hash={item.p_hash}
                                     original_image_url={item.original_image_url}

@@ -209,7 +209,7 @@ async function getHomepageReviews() {
  */
 async function LandingDataSections() {
     const [recommendedProductsRes, blogsRes, homepageReviews] = await Promise.all([
-        getRecommendedProducts(8, 0).catch(err => ({ data: [], error: err })),
+        getRecommendedProducts(12, 0).catch(err => ({ data: [], error: err })),
         getHomepageBlogPreviews(3).catch(err => ({ data: [], error: err })),
         getHomepageReviews().catch(() => ({
             reviews: [],
@@ -234,7 +234,10 @@ async function LandingDataSections() {
                 blogPosts={blogPosts}
                 reviewSummary={homepageReviews.reviewSummary}
             >
-                <RecommendedProductsSection products={recommendedProducts} />
+                <RecommendedProductsSection
+                    products={recommendedProducts}
+                    limitInitialProductsAtDesktopBreakpoints
+                />
                 <IntroContent />
                 <HomepageAeoSections reviews={homepageReviews.reviews} />
             </LandingClient>

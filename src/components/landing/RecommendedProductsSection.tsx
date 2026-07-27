@@ -31,6 +31,7 @@ interface RecommendedProductsSectionProps {
     listName?: string;
     emptyStateText?: string;
     loadMoreEnabled?: boolean;
+    limitInitialProductsAtDesktopBreakpoints?: boolean;
 }
 
 export const RecommendedProductsSection = ({
@@ -42,6 +43,7 @@ export const RecommendedProductsSection = ({
     listName,
     emptyStateText,
     loadMoreEnabled,
+    limitInitialProductsAtDesktopBreakpoints,
 }: RecommendedProductsSectionProps) => {
     return (
         <RecommendedProductsGrid
@@ -53,6 +55,7 @@ export const RecommendedProductsSection = ({
             listName={listName}
             emptyStateText={emptyStateText}
             loadMoreEnabled={loadMoreEnabled}
+            limitInitialProductsAtDesktopBreakpoints={limitInitialProductsAtDesktopBreakpoints}
         />
     );
 };
