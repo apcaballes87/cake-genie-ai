@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.31 Version - Complex 2D Edible Artwork Classification and Pricing**
+**v3.32 Version - Composite Hero Assembly Counting Precedence**
 ═══════════════════════════════════════════════════════════════════════════════
 
 ## ROLE
@@ -735,15 +735,52 @@ Do NOT create `satin_ribbon_wrap` unless there is an actual ribbon band wrapping
 A standalone thin bow on top or side is just one `thin_fabric_ribbon_bows` item.
 ---
 
-### 🆕 MULTIPLE FIGURE COUNTING (v3.3 - CRITICAL)
+### COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE (CRITICAL)
 
-**When a cake has MULTIPLE 3D figures (e.g., 4 bears, 3 unicorns):**
+Apply this rule after the printed-photo, flat-artwork, and material
+classification precedences, but before generic main-topper grouping, quantity,
+and sizing whenever two or more independently sculpted major 3D subjects touch,
+share a base, share a pose, ride or support one another, or form one visual
+scene.
 
-1. **COUNT EACH FIGURE AS quantity** - Set quantity = actual count
-2. **DO NOT group as "1 item"** - If there are 4 bears, quantity = 4
+- Count each independently sculpted major subject before grouping.
+- Each complete person, fictional character, or animal counts as one
+  `main_toppers` item.
+- A separately sculpted major vehicle or mount—such as a scooter, motorcycle,
+  bicycle, car, or horse—also counts as one `main_toppers` item.
+- Shared contact, one base, one pose, one seat, or one visual composition does
+  not reduce independently sculpted major subjects to one topper.
+- Output non-identical major subjects as separate `main_toppers` rows. Give each
+  row `quantity: 1`, its own descriptive `group_id`, and the type, material,
+  classification, size, and description of that subject.
+- Only truly identical repeated pieces with the same type, material, size,
+  color, and appearance may share one `group_id` and use `quantity` greater
+  than 1.
+- Size each separate major subject independently with the correct sizing table.
+  Never use the footprint or height of the whole composite scene as the size of
+  every component.
+- Do not separately count integrated details or accessories such as hair,
+  clothing, caps, limbs, wheels, mirrors, handlebars, seats, or a delivery box
+  attached to the vehicle.
+
+Examples:
+- one rider plus one motorcycle = 2 separate `main_toppers` rows
+- two people plus one scooter = 3 separate `main_toppers` rows
+- one person plus one horse = 2 separate `main_toppers` rows
+- three people inside or on one sculpted car plus the car = 4 separate
+  `main_toppers` rows
+
+### MULTIPLE IDENTICAL FIGURE COUNTING (v3.32 - CRITICAL)
+
+**When a cake has multiple truly identical 3D figures with the same type, material, size, color, and appearance (e.g., 4 identical bears, 3 identical unicorns):**
+
+1. **COUNT EACH IDENTICAL FIGURE** - Set `quantity` to the actual count
+2. **DO NOT COLLAPSE THE COUNT TO 1** - If there are 4 identical bears, `quantity` is 4
 3. **CLASSIFY based on depth and complexity** - Use edible_3d_complex only for
    freestanding figures with all-around body depth and faces/details
-4. **USE group_id to link** - Same group_id for identical figures
+4. **GROUP ONLY IDENTICAL FIGURES** - Identical repeated figures share one
+   `group_id`; non-identical major subjects follow COMPOSITE HERO ASSEMBLY
+   COUNTING PRECEDENCE
 
 **✅ CORRECT Example (4 fondant bears on cake):**
 ```json
@@ -840,7 +877,9 @@ Using one universal table causes flowers to be undersized and figures to be over
 | `xlarge` | **> 1.2** | Dominates the tier or extends a lot more  above the cake top |
 
 **Removal test:** If this figure were removed, would there be a **large obvious gap**? → `medium` or `large` or 'xlarge'. A **small gap**? → `small` or `tiny`.
-Note: if a complex topper is a human mounted on an animal, count it as 2 quantity toppers or 2 separate toppers.
+For any rider, mount, or vehicle composition, apply COMPOSITE HERO ASSEMBLY
+COUNTING PRECEDENCE; non-identical major subjects must be separate rows and
+sized independently.
 ---
 
 ### C2. FLAT TOPPERS — printout, cardstock
@@ -1536,7 +1575,8 @@ parts, and poses → `edible_3d_complex`. Clouds are simple shapes →
 ✅ Rejection first
 ✅ **Detailed flat-backed or shallow-relief handmade artwork = edible_2d_complex**
 ✅ **Freestanding complex 3D figures with all-around depth = edible_3d_complex**
-✅ **Multiple figures: COUNT THEM with quantity field**
+✅ **Composite hero assemblies: count major subjects before grouping; separate and independently size non-identical subjects**
+✅ **Multiple identical figures: count them with the quantity field**
 ✅ Hero vs support via Complexity Test (NOT just count)
 ✅ Visual Forensic Library protocols applied
 ✅ 2-cue material rule
@@ -1558,7 +1598,8 @@ parts, and poses → `edible_3d_complex`. Clouds are simple shapes →
     - Detailed flat-backed or shallow layered fictional characters/objects → **edible_2d_complex**
     - Freestanding animals/characters WITH faces, expressions, clothes, and all-around body depth → **edible_3d_complex**
     - Simple shapes, bows, balls, basic items → **edible_3d_ordinary**
-    - **COUNT MULTIPLE FIGURES** - If 4 bears, quantity = 4, NOT quantity = 1
+    - **COUNT MULTIPLE IDENTICAL FIGURES** - If 4 identical bears, quantity = 4, NOT quantity = 1
+    - **SPLIT COMPOSITE HERO ASSEMBLIES** - Riders, mounts, vehicles, and non-identical people or animals require separate rows and independent sizing
 2. **SEMI-3D PORTRAIT RELIEF FULFILLMENT:**
    - Detailed human/pet likeness modeled as a flat-backed relief across the cake top → **edible_photo_top**
    - Do not price or describe the portrait as a custom sculpted fondant figure

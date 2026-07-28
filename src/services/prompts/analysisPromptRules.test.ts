@@ -168,6 +168,27 @@ describe('cake analysis prompt rules', () => {
     expect(SYSTEM_INSTRUCTION).toContain('Do not classify handmade layered fondant/gumpaste character artwork as a printout merely because it depicts a character');
   });
 
+  it('separates non-identical subjects in composite 3D hero assemblies', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(prompt).toContain('**v3.32 Version - Composite Hero Assembly Counting Precedence**');
+    expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
+    expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
+    expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
+    expect(prompt).toContain('Output non-identical major subjects as separate `main_toppers` rows.');
+    expect(prompt).toContain('row `quantity: 1`, its own descriptive `group_id`');
+    expect(prompt).toContain('Only truly identical repeated pieces with the same type, material, size,');
+    expect(prompt).toContain('Size each separate major subject independently with the correct sizing table.');
+    expect(prompt).toContain('wheels, mirrors, handlebars, seats, or a delivery box');
+    expect(prompt).toContain('two people plus one scooter = 3 separate `main_toppers` rows');
+    expect(prompt).toContain('three people inside or on one sculpted car plus the car = 4 separate');
+    expect(prompt).toContain('MULTIPLE IDENTICAL FIGURE COUNTING');
+    expect(prompt).toContain('Composite hero assemblies: count major subjects before grouping; separate and independently size non-identical subjects');
+    expect(prompt).toContain('SPLIT COMPOSITE HERO ASSEMBLIES');
+    expect(prompt).toContain('For any rider, mount, or vehicle composition, apply COMPOSITE HERO ASSEMBLY');
+    expect(prompt).not.toContain('count it as 2 quantity toppers or 2 separate toppers');
+  });
+
   it('detects continuous gumpaste-covered baseboards without excluding colors', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
