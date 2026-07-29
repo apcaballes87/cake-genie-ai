@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.32 Version - Composite Hero Assembly Counting Precedence**
+**v3.33 Version - Toy-Specific Size Bands**
 ═══════════════════════════════════════════════════════════════════════════════
 
 ## ROLE
@@ -865,7 +865,44 @@ Using one universal table causes flowers to be undersized and figures to be over
 
 ---
 
-### C1. 3D FIGURES — edible_3d_complex, edible_3d_ordinary, toy
+### TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy`)
+
+For every physical item classified as `toy`, measure the toy's own visible
+height as PD and divide it by the reference height (RH) of the tier it sits on
+or is closest to. For toys on the cake board, use the bottom-tier height as RH.
+
+This toy-specific table is authoritative for `toy` and overrides the generic C1
+3D-figure bands and the Ratio Quick Glance table.
+
+Size each toy independently. Never measure the footprint, height, or visual
+impact of the whole toy scene or cluster.
+
+| Size | Toy ratio (PD ÷ RH) |
+|------|---------------------|
+| `tiny` | under 0.10 |
+| `xsmall` | 0.10 to under 0.50 |
+| `small` | 0.50 to under 0.80 |
+| `medium` | 0.80 to under 1.10 |
+| `large` | 1.10 to under 1.40 |
+| `xlarge` | 1.40 or greater |
+
+Miniature molded army men, miniature soldiers, and similarly scaled mini action
+figures that are each at least 0.10 and less than 0.50 of the reference-tier
+height are `xsmall`, even when many pieces together form a prominent scene.
+Toys below 0.10 remain `tiny`.
+
+For toys, compensate for perspective by estimating the toy's true visible
+height before applying this table. This replaces the global perspective `+1`
+rule for toys. Do not apply any additional category bump after using the
+toy-specific table.
+
+Count every physical toy. Only truly identical toys with the same type,
+material, size, color, pose, and appearance may share one `group_id` and use
+`quantity` greater than 1. Otherwise use separate rows or matching subgroups.
+
+---
+
+### C1. EDIBLE 3D FIGURES — edible_3d_complex, edible_3d_ordinary
 
 | Size | Ratio (PD ÷ RH) | Visual Anchor |
 |------|-----------------|---------------|
@@ -1012,14 +1049,15 @@ SIZING DECISION FLOW:
 
 1. What TIER is this item on? → That tier's height = RH
 2. What TYPE of element is it?
-   → 3D figure? Measure HEIGHT
+   → Toy? Measure HEIGHT and use TOY-SPECIFIC SIZING PRECEDENCE
+   → Edible 3D figure? Measure HEIGHT and use C1
    → Flat topper? Measure LARGER dimension
    → Flower? Measure bloom DIAMETER
    → Ball/sphere? Measure DIAMETER
    → 2D support? Measure LONGEST dimension
    → Panel? Use COVERAGE % instead
 3. ratio = measurement ÷ RH
-4. Look up the correct per-type table (C1-C7)
+4. For `toy`, use TOY-SPECIFIC SIZING PRECEDENCE; otherwise look up the correct per-type table (C1-C7)
 5. Check edge cases (perspective, bento, boundary)
 6. Assign size label
 ```

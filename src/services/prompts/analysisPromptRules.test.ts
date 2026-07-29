@@ -171,7 +171,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.32 Version - Composite Hero Assembly Counting Precedence**');
+    expect(prompt).toContain('**v3.33 Version - Toy-Specific Size Bands**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -187,6 +187,35 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('SPLIT COMPOSITE HERO ASSEMBLIES');
     expect(prompt).toContain('For any rider, mount, or vehicle composition, apply COMPOSITE HERO ASSEMBLY');
     expect(prompt).not.toContain('count it as 2 quantity toppers or 2 separate toppers');
+  });
+
+  it('uses toy-specific sizing for miniature molded toys', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(prompt).toContain('**v3.33 Version - Toy-Specific Size Bands**');
+    expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy`)');
+    expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
+    expect(prompt).toContain('| `tiny` | under 0.10 |');
+    expect(prompt).toContain('| `xsmall` | 0.10 to under 0.50 |');
+    expect(prompt).toContain('| `small` | 0.50 to under 0.80 |');
+    expect(prompt).toContain('| `medium` | 0.80 to under 1.10 |');
+    expect(prompt).toContain('| `large` | 1.10 to under 1.40 |');
+    expect(prompt).toContain('| `xlarge` | 1.40 or greater |');
+    expect(prompt).toContain('Miniature molded army men, miniature soldiers, and similarly scaled mini action');
+    expect(prompt).toContain('figures that are each at least 0.10 and less than 0.50 of the reference-tier');
+    expect(prompt).toContain('Toys below 0.10 remain `tiny`.');
+    expect(prompt).toContain('For toys, compensate for perspective by estimating the toy\'s true visible');
+    expect(prompt).toContain('This replaces the global perspective `+1`\nrule for toys.');
+    expect(prompt).toContain('Do not apply any additional category bump after using the\ntoy-specific table.');
+    expect(prompt).toContain('Count every physical toy.');
+    expect(prompt).toContain('Size each toy independently.');
+    expect(prompt).toContain('Never measure the footprint, height, or visual\nimpact of the whole toy scene or cluster.');
+    expect(prompt).toContain('material, size, color, pose, and appearance may share one `group_id`');
+    expect(prompt).toContain('### C1. EDIBLE 3D FIGURES — edible_3d_complex, edible_3d_ordinary');
+    expect(prompt).not.toContain('### C1. 3D FIGURES — edible_3d_complex, edible_3d_ordinary, toy');
+    expect(prompt).toContain('→ Toy? Measure HEIGHT and use TOY-SPECIFIC SIZING PRECEDENCE');
+    expect(prompt).toContain('→ Edible 3D figure? Measure HEIGHT and use C1');
+    expect(prompt).toContain('For `toy`, use TOY-SPECIFIC SIZING PRECEDENCE; otherwise look up the correct per-type table (C1-C7)');
   });
 
   it('detects continuous gumpaste-covered baseboards without excluding colors', () => {

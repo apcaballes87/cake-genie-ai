@@ -137,6 +137,25 @@ const pricingRows: PricingRule[] = [
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
   })),
+  ...([
+    ['tiny', 40],
+    ['xsmall', 60],
+  ] as const).map(([size, price], index): PricingRule => ({
+    rule_id: 20 + index,
+    item_key: `toy_${size}`,
+    item_type: 'toy',
+    classification: 'non-gumpaste',
+    size,
+    description: `${size} high-detail toy`,
+    price,
+    category: 'main_topper',
+    quantity_rule: 'per_piece',
+    multiplier_rule: null,
+    special_conditions: null,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+  })),
   {
     rule_id: 14,
     item_key: 'gumpaste_bundle_small',
@@ -420,6 +439,35 @@ describe('calculatePriceFromDatabase', () => {
       price: -100,
     });
     expect(warnSpy.mock.calls.flat().join(' ')).not.toContain('edible_2d_complex');
+  });
+
+  it.each([
+    ['tiny', 40, 3, 120],
+    ['xsmall', 60, 10, 600],
+  ] as const)('prices %s toys at ₱%i per piece', async (size, unitPrice, quantity, expectedPrice) => {
+    const { calculatePriceFromDatabase } = await import('./pricingService.database');
+    const warnSpy = vi.spyOn(console, 'warn');
+    const topper = {
+      id: `toy-${size}`,
+      type: 'toy',
+      description: `${size} molded army soldiers`,
+      quantity,
+      isEnabled: true,
+      size,
+    } as MainTopperUI;
+
+    const { addOnPricing, itemPrices } = await calculatePriceFromDatabase({
+      mainToppers: [topper],
+      supportElements: [],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
+    });
+
+    expect(itemPrices.get(topper.id)).toBe(expectedPrice);
+    expect(addOnPricing.addOnPrice).toBe(expectedPrice);
+    expect(expectedPrice).toBe(unitPrice * quantity);
+    expect(warnSpy.mock.calls.flat().join(' ')).not.toContain(`toy-${size}`);
   });
 
   it('calculates cupcake topper prices correctly (Option B - Flat Maximum)', async () => {
