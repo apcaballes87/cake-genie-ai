@@ -10,6 +10,7 @@ import type { CustomizingAiPromptSuggestionItem } from '@/app/customizing/Custom
 import type { ParsedAiChatPromptTemplate } from '@/utils/aiChatPromptComposer';
 import { DiscountOfferBubble } from './DiscountOfferBubble';
 import type { PrintoutConversionSummary } from '@/app/customizing/printoutConversion';
+import { isPastDeliveryCutoff } from '@/lib/utils/deliveryLeadTime';
 import {
     STICKY_ADD_TO_CART_AVAILABILITY_OVERLAP_PX,
     STICKY_ADD_TO_CART_AVAILABILITY_VERTICAL_PADDING_PX,
@@ -76,11 +77,13 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
         price: number | null;
         availability: AvailabilityType | undefined;
         error: string | null;
+        pastCutoff: boolean;
         initialized: boolean;
     }>({
         price,
         availability,
         error,
+        pastCutoff: false,
         initialized: false,
     });
     const hasPrintoutConversion = Boolean(
@@ -105,6 +108,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     const [isCompact, setIsCompact] = React.useState(false);
     const [isDiscountApplied, setIsDiscountApplied] = React.useState(false);
     const [isMounted, setIsMounted] = React.useState(false);
+    const [isPastCutoff, setIsPastCutoff] = React.useState(false);
     const [statusAnnouncement, setStatusAnnouncement] = React.useState('');
     const [errorAnnouncement, setErrorAnnouncement] = React.useState('');
     const buttonsRef = React.useRef<HTMLDivElement>(null);
@@ -128,6 +132,13 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     }, []);
 
     React.useEffect(() => {
+        const updateCutoffState = () => setIsPastCutoff(isPastDeliveryCutoff());
+        updateCutoffState();
+        const intervalId = window.setInterval(updateCutoffState, 30_000);
+        return () => window.clearInterval(intervalId);
+    }, []);
+
+    React.useEffect(() => {
         if (!addToCartBlockReason) {
             lastVisibleBlockReasonRef.current = null;
             return;
@@ -145,6 +156,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                 price,
                 availability,
                 error,
+                pastCutoff: isPastCutoff,
                 initialized: true,
             };
             return;
@@ -162,13 +174,17 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
             statusParts.push(`Price updated to ${price.toLocaleString()} pesos.`);
         }
 
-        if (availability && availability !== previous.availability) {
+        if (availability && (availability !== previous.availability || isPastCutoff !== previous.pastCutoff)) {
             if (availability === 'rush') {
                 statusParts.push('Rush fulfillment available. Ready in 60 minutes.');
             } else if (availability === 'same-day') {
-                statusParts.push('Same-day fulfillment available. Ready in 3 hours.');
+                statusParts.push(isPastCutoff
+                    ? "It's past the 4 PM cut-off. Order now and receive it tomorrow."
+                    : 'Same-day order. Order now and receive it in 3 hours.');
             } else {
-                statusParts.push('Standard order selected. At least one day lead time applies.');
+                statusParts.push(isPastCutoff
+                    ? "It's past the 4 PM cut-off. Order now and receive it the next day."
+                    : 'Standard order. Order now and receive it by tomorrow.');
             }
         }
 
@@ -180,9 +196,10 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
             price,
             availability,
             error,
+            pastCutoff: isPastCutoff,
             initialized: true,
         };
-    }, [availability, error, price]);
+    }, [availability, error, isPastCutoff, price]);
 
     React.useEffect(() => {
         const currentRef = buttonsRef.current;
@@ -289,7 +306,9 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                         style={notificationBodyStyle}
                     >
                         <span>🕐</span>
-                        <span>Same-Day Order! Ready in 3 hours</span>
+                        <span>{isPastCutoff
+                            ? "It's past the 4 PM cut-off. Order now, receive it tomorrow!"
+                            : 'Same-day order. Order now, ready in 3 hours.'}</span>
                     </div>
                 </div>
             );
@@ -302,7 +321,9 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                         style={notificationBodyStyle}
                     >
                         <span>📅</span>
-                        <span>Standard order. Receive this by tomorrow</span>
+                        <span>{isPastCutoff
+                            ? "It's past the 4 PM cut-off. Order now, receive it the next day!"
+                            : 'Standard order. Order now, receive it by tomorrow.'}</span>
                     </div>
                 </div>
             );

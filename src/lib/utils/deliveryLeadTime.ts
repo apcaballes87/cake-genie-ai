@@ -29,6 +29,15 @@ const DAY_MS = 24 * HOUR_MS;
 export const DELIVERY_CUTOFF_HOUR = 16;
 export const DELIVERY_DAY_START_HOUR = 10;
 
+export function isPastDeliveryCutoff(
+  now: Date = new Date(),
+  cutoffHour: number = DELIVERY_CUTOFF_HOUR,
+): boolean {
+  const manilaNow = getManilaWallClockDate(now);
+  const minutesOfDay = manilaNow.getUTCHours() * 60 + manilaNow.getUTCMinutes();
+  return minutesOfDay >= cutoffHour * 60;
+}
+
 function toManilaWallClockMs(date: Date): number {
   return date.getTime() + MANILA_OFFSET_MS;
 }
@@ -99,9 +108,8 @@ function getLeadTimeAnchorWallClockMs(
   nextDayStartHour: number
 ): number {
   const manilaNow = getManilaWallClockDate(now);
-  const minutesOfDay = manilaNow.getUTCHours() * 60 + manilaNow.getUTCMinutes();
 
-  if (minutesOfDay >= cutoffHour * 60) {
+  if (isPastDeliveryCutoff(now, cutoffHour)) {
     return Date.UTC(
       manilaNow.getUTCFullYear(),
       manilaNow.getUTCMonth(),

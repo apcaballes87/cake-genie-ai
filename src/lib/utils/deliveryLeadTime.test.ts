@@ -5,6 +5,7 @@ import {
   getLeadTimeDaysFromManilaToday,
   getLeadTimeReadyAt,
   getManilaCalendarDate,
+  isPastDeliveryCutoff,
   isDateAvailableForLeadTime,
   type DeliveryTimeSlot,
 } from '@/lib/utils/deliveryLeadTime';
@@ -18,6 +19,11 @@ const TIME_SLOTS: DeliveryTimeSlot[] = [
 ];
 
 describe('delivery lead time', () => {
+  it('detects the 4 PM cutoff in Manila time', () => {
+    expect(isPastDeliveryCutoff(new Date('2026-06-19T07:59:00.000Z'))).toBe(false);
+    expect(isPastDeliveryCutoff(new Date('2026-06-19T08:00:00.000Z'))).toBe(true);
+  });
+
   it('starts rush lead time from tomorrow at 10 AM after the cutoff', () => {
     const readyAt = getLeadTimeReadyAt({
       availability: 'rush',

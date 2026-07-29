@@ -1,12 +1,20 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi, beforeAll } from 'vitest';
+import { describe, expect, it, vi, beforeAll, beforeEach } from 'vitest';
 import StickyAddToCartBar from './StickyAddToCartBar';
 import {
     STICKY_ADD_TO_CART_AVAILABILITY_OVERLAP_PX,
     STICKY_ADD_TO_CART_AVAILABILITY_VERTICAL_PADDING_PX,
 } from '@/app/customizing/stickyBarLayout';
 import type { PrintoutConversionSummary } from '@/app/customizing/printoutConversion';
+
+const { isPastDeliveryCutoffMock } = vi.hoisted(() => ({
+    isPastDeliveryCutoffMock: vi.fn(() => false),
+}));
+
+vi.mock('@/lib/utils/deliveryLeadTime', () => ({
+    isPastDeliveryCutoff: isPastDeliveryCutoffMock,
+}));
 
 vi.mock('./ShareButton', () => ({
     ShareButton: ({ onClick }: { onClick: () => void }) => <button onClick={onClick}>share</button>,
@@ -25,6 +33,10 @@ beforeAll(() => {
     }
 
     global.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver;
+});
+
+beforeEach(() => {
+    isPastDeliveryCutoffMock.mockReturnValue(false);
 });
 
 const buildProps = (): React.ComponentProps<typeof StickyAddToCartBar> => ({
@@ -56,7 +68,7 @@ describe('StickyAddToCartBar', () => {
         render(<StickyAddToCartBar {...props} />);
 
         const warning = screen.queryByText('Toy is subject for availability');
-        const availability = screen.getByText('Standard order. Receive this by tomorrow');
+        const availability = screen.getByText('Standard order. Order now, receive it by tomorrow.');
 
         expect(warning).toBeNull();
         expect(availability).toBeDefined();
@@ -93,7 +105,7 @@ describe('StickyAddToCartBar', () => {
 
         render(<StickyAddToCartBar {...props} />);
 
-        const availability = screen.getByText('Standard order. Receive this by tomorrow');
+        const availability = screen.getByText('Standard order. Order now, receive it by tomorrow.');
         const notificationBody = availability.parentElement;
 
         expect(notificationBody).toHaveStyle({
@@ -116,6 +128,20 @@ describe('StickyAddToCartBar', () => {
         expect(mainBar).toHaveClass('relative', 'z-10');
     });
 
+    it('uses next-day copy after the 4 PM cutoff', () => {
+        isPastDeliveryCutoffMock.mockReturnValue(true);
+        const sameDayProps = buildProps();
+        sameDayProps.availability = 'same-day';
+        const normalProps = buildProps();
+        normalProps.availability = 'normal';
+
+        const { rerender } = render(<StickyAddToCartBar {...sameDayProps} />);
+        expect(screen.getByText("It's past the 4 PM cut-off. Order now, receive it tomorrow!")).toBeInTheDocument();
+
+        rerender(<StickyAddToCartBar {...normalProps} />);
+        expect(screen.getByText("It's past the 4 PM cut-off. Order now, receive it the next day!")).toBeInTheDocument();
+    });
+
     it('stacks the combined printout warning above availability without collapsing its row', () => {
         const props = buildProps();
         const printoutConversions: PrintoutConversionSummary = { toy: true, ediblePhoto: true, cardstock: true };
@@ -125,7 +151,7 @@ describe('StickyAddToCartBar', () => {
         const { container } = render(<StickyAddToCartBar {...props} />);
 
         const warningText = screen.getByText('Toy, Edible photo, Cardstock changed to printout');
-        const availabilityText = screen.getByText('Standard order. Receive this by tomorrow');
+        const availabilityText = screen.getByText('Standard order. Order now, receive it by tomorrow.');
         expect(warningText).toBeInTheDocument();
         expect(warningText).toHaveClass('min-w-0', 'truncate');
         expect(availabilityText).toBeInTheDocument();
