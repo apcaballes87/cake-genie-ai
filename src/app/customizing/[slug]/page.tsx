@@ -1139,10 +1139,13 @@ function SSRDesignContent({
 
     return (
         <div className="w-full pb-4 pt-1 space-y-1">
-            <div className="flex w-full flex-col items-center gap-2 pb-4 max-md:pt-4">
+            <div className="flex w-full flex-col items-center gap-2 py-[18px]">
+                <p className="w-full max-w-[520px] text-center text-sm leading-6 text-neutral-600">
+                    Upload other cake designs here and we&apos;ll give you instant price quotation.
+                </p>
                 <Link
                     href="/customizing?upload=1"
-                    className="genie-btn-primary flex w-full max-w-[520px] items-center justify-center gap-2 rounded-[1.5rem] px-4 py-3 text-sm font-bold shadow-md shadow-purple-50/50 transition-transform active:scale-[0.98] md:text-base"
+                    className="flex w-full max-w-[520px] items-center justify-center gap-2 rounded-[1.5rem] border border-purple-600 bg-white px-4 py-3 text-sm font-bold text-purple-600 transition-colors hover:bg-purple-50 active:scale-[0.98] md:text-base"
                 >
                     <ImagePlus size={18} className="shrink-0" aria-hidden="true" />
                     <span>Upload Any Design - Get Instant Pricing</span>
