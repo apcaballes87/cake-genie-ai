@@ -186,6 +186,25 @@ export function LandingFooter({ reviewSummary }: LandingFooterProps) {
                 />
               </a>
               <a
+                href="https://dang.ai"
+                target="_blank"
+                rel="dofollow noopener"
+                title="Verified on DANG!"
+                aria-label="Verified on DANG!"
+                className="inline-block h-[34px] transition-opacity hover:opacity-80"
+              >
+                <img
+                  src="https://assets.dang.ai/badges/dang-verified-light.png"
+                  alt="Verified on DANG!"
+                  width="260"
+                  height="94"
+                  className="block h-full w-auto border-0 object-contain outline-none"
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
+                />
+              </a>
+              <a
                 href="https://starthub.zip"
                 title="starthub.zip"
                 className="text-sm font-semibold text-purple-700 underline underline-offset-4 transition-colors hover:text-purple-900"
