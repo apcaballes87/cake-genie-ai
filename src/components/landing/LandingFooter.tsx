@@ -138,23 +138,6 @@ export function LandingFooter({ reviewSummary }: LandingFooterProps) {
                 />
               </a>
               <a
-                href="https://launchclash.com/product/genie"
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Featured on LaunchClash"
-                aria-label="Featured on LaunchClash"
-                className="transition-opacity hover:opacity-80"
-              >
-                <img
-                  src="https://launchclash.com/assets/images/badge.png"
-                  alt="LaunchClash"
-                  height="54"
-                  loading="lazy"
-                  decoding="async"
-                  fetchPriority="low"
-                />
-              </a>
-              <a
                 href="https://startupfa.me/s/genieph?utm_source=genie.ph"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -166,6 +149,40 @@ export function LandingFooter({ reviewSummary }: LandingFooterProps) {
                   src="https://startupfa.me/badges/featured/light-rounded.webp"
                   alt="Genie.ph - Featured on Startup Fame"
                   width="171"
+                  height="54"
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
+                />
+              </a>
+              <a
+                href="https://utilportal.com/item/genieph"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Featured on UtilPortal"
+                aria-label="Featured on UtilPortal"
+                className="w-56 cursor-pointer transition-opacity hover:opacity-80"
+              >
+                <img
+                  src="https://cdn.sanity.io/images/ai8ccfzu/production/383b921ea147ea2c6f5f3e1f9d20992e86400e4d-968x245.png?w=2000&fit=max&auto=format&dpr=2"
+                  alt="UtilPortal badge"
+                  className="w-full h-auto object-cover"
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
+                />
+              </a>
+              <a
+                href="https://shinylaunch.com/product/genie"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Featured on ShinyLaunch"
+                aria-label="Featured on ShinyLaunch"
+                className="transition-opacity hover:opacity-80"
+              >
+                <img
+                  src="https://shinylaunch.com/assets/images/badge.png"
+                  alt="ShinyLaunch"
                   height="54"
                   loading="lazy"
                   decoding="async"
