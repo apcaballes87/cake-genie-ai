@@ -130,8 +130,8 @@ export function LandingFooter({ reviewSummary }: LandingFooterProps) {
                 <img
                   src="https://www.productlaunchify.com/images/badges/powered-by-neutral.svg"
                   alt="Featured on Product Launchify"
-                  width="231"
-                  height="55"
+                  width="185"
+                  height="44"
                   loading="lazy"
                   decoding="async"
                   fetchPriority="low"
@@ -148,8 +148,8 @@ export function LandingFooter({ reviewSummary }: LandingFooterProps) {
                 <img
                   src="https://startupfa.me/badges/featured/light-rounded.webp"
                   alt="Genie.ph - Featured on Startup Fame"
-                  width="171"
-                  height="54"
+                  width="137"
+                  height="43"
                   loading="lazy"
                   decoding="async"
                   fetchPriority="low"
@@ -161,7 +161,7 @@ export function LandingFooter({ reviewSummary }: LandingFooterProps) {
                 rel="noopener noreferrer"
                 title="Featured on UtilPortal"
                 aria-label="Featured on UtilPortal"
-                className="w-56 cursor-pointer transition-opacity hover:opacity-80"
+                className="w-[179px] cursor-pointer transition-opacity hover:opacity-80"
               >
                 <img
                   src="https://cdn.sanity.io/images/ai8ccfzu/production/383b921ea147ea2c6f5f3e1f9d20992e86400e4d-968x245.png?w=2000&fit=max&auto=format&dpr=2"
@@ -173,21 +173,11 @@ export function LandingFooter({ reviewSummary }: LandingFooterProps) {
                 />
               </a>
               <a
-                href="https://shinylaunch.com/product/genie"
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Featured on ShinyLaunch"
-                aria-label="Featured on ShinyLaunch"
-                className="transition-opacity hover:opacity-80"
+                href="https://starthub.zip"
+                title="starthub.zip"
+                className="text-sm font-semibold text-purple-700 underline underline-offset-4 transition-colors hover:text-purple-900"
               >
-                <img
-                  src="https://shinylaunch.com/assets/images/badge.png"
-                  alt="ShinyLaunch"
-                  height="54"
-                  loading="lazy"
-                  decoding="async"
-                  fetchPriority="low"
-                />
+                starthub.zip
               </a>
             </div>
           </div>
