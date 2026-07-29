@@ -19,7 +19,7 @@ describe('LandingFooter', () => {
     expect(markup).not.toContain('<h4')
   })
 
-  it('renders the Product Launchify featured badge at the bottom of the footer', () => {
+  it('renders the featured badges at the bottom of the footer', () => {
     const markup = renderToStaticMarkup(<LandingFooter />)
 
     expect(markup).toContain('Featured on')
@@ -32,5 +32,15 @@ describe('LandingFooter', () => {
     expect(markup).toContain('alt="Featured on Product Launchify"')
     expect(markup).toContain('width="231"')
     expect(markup).toContain('height="55"')
+    expect(markup).toContain('href="https://launchclash.com/product/genie"')
+    expect(markup).toContain('title="Featured on LaunchClash"')
+    expect(markup).toContain('src="https://launchclash.com/assets/images/badge.png"')
+    expect(markup).toContain('alt="LaunchClash"')
+    expect(markup).toContain('href="https://startupfa.me/s/genieph?utm_source=genie.ph"')
+    expect(markup).toContain('title="Genie.ph - Featured on Startup Fame"')
+    expect(markup).toContain('src="https://startupfa.me/badges/featured/light-rounded.webp"')
+    expect(markup).toContain('alt="Genie.ph - Featured on Startup Fame"')
+    expect(markup).toContain('width="171"')
+    expect(markup).toContain('height="54"')
   })
 })

@@ -118,24 +118,61 @@ export function LandingFooter({ reviewSummary }: LandingFooterProps) {
 
           <div className="mt-6 pt-6 border-t border-purple-200 flex flex-col items-center gap-3">
             <p className="text-xs font-bold uppercase tracking-wider text-gray-600">Featured on</p>
-            <a
-              href="https://www.productlaunchify.com/projects/genie-ph"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Featured on Product Launchify"
-              aria-label="Featured on Product Launchify"
-              className="transition-opacity hover:opacity-80"
-            >
-              <img
-                src="https://www.productlaunchify.com/images/badges/powered-by-neutral.svg"
-                alt="Featured on Product Launchify"
-                width="231"
-                height="55"
-                loading="lazy"
-                decoding="async"
-                fetchPriority="low"
-              />
-            </a>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <a
+                href="https://www.productlaunchify.com/projects/genie-ph"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Featured on Product Launchify"
+                aria-label="Featured on Product Launchify"
+                className="transition-opacity hover:opacity-80"
+              >
+                <img
+                  src="https://www.productlaunchify.com/images/badges/powered-by-neutral.svg"
+                  alt="Featured on Product Launchify"
+                  width="231"
+                  height="55"
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
+                />
+              </a>
+              <a
+                href="https://launchclash.com/product/genie"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Featured on LaunchClash"
+                aria-label="Featured on LaunchClash"
+                className="transition-opacity hover:opacity-80"
+              >
+                <img
+                  src="https://launchclash.com/assets/images/badge.png"
+                  alt="LaunchClash"
+                  height="54"
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
+                />
+              </a>
+              <a
+                href="https://startupfa.me/s/genieph?utm_source=genie.ph"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Genie.ph - Featured on Startup Fame"
+                aria-label="Genie.ph - Featured on Startup Fame"
+                className="transition-opacity hover:opacity-80"
+              >
+                <img
+                  src="https://startupfa.me/badges/featured/light-rounded.webp"
+                  alt="Genie.ph - Featured on Startup Fame"
+                  width="171"
+                  height="54"
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
+                />
+              </a>
+            </div>
           </div>
       </div>
     </div>
