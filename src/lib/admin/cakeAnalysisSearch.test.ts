@@ -67,7 +67,7 @@ describe('cake analysis search server helpers', () => {
         data: {
           p_hash: 'abc',
           slug: 'birthday-cake',
-          price: 1299,
+          price: 2699,
           original_image_url: 'https://example.com/cake.jpg',
         },
         error: null,
@@ -78,7 +78,7 @@ describe('cake analysis search server helpers', () => {
       eq: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({
-        data: { p_hash: 'abc', slug: 'birthday-cake', price: 1299, analysis_json: newAnalysis },
+        data: { p_hash: 'abc', slug: 'birthday-cake', price: 2299, analysis_json: newAnalysis },
         error: null,
       }),
     };
@@ -94,7 +94,7 @@ describe('cake analysis search server helpers', () => {
     await expect(replaceCakeAnalysisByHash('abc', new Request('http://localhost'))).resolves.toEqual({
       p_hash: 'abc',
       slug: 'birthday-cake',
-      price: 1299,
+      price: 2299,
       analysis_json: newAnalysis,
       promptVersion: '3.32',
     });
@@ -114,7 +114,7 @@ describe('cake analysis search server helpers', () => {
       maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
     };
     mockCreateAdminServerSupabaseClient.mockReturnValue({ from: vi.fn().mockReturnValue(lookupChain) });
-    const { replaceCakeAnalysisByHash, CakeAnalysisSearchError } = await import('./cakeAnalysisSearch');
+    const { replaceCakeAnalysisByHash } = await import('./cakeAnalysisSearch');
 
     await expect(replaceCakeAnalysisByHash('missing', new Request('http://localhost'))).rejects.toMatchObject({
       name: 'CakeAnalysisSearchError',
