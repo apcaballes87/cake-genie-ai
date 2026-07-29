@@ -174,6 +174,17 @@ export function LandingFooter({ reviewSummary }: LandingFooterProps) {
                   fetchPriority="low"
                 />
               </a>
+              <a href="https://uno.directory" target="_blank" rel="noopener">
+                <img
+                  src="https://uno.directory/uno-directory.svg"
+                  alt="Listed on Uno Directory"
+                  width="120"
+                  height="30"
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
+                />
+              </a>
               <a
                 href="https://starthub.zip"
                 title="starthub.zip"
