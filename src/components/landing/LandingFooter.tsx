@@ -115,6 +115,28 @@ export function LandingFooter({ reviewSummary }: LandingFooterProps) {
             <p className="text-xs text-gray-600">© 2025 Genie.ph | Alalai Information Technology Solutions</p>
             <a href="#top" className="genie-btn-primary p-2.5 rounded-xl" aria-label="Back to top"><ChevronUp size={20} /></a>
           </div>
+
+          <div className="mt-6 pt-6 border-t border-purple-200 flex flex-col items-center gap-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-600">Featured on</p>
+            <a
+              href="https://www.productlaunchify.com/projects/genie-ph"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Featured on Product Launchify"
+              aria-label="Featured on Product Launchify"
+              className="transition-opacity hover:opacity-80"
+            >
+              <img
+                src="https://www.productlaunchify.com/images/badges/powered-by-neutral.svg"
+                alt="Featured on Product Launchify"
+                width="231"
+                height="55"
+                loading="lazy"
+                decoding="async"
+                fetchPriority="low"
+              />
+            </a>
+          </div>
       </div>
     </div>
        {/* DTI Zoom Modal */}
