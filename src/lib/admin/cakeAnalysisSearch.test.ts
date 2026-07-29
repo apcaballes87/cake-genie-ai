@@ -4,6 +4,7 @@ const mockRunActiveCakeAnalysis = vi.fn();
 const mockCreateAdminServerSupabaseClient = vi.fn();
 const mockSearchProductsFTS = vi.fn();
 const mockSearchProductsFTSCount = vi.fn();
+const mockCalculateCachePriceFromAnalysis = vi.fn();
 
 vi.mock('@/lib/ai/analyzeCakeImage', () => ({
   runActiveCakeAnalysis: (...args: unknown[]) => mockRunActiveCakeAnalysis(...args),
@@ -14,6 +15,7 @@ vi.mock('@/lib/supabase/adminServer', () => ({
 }));
 
 vi.mock('@/services/supabaseService', () => ({
+  calculateCachePriceFromAnalysis: (...args: unknown[]) => mockCalculateCachePriceFromAnalysis(...args),
   searchProductsFTS: (...args: unknown[]) => mockSearchProductsFTS(...args),
   searchProductsFTSCount: (...args: unknown[]) => mockSearchProductsFTSCount(...args),
 }));
@@ -25,6 +27,7 @@ describe('cake analysis search server helpers', () => {
     mockCreateAdminServerSupabaseClient.mockReset();
     mockSearchProductsFTS.mockReset();
     mockSearchProductsFTSCount.mockReset();
+    mockCalculateCachePriceFromAnalysis.mockReset();
     vi.restoreAllMocks();
   });
 
@@ -47,17 +50,32 @@ describe('cake analysis search server helpers', () => {
       error: null,
     });
     mockSearchProductsFTSCount.mockResolvedValue(1);
+    const metadataChain = {
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({
+        data: [{
+          id: 'cache-1',
+          p_hash: 'abc',
+          created_at: '2026-07-29T00:00:00.000Z',
+          seo_title: 'Birthday Cake',
+          studio_edited_image_url: null,
+          studio_edited_at: null,
+        }],
+        error: null,
+      }),
+    };
+    mockCreateAdminServerSupabaseClient.mockReturnValue({ from: vi.fn().mockReturnValue(metadataChain) });
     const { searchCakeAnalysisResults } = await import('./cakeAnalysisSearch');
 
     await expect(searchCakeAnalysisResults('birthday cake', 30, 0)).resolves.toEqual({
-      data: [expect.objectContaining({ p_hash: 'abc', price: 1299, slug: 'birthday-cake' })],
+      data: [expect.objectContaining({ id: 'cache-1', p_hash: 'abc', price: 1299, slug: 'birthday-cake' })],
       total: 1,
     });
     expect(mockSearchProductsFTS).toHaveBeenCalledWith('birthday cake', 30, 0);
     expect(mockSearchProductsFTSCount).toHaveBeenCalledWith('birthday cake');
   });
 
-  it('writes exactly analysis_json and leaves the other cache fields to the database', async () => {
+  it('recalculates and writes only analysis_json plus price', async () => {
     const originalAnalysis = { cakeType: '1 Tier', keyword: 'Birthday Cake' };
     const newAnalysis = { cakeType: '2 Tier', keyword: 'Birthday Cake' };
     const lookupChain = {
@@ -85,6 +103,7 @@ describe('cake analysis search server helpers', () => {
     const from = vi.fn().mockReturnValueOnce(lookupChain).mockReturnValueOnce(updateChain);
     mockCreateAdminServerSupabaseClient.mockReturnValue({ from });
     mockRunActiveCakeAnalysis.mockResolvedValue({ result: newAnalysis, promptVersion: '3.32' });
+    mockCalculateCachePriceFromAnalysis.mockResolvedValue(2299);
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(new Uint8Array([1, 2, 3]), {
       status: 200,
       headers: { 'content-type': 'image/jpeg' },
@@ -102,8 +121,9 @@ describe('cake analysis search server helpers', () => {
       mimeType: 'image/jpeg',
       sourceContext: 'admin-cake-analysis-search:abc',
     }));
-    expect(updateChain.update).toHaveBeenCalledWith({ analysis_json: newAnalysis });
-    expect(Object.keys(updateChain.update.mock.calls[0][0])).toEqual(['analysis_json']);
+    expect(mockCalculateCachePriceFromAnalysis).toHaveBeenCalledWith(newAnalysis);
+    expect(updateChain.update).toHaveBeenCalledWith({ analysis_json: newAnalysis, price: 2299 });
+    expect(Object.keys(updateChain.update.mock.calls[0][0]).sort()).toEqual(['analysis_json', 'price']);
     expect(originalAnalysis).not.toEqual(newAnalysis);
   });
 

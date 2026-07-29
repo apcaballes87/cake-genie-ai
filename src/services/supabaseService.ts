@@ -333,6 +333,17 @@ async function getLowestBasePrice(type: CakeType): Promise<number> {
 }
 
 /**
+ * Calculates the persisted cache price from an analysis without mutating cache metadata.
+ * Keep this aligned with cache creation and narrow reruns that update only analysis_json + price.
+ */
+export async function calculateCachePriceFromAnalysis(analysisResult: HybridAnalysisResult): Promise<number> {
+  const pricingState = mapAnalysisToPricingState(analysisResult);
+  const { addOnPricing } = await calculatePriceFromDatabase(pricingState);
+  const lowestBasePrice = await getLowestBasePrice(analysisResult.cakeType);
+  return roundDownToNearest99(lowestBasePrice + addOnPricing.addOnPrice, lowestBasePrice);
+}
+
+/**
  * Backfills missing price, keywords, and optionally original_image_url for a cached analysis entry.
  */
 export async function backfillCacheFields(pHash: string, analysisResult: HybridAnalysisResult, imageUrl?: string) {
@@ -340,13 +351,7 @@ export async function backfillCacheFields(pHash: string, analysisResult: HybridA
     console.log('🔄 Backfilling cache fields for pHash:', pHash);
 
     // 1. Calculate Price
-    const pricingState = mapAnalysisToPricingState(analysisResult);
-    const { addOnPricing } = await calculatePriceFromDatabase(pricingState);
-    const lowestBasePrice = await getLowestBasePrice(analysisResult.cakeType);
-    let totalPrice = lowestBasePrice + addOnPricing.addOnPrice;
-
-    // Apply "round down to nearest 99" logic
-    totalPrice = roundDownToNearest99(totalPrice, lowestBasePrice);
+    const totalPrice = await calculateCachePriceFromAnalysis(analysisResult);
 
     // 2. Extract Keywords
     const keywords = analysisResult.keyword || '';
@@ -976,13 +981,7 @@ export async function cacheAnalysisResult(
     }
 
     // Calculate Price and Keywords before inserting
-    const pricingState = mapAnalysisToPricingState(analysisResult);
-    const { addOnPricing } = await calculatePriceFromDatabase(pricingState);
-    const lowestBasePrice = await getLowestBasePrice(analysisResult.cakeType);
-    let totalPrice = lowestBasePrice + addOnPricing.addOnPrice;
-
-    // Apply "round down to nearest 99" logic
-    totalPrice = roundDownToNearest99(totalPrice, lowestBasePrice);
+    const totalPrice = await calculateCachePriceFromAnalysis(analysisResult);
 
     const keywords = analysisResult.keyword || '';
 

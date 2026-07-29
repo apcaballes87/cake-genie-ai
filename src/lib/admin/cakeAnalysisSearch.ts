@@ -1,12 +1,14 @@
 import { runActiveCakeAnalysis } from '@/lib/ai/analyzeCakeImage';
 import { createAdminServerSupabaseClient } from '@/lib/supabase/adminServer';
-import { searchProductsFTS, searchProductsFTSCount } from '@/services/supabaseService';
+import { calculateCachePriceFromAnalysis, searchProductsFTS, searchProductsFTSCount } from '@/services/supabaseService';
+import type { HybridAnalysisResult } from '@/types';
 
 const SOURCE_IMAGE_TIMEOUT_MS = 30_000;
 const MAX_SOURCE_IMAGE_BYTES = 20 * 1024 * 1024;
 const SUPPORTED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
 export type CakeSearchResult = {
+  id: string | null;
   slug: string | null;
   keywords: string | null;
   original_image_url: string;
@@ -19,7 +21,10 @@ export type CakeSearchResult = {
   image_width: number | null;
   image_height: number | null;
   rank_score: number | null;
+  created_at: string | null;
+  seo_title: string | null;
   studio_edited_image_url?: string | null;
+  studio_edited_at?: string | null;
   image_variants?: unknown;
 };
 
@@ -35,6 +40,7 @@ export class CakeAnalysisSearchError extends Error {
 
 function normalizeSearchResult(row: Record<string, unknown>): CakeSearchResult {
   return {
+    id: null,
     slug: typeof row.slug === 'string' ? row.slug : null,
     keywords: typeof row.keywords === 'string' ? row.keywords : null,
     original_image_url: String(row.original_image_url || ''),
@@ -49,9 +55,12 @@ function normalizeSearchResult(row: Record<string, unknown>): CakeSearchResult {
     image_width: row.image_width == null ? null : Number(row.image_width),
     image_height: row.image_height == null ? null : Number(row.image_height),
     rank_score: row.rank_score == null ? null : Number(row.rank_score),
+    created_at: null,
+    seo_title: null,
     studio_edited_image_url: typeof row.studio_edited_image_url === 'string'
       ? row.studio_edited_image_url
       : null,
+    studio_edited_at: typeof row.studio_edited_at === 'string' ? row.studio_edited_at : null,
     image_variants: row.image_variants,
   };
 }
@@ -66,8 +75,34 @@ export async function searchCakeAnalysisResults(query: string, limit: number, of
     throw new CakeAnalysisSearchError(`Cake search failed: ${results.error.message}`, 502);
   }
 
+  const data = (results.data || []).map((row) => normalizeSearchResult(row as Record<string, unknown>));
+  const pHashes = data.map((item) => item.p_hash).filter(Boolean);
+
+  if (pHashes.length > 0) {
+    const admin = createAdminServerSupabaseClient();
+    const { data: cacheRows, error: cacheLookupError } = await admin
+      .from('cakegenie_analysis_cache')
+      .select('id, p_hash, created_at, seo_title, studio_edited_image_url, studio_edited_at')
+      .in('p_hash', pHashes);
+
+    if (cacheLookupError) {
+      throw new CakeAnalysisSearchError(`Could not load cache metadata for the search results: ${cacheLookupError.message}`, 502);
+    }
+
+    const metadataByHash = new Map((cacheRows || []).map((row) => [row.p_hash, row]));
+    for (const item of data) {
+      const metadata = metadataByHash.get(item.p_hash);
+      if (!metadata) continue;
+      item.id = metadata.id ?? null;
+      item.created_at = metadata.created_at ?? null;
+      item.seo_title = metadata.seo_title ?? null;
+      item.studio_edited_image_url = metadata.studio_edited_image_url ?? null;
+      item.studio_edited_at = metadata.studio_edited_at ?? null;
+    }
+  }
+
   return {
-    data: (results.data || []).map((row) => normalizeSearchResult(row as Record<string, unknown>)),
+    data,
     total,
   };
 }
@@ -152,10 +187,11 @@ export async function replaceCakeAnalysisByHash(pHash: string, requestContext?: 
     requestContext,
     sourceContext: `admin-cake-analysis-search:${pHash}`,
   });
+  const price = await calculateCachePriceFromAnalysis(result as unknown as HybridAnalysisResult);
 
   const { data: updatedRow, error: updateError } = await admin
     .from('cakegenie_analysis_cache')
-    .update({ analysis_json: result })
+    .update({ analysis_json: result, price })
     .eq('p_hash', pHash)
     .select('p_hash, slug, price, analysis_json')
     .single();
