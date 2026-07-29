@@ -8,6 +8,7 @@
  *   npm run backfill:bing-images -- --scope=canary --apply
  *   npm run backfill:bing-images -- --scope=all --apply
  *   npm run backfill:bing-images -- --scope=all --verify-public
+ *   npm run backfill:bing-images -- --scope=all --repair-report --apply
  *
  * The script is dry-run by default. It has no arbitrary URL, bucket, prefix,
  * concurrency, or batch-size arguments: its only source of targets is the
@@ -67,10 +68,16 @@ type InventoryPage = {
   imageUrls: string[];
 };
 
-function parseArgs(argv: string[]): { scope: Scope; apply: boolean; verifyPublic: boolean } {
+function parseArgs(argv: string[]): {
+  scope: Scope;
+  apply: boolean;
+  verifyPublic: boolean;
+  repairReport: boolean;
+} {
   let scope: Scope = 'canary';
   let apply = false;
   let verifyPublic = false;
+  let repairReport = false;
 
   for (const arg of argv) {
     if (arg === '--apply') {
@@ -79,6 +86,10 @@ function parseArgs(argv: string[]): { scope: Scope; apply: boolean; verifyPublic
     }
     if (arg === '--verify-public') {
       verifyPublic = true;
+      continue;
+    }
+    if (arg === '--repair-report') {
+      repairReport = true;
       continue;
     }
     if (arg.startsWith('--scope=')) {
@@ -95,8 +106,11 @@ function parseArgs(argv: string[]): { scope: Scope; apply: boolean; verifyPublic
   if (apply && verifyPublic) {
     throw new Error('--apply and --verify-public are mutually exclusive.');
   }
+  if (repairReport && (!apply || verifyPublic)) {
+    throw new Error('--repair-report requires --apply and cannot be combined with --verify-public.');
+  }
 
-  return { scope, apply, verifyPublic };
+  return { scope, apply, verifyPublic, repairReport };
 }
 
 async function fetchAllPages<T>(
@@ -209,6 +223,28 @@ function writeExternalReport(value: unknown): void {
   fs.writeFileSync(EXTERNAL_REPORT_FILE, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
 }
 
+function loadBlockedSupportReportUrls(): string[] {
+  if (!fs.existsSync(SUPPORT_REPORT_FILE)) {
+    throw new Error(`Support report does not exist: ${SUPPORT_REPORT_FILE}`);
+  }
+
+  const report = JSON.parse(fs.readFileSync(SUPPORT_REPORT_FILE, 'utf8')) as {
+    stage?: unknown;
+    blocked?: Array<{ url?: unknown }>;
+  };
+  if (report.stage !== 'public-verification' || !Array.isArray(report.blocked)) {
+    throw new Error('Support report must be a public-verification report with blocked URLs.');
+  }
+
+  const urls = [...new Set(report.blocked
+    .map((entry) => entry.url)
+    .filter((url): url is string => typeof url === 'string' && url.startsWith('https://')))];
+  if (urls.length === 0 || urls.length > 1_000) {
+    throw new Error(`Support report repair requires between 1 and 1000 exact blocked URLs; found ${urls.length}.`);
+  }
+  return urls;
+}
+
 async function buildInventory(supabase: SupabaseClient): Promise<InventoryPage[]> {
   const {
     getSitemapCutoffDate,
@@ -282,7 +318,7 @@ async function mapWithConcurrency<T, R>(
 }
 
 async function main(): Promise<void> {
-  const { scope, apply, verifyPublic } = parseArgs(process.argv.slice(2));
+  const { scope, apply, verifyPublic, repairReport } = parseArgs(process.argv.slice(2));
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
 
@@ -296,10 +332,12 @@ async function main(): Promise<void> {
   const {
     BING_IMAGE_BACKFILL_CONCURRENCY,
     BING_IMAGE_BACKFILL_PAGE_BATCH_SIZE,
+    BING_IMAGE_CDN_PURGE_CONCURRENCY,
     BING_IMAGE_PUBLIC_VERIFY_CONCURRENCY,
     ensurePublicImageEligibility,
     isExternalImageUrl,
     parseGenieStorageObjectUrl,
+    purgeSupabaseCdnObject,
     waitForPublicImageEligibility,
   } = await import('../src/lib/seo/bingImageEligibilityBackfill');
 
@@ -336,6 +374,95 @@ async function main(): Promise<void> {
       })),
     });
     console.warn(`External-host images were skipped. Report: ${EXTERNAL_REPORT_FILE}`);
+  }
+
+  if (repairReport) {
+    const repairUrls = loadBlockedSupportReportUrls();
+    const inventorySet = new Set(inventoryImages);
+    const invalidRepairUrls = repairUrls.filter((url) => (
+      !inventorySet.has(url) || !parseGenieStorageObjectUrl(url, supabaseUrl)
+    ));
+    if (invalidRepairUrls.length > 0) {
+      throw new Error(
+        `Refusing ${invalidRepairUrls.length} support-report URLs outside the current approved inventory.`,
+      );
+    }
+
+    const storageResults = await mapWithConcurrency(
+      repairUrls,
+      BING_IMAGE_BACKFILL_CONCURRENCY,
+      (publicUrl) => ensurePublicImageEligibility({
+        client: supabase,
+        publicUrl,
+        expectedSupabaseOrigin: supabaseUrl,
+        apply: true,
+      }),
+    );
+    const storageFailures = storageResults.flatMap((result, index) => (
+      result.status === 'rejected'
+        ? [{
+            url: repairUrls[index],
+            error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+          }]
+        : []
+    ));
+    if (storageFailures.length > 0) {
+      writeSupportReport({
+        generatedAt: new Date().toISOString(),
+        stage: 'support-report-storage-repair',
+        scope,
+        failures: storageFailures,
+      });
+      throw new Error(`Support-report storage repair failed for ${storageFailures.length} URLs.`);
+    }
+
+    const purgeResults = await mapWithConcurrency(
+      repairUrls,
+      BING_IMAGE_CDN_PURGE_CONCURRENCY,
+      (publicUrl) => purgeSupabaseCdnObject({
+        publicUrl,
+        expectedSupabaseOrigin: supabaseUrl,
+        secretKey: serviceRoleKey,
+      }),
+    );
+    const purgeFailures = purgeResults.flatMap((result, index) => (
+      result.status === 'rejected'
+        ? [{
+            url: repairUrls[index],
+            error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+          }]
+        : []
+    ));
+    if (purgeFailures.length > 0) {
+      writeSupportReport({
+        generatedAt: new Date().toISOString(),
+        stage: 'support-report-cdn-purge',
+        scope,
+        failures: purgeFailures,
+      });
+      throw new Error(`Support-report CDN purge failed for ${purgeFailures.length} URLs.`);
+    }
+
+    const verification = await waitForPublicImageEligibility({ urls: repairUrls });
+    const summary = {
+      scope,
+      mode: 'repair-report',
+      targeted: repairUrls.length,
+      purged: purgeResults.length,
+      eligible: verification.eligible.length,
+      blocked: verification.blocked.length,
+    };
+    console.log(JSON.stringify(summary, null, 2));
+    if (verification.blocked.length > 0) {
+      writeSupportReport({
+        generatedAt: new Date().toISOString(),
+        stage: 'support-report-public-verification',
+        summary,
+        blocked: verification.blocked,
+      });
+      process.exitCode = 1;
+    }
+    return;
   }
 
   if (verifyPublic) {
@@ -417,6 +544,8 @@ async function main(): Promise<void> {
   const checkpoint = loadCheckpoint();
   const seenImages = new Set<string>();
   let updated = 0;
+  let metadataReady = 0;
+  let purged = 0;
   let alreadyEligible = 0;
   let publicBlocked = 0;
   let publicVerified = 0;
@@ -469,6 +598,7 @@ async function main(): Promise<void> {
       const value = result.value;
       completedResults.set(value.url, value);
       if (value.status === 'updated-pending-public') updated += 1;
+      if (value.status === 'metadata-ready-public-blocked') metadataReady += 1;
       if (value.status === 'already-eligible') alreadyEligible += 1;
       if (value.status === 'public-blocked') publicBlocked += 1;
       if (value.status === 'external-skipped') externalSkipped += 1;
@@ -488,10 +618,50 @@ async function main(): Promise<void> {
     }
 
     if (apply) {
-      const updatedUrls = [...completedResults.values()]
-        .filter((value) => value.status === 'updated-pending-public')
+      const purgeCandidates = [...completedResults.values()]
+        .filter((value) => (
+          value.status === 'updated-pending-public'
+          || value.status === 'metadata-ready-public-blocked'
+        ));
+      const purgeResults = await mapWithConcurrency(
+        purgeCandidates,
+        BING_IMAGE_CDN_PURGE_CONCURRENCY,
+        (value) => purgeSupabaseCdnObject({
+          publicUrl: value.url,
+          expectedSupabaseOrigin: supabaseUrl,
+          secretKey: serviceRoleKey,
+        }),
+      );
+      const purgeFailures: Array<{ url: string; error: string }> = [];
+      purgeResults.forEach((result, index) => {
+        const value = purgeCandidates[index];
+        if (result.status === 'fulfilled') {
+          purged += 1;
+          return;
+        }
+        purgeFailures.push({
+          url: value.url,
+          error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+        });
+      });
+
+      if (purgeFailures.length > 0) {
+        writeSupportReport({
+          generatedAt: new Date().toISOString(),
+          stage: 'cdn-purge',
+          scope,
+          apply,
+          failures: purgeFailures,
+        });
+        console.error(`CDN cache purge failed. Support report: ${SUPPORT_REPORT_FILE}`);
+        failures.push(...purgeFailures);
+        process.exitCode = 1;
+        break;
+      }
+
+      const purgedUrls = purgeCandidates
         .map((value) => value.url);
-      const publicResult = await waitForPublicImageEligibility({ urls: updatedUrls });
+      const publicResult = await waitForPublicImageEligibility({ urls: purgedUrls });
 
       if (publicResult.blocked.length > 0) {
         writeSupportReport({
@@ -537,7 +707,7 @@ async function main(): Promise<void> {
       saveCheckpoint(checkpoint);
     }
 
-    console.log(`batch=${Math.floor(offset / BING_IMAGE_BACKFILL_PAGE_BATCH_SIZE) + 1} pages=${Math.min(offset + pageBatch.length, pages.length)}/${pages.length} updated=${updated} eligible=${alreadyEligible} publicVerified=${publicVerified} blocked=${publicBlocked} external=${externalSkipped} failures=${failures.length}`);
+    console.log(`batch=${Math.floor(offset / BING_IMAGE_BACKFILL_PAGE_BATCH_SIZE) + 1} pages=${Math.min(offset + pageBatch.length, pages.length)}/${pages.length} updated=${updated} metadataReady=${metadataReady} purged=${purged} eligible=${alreadyEligible} publicVerified=${publicVerified} blocked=${publicBlocked} external=${externalSkipped} failures=${failures.length}`);
   }
 
   console.log(JSON.stringify({
@@ -546,6 +716,8 @@ async function main(): Promise<void> {
     pages: pages.length,
     uniqueImages: seenImages.size,
     updated,
+    metadataReady,
+    purged,
     alreadyEligible,
     publicBlocked,
     publicVerified,

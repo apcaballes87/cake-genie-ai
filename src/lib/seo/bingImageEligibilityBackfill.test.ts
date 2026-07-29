@@ -6,6 +6,7 @@ import {
   ensurePublicImageEligibility,
   isPublicImageRobotsEligible,
   parseGenieStorageObjectUrl,
+  purgeSupabaseCdnObject,
   readCanonicalPublicImageHeaders,
   waitForPublicImageEligibility,
   type StorageUpdateClient,
@@ -25,35 +26,57 @@ function makeClient({
   afterBytes = beforeBytes,
   initialRobotsTag = 'none',
   updatedRobotsTag = 'all',
+  listErrors = [],
+  downloadErrors = [],
+  updateErrors = [],
 }: {
   beforeBytes: Uint8Array;
   afterBytes?: Uint8Array;
   initialRobotsTag?: string;
   updatedRobotsTag?: string;
+  listErrors?: Array<{ message?: string } | null>;
+  downloadErrors?: Array<{ message?: string } | null>;
+  updateErrors?: Array<{ message: string } | null>;
 }) {
   let updated = false;
+  let listAttempt = 0;
+  let downloadAttempt = 0;
+  let updateAttempt = 0;
   const update = vi.fn().mockImplementation(async () => {
+    const error = updateErrors[updateAttempt] ?? null;
+    updateAttempt += 1;
+    if (error) return { error };
     updated = true;
     return { error: null };
   });
-  const list = vi.fn().mockImplementation(async () => ({
-    data: [{
-      name: '800.webp',
-      metadata: {
-        mimetype: 'image/webp',
-        cacheControl: 'max-age=31536000',
-        xRobotsTag: updated ? updatedRobotsTag : initialRobotsTag,
-      },
-    }],
-    error: null,
-  }));
-  const download = vi.fn().mockImplementation(async () => ({
-    data: {
-      type: 'image/webp',
-      arrayBuffer: async () => Uint8Array.from(updated ? afterBytes : beforeBytes).buffer,
-    } as Blob,
-    error: null,
-  }));
+  const list = vi.fn().mockImplementation(async () => {
+    const error = listErrors[listAttempt] ?? null;
+    listAttempt += 1;
+    if (error) return { data: null, error };
+    return {
+      data: [{
+        name: '800.webp',
+        metadata: {
+          mimetype: 'image/webp',
+          cacheControl: 'max-age=31536000',
+          xRobotsTag: updated ? updatedRobotsTag : initialRobotsTag,
+        },
+      }],
+      error: null,
+    };
+  });
+  const download = vi.fn().mockImplementation(async () => {
+    const error = downloadErrors[downloadAttempt] ?? null;
+    downloadAttempt += 1;
+    if (error) return { data: null, error };
+    return {
+      data: {
+        type: 'image/webp',
+        arrayBuffer: async () => Uint8Array.from(updated ? afterBytes : beforeBytes).buffer,
+      } as Blob,
+      error: null,
+    };
+  });
   const client = {
     storage: { from: vi.fn(() => ({ list, download, update })) },
   } as unknown as StorageUpdateClient;
@@ -99,6 +122,40 @@ describe('Bing image eligibility backfill', () => {
     )).toBeNull();
     expect(parseGenieStorageObjectUrl(
       'https://images.example.com/cake.webp',
+      SUPABASE_ORIGIN,
+    )).toBeNull();
+  });
+
+  it('accepts only exact legacy public shared-design image patterns', () => {
+    const sharedId = '8869e269-33f6-4933-b188-1d5f11932863';
+    expect(parseGenieStorageObjectUrl(
+      `${SUPABASE_ORIGIN}/storage/v1/object/public/shared-cake-images/shared-cake-images/${sharedId}-original.jpg`,
+      SUPABASE_ORIGIN,
+    )).toMatchObject({
+      bucket: 'shared-cake-images',
+      objectPath: `shared-cake-images/${sharedId}-original.jpg`,
+    });
+    expect(parseGenieStorageObjectUrl(
+      `${SUPABASE_ORIGIN}/storage/v1/object/public/shared-cake-images/${sharedId}-customized.png`,
+      SUPABASE_ORIGIN,
+    )).toMatchObject({
+      bucket: 'shared-cake-images',
+      objectPath: `${sharedId}-customized.png`,
+    });
+    expect(parseGenieStorageObjectUrl(
+      `${SUPABASE_ORIGIN}/storage/v1/object/public/cakegenie/shared-designs/${sharedId}-original.jpeg`,
+      SUPABASE_ORIGIN,
+    )).toMatchObject({
+      bucket: 'cakegenie',
+      objectPath: `shared-designs/${sharedId}-original.jpeg`,
+    });
+
+    expect(parseGenieStorageObjectUrl(
+      `${SUPABASE_ORIGIN}/storage/v1/object/public/shared-cake-images/customer-uploads/private.jpg`,
+      SUPABASE_ORIGIN,
+    )).toBeNull();
+    expect(parseGenieStorageObjectUrl(
+      `${SUPABASE_ORIGIN}/storage/v1/object/public/cakegenie/shared-designs/payment-proof.png`,
       SUPABASE_ORIGIN,
     )).toBeNull();
   });
@@ -155,6 +212,97 @@ describe('Bing image eligibility backfill', () => {
     expect(update).not.toHaveBeenCalled();
   });
 
+  it('purges the exact approved object path with a modern secret key', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(new Response('{"message":"success"}', {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }));
+
+    const result = await purgeSupabaseCdnObject({
+      publicUrl: IMAGE_URL,
+      expectedSupabaseOrigin: SUPABASE_ORIGIN,
+      secretKey: 'sb_secret_test',
+      fetchImpl,
+    });
+
+    expect(result).toMatchObject({
+      url: IMAGE_URL,
+      objectPath: 'variants/minimalist-cake-ffff/800.webp',
+      status: 200,
+      attempts: 1,
+    });
+    const [endpoint, init] = fetchImpl.mock.calls[0];
+    expect(endpoint.toString()).toBe(
+      `${SUPABASE_ORIGIN}/storage/v1/cdn/cakegenie/variants/minimalist-cake-ffff/800.webp`,
+    );
+    expect(init).toMatchObject({
+      method: 'DELETE',
+      headers: { apikey: 'sb_secret_test' },
+    });
+  });
+
+  it('uses bearer authorization for a legacy service-role JWT', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(new Response('{"message":"success"}', { status: 200 }));
+
+    await purgeSupabaseCdnObject({
+      publicUrl: IMAGE_URL,
+      expectedSupabaseOrigin: SUPABASE_ORIGIN,
+      secretKey: 'header.payload.signature',
+      fetchImpl,
+    });
+
+    expect(fetchImpl.mock.calls[0][1]).toMatchObject({
+      headers: { authorization: 'Bearer header.payload.signature' },
+    });
+  });
+
+  it('retries rate-limited CDN purges and respects retry-after', async () => {
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(new Response('rate limited', {
+        status: 429,
+        headers: { 'retry-after': '2' },
+      }))
+      .mockResolvedValueOnce(new Response('{"message":"success"}', { status: 200 }));
+    const sleepImpl = vi.fn().mockResolvedValue(undefined);
+
+    const result = await purgeSupabaseCdnObject({
+      publicUrl: IMAGE_URL,
+      expectedSupabaseOrigin: SUPABASE_ORIGIN,
+      secretKey: 'sb_secret_test',
+      fetchImpl,
+      sleepImpl,
+    });
+
+    expect(result.attempts).toBe(2);
+    expect(sleepImpl).toHaveBeenCalledWith(2_000);
+  });
+
+  it('refuses CDN purges outside the exact approved storage boundary', async () => {
+    const fetchImpl = vi.fn();
+
+    await expect(purgeSupabaseCdnObject({
+      publicUrl: `${SUPABASE_ORIGIN}/storage/v1/object/public/cakegenie/payment-proofs/proof.webp`,
+      expectedSupabaseOrigin: SUPABASE_ORIGIN,
+      secretKey: 'sb_secret_test',
+      fetchImpl,
+    })).rejects.toThrow('outside the approved storage boundary');
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('fails a non-retryable CDN purge without exposing the secret key', async () => {
+    const secretKey = 'sb_secret_must_not_leak';
+    const error = await purgeSupabaseCdnObject({
+      publicUrl: IMAGE_URL,
+      expectedSupabaseOrigin: SUPABASE_ORIGIN,
+      secretKey,
+      fetchImpl: vi.fn().mockResolvedValue(new Response('not authorized', { status: 401 })),
+    }).catch((reason) => reason as Error);
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error.message).toContain('HTTP 401');
+    expect(error.message).not.toContain(secretKey);
+  });
+
   it('updates the same path and verifies unchanged bytes and dimensions', async () => {
     const bytes = await makeWebp();
     const { client, update } = makeClient({ beforeBytes: bytes });
@@ -177,6 +325,75 @@ describe('Bing image eligibility backfill', () => {
         headers: { 'x-robots-tag': 'all' },
       },
     );
+  });
+
+  it('retries a transient non-JSON storage update response at the same object path', async () => {
+    const bytes = await makeWebp();
+    const { client, update } = makeClient({
+      beforeBytes: bytes,
+      updateErrors: [{ message: 'Unexpected token < in JSON at position 0' }, null],
+    });
+    const sleepImpl = vi.fn().mockResolvedValue(undefined);
+
+    const result = await ensurePublicImageEligibility({
+      client,
+      publicUrl: IMAGE_URL,
+      expectedSupabaseOrigin: SUPABASE_ORIGIN,
+      apply: true,
+      fetchImpl: vi.fn().mockResolvedValue(publicResponse('none')),
+      sleepImpl,
+    });
+
+    expect(result.status).toBe('updated-pending-public');
+    expect(update).toHaveBeenCalledTimes(2);
+    expect(update.mock.calls[0][0]).toBe('variants/minimalist-cake-ffff/800.webp');
+    expect(update.mock.calls[1][0]).toBe('variants/minimalist-cake-ffff/800.webp');
+    expect(sleepImpl).toHaveBeenCalledWith(1_000);
+  });
+
+  it('retries transient storage metadata and download failures before updating', async () => {
+    const bytes = await makeWebp();
+    const { client, list, download, update } = makeClient({
+      beforeBytes: bytes,
+      listErrors: [{ message: 'temporary metadata gateway error' }, null],
+      downloadErrors: [{}, null],
+    });
+    const sleepImpl = vi.fn().mockResolvedValue(undefined);
+
+    const result = await ensurePublicImageEligibility({
+      client,
+      publicUrl: IMAGE_URL,
+      expectedSupabaseOrigin: SUPABASE_ORIGIN,
+      apply: true,
+      fetchImpl: vi.fn().mockResolvedValue(publicResponse('none')),
+      sleepImpl,
+    });
+
+    expect(result.status).toBe('updated-pending-public');
+    expect(list).toHaveBeenCalledTimes(3);
+    expect(download).toHaveBeenCalledTimes(3);
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(sleepImpl).toHaveBeenCalledWith(1_000);
+  });
+
+  it('does not rewrite bytes when metadata is already ready for a CDN purge', async () => {
+    const bytes = await makeWebp();
+    const { client, update } = makeClient({ beforeBytes: bytes, initialRobotsTag: 'all' });
+
+    const result = await ensurePublicImageEligibility({
+      client,
+      publicUrl: IMAGE_URL,
+      expectedSupabaseOrigin: SUPABASE_ORIGIN,
+      apply: true,
+      fetchImpl: vi.fn().mockResolvedValue(publicResponse('none')),
+    });
+
+    expect(result).toMatchObject({
+      status: 'metadata-ready-public-blocked',
+      priorRobotsTag: 'all',
+      publicSnapshot: { eligible: false, xRobotsTag: 'none' },
+    });
+    expect(update).not.toHaveBeenCalled();
   });
 
   it('skips only when the canonical public GET is already eligible', async () => {

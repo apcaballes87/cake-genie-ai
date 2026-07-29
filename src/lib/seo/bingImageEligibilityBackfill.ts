@@ -4,8 +4,13 @@ import sharp from 'sharp';
 import { getSeoImageUploadHeaders, SEO_IMAGE_X_ROBOTS_TAG } from '@/lib/seo/storageImageHeaders';
 
 export const BING_IMAGE_STORAGE_BUCKET = 'cakegenie';
+export const BING_IMAGE_LEGACY_SHARED_STORAGE_BUCKET = 'shared-cake-images';
 export const BING_IMAGE_BACKFILL_CONCURRENCY = 4;
 export const BING_IMAGE_BACKFILL_PAGE_BATCH_SIZE = 250;
+export const BING_IMAGE_CDN_PURGE_CONCURRENCY = 4;
+export const BING_IMAGE_CDN_PURGE_MAX_ATTEMPTS = 3;
+export const BING_IMAGE_STORAGE_READ_MAX_ATTEMPTS = 3;
+export const BING_IMAGE_STORAGE_UPDATE_MAX_ATTEMPTS = 3;
 export const BING_IMAGE_PUBLIC_VERIFY_CONCURRENCY = 16;
 export const BING_IMAGE_PUBLIC_VERIFY_INTERVAL_MS = 15_000;
 export const BING_IMAGE_PUBLIC_VERIFY_TIMEOUT_MS = 120_000;
@@ -17,6 +22,29 @@ const ALLOWED_OBJECT_PREFIXES = [
   'admin/image-studio/',
   'customizations/',
 ] as const;
+const LEGACY_SHARED_IMAGE_FILE_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-(?:original|customized)\.(?:jpe?g|png|webp)$/i;
+
+function isAllowedStorageObjectPath(bucket: string, objectPath: string): boolean {
+  if (bucket === BING_IMAGE_STORAGE_BUCKET) {
+    if (ALLOWED_OBJECT_PREFIXES.some((prefix) => objectPath.startsWith(prefix))) {
+      return true;
+    }
+    const legacySharedPath = objectPath.startsWith('shared-designs/')
+      ? objectPath.slice('shared-designs/'.length)
+      : null;
+    return legacySharedPath !== null && LEGACY_SHARED_IMAGE_FILE_PATTERN.test(legacySharedPath);
+  }
+
+  if (bucket === BING_IMAGE_LEGACY_SHARED_STORAGE_BUCKET) {
+    const legacySharedPath = objectPath.startsWith('shared-cake-images/')
+      ? objectPath.slice('shared-cake-images/'.length)
+      : objectPath;
+    return LEGACY_SHARED_IMAGE_FILE_PATTERN.test(legacySharedPath);
+  }
+
+  return false;
+}
 
 export type StorageObjectReference = {
   bucket: string;
@@ -56,11 +84,11 @@ export type StorageUpdateClient = {
         options: { search: string; limit: number },
       ): Promise<{
         data: Array<{ name: string; metadata?: Record<string, unknown> | null }> | null;
-        error: { message: string } | null;
+        error: { message?: string } | null;
       }>;
       download(path: string): Promise<{
         data: Blob | null;
-        error: { message: string } | null;
+        error: { message?: string } | null;
       }>;
       update(
         path: string,
@@ -70,14 +98,14 @@ export type StorageUpdateClient = {
           cacheControl: string;
           headers: Record<string, string>;
         },
-      ): Promise<{ error: { message: string } | null }>;
+      ): Promise<{ error: { message?: string } | null }>;
     };
   };
 };
 
 export type ImageEligibilityResult = {
   url: string;
-  status: 'updated-pending-public' | 'already-eligible' | 'public-blocked' | 'external-skipped';
+  status: 'updated-pending-public' | 'metadata-ready-public-blocked' | 'already-eligible' | 'public-blocked' | 'external-skipped';
   sha256?: string;
   objectPath?: string;
   priorRobotsTag?: string | null;
@@ -88,6 +116,14 @@ export type ImageEligibilityResult = {
 };
 
 type FetchLike = (input: string | URL, init?: RequestInit) => Promise<Response>;
+type SleepLike = (milliseconds: number) => Promise<void>;
+
+export type CdnPurgeResult = {
+  url: string;
+  objectPath: string;
+  status: number;
+  attempts: number;
+};
 
 export function parseGenieStorageObjectUrl(
   value: string,
@@ -119,7 +155,7 @@ export function parseGenieStorageObjectUrl(
 
   const bucket = storagePath.slice(0, slashIndex);
   const objectPath = storagePath.slice(slashIndex + 1);
-  if (bucket !== BING_IMAGE_STORAGE_BUCKET || !objectPath) {
+  if (!objectPath) {
     return null;
   }
 
@@ -128,7 +164,7 @@ export function parseGenieStorageObjectUrl(
     return null;
   }
 
-  if (!ALLOWED_OBJECT_PREFIXES.some((prefix) => objectPath.startsWith(prefix))) {
+  if (!isAllowedStorageObjectPath(bucket, objectPath)) {
     return null;
   }
 
@@ -147,6 +183,90 @@ export function isExternalImageUrl(value: string, expectedSupabaseOrigin: string
   }
 }
 
+function isLegacyJwtSecret(value: string): boolean {
+  return value.split('.').length === 3;
+}
+
+function encodeObjectPath(value: string): string {
+  return value.split('/').map((segment) => encodeURIComponent(segment)).join('/');
+}
+
+function retryAfterMilliseconds(response: Response, attempt: number): number {
+  const raw = response.headers.get('retry-after');
+  const seconds = raw ? Number(raw) : Number.NaN;
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return Math.min(seconds * 1_000, 30_000);
+  }
+  return Math.min(1_000 * (2 ** (attempt - 1)), 30_000);
+}
+
+export async function purgeSupabaseCdnObject({
+  publicUrl,
+  expectedSupabaseOrigin,
+  secretKey,
+  fetchImpl = fetch,
+  sleepImpl = (milliseconds) => new Promise<void>((resolve) => setTimeout(resolve, milliseconds)),
+  maxAttempts = BING_IMAGE_CDN_PURGE_MAX_ATTEMPTS,
+}: {
+  publicUrl: string;
+  expectedSupabaseOrigin: string;
+  secretKey: string;
+  fetchImpl?: FetchLike;
+  sleepImpl?: SleepLike;
+  maxAttempts?: number;
+}): Promise<CdnPurgeResult> {
+  const object = parseGenieStorageObjectUrl(publicUrl, expectedSupabaseOrigin);
+  if (!object) {
+    throw new Error(`Refusing CDN purge outside the approved storage boundary: ${publicUrl}`);
+  }
+
+  const trimmedSecret = secretKey.trim();
+  if (!trimmedSecret) {
+    throw new Error('A Supabase secret or legacy service-role key is required for CDN purge.');
+  }
+  if (!Number.isInteger(maxAttempts) || maxAttempts < 1) {
+    throw new Error('CDN purge maxAttempts must be a positive integer.');
+  }
+
+  const endpoint = new URL(
+    `/storage/v1/cdn/${encodeURIComponent(object.bucket)}/${encodeObjectPath(object.objectPath)}`,
+    expectedSupabaseOrigin,
+  );
+  const authHeaders: Record<string, string> = isLegacyJwtSecret(trimmedSecret)
+    ? { authorization: `Bearer ${trimmedSecret}` }
+    : { apikey: trimmedSecret };
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const response = await fetchImpl(endpoint, {
+      method: 'DELETE',
+      cache: 'no-store',
+      redirect: 'error',
+      headers: authHeaders,
+    });
+    const responseText = (await response.text()).trim();
+
+    if (response.ok) {
+      return {
+        url: object.publicUrl,
+        objectPath: object.objectPath,
+        status: response.status,
+        attempts: attempt,
+      };
+    }
+
+    const retryable = response.status === 429 || response.status >= 500;
+    if (retryable && attempt < maxAttempts) {
+      await sleepImpl(retryAfterMilliseconds(response, attempt));
+      continue;
+    }
+
+    const detail = responseText ? `: ${responseText.slice(0, 500)}` : '';
+    throw new Error(`Supabase CDN purge failed with HTTP ${response.status} for ${object.objectPath}${detail}`);
+  }
+
+  throw new Error(`Supabase CDN purge did not complete for ${object.objectPath}.`);
+}
+
 export function cacheControlMaxAge(value: string | null): string {
   const match = value?.match(/(?:^|,)\s*max-age=(\d+)/i);
   return match?.[1] ?? '0';
@@ -160,18 +280,36 @@ function metadataString(metadata: Record<string, unknown>, key: string): string 
 async function readStoredImageSnapshot(
   client: StorageUpdateClient,
   object: StorageObjectReference,
+  {
+    sleepImpl,
+    maxAttempts,
+  }: {
+    sleepImpl: SleepLike;
+    maxAttempts: number;
+  },
 ): Promise<PublicImageSnapshot> {
   const slashIndex = object.objectPath.lastIndexOf('/');
   const directory = slashIndex === -1 ? '' : object.objectPath.slice(0, slashIndex);
   const fileName = object.objectPath.slice(slashIndex + 1);
   const bucket = client.storage.from(object.bucket);
 
-  const { data: listed, error: listError } = await bucket.list(directory, {
-    search: fileName,
-    limit: 100,
-  });
-  if (listError) {
-    throw new Error(`Storage metadata lookup failed for ${object.objectPath}: ${listError.message}`);
+  let listed: Array<{ name: string; metadata?: Record<string, unknown> | null }> | null = null;
+  let listFailure = 'empty response';
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const result = await bucket.list(directory, { search: fileName, limit: 100 });
+    if (!result.error && result.data !== null) {
+      listed = result.data;
+      break;
+    }
+    listFailure = result.error?.message || JSON.stringify(result.error) || 'empty response';
+    if (attempt < maxAttempts) {
+      await sleepImpl(Math.min(1_000 * (2 ** (attempt - 1)), 30_000));
+    }
+  }
+  if (!listed) {
+    throw new Error(
+      `Storage metadata lookup failed after ${maxAttempts} attempts for ${object.objectPath}: ${listFailure}`,
+    );
   }
 
   const item = listed?.find((candidate) => candidate.name === fileName);
@@ -179,9 +317,23 @@ async function readStoredImageSnapshot(
     throw new Error(`Storage object was not found at the exact selected path: ${object.objectPath}`);
   }
 
-  const { data: blob, error: downloadError } = await bucket.download(object.objectPath);
-  if (downloadError || !blob) {
-    throw new Error(`Storage download failed for ${object.objectPath}: ${downloadError?.message ?? 'empty response'}`);
+  let blob: Blob | null = null;
+  let downloadFailure = 'empty response';
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const result = await bucket.download(object.objectPath);
+    if (!result.error && result.data) {
+      blob = result.data;
+      break;
+    }
+    downloadFailure = result.error?.message || JSON.stringify(result.error) || 'empty response';
+    if (attempt < maxAttempts) {
+      await sleepImpl(Math.min(1_000 * (2 ** (attempt - 1)), 30_000));
+    }
+  }
+  if (!blob) {
+    throw new Error(
+      `Storage download failed after ${maxAttempts} attempts for ${object.objectPath}: ${downloadFailure}`,
+    );
   }
 
   const metadata = item.metadata ?? {};
@@ -374,12 +526,18 @@ export async function ensurePublicImageEligibility({
   expectedSupabaseOrigin,
   apply,
   fetchImpl = fetch,
+  sleepImpl = (milliseconds) => new Promise<void>((resolve) => setTimeout(resolve, milliseconds)),
+  storageReadMaxAttempts = BING_IMAGE_STORAGE_READ_MAX_ATTEMPTS,
+  storageUpdateMaxAttempts = BING_IMAGE_STORAGE_UPDATE_MAX_ATTEMPTS,
 }: {
   client: StorageUpdateClient;
   publicUrl: string;
   expectedSupabaseOrigin: string;
   apply: boolean;
   fetchImpl?: FetchLike;
+  sleepImpl?: SleepLike;
+  storageReadMaxAttempts?: number;
+  storageUpdateMaxAttempts?: number;
 }): Promise<ImageEligibilityResult> {
   const object = parseGenieStorageObjectUrl(publicUrl, expectedSupabaseOrigin);
 
@@ -400,7 +558,17 @@ export async function ensurePublicImageEligibility({
     };
   }
 
-  const before = await readStoredImageSnapshot(client, object);
+  if (!Number.isInteger(storageReadMaxAttempts) || storageReadMaxAttempts < 1) {
+    throw new Error('Storage read maxAttempts must be a positive integer.');
+  }
+  if (!Number.isInteger(storageUpdateMaxAttempts) || storageUpdateMaxAttempts < 1) {
+    throw new Error('Storage update maxAttempts must be a positive integer.');
+  }
+
+  const before = await readStoredImageSnapshot(client, object, {
+    sleepImpl,
+    maxAttempts: storageReadMaxAttempts,
+  });
 
   if (!apply) {
     return {
@@ -414,21 +582,47 @@ export async function ensurePublicImageEligibility({
     };
   }
 
-  const { error } = await client.storage.from(object.bucket).update(
-    object.objectPath,
-    before.bytes,
-    {
-      contentType: before.contentType,
-      cacheControl: cacheControlMaxAge(before.cacheControl),
-      headers: getSeoImageUploadHeaders(),
-    },
-  );
-
-  if (error) {
-    throw new Error(`Storage update failed for ${object.objectPath}: ${error.message}`);
+  if (before.xRobotsTag?.trim().toLowerCase() === SEO_IMAGE_X_ROBOTS_TAG) {
+    return {
+      url: object.publicUrl,
+      objectPath: object.objectPath,
+      status: 'metadata-ready-public-blocked',
+      sha256: before.sha256,
+      priorRobotsTag: before.xRobotsTag,
+      publicSnapshot: publicBefore,
+      storageBefore: toStoredImageAuditSnapshot(before),
+    };
   }
 
-  const after = await readStoredImageSnapshot(client, object);
+  let updateError: { message?: string } | null = null;
+  for (let attempt = 1; attempt <= storageUpdateMaxAttempts; attempt += 1) {
+    const { error } = await client.storage.from(object.bucket).update(
+      object.objectPath,
+      before.bytes,
+      {
+        contentType: before.contentType,
+        cacheControl: cacheControlMaxAge(before.cacheControl),
+        headers: getSeoImageUploadHeaders(),
+      },
+    );
+
+    updateError = error;
+    if (!error) break;
+    if (attempt < storageUpdateMaxAttempts) {
+      await sleepImpl(Math.min(1_000 * (2 ** (attempt - 1)), 30_000));
+    }
+  }
+
+  if (updateError) {
+    throw new Error(
+      `Storage update failed after ${storageUpdateMaxAttempts} attempts for ${object.objectPath}: ${updateError.message}`,
+    );
+  }
+
+  const after = await readStoredImageSnapshot(client, object, {
+    sleepImpl,
+    maxAttempts: storageReadMaxAttempts,
+  });
   if (after.sha256 !== before.sha256) {
     throw new Error(`Byte hash changed after eligibility update: ${object.publicUrl}`);
   }
