@@ -125,13 +125,14 @@ export function LandingFooter({ reviewSummary }: LandingFooterProps) {
                 rel="noopener noreferrer"
                 title="Featured on Product Launchify"
                 aria-label="Featured on Product Launchify"
-                className="transition-opacity hover:opacity-80"
+                className="h-[34px] transition-opacity hover:opacity-80"
               >
                 <img
                   src="https://www.productlaunchify.com/images/badges/powered-by-neutral.svg"
                   alt="Featured on Product Launchify"
                   width="185"
                   height="44"
+                  className="h-full w-auto object-contain"
                   loading="lazy"
                   decoding="async"
                   fetchPriority="low"
@@ -143,13 +144,14 @@ export function LandingFooter({ reviewSummary }: LandingFooterProps) {
                 rel="noopener noreferrer"
                 title="Genie.ph - Featured on Startup Fame"
                 aria-label="Genie.ph - Featured on Startup Fame"
-                className="transition-opacity hover:opacity-80"
+                className="h-[34px] transition-opacity hover:opacity-80"
               >
                 <img
                   src="https://startupfa.me/badges/featured/light-rounded.webp"
                   alt="Genie.ph - Featured on Startup Fame"
                   width="137"
                   height="43"
+                  className="h-full w-auto object-contain"
                   loading="lazy"
                   decoding="async"
                   fetchPriority="low"
@@ -161,12 +163,12 @@ export function LandingFooter({ reviewSummary }: LandingFooterProps) {
                 rel="noopener noreferrer"
                 title="Featured on UtilPortal"
                 aria-label="Featured on UtilPortal"
-                className="w-[179px] cursor-pointer transition-opacity hover:opacity-80"
+                className="h-[34px] cursor-pointer transition-opacity hover:opacity-80"
               >
                 <img
                   src="https://cdn.sanity.io/images/ai8ccfzu/production/383b921ea147ea2c6f5f3e1f9d20992e86400e4d-968x245.png?w=2000&fit=max&auto=format&dpr=2"
                   alt="UtilPortal badge"
-                  className="w-full h-auto object-cover"
+                  className="h-full w-auto object-contain"
                   loading="lazy"
                   decoding="async"
                   fetchPriority="low"
