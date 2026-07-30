@@ -221,6 +221,41 @@ export function LandingFooter({ reviewSummary }: LandingFooterProps) {
                 />
               </a>
               <a
+                href="https://startuups.com//projects/genie-ph"
+                target="_blank"
+                rel="noopener"
+                className="h-[34px] transition-opacity hover:opacity-80"
+              >
+                <img
+                  src="https://startuups.com//images/badges/startuupscom.badge.svg"
+                  alt="Featured on startuups"
+                  width="150"
+                  height="54"
+                  className="h-full w-auto object-contain"
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
+                />
+              </a>
+              <a
+                href="https://trustiner.com/product/genie"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Featured on Trustiner"
+                aria-label="Featured on Trustiner"
+                className="h-[34px] transition-opacity hover:opacity-80"
+              >
+                <img
+                  src="https://trustiner.com/assets/images/badge.png"
+                  alt="Trustiner"
+                  height="54"
+                  className="h-full w-auto object-contain"
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
+                />
+              </a>
+              <a
                 href="https://starthub.zip"
                 title="starthub.zip"
                 className="text-sm font-semibold text-purple-700 underline underline-offset-4 transition-colors hover:text-purple-900"
