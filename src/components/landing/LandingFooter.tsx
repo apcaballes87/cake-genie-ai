@@ -238,6 +238,23 @@ export function LandingFooter({ reviewSummary }: LandingFooterProps) {
                 />
               </a>
               <a
+                href="https://www.producthunt.com/products/genie-ph?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-genie-ph"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-[34px] transition-opacity hover:opacity-80"
+              >
+                <img
+                  alt="Genie.ph - Upload a cake design, get price instantly, same-day delivery | Product Hunt"
+                  width="250"
+                  height="54"
+                  src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1209785&theme=light&t=1785402874381"
+                  className="h-full w-auto object-contain"
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
+                />
+              </a>
+              <a
                 href="https://starthub.zip"
                 title="starthub.zip"
                 className="text-sm font-semibold text-purple-700 underline underline-offset-4 transition-colors hover:text-purple-900"
