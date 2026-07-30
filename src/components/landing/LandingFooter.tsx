@@ -205,6 +205,22 @@ export function LandingFooter({ reviewSummary }: LandingFooterProps) {
                 />
               </a>
               <a
+                href="https://newtool.site/item/genieph-genieph"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-[34px] transition-opacity hover:opacity-80"
+              >
+                <img
+                  src="https://newtool.site/badges/newtool-light.svg"
+                  alt="Featured on NewTool.site"
+                  height="54"
+                  className="h-full w-auto object-contain"
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
+                />
+              </a>
+              <a
                 href="https://starthub.zip"
                 title="starthub.zip"
                 className="text-sm font-semibold text-purple-700 underline underline-offset-4 transition-colors hover:text-purple-900"
