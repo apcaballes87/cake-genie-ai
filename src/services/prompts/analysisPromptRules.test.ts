@@ -12,6 +12,55 @@ function readPrompt(path: string) {
 }
 
 describe('cake analysis prompt rules', () => {
+  it('classifies every item through construction, material, type, and description consistency', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+    const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
+
+    expect(prompt).toContain('**v3.34 Version - Construction, Material, Type, and Description Consistency**');
+    expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
+    expect(prompt).toContain('3. Visible construction of each item');
+    expect(prompt).toContain('5. Type compatible with that construction and material');
+    expect(prompt).toContain('8. Item description and construction/material/type reconciliation');
+    expect(prompt).toContain('Apply the 2-CUE MATERIAL RULE only when material remains ambiguous and no');
+    expect(prompt).toContain('Named decisive cues such as a visible wick,');
+    expect(prompt).toContain('unsupported semi-3D human/pet portrait relief -> `edible_photo_top`');
+    expect(prompt).toContain('fresh or natural-looking flowers -> `edible_flowers`');
+    expect(prompt).toContain('visible piping cues require `icing_decorations`');
+    expect(prompt).toContain('visible fabric cues require `artificial_flowers`');
+    expect(prompt).toContain('physical metal, rhinestone, or plastic crowns/tiaras -> `toy`');
+    expect(prompt).toContain('acrylic or wooden toppers -> `cardstock`');
+    expect(prompt).toContain('Do not select a type from the item\'s name, motif, shape, or apparent');
+    expect(prompt).toContain('A noun such as cloud, flower, star,');
+    expect(prompt).toContain('never determines\n   material or type by itself');
+    expect(prompt).toContain('If the description uses a\n   construction or material term supported by positive image cues');
+    expect(prompt).toContain('The image evidence is authoritative.');
+    expect(prompt).toContain('do not let unsupported\n   description wording override the image');
+    expect(prompt).toContain('deposited, piped, drawn, spread, or palette-knife icing -> material');
+    expect(prompt).toContain('molded, rolled, cut, layered, or hand-sculpted fondant/gumpaste ->');
+    expect(prompt).toContain('solid non-printed glitter or metallic cardstock');
+    expect(prompt).toContain('piped cloud-, heart-, or star-shaped dollops with piping ridges and soft');
+    expect(prompt).toContain('separate smooth matte clay-like molded cloud, heart, or star shapes');
+    expect(prompt).toContain('"description": "separate white molded cloud shapes"');
+    expect(prompt).toContain('A piped cloud motif would\ninstead remain in the compatible icing family');
+    expect(prompt).not.toContain('Clouds are simple shapes →');
+    expect(prompt).toContain('CRITICAL CLASSIFICATION WITHIN PRINTOUT vs CARDSTOCK vs TOY');
+    expect(prompt).toContain('Subject matter alone does not establish a printout');
+    expect(prompt).not.toContain('This rule overrides all other considerations.');
+    expect(prompt).toContain('"material": "wax|plastic|cardstock|photopaper|waferpaper|edible_fondant|icing|candy|non-edible"');
+    expect(prompt).toContain('"description": "brief object-focused description"');
+    expect(prompt).toContain('Visible construction words are allowed when they help identify');
+    expect(fenceCount).toBeGreaterThan(0);
+    expect(fenceCount % 2).toBe(0);
+
+    expect(SYSTEM_INSTRUCTION).toContain('determine visible construction first, assign the compatible material second, choose a compatible type third, and write the description last');
+    expect(SYSTEM_INSTRUCTION).toContain('If the description uses a construction or material term supported by positive image cues');
+    expect(SYSTEM_INSTRUCTION).toContain('On conflict, the image is authoritative');
+    expect(SYSTEM_INSTRUCTION).toContain('CRITICAL CLASSIFICATION WITHIN THE NON-EDIBLE PRINTOUT vs CARDSTOCK FAMILY');
+    expect(SYSTEM_INSTRUCTION).toContain('It does not override positive evidence of icing, fondant/gumpaste, an edible printed sheet, candy, wax, or fabric');
+    expect(SYSTEM_INSTRUCTION).not.toContain('This is the HIGHEST PRIORITY rule and overrides all other considerations');
+    expect(SYSTEM_INSTRUCTION).toContain('If you are unsure and there are no positive construction or material cues');
+  });
+
   it('keeps the whole-head cake exception in the fallback prompt source', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
@@ -171,7 +220,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.33 Version - Toy-Specific Size Bands**');
+    expect(prompt).toContain('**v3.34 Version - Construction, Material, Type, and Description Consistency**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -192,7 +241,7 @@ describe('cake analysis prompt rules', () => {
   it('uses toy-specific sizing for miniature molded toys', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.33 Version - Toy-Specific Size Bands**');
+    expect(prompt).toContain('**v3.34 Version - Construction, Material, Type, and Description Consistency**');
     expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy`)');
     expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
     expect(prompt).toContain('| `tiny` | under 0.10 |');
