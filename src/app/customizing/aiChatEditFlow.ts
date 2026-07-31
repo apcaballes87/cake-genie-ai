@@ -57,7 +57,7 @@ export async function executeAiChatEditFlow({
     }
 
     const editResult = applyAiChatEdit(currentState, response, { createId });
-    if (editResult.changedPaths.length === 0) {
+    if (editResult.changedPaths.length === 0 && !editResult.requiresImageEdit) {
         return {
             response,
             editResult,

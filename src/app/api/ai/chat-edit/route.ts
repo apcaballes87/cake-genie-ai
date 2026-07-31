@@ -101,6 +101,7 @@ const chatEditResponseSchema = {
     type: Type.OBJECT,
     properties: {
         outcome: { type: Type.STRING, enum: [...AI_CHAT_EDIT_OUTCOMES] },
+        visualEdit: { type: Type.BOOLEAN },
         patch: {
             type: Type.OBJECT,
             properties: {
@@ -187,6 +188,7 @@ const systemInstruction = `You translate a customer's cake-edit request into a M
 Return exactly this top-level JSON contract:
 {
   "outcome": "design_change" | "action_only" | "restriction" | "clarification" | "noop",
+  "visualEdit"?: true | false,
   "patch"?: { "cake"?, "icing"?, "topperOperations"?, "supportOperations"?, "messageOperations"? },
   "actions": [],
   "message"?: "short customer-facing explanation"
@@ -194,6 +196,7 @@ Return exactly this top-level JSON contract:
 
 OUTCOME RULES
 - design_change: at least one requested design change; patch is required. Mixed design changes and actions also use design_change.
+- visualEdit: set true when the customer asks to change the rendered cake image using an attached/reference image, even when no structured cake option changes are needed. For a reference-only visual edit, return "outcome": "design_change", "visualEdit": true, "patch": {}, and preserve every customization field.
 - action_only: one or more supported actions and no design change; omit patch.
 - restriction: the request violates a rule below; omit patch and provide message.
 - clarification: the requested target is missing or ambiguous; omit patch and provide a concise question.
@@ -244,12 +247,13 @@ EXAMPLES
 - Current soft-icing 1 Tier + "please change to fondant" -> {"outcome":"design_change","patch":{"icing":{"base":"fondant"}},"actions":[]}.
 - Current fondant 2 Tier + "make it soft icing and blue" -> {"outcome":"design_change","patch":{"icing":{"base":"soft_icing","colors":{"side":"#0000FF","top":"#0000FF"}}},"actions":[]}.
 - "add gold drip" -> {"outcome":"design_change","patch":{"icing":{"drip":true}},"actions":[]}.
+- Current enabled edible_photo_top + an attached image + "Change the Edible Photo to the uploaded photo" -> {"outcome":"design_change","visualEdit":true,"patch":{},"actions":[]}.
 - "change message msg-2 to Happy Birthday" -> a message update using id msg-2 and changes {"text":"Happy Birthday"}.
 - "remove the flower" when multiple flower elements exist -> clarification, no patch.
 - A forbidden Bento bottom border -> restriction, no patch.
 - "add to cart" -> {"outcome":"action_only","actions":[{"type":"add_to_cart"}]}.
 
-Use the reference images only to interpret the requested change. Preserve every unrelated field. Return JSON only.`;
+Use attached/reference images to interpret and apply the requested visual change. Do not use them to change unrelated cake elements. Preserve every unrelated field. Return JSON only.`;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -404,7 +408,7 @@ export async function POST(req: NextRequest) {
                 },
             });
             parts.push({
-                text: `${typeof reference.label === 'string' ? reference.label : 'Reference image'} is an additional ${typeof reference.targetType === 'string' ? reference.targetType : 'design reference'} labeled "${typeof reference.targetDescription === 'string' ? reference.targetDescription : 'unnamed reference'}". Use it only to interpret the requested change.`,
+                text: `${typeof reference.label === 'string' ? reference.label : 'Reference image'} is an additional ${typeof reference.targetType === 'string' ? reference.targetType : 'design reference'} labeled "${typeof reference.targetDescription === 'string' ? reference.targetDescription : 'unnamed reference'}". Use it to interpret and apply the requested visual change only; do not change unrelated cake elements.`,
             });
         });
 
@@ -481,7 +485,7 @@ export async function POST(req: NextRequest) {
             icingBaseBefore,
             icingBaseRequested: typeof icingPatch?.base === 'string' ? icingPatch.base : undefined,
             cakeFamilyBefore,
-            visualRequested: validation.data.outcome === 'design_change',
+            visualRequested: validation.data.visualEdit === true || validation.data.outcome === 'design_change',
             durationMs: Date.now() - startedAt,
         });
 

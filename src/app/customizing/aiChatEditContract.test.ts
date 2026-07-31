@@ -242,6 +242,27 @@ describe('validateAiChatEditResponse', () => {
             patch: { icing: { drip: true } },
         }).success).toBe(false);
     });
+
+    it('accepts an attached-reference visual edit with no option patch', () => {
+        const current = makeSnapshot({
+            mainToppers: [{
+                ...makeSnapshot().mainToppers[0],
+                type: 'edible_photo_top',
+                original_type: 'edible_photo_top',
+                description: 'Lightning McQueen edible photo',
+                isEnabled: true,
+            }],
+        });
+
+        const result = validateAiChatEditResponse({
+            outcome: 'design_change',
+            visualEdit: true,
+            patch: {},
+            actions: [],
+        }, current);
+
+        expect(result.success).toBe(true);
+    });
 });
 
 describe('applyAiChatEdit', () => {
@@ -504,5 +525,28 @@ describe('applyAiChatEdit', () => {
         expect(actionOnly.changedPaths).toEqual([]);
         expect(actionOnly.requiresImageEdit).toBe(false);
         expect(actionOnly.nextState).toEqual(current);
+    });
+
+    it('requires an image edit for a reference-only visual request without changing state', () => {
+        const current = makeSnapshot({
+            mainToppers: [{
+                ...makeSnapshot().mainToppers[0],
+                type: 'edible_photo_top',
+                original_type: 'edible_photo_top',
+                description: 'Lightning McQueen edible photo',
+                isEnabled: true,
+            }],
+        });
+
+        const result = applyAiChatEdit(current, {
+            outcome: 'design_change',
+            visualEdit: true,
+            patch: {},
+            actions: [],
+        });
+
+        expect(result.changedPaths).toEqual([]);
+        expect(result.requiresImageEdit).toBe(true);
+        expect(result.nextState).toEqual(current);
     });
 });

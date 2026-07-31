@@ -205,6 +205,7 @@ export type AiChatAction =
 export interface AiChatEditResponse {
     outcome: AiChatEditOutcome;
     patch?: AiChatDesignPatch;
+    visualEdit?: boolean;
     actions: AiChatAction[];
     message?: string;
 }
@@ -240,7 +241,7 @@ export interface ApplyAiChatEditResult {
     syncedAnalysisResult: HybridAnalysisResult;
 }
 
-const TOP_LEVEL_KEYS = ['outcome', 'patch', 'actions', 'message'] as const;
+const TOP_LEVEL_KEYS = ['outcome', 'patch', 'visualEdit', 'actions', 'message'] as const;
 const PATCH_KEYS = ['cake', 'icing', 'topperOperations', 'supportOperations', 'messageOperations'] as const;
 const CAKE_PATCH_KEYS = ['family', 'thickness', 'size', 'flavors'] as const;
 const ICING_PATCH_KEYS = [
@@ -515,13 +516,14 @@ const validatePatch = (
     errors: string[],
     ambiguousErrors: string[],
     targets?: AiChatEditTargetSnapshot,
+    allowEmpty = false,
 ) => {
     if (!isRecord(patch)) {
         errors.push('patch must be an object.');
         return;
     }
     hasOnlyKeys(patch, PATCH_KEYS, 'patch', errors);
-    if (Object.keys(patch).length === 0) errors.push('patch must include at least one change.');
+    if (Object.keys(patch).length === 0 && !allowEmpty) errors.push('patch must include at least one change.');
 
     if ('cake' in patch) {
         if (!isRecord(patch.cake)) {
@@ -646,10 +648,16 @@ export function validateAiChatEditResponse(
     if ('message' in input && !isNonEmptyString(input.message)) {
         errors.push('message must be a non-empty string when provided.');
     }
-    if ('patch' in input) validatePatch(input.patch, errors, ambiguousErrors, targets);
+    if ('visualEdit' in input && typeof input.visualEdit !== 'boolean') {
+        errors.push('visualEdit must be a boolean when provided.');
+    }
+    if ('patch' in input) validatePatch(input.patch, errors, ambiguousErrors, targets, input.visualEdit === true);
 
     if (input.outcome === 'design_change' && !('patch' in input)) {
         errors.push('design_change requires a patch.');
+    }
+    if (input.visualEdit === true && input.outcome !== 'design_change') {
+        errors.push('visualEdit can only be true for design_change.');
     }
     if (input.outcome === 'action_only' && (!Array.isArray(input.actions) || input.actions.length === 0)) {
         errors.push('action_only requires at least one action.');
@@ -1061,7 +1069,7 @@ export function applyAiChatEdit(
         return {
             nextState: current,
             changedPaths,
-            requiresImageEdit: false,
+            requiresImageEdit: response.visualEdit === true,
             syncedAnalysisResult: current.analysisResult,
         };
     }

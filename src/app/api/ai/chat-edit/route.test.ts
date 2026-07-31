@@ -160,6 +160,10 @@ describe('/api/ai/chat-edit', () => {
         expect(modelCall.config.systemInstruction).toContain(
             'freestanding and sculpted with full depth use edible_3d_complex',
         );
+        expect(modelCall.config.systemInstruction).toContain(
+            'visualEdit: set true when the customer asks to change the rendered cake image using an attached/reference image',
+        );
+        expect(modelCall.config.responseSchema.properties.visualEdit.type).toBeDefined();
         expect(modelCall.contents[0].parts.at(-1).text).toContain('CURRENT CUSTOMIZATION');
         expect(modelCall.contents[0].parts.at(-1).text).toContain('"id": "topper-1"');
     });
@@ -199,7 +203,7 @@ describe('/api/ai/chat-edit', () => {
                                 },
                             },
                             {
-                                text: 'Chat reference 1 is an additional design reference labeled "moodboard.png". Use it only to interpret the requested change.',
+                                text: 'Chat reference 1 is an additional design reference labeled "moodboard.png". Use it to interpret and apply the requested visual change only; do not change unrelated cake elements.',
                             },
                             expect.objectContaining({
                                 text: expect.stringContaining('CUSTOMER REQUEST:\nmake the cake look like the attached sample'),
@@ -209,6 +213,38 @@ describe('/api/ai/chat-edit', () => {
                 ],
             }),
         );
+    });
+
+    it('accepts a reference-only edible-photo visual edit response', async () => {
+        const modelResponse = {
+            outcome: 'design_change',
+            visualEdit: true,
+            patch: {},
+            actions: [],
+        };
+        generateContent.mockResolvedValueOnce({ text: JSON.stringify(modelResponse) });
+
+        const response = await callRoute({
+            prompt: 'Change the Edible Photo to the uploaded photo',
+            currentCustomization: {
+                ...currentCustomization,
+                mainToppers: [{
+                    ...currentCustomization.mainToppers[0],
+                    type: 'edible_photo_top',
+                    original_type: 'edible_photo_top',
+                    description: 'Lightning McQueen edible photo',
+                }],
+            },
+            referenceImages: [{
+                label: 'Chat reference 1',
+                targetDescription: 'blue mcqueen.jpg',
+                targetType: 'design reference',
+                image: { data: 'reference-image', mimeType: 'image/jpeg' },
+            }],
+        });
+
+        expect(response.status).toBe(200);
+        await expect(response.json()).resolves.toEqual(modelResponse);
     });
 
     it('accepts stable-ID targeted updates without regenerating complete arrays', async () => {

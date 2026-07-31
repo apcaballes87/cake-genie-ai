@@ -164,4 +164,28 @@ describe('executeAiChatEditFlow', () => {
         expect(applyState).not.toHaveBeenCalled();
         expect(editImage).not.toHaveBeenCalled();
     });
+
+    it('runs a reference-only visual edit when no structured option changed', async () => {
+        const applyState = vi.fn();
+        const editImage = vi.fn(async () => undefined);
+
+        const result = await executeAiChatEditFlow({
+            currentState: buildCurrentState(),
+            interpret: async () => ({
+                outcome: 'design_change',
+                visualEdit: true,
+                patch: {},
+                actions: [],
+            }),
+            applyState,
+            editImage,
+            runAction: vi.fn(),
+        });
+
+        expect(result.effectiveOutcome).toBe('design_change');
+        expect(result.imageEdited).toBe(true);
+        expect(result.editResult?.changedPaths).toEqual([]);
+        expect(applyState).toHaveBeenCalledTimes(1);
+        expect(editImage).toHaveBeenCalledTimes(1);
+    });
 });
