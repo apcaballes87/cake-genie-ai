@@ -647,7 +647,9 @@ export async function updateDesign({
         const designChangeKeywords = [
             'remove', 'add', 'change the cake type', 'change the cake thickness',
             'reconstruct', 'erase', 'move', 'change the style', 'redraw',
-            're-sculpt', 'replace its image', 'bento box presentation', 'bento',
+            're-sculpt', 'replace its image', 'change the image', 'replace the image',
+            'uploaded image', 'uploaded photo', 'attached image', 'attached photo',
+            'bento box presentation', 'bento',
             'change the text', 'erase the text', 'add new text', 'regarding the message',
             // CRITICAL: 'preserve' is used when adding gumpaste base board - this is NOT a color-only change
             'preserve any existing decorations',
@@ -670,7 +672,7 @@ export async function updateDesign({
                 GENERATIVE_DESIGN_SYSTEM_INSTRUCTION;
 
     // 5. Smart Prompt Filtering for Inpainting
-    if (useInpaintingStyle && !isThreeTierReconstruction) {
+    if (useInpaintingStyle && !isThreeTierReconstruction && !promptGenerator) {
         const colorKeywords = ['re-hue', 'recolor', 'color shade', 'color to', 'icing', 'shade', 'dominant', 'theme', 're-color'];
         const colorChanges = changesList.filter(change =>
             colorKeywords.some(keyword => change.toLowerCase().includes(keyword)) ||
@@ -695,6 +697,7 @@ ${colorChanges.join('\n')}`;
         changesCount: changesList.length,
         useInpaintingStyle,
         isThreeTierReconstruction,
+        promptSource: promptGenerator ? 'custom' : 'default',
         promptLength: prompt.length,
     });
 

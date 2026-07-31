@@ -1,4 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { buildAiChatImagePrompt } from '@/app/customizing/aiChatImagePrompt';
+import type { CakeInfoUI, HybridAnalysisResult, MainTopperUI } from '@/types';
 import { updateDesign } from './designService';
 import * as geminiService from './geminiService';
 
@@ -78,6 +80,66 @@ describe('designService: no-op fast path', () => {
         // Should call editCakeImage
         expect(geminiService.editCakeImage).toHaveBeenCalled();
         expect(result.image).toBe('new-image-data-base64');
+    });
+
+    it('preserves the reference-only edible-photo AI-chat prompt through image-edit filtering', async () => {
+        vi.mocked(geminiService.editCakeImage).mockResolvedValueOnce('edible-photo-replacement');
+
+        await updateDesign({
+            originalImageData: mockOriginalImage,
+            analysisResult: {
+                ...mockAnalysisResult,
+                main_toppers: [{
+                    type: 'edible_photo_top',
+                    description: 'Lightning McQueen character edible photo print',
+                    quantity: 1,
+                    size: 'large',
+                    group_id: 'lightning-mcqueen',
+                    classification: 'hero',
+                }],
+            } as HybridAnalysisResult,
+            cakeInfo: {
+                type: '1 Tier',
+                flavors: ['Chocolate Cake'],
+                size: '8x8',
+                thickness: '4 in',
+            } as CakeInfoUI,
+            mainToppers: [{
+                id: 'edible-photo-top',
+                type: 'edible_photo_top',
+                original_type: 'edible_photo_top',
+                description: 'Lightning McQueen character edible photo print',
+                quantity: 1,
+                size: 'large',
+                group_id: 'lightning-mcqueen',
+                classification: 'hero',
+                isEnabled: true,
+                price: 200,
+            }] as MainTopperUI[],
+            supportElements: [],
+            cakeMessages: [],
+            icingDesign: mockAnalysisResult.icing_design,
+            additionalInstructions: '[USER REQUEST]: Change the Edible Photo to the uploaded photo',
+            threeTierReferenceImage: null,
+            traceId: 'edible-photo-reference-trace',
+            requestSource: 'ai-chat-image-edit',
+            promptGenerator: buildAiChatImagePrompt,
+            referenceImages: [{
+                label: 'Chat reference 1',
+                targetDescription: 'blue mcqueen.jpg',
+                targetType: 'design reference',
+                image: { data: 'reference-base64', mimeType: 'image/jpeg' },
+            }],
+        });
+
+        const [prompt, , , , , , preferredModel] =
+            vi.mocked(geminiService.editCakeImage).mock.calls[0];
+
+        expect(prompt).toContain('- Change the image on the top cake to this uploaded image.');
+        expect(prompt).toContain('- Retain the rest of the design exactly as it is.');
+        expect(prompt).toContain('Chat reference 1');
+        expect(prompt).not.toContain('No changes were requested');
+        expect(preferredModel).toBe('gemini-3.1-flash-lite-image');
     });
 
     it('preserves a blank placeholder message and skips blank new-message prompts', async () => {
