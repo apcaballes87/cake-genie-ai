@@ -112,4 +112,49 @@ describe('buildAiChatImagePrompt', () => {
         expect(prompt).toContain('Verified option changes (authoritative)');
         expect(prompt).toContain('Use fondant');
     });
+
+    it('uses a concise prompt for replacing an edible photo with an uploaded image', () => {
+        const prompt = buildAiChatImagePrompt(
+            null,
+            {
+                type: '1 Tier',
+                thickness: '3 in',
+                size: '8x8',
+                flavors: ['Chocolate Cake'],
+            },
+            [{
+                id: 'edible-photo-top',
+                type: 'edible_photo_top',
+                original_type: 'edible_photo_top',
+                description: 'Lightning McQueen character edible photo print',
+                size: 'large',
+                quantity: 1,
+                group_id: 'lightning_mcqueen',
+                classification: 'hero',
+                isEnabled: true,
+                price: 200,
+            }],
+            [],
+            [],
+            {
+                base: 'soft_icing',
+                color_type: 'single',
+                colors: { side: '#FFFFFF', top: '#FFFFFF' },
+                border_top: false,
+                border_base: false,
+                drip: false,
+                gumpasteBaseBoard: false,
+                dripPrice: 0,
+                gumpasteBaseBoardPrice: 0,
+            },
+            '[USER REQUEST]: Change the Edible Photo to the uploaded photo.\n[NORMALIZED CHANGES]:\n- Final enabled main toppers: edible-photo-top',
+        );
+
+        expect(prompt).toBe(`---
+### **List of Changes to Apply**
+---
+
+- Change the image on the top cake to this uploaded image.
+- Retain the rest of the design exactly as it is.`);
+    });
 });

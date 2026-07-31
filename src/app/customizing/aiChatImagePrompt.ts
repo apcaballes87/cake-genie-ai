@@ -13,6 +13,7 @@ import {
 
 const AI_CHAT_USER_REQUEST_REGEX = /\[USER REQUEST\]:\s*(.*)/;
 const AI_CHAT_NORMALIZED_CHANGES_MARKER = '[NORMALIZED CHANGES]:';
+const AI_CHAT_UPLOADED_IMAGE_REPLACEMENT_REGEX = /\b(?:change|replace|swap|update|use)\b[\s\S]*\b(?:image|photo|picture)\b[\s\S]*\b(?:uploaded|attached|reference)\b|\b(?:change|replace|swap|update|use)\b[\s\S]*\b(?:uploaded|attached|reference)\b[\s\S]*\b(?:image|photo|picture)\b/i;
 
 interface AiChatVisualChangeSummaryInput {
     changedPaths: string[];
@@ -86,6 +87,21 @@ export const buildAiChatImagePrompt: DesignPromptGenerator = (
     const normalizedChanges = additionalInstructions.includes(AI_CHAT_NORMALIZED_CHANGES_MARKER)
         ? additionalInstructions.split(AI_CHAT_NORMALIZED_CHANGES_MARKER)[1]?.trim()
         : '';
+
+    const hasEnabledEdiblePhotoTop = mainToppers.some(topper =>
+        topper.isEnabled && (topper.type === 'edible_photo_top' || topper.original_type === 'edible_photo_top')
+    );
+    const isUploadedEdiblePhotoReplacement = hasEnabledEdiblePhotoTop
+        && AI_CHAT_UPLOADED_IMAGE_REPLACEMENT_REGEX.test(userRequest);
+
+    if (isUploadedEdiblePhotoReplacement) {
+        return `---
+### **List of Changes to Apply**
+---
+
+- Change the image on the top cake to this uploaded image.
+- Retain the rest of the design exactly as it is.`;
+    }
 
     const printoutConversionTargets = getPrintoutConversionTargets(userRequest, mainToppers);
 
