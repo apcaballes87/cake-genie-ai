@@ -200,7 +200,7 @@ describe('CustomizingAiChatPanel', () => {
 
     it('shows an AI reply below the composer without the processing animation', () => {
         const props = buildProps();
-        props.statusMessage = 'I could not find a supported cake option to change.';
+        props.statusMessage = "I can help edit the cake. Tell me what to change and where—for example, 'make the icing pink'.";
 
         render(<CustomizingAiChatPanel {...props} />);
 

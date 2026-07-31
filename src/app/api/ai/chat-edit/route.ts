@@ -199,7 +199,7 @@ OUTCOME RULES
 - visualEdit: set true when the customer asks to change the rendered cake image using an attached/reference image, even when no structured cake option changes are needed. For a reference-only visual edit, return "outcome": "design_change", "visualEdit": true, "patch": {}, and preserve every customization field.
 - action_only: one or more supported actions and no design change; omit patch.
 - restriction: the request violates a rule below; omit patch and provide message.
-- clarification: the requested target is missing or ambiguous; omit patch and provide a concise question.
+- clarification: the requested target, change, or required detail is missing, ambiguous, or too vague to apply safely; omit patch and provide an actionable customer-facing message.
 - noop: unsupported conversation or a request that would not change anything; omit patch and return no actions.
 
 CAKE AND ICING
@@ -243,6 +243,13 @@ ACTIONS
 - Delivery/pickup details or special order notes add {"type":"update_instructions","content":"the extracted note"}.
 - A request may combine a design patch with actions. Chitchat and unsupported commands are noop.
 
+WEAK OR UNCLEAR DESIGN REQUESTS
+- Do not guess when a customer says "change the cake", "make it nicer", "fix it", "redesign it", or gives another vague design request without naming both the target and the desired change. Return clarification with no patch, no visualEdit, and no actions.
+- Make clarification helpful rather than generic: briefly state what detail is missing and give up to three short example prompts that use supported cake controls or an unambiguous item from CURRENT CUSTOMIZATION. Keep the message to one to three sentences.
+- Good example clarification: "Tell me what you want to change and where. For example: 'make the icing pink', 'change the Happy Birthday topper to a printout', or 'make the cake 2-tier.'"
+- If an attached/reference image is present but the customer does not say what it should replace or change, ask them to name the target. Example: "Tell me what the uploaded image should replace, such as 'replace the edible photo on top with this image.'"
+- If a request names a category with multiple possible targets, ask which item or position they mean, such as the top, side, left, right, or a named topper. Do not provide examples that imply a target is present when it is not in CURRENT CUSTOMIZATION.
+
 EXAMPLES
 - Current soft-icing 1 Tier + "please change to fondant" -> {"outcome":"design_change","patch":{"icing":{"base":"fondant"}},"actions":[]}.
 - Current fondant 2 Tier + "make it soft icing and blue" -> {"outcome":"design_change","patch":{"icing":{"base":"soft_icing","colors":{"side":"#0000FF","top":"#0000FF"}}},"actions":[]}.
@@ -250,6 +257,7 @@ EXAMPLES
 - Current enabled edible_photo_top + an attached image + "Change the Edible Photo to the uploaded photo" -> {"outcome":"design_change","visualEdit":true,"patch":{},"actions":[]}.
 - "change message msg-2 to Happy Birthday" -> a message update using id msg-2 and changes {"text":"Happy Birthday"}.
 - "remove the flower" when multiple flower elements exist -> clarification, no patch.
+- "change the cake" or "make it nicer" without a target and requested change -> clarification with a helpful explanation and concrete examples, no patch.
 - A forbidden Bento bottom border -> restriction, no patch.
 - "add to cart" -> {"outcome":"action_only","actions":[{"type":"add_to_cart"}]}.
 

@@ -163,6 +163,12 @@ describe('/api/ai/chat-edit', () => {
         expect(modelCall.config.systemInstruction).toContain(
             'visualEdit: set true when the customer asks to change the rendered cake image using an attached/reference image',
         );
+        expect(modelCall.config.systemInstruction).toContain(
+            'Make clarification helpful rather than generic',
+        );
+        expect(modelCall.config.systemInstruction).toContain(
+            "If an attached/reference image is present but the customer does not say what it should replace or change",
+        );
         expect(modelCall.config.responseSchema.properties.visualEdit.type).toBeDefined();
         expect(modelCall.contents[0].parts.at(-1).text).toContain('CURRENT CUSTOMIZATION');
         expect(modelCall.contents[0].parts.at(-1).text).toContain('"id": "topper-1"');
@@ -355,6 +361,20 @@ describe('/api/ai/chat-edit', () => {
             '"change all the toppers to printout"',
         );
         expect(modelCall.contents[0].parts.at(-1).text).toContain('"id": "topper-2"');
+    });
+
+    it('returns an actionable clarification for a weak design request', async () => {
+        const modelResponse = {
+            outcome: 'clarification',
+            actions: [],
+            message: "Tell me what you want to change and where. For example: 'make the icing pink', 'change the Happy Birthday topper to a printout', or 'make the cake 2-tier.'",
+        };
+        generateContent.mockResolvedValueOnce({ text: JSON.stringify(modelResponse) });
+
+        const response = await callRoute({ prompt: 'make it nicer' });
+
+        expect(response.status).toBe(200);
+        await expect(response.json()).resolves.toEqual(modelResponse);
     });
 
     it('turns semantically invalid model output into a customer-facing clarification', async () => {

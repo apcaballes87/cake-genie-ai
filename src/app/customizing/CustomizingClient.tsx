@@ -1830,7 +1830,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                 return;
             }
             if (flowResult.effectiveOutcome === 'noop') {
-                setAiChatStatusMessage(flowResult.response.message || 'I could not find a supported cake option to change.');
+                setAiChatStatusMessage(
+                    flowResult.response.message
+                    || "I can help edit the cake. Tell me what to change and where—for example, 'make the icing pink', 'change the top topper to a printout', or 'make it 2-tier.'",
+                );
                 return;
             }
 
