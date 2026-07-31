@@ -257,11 +257,17 @@ describe('validateAiChatEditResponse', () => {
         const result = validateAiChatEditResponse({
             outcome: 'design_change',
             visualEdit: true,
-            patch: {},
             actions: [],
         }, current);
 
         expect(result.success).toBe(true);
+        expect(validateAiChatEditResponse({
+            outcome: 'design_change',
+            actions: [],
+        }, current)).toMatchObject({
+            success: false,
+            kind: 'invalid',
+        });
     });
 });
 
@@ -541,7 +547,6 @@ describe('applyAiChatEdit', () => {
         const result = applyAiChatEdit(current, {
             outcome: 'design_change',
             visualEdit: true,
-            patch: {},
             actions: [],
         });
 

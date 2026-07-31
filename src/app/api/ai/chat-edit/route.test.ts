@@ -225,7 +225,6 @@ describe('/api/ai/chat-edit', () => {
         const modelResponse = {
             outcome: 'design_change',
             visualEdit: true,
-            patch: {},
             actions: [],
         };
         generateContent.mockResolvedValueOnce({ text: JSON.stringify(modelResponse) });

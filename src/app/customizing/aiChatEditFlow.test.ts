@@ -174,7 +174,6 @@ describe('executeAiChatEditFlow', () => {
             interpret: async () => ({
                 outcome: 'design_change',
                 visualEdit: true,
-                patch: {},
                 actions: [],
             }),
             applyState,

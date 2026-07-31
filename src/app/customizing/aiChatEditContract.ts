@@ -653,8 +653,8 @@ export function validateAiChatEditResponse(
     }
     if ('patch' in input) validatePatch(input.patch, errors, ambiguousErrors, targets, input.visualEdit === true);
 
-    if (input.outcome === 'design_change' && !('patch' in input)) {
-        errors.push('design_change requires a patch.');
+    if (input.outcome === 'design_change' && !('patch' in input) && input.visualEdit !== true) {
+        errors.push('design_change requires a patch unless visualEdit is true.');
     }
     if (input.visualEdit === true && input.outcome !== 'design_change') {
         errors.push('visualEdit can only be true for design_change.');

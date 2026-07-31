@@ -195,8 +195,8 @@ Return exactly this top-level JSON contract:
 }
 
 OUTCOME RULES
-- design_change: at least one requested design change; patch is required. Mixed design changes and actions also use design_change.
-- visualEdit: set true when the customer asks to change the rendered cake image using an attached/reference image, even when no structured cake option changes are needed. For a reference-only visual edit, return "outcome": "design_change", "visualEdit": true, "patch": {}, and preserve every customization field.
+- design_change: at least one requested design change; patch is required unless visualEdit is true for a reference-only rendered-image change. Mixed design changes and actions also use design_change.
+- visualEdit: set true when the customer asks to change the rendered cake image using an attached/reference image, even when no structured cake option changes are needed. For a reference-only visual edit, return "outcome": "design_change", "visualEdit": true, omit patch, and preserve every customization field.
 - action_only: one or more supported actions and no design change; omit patch.
 - restriction: the request violates a rule below; omit patch and provide message.
 - clarification: the requested target, change, or required detail is missing, ambiguous, or too vague to apply safely; omit patch and provide an actionable customer-facing message.
@@ -254,7 +254,7 @@ EXAMPLES
 - Current soft-icing 1 Tier + "please change to fondant" -> {"outcome":"design_change","patch":{"icing":{"base":"fondant"}},"actions":[]}.
 - Current fondant 2 Tier + "make it soft icing and blue" -> {"outcome":"design_change","patch":{"icing":{"base":"soft_icing","colors":{"side":"#0000FF","top":"#0000FF"}}},"actions":[]}.
 - "add gold drip" -> {"outcome":"design_change","patch":{"icing":{"drip":true}},"actions":[]}.
-- Current enabled edible_photo_top + an attached image + "Change the Edible Photo to the uploaded photo" -> {"outcome":"design_change","visualEdit":true,"patch":{},"actions":[]}.
+- Current enabled edible_photo_top + an attached image + "Change the Edible Photo to the uploaded photo" -> {"outcome":"design_change","visualEdit":true,"actions":[]}.
 - "change message msg-2 to Happy Birthday" -> a message update using id msg-2 and changes {"text":"Happy Birthday"}.
 - "remove the flower" when multiple flower elements exist -> clarification, no patch.
 - "change the cake" or "make it nicer" without a target and requested change -> clarification with a helpful explanation and concrete examples, no patch.
@@ -290,6 +290,22 @@ const getChangeCategories = (patch: Record<string, unknown> | undefined): string
     if ('supportOperations' in patch) categories.push('support');
     if ('messageOperations' in patch) categories.push('messages');
     return categories;
+};
+
+const getModelResponseShape = (response: unknown) => {
+    if (!isRecord(response)) {
+        return { responseType: Array.isArray(response) ? 'array' : typeof response };
+    }
+
+    return {
+        topLevelKeys: Object.keys(response).sort(),
+        outcome: typeof response.outcome === 'string' ? response.outcome : undefined,
+        visualEdit: typeof response.visualEdit === 'boolean' ? response.visualEdit : undefined,
+        hasPatch: 'patch' in response,
+        patchKeys: isRecord(response.patch) ? Object.keys(response.patch).sort() : [],
+        actionCount: Array.isArray(response.actions) ? response.actions.length : undefined,
+        hasMessage: typeof response.message === 'string' && response.message.length > 0,
+    };
 };
 
 const normalizeModelUpdateOperations = (response: unknown): unknown => {
@@ -475,6 +491,7 @@ export async function POST(req: NextRequest) {
             console.error(`[AI TRACE ${traceId}] /api/ai/chat-edit:invalid-response`, {
                 validationKind: validation.kind,
                 validationErrors: validation.errors,
+                modelResponseShape: getModelResponseShape(parsedResponse),
                 durationMs: Date.now() - startedAt,
             });
             return NextResponse.json(
