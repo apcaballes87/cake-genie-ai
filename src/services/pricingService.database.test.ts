@@ -1,7 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { normalizeMainTopperForDefaultFulfillment } from '@/lib/ai/fulfillmentNormalization';
 import type { CakeInfoUI, CakeMessageUI, IcingDesignUI, MainTopperUI, PricingRule, SupportElementUI } from '@/types';
 
-const pricingRows: PricingRule[] = [
+type PricingFixtureRule = Omit<PricingRule, 'quantity_rule'> & {
+  quantity_rule: string | null;
+  merchant_id?: string | null;
+};
+
+const DEFAULT_MERCHANT_ID = 'd29d384c-3265-4d96-9637-86888a8f649d';
+
+const basePricingRows: PricingFixtureRule[] = [
   {
     rule_id: 1,
     item_key: 'icing_script',
@@ -118,10 +126,10 @@ const pricingRows: PricingRule[] = [
     ['tiny', 50],
     ['xsmall', 75],
     ['small', 100],
-    ['medium', 200],
-    ['large', 300],
-    ['xlarge', 400],
-  ] as const).map(([size, price], index): PricingRule => ({
+    ['medium', 150],
+    ['large', 200],
+    ['xlarge', 250],
+  ] as const).map(([size, price], index): PricingFixtureRule => ({
     rule_id: 8 + index,
     item_key: `edible_2d_complex_${size}`,
     item_type: 'edible_2d_complex',
@@ -140,7 +148,7 @@ const pricingRows: PricingRule[] = [
   ...([
     ['tiny', 40],
     ['xsmall', 60],
-  ] as const).map(([size, price], index): PricingRule => ({
+  ] as const).map(([size, price], index): PricingFixtureRule => ({
     rule_id: 20 + index,
     item_key: `toy_${size}`,
     item_type: 'toy',
@@ -172,21 +180,96 @@ const pricingRows: PricingRule[] = [
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
   },
+  ...([
+    ['medium', 50],
+    ['large', 100],
+    ['xlarge', 150],
+  ] as const).map(([size, price], index): PricingFixtureRule => ({
+    rule_id: 30 + index,
+    item_key: `edible_2d_support_${size}`,
+    item_type: 'edible_2d_support',
+    classification: 'support',
+    size,
+    description: `Edible 2D support (${size})`,
+    price,
+    category: 'support_element',
+    quantity_rule: 'per_piece',
+    multiplier_rule: null,
+    special_conditions: { allowance_eligible: true },
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+  })),
+  {
+    rule_id: 40,
+    item_key: 'cardstock_medium',
+    item_type: 'cardstock',
+    classification: 'non-gumpaste',
+    size: 'medium',
+    description: 'Medium cardstock topper',
+    price: 60,
+    category: 'main_topper',
+    quantity_rule: 'per_piece',
+    multiplier_rule: null,
+    special_conditions: null,
+    merchant_id: DEFAULT_MERCHANT_ID,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    rule_id: 41,
+    item_key: 'cardstock_medium',
+    item_type: 'cardstock',
+    classification: 'message',
+    size: 'medium',
+    description: 'Medium cardstock message',
+    price: 100,
+    category: 'message',
+    quantity_rule: null,
+    multiplier_rule: null,
+    special_conditions: null,
+    merchant_id: DEFAULT_MERCHANT_ID,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+  },
 ];
+
+let pricingRows: PricingFixtureRule[] = [...basePricingRows];
+
+function createPricingQuery() {
+  let requestedMerchantId: string | undefined;
+  const query = {
+    select: () => query,
+    eq: () => query,
+    or: (filter: string) => {
+      requestedMerchantId = filter.match(/merchant_id\.eq\.([^,]+)/)?.[1];
+      return query;
+    },
+    then: (
+      resolve: (value: { data: PricingFixtureRule[]; error: null }) => unknown,
+      reject?: (reason: unknown) => unknown
+    ) => {
+      const data = requestedMerchantId
+        ? pricingRows.filter(rule => rule.merchant_id == null || rule.merchant_id === requestedMerchantId)
+        : pricingRows;
+      return Promise.resolve({ data, error: null }).then(resolve, reject);
+    },
+  };
+  return query;
+}
 
 vi.mock('@/lib/supabase/client', () => ({
   getSupabaseClient: () => ({
-    from: () => ({
-      select: () => ({
-        eq: () => Promise.resolve({ data: pricingRows, error: null }),
-      }),
-    }),
+    from: () => createPricingQuery(),
   }),
 }));
 
 describe('calculatePriceFromDatabase', () => {
   beforeEach(async () => {
     const { clearPricingCache } = await import('./pricingService.database');
+    pricingRows = [...basePricingRows];
     clearPricingCache();
     vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
@@ -374,9 +457,9 @@ describe('calculatePriceFromDatabase', () => {
     ['tiny', 50],
     ['xsmall', 75],
     ['small', 100],
-    ['medium', 200],
-    ['large', 300],
-    ['xlarge', 400],
+    ['medium', 150],
+    ['large', 200],
+    ['xlarge', 250],
   ] as const)('prices %s edible_2d_complex artwork from its Supabase size rule at ₱%i', async (size, expectedPrice) => {
     const { calculatePriceFromDatabase } = await import('./pricingService.database');
     const warnSpy = vi.spyOn(console, 'warn');
@@ -468,6 +551,447 @@ describe('calculatePriceFromDatabase', () => {
     expect(addOnPricing.addOnPrice).toBe(expectedPrice);
     expect(expectedPrice).toBe(unitPrice * quantity);
     expect(warnSpy.mock.calls.flat().join(' ')).not.toContain(`toy-${size}`);
+  });
+
+  it('keeps the default printout free and charges the paid rule after an explicit physical toy selection', async () => {
+    const { calculatePriceFromDatabase } = await import('./pricingService.database');
+    const rawToy = {
+      id: 'toy-fulfillment',
+      type: 'toy',
+      material: 'plastic',
+      description: 'small physical character toy',
+      quantity: 1,
+      isEnabled: true,
+      size: 'xsmall',
+      original_type: 'toy',
+    } as MainTopperUI;
+    const defaultPrintout = {
+      ...normalizeMainTopperForDefaultFulfillment(rawToy),
+      id: 'toy-default-printout',
+    } as MainTopperUI;
+    const commonState = {
+      supportElements: [],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
+    };
+
+    const defaultResult = await calculatePriceFromDatabase({
+      ...commonState,
+      mainToppers: [defaultPrintout],
+    });
+    const physicalResult = await calculatePriceFromDatabase({
+      ...commonState,
+      mainToppers: [{ ...defaultPrintout, id: 'toy-physical', type: 'toy' }],
+    });
+
+    expect(defaultPrintout).toMatchObject({
+      type: 'printout',
+      original_type: 'toy',
+      printout_source_type: 'toy',
+    });
+    expect(defaultResult.itemPrices.get('toy-default-printout')).toBe(0);
+    expect(physicalResult.itemPrices.get('toy-physical')).toBe(60);
+  });
+
+  it('uses exact categories regardless of database row order and never crosses into message pricing', async () => {
+    const { calculatePriceFromDatabase, clearPricingCache } = await import('./pricingService.database');
+    const topper = {
+      id: 'cardstock-main',
+      type: 'cardstock',
+      description: 'Medium acrylic-look cardstock topper',
+      quantity: 2,
+      isEnabled: true,
+      size: 'medium',
+    } as MainTopperUI;
+    const uiState = {
+      mainToppers: [topper],
+      supportElements: [],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
+    };
+
+    const forward = await calculatePriceFromDatabase(uiState);
+    expect(forward.itemPrices.get(topper.id)).toBe(120);
+
+    pricingRows = [...pricingRows].reverse();
+    clearPricingCache();
+
+    const reversed = await calculatePriceFromDatabase(uiState);
+    expect(reversed.itemPrices.get(topper.id)).toBe(120);
+  });
+
+  it('uses a category-null rule only as an explicit same-key fallback', async () => {
+    const { calculatePriceFromDatabase } = await import('./pricingService.database');
+    pricingRows.push(
+      {
+        rule_id: 50,
+        item_key: 'generic_badge_small',
+        item_type: 'generic_badge',
+        classification: 'non-gumpaste',
+        size: 'small',
+        description: 'Legacy generic badge fallback',
+        price: 25,
+        category: null,
+        quantity_rule: 'per_piece',
+        multiplier_rule: null,
+        special_conditions: null,
+        merchant_id: null,
+        is_active: true,
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-01-01T00:00:00.000Z',
+      },
+      {
+        rule_id: 51,
+        item_key: 'generic_badge_small',
+        item_type: 'generic_badge',
+        classification: 'message',
+        size: 'small',
+        description: 'Wrong-category badge message',
+        price: 999,
+        category: 'message',
+        quantity_rule: null,
+        multiplier_rule: null,
+        special_conditions: null,
+        merchant_id: null,
+        is_active: true,
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-01-01T00:00:00.000Z',
+      }
+    );
+
+    const topper = {
+      id: 'legacy-generic-badge',
+      type: 'generic_badge',
+      description: 'Two generic badges',
+      quantity: 2,
+      isEnabled: true,
+      size: 'small',
+    } as unknown as MainTopperUI;
+    const result = await calculatePriceFromDatabase({
+      mainToppers: [topper],
+      supportElements: [],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
+    });
+
+    expect(result.itemPrices.get(topper.id)).toBe(50);
+  });
+
+  it('prefers an exact merchant rule, then global, with deterministic row-order behavior', async () => {
+    const { calculatePriceFromDatabase, clearPricingCache } = await import('./pricingService.database');
+    const requestedMerchantId = '11111111-1111-4111-8111-111111111111';
+    const otherMerchantId = '22222222-2222-4222-8222-222222222222';
+    pricingRows.push(
+      {
+        rule_id: 60,
+        item_key: 'merchant_badge_small',
+        item_type: 'merchant_badge',
+        classification: 'non-gumpaste',
+        size: 'small',
+        description: 'Global merchant badge',
+        price: 10,
+        category: 'main_topper',
+        quantity_rule: 'fixed',
+        multiplier_rule: null,
+        special_conditions: null,
+        merchant_id: null,
+        is_active: true,
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-01-01T00:00:00.000Z',
+      },
+      {
+        rule_id: 61,
+        item_key: 'merchant_badge_small',
+        item_type: 'merchant_badge',
+        classification: 'non-gumpaste',
+        size: 'small',
+        description: 'Requested merchant badge',
+        price: 20,
+        category: 'main_topper',
+        quantity_rule: 'fixed',
+        multiplier_rule: null,
+        special_conditions: null,
+        merchant_id: requestedMerchantId,
+        is_active: true,
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-01-01T00:00:00.000Z',
+      },
+      {
+        rule_id: 62,
+        item_key: 'merchant_badge_small',
+        item_type: 'merchant_badge',
+        classification: 'non-gumpaste',
+        size: 'small',
+        description: 'Other merchant badge',
+        price: 30,
+        category: 'main_topper',
+        quantity_rule: 'fixed',
+        multiplier_rule: null,
+        special_conditions: null,
+        merchant_id: otherMerchantId,
+        is_active: true,
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-01-01T00:00:00.000Z',
+      }
+    );
+
+    const topper = {
+      id: 'merchant-badge',
+      type: 'merchant_badge',
+      description: 'Merchant badge',
+      quantity: 4,
+      isEnabled: true,
+      size: 'small',
+    } as unknown as MainTopperUI;
+    const uiState = {
+      mainToppers: [topper],
+      supportElements: [],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
+    };
+
+    const merchantResult = await calculatePriceFromDatabase(uiState, requestedMerchantId);
+    expect(merchantResult.itemPrices.get(topper.id)).toBe(20);
+
+    pricingRows = [...pricingRows].reverse();
+    clearPricingCache();
+    const reversedMerchantResult = await calculatePriceFromDatabase(uiState, requestedMerchantId);
+    expect(reversedMerchantResult.itemPrices.get(topper.id)).toBe(20);
+
+    clearPricingCache();
+    const globalResult = await calculatePriceFromDatabase(uiState);
+    expect(globalResult.itemPrices.get(topper.id)).toBe(10);
+  });
+
+  it.each([
+    ['medium', 50, 3, 150, 50],
+    ['large', 100, 3, 300, 200],
+    ['xlarge', 150, 3, 450, 350],
+  ] as const)(
+    'prices %s edible_2d_support per piece and applies the support allowance',
+    async (size, unitPrice, quantity, rawPrice, addOnPrice) => {
+      const { calculatePriceFromDatabase } = await import('./pricingService.database');
+      const support = {
+        id: `edible-2d-support-${size}`,
+        type: 'edible_2d_support',
+        material: 'edible_fondant',
+        description: `${quantity} ${size} flat fondant stars`,
+        quantity,
+        isEnabled: true,
+        size,
+      } as SupportElementUI;
+
+      const result = await calculatePriceFromDatabase({
+        mainToppers: [],
+        supportElements: [support],
+        cakeMessages: [],
+        icingDesign: {} as IcingDesignUI,
+        cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
+      });
+
+      expect(rawPrice).toBe(unitPrice * quantity);
+      expect(result.itemPrices.get(support.id)).toBe(rawPrice);
+      expect(result.addOnPricing.addOnPrice).toBe(addOnPrice);
+    }
+  );
+
+  it('prices ordinary edible 3D pieces identically in main and support categories without allowance', async () => {
+    const { calculatePriceFromDatabase } = await import('./pricingService.database');
+    pricingRows.push(
+      {
+        rule_id: 70,
+        item_key: 'edible_3d_ordinary_small',
+        item_type: 'edible_3d_ordinary',
+        classification: 'hero',
+        size: 'small',
+        description: 'Small ordinary edible 3D main item',
+        price: 25,
+        category: 'main_topper',
+        quantity_rule: 'per_piece',
+        multiplier_rule: null,
+        special_conditions: null,
+        is_active: true,
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-01-01T00:00:00.000Z',
+      },
+      {
+        rule_id: 71,
+        item_key: 'edible_3d_ordinary_small',
+        item_type: 'edible_3d_ordinary',
+        classification: 'support',
+        size: 'small',
+        description: 'Small ordinary edible 3D support item',
+        price: 25,
+        category: 'support_element',
+        quantity_rule: 'per_piece',
+        multiplier_rule: null,
+        special_conditions: { allowance_eligible: false },
+        is_active: true,
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-01-01T00:00:00.000Z',
+      }
+    );
+    const main = {
+      id: 'ordinary-main',
+      type: 'edible_3d_ordinary',
+      description: 'Two simple molded spheres',
+      quantity: 2,
+      isEnabled: true,
+      size: 'small',
+    } as MainTopperUI;
+    const support = {
+      id: 'ordinary-support',
+      type: 'edible_3d_ordinary',
+      description: 'Two simple molded spheres',
+      quantity: 2,
+      isEnabled: true,
+      size: 'small',
+    } as SupportElementUI;
+
+    const result = await calculatePriceFromDatabase({
+      mainToppers: [main],
+      supportElements: [support],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
+    });
+
+    expect(result.itemPrices.get(main.id)).toBe(50);
+    expect(result.itemPrices.get(support.id)).toBe(50);
+    expect(result.addOnPricing.addOnPrice).toBe(100);
+    expect(result.addOnPricing.breakdown).not.toContainEqual({
+      item: 'Gumpaste Allowance',
+      price: -100,
+    });
+  });
+
+  it('trims known quantity rules and supports fixed, flat, per-three, and per-digit semantics', async () => {
+    const { calculatePriceFromDatabase } = await import('./pricingService.database');
+    pricingRows.push(
+      ...([
+        ['trimmed_rule_small', 10, ' per_piece\n', 3, 'three pieces', 30],
+        ['fixed_rule_small', 40, 'fixed', 9, 'fixed item', 40],
+        ['flat_rule_small', 30, 'flat', 9, 'flat item', 30],
+        ['per_three_rule_small', 10, 'per_3_pieces', 7, 'seven pieces', 30],
+        ['per_digit_rule_small', 5, 'per_digit', 1, 'number 12 topper', 10],
+      ] as const).map(([itemKey, price, quantityRule, , description], index): PricingFixtureRule => ({
+        rule_id: 80 + index,
+        item_key: itemKey,
+        item_type: itemKey.replace('_small', ''),
+        classification: 'non-gumpaste',
+        size: 'small',
+        description,
+        price,
+        category: 'main_topper',
+        quantity_rule: quantityRule,
+        multiplier_rule: null,
+        special_conditions: null,
+        is_active: true,
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-01-01T00:00:00.000Z',
+      }))
+    );
+
+    for (const [itemKey, , , quantity, description, expectedPrice] of [
+      ['trimmed_rule_small', 10, ' per_piece\n', 3, 'three pieces', 30],
+      ['fixed_rule_small', 40, 'fixed', 9, 'fixed item', 40],
+      ['flat_rule_small', 30, 'flat', 9, 'flat item', 30],
+      ['per_three_rule_small', 10, 'per_3_pieces', 7, 'seven pieces', 30],
+      ['per_digit_rule_small', 5, 'per_digit', 1, 'number 12 topper', 10],
+    ] as const) {
+      const type = itemKey.replace('_small', '');
+      const topper = {
+        id: itemKey,
+        type,
+        description,
+        quantity,
+        isEnabled: true,
+        size: 'small',
+      } as unknown as MainTopperUI;
+      const result = await calculatePriceFromDatabase({
+        mainToppers: [topper],
+        supportElements: [],
+        cakeMessages: [],
+        icingDesign: {} as IcingDesignUI,
+        cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
+      });
+      expect(result.itemPrices.get(itemKey)).toBe(expectedPrice);
+    }
+  });
+
+  it('warns once for a whitespace-only legacy quantity rule and treats it as flat', async () => {
+    const { calculatePriceFromDatabase } = await import('./pricingService.database');
+    const warnSpy = vi.spyOn(console, 'warn');
+    pricingRows.push({
+      rule_id: 90,
+      item_key: 'legacy_empty_small',
+      item_type: 'legacy_empty',
+      classification: 'non-gumpaste',
+      size: 'small',
+      description: 'Legacy empty rule',
+      price: 15,
+      category: 'main_topper',
+      quantity_rule: ' \n',
+      multiplier_rule: null,
+      special_conditions: null,
+      is_active: true,
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z',
+    });
+    const topper = {
+      id: 'legacy-empty',
+      type: 'legacy_empty',
+      description: 'Legacy empty rule',
+      quantity: 4,
+      isEnabled: true,
+      size: 'small',
+    } as unknown as MainTopperUI;
+
+    const result = await calculatePriceFromDatabase({
+      mainToppers: [topper],
+      supportElements: [],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
+    });
+
+    expect(result.itemPrices.get(topper.id)).toBe(15);
+    expect(
+      warnSpy.mock.calls.filter(call => call.join(' ').includes('legacy pricing rule 90'))
+    ).toHaveLength(1);
+  });
+
+  it('fails loudly when an active pricing row contains an unknown quantity rule', async () => {
+    const { calculatePriceFromDatabase } = await import('./pricingService.database');
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    pricingRows.push({
+      rule_id: 91,
+      item_key: 'unknown_quantity_small',
+      item_type: 'unknown_quantity',
+      classification: 'non-gumpaste',
+      size: 'small',
+      description: 'Unknown quantity rule',
+      price: 15,
+      category: 'main_topper',
+      quantity_rule: 'per_dozen',
+      multiplier_rule: null,
+      special_conditions: null,
+      is_active: true,
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z',
+    });
+
+    await expect(calculatePriceFromDatabase({
+      mainToppers: [],
+      supportElements: [],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
+    })).rejects.toThrow('Unknown quantity_rule "per_dozen"');
   });
 
   it('calculates cupcake topper prices correctly (Option B - Flat Maximum)', async () => {

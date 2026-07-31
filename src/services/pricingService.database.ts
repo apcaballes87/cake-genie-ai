@@ -9,9 +9,28 @@ const logger = createLogger('PricingService');
 
 const supabase = getSupabaseClient();
 
+const RECOGNIZED_QUANTITY_RULES = [
+  'per_piece',
+  'per_3_pieces',
+  'per_digit',
+  'buy_3_get_1_free',
+  'fixed',
+  'flat',
+] as const;
+
+type RecognizedQuantityRule = (typeof RECOGNIZED_QUANTITY_RULES)[number];
+type PricingCategory = NonNullable<PricingRule['category']>;
+type LoadedPricingRule = Omit<PricingRule, 'quantity_rule'> & {
+  quantity_rule: RecognizedQuantityRule | null;
+  merchant_id?: string | null;
+};
+
+const recognizedQuantityRules = new Set<string>(RECOGNIZED_QUANTITY_RULES);
+const warnedLegacyEmptyQuantityRuleIds = new Set<number>();
+
 // Cache pricing rules in memory for 5 minutes
 let pricingRulesCache: {
-  rules: Map<string, PricingRule[]>;
+  rules: Map<string, LoadedPricingRule[]>;
   timestamp: number;
   key: string;
 } | null = null;
@@ -20,7 +39,74 @@ const CACHE_KEY_PREFIX = 'pricing_rules_';
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 const ZERO_COST_SUPPORT_ELEMENT_TYPES = new Set(['icing_decorations']);
 
-async function getPricingRules(merchantId?: string): Promise<Map<string, PricingRule[]>> {
+function normalizeLoadedRule(
+  rule: PricingRule & { merchant_id?: string | null; quantity_rule: string | null }
+): LoadedPricingRule {
+  if (rule.quantity_rule === null) {
+    return rule as LoadedPricingRule;
+  }
+
+  const normalizedQuantityRule = rule.quantity_rule.trim();
+  if (normalizedQuantityRule.length === 0) {
+    if (!warnedLegacyEmptyQuantityRuleIds.has(rule.rule_id)) {
+      warnedLegacyEmptyQuantityRuleIds.add(rule.rule_id);
+      logger.warn(
+        `Treating empty quantity_rule as null for legacy pricing rule ${rule.rule_id} (${rule.item_key})`
+      );
+    }
+    return {
+      ...rule,
+      quantity_rule: null,
+    };
+  }
+
+  if (!recognizedQuantityRules.has(normalizedQuantityRule)) {
+    const error = new Error(
+      `Unknown quantity_rule "${rule.quantity_rule}" for pricing rule ${rule.rule_id} (${rule.item_key})`
+    );
+    logger.error(error.message);
+    throw error;
+  }
+
+  return {
+    ...rule,
+    quantity_rule: normalizedQuantityRule as RecognizedQuantityRule,
+  };
+}
+
+function applyQuantityRule(
+  rule: LoadedPricingRule,
+  quantity: number | undefined,
+  description: string
+): number {
+  const unitPrice = rule.price;
+  const effectiveQuantity = quantity ?? 1;
+
+  switch (rule.quantity_rule) {
+    case null:
+    case 'fixed':
+    case 'flat':
+      return unitPrice;
+    case 'per_piece':
+      return unitPrice * effectiveQuantity;
+    case 'per_3_pieces':
+      return Math.ceil(effectiveQuantity / 3) * unitPrice;
+    case 'buy_3_get_1_free': {
+      const chargedQuantity = effectiveQuantity - Math.floor(effectiveQuantity / 3);
+      return unitPrice * chargedQuantity;
+    }
+    case 'per_digit': {
+      const digitCount = (description.match(/\d/g) || []).length || 1;
+      return digitCount * unitPrice;
+    }
+    default: {
+      const exhaustiveQuantityRule: never = rule.quantity_rule;
+      throw new Error(`Unsupported quantity_rule "${exhaustiveQuantityRule}"`);
+    }
+  }
+}
+
+async function getPricingRules(merchantId?: string): Promise<Map<string, LoadedPricingRule[]>> {
   const now = Date.now();
   const cacheKey = merchantId ? `${CACHE_KEY_PREFIX}${merchantId}` : `${CACHE_KEY_PREFIX}global`;
 
@@ -55,16 +141,9 @@ async function getPricingRules(merchantId?: string): Promise<Map<string, Pricing
     throw error;
   }
 
-  const rulesMap = new Map<string, PricingRule[]>();
+  const rulesMap = new Map<string, LoadedPricingRule[]>();
 
-  // Sort data so merchant-specific rules come first
-  const sortedData = [...data].sort((a, b) => {
-    if (a.merchant_id && !b.merchant_id) return -1; // Merchant rule first
-    if (!a.merchant_id && b.merchant_id) return 1;  // Global rule last
-    return 0;
-  });
-
-  sortedData.forEach(rule => {
+  data.map(normalizeLoadedRule).forEach(rule => {
     const existing = rulesMap.get(rule.item_key) || [];
     existing.push(rule);
     rulesMap.set(rule.item_key, existing);
@@ -197,9 +276,9 @@ export async function calculatePriceFromDatabase(
   const getRule = (
     type: string,
     size?: string,
-    category?: 'main_topper' | 'support_element' | 'message' | 'icing_feature' | 'special',
+    category?: PricingCategory,
     subtype?: string
-  ): PricingRule | undefined => {
+  ): LoadedPricingRule | undefined => {
 
     // Handle legacy type mapping for analyzer/UI values that predate current rule keys.
     let effectiveType = type;
@@ -215,43 +294,71 @@ export async function calculatePriceFromDatabase(
       effectiveType = 'edible_flowers';
     }
 
-    // Helper to find match in a list of rules
-    const findMatch = (rulesList: PricingRule[]) => {
-      if (!rulesList || rulesList.length === 0) return undefined;
+    const selectByMerchant = (candidates: LoadedPricingRule[]): LoadedPricingRule | undefined => {
+      const deterministicCandidates = [...candidates].sort((a, b) => a.rule_id - b.rule_id);
 
-      // If size is provided, try to find exact match
-      if (size) {
-        const match = rulesList.find(r =>
-          (r.size && r.size.toLowerCase() === size.toLowerCase())
-        );
-        if (match) return match;
+      if (merchantId) {
+        return deterministicCandidates.find(rule => rule.merchant_id === merchantId)
+          ?? deterministicCandidates.find(rule => rule.merchant_id == null);
       }
 
-      // Default to first rule if no size specified or no size match found
-      return rulesList[0];
+      return deterministicCandidates.find(rule => rule.merchant_id == null)
+        ?? deterministicCandidates.find(rule => rule.merchant_id != null);
+    };
+
+    const findMatch = (
+      rulesList: LoadedPricingRule[],
+      requestedSize?: string
+    ): LoadedPricingRule | undefined => {
+      if (!rulesList || rulesList.length === 0) return undefined;
+
+      const normalizedSize = requestedSize?.trim().toLowerCase();
+      const findWithinCategory = (
+        requestedCategory: PricingCategory | null
+      ): LoadedPricingRule | undefined => {
+        const categoryMatches = rulesList.filter(rule => rule.category === requestedCategory);
+
+        if (normalizedSize) {
+          const exactSizeMatch = selectByMerchant(
+            categoryMatches.filter(rule => rule.size?.trim().toLowerCase() === normalizedSize)
+          );
+          if (exactSizeMatch) return exactSizeMatch;
+
+          const unsizedMatch = selectByMerchant(
+            categoryMatches.filter(rule => rule.size == null)
+          );
+          if (unsizedMatch) return unsizedMatch;
+        }
+
+        return selectByMerchant(categoryMatches);
+      };
+
+      if (category) {
+        return findWithinCategory(category) ?? findWithinCategory(null);
+      }
+
+      return findWithinCategory(null);
     };
 
     // 1. Try subtype-specific key first: type_subtype (e.g., chocolates_ferrero)
     if (subtype) {
       const subtypeKey = `${effectiveType}_${subtype}`;
       const subtypeRules = rules.get(subtypeKey);
-      if (subtypeRules && subtypeRules.length > 0) {
-        return subtypeRules[0];
-      }
+      const subtypeRule = findMatch(subtypeRules || [], size);
+      if (subtypeRule) return subtypeRule;
     }
 
     // 2. Try specific key: type_size (e.g., chocolates_small)
     if (size) {
       const specificKey = `${effectiveType}_${size}`;
       const specificRules = rules.get(specificKey);
-      if (specificRules && specificRules.length > 0) {
-        return specificRules[0];
-      }
+      const specificRule = findMatch(specificRules || [], size);
+      if (specificRule) return specificRule;
     }
 
     // 3. Try generic key: type (e.g., chocolates)
     const genericRules = rules.get(effectiveType);
-    const rule = findMatch(genericRules || []);
+    const rule = findMatch(genericRules || [], size);
 
     // Icing decorations are part of the analyzed cake image but currently carry no
     // add-on charge. Keep that intentional zero-price fallback quiet until a paid
@@ -298,19 +405,8 @@ export async function calculatePriceFromDatabase(
         } else {
           price = 200;
         }
-      }
-
-      if (rule.quantity_rule === 'per_piece') {
-        price *= topper.quantity;
-      } else if (rule.quantity_rule === 'per_3_pieces') {
-        price = Math.ceil(topper.quantity / 3) * rule.price;
-      } else if (rule.quantity_rule === 'buy_3_get_1_free') {
-        const qty = topper.quantity || 1;
-        const freeItems = Math.floor(qty / 3);
-        price = rule.price * qty - freeItems * rule.price;
-      } else if (rule.quantity_rule === 'per_digit') {
-        const digitCount = (topper.description.match(/\d/g) || []).length || 1;
-        price = digitCount * rule.price;
+      } else {
+        price = applyQuantityRule(rule, topper.quantity, topper.description);
       }
 
       if (rule.multiplier_rule === 'tier_count') {
@@ -369,18 +465,7 @@ export async function calculatePriceFromDatabase(
         effectiveQty = Math.max(1, effectiveQty);
       }
 
-      if (rule.quantity_rule === 'per_piece') {
-        price *= effectiveQty;
-      } else if (rule.quantity_rule === 'per_3_pieces') {
-        price = Math.ceil(effectiveQty / 3) * rule.price;
-      } else if (rule.quantity_rule === 'buy_3_get_1_free') {
-        const qty = effectiveQty || 1;
-        const freeItems = Math.floor(qty / 3);
-        price = rule.price * qty - freeItems * rule.price;
-      } else if (rule.quantity_rule === 'per_digit') {
-        const digitCount = (element.description.match(/\d/g) || []).length || 1;
-        price = digitCount * rule.price;
-      }
+      price = applyQuantityRule(rule, effectiveQty, element.description);
 
       if (rule.multiplier_rule === 'tier_count') {
         price *= extractTierCount(cakeInfo.type);

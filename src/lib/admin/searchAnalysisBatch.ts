@@ -2,13 +2,13 @@ import { Storage } from '@google-cloud/storage';
 import readline from 'node:readline';
 
 import { getAI, getGoogleCloudAuthOptions } from '@/lib/ai/client';
+import { isRejectedGeneratedCakeAnalysis } from '@/lib/ai/generatedAnalysisContract';
 import { toActionableGoogleCloudStorageError } from '@/lib/ai/googleCloudErrors';
 import { getDynamicTypeEnums } from '@/lib/ai/utils';
 import { buildSearchAnalysisGenerationConfig, postProcessSearchAnalysisResult } from '@/lib/admin/searchAnalysisContract';
 import { createAdminServerSupabaseClient } from '@/lib/supabase/adminServer';
 import { getAnalysisPromptWithFallback } from '@/services/prompts/promptLoader';
 import { cacheAnalysisResult } from '@/services/supabaseService';
-import type { HybridAnalysisResult } from '@/types';
 
 const MODEL = 'gemini-3.5-flash-lite';
 const STORAGE_BUCKET = 'cakegenie';
@@ -396,6 +396,7 @@ export async function reconcileSearchAnalysisBatch(runId: string, requestContext
   const { data: rows, error: itemsError } = await admin.from('cakegenie_search_analysis_batch_items').select('*').eq('run_id', runId).order('submission_ordinal');
   if (itemsError) throw itemsError;
   const items = rows as QueueItem[];
+  const typeEnums = await getDynamicTypeEnums(admin as unknown);
   const itemsById = new Map(items.map((item) => [item.id, item]));
   const itemsByUri = new Map(items.map((item) => [item.normalized_image_url, item]));
   const lines = readline.createInterface({ input: outputFile.createReadStream() });
@@ -438,13 +439,24 @@ export async function reconcileSearchAnalysisBatch(runId: string, requestContext
       continue;
     }
     try {
-      const result = postProcessSearchAnalysisResult(parseSearchAnalysisBatchOutputText(text));
-      const rejection = result.rejection as { isRejected?: boolean; reason?: string; message?: string } | undefined;
-      if (rejection?.isRejected) {
-        await admin.from('cakegenie_search_analysis_batch_items').update({ status: 'rejected', error: rejection.reason ?? rejection.message }).eq('id', item.id);
+      const result = postProcessSearchAnalysisResult(
+        parseSearchAnalysisBatchOutputText(text),
+        typeEnums,
+      );
+      if (isRejectedGeneratedCakeAnalysis(result)) {
+        await admin.from('cakegenie_search_analysis_batch_items').update({
+          status: 'rejected',
+          error: result.rejection.reason,
+        }).eq('id', item.id);
         continue;
       }
-      const cached = await cacheAnalysisResult(item.p_hash, result as unknown as HybridAnalysisResult, item.normalized_image_url, undefined, buildSearchAnalysisPersistenceOptions(item, admin));
+      const cached = await cacheAnalysisResult(
+        item.p_hash,
+        result,
+        item.normalized_image_url,
+        undefined,
+        buildSearchAnalysisPersistenceOptions(item, admin),
+      );
       if (!cached?.id) throw new Error('Analysis cache persistence did not return a cache row id.');
       await admin.from('cakegenie_search_analysis_batch_items').update({ status: 'completed', cache_id: cached.id, error: null }).eq('id', item.id).neq('status', 'completed');
     } catch (importError) {

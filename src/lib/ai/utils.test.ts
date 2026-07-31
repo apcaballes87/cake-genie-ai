@@ -35,6 +35,7 @@ describe('getDynamicTypeEnums', () => {
     expect(result.supportElementTypes).toContain('support_printout');
     expect(result.mainTopperTypes).toContain('icing_doodle');
     expect(result.subtypesByType.icing_doodle).toEqual(['icing_doodle_intricate']);
+    expect(result.subtypesByType.chocolates).toContain('ferrero');
   });
 
   it('maps fresh flower pricing aliases to edible flowers for analyzer enums', async () => {

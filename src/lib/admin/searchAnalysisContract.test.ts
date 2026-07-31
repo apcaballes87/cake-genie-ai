@@ -8,30 +8,67 @@ import {
   SEARCH_ANALYSIS_REJECTION_REASONS,
 } from './searchAnalysisContract';
 
+const typeEnums = {
+  mainTopperTypes: [
+    'printout',
+    'icing_doodle',
+    'icing_doodle_intricate',
+    'icing_doodle_intricate_top',
+    'edible_photo_top',
+    'edible_2d_complex',
+    'edible_3d_ordinary',
+    'plastic_ball',
+  ],
+  supportElementTypes: [
+    'sprinkles',
+    'fresh_flowers',
+    'edible_flowers',
+    'icing_doodle',
+    'icing_doodle_intricate_side',
+    'chocolates',
+    'plastic_ball',
+    'plastic_ball_regular',
+  ],
+  subtypesByType: {
+    chocolates: ['ferrero', 'oreo'],
+  },
+};
+
+function validAnalysis(overrides: Record<string, unknown> = {}) {
+  return {
+    cakeType: '1 Tier',
+    cakeThickness: '4 in',
+    main_toppers: [],
+    support_elements: [],
+    cake_messages: [],
+    icing_design: {
+      base: 'soft_icing',
+      color_type: 'single',
+      colors: { side: '#FFFFFF', top: '#FFFFFF' },
+      drip: false,
+      border_top: false,
+      border_base: false,
+      gumpasteBaseBoard: false,
+    },
+    keyword: 'Birthday',
+    alt_text: 'White birthday cake with simple decorations.',
+    seo_title: 'White Birthday Cake with Simple Decorations in Cebu',
+    seo_description: 'A white birthday cake with simple decorations.',
+    rejection: { isRejected: false, reason: '', message: '' },
+    ...overrides,
+  };
+}
+
 describe('search analysis contract', () => {
   it('includes the canonical rejection reasons and enums used by the prompt', () => {
-    const schema = buildSearchAnalysisResponseSchema({
-      mainTopperTypes: [
-        'printout',
-        'icing_doodle',
-        'icing_doodle_intricate',
-        'icing_doodle_intricate_top',
-        'edible_photo_top',
-        'edible_2d_complex',
-      ],
-      supportElementTypes: [
-        'sprinkles',
-        'fresh_flowers',
-        'edible_flowers',
-        'icing_doodle',
-        'icing_doodle_intricate_side',
-      ],
-    }) as Record<string, any>;
+    const schema = buildSearchAnalysisResponseSchema(typeEnums);
 
     expect(SEARCH_ANALYSIS_REJECTION_REASONS).toContain('payment_receipt');
     expect(SEARCH_ANALYSIS_REJECTION_REASONS).toContain('selfie');
     expect(schema.properties.rejection.properties.reason.enum).toContain('payment_receipt');
     expect(schema.properties.rejection.properties.reason.enum).toContain('selfie');
+    expect(schema.properties.rejection.properties.reason.enum).toContain('');
+    expect(schema.properties.rejection.required).toContain('reason');
     expect(schema.properties.icing_design.properties.base.enum).toEqual([...SEARCH_ANALYSIS_ICING_BASES]);
     expect(schema.properties.icing_design.properties.color_type.enum).toEqual([...SEARCH_ANALYSIS_COLOR_TYPES]);
     expect(schema.properties.cake_messages.items.properties.type.enum).toEqual([
@@ -44,27 +81,166 @@ describe('search analysis contract', () => {
     expect(schema.properties.support_elements.items.properties.type.enum).not.toContain('fresh_flowers');
     expect(schema.properties.main_toppers.items.properties.type.enum).toContain('icing_doodle_intricate_top');
     expect(schema.properties.main_toppers.items.properties.type.enum).not.toContain('icing_doodle_intricate');
+    expect(schema.properties.main_toppers.items.properties.type.enum).not.toContain('icing_palette_knife_intricate');
+    expect(schema.properties.main_toppers.items.properties.type.enum).not.toContain('edible_photo_print');
     expect(schema.properties.main_toppers.items.properties.type.enum).toContain('edible_2d_complex');
     expect(schema.properties.support_elements.items.properties.type.enum).not.toContain('edible_2d_complex');
     expect(schema.properties.support_elements.items.properties.type.enum).toContain('icing_doodle_intricate_side');
+    expect(schema.properties.support_elements.items.properties.type.enum).toContain('plastic_ball_regular');
+    expect(schema.properties.support_elements.items.properties.type.enum).not.toContain('plastic_ball');
     expect(schema.properties).not.toHaveProperty('is_tall_proportion');
+    expect(schema.properties.main_toppers.items.properties).not.toHaveProperty('digits');
+    expect(schema.properties.main_toppers.items.properties).not.toHaveProperty('x');
+    expect(schema.properties.support_elements.items.properties).not.toHaveProperty('bbox');
+    expect(schema.properties).not.toHaveProperty('icing_surfaces');
+    expect(schema.properties.main_toppers.items.properties.subtype.enum).toContain('ferrero');
+    expect(schema.properties.main_toppers.items.properties.type.enum).toContain('plastic_ball');
+    expect(schema.properties.main_toppers.items.properties.material.enum).toContain('photopaper');
     expect(schema.properties.icing_design.required).toContain('gumpasteBaseBoard');
+    expect(schema.properties.icing_design.required).toEqual(expect.arrayContaining([
+      'drip',
+      'border_top',
+      'border_base',
+    ]));
+    expect(schema.properties.icing_design.properties.colors.required).toEqual(['side', 'top']);
     expect(schema.properties.icing_design.properties.gumpasteBaseBoard.type).toBeDefined();
+    expect(schema.properties.cakeType.enum).toContain('Bento Cupcake Set');
+    expect(schema.properties.cakeThickness.enum).toContain('6 in');
   });
 
   it('keeps the model-provided thickness without fabricating coordinates', () => {
-    const result = postProcessSearchAnalysisResult({
+    const result = postProcessSearchAnalysisResult(validAnalysis({
       cakeThickness: '6 in',
-      is_tall_proportion: true,
-      main_toppers: [{}],
-      support_elements: [{}],
-      cake_messages: [{}],
-    });
+    }), typeEnums);
 
     expect(result.cakeThickness).toBe('6 in');
     expect(result).not.toHaveProperty('is_tall_proportion');
-    expect(result.main_toppers).toEqual([{}]);
-    expect(result.support_elements).toEqual([{}]);
-    expect(result.cake_messages).toEqual([{}]);
+  });
+
+  it('rejects forbidden legacy generated fields instead of silently deleting them', () => {
+    expect(() => postProcessSearchAnalysisResult(validAnalysis({
+      is_tall_proportion: true,
+    }), typeEnums)).toThrow(/unsupported field.*is_tall_proportion/i);
+  });
+
+  it('accepts canonical blank rejection fields and validates subtype by item type', () => {
+    const result = postProcessSearchAnalysisResult(validAnalysis({
+      support_elements: [{
+        type: 'chocolates',
+        material: 'candy',
+        group_id: 'chocolate-1',
+        color: '#8B4513',
+        size: 'small',
+        quantity: 2,
+        description: 'Ferrero chocolates',
+        subtype: 'ferrero',
+      }],
+    }), typeEnums);
+
+    expect(result.rejection).toEqual({ isRejected: false, reason: '', message: '' });
+    expect(result.support_elements[0].subtype).toBe('ferrero');
+  });
+
+  it('rejects invalid generated-only fields, quantities, subtypes, and cake thicknesses', () => {
+    expect(() => postProcessSearchAnalysisResult(validAnalysis({
+      main_toppers: [{
+        type: 'printout',
+        material: 'photopaper',
+        group_id: 'printout-1',
+        classification: 'hero',
+        size: 'small',
+        quantity: 0,
+        description: 'Printed character',
+        x: 0.5,
+      }],
+    }), typeEnums)).toThrow(/unsupported field.*x/i);
+
+    expect(() => postProcessSearchAnalysisResult(validAnalysis({
+      support_elements: [{
+        type: 'chocolates',
+        material: 'candy',
+        group_id: 'chocolate-1',
+        color: '#8B4513',
+        size: 'small',
+        quantity: 1,
+        description: 'Chocolate',
+        subtype: 'unsupported',
+      }],
+    }), typeEnums)).toThrow(/subtype/i);
+
+    expect(() => postProcessSearchAnalysisResult(validAnalysis({
+      cakeType: 'Bento',
+      cakeThickness: '4 in',
+    }), typeEnums)).toThrow(/not supported for Bento/i);
+
+    expect(() => postProcessSearchAnalysisResult(validAnalysis({
+      support_elements: [{
+        type: 'plastic_ball',
+        material: 'plastic',
+        group_id: 'support-ball',
+        color: '#FFD700',
+        size: 'small',
+        quantity: 1,
+        description: 'supporting gold plastic ball',
+      }],
+    }), typeEnums)).toThrow(/support_elements\[0\]\.type/i);
+  });
+
+  it('requires exact rejection messages and complete icing colors', () => {
+    const rejected = validAnalysis({
+      cakeType: '',
+      cakeThickness: '',
+      keyword: '',
+      alt_text: '',
+      seo_title: '',
+      seo_description: '',
+      rejection: {
+        isRejected: true,
+        reason: 'not_a_cake',
+        message: "This image doesn't appear to be a cake. Please upload a cake image.",
+      },
+    });
+    expect(postProcessSearchAnalysisResult(rejected, typeEnums).rejection.isRejected).toBe(true);
+
+    expect(() => postProcessSearchAnalysisResult({
+      ...rejected,
+      rejection: {
+        isRejected: true,
+        reason: 'not_a_cake',
+        message: 'Wrong message',
+      },
+    }, typeEnums)).toThrow(/canonical message/i);
+
+    expect(() => postProcessSearchAnalysisResult({
+      ...rejected,
+      icing_design: {
+        ...(rejected.icing_design as Record<string, unknown>),
+        drip: true,
+      },
+    }, typeEnums)).toThrow(/default icing design/i);
+
+    expect(() => postProcessSearchAnalysisResult(validAnalysis({
+      icing_design: {
+        base: 'soft_icing',
+        color_type: 'single',
+        colors: { side: '#FFFFFF' },
+        drip: false,
+        border_top: false,
+        border_base: false,
+        gumpasteBaseBoard: false,
+      },
+    }), typeEnums)).toThrow(/top/i);
+
+    expect(() => postProcessSearchAnalysisResult(validAnalysis({
+      icing_design: {
+        base: 'soft_icing',
+        color_type: 'single',
+        colors: { side: '#FFFFFF', top: '#FFFFFF' },
+        drip: false,
+        border_top: false,
+        border_base: false,
+        gumpasteBaseBoard: true,
+      },
+    }), typeEnums)).toThrow(/gumpasteBaseBoardColor/i);
   });
 });

@@ -77,7 +77,11 @@ describe('cake analysis search server helpers', () => {
 
   it('recalculates and writes only analysis_json plus price', async () => {
     const originalAnalysis = { cakeType: '1 Tier', keyword: 'Birthday Cake' };
-    const newAnalysis = { cakeType: '2 Tier', keyword: 'Birthday Cake' };
+    const newAnalysis = {
+      cakeType: '2 Tier',
+      keyword: 'Birthday Cake',
+      rejection: { isRejected: false, reason: '', message: '' },
+    };
     const lookupChain = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -141,5 +145,47 @@ describe('cake analysis search server helpers', () => {
       status: 404,
     });
     expect(mockRunActiveCakeAnalysis).not.toHaveBeenCalled();
+  });
+
+  it('preserves the existing cache row when replacement analysis is rejected', async () => {
+    const lookupChain = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: {
+          p_hash: 'abc',
+          slug: 'birthday-cake',
+          price: 2699,
+          original_image_url: 'https://example.com/cake.jpg',
+        },
+        error: null,
+      }),
+    };
+    const from = vi.fn().mockReturnValue(lookupChain);
+    mockCreateAdminServerSupabaseClient.mockReturnValue({ from });
+    mockRunActiveCakeAnalysis.mockResolvedValue({
+      result: {
+        rejection: {
+          isRejected: true,
+          reason: 'not_a_cake',
+          message: "This image doesn't appear to be a cake. Please upload a cake image.",
+        },
+      },
+      promptVersion: '3.35',
+    });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(new Uint8Array([1, 2, 3]), {
+      status: 200,
+      headers: { 'content-type': 'image/jpeg' },
+    })));
+    const { replaceCakeAnalysisByHash } = await import('./cakeAnalysisSearch');
+
+    await expect(
+      replaceCakeAnalysisByHash('abc', new Request('http://localhost')),
+    ).rejects.toMatchObject({
+      name: 'CakeAnalysisSearchError',
+      status: 422,
+    });
+    expect(mockCalculateCachePriceFromAnalysis).not.toHaveBeenCalled();
+    expect(from).toHaveBeenCalledTimes(1);
   });
 });

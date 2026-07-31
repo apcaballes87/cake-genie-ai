@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse, after } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { getAI } from '@/lib/ai/client';
-import { buildSearchAnalysisGenerationConfig, postProcessSearchAnalysisResult } from '@/lib/admin/searchAnalysisContract';
+import { runActiveCakeAnalysis } from '@/lib/ai/analyzeCakeImage';
+import { isRejectedGeneratedCakeAnalysis } from '@/lib/ai/generatedAnalysisContract';
 import { cacheAnalysisResult } from '@/services/supabaseService';
 import { computeImageFingerprint } from '@/lib/server/imageFingerprint';
 import { convertToWebPBuffer } from '@/lib/utils/imageHash';
-import type { HybridAnalysisResult } from '@/types';
-import { getAnalysisPromptWithFallback } from '@/services/prompts/promptLoader';
 
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+export const maxDuration = 150;
 
 const ALLOWED_HOSTNAME_PATTERNS = [
     // Supabase
@@ -85,8 +83,6 @@ function isAllowedHostname(hostname: string): boolean {
 function isPrivateIP(hostname: string): boolean {
     return PRIVATE_IP_PATTERNS.some(pattern => pattern.test(hostname));
 }
-
-import { getDynamicTypeEnums } from '@/lib/ai/utils';
 
 export async function POST(req: NextRequest) {
     let supabase: SupabaseClient;
@@ -186,48 +182,22 @@ export async function POST(req: NextRequest) {
 
         console.log('🔄 Cache MISS for pHash:', pHash);
 
-        const [activePrompt, typeEnums] = await Promise.all([
-            getAnalysisPromptWithFallback(supabase as unknown as Parameters<typeof getAnalysisPromptWithFallback>[0]).catch(() => null),
-            getDynamicTypeEnums(supabase)
-        ]);
-
-        if (!activePrompt) {
-            return NextResponse.json(
-                { error: 'Failed to load analysis prompt configuration' },
-                { status: 500 }
-            );
-        }
-        const baseConfig = buildSearchAnalysisGenerationConfig(typeEnums);
-
         const base64Image = webpBuffer.toString('base64');
-
-        const aiClient = getAI(req);
-        const response = await aiClient.models.generateContent({
-            model: "gemini-3.5-flash-lite",
-            contents: [{
-                role: 'user',
-                parts: [
-                    { inlineData: { mimeType: 'image/webp', data: base64Image } },
-                    { text: activePrompt }
-                ],
-            }],
-            config: {
-                ...baseConfig,
-            },
+        const { result } = await runActiveCakeAnalysis({
+            imageData: base64Image,
+            mimeType: 'image/webp',
+            requestContext: req,
+            sourceContext: `url-analysis:${pHash}`,
+            sourceRoute: 'api/ai/analyze-url',
+            persistRejectedUpload: false,
         });
 
-        const jsonText = (response.text || '').trim();
-        let result: HybridAnalysisResult;
-        try {
-            const parsed = JSON.parse(jsonText) as HybridAnalysisResult;
-            result = postProcessSearchAnalysisResult(parsed);
-
-        } catch {
-            console.error("Failed to parse AI response:", jsonText);
-            return NextResponse.json(
-                { error: 'Invalid response format from AI' },
-                { status: 500 }
-            );
+        if (isRejectedGeneratedCakeAnalysis(result)) {
+            return NextResponse.json({
+                analysis_json: result,
+                image_url: url,
+                cached: false,
+            });
         }
 
         const uploadSlug = `url-${pHash.substring(0, 8)}`;

@@ -15,9 +15,11 @@ import { DEFAULT_THICKNESS_MAP, DEFAULT_SIZE_MAP, DEFAULT_ICING_DESIGN } from '@
 import { CustomizationState } from '@/contexts/CustomizationContext';
 import { CakeGenieMerchantProduct } from '@/lib/database.types';
 import { AvailabilityType } from '@/lib/utils/availability';
+import { normalizeAnalysisForDefaultFulfillment } from '@/lib/ai/fulfillmentNormalization';
 
 export function mapAnalysisToState(rawData: HybridAnalysisResult): CustomizationState {
     const state: CustomizationState = {};
+    const fulfillmentData = normalizeAnalysisForDefaultFulfillment(rawData);
 
     // 1. Cake Info
     const getFlavorCount = (type: CakeType): number => {
@@ -40,27 +42,7 @@ export function mapAnalysisToState(rawData: HybridAnalysisResult): Customization
     };
 
     // 2. Main Toppers
-    state.mainToppers = (rawData.main_toppers || []).map((t): MainTopperUI => {
-        let initialType = t.type;
-        const canBePrintout = ['edible_3d', 'toy', 'figurine', 'plastic_ball'].includes(t.type);
-        const isCharacterOrLogo = /character|figure|logo|brand/i.test(t.description);
-
-        if (canBePrintout && isCharacterOrLogo) {
-            initialType = 'printout';
-        }
-
-        // Force toys to be printouts as per business rule
-        if (['toy', 'figurine', 'plastic_ball'].includes(t.type)) {
-            initialType = 'printout';
-        }
-
-        const printoutSourceType = t.printout_source_type
-            ?? (t.type === 'printout' && t.original_type && t.original_type !== 'printout'
-                ? t.original_type
-                : initialType === 'printout' && t.type !== 'printout'
-                    ? t.type
-                    : undefined);
-
+    state.mainToppers = (fulfillmentData.main_toppers || []).map((t): MainTopperUI => {
         return {
             ...t,
             x: t.x,
@@ -68,9 +50,9 @@ export function mapAnalysisToState(rawData: HybridAnalysisResult): Customization
             id: uuidv4(),
             isEnabled: true,
             price: 0,
-            original_type: t.type,
-            type: initialType,
-            printout_source_type: printoutSourceType,
+            original_type: t.original_type ?? t.type,
+            type: t.type,
+            printout_source_type: t.printout_source_type,
             replacementImage: undefined,
             original_color: t.color,
             original_colors: t.colors,

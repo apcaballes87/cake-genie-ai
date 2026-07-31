@@ -16,7 +16,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.34 Version - Construction, Material, Type, and Description Consistency**');
+    expect(prompt).toContain('**v3.35 Version - Canonical Analysis Contract and Semantic Consistency**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('3. Visible construction of each item');
     expect(prompt).toContain('5. Type compatible with that construction and material');
@@ -59,6 +59,12 @@ describe('cake analysis prompt rules', () => {
     expect(SYSTEM_INSTRUCTION).toContain('It does not override positive evidence of icing, fondant/gumpaste, an edible printed sheet, candy, wax, or fabric');
     expect(SYSTEM_INSTRUCTION).not.toContain('This is the HIGHEST PRIORITY rule and overrides all other considerations');
     expect(SYSTEM_INSTRUCTION).toContain('If you are unsure and there are no positive construction or material cues');
+    expect(SYSTEM_INSTRUCTION).toContain('STRICT GENERATED CONTRACT');
+    expect(SYSTEM_INSTRUCTION).toContain('Do not generate x/y coordinates, bounding boxes, icing_surfaces, candle digits, is_tall_proportion');
+    expect(SYSTEM_INSTRUCTION).toContain('Accepted results require blank reason and message');
+    expect(SYSTEM_INSTRUCTION).toContain('When gumpasteBaseBoard is true, include colors.gumpasteBaseBoardColor');
+    expect(SYSTEM_INSTRUCTION).toContain('Use the active analysis prompt as the only source for sizing boundaries');
+    expect(SYSTEM_INSTRUCTION).toContain('Use plastic_ball only for one dominant focal plastic sphere');
   });
 
   it('keeps the whole-head cake exception in the fallback prompt source', () => {
@@ -106,7 +112,8 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('Do NOT use `satin_ribbon` for thin decorative side bows, small bow knots, dangling ribbon strands, or small ribbon streamers placed around the side of the cake.');
     expect(prompt).toContain('If a visible bow is made from thin fabric, satin, organza, or sheer ribbon, classify it as one `thin_fabric_ribbon_bows` item');
     expect(prompt).toContain('Do NOT also create a separate `edible_3d_ordinary` fondant bow for the same bow.');
-    expect(prompt).toContain('Do NOT create `satin_ribbon_wrap` unless there is an actual ribbon band wrapping around the cake side.');
+    expect(prompt).toContain('`satin_ribbon` is the only canonical type');
+    expect(prompt).not.toContain('satin_ribbon_wrap');
     expect(prompt).toContain('| `thin_fabric_ribbon_bows` | non-edible | Small/thin satin, organza, or sheer fabric bow accents, dangling ribbon tails, and narrow streamers.');
   });
 
@@ -205,11 +212,11 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('`edible_logo_2d`, not `edible_2d_complex`, not `edible_lego_bricks`');
     expect(prompt).toContain('Size `edible_2d_complex` by surface span, not by the 3D figure height table.');
     expect(prompt).toContain('| `tiny` | under 10% |');
-    expect(prompt).toContain('| `xsmall` | 10% to 20% |');
-    expect(prompt).toContain('| `small` | over 20% to 35% |');
-    expect(prompt).toContain('| `medium` | over 35% to 50% |');
-    expect(prompt).toContain('| `large` | over 50% to 75% |');
-    expect(prompt).toContain('| `xlarge` | over 75% |');
+    expect(prompt).toContain('| `xsmall` | 10% to under 20% |');
+    expect(prompt).toContain('| `small` | 20% to under 35% |');
+    expect(prompt).toContain('| `medium` | 35% to under 50% |');
+    expect(prompt).toContain('| `large` | 50% to under 75% |');
+    expect(prompt).toContain('| `xlarge` | 75% or greater |');
     expect(prompt).toContain('"type": "candle|toy|cardstock|edible_photo_top|edible_logo_2d|edible_2d_complex|printout');
 
     expect(SYSTEM_INSTRUCTION).toContain('flat-backed, attached flush to a cake surface, or built only from shallow layered pieces MUST be classified as "edible_2d_complex"');
@@ -220,7 +227,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.34 Version - Construction, Material, Type, and Description Consistency**');
+    expect(prompt).toContain('**v3.35 Version - Canonical Analysis Contract and Semantic Consistency**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -241,7 +248,7 @@ describe('cake analysis prompt rules', () => {
   it('uses toy-specific sizing for miniature molded toys', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.34 Version - Construction, Material, Type, and Description Consistency**');
+    expect(prompt).toContain('**v3.35 Version - Canonical Analysis Contract and Semantic Consistency**');
     expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy`)');
     expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
     expect(prompt).toContain('| `tiny` | under 0.10 |');
@@ -265,6 +272,190 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('→ Toy? Measure HEIGHT and use TOY-SPECIFIC SIZING PRECEDENCE');
     expect(prompt).toContain('→ Edible 3D figure? Measure HEIGHT and use C1');
     expect(prompt).toContain('For `toy`, use TOY-SPECIFIC SIZING PRECEDENCE; otherwise look up the correct per-type table (C1-C7)');
+  });
+
+  it('uses one canonical six-band sizing contract and matching quick reference', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+    const canonicalSixBands = [
+      '| `tiny` | **< 0.10**',
+      '| `xsmall` | **0.10 to < 0.30**',
+      '| `small` | **0.30 to < 0.50**',
+      '| `medium` | **0.50 to < 0.90**',
+      '| `large` | **0.90 to < 1.20**',
+      '| `xlarge` | **≥ 1.20**',
+    ];
+
+    expect(prompt).toContain('CANONICAL ITEM FAMILY MATRIX — AUTHORITATIVE');
+    for (const band of canonicalSixBands) {
+      expect(prompt).toContain(band);
+    }
+    expect(prompt).toContain('Ratio Quick Glance (exact mirror of the authoritative tables)');
+    expect(prompt).toContain('The general C1-C5 families share one six-band ratio scale');
+    expect(prompt).toContain('Flat toppers use the same canonical six ratio bands as C1');
+    expect(prompt).toContain('### C4. SPHERES & BALLS — plastic_ball, plastic_ball_regular, edible round elements');
+    expect(prompt).toContain('A **small gap**? → `tiny`, `xsmall`, or `small`.');
+    expect(prompt).toContain('| C1 edible 3D | <0.10 | 0.10 to <0.30 | 0.30 to <0.50 | 0.50 to <0.90 | 0.90 to <1.20 | ≥1.20 |');
+    expect(prompt).toContain('| C5 edible 2D support | <0.10 | 0.10 to <0.30 | 0.30 to <0.50 | 0.50 to <0.90 | 0.90 to <1.20 | ≥1.20 |');
+    expect(prompt).toContain('`edible_2d_support` remains in `support_elements` at every size.');
+    expect(prompt).toContain('set `quantity` to the\nactual piece count, and price per piece');
+    expect(prompt).toContain('| `medium` | **40% to < 80%** |');
+    expect(prompt).toContain('| `large` | **≥ 80%** |');
+    expect(prompt).toContain('panels use `<40%`, `40% to <80%`, and `≥80%` side coverage');
+    expect(prompt).not.toContain('reclassify as main topper');
+    expect(prompt).not.toMatch(/Panels:\s+<35%/);
+    expect(prompt).not.toContain('35–60%');
+  });
+
+  it('classifies exact sizing boundaries with the v3.35 half-open intervals', () => {
+    const classifyByUpperBounds = (
+      value: number,
+      sizes: string[],
+      exclusiveUpperBounds: number[],
+    ) => sizes[exclusiveUpperBounds.findIndex((upper) => value < upper)] ?? sizes.at(-1);
+
+    const classifyCanonical = (ratio: number) => classifyByUpperBounds(
+      ratio,
+      ['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge'],
+      [0.10, 0.30, 0.50, 0.90, 1.20],
+    );
+    const classifyEdible2dComplex = (coverage: number) => classifyByUpperBounds(
+      coverage,
+      ['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge'],
+      [0.10, 0.20, 0.35, 0.50, 0.75],
+    );
+    const classifyToy = (ratio: number) => classifyByUpperBounds(
+      ratio,
+      ['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge'],
+      [0.10, 0.50, 0.80, 1.10, 1.40],
+    );
+    const classifyCandle = (ratio: number) => classifyByUpperBounds(
+      ratio,
+      ['tiny', 'small', 'medium', 'large'],
+      [0.15, 0.35, 0.60],
+    );
+    const classifyPanel = (coverage: number) => classifyByUpperBounds(
+      coverage,
+      ['small', 'medium', 'large'],
+      [0.40, 0.80],
+    );
+
+    expect([
+      classifyCanonical(0.0999),
+      classifyCanonical(0.10),
+      classifyCanonical(0.30),
+      classifyCanonical(0.40),
+      classifyCanonical(0.50),
+      classifyCanonical(0.90),
+      classifyCanonical(1.20),
+    ]).toEqual(['tiny', 'xsmall', 'small', 'small', 'medium', 'large', 'xlarge']);
+    expect([
+      classifyEdible2dComplex(0.0999),
+      classifyEdible2dComplex(0.10),
+      classifyEdible2dComplex(0.20),
+      classifyEdible2dComplex(0.35),
+      classifyEdible2dComplex(0.50),
+      classifyEdible2dComplex(0.75),
+    ]).toEqual(['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge']);
+    expect([
+      classifyToy(0.05),
+      classifyToy(0.40),
+      classifyToy(0.50),
+      classifyToy(0.80),
+      classifyToy(1.10),
+      classifyToy(1.40),
+      classifyToy(1.50),
+    ]).toEqual(['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge', 'xlarge']);
+    expect([
+      classifyCandle(0.1499),
+      classifyCandle(0.15),
+      classifyCandle(0.35),
+      classifyCandle(0.60),
+    ]).toEqual(['tiny', 'small', 'medium', 'large']);
+    expect([
+      classifyPanel(0.3999),
+      classifyPanel(0.40),
+      classifyPanel(0.70),
+      classifyPanel(0.80),
+    ]).toEqual(['small', 'medium', 'medium', 'large']);
+  });
+
+  it('keeps complex and ordinary 3D face rules consistent', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(prompt).toContain('visible all-around body depth AND');
+    expect(prompt).toContain('recognizable character or\nanatomical complexity beyond a simple molded/stamped decorative face');
+    expect(prompt).toContain('Facial features, multiple colors, metallic accents, or an irregular outline\nalone are not enough for `edible_3d_complex`.');
+    expect(prompt).toContain('A simple molded smiley, sun,\nmoon, icon, medallion, or other non-likeness decorative face remains\n`edible_3d_ordinary`.');
+    expect(prompt).toContain('Any face is a simple molded, stamped, or non-likeness decorative face rather');
+    expect(prompt.match(/#### MOLDED CELESTIAL \/ SYMBOL TOPPERS/g)).toHaveLength(1);
+    expect(prompt).not.toContain('- NO facial features');
+    expect(prompt).not.toContain('has **ANY** of these');
+  });
+
+  it('scopes printed gloss, named normalizations, plastic balls, and connected signs', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(prompt).toContain('Apply this check only after the item is established as a separate flat,');
+    expect(prompt).toContain('Gloss alone never overrides positive\nevidence of icing, an edible printed sheet, waferpaper, fondant/gumpaste,');
+    expect(prompt).toContain('Named normalization exception');
+    expect(prompt).toContain('Acrylic toppers and wooden toppers are\nalways structured as `type: "cardstock"` and `material: "cardstock"`');
+    expect(prompt).toContain('Use `plastic_ball` for one\n  dominant focal sphere or physical 3D balloon in `main_toppers`.');
+    expect(prompt).toContain('Use\n  `plastic_ball_regular` for repeated, background, or supporting plastic');
+    expect(prompt).toContain('If the letters are physically connected to one sign, plaque, banner, printed');
+    expect(prompt).toContain('keep the whole carrier as\none physical topper/support row with `quantity: 1`');
+    expect(prompt).toContain('individual loose gumpaste, fondant, cardstock, acrylic, or printed letters');
+  });
+
+  it('uses one-row quantity grouping and a generated-only contract', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(prompt).toContain('output\none `edible_flowers` row with `quantity: 5`');
+    expect(prompt).toContain('Do not emit five duplicate rows.');
+    expect(prompt).toContain('Different sizes, colors, poses, or appearances require separate rows.');
+    expect(prompt).toContain('`subtype` is optional.');
+    expect(prompt).not.toMatch(/"x"\s*:/);
+    expect(prompt).not.toMatch(/"y"\s*:/);
+    expect(prompt).not.toContain('"digits"');
+    expect(prompt).not.toContain('## ICING SURFACES');
+  });
+
+  it('defines accepted set exceptions, rejection invariants, and complete icing output', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(prompt).toContain('A tray, box, or close-up of\nindividual cupcakes with no larger cake is one accepted `Cupcake` design');
+    expect(prompt).toContain('Exactly one bento cake plus five cupcakes in holders inside\nthe same box is one accepted `Bento Cupcake Set`');
+    expect(prompt).toContain('`complex_sculpture` boundary');
+    expect(prompt).toContain('extreme gravity-defying cake\nsculpture');
+    expect(prompt).toContain('For an accepted image use `isRejected: false`\n  with blank `reason` and `message`');
+    expect(prompt).toContain('`icing_design` is always complete');
+    expect(prompt).toContain('"drip": false');
+    expect(prompt).toContain('"border_top": false');
+    expect(prompt).toContain('"border_base": false');
+    expect(prompt).toContain('"gumpasteBaseBoard": false');
+  });
+
+  it('constrains cake type, icing base, thickness, and SEO title examples', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+    const seoTitles = [
+      'Unicorn 2-Tier Birthday Cake Delivery Cebu | Genie.ph',
+      '70th Birthday Fondant Cake For Dad Cebu | Genie.ph',
+      'Chocolate Drip Birthday Cake Design Cebu | Genie.ph',
+      "Father's Day Trophy Celebration Cake Cebu | Genie.ph",
+    ];
+
+    expect(prompt).toContain('cakeType, Icing Base, and cakeThickness Contract');
+    expect(prompt).toContain('A `Fondant` cakeType\nrequires `icing_design.base: "fondant"`.');
+    expect(prompt).toContain('| `1 Tier` | `"3 in"`, `"4 in"`, `"5 in"`, `"6 in"` |');
+    expect(prompt).toContain('| `2 Tier`, `3 Tier` | `"4 in"`, `"5 in"` |');
+    expect(prompt).toContain('| `Square`, `Rectangle` | `"3 in"`, `"4 in"` |');
+    expect(prompt).toContain('| `1 Tier Fondant`, `2 Tier Fondant`, `3 Tier Fondant` | `"5 in"`, `"6 in"` |');
+    expect(prompt).toContain('| `Bento`, `Cupcake`, `Bento Cupcake Set` | `"2 in"` |');
+
+    for (const title of seoTitles) {
+      expect(prompt).toContain(`- \`${title}\``);
+      expect(title.length).toBeGreaterThanOrEqual(50);
+      expect(title.length).toBeLessThanOrEqual(65);
+    }
   });
 
   it('detects continuous gumpaste-covered baseboards without excluding colors', () => {

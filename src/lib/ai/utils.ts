@@ -1,4 +1,10 @@
-import { MAIN_TOPPER_TYPES, SUPPORT_ELEMENT_TYPES } from '@/constants/pricingEnums';
+import {
+    MAIN_TOPPER_TYPES,
+    SUBTYPES_BY_TYPE,
+    SUPPORT_ELEMENT_TYPES,
+    isValidMainTopperType,
+    isValidSupportElementType,
+} from '@/constants/pricingEnums';
 
 const ITEM_KEY_TYPE_ALIASES: Record<string, string> = {
     fresh_flowers: 'edible_flowers',
@@ -23,25 +29,31 @@ export async function getDynamicTypeEnums(supabase: any) {
         return {
             mainTopperTypes: [...MAIN_TOPPER_TYPES],
             supportElementTypes: [...SUPPORT_ELEMENT_TYPES],
-            subtypesByType: {} as Record<string, string[]>
+            subtypesByType: Object.fromEntries(
+                Object.entries(SUBTYPES_BY_TYPE).map(([type, subtypes]) => [type, [...subtypes]]),
+            ),
         };
     }
 
     const mainTopperTypes = new Set<string>(MAIN_TOPPER_TYPES);
     const supportElementTypes = new Set<string>(SUPPORT_ELEMENT_TYPES);
-    const subtypesByType: Record<string, string[]> = {};
+    const subtypesByType: Record<string, string[]> = Object.fromEntries(
+        Object.entries(SUBTYPES_BY_TYPE).map(([type, subtypes]) => [type, [...subtypes]]),
+    );
 
     data.forEach((rule: any) => {
         const rawItemType = rule.item_type || rule.sub_item_type || rule.item_key;
         const resolvedItemType = ITEM_KEY_TYPE_ALIASES[rawItemType] || rule.item_type || ITEM_KEY_TYPE_ALIASES[rule.sub_item_type] || ITEM_KEY_TYPE_ALIASES[rule.item_key];
         if (resolvedItemType) {
-            if (rule.category === 'main_topper') {
+            if (rule.category === 'main_topper' && isValidMainTopperType(resolvedItemType)) {
                 mainTopperTypes.add(resolvedItemType);
-            } else if (rule.category === 'support_element') {
+            } else if (rule.category === 'support_element' && isValidSupportElementType(resolvedItemType)) {
                 supportElementTypes.add(resolvedItemType);
             }
 
-            if (rule.sub_item_type) {
+            const isCanonicalType = isValidMainTopperType(resolvedItemType)
+                || isValidSupportElementType(resolvedItemType);
+            if (rule.sub_item_type && isCanonicalType) {
                 if (!subtypesByType[resolvedItemType]) {
                     subtypesByType[resolvedItemType] = [];
                 }

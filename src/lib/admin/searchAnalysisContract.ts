@@ -1,46 +1,67 @@
 import { ThinkingLevel, Type } from '@google/genai';
 
 import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
-import { CAKE_MESSAGE_TYPES } from '@/constants/pricingEnums';
+import {
+  GENERATED_ANALYSIS_CAKE_THICKNESSES,
+  GENERATED_ANALYSIS_CAKE_TYPES,
+  GENERATED_ANALYSIS_CLASSIFICATIONS,
+  GENERATED_ANALYSIS_COLOR_HEXES,
+  GENERATED_ANALYSIS_COLOR_TYPES,
+  GENERATED_ANALYSIS_ICING_BASES,
+  GENERATED_ANALYSIS_MATERIALS,
+  GENERATED_ANALYSIS_MESSAGE_POSITIONS,
+  GENERATED_ANALYSIS_MESSAGE_TYPES,
+  GENERATED_ANALYSIS_REJECTION_REASONS,
+  GENERATED_ANALYSIS_SIZES,
+  GENERATED_MAIN_TOPPER_TYPES,
+  GENERATED_SUPPORT_ELEMENT_TYPES,
+  mergeGeneratedAnalysisSubtypeMap,
+  validateGeneratedCakeAnalysisResult,
+  type GeneratedAnalysisTypeEnums,
+  type GeneratedCakeAnalysisResult,
+} from '@/lib/ai/generatedAnalysisContract';
 
-type TypeEnums = {
-  mainTopperTypes: string[];
-  supportElementTypes: string[];
-};
+export const SEARCH_ANALYSIS_REJECTION_REASONS = GENERATED_ANALYSIS_REJECTION_REASONS;
+export const SEARCH_ANALYSIS_ICING_BASES = GENERATED_ANALYSIS_ICING_BASES;
+export const SEARCH_ANALYSIS_COLOR_TYPES = GENERATED_ANALYSIS_COLOR_TYPES;
 
-export const SEARCH_ANALYSIS_REJECTION_REASONS = [
-  'not_a_cake',
-  'multiple_cakes',
-  'cake_slice_only',
-  'complex_sculpture',
-  'large_wedding_cake',
-  'selfie',
-  'payment_receipt',
-] as const;
-
-export const SEARCH_ANALYSIS_ICING_BASES = ['soft_icing', 'fondant'] as const;
-export const SEARCH_ANALYSIS_COLOR_TYPES = ['single', 'gradient', 'multicolor'] as const;
-
-export function buildSearchAnalysisResponseSchema(typeEnums: TypeEnums) {
-  const mainTopperTypes = typeEnums.mainTopperTypes.filter((type) => type !== 'icing_doodle_intricate');
-  const supportElementTypes = typeEnums.supportElementTypes.filter((type) => type !== 'fresh_flowers');
+export function buildSearchAnalysisResponseSchema(typeEnums: GeneratedAnalysisTypeEnums) {
+  const mainTopperTypes = typeEnums.mainTopperTypes.filter(
+    (type) => GENERATED_MAIN_TOPPER_TYPES.includes(type as never),
+  );
+  const supportElementTypes = typeEnums.supportElementTypes.filter(
+    (type) => GENERATED_SUPPORT_ELEMENT_TYPES.includes(type as never),
+  );
+  const subtypes = [...new Set(
+    Object.values(mergeGeneratedAnalysisSubtypeMap(typeEnums.subtypesByType)).flat(),
+  )];
+  const subtypeProperty = subtypes.length
+    ? { subtype: { type: Type.STRING, enum: subtypes } }
+    : {};
 
   return {
     type: Type.OBJECT,
     properties: {
-      cakeType: { type: Type.STRING },
-      cakeThickness: { type: Type.STRING },
+      cakeType: { type: Type.STRING, enum: ['', ...GENERATED_ANALYSIS_CAKE_TYPES] },
+      cakeThickness: { type: Type.STRING, enum: ['', ...GENERATED_ANALYSIS_CAKE_THICKNESSES] },
       main_toppers: {
         type: Type.ARRAY,
         items: {
           type: Type.OBJECT,
           properties: {
             type: { type: Type.STRING, enum: mainTopperTypes },
-            material: { type: Type.STRING }, group_id: { type: Type.STRING },
-            classification: { type: Type.STRING, enum: ['hero', 'support'] },
-            size: { type: Type.STRING, enum: ['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge'] },
-            quantity: { type: Type.INTEGER }, digits: { type: Type.INTEGER },
+            material: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_MATERIALS] },
+            group_id: { type: Type.STRING },
+            classification: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_CLASSIFICATIONS] },
+            size: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_SIZES] },
+            quantity: { type: Type.INTEGER },
             description: { type: Type.STRING },
+            color: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_COLOR_HEXES] },
+            colors: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_COLOR_HEXES] },
+            },
+            ...subtypeProperty,
           },
           required: ['type', 'material', 'group_id', 'classification', 'size', 'quantity', 'description'],
         },
@@ -51,10 +72,17 @@ export function buildSearchAnalysisResponseSchema(typeEnums: TypeEnums) {
           type: Type.OBJECT,
           properties: {
             type: { type: Type.STRING, enum: supportElementTypes },
-            material: { type: Type.STRING }, group_id: { type: Type.STRING },
-            color: { type: Type.STRING }, colors: { type: Type.ARRAY, items: { type: Type.STRING } },
-            size: { type: Type.STRING, enum: ['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge'] },
-            quantity: { type: Type.INTEGER }, description: { type: Type.STRING },
+            material: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_MATERIALS] },
+            group_id: { type: Type.STRING },
+            color: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_COLOR_HEXES] },
+            colors: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_COLOR_HEXES] },
+            },
+            size: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_SIZES] },
+            quantity: { type: Type.INTEGER },
+            description: { type: Type.STRING },
+            ...subtypeProperty,
           },
           required: ['type', 'material', 'group_id', 'color', 'size', 'quantity', 'description'],
         },
@@ -65,9 +93,9 @@ export function buildSearchAnalysisResponseSchema(typeEnums: TypeEnums) {
           type: Type.OBJECT,
           properties: {
             text: { type: Type.STRING },
-            type: { type: Type.STRING, enum: [...CAKE_MESSAGE_TYPES] },
-            color: { type: Type.STRING },
-            position: { type: Type.STRING, enum: ['top', 'side', 'base_board'] },
+            type: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_MESSAGE_TYPES] },
+            color: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_COLOR_HEXES] },
+            position: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_MESSAGE_POSITIONS] },
           },
           required: ['text', 'type', 'color', 'position'],
         },
@@ -82,12 +110,16 @@ export function buildSearchAnalysisResponseSchema(typeEnums: TypeEnums) {
             properties: {
               side: {
                 type: Type.STRING,
+                enum: [...GENERATED_ANALYSIS_COLOR_HEXES],
                 description: 'REQUIRED. Customer-facing dominant color. The swatch filter reads this. Must be a hex from the approved palette. See CATEGORY 5 side color rules.',
               },
-              top: { type: Type.STRING },
-              gumpasteBaseBoardColor: { type: Type.STRING },
+              top: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_COLOR_HEXES] },
+              gumpasteBaseBoardColor: {
+                type: Type.STRING,
+                enum: [...GENERATED_ANALYSIS_COLOR_HEXES],
+              },
             },
-            required: process.env.ENFORCE_SIDE_COLOR === 'true' ? ['side'] : [],
+            required: ['side', 'top'],
           },
           drip: { type: Type.BOOLEAN }, border_top: { type: Type.BOOLEAN },
           border_base: { type: Type.BOOLEAN },
@@ -96,7 +128,15 @@ export function buildSearchAnalysisResponseSchema(typeEnums: TypeEnums) {
             description: 'REQUIRED. True only when visual construction cues show that the cake board surface is fully or mostly covered by one continuous fondant/gumpaste layer. Board color alone does not decide this.',
           },
         },
-        required: ['base', 'color_type', 'colors', 'gumpasteBaseBoard'],
+        required: [
+          'base',
+          'color_type',
+          'colors',
+          'drip',
+          'border_top',
+          'border_base',
+          'gumpasteBaseBoard',
+        ],
       },
       keyword: { type: Type.STRING },
       alt_text: {
@@ -114,11 +154,11 @@ export function buildSearchAnalysisResponseSchema(typeEnums: TypeEnums) {
           isRejected: { type: Type.BOOLEAN },
           reason: {
             type: Type.STRING,
-            enum: [...SEARCH_ANALYSIS_REJECTION_REASONS],
+            enum: ['', ...SEARCH_ANALYSIS_REJECTION_REASONS],
           },
           message: { type: Type.STRING },
         },
-        required: ['isRejected', 'message'],
+        required: ['isRejected', 'reason', 'message'],
       },
     },
     required: [
@@ -137,7 +177,7 @@ export function buildSearchAnalysisResponseSchema(typeEnums: TypeEnums) {
   };
 }
 
-export function buildSearchAnalysisGenerationConfig(typeEnums: TypeEnums) {
+export function buildSearchAnalysisGenerationConfig(typeEnums: GeneratedAnalysisTypeEnums) {
   return {
     systemInstruction: SYSTEM_INSTRUCTION,
     responseMimeType: 'application/json',
@@ -146,8 +186,9 @@ export function buildSearchAnalysisGenerationConfig(typeEnums: TypeEnums) {
   };
 }
 
-export function postProcessSearchAnalysisResult<T extends object>(result: T): T {
-  const mutableResult = result as T & Record<string, unknown>;
-  delete mutableResult.is_tall_proportion;
-  return result;
+export function postProcessSearchAnalysisResult(
+  result: unknown,
+  typeEnums: GeneratedAnalysisTypeEnums,
+): GeneratedCakeAnalysisResult {
+  return validateGeneratedCakeAnalysisResult(result, typeEnums);
 }

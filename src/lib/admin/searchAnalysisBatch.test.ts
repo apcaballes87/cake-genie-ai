@@ -73,6 +73,29 @@ const item = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+const validAnalysis = (overrides: Record<string, unknown> = {}) => ({
+  cakeType: '1 Tier',
+  cakeThickness: '4 in',
+  main_toppers: [],
+  support_elements: [],
+  cake_messages: [],
+  icing_design: {
+    base: 'soft_icing',
+    color_type: 'single',
+    colors: { side: '#FFFFFF', top: '#FFFFFF' },
+    drip: false,
+    border_top: false,
+    border_base: false,
+    gumpasteBaseBoard: false,
+  },
+  keyword: 'Birthday',
+  alt_text: 'White birthday cake.',
+  seo_title: 'White Birthday Cake with Simple Details in Cebu City',
+  seo_description: 'A white birthday cake with simple details.',
+  rejection: { isRejected: false, reason: '', message: '' },
+  ...overrides,
+});
+
 describe('search analysis batch helpers', () => {
   it('requires SEO copy and accepted-analysis fields in the shared response schema', () => {
     const schema = buildSearchAnalysisResponseSchema({
@@ -108,8 +131,6 @@ describe('search analysis batch helpers', () => {
       cakeType: 'Cupcake',
       cakeThickness: '2 in',
       main_toppers: [{
-        x: 0,
-        y: 0,
         type: 'printout',
         material: 'photopaper',
         group_id: 'cinderella_toppers',
@@ -119,8 +140,6 @@ describe('search analysis batch helpers', () => {
         description: 'Cinderella character cutouts',
       }],
       support_elements: [{
-        x: 0,
-        y: 0,
         type: 'dragees',
         material: 'candy',
         group_id: 'silver_dragees',
@@ -133,13 +152,17 @@ describe('search analysis batch helpers', () => {
       icing_design: {
         base: 'soft_icing',
         color_type: 'single',
-        colors: { side: '#87CEEB' },
+        colors: { side: '#87CEEB', top: '#87CEEB' },
+        drip: false,
+        border_top: false,
+        border_base: false,
+        gumpasteBaseBoard: false,
       },
       keyword: 'Cinderella Cupcakes',
       alt_text: 'Cupcakes with printed Cinderella character toppers and silver dragees on blue icing',
       seo_title: 'Cinderella Cupcakes With Blue Icing Cebu | Genie.ph',
       seo_description: 'These are Cinderella cupcakes with printed character toppers. The cupcakes use blue icing with a soft piped finish. Silver dragees add small metallic accents on top. Made for a child who wants a princess-themed birthday set. Order through Genie.ph for delivery in Cebu City.',
-      rejection: { isRejected: false, message: '' },
+      rejection: { isRejected: false, reason: '', message: '' },
     };
 
     for (const key of schema.required) {
@@ -438,9 +461,9 @@ describe('search analysis batch run submission and reconciliation regression tes
 
     // Mock output predictions.jsonl content (shuffled!)
     const jsonlContent = [
-      JSON.stringify({ customId: 'item-2', request: { contents: [{ parts: [{ fileData: { fileUri: 'uri-2' } }] }] }, response: { candidates: [{ content: { parts: [{ text: '{"cakeType": "1 Tier", "icing_design": {"base": "fondant"}}' }] } }] } }),
+      JSON.stringify({ customId: 'item-2', request: { contents: [{ parts: [{ fileData: { fileUri: 'uri-2' } }] }] }, response: { candidates: [{ content: { parts: [{ text: JSON.stringify(validAnalysis({ keyword: 'Second' })) }] } }] } }),
       JSON.stringify({ customId: 'unknown-id', request: { contents: [{ parts: [{ fileData: { fileUri: 'uri-unknown' } }] }] }, response: { candidates: [{ content: { parts: [{ text: '{"cakeType": "2 Tier"}' }] } }] } }),
-      JSON.stringify({ customId: 'item-1', request: { contents: [{ parts: [{ fileData: { fileUri: 'uri-1' } }] }] }, response: { candidates: [{ content: { parts: [{ text: '{"cakeType": "1 Tier", "icing_design": {"base": "soft_icing"}}' }] } }] } }),
+      JSON.stringify({ customId: 'item-1', request: { contents: [{ parts: [{ fileData: { fileUri: 'uri-1' } }] }] }, response: { candidates: [{ content: { parts: [{ text: JSON.stringify(validAnalysis({ keyword: 'First' })) }] } }] } }),
     ].join('\n');
 
     mockBucket.getFiles.mockResolvedValue([[ { name: 'predictions.jsonl', createReadStream: () => Readable.from([jsonlContent]) } ]]);

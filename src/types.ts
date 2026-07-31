@@ -1,5 +1,7 @@
 // types.ts
 
+export type { GeneratedCakeAnalysisResult } from '@/lib/ai/generatedAnalysisContract';
+
 // --- Base Types from Gemini Analysis ---
 export type CakeType = '1 Tier' | '2 Tier' | '3 Tier' | '1 Tier Fondant' | '2 Tier Fondant' | '3 Tier Fondant' | 'Square' | 'Rectangle' | 'Bento' | 'Square Fondant' | 'Rectangle Fondant' | 'Cupcake' | 'Bento Cupcake Set';
 export type CakeThickness = '2 in' | '3 in' | '4 in' | '5 in' | '6 in';
@@ -402,6 +404,7 @@ export interface SpecialConditions {
 
 export interface PricingRule {
   rule_id: number;
+  merchant_id?: string | null;
   item_key: string;
   item_type: string;
   classification: string | null;  // 'hero', 'support', 'special', 'message', 'icing'
@@ -409,7 +412,7 @@ export interface PricingRule {
   description: string;
   price: number;
   category: 'main_topper' | 'support_element' | 'special' | 'message' | 'icing_feature' | null;
-  quantity_rule: 'per_piece' | 'per_3_pieces' | 'per_digit' | 'buy_3_get_1_free' | null;
+  quantity_rule: 'per_piece' | 'per_3_pieces' | 'per_digit' | 'buy_3_get_1_free' | 'fixed' | 'flat' | null;
   multiplier_rule: 'tier_count' | null;
   special_conditions: SpecialConditions | null;
   is_active: boolean;

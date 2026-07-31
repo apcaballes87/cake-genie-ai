@@ -16,7 +16,6 @@ import {
     CakeThickness,
     CakeFlavor,
     IcingColorDetails,
-    MainTopperType,
     CacheSEOMetadata,
 } from '@/types'
 import { DEFAULT_THICKNESS_MAP, DEFAULT_SIZE_MAP, DEFAULT_ICING_DESIGN } from '@/constants'
@@ -560,14 +559,7 @@ export function CustomizationProvider({ children, initialData }: { children: Rea
         }
 
         if (!dirtyFields.has('mainToppers') && newState.mainToppers) {
-            // Auto-replace toys/figurines with printouts if not already modified by user
-            const processedToppers = newState.mainToppers.map(topper => {
-                if (['toy', 'figurine'].includes(topper.original_type)) {
-                    return { ...topper, type: 'printout' as MainTopperType };
-                }
-                return topper;
-            });
-            setMainToppers(processedToppers);
+            setMainToppers(newState.mainToppers);
         }
 
         if (!dirtyFields.has('supportElements') && newState.supportElements) {

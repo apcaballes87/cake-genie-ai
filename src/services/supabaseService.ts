@@ -29,6 +29,7 @@ import {
   normalizeRelatedSearchPhrase,
   rankRelatedProducts,
 } from './relatedProductSearch';
+import { normalizeAnalysisForDefaultFulfillment } from '@/lib/ai/fulfillmentNormalization';
 
 // The default client (uses @supabase/ssr browser client)
 const supabase: SupabaseClient = getSupabaseClient();
@@ -271,8 +272,17 @@ export async function trackSearchTerm(term: string): Promise<void> {
 /**
  * Helper to map HybridAnalysisResult to the UI state structure expected by calculatePriceFromDatabase.
  */
-function mapAnalysisToPricingState(analysis: HybridAnalysisResult) {
-  const mainToppers: MainTopperUI[] = (analysis.main_toppers || []).map(t => ({
+export function mapAnalysisToPricingState(analysis: HybridAnalysisResult) {
+  const fulfillmentAnalysis = normalizeAnalysisForDefaultFulfillment(analysis);
+  const mainToppers: MainTopperUI[] = (fulfillmentAnalysis.main_toppers || []).map(t => ({
+    ...t,
+    id: uuidv4(),
+    isEnabled: true,
+    price: 0,
+    original_type: t.original_type ?? t.type,
+  }));
+
+  const supportElements: SupportElementUI[] = (fulfillmentAnalysis.support_elements || []).map(t => ({
     ...t,
     id: uuidv4(),
     isEnabled: true,
@@ -280,15 +290,7 @@ function mapAnalysisToPricingState(analysis: HybridAnalysisResult) {
     original_type: t.type,
   }));
 
-  const supportElements: SupportElementUI[] = (analysis.support_elements || []).map(t => ({
-    ...t,
-    id: uuidv4(),
-    isEnabled: true,
-    price: 0,
-    original_type: t.type,
-  }));
-
-  const cakeMessages: CakeMessageUI[] = (analysis.cake_messages || []).map(t => ({
+  const cakeMessages: CakeMessageUI[] = (fulfillmentAnalysis.cake_messages || []).map(t => ({
     ...t,
     id: uuidv4(),
     isEnabled: true,
@@ -296,14 +298,14 @@ function mapAnalysisToPricingState(analysis: HybridAnalysisResult) {
   }));
 
   const icingDesign: IcingDesignUI = {
-    ...analysis.icing_design,
+    ...fulfillmentAnalysis.icing_design,
     dripPrice: 0,
     gumpasteBaseBoardPrice: 0,
   };
 
   const cakeInfo: CakeInfoUI = {
-    type: normalizeCakeType(analysis.cakeType),
-    thickness: analysis.cakeThickness,
+    type: normalizeCakeType(fulfillmentAnalysis.cakeType),
+    thickness: fulfillmentAnalysis.cakeThickness,
     size: '6" Round', // Default size for pricing calculation (will be overridden by lowest price logic if needed, but pricing service needs a size)
     flavors: [],
   };

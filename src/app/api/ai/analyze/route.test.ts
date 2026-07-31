@@ -6,6 +6,28 @@ const mockGetOrCreatePromptCache = vi.fn();
 const mockGetActivePromptDetails = vi.fn();
 const mockGetDynamicTypeEnums = vi.fn();
 
+const validAnalysis = {
+    cakeType: '1 Tier',
+    cakeThickness: '4 in',
+    main_toppers: [],
+    support_elements: [],
+    cake_messages: [],
+    icing_design: {
+        base: 'soft_icing',
+        color_type: 'single',
+        colors: { side: '#87CEEB', top: '#FFFFFF' },
+        drip: false,
+        border_top: false,
+        border_base: false,
+        gumpasteBaseBoard: false,
+    },
+    keyword: 'Ocean Mermaid',
+    alt_text: 'Blue ocean mermaid birthday cake.',
+    seo_title: 'Ocean Mermaid Birthday Cake with Blue Icing in Cebu',
+    seo_description: 'A blue ocean mermaid birthday cake.',
+    rejection: { isRejected: false, reason: '', message: '' },
+};
+
 vi.mock('@/lib/ai/client', () => ({
     getAI: vi.fn(() => ({
         models: {
@@ -39,14 +61,12 @@ describe('POST /api/ai/analyze', () => {
             version: '1.0',
         });
         mockGetDynamicTypeEnums.mockResolvedValue({
-            mainTopperTypes: ['fondant_figure'],
-            supportElementTypes: ['artificial_flowers', 'fresh_flowers'],
+            mainTopperTypes: ['printout'],
+            supportElementTypes: ['artificial_flowers'],
+            subtypesByType: {},
         });
         mockGenerateContent.mockResolvedValue({
-            text: JSON.stringify({
-                title: 'Ocean Mermaid Cake',
-                rejection: { isRejected: false },
-            }),
+            text: JSON.stringify(validAnalysis),
         });
     });
 
@@ -83,7 +103,7 @@ describe('POST /api/ai/analyze', () => {
         const payload = await response.json();
 
         expect(response.status).toBe(200);
-        expect(payload.title).toBe('Ocean Mermaid Cake');
+        expect(payload.seo_title).toBe(validAnalysis.seo_title);
         expect(mockGenerateContent).toHaveBeenCalledWith(
             expect.objectContaining({ model: 'gemini-3.5-flash-lite' })
         );
@@ -105,7 +125,7 @@ describe('POST /api/ai/analyze', () => {
         const payload = await response.json();
 
         expect(response.status).toBe(200);
-        expect(payload.title).toBe('Ocean Mermaid Cake');
+        expect(payload.seo_title).toBe(validAnalysis.seo_title);
         expect(mockGenerateContent).toHaveBeenCalledWith(
             expect.objectContaining({ model: 'gemini-3.5-flash-lite' })
         );

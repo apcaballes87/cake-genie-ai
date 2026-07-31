@@ -1,7 +1,7 @@
 import { runActiveCakeAnalysis } from '@/lib/ai/analyzeCakeImage';
+import { isRejectedGeneratedCakeAnalysis } from '@/lib/ai/generatedAnalysisContract';
 import { createAdminServerSupabaseClient } from '@/lib/supabase/adminServer';
 import { calculateCachePriceFromAnalysis, searchProductsFTS, searchProductsFTSCount } from '@/services/supabaseService';
-import type { HybridAnalysisResult } from '@/types';
 
 const SOURCE_IMAGE_TIMEOUT_MS = 30_000;
 const MAX_SOURCE_IMAGE_BYTES = 20 * 1024 * 1024;
@@ -187,7 +187,13 @@ export async function replaceCakeAnalysisByHash(pHash: string, requestContext?: 
     requestContext,
     sourceContext: `admin-cake-analysis-search:${pHash}`,
   });
-  const price = await calculateCachePriceFromAnalysis(result as unknown as HybridAnalysisResult);
+  if (isRejectedGeneratedCakeAnalysis(result)) {
+    throw new CakeAnalysisSearchError(
+      `The replacement analysis was rejected (${result.rejection.reason}): ${result.rejection.message}`,
+      422,
+    );
+  }
+  const price = await calculateCachePriceFromAnalysis(result);
 
   const { data: updatedRow, error: updateError } = await admin
     .from('cakegenie_analysis_cache')

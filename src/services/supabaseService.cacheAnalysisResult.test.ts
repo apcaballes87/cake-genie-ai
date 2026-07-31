@@ -20,6 +20,7 @@ const fetchMock = vi.fn();
 const storageUploadMock = vi.fn();
 const storageGetPublicUrlMock = vi.fn();
 const getDesignAvailabilityMock = vi.fn();
+const calculatePriceFromDatabaseMock = vi.fn();
 
 interface ProductSizesQuery {
   select: ReturnType<typeof vi.fn>;
@@ -86,9 +87,7 @@ vi.mock('@supabase/supabase-js', () => ({
 }));
 
 vi.mock('./pricingService.database', () => ({
-  calculatePriceFromDatabase: vi.fn().mockResolvedValue({
-    addOnPricing: { addOnPrice: 0 },
-  }),
+  calculatePriceFromDatabase: (...args: unknown[]) => calculatePriceFromDatabaseMock(...args),
 }));
 
 vi.mock('@/lib/utils/pricing', () => ({
@@ -133,11 +132,65 @@ describe('cacheAnalysisResult', () => {
     analysisCacheMaybeSingleMock.mockReset().mockResolvedValue({ data: { price: 999 }, error: null });
     rpcMock.mockReset().mockResolvedValue({ data: [], error: null });
     getDesignAvailabilityMock.mockReset().mockReturnValue('normal');
+    calculatePriceFromDatabaseMock.mockReset().mockResolvedValue({
+      addOnPricing: { addOnPrice: 0 },
+    });
     fromMock.mockReset().mockImplementation((table: string) => {
       if (table === 'productsizes_cakegenie') return productSizesQuery;
       if (table === 'cakegenie_analysis_cache') return analysisCacheQuery;
       return analysisCacheQuery;
     });
+  });
+
+  it('prices the same default printout fulfillment used by initial customizer hydration', async () => {
+    const { calculateCachePriceFromAnalysis } = await import('./supabaseService');
+    const { mapAnalysisToState } = await import('@/utils/customizationMapper');
+    const rawAnalysis = {
+      cakeType: '1 Tier',
+      cakeThickness: '4 in',
+      main_toppers: [{
+        type: 'plastic_ball',
+        material: 'plastic',
+        size: 'medium',
+        quantity: 1,
+        group_id: 'focal-ball',
+        classification: 'hero',
+        description: 'focal plastic character ball',
+      }],
+      support_elements: [],
+      cake_messages: [],
+      icing_design: {
+        base: 'soft_icing',
+        color_type: 'single',
+        colors: { side: '#FFFFFF', top: '#FFFFFF' },
+        drip: false,
+        border_top: false,
+        border_base: false,
+        gumpasteBaseBoard: false,
+      },
+    } as HybridAnalysisResult;
+
+    await calculateCachePriceFromAnalysis(rawAnalysis);
+    const initialCustomizerState = mapAnalysisToState(rawAnalysis);
+    const cachePricingState = calculatePriceFromDatabaseMock.mock.calls[0][0];
+
+    expect(calculatePriceFromDatabaseMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mainToppers: [
+          expect.objectContaining({
+            type: 'printout',
+            original_type: 'plastic_ball',
+            printout_source_type: 'plastic_ball',
+          }),
+        ],
+      }),
+    );
+    expect(cachePricingState.mainToppers[0]).toMatchObject({
+      type: initialCustomizerState.mainToppers?.[0].type,
+      original_type: initialCustomizerState.mainToppers?.[0].original_type,
+      printout_source_type: initialCustomizerState.mainToppers?.[0].printout_source_type,
+    });
+    expect(rawAnalysis.main_toppers[0]).toMatchObject({ type: 'plastic_ball' });
   });
 
   it('stores the same finalized description in analysis_json and seo_description', async () => {

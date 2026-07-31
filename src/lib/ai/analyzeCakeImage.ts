@@ -5,6 +5,10 @@ import { getActivePromptDetails } from '@/services/prompts/promptLoader';
 import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
 import { logRejectedUpload } from '@/lib/ai/rejectedUploads';
 import { getDynamicTypeEnums } from '@/lib/ai/utils';
+import {
+    GeneratedAnalysisContractError,
+    type GeneratedCakeAnalysisResult,
+} from '@/lib/ai/generatedAnalysisContract';
 
 export const ANALYSIS_MODEL = 'gemini-3.5-flash-lite';
 export const AI_REQUEST_TIMEOUT_MS = 120_000;
@@ -26,10 +30,12 @@ type RunCakeAnalysisInput = {
     mimeType: string;
     requestContext?: AIRequestContext;
     sourceContext?: string | null;
+    sourceRoute?: string;
+    persistRejectedUpload?: boolean;
 };
 
 type RunCakeAnalysisResult = {
-    result: Record<string, unknown>;
+    result: GeneratedCakeAnalysisResult;
     promptVersion: string;
 };
 
@@ -99,6 +105,8 @@ export async function runActiveCakeAnalysis({
     mimeType,
     requestContext,
     sourceContext,
+    sourceRoute = 'api/ai/analyze',
+    persistRejectedUpload = true,
 }: RunCakeAnalysisInput): Promise<RunCakeAnalysisResult> {
     const supabase = createClient();
     const [promptDetails, typeEnums] = await Promise.all([
@@ -170,11 +178,12 @@ export async function runActiveCakeAnalysis({
     }
 
     const jsonText = (response.text || '').trim();
-    let result: Record<string, unknown>;
+    let result: GeneratedCakeAnalysisResult;
     try {
-        result = postProcessSearchAnalysisResult(JSON.parse(jsonText) as Record<string, unknown>);
-    } catch {
+        result = postProcessSearchAnalysisResult(JSON.parse(jsonText), typeEnums);
+    } catch (error) {
         console.error('Failed to parse AI response:', jsonText);
+        if (error instanceof GeneratedAnalysisContractError) throw error;
         throw new Error('Invalid response format from AI');
     }
 
@@ -184,14 +193,14 @@ export async function runActiveCakeAnalysis({
         message?: string;
     } | undefined;
 
-    if (rejection?.isRejected) {
+    if (rejection?.isRejected && persistRejectedUpload) {
         await logRejectedUpload({
             imageData,
             mimeType,
             rejection,
             modelName: ANALYSIS_MODEL,
             promptVersion: promptDetails.version,
-            sourceRoute: 'api/ai/analyze',
+            sourceRoute,
             sourceContext: sourceContext ?? null,
             request: requestContext as Request | undefined,
         });
