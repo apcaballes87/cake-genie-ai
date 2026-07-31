@@ -65,9 +65,10 @@ describe('search analysis contract', () => {
 
     expect(SEARCH_ANALYSIS_REJECTION_REASONS).toContain('payment_receipt');
     expect(SEARCH_ANALYSIS_REJECTION_REASONS).toContain('selfie');
-    expect(schema.properties.rejection.properties.reason.enum).toContain('payment_receipt');
-    expect(schema.properties.rejection.properties.reason.enum).toContain('selfie');
-    expect(schema.properties.rejection.properties.reason.enum).toContain('');
+    expect(schema.properties.rejection.properties.reason.description).toContain('payment_receipt');
+    expect(schema.properties.rejection.properties.reason.description).toContain('selfie');
+    expect(schema.properties.rejection.properties.reason.description).toContain('Accepted: empty string');
+    expect(schema.properties.rejection.properties.reason).not.toHaveProperty('enum');
     expect(schema.properties.rejection.required).toContain('reason');
     expect(schema.properties.icing_design.properties.base.enum).toEqual([...SEARCH_ANALYSIS_ICING_BASES]);
     expect(schema.properties.icing_design.properties.color_type.enum).toEqual([...SEARCH_ANALYSIS_COLOR_TYPES]);
@@ -104,8 +105,10 @@ describe('search analysis contract', () => {
     ]));
     expect(schema.properties.icing_design.properties.colors.required).toEqual(['side', 'top']);
     expect(schema.properties.icing_design.properties.gumpasteBaseBoard.type).toBeDefined();
-    expect(schema.properties.cakeType.enum).toContain('Bento Cupcake Set');
-    expect(schema.properties.cakeThickness.enum).toContain('6 in');
+    expect(schema.properties.cakeType.description).toContain('Bento Cupcake Set');
+    expect(schema.properties.cakeThickness.description).toContain('6 in');
+    expect(schema.properties.cakeType).not.toHaveProperty('enum');
+    expect(schema.properties.cakeThickness).not.toHaveProperty('enum');
   });
 
   it('keeps the model-provided thickness without fabricating coordinates', () => {

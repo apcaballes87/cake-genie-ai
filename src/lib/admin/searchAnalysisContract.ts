@@ -42,8 +42,18 @@ export function buildSearchAnalysisResponseSchema(typeEnums: GeneratedAnalysisTy
   return {
     type: Type.OBJECT,
     properties: {
-      cakeType: { type: Type.STRING, enum: ['', ...GENERATED_ANALYSIS_CAKE_TYPES] },
-      cakeThickness: { type: Type.STRING, enum: ['', ...GENERATED_ANALYSIS_CAKE_THICKNESSES] },
+      // Gemini rejects empty strings inside response-schema enum arrays. These
+      // fields must allow "" for the canonical rejected shape, so the provider
+      // schema describes the values and the strict post-generation validator
+      // enforces the actual enum and cake-type/thickness combination.
+      cakeType: {
+        type: Type.STRING,
+        description: `Accepted: ${GENERATED_ANALYSIS_CAKE_TYPES.join(', ')}. Rejected: empty string.`,
+      },
+      cakeThickness: {
+        type: Type.STRING,
+        description: `Accepted: ${GENERATED_ANALYSIS_CAKE_THICKNESSES.join(', ')} subject to the cake-type contract. Rejected: empty string.`,
+      },
       main_toppers: {
         type: Type.ARRAY,
         items: {
@@ -154,7 +164,7 @@ export function buildSearchAnalysisResponseSchema(typeEnums: GeneratedAnalysisTy
           isRejected: { type: Type.BOOLEAN },
           reason: {
             type: Type.STRING,
-            enum: ['', ...SEARCH_ANALYSIS_REJECTION_REASONS],
+            description: `Accepted: empty string. Rejected: exactly one of ${SEARCH_ANALYSIS_REJECTION_REASONS.join(', ')}.`,
           },
           message: { type: Type.STRING },
         },

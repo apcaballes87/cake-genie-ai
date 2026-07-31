@@ -56,7 +56,10 @@ import {
   submitNextSearchAnalysisBatch,
   reconcileSearchAnalysisBatch,
 } from './searchAnalysisBatch';
-import { buildSearchAnalysisResponseSchema } from './searchAnalysisContract';
+import {
+  buildSearchAnalysisResponseSchema,
+  SEARCH_ANALYSIS_REJECTION_REASONS,
+} from './searchAnalysisContract';
 import type { QueueItem } from './searchAnalysisBatch';
 
 const item = (overrides: Record<string, unknown> = {}) => ({
@@ -124,8 +127,8 @@ describe('search analysis batch helpers', () => {
       supportElementTypes: ['dragees', 'sprinkles'],
     }) as any;
 
-    const rejectionReasons = schema.properties.rejection.properties.reason.enum;
-    expect(rejectionReasons).not.toContain('cupcakes_only');
+    expect(SEARCH_ANALYSIS_REJECTION_REASONS).not.toContain('cupcakes_only');
+    expect(schema.properties.rejection.properties.reason.description).not.toContain('cupcakes_only');
 
     const cinderellaCupcakes = {
       cakeType: 'Cupcake',
