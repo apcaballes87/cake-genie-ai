@@ -255,6 +255,24 @@ export function LandingFooter({ reviewSummary }: LandingFooterProps) {
                 />
               </a>
               <a
+                href="https://auraplusplus.com/projects/instant-custom-cake-ordering-in-cebu"
+                target="_blank"
+                rel="noopener"
+                title="View this project on Aura++"
+                className="h-[34px] transition-opacity hover:opacity-80"
+              >
+                <img
+                  src="https://auraplusplus.com/images/badges/featured-on-light.svg"
+                  alt="Featured on Aura++"
+                  width="265"
+                  height="58"
+                  className="h-full w-auto object-contain"
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
+                />
+              </a>
+              <a
                 href="https://starthub.zip"
                 title="starthub.zip"
                 className="text-sm font-semibold text-purple-700 underline underline-offset-4 transition-colors hover:text-purple-900"
