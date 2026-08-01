@@ -1,6 +1,26 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
+const notificationMocks = vi.hoisted(() => ({
+  afterCallbacks: [] as Array<() => void | Promise<void>>,
+  triggerN8nWorkflow: vi.fn(),
+}));
+
+vi.mock('next/server', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('next/server')>();
+
+  return {
+    ...actual,
+    after: vi.fn((callback: () => void | Promise<void>) => {
+      notificationMocks.afterCallbacks.push(callback);
+    }),
+  };
+});
+
+vi.mock('@/services/n8nService', () => ({
+  triggerN8nWorkflow: notificationMocks.triggerN8nWorkflow,
+}));
+
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
 
@@ -57,9 +77,9 @@ const fromMock = vi.fn((table: string) => {
             return { data: null, error: null };
           }
         })),
-        then: (resolve: any) => {
+        then: (resolve: (value: { error: unknown }) => void) => {
           if (handler.onUpdateEq) {
-            handler.onUpdateEq(payload).then((res: any) => resolve({ error: res?.error || null }));
+            handler.onUpdateEq(payload).then((res) => resolve({ error: res?.error || null }));
           } else {
             resolve({ error: null });
           }
@@ -84,6 +104,8 @@ vi.mock('@supabase/supabase-js', () => ({
 describe('POST /api/chat', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    notificationMocks.afterCallbacks.splice(0);
+    notificationMocks.triggerN8nWorkflow.mockResolvedValue({ success: true, status: 200 });
 
     tableHandlers.chat_conversations = {};
     tableHandlers.chat_messages = {};
@@ -161,6 +183,15 @@ describe('POST /api/chat', () => {
       updatedConversationPayloads.push(payload);
     };
     tableHandlers.chat_conversations.onUpdateEq = async () => ({ error: null });
+    tableHandlers.chat_conversations.onSingle = async () => ({
+      data: {
+        customer_name: 'Maria Santos',
+        customer_email: 'maria@example.com',
+        last_customer_page_url: 'https://genie.ph/customizing/older-cake',
+        last_customer_page_title: 'Older Cake | Genie',
+      },
+      error: null,
+    });
 
     const { POST } = await import('./route');
     const request = new NextRequest('http://localhost/api/chat', {
@@ -198,6 +229,53 @@ describe('POST /api/chat', () => {
       }),
     );
     expect(updatedConversationPayloads[0].last_customer_page_seen_at).toEqual(expect.any(String));
+    expect(notificationMocks.afterCallbacks).toHaveLength(1);
+
+    await notificationMocks.afterCallbacks[0]();
+
+    expect(notificationMocks.triggerN8nWorkflow).toHaveBeenCalledTimes(1);
+    expect(notificationMocks.triggerN8nWorkflow).toHaveBeenCalledWith({
+      event: 'customer_chat.message_created',
+      data: {
+        messageId: 'message-1',
+        conversationId: 'conversation-1',
+        senderType: 'customer',
+        content: 'How much is this?',
+        imageUrl: null,
+        customerName: 'Maria Santos',
+        customerEmail: 'maria@example.com',
+        pageUrl: 'https://genie.ph/customizing/minimalist-bento-cake',
+        pageTitle: 'Minimalist Bento Cake | Genie',
+        createdAt: expect.any(String),
+      },
+      metadata: {
+        notificationChannel: 'telegram',
+      },
+    });
+  });
+
+  it('does not schedule a notification when the customer message insert fails', async () => {
+    tableHandlers.chat_messages.onInsertSelectSingle = async () => ({
+      data: null,
+      error: { message: 'Insert failed' },
+    });
+
+    const { POST } = await import('./route');
+    const request = new NextRequest('http://localhost/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'send_message',
+        conversationId: 'conversation-1',
+        content: 'Hello',
+      }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(500);
+    expect(notificationMocks.afterCallbacks).toHaveLength(0);
+    expect(notificationMocks.triggerN8nWorkflow).not.toHaveBeenCalled();
   });
 
   it('links and updates conversation when found via sessionId fallback', async () => {

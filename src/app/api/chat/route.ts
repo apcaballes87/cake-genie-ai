@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { triggerN8nWorkflow } from '@/services/n8nService';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -55,6 +56,71 @@ function buildConversationPageContextUpdate(pageContext: ChatPageContext | null)
     last_customer_page_title: pageContext.title,
     last_customer_page_seen_at: new Date().toISOString(),
   };
+}
+
+type StoredCustomerMessage = {
+  id?: string;
+  content?: string;
+  image_url?: string | null;
+  created_at?: string;
+};
+
+function scheduleCustomerMessageNotification({
+  conversationId,
+  message,
+  pageContext,
+}: {
+  conversationId: string;
+  message: StoredCustomerMessage | null;
+  pageContext: ChatPageContext | null;
+}) {
+  after(async () => {
+    let conversation: {
+      customer_name?: string | null;
+      customer_email?: string | null;
+      last_customer_page_url?: string | null;
+      last_customer_page_title?: string | null;
+    } | null = null;
+
+    try {
+      const { data, error } = await supabaseAdmin!
+        .from('chat_conversations')
+        .select('customer_name, customer_email, last_customer_page_url, last_customer_page_title')
+        .eq('id', conversationId)
+        .single();
+
+      if (error) {
+        console.warn('[customer-chat] Could not load conversation details for notification:', error.message);
+      } else {
+        conversation = data;
+      }
+    } catch (error) {
+      console.warn('[customer-chat] Could not load conversation details for notification:', error);
+    }
+
+    const result = await triggerN8nWorkflow({
+      event: 'customer_chat.message_created',
+      data: {
+        messageId: message?.id || null,
+        conversationId,
+        senderType: 'customer',
+        content: message?.content || '',
+        imageUrl: message?.image_url || null,
+        customerName: conversation?.customer_name || null,
+        customerEmail: conversation?.customer_email || null,
+        pageUrl: pageContext?.url || conversation?.last_customer_page_url || null,
+        pageTitle: pageContext?.title || conversation?.last_customer_page_title || null,
+        createdAt: message?.created_at || new Date().toISOString(),
+      },
+      metadata: {
+        notificationChannel: 'telegram',
+      },
+    });
+
+    if (!result.success) {
+      console.error('[customer-chat] Telegram notification workflow failed:', result.error);
+    }
+  });
 }
 
 export async function GET(request: NextRequest) {
@@ -139,6 +205,19 @@ export async function POST(request: NextRequest) {
         .from('chat_conversations')
         .update(conversationUpdate)
         .eq('id', conversationId);
+
+      const storedMessage = message as StoredCustomerMessage | null;
+
+      scheduleCustomerMessageNotification({
+        conversationId,
+        message: {
+          id: storedMessage?.id,
+          content: storedMessage?.content ?? content ?? '',
+          image_url: storedMessage?.image_url ?? imageUrl ?? null,
+          created_at: storedMessage?.created_at,
+        },
+        pageContext,
+      });
 
       return NextResponse.json({ success: true, data: message }, { status: 201 });
     }
@@ -250,7 +329,7 @@ export async function POST(request: NextRequest) {
 
       if (conversation) {
         // Sync user_id, session_id, customer_email, or customer_name if they are missing or changed
-        const updates: any = {};
+        const updates: Record<string, string> = {};
         
         if (userId && conversation.user_id !== userId) {
           updates.user_id = userId;

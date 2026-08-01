@@ -16,9 +16,20 @@ export interface N8nTriggerResult {
 const DEFAULT_SOURCE = 'genieph-nextjs';
 const N8N_TIMEOUT_MS = 15000;
 
-function getN8nWebhookUrl() {
-  const webhookUrl = process.env.N8N_WEBHOOK_URL?.trim();
+function getN8nWebhookUrl(event: string) {
+  const eventWebhookUrl = event === 'customer_chat.message_created'
+    ? process.env.N8N_CUSTOMER_CHAT_WEBHOOK_URL?.trim()
+    : '';
+  const webhookUrl = eventWebhookUrl || process.env.N8N_WEBHOOK_URL?.trim();
   return webhookUrl || '';
+}
+
+function getN8nWebhookSecret(event: string) {
+  const eventSecret = event === 'customer_chat.message_created'
+    ? process.env.N8N_CUSTOMER_CHAT_WEBHOOK_SECRET?.trim()
+    : '';
+
+  return eventSecret || process.env.N8N_WEBHOOK_SECRET?.trim() || '';
 }
 
 async function readResponseText(response: Response) {
@@ -38,20 +49,20 @@ async function readResponseText(response: Response) {
 export async function triggerN8nWorkflow(
   payload: N8nTriggerPayload
 ): Promise<N8nTriggerResult> {
-  const webhookUrl = getN8nWebhookUrl();
+  const webhookUrl = getN8nWebhookUrl(payload.event);
 
   if (!webhookUrl) {
-    console.warn('[n8n] N8N_WEBHOOK_URL is not set. Skipping trigger.');
+    console.warn(`[n8n] No webhook URL is configured for ${payload.event}. Skipping trigger.`);
     return {
       success: true,
       skipped: true,
-      error: 'N8N_WEBHOOK_URL is not configured',
+      error: `No n8n webhook URL is configured for ${payload.event}`,
     };
   }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), N8N_TIMEOUT_MS);
-  const secret = process.env.N8N_WEBHOOK_SECRET?.trim();
+  const secret = getN8nWebhookSecret(payload.event);
 
   try {
     const response = await fetch(webhookUrl, {

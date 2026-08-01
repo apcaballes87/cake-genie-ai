@@ -1,0 +1,180 @@
+{
+  "name": "Genie.ph - New customer chat to Telegram",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "customer-chat-telegram-79504111-e969-4f9a-a233-c4544bed40ba",
+        "authentication": "headerAuth",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "79504111-e969-4f9a-a233-c4544bed40ba",
+      "name": "Customer chat webhook",
+      "webhookId": "79504111-e969-4f9a-a233-c4544bed40ba",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "replace-with-header-auth-credential-id",
+          "name": "Genie app webhook secret"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const webhookItem = $input.item.json;\nconst payload = webhookItem.body ?? webhookItem;\n\nif (payload.event !== 'customer_chat.message_created') {\n  throw new Error('Unsupported event');\n}\n\nconst data = payload.data ?? {};\nconst textValue = (value, fallback = '') =>\n  typeof value === 'string' && value.trim() ? value.trim() : fallback;\n\nconst imageUrl = textValue(data.imageUrl);\nconst rawMessage = textValue(\n  data.content,\n  imageUrl ? '(Customer sent an image)' : '(No message text)'\n);\nconst message = rawMessage.length > 2500\n  ? `${rawMessage.slice(0, 2500)}…`\n  : rawMessage;\n\nconst receivedAt = new Date(textValue(data.createdAt, payload.sentAt));\nconst receivedLabel = Number.isNaN(receivedAt.getTime())\n  ? textValue(data.createdAt, payload.sentAt ?? 'Unknown')\n  : receivedAt.toLocaleString('en-PH', {\n      timeZone: 'Asia/Manila',\n      dateStyle: 'medium',\n      timeStyle: 'short',\n    });\n\nconst lines = [\n  '🔔 New Genie.ph customer message',\n  '',\n  `From: ${textValue(data.customerName, 'Guest customer')}`,\n];\n\nconst customerEmail = textValue(data.customerEmail);\nif (customerEmail) lines.push(`Email: ${customerEmail}`);\n\nlines.push('', 'Message:', message);\n\nconst pageTitle = textValue(data.pageTitle);\nconst pageUrl = textValue(data.pageUrl);\nif (pageTitle || pageUrl) {\n  lines.push('', `Page: ${pageTitle || pageUrl}`);\n  if (pageTitle && pageUrl) lines.push(pageUrl);\n}\n\nlines.push('', `Conversation: ${textValue(data.conversationId, 'Unknown')}`);\nlines.push(`Received: ${receivedLabel} (Manila)`);\n\nreturn {\n  json: {\n    textContent: lines.join('\\n'),\n    imageUrl,\n    hasImage: Boolean(imageUrl),\n    conversationId: textValue(data.conversationId),\n    messageId: textValue(data.messageId),\n  },\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "id": "6709829d-88bd-4ed5-a73a-48c5c3247558",
+      "name": "Format Telegram alert"
+    },
+    {
+      "parameters": {
+        "chatId": "8338914088",
+        "text": "={{ $('Format Telegram alert').item.json.textContent }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        480,
+        0
+      ],
+      "id": "69a727ee-c53b-461b-9ff1-2ca2e343cfb9",
+      "name": "Send a text message",
+      "webhookId": "c22818cd-b49b-4e8e-9358-4b059a3a2b51",
+      "credentials": {
+        "telegramApi": {
+          "id": "3XtMcYGvIV5NkxP7",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "5a0e1d03-05c2-464f-a587-b0686e63e69a",
+              "leftValue": "={{ $('Format Telegram alert').item.json.imageUrl }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        720,
+        0
+      ],
+      "id": "89d14d29-4d1c-47f4-b8c7-2153b843a09f",
+      "name": "Has an image?"
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "8338914088",
+        "file": "={{ $('Format Telegram alert').item.json.imageUrl }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        960,
+        -96
+      ],
+      "id": "ffec0716-736d-4222-9c5d-f3121b7553ea",
+      "name": "Send a photo message",
+      "webhookId": "b9d0dae1-8bdd-4ad8-8b3e-7758ace55c58",
+      "credentials": {
+        "telegramApi": {
+          "id": "3XtMcYGvIV5NkxP7",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Customer chat webhook": {
+      "main": [
+        [
+          {
+            "node": "Format Telegram alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Telegram alert": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        [
+          {
+            "node": "Has an image?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has an image?": {
+      "main": [
+        [
+          {
+            "node": "Send a photo message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1bb5f45f-668f-49d6-a8a6-f472c4bd7203",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f1ddbb80e4c9c5d922b29d37f277d3e4ee1e924685fd2154900480baa882b447"
+  },
+  "tags": []
+}
