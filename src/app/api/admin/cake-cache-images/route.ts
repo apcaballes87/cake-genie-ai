@@ -1,17 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import {
+  ADMIN_IMAGE_STUDIO_PIN,
   IMAGE_STUDIO_PAGE_SIZE,
   IMAGE_STUDIO_SMALL_IMAGE_DIMENSION_THRESHOLD,
   normalizeImageStudioStatus,
 } from '@/lib/admin/imageStudio';
 import { runImageStudioJob, type ImageStudioCacheRow } from '@/lib/admin/imageStudioJob';
 import { normalizeAiRouteError } from '@/lib/ai/routeError';
-import { requireChatbotStaff } from '@/lib/chatbot/adminAuth';
+import { createPublicServerSupabaseClient } from '@/lib/supabase/publicServer';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 180;
+
+const isAuthorized = (req: NextRequest) => {
+  return req.headers.get('x-admin-pin') === ADMIN_IMAGE_STUDIO_PIN;
+};
+
+const unauthorizedResponse = () => {
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+};
 
 const sanitizeSearchTerm = (value: string) => {
   return value.replace(/[^a-zA-Z0-9\s-]/g, ' ').trim().replace(/\s+/g, ' ');
@@ -47,8 +56,9 @@ const getErrorMessage = (error: unknown) => {
 
 
 export const GET = async (req: NextRequest) => {
-  const verified = await requireChatbotStaff(req, ['owner', 'admin']);
-  if (!verified.staff) return NextResponse.json({ error: verified.error }, { status: verified.status });
+  if (!isAuthorized(req)) {
+    return unauthorizedResponse();
+  }
 
   const url = new URL(req.url);
   const page = parsePositiveInt(url.searchParams.get('page'), 1, 9999);
@@ -59,7 +69,7 @@ export const GET = async (req: NextRequest) => {
     !rawStatus || rawStatus === 'all' ? 'all' : normalizeImageStudioStatus(rawStatus);
   const sizeFilter = url.searchParams.get('size') === 'small' ? 'small' : 'all';
 
-  const supabase = verified.staff.database;
+  const supabase = createPublicServerSupabaseClient();
   let query = supabase
     .from('cakegenie_analysis_cache')
     .select('*', { count: 'exact' })
@@ -125,8 +135,9 @@ export const GET = async (req: NextRequest) => {
 };
 
 export const POST = async (req: NextRequest) => {
-  const verified = await requireChatbotStaff(req, ['owner', 'admin']);
-  if (!verified.staff) return NextResponse.json({ error: verified.error }, { status: verified.status });
+  if (!isAuthorized(req)) {
+    return unauthorizedResponse();
+  }
 
   try {
     const body = await req.json();
@@ -161,8 +172,9 @@ export const POST = async (req: NextRequest) => {
 };
 
 export const PATCH = async (req: NextRequest) => {
-  const verified = await requireChatbotStaff(req, ['owner', 'admin']);
-  if (!verified.staff) return NextResponse.json({ error: verified.error }, { status: verified.status });
+  if (!isAuthorized(req)) {
+    return unauthorizedResponse();
+  }
 
   try {
     const body = await req.json();
@@ -184,7 +196,7 @@ export const PATCH = async (req: NextRequest) => {
       );
     }
 
-    const supabase = verified.staff.database;
+    const supabase = createPublicServerSupabaseClient();
     const updatePayload: {
       studio_edit_status: string;
       studio_edit_error?: string | null;
@@ -235,8 +247,9 @@ export const PATCH = async (req: NextRequest) => {
 };
 
 export const DELETE = async (req: NextRequest) => {
-  const verified = await requireChatbotStaff(req, ['owner', 'admin']);
-  if (!verified.staff) return NextResponse.json({ error: verified.error }, { status: verified.status });
+  if (!isAuthorized(req)) {
+    return unauthorizedResponse();
+  }
 
   try {
     const url = new URL(req.url);
@@ -249,7 +262,7 @@ export const DELETE = async (req: NextRequest) => {
       );
     }
 
-    const supabase = verified.staff.database;
+    const supabase = createPublicServerSupabaseClient();
     const { error } = await supabase
       .from('cakegenie_analysis_cache')
       .delete()
@@ -272,3 +285,4 @@ export const DELETE = async (req: NextRequest) => {
     );
   }
 };
+

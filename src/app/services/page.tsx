@@ -5,10 +5,6 @@ import {
   GENIE_BASE_URL,
 } from '@/lib/seo/genieBusinessProfile'
 import { buildMarketingPageMetadata } from '@/lib/utils/metadata'
-import { loadBusinessProfile } from '@/lib/chatbot/knowledge'
-import { createAdminServerSupabaseClient } from '@/lib/supabase/adminServer'
-
-export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = buildMarketingPageMetadata({
   title: 'Custom Cake Services in Cebu',
@@ -17,8 +13,7 @@ export const metadata: Metadata = buildMarketingPageMetadata({
   canonicalPath: `${GENIE_BASE_URL}/services`,
 })
 
-export default async function ServicesPage() {
-  const businessProfile = await loadBusinessProfile(createAdminServerSupabaseClient())
+export default function ServicesPage() {
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'Service',
@@ -123,13 +118,13 @@ export default async function ServicesPage() {
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-purple-600">Need help?</p>
               <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-900">Talk to Genie.ph</h2>
               <div className="mt-5 space-y-3 text-sm leading-6 text-slate-600">
-                <p>{businessProfile.addressLine}</p>
-                <p>{businessProfile.hoursDisplay}</p>
-                <a href={businessProfile.phoneHref} className="block hover:text-purple-600 transition-colors font-medium">
-                  {businessProfile.phoneDisplay}
+                <p>{genieBusinessProfile.addressLine}</p>
+                <p>{genieBusinessProfile.hoursDisplay}</p>
+                <a href={genieBusinessProfile.phoneHref} className="block hover:text-purple-600 transition-colors font-medium">
+                  {genieBusinessProfile.phoneDisplay}
                 </a>
-                <a href={`mailto:${businessProfile.supportEmail}`} className="block hover:text-purple-600 transition-colors font-medium">
-                  {businessProfile.supportEmail}
+                <a href={`mailto:${genieBusinessProfile.supportEmail}`} className="block hover:text-purple-600 transition-colors font-medium">
+                  {genieBusinessProfile.supportEmail}
                 </a>
               </div>
               <div className="mt-6 flex flex-wrap gap-3">
@@ -137,7 +132,7 @@ export default async function ServicesPage() {
                   Contact us
                 </Link>
                 <a
-                  href={businessProfile.mapUrl}
+                  href={genieBusinessProfile.mapUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="genie-btn-secondary border border-purple-200 px-5 py-2.5 rounded-full text-sm font-bold shadow-xs hover:scale-[1.02] transition-transform"

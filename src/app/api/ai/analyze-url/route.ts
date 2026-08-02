@@ -6,7 +6,6 @@ import { isRejectedGeneratedCakeAnalysis } from '@/lib/ai/generatedAnalysisContr
 import { cacheAnalysisResult } from '@/services/supabaseService';
 import { computeImageFingerprint } from '@/lib/server/imageFingerprint';
 import { convertToWebPBuffer } from '@/lib/utils/imageHash';
-import { runImageStudioJob } from '@/lib/admin/imageStudioJob';
 
 export const runtime = 'nodejs';
 export const maxDuration = 150;
@@ -244,13 +243,18 @@ export async function POST(req: NextRequest) {
 
             // Trigger background studio edit in parallel with the canonical stored hash.
             after(async () => {
-                console.log(`[Background] Triggering studio edit for ${cachedResult.storedPHash}`);
+                console.log(`[Background] Triggering studio edit for ${cachedResult.storedPHash} at ${req.nextUrl.origin}/api/admin/cake-cache-images`);
                 try {
-                    await runImageStudioJob({
-                        pHash: cachedResult.storedPHash,
-                        requestContext: req,
-                        requireExistingRow: true,
+                    const res = await fetch(`${req.nextUrl.origin}/api/admin/cake-cache-images`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-admin-pin': '231323',
+                        },
+                        body: JSON.stringify({ pHash: cachedResult.storedPHash })
                     });
+                    const text = await res.text();
+                    console.log(`[Background] Studio edit fetch response: ${res.status} ${res.statusText} - ${text.slice(0, 200)}`);
                 } catch (e) {
                     console.error('[Background] Background studio edit failed:', e);
                 }

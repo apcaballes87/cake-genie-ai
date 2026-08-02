@@ -3,16 +3,6 @@ import { NextRequest } from 'next/server';
 
 const mockSearchCakeAnalysisResults = vi.fn();
 const mockReplaceCakeAnalysisByHash = vi.fn();
-const mockRequireChatbotStaff = vi.fn();
-
-vi.mock('@/lib/chatbot/adminAuth', () => ({
-  requireChatbotStaff: (...args: unknown[]) => mockRequireChatbotStaff(...args),
-  adminCorsHeaders: (_request: NextRequest, methods: string[]) => ({
-    'Access-Control-Allow-Origin': 'http://localhost',
-    'Access-Control-Allow-Headers': 'Authorization, Content-Type',
-    'Access-Control-Allow-Methods': [...methods, 'OPTIONS'].join(', '),
-  }),
-}));
 
 vi.mock('@/lib/admin/cakeAnalysisSearch', () => ({
   CakeAnalysisSearchError: class CakeAnalysisSearchError extends Error {
@@ -31,21 +21,14 @@ describe('/api/admin/cake-analysis-search', () => {
     vi.resetModules();
     mockSearchCakeAnalysisResults.mockReset();
     mockReplaceCakeAnalysisByHash.mockReset();
-    mockRequireChatbotStaff.mockReset();
-    mockRequireChatbotStaff.mockResolvedValue({
-      staff: { role: 'admin', user: { id: 'staff-id' }, database: {} },
-      error: null,
-      status: 200,
-    });
   });
 
-  it('rejects requests without an authenticated staff session', async () => {
-    mockRequireChatbotStaff.mockResolvedValue({ staff: null, error: 'Authentication required', status: 401 });
+  it('rejects requests without the admin pin', async () => {
     const { GET } = await import('./route');
     const response = await GET(new NextRequest('http://localhost/api/admin/cake-analysis-search?q=birthday'));
 
     expect(response.status).toBe(401);
-    expect(await response.json()).toEqual({ error: 'Authentication required' });
+    expect(await response.json()).toEqual({ error: 'Unauthorized' });
     expect(mockSearchCakeAnalysisResults).not.toHaveBeenCalled();
   });
 
@@ -53,7 +36,7 @@ describe('/api/admin/cake-analysis-search', () => {
     mockSearchCakeAnalysisResults.mockResolvedValue({ data: [{ p_hash: 'abc' }], total: 31 });
     const { GET } = await import('./route');
     const request = new NextRequest('http://localhost/api/admin/cake-analysis-search?q=birthday&limit=100&offset=30', {
-      headers: { authorization: 'Bearer staff-token' },
+      headers: { 'x-admin-pin': '231323' },
     });
 
     const response = await GET(request);
@@ -73,7 +56,7 @@ describe('/api/admin/cake-analysis-search', () => {
     const { POST } = await import('./route');
     const request = new NextRequest('http://localhost/api/admin/cake-analysis-search', {
       method: 'POST',
-      headers: { authorization: 'Bearer staff-token', 'content-type': 'application/json' },
+      headers: { 'x-admin-pin': '231323', 'content-type': 'application/json' },
       body: JSON.stringify({}),
     });
 
@@ -95,7 +78,7 @@ describe('/api/admin/cake-analysis-search', () => {
     const { POST } = await import('./route');
     const request = new NextRequest('http://localhost/api/admin/cake-analysis-search', {
       method: 'POST',
-      headers: { authorization: 'Bearer staff-token', 'content-type': 'application/json' },
+      headers: { 'x-admin-pin': '231323', 'content-type': 'application/json' },
       body: JSON.stringify({ pHash: 'abc' }),
     });
 
@@ -113,13 +96,5 @@ describe('/api/admin/cake-analysis-search', () => {
       },
     });
     expect(mockReplaceCakeAnalysisByHash).toHaveBeenCalledWith('abc', request);
-  });
-
-  it('allows Authorization in CORS preflight responses', async () => {
-    const { OPTIONS } = await import('./route');
-    const response = await OPTIONS(new NextRequest('http://localhost/api/admin/cake-analysis-search', { method: 'OPTIONS' }));
-
-    expect(response.status).toBe(204);
-    expect(response.headers.get('access-control-allow-headers')).toBe('Authorization, Content-Type');
   });
 });

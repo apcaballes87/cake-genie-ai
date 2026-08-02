@@ -66,7 +66,7 @@ The two are tied together by the **analysis cache** — every cake image analyze
 
 `/account` (dashboard), `/account/orders`, `/account/addresses`, `/account/merchants/reviews` (merchant-side review management).
 
-### 2.4 Admin (historically PIN-gated; the shared browser PIN has since been removed in favor of Supabase staff authentication)
+### 2.4 Admin (PIN-gated, all `'use client'`, all client-side hardcoded PIN `231323` or `ADMIN_IMAGE_STUDIO_PIN`)
 
 `/admin/bulk-analysis` (CSV → AI analysis pipeline), `/admin/icing-recolor-lab`, `/admin/image-studio` (cache review + pastel-purple cyclorama edits), `/admin/pinterest` (OAuth + board sync), `/admin/search-analysis` (Google CSE → AI batch). **No `/admin` index page** — visiting `/admin` directly 404s.
 

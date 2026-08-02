@@ -15,14 +15,12 @@ import {
     toFingerprintLookup,
 } from '@/lib/utils/serverFingerprint.client';
 import Link from 'next/link';
-import { getBrowserChatPageContext } from '@/lib/chatbot/pageContext';
-import { getChatImageObjectPath } from '@/lib/chatbot/attachments';
 
 interface ChatMessage {
     id: string;
     content: string;
     image_url: string | null;
-    sender_type: 'customer' | 'merchant' | 'system' | 'assistant';
+    sender_type: string;
     created_at: string;
     is_read: boolean;
 }
@@ -40,10 +38,15 @@ interface Message {
     imageUrl?: string;
     productLink?: ProductLink;
     isUser: boolean;
-    sender_type: 'customer' | 'merchant' | 'system' | 'assistant';
+    sender_type: 'customer' | 'merchant' | 'system';
     timestamp: string;
     is_read: boolean;
     is_sent?: boolean;
+}
+
+interface ChatPageContext {
+    url: string;
+    title: string;
 }
 
 interface ChatModalProps {
@@ -69,12 +72,6 @@ const CHAT_IMAGE_MANUAL_REVIEW_MESSAGE = "Thanks for sharing your cake image! Ou
 const CHAT_IMAGE_FINALIZING_MESSAGE = "⏳ I've analyzed your cake image! I'm finalizing the customization link and will send it here shortly.";
 const CHAT_IMAGE_VALIDATION_FALLBACK_MESSAGE = "Thanks for sending the image. We couldn't automatically identify it yet. If this is for cake pricing, please upload a single cake design. If it's for an edible photo or payment proof, you can send that too.";
 
-type ImageAnalysisNoticeType = keyof typeof CHAT_IMAGE_CLASSIFICATION_MESSAGES
-    | 'validation_fallback'
-    | 'manual_review'
-    | 'finalizing'
-    | 'analyzed';
-
 function formatChatCustomizationLinkMessage(title: string | null, price: number | null, slug: string): string {
     const priceDisplay = price ? `₱${Math.round(price).toLocaleString()}` : 'Check price';
     const safeTitle = title || 'Your cake design';
@@ -98,6 +95,17 @@ function getChatImageAnalysisErrorMessage(error: unknown): string {
 function extractProductLink(text: string): string | null {
     const match = text.match(/customizing\/([a-zA-Z0-9-]+)/);
     return match ? match[1] : null;
+}
+
+function getCurrentPageContext(): ChatPageContext | null {
+    if (typeof window === 'undefined') {
+        return null;
+    }
+
+    return {
+        url: window.location.href,
+        title: document.title || '',
+    };
 }
 
 async function fetchProductBySlug(slug: string, supabase: ReturnType<typeof createClient>): Promise<{ title: string; imageUrl: string; price: string } | null> {
@@ -153,31 +161,30 @@ const ProductLinkCard: React.FC<{ slug: string; supabase: ReturnType<typeof crea
     );
 };
 
-async function requestImageAnalysisNotice(
-    conversationId: string,
-    noticeType: ImageAnalysisNoticeType,
-    slug?: string | null,
-): Promise<string | null> {
+async function saveSystemMessage(conversationId: string, content: string): Promise<string | null> {
     try {
+        console.log('💾 Saving system message:', { conversationId, content: content.substring(0, 50) });
+
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                action: 'get_image_analysis_notice',
+                action: 'send_system_message',
                 conversationId,
-                noticeType,
-                slug: slug || undefined,
+                content,
             }),
         });
 
         const result = await response.json();
-        if (result.success && typeof result.data?.content === 'string') {
-            return result.data.content;
+        console.log('💾 Save result:', result);
+
+        if (result.success && result.data) {
+            return result.data.id;
         }
-        console.error('Error getting image-analysis notice:', result.error);
+        console.error('Error saving system message:', result.error);
         return null;
     } catch (err) {
-        console.error('Error getting image-analysis notice:', err);
+        console.error('Error saving system message:', err);
         return null;
     }
 }
@@ -276,12 +283,16 @@ async function analyzeImageWithCache(
     return { analysis: finalResult, slug: null, title: null, price: null, imageUrl: null, cacheKey, pipeline: fingerprint.pipeline };
 }
 
-const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose }) => {
+const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmail, userName }) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputValue, setInputValue] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const [conversationId, setConversationId] = useState<string | null>(null);
+    const [sessionId, setSessionId] = useState<string>('');
     const [isLocalStorageLoaded, setIsLocalStorageLoaded] = useState(false);
+    const [showEmailForm, setShowEmailForm] = useState(false);
+    const [email, setEmail] = useState('');
+    const [name, setName] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
     const pendingImageHashRef = useRef<string | null>(null);
@@ -298,6 +309,21 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose }) => {
     };
 
     useEffect(() => {
+        let storedSession = localStorage.getItem('chat_session_id');
+        if (!storedSession) {
+            storedSession = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+            localStorage.setItem('chat_session_id', storedSession);
+        }
+        setSessionId(storedSession);
+
+        const guestEmail = localStorage.getItem('cart_guest_email');
+        const guestName = localStorage.getItem('cart_pickup_name');
+        if (guestEmail) {
+            setEmail(guestEmail);
+        }
+        if (guestName) {
+            setName(guestName);
+        }
         setIsLocalStorageLoaded(true);
     }, []);
 
@@ -318,28 +344,17 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose }) => {
                     table: 'chat_messages',
                     filter: `conversation_id=eq.${conversationId}`,
                 },
-                async (payload) => {
+                (payload) => {
                     const newMessage = payload.new as ChatMessage;
                     if (newMessage.sender_type !== 'customer') {
-                        let resolvedImageUrl = newMessage.image_url;
-                        const attachmentReference = getChatImageObjectPath(resolvedImageUrl);
-                        if (attachmentReference) {
-                            try {
-                                const response = await fetch(`/api/chat/attachments?conversationId=${encodeURIComponent(conversationId)}&path=${encodeURIComponent(attachmentReference)}`);
-                                const result = await response.json();
-                                resolvedImageUrl = result.data?.signedUrl || null;
-                            } catch {
-                                resolvedImageUrl = null;
-                            }
-                        }
                         setMessages((prev) => {
                             if (prev.some((m) => m.id === newMessage.id)) return prev;
                             const newMsg: Message = {
                                 id: newMessage.id,
                                 text: newMessage.content,
-                                imageUrl: resolvedImageUrl || undefined,
+                                imageUrl: newMessage.image_url || undefined,
                                 isUser: false,
-                                sender_type: newMessage.sender_type as 'merchant' | 'system' | 'assistant',
+                                sender_type: newMessage.sender_type as 'merchant' | 'system',
                                 timestamp: newMessage.created_at,
                                 is_read: newMessage.is_read,
                                 is_sent: true,
@@ -374,7 +389,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose }) => {
     }, [conversationId, supabase]);
 
     useEffect(() => {
-        if (isOpen && isLocalStorageLoaded) {
+        if (isOpen && sessionId && isLocalStorageLoaded) {
             loadOrCreateConversation();
         } else if (!isOpen) {
             clearPendingImageFollowUps();
@@ -382,7 +397,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose }) => {
             setConversationId(null);
             setIsLoading(true);
         }
-    }, [isOpen, isLocalStorageLoaded]);
+    }, [isOpen, sessionId, userId, isLocalStorageLoaded]);
 
     useEffect(() => {
         return () => {
@@ -393,17 +408,16 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose }) => {
     const loadOrCreateConversation = async () => {
         setIsLoading(true);
         try {
-            const { data: sessionData } = await supabase.auth.getSession();
-            if (!sessionData.session) {
-                const { error: anonymousAuthError } = await supabase.auth.signInAnonymously();
-                if (anonymousAuthError) throw anonymousAuthError;
-            }
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     action: 'start_conversation',
-                    pageContext: getBrowserChatPageContext(),
+                    sessionId: sessionId || undefined,
+                    userId: userId || undefined,
+                    email: userEmail || email || undefined,
+                    name: userName || name || undefined,
+                    pageContext: getCurrentPageContext(),
                 }),
             });
 
@@ -458,18 +472,28 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose }) => {
         }
     };
 
-    const uploadImage = async (file: File): Promise<{ reference: string; signedUrl: string } | null> => {
-        if (!conversationId) return null;
-        const formData = new FormData();
-        formData.set('conversationId', conversationId);
-        formData.set('file', file, `customer-chat.${getCustomerChatImageExtension(file)}`);
-        const response = await fetch('/api/chat/attachments', { method: 'POST', body: formData });
-        const result = await response.json();
-        if (!response.ok || !result.success || !result.data?.reference || !result.data?.signedUrl) {
-            console.error('Error uploading image:', result.error);
+    const uploadImage = async (file: File): Promise<string | null> => {
+        const fileExt = getCustomerChatImageExtension(file);
+        const fileName = `${conversationId}_${Date.now()}.${fileExt}`;
+        const filePath = `messages/${fileName}`;
+
+        const { error } = await supabase.storage
+            .from('chat-images')
+            .upload(filePath, file, {
+                contentType: file.type || 'application/octet-stream',
+                upsert: false,
+            });
+
+        if (error) {
+            console.error('Error uploading image:', error);
             return null;
         }
-        return result.data;
+
+        const { data: urlData } = supabase.storage
+            .from('chat-images')
+            .getPublicUrl(filePath);
+
+        return urlData.publicUrl;
     };
 
     const queueImageLinkFollowUp = (analysisId: number, cacheKey: string, pipeline?: string | null) => {
@@ -508,11 +532,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose }) => {
             setMessages((prev) => [...prev, followUpMessage]);
 
             if (conversationId) {
-                requestImageAnalysisNotice(
-                    conversationId,
-                    recheck?.seoMetadata.slug ? 'analyzed' : 'manual_review',
-                    recheck?.seoMetadata.slug,
-                );
+                saveSystemMessage(conversationId, followUpText);
             }
 
             pendingImageHashRef.current = null;
@@ -534,9 +554,8 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose }) => {
 
         try {
             const preparedFile = await prepareCustomerChatImage(file);
-            const uploadedImage = await uploadImage(preparedFile);
-            if (uploadedImage) {
-                const imageUrl = uploadedImage.signedUrl;
+            const imageUrl = await uploadImage(preparedFile);
+            if (imageUrl) {
                 const userMessage: Message = {
                     id: `temp_${Date.now()}`,
                     text: inputValue || '',
@@ -557,9 +576,10 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose }) => {
                         action: 'send_message',
                         conversationId,
                         content: inputValue || '',
-                        attachmentReference: uploadedImage.reference,
-                        clientMessageId: crypto.randomUUID(),
-                        pageContext: getBrowserChatPageContext(),
+                        imageUrl,
+                        sessionId: sessionId || undefined,
+                        userId: userId || undefined,
+                        pageContext: getCurrentPageContext(),
                     }),
                 });
 
@@ -591,7 +611,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose }) => {
 
                         setMessages(prev => [...prev, validationFallbackMessage]);
                         if (conversationId) {
-                            requestImageAnalysisNotice(conversationId, 'validation_fallback');
+                            saveSystemMessage(conversationId, validationFallbackMessage.text);
                         }
                         return;
                     }
@@ -613,10 +633,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose }) => {
                         setMessages(prev => [...prev, botMessage]);
 
                         if (conversationId) {
-                            const noticeType = Object.hasOwn(CHAT_IMAGE_CLASSIFICATION_MESSAGES, imageClassification)
-                                ? imageClassification as keyof typeof CHAT_IMAGE_CLASSIFICATION_MESSAGES
-                                : 'manual_review';
-                            requestImageAnalysisNotice(conversationId, noticeType);
+                            saveSystemMessage(conversationId, nonCakeReply);
                         }
                         return;
                     }
@@ -648,15 +665,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose }) => {
                     setMessages(prev => [...prev, botMessage]);
 
                     if (conversationId) {
-                        requestImageAnalysisNotice(
-                            conversationId,
-                            analysisResult.analysis && analysisResult.slug
-                                ? 'analyzed'
-                                : analysisResult.analysis
-                                    ? 'finalizing'
-                                    : 'manual_review',
-                            analysisResult.slug,
-                        );
+                        saveSystemMessage(conversationId, botResponse);
                     }
 
                     if (analysisResult.analysis && !analysisResult.slug && analysisResult.cacheKey) {
@@ -676,10 +685,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose }) => {
                     };
                     setMessages(prev => [...prev, fallbackMessage]);
                     if (conversationId) {
-                        requestImageAnalysisNotice(
-                            conversationId,
-                            errorMessage === CHAT_IMAGE_VALIDATION_FALLBACK_MESSAGE ? 'validation_fallback' : 'manual_review',
-                        );
+                        saveSystemMessage(conversationId, fallbackMessage.text);
                     }
                 } finally {
                     setIsTyping(false);
@@ -718,8 +724,9 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose }) => {
                     action: 'send_message',
                     conversationId,
                     content: inputValue,
-                    clientMessageId: crypto.randomUUID(),
-                    pageContext: getBrowserChatPageContext(),
+                    sessionId: sessionId || undefined,
+                    userId: userId || undefined,
+                    pageContext: getCurrentPageContext(),
                 }),
             });
 
@@ -730,7 +737,30 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose }) => {
                 ));
             }
 
-            setIsTyping(false);
+            setTimeout(() => {
+                const responses = [
+                    "Thanks for reaching out! Our team will get back to you shortly.",
+                    "We appreciate your message. We'll respond as soon as possible!",
+                    "Got it! Someone from our team will be with you soon.",
+                    "Thank you! Is there anything else we can help you with?"
+                ];
+                const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+
+                const botMessage: Message = {
+                    id: `sys_${Date.now()}`,
+                    text: randomResponse,
+                    isUser: false,
+                    sender_type: 'system',
+                    timestamp: new Date().toISOString(),
+                    is_read: true,
+                };
+
+                setMessages(prev => [...prev, botMessage]);
+                if (conversationId) {
+                    saveSystemMessage(conversationId, randomResponse);
+                }
+                setIsTyping(false);
+            }, 1500);
         } catch (err) {
             console.error('Error sending message:', err);
             setIsTyping(false);
@@ -744,7 +774,73 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose }) => {
         }
     };
 
+    const handleGuestDetailsSubmit = async () => {
+        if (!email.trim()) return;
+
+        setShowEmailForm(false);
+        await loadOrCreateConversation();
+    };
+
     if (!isOpen) return null;
+
+    if (showEmailForm) {
+        return (
+            <div
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[120] flex items-center justify-center p-4 transition-opacity duration-200 animate-fade-in"
+                onClick={onClose}
+                aria-modal="true"
+                role="dialog"
+            >
+                <div
+                    className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-fade-in"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <h2 className="text-lg font-bold text-slate-800 mb-4">Before we continue...</h2>
+                    <p className="text-sm text-slate-600 mb-4">Please share your contact details so we can follow up with you.</p>
+
+                    <div className="space-y-3">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Name (optional)</label>
+                            <input
+                                type="text"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="Your name"
+                                className="w-full px-4 py-2 border border-slate-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Email *</label>
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="your@email.com"
+                                className="w-full px-4 py-2 border border-slate-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex gap-2 mt-6">
+                        <button
+                            onClick={onClose}
+                            className="flex-1 px-4 py-2 border border-slate-200 text-slate-600 rounded-full hover:bg-slate-50 transition-colors"
+                        >
+                            Skip
+                        </button>
+                        <button
+                            onClick={handleGuestDetailsSubmit}
+                            disabled={!email.trim()}
+                            className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition-colors disabled:opacity-50"
+                        >
+                            Continue
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div
@@ -810,11 +906,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose }) => {
                                                         ? 'text-white underline decoration-white/70 hover:text-purple-100'
                                                         : 'text-purple-700 underline hover:text-purple-900'}
                                                 />
-                                            )}
-                                            {message.sender_type === 'assistant' && (
-                                                <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-purple-600">
-                                                    Genie Assistant
-                                                </p>
                                             )}
                                             {productSlug && (
                                                 <ProductLinkCard slug={productSlug} supabase={supabase} />
@@ -904,20 +995,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose }) => {
                     <p className="text-xs text-slate-500 text-center mt-2">
                         Available Mon-Sat, 9AM-6PM
                     </p>
-                    <button
-                        type="button"
-                        onClick={async () => {
-                            if (!conversationId) return;
-                            await fetch('/api/chat', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ action: 'request_human', conversationId }),
-                            });
-                        }}
-                        className="mt-1 w-full text-center text-xs font-medium text-purple-700 hover:underline"
-                    >
-                        Talk to a person
-                    </button>
                 </div>
             </div>
         </div>

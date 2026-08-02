@@ -7,7 +7,6 @@ import { ArrowLeft, Award, Target, Rocket, Users, Handshake, Search, Upload, Edi
 import LazyImage from '@/components/LazyImage';
 import { genieBusinessProfile } from '@/lib/seo/genieBusinessProfile';
 import { useImageZoomScrollLock } from '@/hooks/useImageZoomScrollLock';
-import { usePublishedBusinessProfile } from '@/hooks/usePublishedBusinessProfile';
 
 const Section: React.FC<{ title: string; children: React.ReactNode; className?: string }> = ({ title, children, className = '' }) => (
     <div className={`pt-6 border-t border-slate-200 ${className}`}>
@@ -52,7 +51,6 @@ const PermitThumbnail: React.FC<{ src: string; alt: string; onClick: () => void 
 const AboutClient: React.FC = () => {
     const router = useRouter();
     const [zoomedPermit, setZoomedPermit] = useState<string | null>(null);
-    const businessProfile = usePublishedBusinessProfile();
 
     useImageZoomScrollLock(Boolean(zoomedPermit));
 
@@ -150,10 +148,10 @@ const AboutClient: React.FC = () => {
 
                     <Section title="Location and Support">
                         <p>
-                            Genie.ph is based at {businessProfile.addressLine} and currently focuses on {businessProfile.serviceArea}, including {genieBusinessProfile.serviceAreas.join(', ')}.
+                            Genie.ph is based at {genieBusinessProfile.addressLine} and currently focuses on Metro Cebu service areas including {genieBusinessProfile.serviceAreas.join(', ')}.
                         </p>
                         <p>
-                            Customer support is available {businessProfile.hoursDisplay}. You can reach us at {businessProfile.phoneDisplay} or {businessProfile.supportEmail}.
+                            Customer support is available {genieBusinessProfile.hoursDisplay}. You can reach us at {genieBusinessProfile.phoneDisplay} or {genieBusinessProfile.supportEmail}.
                         </p>
                         <div className="flex flex-wrap gap-3">
                             <Link href="/reviews" className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800">

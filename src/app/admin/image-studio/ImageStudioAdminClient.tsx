@@ -22,6 +22,7 @@ import {
 import { toast } from 'react-hot-toast';
 
 import {
+  ADMIN_IMAGE_STUDIO_PIN,
   CakeCacheImageRecord,
   IMAGE_STUDIO_PAGE_SIZE,
   IMAGE_STUDIO_SMALL_IMAGE_DIMENSION_THRESHOLD,
@@ -29,7 +30,6 @@ import {
   isImageStudioSmallImage,
   normalizeImageStudioStatus,
 } from '@/lib/admin/imageStudio';
-import { useStaffAdminSession } from '@/lib/admin/useStaffAdminSession';
 import {
   buildOfflineBatchTransitionLogEntries,
   createOfflineBatchLogEntry,
@@ -59,6 +59,7 @@ type OfflineBatchRun = {
   updated_at: string;
 };
 
+const SESSION_KEY = 'genie-admin-image-studio-auth';
 const OFFLINE_BATCH_LOGS_KEY = 'genie-admin-image-studio-offline-batch-logs';
 // Wait longer between auto-edit submissions so the background AI/image pipeline
 // has time to breathe and we avoid piling into shared rate limits.
@@ -122,9 +123,9 @@ function getErrorMessage(error: unknown) {
 }
 
 export default function ImageStudioAdminClient() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const { authError, isAuthenticated, isBooting, signIn, signOut, staffFetch } = useStaffAdminSession();
+  const [pin, setPin] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isBooting, setIsBooting] = useState(true);
   const [records, setRecords] = useState<CakeCacheImageRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
@@ -194,7 +195,11 @@ export default function ImageStudioAdminClient() {
         params.set('status', statusFilter);
         params.set('size', sizeFilter);
 
-        const response = await staffFetch(`/api/admin/cake-cache-images?${params.toString()}`);
+        const response = await fetch(`/api/admin/cake-cache-images?${params.toString()}`, {
+          headers: {
+            'x-admin-pin': ADMIN_IMAGE_STUDIO_PIN,
+          },
+        });
 
         const payload = (await response.json()) as ImageListResponse & { error?: string };
 
@@ -213,10 +218,13 @@ export default function ImageStudioAdminClient() {
         setLoading(false);
       }
     },
-    [searchQuery, sizeFilter, staffFetch, statusFilter]
+    [searchQuery, sizeFilter, statusFilter]
   );
 
   useEffect(() => {
+    const storedAuth =
+      typeof window !== 'undefined' ? sessionStorage.getItem(SESSION_KEY) === '1' : false;
+    setIsAuthenticated(storedAuth);
     if (typeof window !== 'undefined') {
       try {
         const storedLog = sessionStorage.getItem(OFFLINE_BATCH_LOGS_KEY);
@@ -227,6 +235,7 @@ export default function ImageStudioAdminClient() {
         sessionStorage.removeItem(OFFLINE_BATCH_LOGS_KEY);
       }
     }
+    setIsBooting(false);
   }, []);
 
   useEffect(() => {
@@ -246,17 +255,23 @@ export default function ImageStudioAdminClient() {
     void fetchRecords(page);
   }, [fetchRecords, isAuthenticated, page, refreshTick]);
 
-  const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const authorized = await signIn(email, password);
-    if (authorized) {
-      setPassword('');
-      toast.success('Image Studio unlocked');
+
+    if (pin !== ADMIN_IMAGE_STUDIO_PIN) {
+      toast.error('Invalid password');
+      return;
     }
+
+    sessionStorage.setItem(SESSION_KEY, '1');
+    setIsAuthenticated(true);
+    setPin('');
+    toast.success('Image studio unlocked');
   };
 
-  const handleLogout = async () => {
-    await signOut();
+  const handleLogout = () => {
+    sessionStorage.removeItem(SESSION_KEY);
+    setIsAuthenticated(false);
     setRecords([]);
     setAutoProcessing(false);
     setBatchProgress(null);
@@ -277,7 +292,9 @@ export default function ImageStudioAdminClient() {
   }, []);
 
   const loadOfflineBatch = useCallback(async () => {
-    const response = await staffFetch('/api/admin/image-studio-batch');
+    const response = await fetch('/api/admin/image-studio-batch', {
+      headers: { 'x-admin-pin': ADMIN_IMAGE_STUDIO_PIN },
+    });
     const payload = (await response.json()) as { run?: OfflineBatchRun | null; history?: OfflineBatchRun[]; error?: string };
     if (!response.ok) throw new Error(payload.error || 'Failed to load offline batch.');
     const timestamp = new Date().toISOString();
@@ -294,7 +311,7 @@ export default function ImageStudioAdminClient() {
     setOfflineBatchHistory(payload.history ?? []);
     setOfflineBatchAutoRefresh(Boolean(nextRun && nextRun.stage !== 'complete'));
     setOfflineBatchContinuationError(null);
-  }, [appendOfflineBatchLogEntries, staffFetch]);
+  }, [appendOfflineBatchLogEntries]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -304,9 +321,9 @@ export default function ImageStudioAdminClient() {
   const submitOfflineBatch = async () => {
     setOfflineBatchBusy(true);
     try {
-      const response = await staffFetch('/api/admin/image-studio-batch', {
+      const response = await fetch('/api/admin/image-studio-batch', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-admin-pin': ADMIN_IMAGE_STUDIO_PIN },
         body: JSON.stringify({ limit: 1000 }),
       });
       const payload = (await response.json()) as { run?: OfflineBatchRun; error?: string };
@@ -337,9 +354,9 @@ export default function ImageStudioAdminClient() {
     offlineBatchContinuationInFlightRef.current = true;
     if (!options?.silent) setOfflineBatchBusy(true);
     try {
-      const response = await staffFetch('/api/admin/image-studio-batch', {
+      const response = await fetch('/api/admin/image-studio-batch', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-admin-pin': ADMIN_IMAGE_STUDIO_PIN },
         body: JSON.stringify({ runId: activeRun.id }),
       });
       const payload = (await response.json()) as { run?: OfflineBatchRun; result?: OfflineBatchContinuationResult; error?: string };
@@ -369,7 +386,7 @@ export default function ImageStudioAdminClient() {
       offlineBatchContinuationInFlightRef.current = false;
       if (!options?.silent) setOfflineBatchBusy(false);
     }
-  }, [appendOfflineBatchLogEntries, loadOfflineBatch, refreshRecords, staffFetch]);
+  }, [appendOfflineBatchLogEntries, loadOfflineBatch, refreshRecords]);
 
   useEffect(() => {
     if (!isAuthenticated || !offlineBatchAutoRefresh) return;
@@ -409,10 +426,11 @@ export default function ImageStudioAdminClient() {
       setProcessingHash(record.p_hash);
 
       try {
-        const response = await staffFetch('/api/admin/cake-cache-images', {
+        const response = await fetch('/api/admin/cake-cache-images', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'x-admin-pin': ADMIN_IMAGE_STUDIO_PIN,
           },
           body: JSON.stringify({ pHash: record.p_hash }),
         });
@@ -446,7 +464,7 @@ export default function ImageStudioAdminClient() {
         setProcessingHash(null);
       }
     },
-    [staffFetch, updateLocalRecord]
+    [updateLocalRecord]
   );
 
   const handleAutoEdit = useCallback(async () => {
@@ -565,10 +583,11 @@ export default function ImageStudioAdminClient() {
     const hashesToUpdate = Array.from(selectedHashes);
 
     try {
-      const response = await staffFetch('/api/admin/cake-cache-images', {
+      const response = await fetch('/api/admin/cake-cache-images', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          'x-admin-pin': ADMIN_IMAGE_STUDIO_PIN,
         },
         body: JSON.stringify({
           pHashes: hashesToUpdate,
@@ -638,10 +657,13 @@ export default function ImageStudioAdminClient() {
 
     setDeletingHash(record.p_hash);
     try {
-      const response = await staffFetch(
+      const response = await fetch(
         `/api/admin/cake-cache-images?pHash=${encodeURIComponent(record.p_hash)}`,
         {
           method: 'DELETE',
+          headers: {
+            'x-admin-pin': ADMIN_IMAGE_STUDIO_PIN,
+          },
         }
       );
 
@@ -690,7 +712,7 @@ export default function ImageStudioAdminClient() {
             Admin Image Studio
           </div>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
-            Staff sign in
+            Enter password to continue
           </h1>
           <p className="mt-3 text-sm leading-6 text-slate-600">
             This page lists cached cake images and can generate the pastel purple studio edit
@@ -699,36 +721,21 @@ export default function ImageStudioAdminClient() {
 
           <form className="mt-8 space-y-4" onSubmit={handleLogin}>
             <label className="block">
-              <span className="mb-2 block text-sm font-medium text-slate-700">Email</span>
-              <input
-                type="email"
-                autoComplete="username"
-                required
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none ring-0 transition focus:border-fuchsia-400"
-                placeholder="Staff email"
-              />
-            </label>
-            <label className="block">
               <span className="mb-2 block text-sm font-medium text-slate-700">Password</span>
               <input
                 type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
+                value={pin}
+                onChange={(event) => setPin(event.target.value)}
                 className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none ring-0 transition focus:border-fuchsia-400"
-                placeholder="Staff password"
+                placeholder="Enter admin password"
               />
             </label>
-            {authError && <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{authError}</p>}
             <button
               type="submit"
               className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
               <Sparkles className="size-4" />
-              Sign in to Image Studio
+              Unlock image studio
             </button>
           </form>
         </div>

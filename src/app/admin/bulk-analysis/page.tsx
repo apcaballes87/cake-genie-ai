@@ -8,8 +8,8 @@ import { Upload, Download, Play, CheckCircle2, Pause, Square } from 'lucide-reac
 import { toast } from 'react-hot-toast';
 import { generateServerImageFingerprint } from '@/lib/utils/serverFingerprint.client';
 import { compressImage } from '@/lib/utils/imageOptimization';
-import { useStaffAdminSession } from '@/lib/admin/useStaffAdminSession';
 
+const ADMIN_PIN = '231323';
 type CsvRow = Record<string, string | undefined>;
 
 function delay(ms: number) {
@@ -17,9 +17,8 @@ function delay(ms: number) {
 }
 
 export default function BulkAnalysisAdminPage() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const { authError, isAuthenticated, isBooting, signIn, signOut, staffFetch } = useStaffAdminSession();
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [pin, setPin] = useState('');
 
     const [csvData, setCsvData] = useState<CsvRow[]>([]);
     const [status, setStatus] = useState<'idle' | 'processing' | 'paused'>('idle');
@@ -31,10 +30,13 @@ export default function BulkAnalysisAdminPage() {
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const handleLogin = async (e: React.FormEvent) => {
+    const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
-        const authorized = await signIn(email, password);
-        if (authorized) setPassword('');
+        if (pin === ADMIN_PIN) {
+            setIsAuthenticated(true);
+        } else {
+            toast.error('Invalid PIN');
+        }
     };
 
     const addLog = (msg: string) => {
@@ -142,6 +144,7 @@ export default function BulkAnalysisAdminPage() {
 
                 const file = new File([blob], 'product-image.webp', { type: blob.type || 'image/webp' });
                 const imageData = await fileToBase64(file);
+                const imageSrc = `data:${imageData.mimeType};base64,${imageData.data}`;
 
                 // 2. Generate Hash
                 const fingerprintInput = await compressImage(file, {
@@ -156,10 +159,11 @@ export default function BulkAnalysisAdminPage() {
                 }
 
                 // 3. Call AI endpoint
-                const aiResponse = await staffFetch('/api/ai/analyze', {
+                const aiResponse = await fetch('/api/ai/analyze', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'x-admin-pin': ADMIN_PIN
                     },
                     body: JSON.stringify({
                         imageData: imageData.data,
@@ -226,10 +230,6 @@ export default function BulkAnalysisAdminPage() {
         document.body.removeChild(link);
     };
 
-    if (isBooting) {
-        return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-sm text-gray-600">Checking staff access…</div>;
-    }
-
     if (!isAuthenticated) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
@@ -237,36 +237,21 @@ export default function BulkAnalysisAdminPage() {
                     <h1 className="text-2xl font-bold text-center text-gray-800 mb-6">Admin Login</h1>
                     <form onSubmit={handleLogin} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Staff email</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Enter PIN</label>
                             <input
-                                type="email"
-                                autoComplete="username"
-                                required
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                type="password"
+                                value={pin}
+                                onChange={(e) => setPin(e.target.value)}
                                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-                                placeholder="Staff email"
+                                placeholder="******"
                                 autoFocus
                             />
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                            <input
-                                type="password"
-                                autoComplete="current-password"
-                                required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-                                placeholder="******"
-                            />
-                        </div>
-                        {authError && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{authError}</p>}
                         <button
                             type="submit"
                             className="w-full bg-primary text-white py-2 rounded-lg font-medium hover:bg-primary-dark transition-colors"
                         >
-                            Sign in
+                            Access Admin
                         </button>
                     </form>
                 </div>
@@ -283,7 +268,7 @@ export default function BulkAnalysisAdminPage() {
                         <p className="text-gray-500 mt-1">Upload a CSV to process cake product images through Gemini AI automatically.</p>
                     </div>
                     <button
-                        onClick={() => void signOut()}
+                        onClick={() => setIsAuthenticated(false)}
                         className="text-sm text-gray-400 hover:text-gray-600"
                     >
                         Logout

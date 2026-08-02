@@ -12,14 +12,6 @@
         {
             "path": "/api/collections/refresh/cron",
             "schedule": "0 3 * * 1"
-        },
-        {
-            "path": "/api/chatbot/retention/cron",
-            "schedule": "15 4 * * *"
-        },
-        {
-            "path": "/api/chatbot/recovery/cron",
-            "schedule": "* * * * *"
         }
     ],
     "functions": {

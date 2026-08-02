@@ -26,7 +26,6 @@ export interface CustomizerAgentModel {
   version: '2026-06-19';
   routePattern: '/customizing/[slug]';
   design: {
-    productId: string | null;
     slug: string | null;
     pHash: string | null;
     canonicalUrl: string | null;
@@ -42,32 +41,6 @@ export interface CustomizerAgentModel {
     enabledMainToppers: number;
     enabledSupportElements: number;
     specialInstructions: string;
-  };
-  configuration: {
-    mainToppers: Array<{
-      type: string;
-      description: string;
-      size?: string;
-      subtype?: string;
-      quantity?: number;
-    }>;
-    supportElements: Array<{
-      type: string;
-      description: string;
-      size?: string;
-      subtype?: string;
-      quantity?: number;
-    }>;
-    cakeMessages: Array<{
-      type: string;
-      description: string;
-      text: string;
-    }>;
-    icingDesign: {
-      base: IcingDesignUI['base'] | null;
-      drip: boolean;
-      gumpasteBaseBoard: boolean;
-    };
   };
   options: {
     icingBases: CustomizerAgentOption[];
@@ -231,7 +204,6 @@ export function buildCustomizerAgentModel({
     version: '2026-06-19',
     routePattern: '/customizing/[slug]',
     design: {
-      productId: commerceSnapshot.product.productId,
       slug: commerceSnapshot.product.designSlug,
       pHash: commerceSnapshot.product.designPHash,
       canonicalUrl: commerceSnapshot.product.canonicalUrl,
@@ -247,32 +219,6 @@ export function buildCustomizerAgentModel({
       enabledMainToppers,
       enabledSupportElements,
       specialInstructions: additionalInstructions.trim(),
-    },
-    configuration: {
-      mainToppers: mainToppers.filter((item) => item.isEnabled).map((item) => ({
-        type: item.type,
-        description: item.description,
-        ...(item.size ? { size: item.size } : {}),
-        ...(item.subtype ? { subtype: item.subtype } : {}),
-        ...(typeof item.quantity === 'number' ? { quantity: item.quantity } : {}),
-      })),
-      supportElements: supportElements.filter((item) => item.isEnabled).map((item) => ({
-        type: item.type,
-        description: item.description,
-        ...(item.size ? { size: item.size } : {}),
-        ...(item.subtype ? { subtype: item.subtype } : {}),
-        ...(typeof item.quantity === 'number' ? { quantity: item.quantity } : {}),
-      })),
-      cakeMessages: cakeMessages.filter((item) => item.isEnabled).map((item) => ({
-        type: item.type,
-        description: item.text || 'Cake message',
-        text: item.text,
-      })),
-      icingDesign: {
-        base: resolvedIcingBase,
-        drip: icingDesign?.drip ?? false,
-        gumpasteBaseBoard: icingDesign?.gumpasteBaseBoard ?? false,
-      },
     },
     options: {
       icingBases: [

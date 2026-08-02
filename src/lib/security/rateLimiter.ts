@@ -11,8 +11,6 @@ const LIMIT_CONFIGS: Record<string, RateLimitConfig> = {
     newsletter: { limit: 3, window: '60 s' },
     contact: { limit: 3, window: '60 s' },
     discount: { limit: 5, window: '60 s' },
-    chatMinute: { limit: 5, window: '60 s' },
-    chatHour: { limit: 30, window: '1 h' },
 };
 
 const limiters: Record<string, Ratelimit> = {};
@@ -83,7 +81,7 @@ if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
 }
 
 export async function checkRateLimit(
-    type: 'ai' | 'newsletter' | 'contact' | 'discount' | 'chatMinute' | 'chatHour',
+    type: 'ai' | 'newsletter' | 'contact' | 'discount',
     identifier: string
 ) {
     const config = LIMIT_CONFIGS[type];

@@ -101,18 +101,18 @@ describe('middleware', () => {
         expect(body.error).toContain('Too many requests');
     });
 
-    it('should not allow a legacy header to bypass /api/ai/analyze rate limiting', async () => {
+    it('should bypass rate limiting for /api/ai/analyze if x-admin-pin header is valid', async () => {
         const request = makeRequest('http://localhost/api/ai/analyze', {
-            headers: { 'x-legacy-admin-token': 'legacy-value' },
+            headers: { 'x-admin-pin': '231323' },
         });
         const response = await middleware(request);
 
         expect(response).toBeInstanceOf(NextResponse);
         expect(response.status).toBe(200);
-        expect(mockCheckRateLimit).toHaveBeenCalledWith('ai', expect.any(String));
+        expect(mockCheckRateLimit).not.toHaveBeenCalled();
     });
 
-    it('should rate limit /api/ai/analyze', async () => {
+    it('should rate limit /api/ai/analyze if x-admin-pin header is missing or invalid', async () => {
         const request = makeRequest('http://localhost/api/ai/analyze');
         const response = await middleware(request);
 
