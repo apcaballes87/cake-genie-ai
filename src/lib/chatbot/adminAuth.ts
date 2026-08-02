@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import type { NextRequest } from 'next/server';
 import type { SupabaseClient, User } from '@supabase/supabase-js';
 
@@ -12,13 +13,28 @@ export type VerifiedChatbotStaff = {
   database: SupabaseClient;
 };
 
+export const DEFAULT_ADMIN_DASHBOARD_ORIGIN = 'https://genie-ph-admin-dashboard.vercel.app';
+
+function getAllowedAdminOrigin() {
+  return process.env.ADMIN_DASHBOARD_ORIGIN?.trim() || DEFAULT_ADMIN_DASHBOARD_ORIGIN;
+}
+
+export function getNetworkAdminIpHash(request: NextRequest): string | null {
+  if (request.headers.get('origin') !== getAllowedAdminOrigin()) return null;
+  const rawIp = request.headers.get('x-vercel-forwarded-for')
+    || request.headers.get('x-forwarded-for')
+    || (process.env.NODE_ENV === 'development' ? request.headers.get('x-real-ip') : null);
+  const ip = rawIp?.split(',')[0]?.trim();
+  if (!ip || ip.length > 64) return null;
+  return createHash('sha256').update(ip).digest('hex');
+}
+
 export function adminCorsHeaders(
   request: NextRequest,
   methods: readonly string[],
 ): HeadersInit {
-  const configuredOrigin = process.env.ADMIN_DASHBOARD_ORIGIN?.trim();
   const requestOrigin = request.headers.get('origin');
-  const allowedOrigin = configuredOrigin || request.nextUrl.origin;
+  const allowedOrigin = getAllowedAdminOrigin();
   const allowRequestOrigin = !requestOrigin || requestOrigin === allowedOrigin;
 
   return {
@@ -46,10 +62,31 @@ export async function requireChatbotStaff(
   const database = createAdminServerSupabaseClient();
   const authorization = request.headers.get('authorization');
   const bearerToken = authorization?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim() ?? null;
-  const userResult = bearerToken
+  let userResult = bearerToken
     ? await database.auth.getUser(bearerToken)
     : await (await createServerSupabaseClient()).auth.getUser();
-  const user = userResult.data.user;
+  let user = userResult.data.user;
+
+  if (!user) {
+    const ipHash = getNetworkAdminIpHash(request);
+    if (ipHash) {
+      const now = Date.now();
+      const { data: networkRows } = await database
+        .from('chatbot_admin_network_allowlist')
+        .select('staff_user_id, expires_at')
+        .eq('ip_sha256', ipHash)
+        .eq('active', true)
+        .limit(5);
+      const networkAccess = networkRows?.find((row) => (
+        !row.expires_at || new Date(row.expires_at).getTime() > now
+      ));
+      if (networkAccess?.staff_user_id) {
+        const networkUserResult = await database.auth.admin.getUserById(networkAccess.staff_user_id);
+        userResult = networkUserResult;
+        user = networkUserResult.data.user;
+      }
+    }
+  }
 
   if (userResult.error || !user) {
     return { staff: null, error: 'Authentication required', status: 401 };

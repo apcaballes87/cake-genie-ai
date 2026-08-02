@@ -4,17 +4,15 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 
 import { requireChatbotStaff, type ChatbotStaffRole } from '@/lib/chatbot/adminAuth';
+import { DEFAULT_ADMIN_DASHBOARD_ORIGIN } from '@/lib/chatbot/adminAuth';
 import { getChatImageObjectPath, isStaffAttachmentPath } from '@/lib/chatbot/attachments';
 import { CHATBOT_OUTPUT_MAX_LENGTH } from '@/lib/chatbot/types';
 
 type RouteContext = { params: Promise<{ path?: string[] }> };
 
 const CORS_HEADERS = {
-  ...(process.env.ADMIN_DASHBOARD_ORIGIN?.trim()
-    ? { 'Access-Control-Allow-Origin': process.env.ADMIN_DASHBOARD_ORIGIN.trim() }
-    : process.env.NODE_ENV === 'development'
-      ? { 'Access-Control-Allow-Origin': 'http://localhost:5173' }
-      : {}),
+  'Access-Control-Allow-Origin': process.env.ADMIN_DASHBOARD_ORIGIN?.trim()
+    || (process.env.NODE_ENV === 'development' ? 'http://localhost:5173' : DEFAULT_ADMIN_DASHBOARD_ORIGIN),
   'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
   'Access-Control-Allow-Headers': 'Authorization, Content-Type',
   Vary: 'Origin',

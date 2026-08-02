@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
-import { adminCorsHeaders, forwardStaffAuthHeaders } from './adminAuth';
+import {
+  DEFAULT_ADMIN_DASHBOARD_ORIGIN,
+  adminCorsHeaders,
+  forwardStaffAuthHeaders,
+  getNetworkAdminIpHash,
+} from './adminAuth';
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -42,5 +47,32 @@ describe('admin auth request helpers', () => {
     const headers = new Headers(adminCorsHeaders(request, ['GET']));
 
     expect(headers.has('access-control-allow-origin')).toBe(false);
+  });
+
+  it('defaults CORS to the canonical dashboard when the environment override is absent', () => {
+    const request = new NextRequest('https://genie.ph/api/admin/example', {
+      headers: { origin: DEFAULT_ADMIN_DASHBOARD_ORIGIN },
+    });
+    const headers = new Headers(adminCorsHeaders(request, ['GET']));
+
+    expect(headers.get('access-control-allow-origin')).toBe(DEFAULT_ADMIN_DASHBOARD_ORIGIN);
+  });
+
+  it('derives a stable network key only for the exact dashboard origin', () => {
+    const trusted = new NextRequest('https://genie.ph/api/admin/example', {
+      headers: {
+        origin: DEFAULT_ADMIN_DASHBOARD_ORIGIN,
+        'x-vercel-forwarded-for': '203.0.113.42',
+      },
+    });
+    const hostile = new NextRequest('https://genie.ph/api/admin/example', {
+      headers: {
+        origin: 'https://attacker.example',
+        'x-vercel-forwarded-for': '203.0.113.42',
+      },
+    });
+
+    expect(getNetworkAdminIpHash(trusted)).toBe('17af1cf3d1b5332c53349fc789abdc853bbeea7ed33eff727ff794ab741ccac9');
+    expect(getNetworkAdminIpHash(hostile)).toBeNull();
   });
 });
