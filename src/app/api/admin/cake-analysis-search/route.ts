@@ -1,38 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { normalizeAiRouteError } from '@/lib/ai/routeError';
-import { ADMIN_IMAGE_STUDIO_PIN } from '@/lib/admin/imageStudio';
 import {
   CakeAnalysisSearchError,
   replaceCakeAnalysisByHash,
   searchCakeAnalysisResults,
 } from '@/lib/admin/cakeAnalysisSearch';
+import { adminCorsHeaders, requireChatbotStaff } from '@/lib/chatbot/adminAuth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 180;
 
 function corsHeaders(req: NextRequest): HeadersInit {
-  const configuredOrigin = process.env.ADMIN_DASHBOARD_ORIGIN?.trim();
-  const requestOrigin = req.headers.get('origin');
-  const allowedOrigin = configuredOrigin
-    ? requestOrigin === configuredOrigin ? requestOrigin : configuredOrigin
-    : '*';
-
-  return {
-    'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, x-admin-pin',
-    Vary: 'Origin',
-  };
+  return adminCorsHeaders(req, ['GET', 'POST']);
 }
 
 function json(req: NextRequest, body: unknown, status = 200) {
   return NextResponse.json(body, { status, headers: corsHeaders(req) });
-}
-
-function authorized(req: NextRequest) {
-  return req.headers.get('x-admin-pin') === ADMIN_IMAGE_STUDIO_PIN;
 }
 
 function parsePositiveInt(value: string | null, fallback: number, max: number) {
@@ -46,7 +31,8 @@ export async function OPTIONS(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  if (!authorized(req)) return json(req, { error: 'Unauthorized' }, 401);
+  const verified = await requireChatbotStaff(req);
+  if (!verified.staff) return json(req, { error: verified.error }, verified.status);
 
   const query = req.nextUrl.searchParams.get('q')?.trim() || '';
   const limit = parsePositiveInt(req.nextUrl.searchParams.get('limit'), 30, 30);
@@ -67,7 +53,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!authorized(req)) return json(req, { error: 'Unauthorized' }, 401);
+  const verified = await requireChatbotStaff(req, ['owner', 'admin']);
+  if (!verified.staff) return json(req, { error: verified.error }, verified.status);
 
   try {
     const body = await req.json().catch(() => ({}));

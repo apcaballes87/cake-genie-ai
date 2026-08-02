@@ -1,402 +1,179 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
-const notificationMocks = vi.hoisted(() => ({
-  afterCallbacks: [] as Array<() => void | Promise<void>>,
+const mocks = vi.hoisted(() => ({
+  afterCallbacks: [] as Array<() => Promise<void> | void>,
+  user: { id: 'owner-user', email: 'owner@example.com', user_metadata: {} } as any,
+  messageInsert: vi.fn(),
+  conversationEq: vi.fn(),
   triggerN8nWorkflow: vi.fn(),
+  generateChatbotDraft: vi.fn(),
+  createPendingChatbotRun: vi.fn(),
+  rateLimitRpc: vi.fn(),
 }));
 
 vi.mock('next/server', async (importOriginal) => {
   const actual = await importOriginal<typeof import('next/server')>();
-
-  return {
-    ...actual,
-    after: vi.fn((callback: () => void | Promise<void>) => {
-      notificationMocks.afterCallbacks.push(callback);
-    }),
-  };
+  return { ...actual, after: vi.fn((callback) => mocks.afterCallbacks.push(callback)) };
 });
 
-vi.mock('@/services/n8nService', () => ({
-  triggerN8nWorkflow: notificationMocks.triggerN8nWorkflow,
+vi.mock('@/lib/supabase/server', () => ({
+  createClient: vi.fn(async () => ({ auth: { getUser: vi.fn(async () => ({ data: { user: mocks.user }, error: null })) } })),
 }));
 
-process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';
-process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
-
-type TableHandler = {
-  onInsert?: (payload: Record<string, unknown>) => void;
-  onInsertSelectSingle?: (payload: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
-  onSingle?: () => Promise<{ data: unknown; error: unknown }>;
-  onUpdate?: (payload: Record<string, unknown>) => void;
-  onUpdateEq?: (payload: Record<string, unknown>) => Promise<{ data?: unknown; error: unknown }>;
-};
-
-const tableHandlers: Record<string, TableHandler> = {};
-
-const fromMock = vi.fn((table: string) => {
-  const handler = tableHandlers[table] ?? {};
-
-  const builder = {
-    select: vi.fn(() => builder),
-    eq: vi.fn(() => builder),
-    order: vi.fn(() => builder),
-    limit: vi.fn(() => builder),
+function builder(table: string) {
+  let operation = 'select';
+  let insertPayload: Record<string, unknown> | null = null;
+  const api: any = {
+    select: vi.fn(() => api),
+    eq: vi.fn((column: string, value: unknown) => {
+      if (table === 'chat_conversations') mocks.conversationEq(column, value);
+      return api;
+    }),
+    in: vi.fn(() => api),
+    order: vi.fn(() => api),
+    limit: vi.fn(() => api),
+    insert: vi.fn((payload: Record<string, unknown>) => {
+      operation = 'insert';
+      insertPayload = payload;
+      if (table === 'chat_messages') mocks.messageInsert(payload);
+      return api;
+    }),
+    update: vi.fn(() => { operation = 'update'; return api; }),
     single: vi.fn(async () => {
-      if (handler.onSingle) {
-        return handler.onSingle();
+      if (table === 'chat_messages' && operation === 'insert') {
+        return { data: { id: 'message-1', ...insertPayload, created_at: '2026-08-02T00:00:00Z' }, error: null };
       }
-
       return { data: null, error: null };
     }),
-    insert: vi.fn((payload: Record<string, unknown>) => {
-      handler.onInsert?.(payload);
-
-      return {
-        select: () => ({
-          single: async () => {
-            if (handler.onInsertSelectSingle) {
-              return handler.onInsertSelectSingle(payload);
-            }
-
-            return { data: null, error: null };
-          },
-        }),
-      };
+    maybeSingle: vi.fn(async () => {
+      if (table === 'chat_conversations') {
+        return { data: {
+          id: 'conversation-1', user_id: 'owner-user', automation_mode: 'inherit', handoff_state: 'assistant',
+          customer_name: 'Maria', customer_email: 'maria@example.com',
+        }, error: null };
+      }
+      return { data: null, error: null };
     }),
-    update: vi.fn((payload: Record<string, unknown>) => {
-      handler.onUpdate?.(payload);
-
-      const eqResult = {
-        select: vi.fn(() => ({
-          single: async () => {
-            if (handler.onUpdateEq) {
-              const res = await handler.onUpdateEq(payload);
-              return { data: res.data ?? null, error: res.error ?? null };
-            }
-            return { data: null, error: null };
-          }
-        })),
-        then: (resolve: (value: { error: unknown }) => void) => {
-          if (handler.onUpdateEq) {
-            handler.onUpdateEq(payload).then((res) => resolve({ error: res?.error || null }));
-          } else {
-            resolve({ error: null });
-          }
-        }
-      };
-
-      return {
-        eq: vi.fn(() => eqResult),
-      };
-    }),
+    then: (resolve: (value: { data: null; error: null }) => void) => resolve({ data: null, error: null }),
   };
+  return api;
+}
 
-  return builder;
-});
+const database = {
+  from: vi.fn((table: string) => builder(table)),
+  rpc: mocks.rateLimitRpc,
+  storage: { from: vi.fn(() => ({ createSignedUrl: vi.fn(async () => ({ data: { signedUrl: 'https://signed.example/image' }, error: null })) })) },
+};
 
-vi.mock('@supabase/supabase-js', () => ({
-  createClient: vi.fn(() => ({
-    from: fromMock,
-  })),
+vi.mock('@/lib/supabase/adminServer', () => ({ createAdminServerSupabaseClient: vi.fn(() => database) }));
+vi.mock('@/lib/chatbot/assistant', () => ({
+  getChatbotSettings: vi.fn(async () => ({ mode: 'draft', killSwitch: false, modelName: 'gemini-test' })),
+  createPendingChatbotRun: mocks.createPendingChatbotRun,
+  generateChatbotDraft: mocks.generateChatbotDraft,
 }));
+vi.mock('@/services/n8nService', () => ({ triggerN8nWorkflow: mocks.triggerN8nWorkflow }));
 
-describe('POST /api/chat', () => {
+describe('/api/chat secure customer messages', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    notificationMocks.afterCallbacks.splice(0);
-    notificationMocks.triggerN8nWorkflow.mockResolvedValue({ success: true, status: 200 });
-
-    tableHandlers.chat_conversations = {};
-    tableHandlers.chat_messages = {};
+    mocks.afterCallbacks.splice(0);
+    mocks.user = { id: 'owner-user', email: 'owner@example.com', user_metadata: {} };
+    mocks.createPendingChatbotRun.mockResolvedValue({
+      created: true,
+      run: { id: 'run-1', conversation_id: 'conversation-1', customer_message_id: 'message-1', status: 'pending' },
+    });
+    mocks.generateChatbotDraft.mockResolvedValue(undefined);
+    mocks.triggerN8nWorkflow.mockResolvedValue({ success: true, status: 200 });
+    mocks.rateLimitRpc.mockResolvedValue({ data: { allowed: true, minuteCount: 1, hourCount: 1 }, error: null });
   });
 
-  it('stores page context when creating a new conversation', async () => {
-    const insertedConversationPayloads: Record<string, unknown>[] = [];
-    const insertedGreetingPayloads: Record<string, unknown>[] = [];
-
-    tableHandlers.chat_conversations.onSingle = async () => ({ data: null, error: null });
-    tableHandlers.chat_conversations.onInsert = (payload) => {
-      insertedConversationPayloads.push(payload);
-    };
-    tableHandlers.chat_conversations.onInsertSelectSingle = async () => ({
-      data: { id: 'conversation-1' },
-      error: null,
-    });
-    tableHandlers.chat_messages.onInsert = (payload) => {
-      insertedGreetingPayloads.push(payload);
-    };
-
+  it('derives ownership from auth, sanitizes page context, and schedules Telegram plus a durable draft', async () => {
     const { POST } = await import('./route');
-    const request = new NextRequest('http://localhost/api/chat', {
+    const response = await POST(new NextRequest('http://localhost/api/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'content-type': 'application/json', 'user-agent': 'vitest' },
       body: JSON.stringify({
-        action: 'start_conversation',
-        sessionId: 'guest_123',
-        email: 'customer@example.com',
-        name: 'Customer',
-        pageContext: {
-          url: 'https://genie.ph/customizing/pink-heart-cake',
-          title: 'Pink Heart Cake | Genie',
-        },
+        action: 'send_message', conversationId: 'conversation-1', clientMessageId: 'client-message-123',
+        userId: 'spoofed-user', content: 'How much is this?',
+        pageContext: { url: 'https://genie.ph/customizing/pink-heart?code=secret#token', title: 'private' },
       }),
-    });
-
-    const response = await POST(request);
-    const payload = await response.json();
+    }));
 
     expect(response.status).toBe(201);
-    expect(payload.success).toBe(true);
-    expect(insertedConversationPayloads).toHaveLength(1);
-    expect(insertedConversationPayloads[0]).toEqual(
-      expect.objectContaining({
-        session_id: 'guest_123',
-        customer_email: 'customer@example.com',
-        customer_name: 'Customer',
-        last_customer_page_url: 'https://genie.ph/customizing/pink-heart-cake',
-        last_customer_page_title: 'Pink Heart Cake | Genie',
-      }),
-    );
-    expect(insertedConversationPayloads[0].last_customer_page_seen_at).toEqual(expect.any(String));
-    expect(insertedGreetingPayloads).toHaveLength(1);
-    expect(insertedGreetingPayloads[0]).toEqual(
-      expect.objectContaining({
-        conversation_id: 'conversation-1',
-        content: 'Hi! How can we help you today?',
-      }),
-    );
+    expect(mocks.conversationEq).toHaveBeenCalledWith('user_id', 'owner-user');
+    expect(mocks.messageInsert).toHaveBeenCalledWith(expect.objectContaining({
+      client_message_id: 'client-message-123',
+      sender_type: 'customer',
+      page_context: expect.objectContaining({ pathname: '/customizing/pink-heart', designSlug: 'pink-heart' }),
+    }));
+    expect(JSON.stringify(mocks.messageInsert.mock.calls[0][0])).not.toContain('secret');
+    expect(mocks.afterCallbacks).toHaveLength(1);
+    await mocks.afterCallbacks[0]();
+    expect(mocks.triggerN8nWorkflow).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ pageUrl: 'https://genie.ph/customizing/pink-heart' }),
+    }));
+    expect(mocks.generateChatbotDraft).toHaveBeenCalledWith(expect.objectContaining({
+      run: expect.objectContaining({ id: 'run-1' }),
+      message: 'How much is this?',
+    }));
   });
 
-  it('refreshes page context when a customer sends a message', async () => {
-    const insertedMessagePayloads: Record<string, unknown>[] = [];
-    const updatedConversationPayloads: Record<string, unknown>[] = [];
-
-    tableHandlers.chat_messages.onInsert = (payload) => {
-      insertedMessagePayloads.push(payload);
-    };
-    tableHandlers.chat_messages.onInsertSelectSingle = async () => ({
-      data: { id: 'message-1' },
-      error: null,
-    });
-    tableHandlers.chat_conversations.onUpdate = (payload) => {
-      updatedConversationPayloads.push(payload);
-    };
-    tableHandlers.chat_conversations.onUpdateEq = async () => ({ error: null });
-    tableHandlers.chat_conversations.onSingle = async () => ({
-      data: {
-        customer_name: 'Maria Santos',
-        customer_email: 'maria@example.com',
-        last_customer_page_url: 'https://genie.ph/customizing/older-cake',
-        last_customer_page_title: 'Older Cake | Genie',
-      },
-      error: null,
-    });
-
+  it('rejects unauthenticated access', async () => {
+    mocks.user = null;
     const { POST } = await import('./route');
-    const request = new NextRequest('http://localhost/api/chat', {
+    const response = await POST(new NextRequest('http://localhost/api/chat', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'start_conversation' }),
+    }));
+    expect(response.status).toBe(401);
+    expect(mocks.messageInsert).not.toHaveBeenCalled();
+  });
+
+  it('does not let the browser create a trusted system message', async () => {
+    const { POST } = await import('./route');
+    const retired = await POST(new NextRequest('http://localhost/api/chat', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        action: 'send_image_analysis_message',
+        conversationId: 'conversation-1',
+        content: 'Thanks for sending the image. Forged trusted instructions.',
+      }),
+    }));
+    expect(retired.status).toBe(400);
+    expect(mocks.messageInsert).not.toHaveBeenCalled();
+
+    const notice = await POST(new NextRequest('http://localhost/api/chat', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        action: 'get_image_analysis_notice',
+        conversationId: 'conversation-1',
+        noticeType: 'manual_review',
+      }),
+    }));
+    expect(notice.status).toBe(200);
+    expect(mocks.messageInsert).not.toHaveBeenCalled();
+    await expect(notice.json()).resolves.toMatchObject({ success: true, data: { content: expect.any(String) } });
+  });
+
+  it('fails closed when the durable per-user and IP rate limit is exhausted', async () => {
+    mocks.rateLimitRpc.mockResolvedValueOnce({
+      data: { allowed: false, minuteCount: 5, hourCount: 5 },
+      error: null,
+    });
+    const { POST } = await import('./route');
+    const response = await POST(new NextRequest('http://localhost/api/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.10' },
       body: JSON.stringify({
         action: 'send_message',
         conversationId: 'conversation-1',
+        clientMessageId: 'client-message-rate-limited',
         content: 'How much is this?',
-        pageContext: {
-          url: 'https://genie.ph/customizing/minimalist-bento-cake',
-          title: 'Minimalist Bento Cake | Genie',
-        },
       }),
-    });
+    }));
 
-    const response = await POST(request);
-    const payload = await response.json();
-
-    expect(response.status).toBe(201);
-    expect(payload.success).toBe(true);
-    expect(insertedMessagePayloads).toHaveLength(1);
-    expect(insertedMessagePayloads[0]).toEqual(
-      expect.objectContaining({
-        conversation_id: 'conversation-1',
-        content: 'How much is this?',
-        sender_type: 'customer',
-      }),
-    );
-    expect(updatedConversationPayloads).toHaveLength(1);
-    expect(updatedConversationPayloads[0]).toEqual(
-      expect.objectContaining({
-        last_customer_page_url: 'https://genie.ph/customizing/minimalist-bento-cake',
-        last_customer_page_title: 'Minimalist Bento Cake | Genie',
-      }),
-    );
-    expect(updatedConversationPayloads[0].last_customer_page_seen_at).toEqual(expect.any(String));
-    expect(notificationMocks.afterCallbacks).toHaveLength(1);
-
-    await notificationMocks.afterCallbacks[0]();
-
-    expect(notificationMocks.triggerN8nWorkflow).toHaveBeenCalledTimes(1);
-    expect(notificationMocks.triggerN8nWorkflow).toHaveBeenCalledWith({
-      event: 'customer_chat.message_created',
-      data: {
-        messageId: 'message-1',
-        conversationId: 'conversation-1',
-        senderType: 'customer',
-        content: 'How much is this?',
-        imageUrl: null,
-        customerName: 'Maria Santos',
-        customerEmail: 'maria@example.com',
-        pageUrl: 'https://genie.ph/customizing/minimalist-bento-cake',
-        pageTitle: 'Minimalist Bento Cake | Genie',
-        createdAt: expect.any(String),
-      },
-      metadata: {
-        notificationChannel: 'telegram',
-      },
-    });
-  });
-
-  it('does not schedule a notification when the customer message insert fails', async () => {
-    tableHandlers.chat_messages.onInsertSelectSingle = async () => ({
-      data: null,
-      error: { message: 'Insert failed' },
-    });
-
-    const { POST } = await import('./route');
-    const request = new NextRequest('http://localhost/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'send_message',
-        conversationId: 'conversation-1',
-        content: 'Hello',
-      }),
-    });
-
-    const response = await POST(request);
-
-    expect(response.status).toBe(500);
-    expect(notificationMocks.afterCallbacks).toHaveLength(0);
-    expect(notificationMocks.triggerN8nWorkflow).not.toHaveBeenCalled();
-  });
-
-  it('links and updates conversation when found via sessionId fallback', async () => {
-    const updatedConversationPayloads: Record<string, unknown>[] = [];
-
-    // Mock that user_id lookup fails (no conversation found)
-    // but sessionId lookup succeeds
-    let queryCount = 0;
-    tableHandlers.chat_conversations.onSingle = async () => {
-      queryCount++;
-      if (queryCount === 1) {
-        // First query is by user_id, returns empty
-        return { data: null, error: { message: 'Not found' } };
-      }
-      // Second query is by session_id, returns existing conversation
-      return {
-        data: {
-          id: 'existing-conversation-id',
-          user_id: null,
-          session_id: 'guest_123',
-          customer_email: null,
-          customer_name: null,
-        },
-        error: null,
-      };
-    };
-
-    tableHandlers.chat_conversations.onUpdate = (payload) => {
-      updatedConversationPayloads.push(payload);
-    };
-    tableHandlers.chat_conversations.onUpdateEq = async () => ({
-      data: { id: 'existing-conversation-id' },
-      error: null,
-    });
-
-    const { POST } = await import('./route');
-    const request = new NextRequest('http://localhost/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'start_conversation',
-        sessionId: 'guest_123',
-        userId: 'new-user-id',
-        email: 'guest@example.com',
-        name: 'Guest User',
-      }),
-    });
-
-    const response = await POST(request);
-    const payload = await response.json();
-
-    expect(response.status).toBe(201);
-    expect(payload.success).toBe(true);
-    expect(updatedConversationPayloads).toHaveLength(1);
-    // Should link new userId, email, and name to the resolved conversation
-    expect(updatedConversationPayloads[0]).toEqual(
-      expect.objectContaining({
-        user_id: 'new-user-id',
-        customer_email: 'guest@example.com',
-        customer_name: 'Guest User',
-      }),
-    );
-  });
-
-  it('links and updates conversation when found via customer_email fallback', async () => {
-    const updatedConversationPayloads: Record<string, unknown>[] = [];
-
-    // First query (userId lookup) fails, second query (sessionId lookup) fails,
-    // third query (email lookup) succeeds
-    let queryCount = 0;
-    tableHandlers.chat_conversations.onSingle = async () => {
-      queryCount++;
-      if (queryCount === 3) {
-        return {
-          data: {
-            id: 'existing-conversation-id',
-            user_id: null,
-            session_id: null,
-            customer_email: 'guest@example.com',
-            customer_name: null,
-          },
-          error: null,
-        };
-      }
-      return { data: null, error: { message: 'Not found' } };
-    };
-
-    tableHandlers.chat_conversations.onUpdate = (payload) => {
-      updatedConversationPayloads.push(payload);
-    };
-    tableHandlers.chat_conversations.onUpdateEq = async () => ({
-      data: { id: 'existing-conversation-id' },
-      error: null,
-    });
-
-    const { POST } = await import('./route');
-    const request = new NextRequest('http://localhost/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'start_conversation',
-        sessionId: 'new-session-id',
-        userId: 'new-user-id',
-        email: 'guest@example.com',
-        name: 'Guest User',
-      }),
-    });
-
-    const response = await POST(request);
-    const payload = await response.json();
-
-    expect(response.status).toBe(201);
-    expect(payload.success).toBe(true);
-    expect(updatedConversationPayloads).toHaveLength(1);
-    // Should link the new userId and sessionId to the resolved email-matching conversation
-    expect(updatedConversationPayloads[0]).toEqual(
-      expect.objectContaining({
-        user_id: 'new-user-id',
-        session_id: 'new-session-id',
-        customer_name: 'Guest User',
-      }),
-    );
+    expect(response.status).toBe(429);
+    expect(mocks.messageInsert).not.toHaveBeenCalled();
   });
 });

@@ -9,7 +9,11 @@ const puppeteer = require('puppeteer');
   await page.goto('http://localhost:3002/admin/search-analysis', { waitUntil: 'networkidle0' });
 
   console.log('Logging in...');
-  await page.type('input[type="password"]', '231323');
+  if (!process.env.ADMIN_STAFF_EMAIL || !process.env.ADMIN_STAFF_PASSWORD) {
+    throw new Error('Set ADMIN_STAFF_EMAIL and ADMIN_STAFF_PASSWORD before running this test.');
+  }
+  await page.type('input[type="email"]', process.env.ADMIN_STAFF_EMAIL);
+  await page.type('input[type="password"]', process.env.ADMIN_STAFF_PASSWORD);
   await page.click('button[type="submit"]');
 
   console.log('Waiting for search input...');

@@ -169,14 +169,6 @@ export async function middleware(request: NextRequest) {
     const isDiscountRoute = pathname.startsWith('/api/signup-discount')
 
     if (isAiRoute || isNewsletterRoute || isContactRoute || isDiscountRoute) {
-        // Bypass rate limiting for authenticated admin requests using the pin
-        if (pathname.startsWith('/api/ai/analyze')) {
-            const adminPin = request.headers.get('x-admin-pin')
-            if (adminPin === '231323') {
-                return NextResponse.next()
-            }
-        }
-
         const requestWithOptionalIp = request as NextRequest & { ip?: string }
         const ip = request.headers.get('x-forwarded-for') || requestWithOptionalIp.ip || '127.0.0.1'
         const limitType = isAiRoute ? 'ai' : isNewsletterRoute ? 'newsletter' : isContactRoute ? 'contact' : 'discount'

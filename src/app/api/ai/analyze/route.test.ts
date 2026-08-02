@@ -91,7 +91,6 @@ describe('POST /api/ai/analyze', () => {
         const request = new NextRequest('http://localhost/api/ai/analyze', {
             method: 'POST',
             headers: {
-                'x-admin-pin': '231323',
             },
             body: JSON.stringify({
                 imageData: 'base64-data',

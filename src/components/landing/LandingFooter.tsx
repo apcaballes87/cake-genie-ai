@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { Camera, Cake, Tag, CreditCard, Facebook, Instagram, MessageCircle, Youtube, Star, Mail, Phone, ChevronUp, ShieldCheck, Lock, X } from 'lucide-react';
 import LazyImage from '@/components/LazyImage';
 import { COMMON_ASSETS } from '@/constants';
-import { genieBusinessProfile } from '@/lib/seo/genieBusinessProfile';
 import { useImageZoomScrollLock } from '@/hooks/useImageZoomScrollLock';
+import { usePublishedBusinessProfile } from '@/hooks/usePublishedBusinessProfile';
 
 const featureCards = [
   { title: 'Instantly get the price', body: 'Upload your cake design and get your price in 10 seconds.', href: '/?upload=1', cta: 'Upload here', icon: Camera, accent: 'purple' },
@@ -34,6 +34,7 @@ type LandingFooterProps = {
 
 export function LandingFooter({ reviewSummary }: LandingFooterProps) {
   const [showDtiModal, setShowDtiModal] = useState(false);
+  const businessProfile = usePublishedBusinessProfile();
   useImageZoomScrollLock(showDtiModal);
   const hasReviewSummary = Boolean(reviewSummary && reviewSummary.total > 0 && reviewSummary.averageRating > 0);
   const averageLabel = hasReviewSummary ? reviewSummary!.averageRating.toFixed(1) : null;
@@ -67,7 +68,7 @@ export function LandingFooter({ reviewSummary }: LandingFooterProps) {
             <div className="md:col-span-2">
               <img src={COMMON_ASSETS.logo} alt="Genie Logo" width={150} height={40} className="h-10 w-auto object-contain mb-4" loading="lazy" decoding="async" fetchPriority="low" />
               <div className="text-gray-600 text-sm leading-relaxed mb-4 space-y-3"><p>Genie.ph is where spontaneous celebrations get the cake they deserve. Custom cakes, ordered in minutes, delivered today across Metro Cebu. Your cake wish, granted.</p><p>Our delivery network covers Metro Cebu, including Cebu City, Mandaue City, Lapu-Lapu City, and Talisay City. Genie.ph specializes in custom birthday cakes, minimalist wedding cakes, personalized bento cakes, and edible photo prints with secure online payments via Maya and GCash.</p></div>
-              <div className="space-y-2 text-sm text-gray-600 mb-4"><div className="flex items-center gap-2"><Mail size={15} className="genie-icon shrink-0" /><span>{genieBusinessProfile.supportEmail}</span></div><div className="flex items-center gap-2"><Phone size={15} className="genie-icon shrink-0" /><span>{genieBusinessProfile.phoneDisplay}</span></div></div>
+              <div className="space-y-2 text-sm text-gray-600 mb-4"><div className="flex items-center gap-2"><Mail size={15} className="genie-icon shrink-0" /><span>{businessProfile.supportEmail}</span></div><div className="flex items-center gap-2"><Phone size={15} className="genie-icon shrink-0" /><span>{businessProfile.phoneDisplay}</span></div></div>
               <div className="flex flex-wrap items-center gap-3">
                 <button 
                   onClick={() => setShowDtiModal(true)}

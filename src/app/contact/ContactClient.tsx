@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Globe, Mail, Phone, MapPin, Clock, Send, Loader2 } from 'lucide-react';
 import { showSuccess, showError } from '@/lib/utils/toast';
-import { genieBusinessProfile } from '@/lib/seo/genieBusinessProfile';
+import { usePublishedBusinessProfile } from '@/hooks/usePublishedBusinessProfile';
 
 const ContactInfoItem: React.FC<{ icon: React.ReactNode; label: string; value: string; href?: string }> = ({ icon, label, value, href }) => (
     <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-lg">
@@ -23,6 +23,7 @@ const ContactInfoItem: React.FC<{ icon: React.ReactNode; label: string; value: s
 
 const ContactClient: React.FC = () => {
     const router = useRouter();
+    const businessProfile = usePublishedBusinessProfile();
     const [name, setName] = useState('');
     const [contact, setContact] = useState('');
     const [email, setEmail] = useState('');
@@ -90,10 +91,10 @@ const ContactClient: React.FC = () => {
                     <h2 className="text-xl font-bold text-slate-800">Get In Touch</h2>
                     <div className="space-y-4">
                         <ContactInfoItem icon={<Globe size={20} />} label="Website" value="genie.ph" href="https://genie.ph" />
-                        <ContactInfoItem icon={<Mail size={20} />} label="Email" value={genieBusinessProfile.supportEmail} href={`mailto:${genieBusinessProfile.supportEmail}`} />
-                        <ContactInfoItem icon={<Phone size={20} />} label="Contact" value={genieBusinessProfile.phoneDisplay} href={genieBusinessProfile.phoneHref} />
-                        <ContactInfoItem icon={<MapPin size={20} />} label="Address" value={genieBusinessProfile.addressLine} href={genieBusinessProfile.mapUrl} />
-                        <ContactInfoItem icon={<Clock size={20} />} label="Business Hours" value={genieBusinessProfile.hoursDisplay} />
+                        <ContactInfoItem icon={<Mail size={20} />} label="Email" value={businessProfile.supportEmail} href={`mailto:${businessProfile.supportEmail}`} />
+                        <ContactInfoItem icon={<Phone size={20} />} label="Contact" value={businessProfile.phoneDisplay} href={businessProfile.phoneHref} />
+                        <ContactInfoItem icon={<MapPin size={20} />} label="Address" value={businessProfile.addressLine} href={businessProfile.mapUrl} />
+                        <ContactInfoItem icon={<Clock size={20} />} label="Business Hours" value={businessProfile.hoursDisplay} />
                     </div>
 
                     <div className="rounded-2xl border border-purple-100 bg-purple-50/40 p-5">

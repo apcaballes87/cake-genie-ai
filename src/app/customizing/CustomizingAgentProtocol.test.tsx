@@ -7,6 +7,7 @@ const agentModel: CustomizerAgentModel = {
   version: '2026-06-19',
   routePattern: '/customizing/[slug]',
   design: {
+    productId: null,
     slug: 'pink-bento-cake',
     pHash: 'hash-123',
     canonicalUrl: 'https://genie.ph/customizing/pink-bento-cake',
@@ -22,6 +23,12 @@ const agentModel: CustomizerAgentModel = {
     enabledMainToppers: 0,
     enabledSupportElements: 0,
     specialInstructions: '',
+  },
+  configuration: {
+    mainToppers: [],
+    supportElements: [],
+    cakeMessages: [{ type: 'icing_script', description: 'Happy birthday', text: 'Happy birthday' }],
+    icingDesign: { base: 'soft_icing', drip: false, gumpasteBaseBoard: false },
   },
   options: {
     icingBases: [{ value: 'soft_icing', label: 'Soft Icing', selected: true }],

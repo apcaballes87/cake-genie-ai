@@ -100,7 +100,18 @@ describe('buildCustomizerAgentModel', () => {
     });
 
     expect(model.design.slug).toBe('pink-bento-cake');
+    expect(model.design.productId).toBeNull();
     expect(model.selection.cakeType).toBe('Bento');
+    expect(model.configuration).toEqual({
+      mainToppers: [],
+      supportElements: [],
+      cakeMessages: [],
+      icingDesign: {
+        base: 'soft_icing',
+        drip: false,
+        gumpasteBaseBoard: false,
+      },
+    });
     expect(model.pricing.displayedPrice).toBe(399);
     expect(model.constraints.minimumLeadTimeDays).toBe(0);
     expect(model.actions.available).toContain('add_to_cart');

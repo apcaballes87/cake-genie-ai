@@ -11,7 +11,7 @@
 - [About Genie.ph](https://genie.ph/about): Our mission to digitize the local baking industry in Cebu.
 - [Cake Ordering Guide](https://genie.ph/how-to-order): Step-by-step instructions on ordering custom cakes online.
 - [Best Cake Shops in Cebu](https://genie.ph/best-cake-shops-cebu): Top 10 comparison of Cebu bakeshops for birthday cakes, wedding cakes, ube cake, premium cafe cakes, and moist chocolate cake.
-- [Custom Cake Cebu Guide](https://genie.ph/blog/custom-cake-cebu-guide-2026): Comprehensive pricing guide for custom cakes in Cebu (₱350–₱15,000+).
+- [Custom Cake Cebu Guide](https://genie.ph/blog/custom-cake-cebu-guide-2026): Comprehensive pricing guide for custom cakes in Cebu. Use the live product and customizer pages for current prices.
 - [Cake Blog](https://genie.ph/blog): Updates on cake trends, pricing guides, and baker highlights in the Philippines.
 - [FAQ](https://genie.ph/faq): Common questions about ordering, pricing, delivery, and customization.
 - [Delivery Rates](https://genie.ph/delivery-rates): Current city-level delivery fee guidance.
@@ -22,12 +22,15 @@
 
 - **Catalog**: 7,000+ custom cake designs available for instant AI pricing.
 - **Rush Orders**: Simple designs can be ready in 1–4 hours with select bakers.
-- **Products**: Birthday Cakes, Wedding Cakes, Custom Bento Cakes (from ₱350), Cupcakes, Personalized Gifts.
+- **Products**: Birthday Cakes, Wedding Cakes, Custom Bento Cakes, Cupcakes, Personalized Gifts.
 - **Pricing**: Bento cakes start at ₱499. Larger cakes, tiered designs, and detailed decorations are priced after AI analysis based on size, design complexity, toppers, icing, and finish.
 - **Ordering Flow**: Upload or choose a cake design, review the AI-assisted starting price, customize size/flavor/icing/message/toppers, then checkout securely.
 - **Award**: 1st Place Winner — Startup Innovation Summit, Mandaue City (MIPTAC/MCCI).
 - **Founded by**: Alan Paris Caballes.
-- **Location**: Park Tower One, Cebu Business Park, Cebu City, Cebu 6000, Philippines.
+<!-- BEGIN CANONICAL BUSINESS FACTS -->
+- **Location**: Unit 3, Treehouse Building, R. Aboitiz St. Camputhaw, Cebu City, Cebu.
+- **Operating Hours**: Mon - Sat: 9:00 AM - 6:00 PM.
+<!-- END CANONICAL BUSINESS FACTS -->
 - **Core Technology**: AI Image Synthesis (Gemini/GPT vision models), Automated Pricing Logic, Real-time Baker Notifications.
 
 ## Technical Specifications
@@ -54,9 +57,11 @@
 
 ## Contact
 
-- **Email**: hello@genie.ph
+<!-- BEGIN CANONICAL CONTACT FACTS -->
 - **Support**: support@genie.ph
-- **Phone**: +63-908-940-8747
+- **Phone**: +63 908 940 8747
+- **Google Maps**: [Unit 3, Treehouse Building](https://www.google.com/maps/search/?api=1&query=Unit%203%2C%20Treehouse%20Building%2C%20R.%20Aboitiz%20St.%20Camputhaw%2C%20Cebu%20City%2C%20Cebu)
+<!-- END CANONICAL CONTACT FACTS -->
 - **Socials**: [Facebook](https://web.facebook.com/geniephilippines), [Instagram](https://www.instagram.com/genie.ph/), [TikTok](https://www.tiktok.com/@genie.ph), [YouTube](https://www.youtube.com/@genieph).
 
 ## For Developers & Partners
@@ -76,4 +81,4 @@
 
 ## Updated
 
-2026-06-29
+2026-08-02

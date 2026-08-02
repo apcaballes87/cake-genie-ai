@@ -1,13 +1,11 @@
 import { after, NextRequest, NextResponse } from 'next/server';
 
-import { ADMIN_IMAGE_STUDIO_PIN } from '@/lib/admin/imageStudio';
 import { continueImageStudioBatch } from '@/lib/admin/imageStudioBatch';
+import { forwardStaffAuthHeaders, requireChatbotStaff } from '@/lib/chatbot/adminAuth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 180;
-
-const authorized = (req: NextRequest) => req.headers.get('x-admin-pin') === ADMIN_IMAGE_STUDIO_PIN;
 
 function getBaseUrl(req: NextRequest) {
   const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
@@ -19,12 +17,13 @@ function getBaseUrl(req: NextRequest) {
 
 function scheduleNextContinuation(req: NextRequest) {
   const oidcToken = req.headers.get('x-vercel-oidc-token');
+  const staffAuthHeaders = forwardStaffAuthHeaders(req);
   after(async () => {
     try {
       await fetch(`${getBaseUrl(req)}/api/admin/image-studio-batch/continue`, {
         method: 'POST',
         headers: {
-          'x-admin-pin': ADMIN_IMAGE_STUDIO_PIN,
+          ...staffAuthHeaders,
           ...(oidcToken ? { 'x-vercel-oidc-token': oidcToken } : {}),
         },
       });
@@ -35,7 +34,8 @@ function scheduleNextContinuation(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!authorized(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const verified = await requireChatbotStaff(req, ['owner', 'admin']);
+  if (!verified.staff) return NextResponse.json({ error: verified.error }, { status: verified.status });
 
   try {
     const response = await continueImageStudioBatch(req);

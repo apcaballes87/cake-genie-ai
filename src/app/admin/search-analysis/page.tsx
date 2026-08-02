@@ -10,8 +10,8 @@ import {
     generateServerImageFingerprint,
     toFingerprintLookup,
 } from '@/lib/utils/serverFingerprint.client';
+import { useStaffAdminSession } from '@/lib/admin/useStaffAdminSession';
 
-const ADMIN_PIN = '231323';
 const CSE_CONTAINER_ID = 'admin-search-container';
 const CSE_OPTIONS = [
     { id: 'primary', cx: '825ca1503c1bd4d00', label: 'Account 1' },
@@ -118,8 +118,9 @@ function getBatchRunStatusHint(run: SearchAnalysisBatchRun | null) {
 }
 
 export default function SearchAnalysisAdminPage() {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [pin, setPin] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const { authError, isAuthenticated, isBooting, signIn, signOut, staffFetch } = useStaffAdminSession();
     const [searchInput, setSearchInput] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [isCSELoaded, setIsCSELoaded] = useState(false);
@@ -158,13 +159,10 @@ export default function SearchAnalysisAdminPage() {
         };
     }, []);
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (pin === ADMIN_PIN) {
-            setIsAuthenticated(true);
-        } else {
-            toast.error('Invalid PIN');
-        }
+        const authorized = await signIn(email, password);
+        if (authorized) setPassword('');
     };
 
     const handleSearch = () => {
@@ -497,9 +495,6 @@ export default function SearchAnalysisAdminPage() {
                 );
 
                 const imageData = await fileToBase64(normalizedFile);
-                const sourceFile = new File([blob], 'search-image-source', { type: blob.type || 'image/jpeg' });
-                const sourceImageData = await fileToBase64(sourceFile);
-                const sourceImageSrc = `data:${sourceImageData.mimeType};base64,${sourceImageData.data}`;
                 const fingerprint = await generateServerImageFingerprint(normalizedFile);
                 const pHash = fingerprint.pHash;
                 if (!pHash) {
@@ -532,9 +527,9 @@ export default function SearchAnalysisAdminPage() {
                     skipped++;
                 } else {
                     if (isOfflineCollectRef.current) {
-                        const queuedResponse = await fetch('/api/admin/search-analysis-batch', {
+                        const queuedResponse = await staffFetch('/api/admin/search-analysis-batch', {
                             method: 'PUT',
-                            headers: { 'Content-Type': 'application/json', 'x-admin-pin': ADMIN_PIN },
+                            headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 pHash,
                                 fingerprintPipeline: fingerprint.pipeline,
@@ -549,11 +544,10 @@ export default function SearchAnalysisAdminPage() {
                         continue;
                     }
                     // --- AI ANALYSIS (rejection handled by analyze response) ---
-                    const aiResponse = await fetch('/api/ai/analyze', {
+                    const aiResponse = await staffFetch('/api/ai/analyze', {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
-                            'x-admin-pin': ADMIN_PIN
+                            'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({ imageData: imageData.data, mimeType: imageData.mimeType })
                     });
@@ -692,14 +686,14 @@ export default function SearchAnalysisAdminPage() {
         batchRefreshInFlightRef.current = true;
         setIsBatchActionPending(true);
         try {
-            let response = await fetch('/api/admin/search-analysis-batch', { headers: { 'x-admin-pin': ADMIN_PIN } });
+            let response = await staffFetch('/api/admin/search-analysis-batch');
             let payload = await response.json();
             if (!response.ok) throw new Error(payload.error || 'Failed to load batch status.');
             setBatchHistory(payload.history ?? []);
             if (payload.run?.status === 'submitted' || payload.run?.status === 'importing') {
-                response = await fetch('/api/admin/search-analysis-batch', {
+                response = await staffFetch('/api/admin/search-analysis-batch', {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json', 'x-admin-pin': ADMIN_PIN },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ runId: payload.run.id }),
                 });
                 payload = await response.json();
@@ -712,7 +706,7 @@ export default function SearchAnalysisAdminPage() {
             batchRefreshInFlightRef.current = false;
             setIsBatchActionPending(false);
         }
-    }, []);
+    }, [staffFetch]);
 
     useEffect(() => {
         if (!isAuthenticated) return;
@@ -724,9 +718,9 @@ export default function SearchAnalysisAdminPage() {
     async function submitOfflineBatch() {
         setIsBatchActionPending(true);
         try {
-            const response = await fetch('/api/admin/search-analysis-batch', {
+            const response = await staffFetch('/api/admin/search-analysis-batch', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-admin-pin': ADMIN_PIN },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ limit: 1000 }),
             });
             const payload = await response.json();
@@ -758,7 +752,7 @@ export default function SearchAnalysisAdminPage() {
 
         // Remove old CSE remnants from window
         if (window.google?.search?.cse) {
-            (window.google.search as any).cse = undefined;
+            delete (window.google.search as { cse?: GoogleCSE['search']['cse'] }).cse;
         }
         window.__gcse = undefined;
 
@@ -834,6 +828,10 @@ export default function SearchAnalysisAdminPage() {
 
     // No background mutation observer. Images are collected strictly on-demand when processing starts.
 
+    if (isBooting) {
+        return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-sm text-gray-600">Checking staff access…</div>;
+    }
+
     // Login screen
     if (!isAuthenticated) {
         return (
@@ -842,21 +840,36 @@ export default function SearchAnalysisAdminPage() {
                     <h1 className="text-2xl font-bold text-center text-gray-800 mb-6">Admin Login</h1>
                     <form onSubmit={handleLogin} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Enter PIN</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Staff email</label>
                             <input
-                                type="password"
-                                value={pin}
-                                onChange={(e) => setPin(e.target.value)}
+                                type="email"
+                                autoComplete="username"
+                                required
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
                                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-                                placeholder="******"
+                                placeholder="Staff email"
                                 autoFocus
                             />
                         </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                            <input
+                                type="password"
+                                autoComplete="current-password"
+                                required
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                                placeholder="******"
+                            />
+                        </div>
+                        {authError && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{authError}</p>}
                         <button
                             type="submit"
                             className="w-full bg-primary text-white py-2 rounded-lg font-medium hover:bg-primary-dark transition-colors"
                         >
-                            Access Admin
+                            Sign in
                         </button>
                     </form>
                 </div>
@@ -874,7 +887,7 @@ export default function SearchAnalysisAdminPage() {
                         <p className="text-gray-500 mt-1">Search images from Google CSE and analyze them through AI to populate the cache.</p>
                     </div>
                     <button
-                        onClick={() => setIsAuthenticated(false)}
+                        onClick={() => void signOut()}
                         className="flex items-center px-4 py-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                     >
                         <LogOut className="w-5 h-5 mr-2" />

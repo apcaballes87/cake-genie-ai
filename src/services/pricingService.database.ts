@@ -4,6 +4,7 @@ import type { PricingRule, MainTopperUI, SupportElementUI, CakeMessageUI, IcingD
 import { FEATURE_FLAGS } from '@/config/features';
 import { validateAnalysis } from '@/lib/utils/validateAnalysis';
 import { createLogger } from '@/lib/utils/logger';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 const logger = createLogger('PricingService');
 
@@ -106,7 +107,10 @@ function applyQuantityRule(
   }
 }
 
-async function getPricingRules(merchantId?: string): Promise<Map<string, LoadedPricingRule[]>> {
+async function getPricingRules(
+  merchantId?: string,
+  databaseClient: SupabaseClient = supabase,
+): Promise<Map<string, LoadedPricingRule[]>> {
   const now = Date.now();
   const cacheKey = merchantId ? `${CACHE_KEY_PREFIX}${merchantId}` : `${CACHE_KEY_PREFIX}global`;
 
@@ -117,7 +121,7 @@ async function getPricingRules(merchantId?: string): Promise<Map<string, LoadedP
     return pricingRulesCache.rules;
   }
 
-  let query = supabase
+  let query = databaseClient
     .from('pricing_rules')
     .select('rule_id, item_key, item_type, classification, size, description, price, category, quantity_rule, multiplier_rule, special_conditions, merchant_id, is_active, created_at, updated_at')
     .eq('is_active', true);
@@ -166,7 +170,8 @@ export async function calculatePriceFromDatabase(
     icingDesign: IcingDesignUI,
     cakeInfo: CakeInfoUI,
   },
-  merchantId?: string
+  merchantId?: string,
+  databaseClient: SupabaseClient = supabase,
 ): Promise<{ addOnPricing: AddOnPricing; itemPrices: Map<string, number> }> {
 
   // NEW: Validation layer (only runs when feature flag is enabled)
@@ -264,7 +269,7 @@ export async function calculatePriceFromDatabase(
     };
   }
 
-  const rules = await getPricingRules(merchantId);
+  const rules = await getPricingRules(merchantId, databaseClient);
 
   const breakdown: { item: string; price: number; }[] = [];
   const itemPrices = new Map<string, number>();

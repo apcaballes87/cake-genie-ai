@@ -51,7 +51,6 @@ if (
 import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import {
-  ADMIN_IMAGE_STUDIO_PIN,
   IMAGE_STUDIO_PAGE_SIZE,
   IMAGE_STUDIO_SMALL_IMAGE_DIMENSION_THRESHOLD,
   normalizeImageStudioStatus,
@@ -213,6 +212,10 @@ async function callAdmin(
   page: number,
   pageSize: number,
 ): Promise<AdminResponse> {
+  const staffAccessToken = process.env.SUPABASE_STAFF_ACCESS_TOKEN;
+  if (!staffAccessToken) {
+    throw new Error('Exploration test requires SUPABASE_STAFF_ACCESS_TOKEN for an active staff account.');
+  }
   const url = new URL('http://localhost/api/admin/cake-cache-images');
   url.searchParams.set('search', query);
   url.searchParams.set('status', filters.status);
@@ -221,7 +224,7 @@ async function callAdmin(
   url.searchParams.set('pageSize', String(pageSize));
 
   const req = new NextRequest(url.toString(), {
-    headers: { 'x-admin-pin': ADMIN_IMAGE_STUDIO_PIN },
+    headers: { Authorization: `Bearer ${staffAccessToken}` },
   });
 
   const res = await GET(req);
