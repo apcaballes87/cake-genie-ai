@@ -96,7 +96,9 @@ SELECT ok(
       AND roles = ARRAY['authenticated']::name[]
       AND qual LIKE '%chatbot_admin_staff%'
       AND qual LIKE '%active%'
-      AND qual LIKE '%knowledge_editor%'
+      AND qual LIKE '%owner%'
+      AND qual LIKE '%admin%'
+      AND qual LIKE '%support%'
   ),
   'only active owner, admin, or support staff can receive conversation Realtime rows'
 );
@@ -112,7 +114,9 @@ SELECT ok(
       AND roles = ARRAY['authenticated']::name[]
       AND qual LIKE '%chatbot_admin_staff%'
       AND qual LIKE '%active%'
-      AND qual LIKE '%knowledge_editor%'
+      AND qual LIKE '%owner%'
+      AND qual LIKE '%admin%'
+      AND qual LIKE '%support%'
   ),
   'only active owner, admin, or support staff can receive message Realtime rows'
 );
