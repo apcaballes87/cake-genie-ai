@@ -822,21 +822,21 @@ export async function prepareStudioEditCacheRow(
       placeholderPayload.original_image_url = options.originalImageUrl;
     }
 
-    const { data: insertData, error: insertError } = await client
+    const { data: insertRows, error: insertError } = await client
       .from('cakegenie_analysis_cache')
       .upsert(placeholderPayload, {
         onConflict: 'p_hash',
         ignoreDuplicates: true,
       })
       .select('id')
-      .maybeSingle();
+      .limit(1);
 
     if (insertError) {
       console.warn('⚠️ Failed to insert early studio cache row:', insertError.message);
       return null;
     }
 
-    const insertedPlaceholder = Boolean(insertData?.id);
+    const insertedPlaceholder = Boolean(insertRows?.[0]?.id);
     const { data: selectedRow, error: selectError } = await client
       .from('cakegenie_analysis_cache')
       .select('id, studio_edit_status, studio_edited_image_url, studio_edit_started_at, analysis_json')
@@ -1138,16 +1138,16 @@ export async function cacheAnalysisResult(
       upsertPayload.original_image_url = finalImageUrl;
     }
 
-    const { data: upsertData, error } = await client
+    const { data: upsertRows, error } = await client
       .from('cakegenie_analysis_cache')
       .upsert(upsertPayload, {
         onConflict: 'p_hash',
         ignoreDuplicates: false // We set to false because we want to update with the new persistent image URL if it was already cached without one
       })
       .select('id')
-      .single();
+      .limit(1);
 
-    let returnedId = upsertData?.id || undefined;
+    let returnedId = upsertRows?.[0]?.id || undefined;
     if (!returnedId) {
       try {
         if (resolvedPHash) {

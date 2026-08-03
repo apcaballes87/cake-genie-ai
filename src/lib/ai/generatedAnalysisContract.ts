@@ -115,6 +115,13 @@ export const GENERATED_ANALYSIS_THICKNESSES_BY_CAKE_TYPE = {
   'Bento Cupcake Set': ['2 in'],
 } as const satisfies Record<GeneratedCakeType, readonly GeneratedCakeThickness[]>;
 
+const GENERATED_ANALYSIS_THICKNESS_INCHES = Object.fromEntries(
+  GENERATED_ANALYSIS_CAKE_THICKNESSES.map((thickness) => [
+    thickness,
+    Number.parseInt(thickness, 10),
+  ]),
+) as Record<GeneratedCakeThickness, number>;
+
 type LegacyGeneratedMainTopperType =
   | 'edible_photo_print'
   | 'icing_doodle_intricate'
@@ -261,6 +268,49 @@ export type GeneratedAnalysisTypeEnums = {
   supportElementTypes: string[];
   subtypesByType?: Record<string, string[]>;
 };
+
+export function reconcileGeneratedCakeTypeThickness(value: unknown): unknown {
+  if (!isRecord(value) || !isRecord(value.rejection) || value.rejection.isRejected !== false) {
+    return value;
+  }
+
+  const cakeType = value.cakeType;
+  const cakeThickness = value.cakeThickness;
+  if (
+    typeof cakeType !== 'string'
+    || !GENERATED_ANALYSIS_CAKE_TYPES.includes(cakeType as GeneratedCakeType)
+    || typeof cakeThickness !== 'string'
+    || !GENERATED_ANALYSIS_CAKE_THICKNESSES.includes(cakeThickness as GeneratedCakeThickness)
+  ) {
+    return value;
+  }
+
+  const canonicalCakeType = cakeType as GeneratedCakeType;
+  const canonicalThickness = cakeThickness as GeneratedCakeThickness;
+  const allowedThicknesses = GENERATED_ANALYSIS_THICKNESSES_BY_CAKE_TYPE[
+    canonicalCakeType
+  ] as readonly GeneratedCakeThickness[];
+
+  if (allowedThicknesses.includes(canonicalThickness)) {
+    return value;
+  }
+
+  const observedInches = GENERATED_ANALYSIS_THICKNESS_INCHES[canonicalThickness];
+  const reconciledThickness = allowedThicknesses.reduce((nearest, candidate) => {
+    const nearestDistance = Math.abs(
+      GENERATED_ANALYSIS_THICKNESS_INCHES[nearest] - observedInches,
+    );
+    const candidateDistance = Math.abs(
+      GENERATED_ANALYSIS_THICKNESS_INCHES[candidate] - observedInches,
+    );
+    return candidateDistance < nearestDistance ? candidate : nearest;
+  });
+
+  return {
+    ...value,
+    cakeThickness: reconciledThickness,
+  };
+}
 
 const TOP_LEVEL_KEYS = [
   'cakeType',

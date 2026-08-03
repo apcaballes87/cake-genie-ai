@@ -16,6 +16,7 @@ import {
   GENERATED_MAIN_TOPPER_TYPES,
   GENERATED_SUPPORT_ELEMENT_TYPES,
   mergeGeneratedAnalysisSubtypeMap,
+  reconcileGeneratedCakeTypeThickness,
   validateGeneratedCakeAnalysisResult,
   type GeneratedAnalysisTypeEnums,
   type GeneratedCakeAnalysisResult,
@@ -52,7 +53,16 @@ export function buildSearchAnalysisResponseSchema(typeEnums: GeneratedAnalysisTy
       },
       cakeThickness: {
         type: Type.STRING,
-        description: `Accepted: ${GENERATED_ANALYSIS_CAKE_THICKNESSES.join(', ')} subject to the cake-type contract. Rejected: empty string.`,
+        description: [
+          `Accepted values: ${GENERATED_ANALYSIS_CAKE_THICKNESSES.join(', ')}.`,
+          'Use only these exact cakeType pairings:',
+          '1 Tier = 3 in, 4 in, 5 in, or 6 in;',
+          '2 Tier or 3 Tier = 4 in or 5 in;',
+          'Square or Rectangle = 3 in or 4 in;',
+          'every Fondant cake type, including tiered, Square Fondant, and Rectangle Fondant = 5 in or 6 in;',
+          'Bento, Cupcake, or Bento Cupcake Set = 2 in.',
+          'Rejected: empty string.',
+        ].join(' '),
       },
       main_toppers: {
         type: Type.ARRAY,
@@ -200,5 +210,15 @@ export function postProcessSearchAnalysisResult(
   result: unknown,
   typeEnums: GeneratedAnalysisTypeEnums,
 ): GeneratedCakeAnalysisResult {
-  return validateGeneratedCakeAnalysisResult(result, typeEnums);
+  const reconciledResult = reconcileGeneratedCakeTypeThickness(result);
+  if (reconciledResult !== result && typeof result === 'object' && result !== null) {
+    const generated = result as Record<string, unknown>;
+    const reconciled = reconciledResult as Record<string, unknown>;
+    console.warn('[AI Contract] Reconciled unsupported cake thickness', {
+      cakeType: generated.cakeType,
+      generatedThickness: generated.cakeThickness,
+      reconciledThickness: reconciled.cakeThickness,
+    });
+  }
+  return validateGeneratedCakeAnalysisResult(reconciledResult, typeEnums);
 }

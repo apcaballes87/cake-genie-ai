@@ -4,8 +4,7 @@ import type { HybridAnalysisResult } from '@/types';
 const upsertMock = vi.fn();
 const updateMock = vi.fn();
 const selectAfterUpsertMock = vi.fn();
-const singleAfterUpsertMock = vi.fn();
-const maybeSingleAfterUpsertMock = vi.fn();
+const limitAfterUpsertMock = vi.fn();
 const selectFromAnalysisCacheMock = vi.fn();
 const eqAfterAnalysisCacheSelectMock = vi.fn();
 const singleAfterAnalysisCacheSelectMock = vi.fn();
@@ -39,8 +38,7 @@ productSizesQuery.maybeSingle = productSizesMaybeSingleMock;
 
 const analysisCacheUpsertQuery = {
   select: selectAfterUpsertMock,
-  single: singleAfterUpsertMock,
-  maybeSingle: maybeSingleAfterUpsertMock,
+  limit: limitAfterUpsertMock,
 };
 
 const analysisCacheQuery = {
@@ -117,8 +115,7 @@ describe('cacheAnalysisResult', () => {
     storageGetPublicUrlMock.mockReset().mockReturnValue({
       data: { publicUrl: 'https://example.com/uploaded.webp' },
     });
-    singleAfterUpsertMock.mockReset().mockResolvedValue({ data: { id: 'cache-row-id' }, error: null });
-    maybeSingleAfterUpsertMock.mockReset().mockResolvedValue({ data: { id: 'cache-row-id' }, error: null });
+    limitAfterUpsertMock.mockReset().mockResolvedValue({ data: [{ id: 'cache-row-id' }], error: null });
     selectAfterUpsertMock.mockReset().mockReturnValue(analysisCacheUpsertQuery);
     upsertMock.mockReset().mockReturnValue(analysisCacheUpsertQuery);
     singleAfterAnalysisCacheSelectMock.mockReset().mockResolvedValue({ data: { id: 'cache-row-id' }, error: null });
@@ -280,8 +277,8 @@ describe('cacheAnalysisResult', () => {
 
   it('prepares a new studio-processing cache row before full analysis is available', async () => {
     const { prepareStudioEditCacheRow } = await import('./supabaseService');
-    maybeSingleAfterUpsertMock.mockResolvedValue({
-      data: { id: 'new-cache-row-id' },
+    limitAfterUpsertMock.mockResolvedValue({
+      data: [{ id: 'new-cache-row-id' }],
       error: null,
     });
     analysisCacheMaybeSingleMock.mockResolvedValue({
@@ -333,6 +330,7 @@ describe('cacheAnalysisResult', () => {
         ignoreDuplicates: true,
       })
     );
+    expect(limitAfterUpsertMock).toHaveBeenCalledWith(1);
     expect(updateMock).toHaveBeenCalledWith(
       expect.objectContaining({
         fingerprint_pipeline: 'v2-test-pipeline',
@@ -356,7 +354,7 @@ describe('cacheAnalysisResult', () => {
 
   it('does not overwrite an existing completed analysis row while preparing Studio', async () => {
     const { prepareStudioEditCacheRow } = await import('./supabaseService');
-    maybeSingleAfterUpsertMock.mockResolvedValue({ data: null, error: null });
+    limitAfterUpsertMock.mockResolvedValue({ data: [], error: null });
     analysisCacheMaybeSingleMock.mockResolvedValue({
       data: {
         id: 'completed-cache-row-id',
@@ -445,7 +443,7 @@ describe('cacheAnalysisResult', () => {
     },
   ])('applies Studio retry policy for $label', async ({ row, shouldTriggerStudioEdit }) => {
     const { prepareStudioEditCacheRow } = await import('./supabaseService');
-    maybeSingleAfterUpsertMock.mockResolvedValue({ data: null, error: null });
+    limitAfterUpsertMock.mockResolvedValue({ data: [], error: null });
     analysisCacheMaybeSingleMock.mockResolvedValue({
       data: {
         id: 'existing-cache-row-id',

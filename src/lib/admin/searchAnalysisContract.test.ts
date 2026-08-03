@@ -107,6 +107,9 @@ describe('search analysis contract', () => {
     expect(schema.properties.icing_design.properties.gumpasteBaseBoard.type).toBeDefined();
     expect(schema.properties.cakeType.description).toContain('Bento Cupcake Set');
     expect(schema.properties.cakeThickness.description).toContain('6 in');
+    expect(schema.properties.cakeThickness.description).toContain(
+      'every Fondant cake type, including tiered, Square Fondant, and Rectangle Fondant = 5 in or 6 in',
+    );
     expect(schema.properties.cakeType).not.toHaveProperty('enum');
     expect(schema.properties.cakeThickness).not.toHaveProperty('enum');
   });
@@ -144,7 +147,7 @@ describe('search analysis contract', () => {
     expect(result.support_elements[0].subtype).toBe('ferrero');
   });
 
-  it('rejects invalid generated-only fields, quantities, subtypes, and cake thicknesses', () => {
+  it('rejects invalid generated-only fields, quantities, subtypes, and unknown cake thicknesses', () => {
     expect(() => postProcessSearchAnalysisResult(validAnalysis({
       main_toppers: [{
         type: 'printout',
@@ -173,8 +176,8 @@ describe('search analysis contract', () => {
 
     expect(() => postProcessSearchAnalysisResult(validAnalysis({
       cakeType: 'Bento',
-      cakeThickness: '4 in',
-    }), typeEnums)).toThrow(/not supported for Bento/i);
+      cakeThickness: '7 in',
+    }), typeEnums)).toThrow(/cakeThickness/i);
 
     expect(() => postProcessSearchAnalysisResult(validAnalysis({
       support_elements: [{
@@ -187,6 +190,54 @@ describe('search analysis contract', () => {
         description: 'supporting gold plastic ball',
       }],
     }), typeEnums)).toThrow(/support_elements\[0\]\.type/i);
+  });
+
+  it.each([
+    ['1 Tier Fondant', '4 in', '5 in'],
+    ['2 Tier Fondant', '4 in', '5 in'],
+    ['3 Tier Fondant', '3 in', '5 in'],
+    ['Square Fondant', '4 in', '5 in'],
+    ['Rectangle Fondant', '3 in', '5 in'],
+    ['1 Tier Fondant', '6 in', '6 in'],
+    ['2 Tier', '6 in', '5 in'],
+    ['Square', '5 in', '4 in'],
+    ['Bento', '4 in', '2 in'],
+    ['Cupcake', '3 in', '2 in'],
+    ['Bento Cupcake Set', '5 in', '2 in'],
+  ])(
+    'reconciles %s thickness %s to the allowed %s choice',
+    (cakeType, cakeThickness, expectedThickness) => {
+      const result = postProcessSearchAnalysisResult(validAnalysis({
+        cakeType,
+        cakeThickness,
+        icing_design: {
+          ...validAnalysis().icing_design,
+          base: cakeType.includes('Fondant') ? 'fondant' : 'soft_icing',
+        },
+      }), typeEnums);
+
+      expect(result.cakeThickness).toBe(expectedThickness);
+    },
+  );
+
+  it('reconciles on a copy and still enforces the Fondant icing base', () => {
+    const generated = validAnalysis({
+      cakeType: '1 Tier Fondant',
+      cakeThickness: '4 in',
+      icing_design: {
+        ...validAnalysis().icing_design,
+        base: 'fondant',
+      },
+    });
+
+    const result = postProcessSearchAnalysisResult(generated, typeEnums);
+
+    expect(result.cakeThickness).toBe('5 in');
+    expect(generated.cakeThickness).toBe('4 in');
+    expect(() => postProcessSearchAnalysisResult(validAnalysis({
+      cakeType: '1 Tier Fondant',
+      cakeThickness: '4 in',
+    }), typeEnums)).toThrow(/requires fondant/i);
   });
 
   it('requires exact rejection messages and complete icing colors', () => {

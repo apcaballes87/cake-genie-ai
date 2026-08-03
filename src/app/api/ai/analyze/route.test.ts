@@ -131,6 +131,37 @@ describe('POST /api/ai/analyze', () => {
         );
     });
 
+    it('reconciles an unsupported Fondant thickness instead of returning 500', async () => {
+        mockGetOrCreatePromptCache.mockResolvedValue(null);
+        mockGenerateContent.mockResolvedValue({
+            text: JSON.stringify({
+                ...validAnalysis,
+                cakeType: '1 Tier Fondant',
+                cakeThickness: '4 in',
+                icing_design: {
+                    ...validAnalysis.icing_design,
+                    base: 'fondant',
+                },
+            }),
+        });
+
+        const { POST } = await import('./route');
+        const request = new NextRequest('http://localhost/api/ai/analyze', {
+            method: 'POST',
+            body: JSON.stringify({
+                imageData: 'base64-data',
+                mimeType: 'image/png',
+            }),
+        });
+
+        const response = await POST(request);
+        const payload = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(payload.cakeType).toBe('1 Tier Fondant');
+        expect(payload.cakeThickness).toBe('5 in');
+    });
+
     it('reuses cached prompt details and enum config across hot requests', async () => {
         mockGetOrCreatePromptCache.mockResolvedValue('mock-cache-name');
 
