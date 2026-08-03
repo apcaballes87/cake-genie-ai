@@ -269,6 +269,45 @@ export type GeneratedAnalysisTypeEnums = {
   subtypesByType?: Record<string, string[]>;
 };
 
+export function reconcileCakeThicknessForType(
+  cakeType: unknown,
+  cakeThickness: unknown,
+): GeneratedCakeThickness | null {
+  if (
+    typeof cakeType !== 'string'
+    || !GENERATED_ANALYSIS_CAKE_TYPES.includes(cakeType as GeneratedCakeType)
+  ) {
+    return null;
+  }
+
+  const canonicalCakeType = cakeType as GeneratedCakeType;
+  const allowedThicknesses = GENERATED_ANALYSIS_THICKNESSES_BY_CAKE_TYPE[
+    canonicalCakeType
+  ] as readonly GeneratedCakeThickness[];
+  if (
+    typeof cakeThickness !== 'string'
+    || !GENERATED_ANALYSIS_CAKE_THICKNESSES.includes(cakeThickness as GeneratedCakeThickness)
+  ) {
+    return allowedThicknesses[0];
+  }
+
+  const canonicalThickness = cakeThickness as GeneratedCakeThickness;
+  if (allowedThicknesses.includes(canonicalThickness)) {
+    return canonicalThickness;
+  }
+
+  const observedInches = GENERATED_ANALYSIS_THICKNESS_INCHES[canonicalThickness];
+  return allowedThicknesses.reduce((nearest, candidate) => {
+    const nearestDistance = Math.abs(
+      GENERATED_ANALYSIS_THICKNESS_INCHES[nearest] - observedInches,
+    );
+    const candidateDistance = Math.abs(
+      GENERATED_ANALYSIS_THICKNESS_INCHES[candidate] - observedInches,
+    );
+    return candidateDistance < nearestDistance ? candidate : nearest;
+  });
+}
+
 export function reconcileGeneratedCakeTypeThickness(value: unknown): unknown {
   if (!isRecord(value) || !isRecord(value.rejection) || value.rejection.isRejected !== false) {
     return value;
@@ -285,26 +324,10 @@ export function reconcileGeneratedCakeTypeThickness(value: unknown): unknown {
     return value;
   }
 
-  const canonicalCakeType = cakeType as GeneratedCakeType;
-  const canonicalThickness = cakeThickness as GeneratedCakeThickness;
-  const allowedThicknesses = GENERATED_ANALYSIS_THICKNESSES_BY_CAKE_TYPE[
-    canonicalCakeType
-  ] as readonly GeneratedCakeThickness[];
-
-  if (allowedThicknesses.includes(canonicalThickness)) {
+  const reconciledThickness = reconcileCakeThicknessForType(cakeType, cakeThickness);
+  if (!reconciledThickness || reconciledThickness === cakeThickness) {
     return value;
   }
-
-  const observedInches = GENERATED_ANALYSIS_THICKNESS_INCHES[canonicalThickness];
-  const reconciledThickness = allowedThicknesses.reduce((nearest, candidate) => {
-    const nearestDistance = Math.abs(
-      GENERATED_ANALYSIS_THICKNESS_INCHES[nearest] - observedInches,
-    );
-    const candidateDistance = Math.abs(
-      GENERATED_ANALYSIS_THICKNESS_INCHES[candidate] - observedInches,
-    );
-    return candidateDistance < nearestDistance ? candidate : nearest;
-  });
 
   return {
     ...value,

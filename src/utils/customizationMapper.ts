@@ -16,6 +16,7 @@ import { CustomizationState } from '@/contexts/CustomizationContext';
 import { CakeGenieMerchantProduct } from '@/lib/database.types';
 import { AvailabilityType } from '@/lib/utils/availability';
 import { normalizeAnalysisForDefaultFulfillment } from '@/lib/ai/fulfillmentNormalization';
+import { reconcileCakeThicknessForType } from '@/lib/ai/generatedAnalysisContract';
 
 export function mapAnalysisToState(rawData: HybridAnalysisResult): CustomizationState {
     const state: CustomizationState = {};
@@ -30,7 +31,9 @@ export function mapAnalysisToState(rawData: HybridAnalysisResult): Customization
     };
 
     const cakeType: CakeType = rawData.cakeType || '1 Tier';
-    const cakeThickness = rawData.cakeThickness || DEFAULT_THICKNESS_MAP[cakeType] || '3 in';
+    const storedCakeThickness = rawData.cakeThickness || DEFAULT_THICKNESS_MAP[cakeType] || '3 in';
+    const cakeThickness = reconcileCakeThicknessForType(cakeType, storedCakeThickness)
+        || storedCakeThickness;
     const flavorCount = getFlavorCount(cakeType);
     const initialFlavors: CakeFlavor[] = Array(flavorCount).fill('Chocolate Cake');
 
@@ -114,7 +117,9 @@ export function mapAnalysisToState(rawData: HybridAnalysisResult): Customization
     state.additionalInstructions = '';
 
     // 7. Analysis Result & ID
-    state.analysisResult = rawData;
+    state.analysisResult = cakeThickness === rawData.cakeThickness
+        ? rawData
+        : { ...rawData, cakeThickness };
     // We don't set analysisId here typically, but we could if known. 
     // The consumer might generate one.
 

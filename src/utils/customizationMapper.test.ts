@@ -4,6 +4,31 @@ import { mapAnalysisToState } from './customizationMapper';
 import type { HybridAnalysisResult } from '@/types';
 
 describe('mapAnalysisToState', () => {
+    it('normalizes historical Fondant thicknesses at hydration without mutating cache data', () => {
+        const cachedAnalysis = {
+            cakeType: '1 Tier Fondant',
+            cakeThickness: '4 in',
+            main_toppers: [],
+            support_elements: [],
+            cake_messages: [],
+            icing_design: {
+                base: 'fondant',
+                color_type: 'single',
+                colors: { side: '#FFFFFF', top: '#FFFFFF' },
+                drip: false,
+                border_top: false,
+                border_base: false,
+                gumpasteBaseBoard: false,
+            },
+        } satisfies HybridAnalysisResult;
+
+        const state = mapAnalysisToState(cachedAnalysis);
+
+        expect(state.cakeInfo?.thickness).toBe('5 in');
+        expect(state.analysisResult?.cakeThickness).toBe('5 in');
+        expect(cachedAnalysis.cakeThickness).toBe('4 in');
+    });
+
     it('records stable source material when toys are automatically converted to printouts', () => {
         const state = mapAnalysisToState({
             cakeType: '1 Tier',
