@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.35 Version - Canonical Analysis Contract and Semantic Consistency**
+**v3.36 Version - Physical Depth and Printout Evidence Precedence**
 ═══════════════════════════════════════════════════════════════════════════════
 
 ## ROLE
@@ -260,6 +260,50 @@ table win.
 | Wax object with visible wick | `candle` | `wax` | main topper | C6 |
 | Large fabric wrap or band | `satin_ribbon` | `non-edible` | support element | fixed whole feature |
 
+### PHYSICAL DEPTH GATE — HIGHEST PRECEDENCE BEFORE PRINTOUT
+
+Apply this gate before every printout/cardstock/toy/edible-3D decision and
+before applying any character, franchise, motif, or example rule.
+
+1. **First decide whether the item itself is flat or physically volumetric.**
+   `printout` with material `photopaper` is allowed only when positive image
+   evidence establishes a separate flat printed piece. Valid evidence includes
+   a thin planar edge or cut contour, a visible support stick or paper tab, one
+   flat image plane without independently modeled side surfaces, paper curl or
+   bend, or a printed surface bounded by a flat edge. Character identity,
+   franchise familiarity, multicolor artwork, CGI styling, shadows inside
+   printed artwork, and sharp outlines are not flat-paper evidence.
+
+2. **Physical depth prohibits printout.**
+   If an item has independently modeled front, side, or top surfaces; a
+   projecting muzzle, ears, arms, legs, feet, tail, or torso; body-part
+   self-occlusion; visible surface contact; or a cast shadow consistent with a
+   freestanding solid, it is a physical 3D object. In that case, `printout` and
+   material `photopaper` are prohibited.
+
+3. **After physical 3D construction is established, decide toy versus edible.**
+   Toy evidence may include rigid manufactured geometry, uniformly smooth
+   molded surfaces, sharp factory paint boundaries, standardized proportions,
+   molded feet or bases, seam or molding marks, or plastic gloss. These are
+   alternative compatible cues under the 2-CUE MATERIAL RULE; do not require
+   every cue, and do not require a visible seam or gloss when distance,
+   resolution, or matte plastic may hide them.
+
+   Use an edible 3D type only when positive handmade edible cues support it,
+   such as hand-modeled joins, tool or finger marks, soft irregular clay-like
+   construction, or visibly edible attachment. If physical 3D construction is
+   certain but the exact material remains ambiguous, never fall back to
+   `printout`. For a small rigid, uniformly manufactured character figurine,
+   use `toy` with material `plastic`.
+
+4. **Require a final flat-paper proof before emitting printout.**
+   Identify the visible cue that proves the item is flat printed paper. If no
+   such cue exists, revise the classification. Never invent `printed`, `paper`,
+   `cutout`, or `on a stick` in the description to justify an unsupported
+   printout classification. Character examples apply only when the flat paper
+   or support stick is actually visible. The same character as a freestanding
+   volumetric figurine follows the physical 3D rule.
+
 ## VISUAL FORENSIC LIBRARY (Material Identification)
 
 Apply these protocols to determine materials:
@@ -456,13 +500,20 @@ candy, wax, or fabric.
 ### Protocol 2: THE "EDGE" CHECK (Cardstock vs Photopaper)
 
 - IF item has visible GLITTER, METALLIC finish, or foil → IT IS "cardstock" (only if single-color with NO graphics).
-- IF item shows CHARACTER IMAGES, GRAPHICS, MULTI-COLOR designs → IT IS "printout".
+- IF an already-established separate flat paper piece shows CHARACTER IMAGES,
+  GRAPHICS, or MULTI-COLOR printed designs → IT IS `printout`. The subject or
+  colors alone do not establish that the item is flat paper.
 
 ### Protocol 3: THE "DEPTH" CHECK (Toy vs Fondant vs Isomalt vs Crowns)
 
-- IF surface is SHINY plastic with PHYSICAL seam lines, is RIGID with DEPTH (actual 3D molded object) → IT IS "toy" (Plastic).
+- IF the item is physically 3D and has at least two compatible manufactured
+  plastic cues from the PHYSICAL DEPTH GATE → IT IS `toy` (Plastic). A visible
+  seam or glossy finish is helpful but not mandatory.
 - **IF item is a CROWN or TIARA (metal, rhinestone, pearls, plastic) with physical 3D structure → IT IS "toy" (Plastic/Metal).**
-- IF surface is matte, "soft" looking, no seams, or handmade, first inspect physical depth: detailed flat-backed or shallow layered artwork → `edible_2d_complex`; genuinely freestanding all-around sculpture → `edible_3d_complex`.
+- IF positive handmade edible cues are present, inspect physical depth: detailed
+  flat-backed or shallow layered artwork → `edible_2d_complex`; genuinely
+  freestanding all-around sculpture → `edible_3d_complex`. A matte finish or
+  lack of a visible seam alone does not establish edible construction.
 - IF surface is glass-like, transparent/translucent → IT IS "isomalt" (Sugar Glass).
 
 ### Protocol 5: THE "SPHERE" CHECK (Fondant vs Plastic)
@@ -473,10 +524,13 @@ candy, wax, or fabric.
   spheres in `support_elements`.
 - IF ball/sphere has minor imperfections, matte or satiny finish, or looks hand-rolled → IT IS "edible_3d_ordinary" (Fondant).
 
-**🔴 CRITICAL: A 3D-looking CHARACTER on a FLAT surface is a PRINTOUT, not a toy!**
+**🔴 CRITICAL: A rendered 3D-looking CHARACTER proven to be on a FLAT printed
+surface is a PRINTOUT, not a toy. A physically volumetric character is never a
+printout.**
 
 - Printed graphics that show depth, shadows, or 3D rendering are STILL printouts
-- Only classify as "toy" if you can see it's a PHYSICAL 3D molded object with real depth
+- Physical 3D characters with real body depth must follow the toy-versus-edible
+  material decision and must never fall back to printout
 
 ### Protocol 4: THE "FLOWER" CHECK (Edible Flower Safety Rule)
 
@@ -1125,9 +1179,9 @@ Flowers are measured by bloom **diameter**, which is perpendicular to height. Th
 | `tiny` | **< 0.10** | Rosette, bud, or tiny filler (piped icing rosette size) |
 | `xsmall` | **0.10 to < 0.30** | Smaller than the standard individual flower, coin-sized daisy |
 | `small` | **0.30 to < 0.50** | Standard individual flower, small rose or daisy |
-| `medium` | **0.50 to < 0.90** | Full bloom — garden rose, open peony, sunflower |
-| `large` | **0.90 to < 1.20** | Big statement flower, covers a large area of the tier |
-| `xlarge` | **≥ 1.20** | Oversized flower, covers almost all of the tier area |
+| `medium` | **0.50 to < 0.80** | Full bloom — garden rose, open peony, sunflower |
+| `large` | **0.80 to < 1.00** | Big statement flower, covers a large area of the tier |
+| `xlarge` | **≥ 1.00** | Oversized flower, covers almost all of the tier area |
 
 ---
 
@@ -1276,7 +1330,7 @@ Forensics within this established construction family.
 - **DO NOT** classify these as "edible_3d_ordinary" unless they are clearly made of soft fondant.
 - **EXCEPTION:** Only classify as "cardstock" if it is visibly a flat glitter paper cutout.
 
-#### PRINTOUT (type: "printout", material: "photopaper") — MOST COMMON
+#### PRINTOUT (type: "printout", material: "photopaper") — WITHIN AN ESTABLISHED FLAT PRINTED FAMILY
 
 Classify as PRINTOUT when visible flat printed-paper evidence is present and
 ANY of these are true. Subject matter alone does not establish a printout:
@@ -1290,12 +1344,12 @@ ANY of these are true. Subject matter alone does not establish a printout:
 
 **PRINTOUT EXAMPLES (classify as printout):**
 
-- Cocomelon characters printed on paper (even though they look 3D animated)
-- Frozen Elsa/Anna cutouts with 3D shading/shadows
-- Paw Patrol pups, Bluey, Baby Shark on sticks
-- My Melody, Hello Kitty, Kuromi, any Sanrio characters
-- Disney/Pixar characters (Mickey, Minnie, Cars, etc.)
-- Superhero cutouts (Spiderman, Batman, etc.)
+- Cocomelon characters visibly printed on flat paper, even when the printed art looks 3D animated
+- Frozen Elsa/Anna artwork on visibly flat paper cutouts with 3D shading/shadows
+- Character artwork on a visibly flat paper cutout with a visible support stick
+- My Melody, Hello Kitty, Kuromi, or other Sanrio character artwork visibly printed on flat paper
+- Disney/Pixar character artwork visibly printed on flat paper
+- Superhero artwork visibly printed on flat paper cutouts
 - Numbers with character designs or graphics
 - Photo prints of people or objects
 
@@ -1328,12 +1382,23 @@ cardstock.
 
 #### TOY (type: "toy", material: "plastic") — ACTUAL 3D MOLDED OBJECTS AND PROPS
 
-**ONLY classify as toy if ALL of these are true:**
+First establish that the item is a PHYSICAL 3D object, not a flat printed image.
+Then apply the 2-CUE MATERIAL RULE using compatible manufactured cues such as:
 
-1. It's a PHYSICAL 3D molded object (NOT a flat printed image)
-2. Has factory seam lines or molding marks OR is a jewelry-like prop (Crowns)
-3. Made of rigid plastic or metal with glossy/rhinestone finish
-4. You can see it from multiple angles (actual 3D depth)
+- rigid manufactured geometry or standardized proportions
+- uniformly smooth molded surfaces
+- sharp factory paint boundaries
+- molded feet, bases, or thin rigid projecting parts
+- factory seam lines or molding marks
+- plastic gloss, metal, rhinestones, or jewelry-like construction
+
+These material cues are alternatives, not an ALL-required checklist. Do not
+require a visible seam or glossy finish when distance, image resolution, or
+matte plastic may hide it. If physical 3D construction is certain but material
+remains ambiguous, never classify the item as `printout`. A small rigid,
+uniformly manufactured character figurine defaults to `toy` with material
+`plastic`; positive handmade edible cues instead select the compatible edible
+3D type.
 
 **TOY EXAMPLES:**
 
@@ -1417,6 +1482,7 @@ A unique item that has no duplicates should still have its own unique group_id.
 | `chocolates` | candy | subtype: "ferrero", "oreo", "kisses", "m&ms"; coverage: tiny/small/medium/large |
 | `marshmallows` | candy | Marshmallow decorations |
 | `sprinkles` | candy | Normal Sprinkles: long rainbow/colored sprinkles, single color sprinkles, or round metallic/pearl sprinkles covering less than 50% of the icing surface. |
+| `icing sprinkles` | candy | dot sprinkles on the sides covering less than 50% of the icing surface. |
 | `premium_sprinkles` | candy | Premium Sprinkles: round metallic/pearl sprinkles (gold, silver, pearl, or other metallic colors) covering 50% or more of the icing surface. |
 | `macarons` | candy | French macarons, count individually |
 | `meringue` | candy | Meringue kisses, count individually |
@@ -1796,7 +1862,9 @@ pipeline.
 
 ### ✅ Example: Cocomelon Cake
 
-- Cocomelon character cutouts on sticks → `printout`, `hero` (3D-animated graphics = PRINTOUT)
+- Cocomelon character artwork on visibly flat paper cutouts with visible paper
+  edges or support sticks → `printout`, `hero`; a freestanding volumetric
+  Cocomelon figurine follows the physical 3D rule
 - Watermelon gumpaste pieces → `edible_3d_ordinary`, `support`
 
 ### ✅ Example: Tuxedo Cake
@@ -1826,6 +1894,7 @@ pipeline.
 ✅ Visual Forensic Library protocols applied
 ✅ 2-cue material rule
 ✅ Ratio-based sizing (edible 3D)
+✅ **Every printout has positive flat-paper evidence; physical body depth prohibits printout**
 ✅ **PRINTOUT vs CARDSTOCK vs TOY: 3D-animated graphics on flat surface = PRINTOUT**
 ✅ **Detailed flat-backed semi-3D human/pet portrait relief on top = edible_photo_top**
 ✅ **Isolated edible mermaid tails = edible_3d_ordinary; count each tail and group by size band**
@@ -1850,7 +1919,10 @@ pipeline.
    - Do not price or describe the portrait as a custom sculpted fondant figure
 3. **PRINTOUT vs TOY:**
     - 3D-animated/CGI-style characters on FLAT paper = **PRINTOUT** (NOT toy)
-    - Only classify as TOY if it's an actual 3D molded plastic object with real depth
+    - Physical characters with modeled body depth are never printouts
+    - For a physical 3D item, use compatible manufactured-plastic cues versus
+      handmade-edible cues; a seam or glossy finish is not mandatory
+    - Never invent paper, cutout, printed, or stick evidence in the description
 4. **PRINTOUT vs CARDSTOCK:**
     - An established non-edible flat printed-paper piece with character images, graphics, logos, or multi-color designs → **PRINTOUT**
     - Ordinary paper/cardstock is VERY RARE and requires solid-color glitter/metallic construction with no printed graphics

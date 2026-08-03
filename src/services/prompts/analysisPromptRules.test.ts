@@ -16,7 +16,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.35 Version - Canonical Analysis Contract and Semantic Consistency**');
+    expect(prompt).toContain('**v3.36 Version - Physical Depth and Printout Evidence Precedence**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('3. Visible construction of each item');
     expect(prompt).toContain('5. Type compatible with that construction and material');
@@ -65,6 +65,39 @@ describe('cake analysis prompt rules', () => {
     expect(SYSTEM_INSTRUCTION).toContain('When gumpasteBaseBoard is true, include colors.gumpasteBaseBoardColor');
     expect(SYSTEM_INSTRUCTION).toContain('Use the active analysis prompt as the only source for sizing boundaries');
     expect(SYSTEM_INSTRUCTION).toContain('Use plastic_ball only for one dominant focal plastic sphere');
+  });
+
+  it('requires positive flat-paper evidence and prevents volumetric figurines from becoming printouts', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(prompt).toContain('PHYSICAL DEPTH GATE — HIGHEST PRECEDENCE BEFORE PRINTOUT');
+    expect(prompt).toContain('`printout` with material `photopaper` is allowed only when positive image');
+    expect(prompt).toContain('Character identity,\n   franchise familiarity, multicolor artwork, CGI styling');
+    expect(prompt).toContain('Physical depth prohibits printout.');
+    expect(prompt).toContain('projecting muzzle, ears, arms, legs, feet, tail, or torso');
+    expect(prompt).toContain('In that case, `printout` and\n   material `photopaper` are prohibited.');
+    expect(prompt).toContain('alternative compatible cues under the 2-CUE MATERIAL RULE');
+    expect(prompt).toContain('do not require a visible seam or gloss when distance,');
+    expect(prompt).toContain('never fall back to\n   `printout`');
+    expect(prompt).toContain('Never invent `printed`, `paper`,\n   `cutout`, or `on a stick`');
+    expect(prompt).toContain('The same character as a freestanding\n   volumetric figurine follows the physical 3D rule.');
+    expect(prompt).toContain('IF an already-established separate flat paper piece shows CHARACTER IMAGES');
+    expect(prompt).toContain('These material cues are alternatives, not an ALL-required checklist.');
+    expect(prompt).toContain('a seam or glossy finish is not mandatory');
+    expect(prompt).toContain('lack of a visible seam alone does not establish edible construction.');
+    expect(prompt).toContain('WITHIN AN ESTABLISHED FLAT PRINTED FAMILY');
+    expect(prompt).not.toContain('- IF item shows CHARACTER IMAGES, GRAPHICS, MULTI-COLOR designs');
+    expect(prompt).not.toContain('**ONLY classify as toy if ALL of these are true:**');
+    expect(prompt).not.toContain('Paw Patrol pups, Bluey, Baby Shark on sticks');
+    expect(prompt).not.toContain('PRINTOUT (type: "printout", material: "photopaper") — MOST COMMON');
+
+    expect(SYSTEM_INSTRUCTION).toContain('Physical Depth Gate Before Printout');
+    expect(SYSTEM_INSTRUCTION).toContain('only after positive image evidence establishes a separate flat printed piece');
+    expect(SYSTEM_INSTRUCTION).toContain('Independently modeled body surfaces, projecting anatomy');
+    expect(SYSTEM_INSTRUCTION).toContain('never fall back to printout merely because a seam or glossy finish is not visible');
+    expect(SYSTEM_INSTRUCTION).toContain('Never invent "printed", "paper", "cutout", or "on a stick"');
+    expect(SYSTEM_INSTRUCTION).toContain('Examples of PRINTOUTS after flat paper is visually established');
+    expect(SYSTEM_INSTRUCTION).not.toContain('Examples of PRINTOUTS (very common)');
   });
 
   it('keeps the whole-head cake exception in the fallback prompt source', () => {
@@ -227,7 +260,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.35 Version - Canonical Analysis Contract and Semantic Consistency**');
+    expect(prompt).toContain('**v3.36 Version - Physical Depth and Printout Evidence Precedence**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -248,7 +281,7 @@ describe('cake analysis prompt rules', () => {
   it('uses toy-specific sizing for miniature molded toys', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.35 Version - Canonical Analysis Contract and Semantic Consistency**');
+    expect(prompt).toContain('**v3.36 Version - Physical Depth and Printout Evidence Precedence**');
     expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy`)');
     expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
     expect(prompt).toContain('| `tiny` | under 0.10 |');
@@ -306,7 +339,7 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).not.toContain('35–60%');
   });
 
-  it('classifies exact sizing boundaries with the v3.35 half-open intervals', () => {
+  it('classifies exact sizing boundaries with the v3.36 half-open intervals', () => {
     const classifyByUpperBounds = (
       value: number,
       sizes: string[],
