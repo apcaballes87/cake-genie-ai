@@ -457,7 +457,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 const isSelfieSource = source === 'selfie';
                 showProgressToast(
                     isSelfieSource
-                        ? 'Selfie detected! Loading your edible photo cake... 🎂'
+                        ? 'Selfie image detected! Lets make an edible photo cake'
                         : 'Creating your edible photo cake... 🎂',
                     15000,
                 );

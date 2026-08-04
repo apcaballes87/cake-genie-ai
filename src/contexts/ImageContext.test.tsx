@@ -509,6 +509,11 @@ describe('ImageContext', () => {
     }));
     if (validationClassification === 'edible_photo_reference') {
       expect(analyzeCakeFeaturesOnlyMock).not.toHaveBeenCalled();
+    } else {
+      expect(showStatusMock).toHaveBeenCalledWith(
+        'Selfie image detected! Lets make an edible photo cake',
+        { id: 'upload-progress', duration: 15000 },
+      );
     }
     expect(findSimilarAnalysisByHashMock).not.toHaveBeenCalled();
     expect(prepareStudioEditCacheRowMock).not.toHaveBeenCalled();
