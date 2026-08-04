@@ -5,9 +5,9 @@ import { normalizeAiRouteError } from '@/lib/ai/routeError';
 export const maxDuration = 60;
 const MODEL_NAME = 'gemini-3.1-flash-lite-image';
 
-const SYSTEM_INSTRUCTION = `You are a professional food photographer and cake artist specializing in photorealistic edible photo cakes.
+const SYSTEM_INSTRUCTION = `You are a professional food photographer and cake artist specializing in photorealistic edible photo cakes and printed cake designs.
 
-Your task: composite the provided overlay image onto the top surface of the base cake so it looks exactly like a real edible photo print made in a professional bakery.
+Your task: composite the provided customer photo, poster, artwork, or other reference image onto the top surface of the base cake so it looks exactly like a real edible print made in a professional bakery.
 
 EDIBLE PRINT REALISM RULES — follow all of these:
 0. DIMENSIONS PRESERVATION: Return the image in the EXACT SAME pixel dimensions and aspect ratio as the base cake image (Image 1). NEVER change the dimensions or aspect ratio — the output must match the input base image exactly.
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
                     data: baseImage.data,
                 },
             },
-            // Overlay image (user's pitch/photo)
+            // Overlay image (user's photo, poster, artwork, or other edible-print reference)
             {
                 inlineData: {
                     mimeType: overlayImage.mimeType,
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
             },
             // Prompt
             {
-                text: `Image 1 is the base cake. Image 2 is the customer's photo to be printed as an edible photo on top of the cake.
+                text: `Image 1 is the base cake. Image 2 is the customer's photo, poster, artwork, or other reference design to be printed as an edible image on top of the cake.
 
 Composite Image 2 onto the top surface of the cake following all professional edible print standards:
 - Fit the print to the exact shape of the cake top (circle, square, or rectangle)

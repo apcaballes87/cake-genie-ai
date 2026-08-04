@@ -16,6 +16,8 @@ Based on the image, classify it into ONE of the following categories:
 - "large_wedding_cake": The cake is clearly a large, elaborate wedding cake, typically 4 tiers or more, often with complex floral arrangements or structures.
 - "non_food": The image is not of a food item at all.
 
+**EDIBLE PHOTO REFERENCE PRECEDENCE:** Before choosing \`not_a_cake\` or \`non_food\`, check whether the uploaded image is a customer-provided portrait, selfie, poster, baby photo, graduation photo, family photo, logo, cartoon, invitation, artwork, or other clean graphic that could reasonably be printed onto a cake. Classify those as \`edible_photo_reference\`. A standalone human portrait or selfie must not be classified as \`not_a_cake\` merely because no cake is visible.
+
 Provide your response as a JSON object with a single key "classification".
 
 Example for a valid cake:

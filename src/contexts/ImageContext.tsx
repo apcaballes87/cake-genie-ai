@@ -452,6 +452,143 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             const showProgressToast = (message: string, durationMs?: number) => {
                 showStatus(message, { id: uploadToastId, duration: durationMs ?? 30000 });
             };
+
+            const composeEdiblePhotoCake = async (source: 'selfie' | 'reference') => {
+                const isSelfieSource = source === 'selfie';
+                showProgressToast(
+                    isSelfieSource
+                        ? 'Selfie detected! Loading your edible photo cake... 🎂'
+                        : 'Creating your edible photo cake... 🎂',
+                    15000,
+                );
+
+                try {
+                    const baseCakeUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cold-caking/6in-1layer-cake.webp';
+                    const baseCakeImage = await fetchImageAsBase64(baseCakeUrl);
+
+                    // Show the placeholder cake immediately so the user is not staring
+                    // at a loading bar while the AI composite runs (which can take 30-60s).
+                    // The composite is kicked off in the background; on success we silently
+                    // swap editedImage/originalImageData to the result.
+                    const placeholderSrc = `data:${baseCakeImage.mimeType};base64,${baseCakeImage.data}`;
+                    setIsComposingSelfie(true);
+                    setEditedImage(placeholderSrc);
+                    setOriginalImageData(baseCakeImage);
+
+                    // Synthesize a valid HybridAnalysisResult for the edible photo cake.
+                    // We call onSuccess NOW (with the placeholder) so the user transitions
+                    // to the customizing workspace without waiting for the composite.
+                    const synthesizedResult: HybridAnalysisResult = {
+                        cakeType: '1 Tier',
+                        cakeThickness: '4 in',
+                        main_toppers: [
+                            {
+                                x: 0,
+                                y: 0,
+                                type: 'edible_photo_top',
+                                material: 'waferpaper',
+                                group_id: isSelfieSource ? 'selfie_photo_print' : 'uploaded_edible_photo',
+                                classification: 'hero',
+                                size: 'medium',
+                                quantity: 1,
+                                description: isSelfieSource
+                                    ? 'Edible photo of human portrait'
+                                    : 'Edible photo print from uploaded reference image'
+                            }
+                        ],
+                        support_elements: [],
+                        cake_messages: [],
+                        icing_design: {
+                            base: 'soft_icing',
+                            color_type: 'single',
+                            colors: {
+                                top: '#FFFFFF',
+                                side: '#FFFFFF'
+                            },
+                            drip: false,
+                            border_top: true,
+                            border_base: true,
+                            gumpasteBaseBoard: false
+                        },
+                        keyword: 'Edible Photo',
+                        alt_text: isSelfieSource
+                            ? 'Personalized edible photo cake featuring custom portrait print'
+                            : 'Personalized edible photo cake featuring an uploaded reference design',
+                        seo_title: 'Custom Edible Photo Birthday Cake Cebu | Genie.ph',
+                        seo_description: isSelfieSource
+                            ? 'A beautiful custom edible photo cake featuring a personalized printed portrait top. Made with premium soft icing in Cebu.'
+                            : 'A beautiful custom edible photo cake featuring a personalized printed design top. Made with premium soft icing in Cebu.',
+                        rejection: {
+                            isRejected: false,
+                            reason: '',
+                            message: ''
+                        }
+                    };
+
+                    toastHot.dismiss(uploadToastId);
+                    onSuccess(synthesizedResult);
+
+                    // Fire-and-forget background composite. The user is already in the
+                    // customizing workspace — on completion we silently swap the
+                    // placeholder for the composite; on failure we surface a soft toast
+                    // and let them re-upload if they want a fresh composite.
+                    void (async () => {
+                        try {
+                            const compositeResponse = await fetch('/api/ai/cold-cake-edit', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    baseImage: baseCakeImage,
+                                    overlayImage: compressedImageData,
+                                }),
+                            });
+
+                            if (!compositeResponse.ok) {
+                                if (compositeResponse.status === 429) {
+                                    showError(
+                                        isSelfieSource
+                                            ? "We're getting a lot of cake designs right now 🍰 — please try uploading your selfie again in a moment."
+                                            : "We're getting a lot of cake designs right now 🍰 — please try uploading your design again in a moment."
+                                    );
+                                } else {
+                                    showError(
+                                        isSelfieSource
+                                            ? "Couldn't add your photo to the cake. Please try uploading your selfie again."
+                                            : "Couldn't add your design to the cake. Please try uploading your reference image again."
+                                    );
+                                }
+                                return;
+                            }
+
+                            const compositeResult = await compositeResponse.json();
+                            const compositeSrc = `data:${compositeResult.mimeType};base64,${compositeResult.imageData}`;
+                            setEditedImage(compositeSrc);
+                            setOriginalImageData({
+                                data: compositeResult.imageData,
+                                mimeType: compositeResult.mimeType,
+                            });
+                        } catch (err) {
+                            console.error('Background edible photo composite failed:', err);
+                            showError(
+                                isSelfieSource
+                                    ? "Couldn't add your photo to the cake. Please try uploading your selfie again."
+                                    : "Couldn't add your design to the cake. Please try uploading your reference image again."
+                            );
+                        } finally {
+                            setIsComposingSelfie(false);
+                        }
+                    })();
+                } catch (setupErr) {
+                    console.error('Edible photo placeholder setup failed:', setupErr);
+                    toastHot.dismiss(uploadToastId);
+                    throw new Error(
+                        isSelfieSource
+                            ? 'This image doesn\'t appear to be a cake. Please upload a cake image.'
+                            : 'Couldn\'t create your edible photo cake. Please try again.'
+                    );
+                }
+            };
+
             showProgressToast('Checking your image…');
 
             let cacheHit = null;
@@ -473,13 +610,17 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             );
 
             const validationMessage = VALIDATION_REJECTION_MESSAGES[validationClassification];
+            const isEdiblePhotoReference = validationClassification === 'edible_photo_reference';
+            const isFallbackPhotoCandidate = validationClassification === 'not_a_cake'
+                || validationClassification === 'non_food';
+            const isPhotoReferenceCandidate = isEdiblePhotoReference || isFallbackPhotoCandidate;
             const isParallelStudioCandidate = PARALLEL_STUDIO_VALID_CLASSIFICATIONS.has(validationClassification);
 
-            if (validationMessage) {
+            if (validationMessage && !isPhotoReferenceCandidate) {
                 throw new Error(`AI_REJECTION: ${validationMessage}`);
             }
 
-            const shouldUseSimilarCacheLookup = !knownSeoMetadata && pHash !== null;
+            const shouldUseSimilarCacheLookup = !knownSeoMetadata && pHash !== null && !isPhotoReferenceCandidate;
 
             if (shouldUseSimilarCacheLookup) {
                 const cacheHitRaw = await findSimilarAnalysisByHash(toFingerprintLookup(fingerprint), options?.imageUrl);
@@ -560,10 +701,17 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             }
             // --- END OF COMPRESSION LOGIC AND CACHE CHECKS ---
 
+            // An explicit edible-photo reference is already a valid customer input,
+            // so skip cake analysis, cache lookup, and normal Studio processing.
+            if (isEdiblePhotoReference) {
+                await composeEdiblePhotoCake('reference');
+                return;
+            }
+
             // For clearly valid cake classifications, reserve the Studio row and trigger
             // Studio before waiting for the more detailed cake analysis. This is the
-            // parallel path. `edible_photo_reference` stays analysis-gated so the existing
-            // selfie/edible-photo branch cannot send the raw portrait into normal Studio.
+            // parallel path. Photo-reference candidates are excluded so a raw portrait or
+            // artwork cannot enter normal Studio before the edible-photo decision is made.
             const earlyStudioSetupPromise =
                 isParallelStudioCandidate && pHash && fingerprint
                     ? (async () => {
@@ -600,115 +748,15 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 );
 
                 if (fastResult.rejection && fastResult.rejection.isRejected && fastResult.rejection.reason === 'selfie') {
-                    showStatus('Selfie detected! Loading your edible photo cake... 🎂', { id: uploadToastId, duration: 15000 });
-                    try {
-                        const baseCakeUrl = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/cold-caking/6in-1layer-cake.webp';
-                        const baseCakeImage = await fetchImageAsBase64(baseCakeUrl);
+                    await composeEdiblePhotoCake('selfie');
+                    return;
+                }
 
-                        // Show the placeholder cake immediately so the user is not staring
-                        // at a loading bar while the AI composite runs (which can take 30-60s).
-                        // The composite is kicked off in the background; on success we silently
-                        // swap editedImage/originalImageData to the result.
-                        const placeholderSrc = `data:${baseCakeImage.mimeType};base64,${baseCakeImage.data}`;
-                        setIsComposingSelfie(true);
-                        setEditedImage(placeholderSrc);
-                        setOriginalImageData(baseCakeImage);
-
-                        // Synthesize a valid HybridAnalysisResult for the edible photo cake.
-                        // We call onSuccess NOW (with the placeholder) so the user transitions
-                        // to the customizing workspace without waiting for the composite.
-                        const synthesizedResult: HybridAnalysisResult = {
-                            cakeType: '1 Tier',
-                            cakeThickness: '4 in',
-                            main_toppers: [
-                                {
-                                    x: 0,
-                                    y: 0,
-                                    type: 'edible_photo_top',
-                                    material: 'waferpaper',
-                                    group_id: 'selfie_photo_print',
-                                    classification: 'hero',
-                                    size: 'medium',
-                                    quantity: 1,
-                                    description: 'Edible photo of human portrait'
-                                }
-                            ],
-                            support_elements: [],
-                            cake_messages: [],
-                            icing_design: {
-                                base: 'soft_icing',
-                                color_type: 'single',
-                                colors: {
-                                    top: '#FFFFFF',
-                                    side: '#FFFFFF'
-                                },
-                                drip: false,
-                                border_top: true,
-                                border_base: true,
-                                gumpasteBaseBoard: false
-                            },
-                            keyword: 'Edible Photo',
-                            alt_text: 'Personalized edible photo cake featuring custom portrait print',
-                            seo_title: 'Custom Edible Photo Birthday Cake Cebu | Genie.ph',
-                            seo_description: 'A beautiful custom edible photo cake featuring a personalized printed portrait top. Made with premium soft icing in Cebu.',
-                            rejection: {
-                                isRejected: false,
-                                reason: '',
-                                message: ''
-                            }
-                        };
-
-                        toastHot.dismiss(uploadToastId);
-                        onSuccess(synthesizedResult);
-
-                        // Fire-and-forget background composite. The user is already in the
-                        // customizing workspace — on completion we silently swap the
-                        // placeholder for the composite; on failure we surface a soft
-                        // toast and let them re-upload if they want a fresh composite.
-                        void (async () => {
-                            try {
-                                const compositeResponse = await fetch('/api/ai/cold-cake-edit', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        baseImage: baseCakeImage,
-                                        overlayImage: compressedImageData,
-                                    }),
-                                });
-
-                                if (!compositeResponse.ok) {
-                                    if (compositeResponse.status === 429) {
-                                        showError("We're getting a lot of cake designs right now 🍰 — please try uploading your selfie again in a moment.");
-                                    } else {
-                                        showError("Couldn't add your photo to the cake. Please try uploading your selfie again.");
-                                    }
-                                    return;
-                                }
-
-                                const compositeResult = await compositeResponse.json();
-                                const compositeSrc = `data:${compositeResult.mimeType};base64,${compositeResult.imageData}`;
-                                setEditedImage(compositeSrc);
-                                setOriginalImageData({
-                                    data: compositeResult.imageData,
-                                    mimeType: compositeResult.mimeType,
-                                });
-                            } catch (err) {
-                                console.error('Background selfie composite failed:', err);
-                                showError("Couldn't add your photo to the cake. Please try uploading your selfie again.");
-                            } finally {
-                                setIsComposingSelfie(false);
-                            }
-                        })();
-
-                        return;
-                    } catch (setupErr) {
-                        // Failed to even fetch the placeholder cake (network/storage issue).
-                        // Fall back to the standard rejection so the user is not left
-                        // without feedback.
-                        console.error('Selfie placeholder setup failed:', setupErr);
-                        toastHot.dismiss(uploadToastId);
-                        throw new Error('This image doesn\'t appear to be a cake. Please upload a cake image.');
-                    }
+                // If the lightweight validator said this was not a cake, only the
+                // explicit selfie result may override that decision. Do not accept a
+                // contradictory generic cake result from the second model call.
+                if (isFallbackPhotoCandidate) {
+                    throw new Error(`AI_REJECTION: ${validationMessage || "This image doesn't appear to be a cake. Please upload a cake image."}`);
                 }
 
                 // Clean up the active analysis toast

@@ -434,13 +434,14 @@ describe('ImageContext', () => {
     expect(secondUpload.finalImageUrl).toContain('cart-item-b-edited.webp');
   });
 
-  it('intercepts selfie rejection and converts it into a composite edible photo cake', async () => {
+  it.each(['edible_photo_reference', 'not_a_cake'] as const)('routes selfie/reference uploads through the edible photo flow after %s validation', async (validationClassification) => {
     const onSuccess = vi.fn();
     const onError = vi.fn();
     const { result } = renderHook(() => useImageManagement(), { wrapper });
 
-    // Mock analyzeCakeFeaturesOnly to return a selfie rejection
-    validateCakeImageMock.mockResolvedValue('edible_photo_reference');
+    // The first validator may identify a reference image explicitly or
+    // conservatively call a portrait "not_a_cake". Both must reach the edible-photo flow.
+    validateCakeImageMock.mockResolvedValue(validationClassification);
     analyzeCakeFeaturesOnlyMock.mockResolvedValue({
       cakeType: '',
       cakeThickness: '',
@@ -500,16 +501,47 @@ describe('ImageContext', () => {
       main_toppers: expect.arrayContaining([
         expect.objectContaining({
           type: 'edible_photo_top',
-          group_id: 'selfie_photo_print',
+          group_id: validationClassification === 'edible_photo_reference'
+            ? 'uploaded_edible_photo'
+            : 'selfie_photo_print',
         })
       ]),
     }));
+    if (validationClassification === 'edible_photo_reference') {
+      expect(analyzeCakeFeaturesOnlyMock).not.toHaveBeenCalled();
+    }
+    expect(findSimilarAnalysisByHashMock).not.toHaveBeenCalled();
     expect(prepareStudioEditCacheRowMock).not.toHaveBeenCalled();
     expect(triggerStudioEditFromUploadMock).not.toHaveBeenCalled();
     expect(cacheAnalysisResultMock).not.toHaveBeenCalled();
     expect(onError).not.toHaveBeenCalled();
 
     fetchSpy.mockRestore();
+  });
+
+  it('keeps a genuinely unrelated not_a_cake upload rejected after the fallback analysis', async () => {
+    const onSuccess = vi.fn();
+    const onError = vi.fn();
+    const { result } = renderHook(() => useImageManagement(), { wrapper });
+
+    validateCakeImageMock.mockResolvedValue('not_a_cake');
+
+    await act(async () => {
+      await result.current.handleImageUpload(
+        new File(['car-bytes'], 'car.png', { type: 'image/png' }),
+        onSuccess,
+        onError
+      );
+    });
+
+    expect(analyzeCakeFeaturesOnlyMock).toHaveBeenCalled();
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledWith(expect.objectContaining({
+      message: "AI_REJECTION: This image doesn't appear to be a cake. Please upload a cake image.",
+    }));
+    expect(findSimilarAnalysisByHashMock).not.toHaveBeenCalled();
+    expect(prepareStudioEditCacheRowMock).not.toHaveBeenCalled();
+    expect(triggerStudioEditFromUploadMock).not.toHaveBeenCalled();
   });
 
   it('shows the base cake placeholder immediately and flips isComposingSelfie while the composite is in flight', async () => {
