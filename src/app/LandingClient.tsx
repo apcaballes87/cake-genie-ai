@@ -125,10 +125,10 @@ const HeroTypingHeadlineLine: React.FC<{
         phrase.length > longest.length ? phrase : longest
     ), phrases[0] ?? '');
     const currentPhrase = phrases[phraseIndex] ?? phrases[0] ?? '';
-    const activePhraseClassName = currentPhrase === 'Minimalist Cakes'
+    const activePhraseClassName = currentPhrase === 'Minimalist Cakes' || currentPhrase === 'Minimalist Cakes.'
         ? 'italic inline-block [font-size:0.9em]'
         : 'italic';
-    const placeholderPhraseClassName = longestPhrase === 'Minimalist Cakes'
+    const placeholderPhraseClassName = longestPhrase === 'Minimalist Cakes' || longestPhrase === 'Minimalist Cakes.'
         ? 'italic inline-block [font-size:0.9em]'
         : 'italic';
 
@@ -175,7 +175,7 @@ const HeroTypingHeadlineLine: React.FC<{
     return (
         <span className={className}>
             <span className="sr-only">{a11yLabel ?? phrases.join(', ')}</span>
-            <span className="relative inline-grid" aria-hidden="true">
+            <span className="relative inline-grid w-full min-w-0" aria-hidden="true">
                 <span aria-hidden="true" className="invisible whitespace-nowrap">
                     <span className={placeholderPhraseClassName}>{longestPhrase}</span>
                     <span className="ml-1 inline-block h-[0.92em] w-[3px] align-middle" />
@@ -1864,6 +1864,9 @@ const LandingClient: React.FC<LandingClientProps> = ({
                             </p>
                             <div className="mb-3 text-center">
                                 <h1 className="text-[50px] max-[390px]:text-[43px] font-extrabold leading-none tracking-tight text-gray-900">
+                                    {heroContent.headlinePrefix && heroContent.headlineSuffix && (
+                                        <span className="block whitespace-nowrap text-black italic">{heroContent.headlinePrefix}</span>
+                                    )}
                                     <HeroTypingHeadlineLine
                                         className="block min-h-[1em] whitespace-nowrap text-center text-purple-600"
                                         controlledPhraseIndex={heroHeadlineVariant}
@@ -1871,8 +1874,14 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                         a11yLabel={heroContent.headlineA11yLabel}
                                         onPhraseSettled={handleHeroHeadlineSettled}
                                     />
-                                    <span className="block whitespace-nowrap text-black italic">{heroContent.lineTwo}</span>
-                                    <span className="block whitespace-nowrap text-black italic">{heroContent.lineThree}</span>
+                                    {heroContent.headlinePrefix && heroContent.headlineSuffix ? (
+                                        <span className="block whitespace-nowrap text-black italic">{heroContent.headlineSuffix}</span>
+                                    ) : (
+                                        <>
+                                            <span className="block whitespace-nowrap text-black italic">{heroContent.lineTwo}</span>
+                                            <span className="block whitespace-nowrap text-black italic">{heroContent.lineThree}</span>
+                                        </>
+                                    )}
                                 </h1>
                                 {heroUploadState === 'idle' && (
                                     <HeroFeatureHighlights compact className="mx-auto mt-3 w-full max-w-[480px] px-2" />
@@ -1892,16 +1901,25 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                         <p className="mb-3 text-center text-[11px] font-bold uppercase tracking-[0.092em] text-neutral-600">
                                             {heroContent.eyebrow}
                                         </p>
-                                        <h1 className="mt-2 text-[3.79rem] min-[945px]:text-[3.85rem] lg:text-[4.62rem] min-[1232px]:text-[5.7rem] font-extrabold text-gray-900 leading-none tracking-tight">
+                                        <h1 className="mt-2 flex flex-col items-center gap-0 text-[3.79rem] min-[945px]:text-[3.85rem] lg:text-[4.62rem] min-[1232px]:text-[5.7rem] font-extrabold text-gray-900 leading-none tracking-tight">
+                                            {heroContent.headlinePrefix && heroContent.headlineSuffix && (
+                                                <span className="block h-[1em] whitespace-nowrap leading-none text-black italic">{heroContent.headlinePrefix}</span>
+                                            )}
                                             <HeroTypingHeadlineLine
-                                                className="block min-h-[1em] whitespace-nowrap text-center text-purple-600"
+                                                className="block h-[1em] w-full min-h-0 whitespace-nowrap text-center leading-none text-purple-600"
                                                 controlledPhraseIndex={heroHeadlineVariant}
                                                 phrases={heroContent.headlineVariants}
                                                 a11yLabel={heroContent.headlineA11yLabel}
                                                 onPhraseSettled={handleHeroHeadlineSettled}
                                             />
-                                            <span className="block whitespace-nowrap text-black italic">{heroContent.lineTwo}</span>
-                                            <span className="block whitespace-nowrap text-black italic">{heroContent.lineThree}</span>
+                                            {heroContent.headlinePrefix && heroContent.headlineSuffix ? (
+                                                <span className="block h-[1em] whitespace-nowrap leading-none text-black italic">{heroContent.headlineSuffix}</span>
+                                            ) : (
+                                                <>
+                                                    <span className="block h-[1em] whitespace-nowrap leading-none text-black italic">{heroContent.lineTwo}</span>
+                                                    <span className="block h-[1em] whitespace-nowrap leading-none text-black italic">{heroContent.lineThree}</span>
+                                                </>
+                                            )}
                                         </h1>
                                         {heroUploadState === 'idle' && (
                                             <HeroFeatureHighlights className="mt-6" />

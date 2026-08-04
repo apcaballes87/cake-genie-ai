@@ -10,8 +10,10 @@ export interface LandingHeroContent {
   eyebrow: string;
   headlineVariants: readonly string[];
   headlineA11yLabel: string;
-  lineTwo: string;
-  lineThree: string;
+  headlinePrefix?: string;
+  headlineSuffix?: string;
+  lineTwo?: string;
+  lineThree?: string;
   products: readonly LandingHeroProduct[];
 }
 
@@ -28,8 +30,8 @@ export const DEFAULT_LANDING_HERO_CONTENT: LandingHeroContent = {
   ],
   headlineA11yLabel:
     'Custom Cakes, Minimalist Cakes, Vintage Cakes, Floral Cakes, Photo Cakes, Bento Cakes, and Doodle Cakes.',
-  lineTwo: "For Today's",
-  lineThree: 'Celebrations',
+  headlinePrefix: 'Extraordinary',
+  headlineSuffix: 'Crafted for you',
   products: [
     {
       title: 'Minimalist Cakes',
