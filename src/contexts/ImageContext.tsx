@@ -525,7 +525,6 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                         }
                     };
 
-                    toastHot.dismiss(uploadToastId);
                     onSuccess(synthesizedResult);
 
                     // Fire-and-forget background composite. The user is already in the

@@ -516,6 +516,7 @@ describe('ImageContext', () => {
       );
     }
     expect(findSimilarAnalysisByHashMock).not.toHaveBeenCalled();
+    expect(dismissToastMock).not.toHaveBeenCalledWith('upload-progress');
     expect(prepareStudioEditCacheRowMock).not.toHaveBeenCalled();
     expect(triggerStudioEditFromUploadMock).not.toHaveBeenCalled();
     expect(cacheAnalysisResultMock).not.toHaveBeenCalled();
@@ -696,7 +697,7 @@ describe('ImageContext', () => {
     expect(onError).not.toHaveBeenCalled();
     expect(showErrorMock).toHaveBeenCalledTimes(1);
     expect(showErrorMock.mock.calls[0][0]).toMatch(/getting a lot of cake designs/i);
-    expect(dismissToastMock).toHaveBeenCalled();
+    expect(dismissToastMock).not.toHaveBeenCalledWith('upload-progress');
 
     fetchSpy.mockRestore();
   });
