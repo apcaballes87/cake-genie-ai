@@ -219,11 +219,11 @@ const basePricingRows: PricingFixtureRule[] = [
   },
   {
     rule_id: 41,
-    item_key: 'cardstock_medium',
+    item_key: 'cardstock',
     item_type: 'cardstock',
     classification: 'message',
-    size: 'medium',
-    description: 'Medium cardstock message',
+    size: null,
+    description: 'Legacy cardstock message charge',
     price: 100,
     category: 'message',
     quantity_rule: null,
@@ -234,7 +234,111 @@ const basePricingRows: PricingFixtureRule[] = [
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
   },
+  {
+    rule_id: 42,
+    item_key: 'edible_flowers_medium',
+    item_type: 'edible_flowers',
+    classification: 'hero',
+    size: 'medium',
+    description: 'Medium hero edible flowers',
+    price: 100,
+    category: 'main_topper',
+    quantity_rule: 'buy_3_get_1_free',
+    multiplier_rule: null,
+    special_conditions: null,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+  },
 ];
+
+const weddingAnalysisFixture = {
+  tags: [
+    'wedding',
+    'white',
+    'gold',
+    'topper',
+    'florals',
+    'cebu',
+    'genie',
+    '1-tier',
+    'soft',
+    'icing',
+    'acrylic',
+    'beige',
+    'rose',
+    'floral',
+    'cascade',
+  ],
+  keyword: 'Wedding',
+  alt_text: 'White 1-tier soft icing wedding cake with a gold acrylic topper and white and beige rose floral cascade',
+  rejection: {
+    reason: '',
+    message: '',
+    isRejected: false,
+  },
+  seo_title: 'Wedding Cake With Gold Topper And Florals Cebu | Genie.ph',
+  icing_design: {
+    base: 'soft_icing',
+    drip: false,
+    colors: { top: '#FFFFFF', side: '#FFFFFF' },
+    border_top: false,
+    color_type: 'single',
+    border_base: false,
+    gumpasteBaseBoard: false,
+  },
+  main_toppers: [
+    {
+      size: 'medium',
+      type: 'cardstock',
+      group_id: 'mr_mrs_topper',
+      material: 'cardstock',
+      quantity: 1,
+      description: 'Gold acrylic Mr & Mrs topper normalized to cardstock',
+      classification: 'hero',
+    },
+  ],
+  cakeType: '1 Tier',
+  cakeThickness: '4 in',
+  cake_messages: [
+    {
+      text: 'Mr & Mrs Dumaguit',
+      type: 'cardstock',
+      color: '#FFD700',
+      position: 'top',
+    },
+  ],
+  seo_description: 'A white 1-tier wedding cake features smooth soft icing paired with a cascade of white and beige edible roses. A gold acrylic topper sits on top, complemented by delicate pearl dragees and textured side details. The design suits a traditional wedding celebration with a neutral color palette. Its classic aesthetic also works for intimate ceremonies. The topper, floral arrangement, icing colors, and personalized message can be customized. Designed specifically for wedding or white events, this Wedding cake is a stunning 1 layer (single tier) piece finished with soft icing in white. The design is highlighted by Gold acrylic Mr & Mrs topper normalized to cardstock. Decorative accents include 8 Cluster of white and beige edible roses with green leaves, 15 White pearl dragees scattered on the side, and Textured white icing palette knife spread on the side. This design requires at least one day of lead time.',
+  support_elements: [
+    {
+      size: 'medium',
+      type: 'edible_flowers',
+      color: '#FFFFFF',
+      group_id: 'white_and_beige_roses',
+      material: 'edible_fondant',
+      quantity: 8,
+      description: 'Cluster of white and beige edible roses with green leaves',
+    },
+    {
+      size: 'tiny',
+      type: 'dragees',
+      color: '#FFFFFF',
+      group_id: 'white_pearl_accents',
+      material: 'candy',
+      quantity: 15,
+      description: 'White pearl dragees scattered on the side',
+    },
+    {
+      size: 'small',
+      type: 'icing_decorations',
+      color: '#FFFFFF',
+      group_id: 'side_icing_swirls',
+      material: 'icing',
+      quantity: 1,
+      description: 'Textured white icing palette knife spread on the side',
+    },
+  ],
+} as const;
 
 let pricingRows: PricingFixtureRule[] = [...basePricingRows];
 
@@ -274,7 +378,7 @@ describe('calculatePriceFromDatabase', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
-  it('prices legacy icing_text messages through the icing_script rule without warning', async () => {
+  it('keeps messages free even when a legacy nonzero message rule exists', async () => {
     const { calculatePriceFromDatabase } = await import('./pricingService.database');
     const warnSpy = vi.spyOn(console, 'warn');
 
@@ -293,9 +397,55 @@ describe('calculatePriceFromDatabase', () => {
       cakeInfo: { type: '1 Tier' } as CakeInfoUI,
     });
 
-    expect(itemPrices.get('message-1')).toBe(50);
-    expect(addOnPricing.addOnPrice).toBe(50);
+    expect(itemPrices.get('message-1')).toBe(0);
+    expect(addOnPricing.addOnPrice).toBe(0);
     expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining('icing_text'));
+  });
+
+  it('prices the wedding analysis once for its physical topper and never as flowers or message text', async () => {
+    const { calculatePriceFromDatabase } = await import('./pricingService.database');
+    const mainToppers = weddingAnalysisFixture.main_toppers.map((topper, index) => ({
+      ...topper,
+      id: `wedding-topper-${index + 1}`,
+      isEnabled: true,
+    })) as unknown as MainTopperUI[];
+    const supportElements = weddingAnalysisFixture.support_elements.map((element, index) => ({
+      ...element,
+      id: `wedding-support-${index + 1}`,
+      isEnabled: true,
+    })) as unknown as SupportElementUI[];
+    const cakeMessages = weddingAnalysisFixture.cake_messages.map((message, index) => ({
+      ...message,
+      id: `wedding-message-${index + 1}`,
+      isEnabled: true,
+    })) as unknown as CakeMessageUI[];
+
+    const { addOnPricing, itemPrices } = await calculatePriceFromDatabase({
+      mainToppers,
+      supportElements,
+      cakeMessages,
+      icingDesign: weddingAnalysisFixture.icing_design as IcingDesignUI,
+      cakeInfo: {
+        type: weddingAnalysisFixture.cakeType,
+        size: '6" Round',
+        thickness: weddingAnalysisFixture.cakeThickness,
+      } as CakeInfoUI,
+    });
+
+    expect(itemPrices.get('wedding-topper-1')).toBe(60);
+    expect(itemPrices.get('wedding-support-1')).toBe(0);
+    expect(itemPrices.get('wedding-support-2')).toBe(0);
+    expect(itemPrices.get('wedding-support-3')).toBe(0);
+    expect(itemPrices.get('wedding-message-1')).toBe(0);
+    expect(addOnPricing).toEqual({
+      addOnPrice: 60,
+      breakdown: [
+        {
+          item: 'Gold acrylic Mr & Mrs topper normalized to cardstock',
+          price: 60,
+        },
+      ],
+    });
   });
 
   it('prices edible_photo_top based on cake size (Bento: 0, 6" Round: 100, others: 200)', async () => {

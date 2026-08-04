@@ -486,21 +486,9 @@ export async function calculatePriceFromDatabase(
 
   // Process Messages
   cakeMessages.forEach(message => {
-    let price = 0;
-    if (message.isEnabled && message.text && message.text.trim().length > 0) {
-      const rule = getRule(message.type, undefined, 'message');
-      if (rule) {
-        price = rule.price;
-        const conditions = rule.special_conditions;
-        if (conditions?.allowance_eligible) {
-          supportGumpasteRawTotal += price;
-        } else {
-          nonGumpasteTotal += price;
-        }
-        breakdown.push({ item: `"${message.text}" (${message.type})`, price });
-      }
-    }
-    itemPrices.set(message.id, price);
+    // Message text describes editable wording on an already-priced cake/topper.
+    // It is never an independent add-on charge, regardless of its carrier type.
+    itemPrices.set(message.id, 0);
   });
 
   // Process Icing Features

@@ -429,13 +429,8 @@ export const calculatePrice = (
 
     // --- Process Cake Messages and Icing ---
     cakeMessages.forEach(message => {
-        let price = 0;
-        if (message.isEnabled && message.type === 'cardstock') {
-            price = 100;
-            nonGumpasteTotal += price;
-            breakdown.push({ item: `"${message.text}" (Cardstock)`, price });
-        }
-        itemPrices.set(message.id, price);
+        // Message text is editable wording, not a separately priced physical item.
+        itemPrices.set(message.id, 0);
     });
 
     if (icingDesign.drip) {
