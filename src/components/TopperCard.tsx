@@ -201,6 +201,7 @@ export const TopperCard: React.FC<{
                                 {isToyOrFigurine && (
                                     <>
                                         <button onClick={() => updateItem({ type: (item as MainTopperUI).original_type })} className={`flex-1 px-1.5 py-0.5 text-[10px] font-semibold rounded ${item.type === (item as MainTopperUI).original_type ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>{topperTypeDisplayMap[(item as MainTopperUI).original_type]}</button>
+                                        <button onClick={() => updateItem({ type: 'edible_3d_complex' })} className={`flex-1 px-1.5 py-0.5 text-[10px] font-semibold rounded ${item.type === 'edible_3d_complex' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Edible</button>
                                         <button onClick={() => updateItem({ type: 'printout' })} className={`flex-1 px-1.5 py-0.5 text-[10px] font-semibold rounded ${item.type === 'printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Printout</button>
                                     </>
                                 )}

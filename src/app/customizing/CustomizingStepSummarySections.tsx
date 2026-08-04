@@ -2,7 +2,7 @@
 
 import React, { memo } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import { X, ChevronDown, ChevronUp, Wand2, Check } from 'lucide-react';
+import { X, ChevronDown, ChevronUp, Wand2, Check, Sparkles } from 'lucide-react';
 import { CakeBaseOptions } from '@/components/CakeBaseOptions';
 import { CakeMessagesOptions } from '@/components/CakeMessagesOptions';
 import { CustomizingInstructionsPanel } from './CustomizingInstructionsPanel';
@@ -53,6 +53,7 @@ interface CustomizingStepSummarySectionsProps {
     icingTypePriceDeltas?: Partial<Record<IcingDesignUI['base'], number | null>>;
     addOnPricing?: number;
     separateIcingStep?: boolean;
+    cakeDesignQuickActionsNode?: React.ReactNode;
     aiChatNode?: React.ReactNode;
     hideStepOne?: boolean;
     hideStepFour?: boolean;
@@ -264,6 +265,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     icingTypePriceDeltas,
     addOnPricing = 0,
     separateIcingStep = false,
+    cakeDesignQuickActionsNode,
     aiChatNode,
     hideStepOne,
     hideStepFour,
@@ -407,8 +409,8 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
             ? 'flex flex-nowrap overflow-x-auto gap-1.5 pt-1 pl-1 pr-1 pb-1 scrollbar-hide'
             : 'flex flex-wrap gap-1.5';
         const buttonClassName = tieredRow
-            ? 'shrink-0 min-h-[37px] max-md:min-h-[44px] min-w-[92px] max-md:min-w-[78px] flex items-center justify-center px-2 rounded-xl border transition-all duration-300 shadow-sm'
-            : 'min-h-[37px] max-md:min-h-[44px] min-w-[90px] max-md:min-w-[76px] flex-1 flex items-center justify-center px-3 py-1 rounded-xl border transition-all duration-300 shadow-sm';
+            ? 'shrink-0 min-h-[37px] max-md:min-h-[34px] min-w-[92px] max-md:min-w-[78px] flex items-center justify-center px-2 rounded-xl border transition-all duration-300 shadow-sm'
+            : 'min-h-[37px] max-md:min-h-[34px] min-w-[90px] max-md:min-w-[76px] flex-1 flex items-center justify-center px-3 py-1 rounded-xl border transition-all duration-300 shadow-sm';
 
         return (
             <div key={index} className="flex flex-col gap-1">
@@ -430,7 +432,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
 
                         let isDisabled = false;
                         if (isBento) {
-                            isDisabled = flavor !== 'Chocolate Cake';
+                            isDisabled = flavor !== 'Chocolate Cake' && flavor !== 'Vanilla Cake';
                         } else if (isCupcakes) {
                             isDisabled = flavor !== 'Chocolate Cake' && flavor !== 'Vanilla Cake';
                         } else if (isStandardOrMulti) {
@@ -494,7 +496,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
         newFlavors.forEach((flavor, index) => {
             let isDisabled = false;
             if (isBento) {
-                isDisabled = flavor !== 'Chocolate Cake';
+                isDisabled = flavor !== 'Chocolate Cake' && flavor !== 'Vanilla Cake';
             } else if (isCupcakes) {
                 isDisabled = flavor !== 'Chocolate Cake' && flavor !== 'Vanilla Cake';
             } else if (isStandardOrMulti) {
@@ -548,7 +550,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                             <button
                                 key={type}
                                 onClick={() => onCakeInfoChange?.({ type })}
-                                className={`min-h-[32px] max-md:min-h-[44px] min-w-[90px] max-md:min-w-[76px] flex-1 flex items-center justify-center px-2 rounded-xl border transition-all duration-300 ${
+                                className={`min-h-[32px] max-md:min-h-[34px] min-w-[90px] max-md:min-w-[76px] flex-1 flex items-center justify-center px-2 rounded-xl border transition-all duration-300 ${
                                     isSelected
                                         ? 'genie-control-selected text-purple-700 scale-[1.02]'
                                         : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-purple-200 hover:bg-slate-100/50'
@@ -610,6 +612,11 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                     className={`${cardClassName} relative z-10`}
                 >
                     <div className="flex flex-col gap-2 px-1 pb-2">
+                        {cakeDesignQuickActionsNode && (
+                            <div className="w-full px-0.5 pt-0.5">
+                                {cakeDesignQuickActionsNode}
+                            </div>
+                        )}
                         {/* Line 1: Icing Type */}
                         {!isCupcakes && (
                             <div className="flex flex-col gap-1 relative">
@@ -641,7 +648,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                                         setIsColorPickerOpen(true);
                                                     }
                                                 }}
-                                                className={`flex-1 min-h-[32px] max-md:min-h-[44px] flex items-center justify-center px-2.5 py-0.5 rounded-xl border transition-all duration-300 ${
+                                                className={`flex-1 min-h-[32px] max-md:min-h-[34px] flex items-center justify-center px-2.5 py-0.5 rounded-xl border transition-all duration-300 ${
                                                     isSelected 
                                                         ? 'genie-control-selected text-purple-700 scale-[1.02]' 
                                                         : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-purple-200 hover:bg-slate-100/50'
@@ -1038,8 +1045,9 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                         type="button"
                                         onClick={onApplyTopperChanges}
                                         disabled={!hasToppersChanges || isUpdatingDesign}
-                                        className="genie-btn-primary text-[10px] max-md:text-[9px] font-bold py-2 px-5 rounded-full disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="genie-btn-primary inline-flex items-center justify-center gap-1.5 text-[10px] max-md:text-[9px] font-bold py-2 px-5 rounded-full disabled:cursor-not-allowed disabled:opacity-50"
                                     >
+                                        <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
                                         Apply Design
                                     </button>
                                     {combinedDecorItems.length > 3 && (

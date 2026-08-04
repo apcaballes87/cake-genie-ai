@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { TopperCard } from './TopperCard';
 import { MainTopperUI, SupportElementUI } from '@/types';
@@ -23,8 +23,8 @@ vi.mock('./MultiColorEditor', () => ({
 
 const createMockTopper = (type: string, description: string, overrides: Partial<MainTopperUI> = {}): MainTopperUI => ({
   id: 'test-id',
-  type: type as any,
-  original_type: type as any,
+  type: type as MainTopperUI['type'],
+  original_type: type as MainTopperUI['type'],
   description,
   isEnabled: true,
   price: 0,
@@ -71,7 +71,7 @@ describe('TopperCard - Color Customization', () => {
   it('shows color palette even when original_color is missing', () => {
     const item = createMockTopper('meringue', 'Meringue');
     // Ensure original_color is undefined
-    delete (item as any).original_color;
+    delete item.original_color;
     render(<TopperCard {...defaultProps} item={item} />);
     expect(screen.getByTestId('color-palette')).toBeInTheDocument();
   });
@@ -86,7 +86,7 @@ describe('TopperCard - Color Customization', () => {
   it('shows ONLY multi-color editor for icing_palette_knife when it has multiple colors', () => {
     const item = createMockTopper('icing_palette_knife', 'Knife Swipe', {
       colors: ['#FF0000', '#00FF00']
-    } as any);
+    });
     render(<TopperCard {...defaultProps} item={item} />);
     expect(screen.queryByTestId('color-palette')).not.toBeInTheDocument();
     expect(screen.getByTestId('multi-color-editor')).toBeInTheDocument();
@@ -118,5 +118,26 @@ describe('TopperCard - Color Customization', () => {
 
     expect(screen.getByText('Intricate Side Doodles')).toBeInTheDocument();
     expect(screen.getByTestId('color-palette')).toBeInTheDocument();
+  });
+
+  it('keeps toy-source material choices synchronized with the bulk actions', () => {
+    const updateItem = vi.fn();
+    const item = createMockTopper('edible_3d_complex', 'Woody toy figurine', {
+      original_type: 'toy',
+      printout_source_type: 'toy',
+    });
+    render(<TopperCard {...defaultProps} updateItem={updateItem} item={item} />);
+
+    expect(screen.getByRole('button', { name: 'Toy' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Edible' })).toHaveClass('bg-white', 'text-purple-700');
+    expect(screen.getByRole('button', { name: 'Printout' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Toy' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edible' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Printout' }));
+
+    expect(updateItem).toHaveBeenNthCalledWith(1, { type: 'toy' });
+    expect(updateItem).toHaveBeenNthCalledWith(2, { type: 'edible_3d_complex' });
+    expect(updateItem).toHaveBeenNthCalledWith(3, { type: 'printout' });
   });
 });

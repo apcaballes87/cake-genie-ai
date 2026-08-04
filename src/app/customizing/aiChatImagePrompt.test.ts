@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { CakeInfoUI, IcingDesignUI, MainTopperUI } from '@/types';
-import { buildAiChatImagePrompt, buildAiChatVisualChangeSummary } from './aiChatImagePrompt';
+import {
+    buildAiChatImagePrompt,
+    buildAiChatVisualChangeSummary,
+    buildDirectEdiblePhotoReplacementPrompt,
+} from './aiChatImagePrompt';
 
 describe('buildAiChatImagePrompt', () => {
     it('adds target-specific edible topper conversion details to an AI chat image request', () => {
@@ -35,6 +39,13 @@ describe('buildAiChatImagePrompt', () => {
                 price: 0,
                 x: -140,
                 y: 140,
+                bbox: {
+                    x: -170,
+                    y: 140,
+                    width: 60,
+                    height: 60,
+                    confidence: 0.95,
+                },
             },
             {
                 id: 'topper-2',
@@ -49,6 +60,13 @@ describe('buildAiChatImagePrompt', () => {
                 price: 0,
                 x: 140,
                 y: 140,
+                bbox: {
+                    x: 110,
+                    y: 140,
+                    width: 60,
+                    height: 60,
+                    confidence: 0.95,
+                },
             },
         ];
 
@@ -151,6 +169,23 @@ describe('buildAiChatImagePrompt', () => {
         );
 
         expect(prompt).toBe(`---
+### **List of Changes to Apply**
+---
+
+- Change the image on the top cake to this uploaded image.
+- Retain the rest of the design exactly as it is.`);
+    });
+
+    it('provides the same concise prompt for the direct edible-photo quick action', () => {
+        expect(buildDirectEdiblePhotoReplacementPrompt(
+            null,
+            {} as CakeInfoUI,
+            [],
+            [],
+            [],
+            {} as IcingDesignUI,
+            '',
+        )).toBe(`---
 ### **List of Changes to Apply**
 ---
 

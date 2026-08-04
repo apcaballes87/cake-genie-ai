@@ -27,6 +27,7 @@ describe('CakeFlavorBottomSheet', () => {
     expect(screen.getByRole('dialog', { name: /Cake Flavor/i })).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: /Chocolate Cake/i })).toBeChecked();
     expect(screen.getByRole('radio', { name: /Vanilla Cake/i })).not.toBeChecked();
+    expect(screen.getByRole('radio', { name: /Vanilla Cake/i })).toBeEnabled();
     expect(screen.getByRole('radio', { name: /Ube Cake/i })).toBeDisabled();
   });
 
@@ -38,7 +39,7 @@ describe('CakeFlavorBottomSheet', () => {
         isOpen
         onClose={vi.fn()}
         flavors={['Chocolate Cake']}
-        cakeType="1 Tier"
+        cakeType="Bento"
         onFlavorChange={onFlavorChange}
       />,
     );

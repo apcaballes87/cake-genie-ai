@@ -339,6 +339,7 @@ describe('CustomizingStepSummarySections', () => {
         const showMore = screen.getByRole('button', { name: 'Show more' });
         expect(applyDesign).toBeDisabled();
         expect(applyDesign.parentElement).toContainElement(showMore);
+        expect(applyDesign.querySelector('svg')).toHaveClass('lucide-sparkles', 'h-3.5', 'w-3.5');
 
         rerender(<CustomizingStepSummarySections {...props} hasToppersChanges />);
 
@@ -375,9 +376,10 @@ describe('CustomizingStepSummarySections', () => {
         expect(screen.getByRole('button', { name: /Top Border/i })).toBeInTheDocument();
     });
 
-    it('renders AI chat above cake options while keeping cake type controls inside advanced customization', () => {
+    it('renders cake-design quick actions at the top of Cake Options while keeping AI chat outside', () => {
         const props = buildProps();
         props.aiChatNode = <div data-testid="ai-chat-node">AI Cake Assistant</div>;
+        props.cakeDesignQuickActionsNode = <div data-testid="cake-design-quick-actions">All Edible Toppers</div>;
 
         render(<CustomizingStepSummarySections {...props} />);
 
@@ -391,7 +393,9 @@ describe('CustomizingStepSummarySections', () => {
         const mainLabel = screen.getByText('Main');
         const aiChatTitle = screen.getByText('AI Cake Assistant');
         const aiChatNode = screen.getByTestId('ai-chat-node');
+        const cakeDesignQuickActions = screen.getByTestId('cake-design-quick-actions');
 
+        expect(cakeDesignQuickActions.compareDocumentPosition(icingTypeLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         expect(icingTypeLabel.compareDocumentPosition(mainLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         expect(aiChatTitle.compareDocumentPosition(icingTypeLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         expect(aiChatNode.parentElement).toHaveClass('w-full', 'min-w-0');
@@ -410,9 +414,11 @@ describe('CustomizingStepSummarySections', () => {
         const cakeTypeLabel = advancedScope.getByText('Cake Type');
 
         expect(advancedScope.queryByText('AI Cake Assistant')).not.toBeInTheDocument();
-        expect(advancedScope.getByRole('button', { name: /2 Tier/i })).toBeInTheDocument();
+        expect(advancedScope.getByRole('button', { name: /2 Tier/i })).toHaveClass('max-md:min-h-[34px]');
         expect(advancedScope.getByRole('button', { name: /3 Tier/i })).toBeInTheDocument();
         expect(cakeTypeLabel).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^Soft Icing$/i })).toHaveClass('max-md:min-h-[34px]');
+        expect(screen.getByRole('button', { name: 'Chocolate' })).toHaveClass('max-md:min-h-[34px]');
     });
 
     it('does not offer a manual AI icing-color action', () => {
@@ -541,9 +547,34 @@ describe('CustomizingStepSummarySections', () => {
 
         const middleFlavorRow = screen.getByText('Middle Flavor').parentElement;
         expect(middleFlavorRow).not.toBeNull();
-        fireEvent.click(within(middleFlavorRow as HTMLElement).getByRole('button', { name: 'Vanilla' }));
+        const middleVanilla = within(middleFlavorRow as HTMLElement).getByRole('button', { name: 'Vanilla' });
+        expect(middleVanilla).toHaveClass('max-md:min-h-[34px]');
+        fireEvent.click(middleVanilla);
 
         expect(props.onCakeInfoChange).toHaveBeenCalledWith({ flavors: ['Chocolate Cake', 'Vanilla Cake', 'Vanilla Cake'] });
+    });
+
+    it('allows Chocolate and Vanilla flavors for Bento cakes without auto-correcting Vanilla', () => {
+        const props = buildProps();
+        props.cakeInfo = {
+            type: 'Bento',
+            size: '4" Round',
+            thickness: '2 in',
+            flavors: ['Vanilla Cake'],
+        };
+
+        const { rerender } = render(<CustomizingStepSummarySections {...props} />);
+
+        expect(screen.getByRole('button', { name: 'Chocolate' })).toBeEnabled();
+        expect(screen.getByRole('button', { name: 'Vanilla' })).toBeEnabled();
+        expect(screen.getByRole('button', { name: 'Ube' })).toBeDisabled();
+        expect(props.onCakeInfoChange).not.toHaveBeenCalled();
+
+        props.cakeInfo = { ...props.cakeInfo, flavors: ['Chocolate Cake'] };
+        rerender(<CustomizingStepSummarySections {...props} />);
+        fireEvent.click(screen.getByRole('button', { name: 'Vanilla' }));
+
+        expect(props.onCakeInfoChange).toHaveBeenCalledWith({ flavors: ['Vanilla Cake'] });
     });
 
     it('hides icing type and height options for cupcakes', () => {

@@ -24,6 +24,13 @@ interface AiChatVisualChangeSummaryInput {
     cakeMessages: CakeMessageUI[];
 }
 
+export const buildDirectEdiblePhotoReplacementPrompt: DesignPromptGenerator = () => `---
+### **List of Changes to Apply**
+---
+
+- Change the image on the top cake to this uploaded image.
+- Retain the rest of the design exactly as it is.`;
+
 export const buildAiChatVisualChangeSummary = ({
     changedPaths,
     cakeInfo,
@@ -95,12 +102,15 @@ export const buildAiChatImagePrompt: DesignPromptGenerator = (
         && AI_CHAT_UPLOADED_IMAGE_REPLACEMENT_REGEX.test(userRequest);
 
     if (isUploadedEdiblePhotoReplacement) {
-        return `---
-### **List of Changes to Apply**
----
-
-- Change the image on the top cake to this uploaded image.
-- Retain the rest of the design exactly as it is.`;
+        return buildDirectEdiblePhotoReplacementPrompt(
+            _originalAnalysis,
+            newCakeInfo,
+            mainToppers,
+            _supportElements,
+            _cakeMessages,
+            _icingDesign,
+            additionalInstructions,
+        );
     }
 
     const printoutConversionTargets = getPrintoutConversionTargets(userRequest, mainToppers);

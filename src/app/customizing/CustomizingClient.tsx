@@ -86,6 +86,7 @@ import { AnalysisErrorCard } from './AnalysisErrorCard';
 import { CustomizingStepSummarySections } from './CustomizingStepSummarySections';
 import { CustomizingEmptyLandingState } from './CustomizingEmptyLandingState';
 import { CustomizingAiChatPanel } from './CustomizingAiChatPanel';
+import { CakeDesignQuickActions } from './CakeDesignQuickActions';
 import { CustomizingToppersPanel } from './CustomizingToppersPanel';
 import { CustomizingAgentProtocol } from './CustomizingAgentProtocol';
 import { prepareAiChatReferenceImage } from './aiChatReferenceImage';
@@ -122,6 +123,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import { useSavedItemsActions, useSavedItemsData } from '@/contexts/SavedItemsContext';
 import { usePricing } from '@/hooks/usePricing';
+import { useTopperMaterialPriceDeltas } from './useTopperMaterialPriceDeltas';
 import { useDesignUpdate } from '@/hooks/useDesignUpdate';
 import { useDesignSharing } from '@/hooks/useDesignSharing';
 import { useAvailabilitySettings } from '@/hooks/useAvailabilitySettings';
@@ -130,7 +132,7 @@ import { toast } from 'react-hot-toast';
 import { buildAiChatPromptSuggestions, shouldShowAiPromptSuggestion } from '@/utils/aiPromptSuggestions';
 import { fillAiChatPromptTemplate, parseAiChatPromptTemplate, ParsedAiChatPromptTemplate } from '@/utils/aiChatPromptComposer';
 import { createClient } from '@/lib/supabase/client';
-import type { EditImageReferenceImage } from '@/services/geminiService';
+import { fileToBase64, type EditImageReferenceImage } from '@/services/geminiService';
 import {
     buildCommerceOrderSnapshot,
     deriveConstraintSnapshot,
@@ -140,7 +142,16 @@ import {
 } from '@/lib/commerce/machineReadable';
 import { buildCustomizerAgentModel } from '@/lib/commerce/customizerAgentModel';
 import { derivePrintoutConversionSummary, getPrintoutConversionTarget, hasPrintoutConversion } from './printoutConversion';
-import { buildAiChatImagePrompt, buildAiChatVisualChangeSummary } from './aiChatImagePrompt';
+import {
+    buildAiChatImagePrompt,
+    buildAiChatVisualChangeSummary,
+} from './aiChatImagePrompt';
+import {
+    applyAiChatQuickActionMaterial,
+    getAiChatQuickActionSelectedAction,
+    getAiChatQuickActionMode,
+    type AiChatTopperMaterialAction,
+} from './aiChatQuickActions';
 import {
     validateAiChatEditResponse,
     type AiChatAction,
@@ -594,6 +605,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     const [aiChatStatusMessage, setAiChatStatusMessage] = useState<string | null>(null);
     const [aiChatReferenceAttachment, setAiChatReferenceAttachment] = useState<AiChatReferenceAttachment | null>(null);
     const [isAiChatAttachmentUploading, setIsAiChatAttachmentUploading] = useState(false);
+    const [isQuickActionPhotoUploading, setIsQuickActionPhotoUploading] = useState(false);
     const [showAiPromptSuggestions, setShowAiPromptSuggestions] = useState(false);
     const [selectedAiPromptIndex, setSelectedAiPromptIndex] = useState(-1);
     const [selectedAiPromptTemplate, setSelectedAiPromptTemplate] = useState<ParsedAiChatPromptTemplate | null>(null);
@@ -1058,18 +1070,27 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         });
     }, [aiChatPromptSuggestionItems, chatInput]);
 
-    const aiChatReferenceImages = useMemo<EditImageReferenceImage[]>(() => {
-        if (!aiChatReferenceAttachment) return [];
-
-        return [{
-            label: AI_CHAT_REFERENCE_LABEL,
-            targetDescription: aiChatReferenceAttachment.fileName,
-            targetType: 'design reference',
-            image: aiChatReferenceAttachment.image,
-        }];
-    }, [aiChatReferenceAttachment]);
-
     const effectiveCacheId = recentSearchDesign?.id || currentCacheId || null;
+
+    const aiChatQuickActionMode = useMemo(
+        () => getAiChatQuickActionMode(mainToppers, supportElements),
+        [mainToppers, supportElements],
+    );
+    const aiChatQuickActionSelectedAction = useMemo(
+        () => getAiChatQuickActionSelectedAction(mainToppers, aiChatQuickActionMode, supportElements),
+        [aiChatQuickActionMode, mainToppers, supportElements],
+    );
+    const topperMaterialPriceDeltas = useTopperMaterialPriceDeltas({
+        mode: aiChatQuickActionMode,
+        mainToppers,
+        supportElements,
+        cakeMessages,
+        icingDesign,
+        cakeInfo,
+        basePrice,
+        currentAddOnPrice: addOnPricing?.addOnPrice,
+        merchantId: merchant?.merchant_id,
+    });
 
     const hasEnabledEdiblePhotoTopper = useMemo(
         () => mainToppers?.some(t => t.isEnabled && (t.type === 'edible_photo_top' || t.original_type === 'edible_photo_top')) ?? false,
@@ -1642,7 +1663,10 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         }
     }, [supabase, user]);
 
-    const submitAiChatPrompt = useCallback(async (prompt: string) => {
+    const submitAiChatPrompt = useCallback(async (
+        prompt: string,
+        referenceAttachment: AiChatReferenceAttachment | null = aiChatReferenceAttachment,
+    ) => {
         const currentPrompt = prompt.trim();
         if (
             !currentPrompt
@@ -1673,8 +1697,13 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
             (key, value) => key === 'replacementImage' ? undefined : value,
         )) as AiChatCustomizationSnapshot;
         const traceId = `ai-chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        const currentAttachment = aiChatReferenceAttachment;
-        const referenceImages = aiChatReferenceImages;
+        const currentAttachment = referenceAttachment;
+        const referenceImages: EditImageReferenceImage[] = currentAttachment ? [{
+            label: AI_CHAT_REFERENCE_LABEL,
+            targetDescription: currentAttachment.fileName,
+            targetType: 'design reference',
+            image: currentAttachment.image,
+        }] : [];
         const abortController = new AbortController();
         let timedOut = false;
         let didApplyDesignState = false;
@@ -1880,7 +1909,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     }, [
         additionalInstructions,
         aiChatReferenceAttachment,
-        aiChatReferenceImages,
         analysisId,
         analysisResult,
         appendAiChatHistoryEntry,
@@ -2878,6 +2906,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         setLiveStudioEditedImageUrl(null);
         setAiChatReferenceAttachment(null);
         setIsAiChatAttachmentUploading(false);
+        setIsQuickActionPhotoUploading(false);
         setChatInput('');
         setShowAiPromptSuggestions(false);
         setSelectedAiPromptIndex(-1);
@@ -3143,6 +3172,84 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         setActiveTopperSection(section);
         setActiveCustomization('toppers');
     }, []);
+
+    const handleQuickActionTopperMaterial = useCallback((action: AiChatTopperMaterialAction) => {
+        if (!aiChatQuickActionMode || aiChatQuickActionMode === 'edible-photo' || isUpdatingDesign) return;
+
+        const nextState = applyAiChatQuickActionMaterial(
+            mainToppers,
+            supportElements,
+            aiChatQuickActionMode,
+            action,
+        );
+        if (!nextState.changed) return;
+
+        nextState.mainToppers.forEach((nextTopper, index) => {
+            if (nextTopper === mainToppers[index]) return;
+            updateMainTopper(nextTopper.id, {
+                type: nextTopper.type,
+                isEnabled: nextTopper.isEnabled,
+                printout_source_type: nextTopper.printout_source_type,
+            });
+        });
+        nextState.supportElements.forEach((nextElement, index) => {
+            if (nextElement === supportElements[index]) return;
+            updateSupportElement(nextElement.id, {
+                type: nextElement.type,
+                isEnabled: nextElement.isEnabled,
+                printout_source_type: nextElement.printout_source_type,
+            });
+        });
+    }, [
+        aiChatQuickActionMode,
+        isUpdatingDesign,
+        mainToppers,
+        supportElements,
+        updateMainTopper,
+        updateSupportElement,
+    ]);
+
+    const handleQuickActionEdiblePhotoUpload = useCallback(async (file: File) => {
+        if (isQuickActionPhotoUploading) return;
+
+        const targetTopper = mainToppers.find((topper) => (
+            topper.isEnabled
+            && (topper.type === 'edible_photo_top' || topper.original_type === 'edible_photo_top')
+        ));
+        if (!targetTopper) {
+            showError('We could not find an edible photo on top of this cake.');
+            return;
+        }
+
+        setIsQuickActionPhotoUploading(true);
+        try {
+            const replacementImage = await fileToBase64(file);
+            updateMainTopper(targetTopper.id, { replacementImage });
+        } catch (error) {
+            if (error instanceof DOMException && error.name === 'AbortError') return;
+            console.error('Failed to apply edible photo replacement:', error);
+            showError('Could not replace the edible photo. Please try another file.');
+        } finally {
+            setIsQuickActionPhotoUploading(false);
+        }
+    }, [
+        isQuickActionPhotoUploading,
+        mainToppers,
+        updateMainTopper,
+    ]);
+
+    const cakeDesignQuickActionsNode = (
+        <CakeDesignQuickActions
+            mode={aiChatQuickActionMode}
+            selectedAction={aiChatQuickActionSelectedAction}
+            priceDeltas={topperMaterialPriceDeltas}
+            isDisabled={isUpdatingDesign}
+            isPhotoUploading={isQuickActionPhotoUploading}
+            onEdiblePhotoUpload={handleQuickActionEdiblePhotoUpload}
+            onTopperMaterialAction={handleQuickActionTopperMaterial}
+            onOpenToppers={() => openTopperSheet(null)}
+        />
+    );
 
     const openPrintoutConversionTarget = useCallback(() => {
         const target = getPrintoutConversionTarget(mainToppers, supportElements);
@@ -4124,6 +4231,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                         separateIcingStep,
                                         hideStepFour,
                                         photoStepNode,
+                                        cakeDesignQuickActionsNode,
                                         isUpdatingDesign: isUpdatingDesign,
                                         hasToppersChanges,
                                         onApplyTopperChanges: handleApplyTopperChanges,
@@ -4210,6 +4318,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                     hideStepOne={hideStepOne}
                                     hideStepFour={hideStepFour}
                                     photoStepNode={photoStepNode}
+                                    cakeDesignQuickActionsNode={cakeDesignQuickActionsNode}
                                     aiChatNode={!analysisError && !hideAiChat ? (
                                         <CustomizingAiChatPanel
                                             className="w-full"
@@ -4328,6 +4437,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                     hideStepOne,
                                     hideStepFour,
                                     photoStepNode,
+                                    cakeDesignQuickActionsNode,
                                     hasToppersChanges,
                                     onApplyTopperChanges: handleApplyTopperChanges,
                                     aiChatNode: !analysisError && !hideAiChat ? (
