@@ -1082,7 +1082,15 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             cartItemId?: string;
         } = {}
     ): Promise<{ originalImageUrl: string; finalImageUrl: string }> => {
-        if (!originalImagePreview) {
+        // sourceImageData is the untouched customer upload. The working
+        // originalImageData can be replaced by the base cake and AI composite
+        // during the edible-photo flow, so it must not be used for the admin's
+        // downloadable original image.
+        const sourceImagePreview = sourceImageData
+            ? `data:${sourceImageData.mimeType};base64,${sourceImageData.data}`
+            : originalImagePreview;
+
+        if (!sourceImagePreview) {
             throw new Error("Cannot upload to cart: original image is missing.");
         }
 
@@ -1110,11 +1118,12 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             : null;
 
         // 1. Handle Original Image
-        let originalImageUrl = originalImagePreview;
+        let originalImageUrl = sourceImagePreview;
         let originalImageFileName = '';
 
-        if (!isPermanentUrl(originalImagePreview)) {
-            const originalImageBlob = dataURItoBlob(originalImagePreview);
+        if (!isPermanentUrl(sourceImagePreview)) {
+            const originalImageBlob = dataURItoBlob(sourceImagePreview);
+            const originalImageContentType = originalImageBlob.type || sourceImageData?.mimeType || 'image/webp';
             // Use slug if available, else random UUID
             originalImageFileName = cartStoragePrefix
                 ? `${cartStoragePrefix}-original.webp`
@@ -1124,7 +1133,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
 
             const { error: originalUploadError } = await supabase.storage
                 .from('cakegenie')
-                .upload(originalImageFileName, originalImageBlob, { contentType: 'image/webp', upsert: true });
+                .upload(originalImageFileName, originalImageBlob, { contentType: originalImageContentType, upsert: true });
 
             if (originalUploadError) throw new Error(`Failed to upload original image: ${originalUploadError.message}`);
 
@@ -1162,7 +1171,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         }
 
         return { originalImageUrl, finalImageUrl };
-    }, [originalImagePreview, editedImage, supabase]);
+    }, [originalImagePreview, sourceImageData, editedImage, supabase]);
 
     const value = useMemo(() => ({
         originalImageData,

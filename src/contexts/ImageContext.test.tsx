@@ -4,6 +4,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ImageProvider, useImageManagement } from './ImageContext';
+import type { HybridAnalysisResult } from '@/services/geminiService';
 
 const {
   dismissToastMock,
@@ -71,7 +72,10 @@ vi.mock('@/lib/supabase/client', () => ({
 
 vi.mock('@/lib/utils/imageOptimization', () => ({
   compressImage: compressImageMock,
-  dataURItoBlob: () => new Blob(['image'], { type: 'image/png' }),
+  dataURItoBlob: (dataUri: string) => {
+    const mimeType = dataUri.match(/^data:([^;]+);/)?.[1] || 'image/png';
+    return new Blob(['image'], { type: mimeType });
+  },
 }));
 
 vi.mock('@/lib/utils/toast', () => ({
@@ -432,6 +436,50 @@ describe('ImageContext', () => {
     expect(firstUpload.finalImageUrl).not.toBe(secondUpload.finalImageUrl);
     expect(firstUpload.finalImageUrl).toContain('cart-item-a-edited.webp');
     expect(secondUpload.finalImageUrl).toContain('cart-item-b-edited.webp');
+  });
+
+  it('uploads the untouched source image for admin download after edible-photo composition', async () => {
+    const { result } = renderHook(() => useImageManagement(), { wrapper });
+
+    await act(async () => {
+      await result.current.handleImageUpload(
+        new File(['selfie-bytes'], 'selfie.png', { type: 'image/png' }),
+        vi.fn(),
+        vi.fn(),
+        { precomputedAnalysis: { keyword: 'Edible Photo' } as unknown as HybridAnalysisResult },
+      );
+    });
+
+    // The edible-photo flow replaces the working original with a cake/composite,
+    // but the original upload must remain the admin-downloadable source image.
+    act(() => {
+      result.current.setOriginalImageData({
+        data: 'generated-cake-base64',
+        mimeType: 'image/webp',
+      });
+      result.current.setEditedImage('data:image/webp;base64,generated-composite');
+    });
+
+    let uploaded!: { originalImageUrl: string; finalImageUrl: string };
+    await act(async () => {
+      uploaded = await result.current.uploadCartImages({
+        userId: 'owner-1',
+        cartItemId: 'photo-cart-item',
+      });
+    });
+
+    expect(storageUploadMock).toHaveBeenCalledWith(
+      'customizations/owner-1/cart/photo-cart-item-original.webp',
+      expect.objectContaining({ type: 'image/png' }),
+      expect.objectContaining({ contentType: 'image/png', upsert: true }),
+    );
+    expect(storageUploadMock).toHaveBeenCalledWith(
+      'customizations/owner-1/cart/photo-cart-item-edited.webp',
+      expect.any(File),
+      expect.objectContaining({ contentType: 'image/webp', upsert: true }),
+    );
+    expect(uploaded.originalImageUrl).toContain('photo-cart-item-original.webp');
+    expect(uploaded.finalImageUrl).toContain('photo-cart-item-edited.webp');
   });
 
   it.each(['edible_photo_reference', 'not_a_cake'] as const)('routes selfie/reference uploads through the edible photo flow after %s validation', async (validationClassification) => {

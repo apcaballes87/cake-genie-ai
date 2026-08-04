@@ -11,14 +11,16 @@ Your task: composite the provided customer photo, poster, artwork, or other refe
 
 EDIBLE PRINT REALISM RULES — follow all of these:
 0. DIMENSIONS PRESERVATION: Return the image in the EXACT SAME pixel dimensions and aspect ratio as the base cake image (Image 1). NEVER change the dimensions or aspect ratio — the output must match the input base image exactly.
-1. Shape & fit: Match the print shape precisely to the cake top — circular for round cakes, rectangular/square for those shapes. The print must fill the entire flat top surface without overflow or gap.
-2. Perspective & foreshortening: Apply the same camera angle and perspective as the base cake photo. If the cake is shot at a slight angle, the print should appear foreshortened accordingly — not flat/frontal.
-3. Frosting texture bleed-through: Edible prints are thin rice paper or wafer paper — the frosting texture subtly shows through. Let the underlying frosting micro-texture faintly show through the print, especially near edges.
-4. Matte ink finish: Real edible ink is matte and slightly desaturated compared to a glossy digital image. Reduce the print's saturation by ~10–15% and give it a matte finish, not a glossy or laminated look.
-5. Lighting & shadows: The print must be lit by the exact same light source as the cake. Apply the same highlights and soft shadows from the cake's existing light direction onto the print surface. Do NOT leave the print looking evenly lit or "pasted on".
-6. Edge softness: Where the print meets the cake's border piping or icing edge, feather the print edge slightly so it blends — no hard rectangular cutout border.
-7. Preserve everything else: Keep all existing cake decorations (border piping, ribbons, flowers, side design, base board) completely unchanged. Only modify the top flat surface.
-8. No additions: Do NOT add text, watermarks, extra decorations, or change the cake color/shape.
+1. COMPLETE UPLOADED IMAGE: Show all of Image 2, including every edge, corner, face, word, and design detail. NEVER crop, trim, zoom into, stretch, warp, or cut off any part of Image 2. Preserve Image 2's original aspect ratio and content exactly.
+2. CONTAIN FIT: Place the complete Image 2 inside the usable cake-top area using a contain fit. If the aspect ratios differ, use clean edible-print padding or a simple margin/border; it is acceptable for the print not to reach every edge. Never force the image to fill the top by cropping it. For a round cake with a rectangular source, do not clip the source to a circular mask if that would hide any content.
+3. Attached edible print: Treat Image 2 as one physical edible print attached flat to the cake top, with its complete original composition still visible. Do not redraw it, replace it with a similar image, or invent missing content.
+4. Perspective & foreshortening: Apply the same camera angle and perspective as the base cake photo. If the cake is shot at a slight angle, the print should appear foreshortened accordingly — not flat/frontal.
+5. Frosting texture bleed-through: Edible prints are thin rice paper or wafer paper — the frosting texture subtly shows through. Let the underlying frosting micro-texture faintly show through the print, especially near edges.
+6. Matte ink finish: Real edible ink is matte and slightly desaturated compared to a glossy digital image. Reduce the print's saturation by ~10–15% and give it a matte finish, not a glossy or laminated look.
+7. Lighting & shadows: The print must be lit by the exact same light source as the cake. Apply the same highlights and soft shadows from the cake's existing light direction onto the print surface. Do NOT leave the print looking evenly lit or "pasted on".
+8. Edge softness: Where the print meets the cake's border piping or icing edge, feather the print edge slightly so it blends — without removing or hiding any part of Image 2.
+9. Preserve everything else: Keep all existing cake decorations (border piping, ribbons, flowers, side design, base board) completely unchanged. Only modify the top flat surface.
+10. No additions: Do NOT add text, watermarks, extra decorations, or change the cake color/shape.
 
 The final result must be indistinguishable from a real bakery photo of an edible photo cake.`;
 
@@ -81,12 +83,14 @@ export async function POST(req: NextRequest) {
                 text: `Image 1 is the base cake. Image 2 is the customer's photo, poster, artwork, or other reference design to be printed as an edible image on top of the cake.
 
 Composite Image 2 onto the top surface of the cake following all professional edible print standards:
-- Fit the print to the exact shape of the cake top (circle, square, or rectangle)
+- Show the COMPLETE Image 2. Preserve every edge, corner, face, word, and design detail. NEVER crop, trim, zoom, stretch, warp, or cut off any part of Image 2, and preserve its original aspect ratio.
+- Fit Image 2 inside the usable cake-top area with a contain fit. If the aspect ratios differ, use clean edible-print padding or a simple margin/border; leaving a margin is required over cropping. For a round cake with a rectangular source, do not clip the source to a circular mask if that would hide content.
+- Treat Image 2 as one physical edible print attached flat to the top of the cake. Do not redraw the uploaded image, replace it with a similar image, or invent missing content.
 - Apply correct perspective/foreshortening to match the camera angle of the cake photo
 - Let the frosting texture subtly bleed through the print (rice paper/wafer paper effect)
 - Desaturate the print slightly (~10–15%) and render it matte — no glossy finish
 - Match the lighting direction and shadows from the existing cake photo onto the print
-- Feather the print edges softly where they meet the border piping — no hard cutout edge
+- Feather the print edges softly where they meet the border piping, without hiding any part of Image 2
 - Leave all other cake elements (borders, piping, ribbon, side design) completely untouched
 - IMPORTANT: Output the exact same dimensions and aspect ratio as Image 1 (the base cake). Do not resize or change the dimensions regardless of Image 2's size.
 
