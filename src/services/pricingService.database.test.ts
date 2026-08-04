@@ -27,22 +27,6 @@ const basePricingRows: PricingFixtureRule[] = [
     updated_at: '2026-01-01T00:00:00.000Z',
   },
   {
-    rule_id: 2,
-    item_key: 'gumpaste_allowance',
-    item_type: 'special',
-    classification: 'special',
-    size: null,
-    description: 'Gumpaste allowance',
-    price: 100,
-    category: 'special',
-    quantity_rule: null,
-    multiplier_rule: null,
-    special_conditions: null,
-    is_active: true,
-    created_at: '2026-01-01T00:00:00.000Z',
-    updated_at: '2026-01-01T00:00:00.000Z',
-  },
-  {
     rule_id: 3,
     item_key: 'edible_photo_top',
     item_type: 'edible_photo_top',
@@ -170,12 +154,12 @@ const basePricingRows: PricingFixtureRule[] = [
     item_type: 'gumpaste_bundle',
     classification: 'support',
     size: 'small',
-    description: 'Allowance-eligible support bundle',
+    description: 'Support gumpaste bundle',
     price: 100,
     category: 'support_element',
     quantity_rule: 'per_piece',
     multiplier_rule: null,
-    special_conditions: { allowance_eligible: true },
+    special_conditions: null,
     is_active: true,
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
@@ -195,7 +179,7 @@ const basePricingRows: PricingFixtureRule[] = [
     category: 'support_element',
     quantity_rule: 'per_piece',
     multiplier_rule: null,
-    special_conditions: { allowance_eligible: true },
+    special_conditions: null,
     is_active: true,
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
@@ -635,7 +619,7 @@ describe('calculatePriceFromDatabase', () => {
     expect(warnSpy.mock.calls.flat().join(' ')).not.toContain('edible_2d_complex');
   });
 
-  it('multiplies edible_2d_complex pricing per piece and keeps hero pricing outside the support allowance', async () => {
+  it('charges hero and support gumpaste pricing in full', async () => {
     const { calculatePriceFromDatabase } = await import('./pricingService.database');
     const warnSpy = vi.spyOn(console, 'warn');
     const topper = {
@@ -646,7 +630,7 @@ describe('calculatePriceFromDatabase', () => {
       isEnabled: true,
       size: 'small',
     } as MainTopperUI;
-    const allowanceEligibleSupport = {
+    const supportBundle = {
       id: 'support-bundle',
       type: 'gumpaste_bundle',
       material: 'edible_fondant',
@@ -658,19 +642,15 @@ describe('calculatePriceFromDatabase', () => {
 
     const { addOnPricing, itemPrices } = await calculatePriceFromDatabase({
       mainToppers: [topper],
-      supportElements: [allowanceEligibleSupport],
+      supportElements: [supportBundle],
       cakeMessages: [],
       icingDesign: {} as IcingDesignUI,
       cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
     });
 
     expect(itemPrices.get(topper.id)).toBe(300);
-    expect(itemPrices.get(allowanceEligibleSupport.id)).toBe(100);
-    expect(addOnPricing.addOnPrice).toBe(300);
-    expect(addOnPricing.breakdown).toContainEqual({
-      item: 'Gumpaste Allowance',
-      price: -100,
-    });
+    expect(itemPrices.get(supportBundle.id)).toBe(100);
+    expect(addOnPricing.addOnPrice).toBe(400);
     expect(warnSpy.mock.calls.flat().join(' ')).not.toContain('edible_2d_complex');
   });
 
@@ -918,12 +898,12 @@ describe('calculatePriceFromDatabase', () => {
   });
 
   it.each([
-    ['medium', 50, 3, 150, 50],
-    ['large', 100, 3, 300, 200],
-    ['xlarge', 150, 3, 450, 350],
+    ['medium', 50, 3, 150],
+    ['large', 100, 3, 300],
+    ['xlarge', 150, 3, 450],
   ] as const)(
-    'prices %s edible_2d_support per piece and applies the support allowance',
-    async (size, unitPrice, quantity, rawPrice, addOnPrice) => {
+    'prices %s edible_2d_support per piece without an allowance',
+    async (size, unitPrice, quantity, rawPrice) => {
       const { calculatePriceFromDatabase } = await import('./pricingService.database');
       const support = {
         id: `edible-2d-support-${size}`,
@@ -945,7 +925,7 @@ describe('calculatePriceFromDatabase', () => {
 
       expect(rawPrice).toBe(unitPrice * quantity);
       expect(result.itemPrices.get(support.id)).toBe(rawPrice);
-      expect(result.addOnPricing.addOnPrice).toBe(addOnPrice);
+      expect(result.addOnPricing.addOnPrice).toBe(rawPrice);
     }
   );
 
@@ -979,7 +959,7 @@ describe('calculatePriceFromDatabase', () => {
         category: 'support_element',
         quantity_rule: 'per_piece',
         multiplier_rule: null,
-        special_conditions: { allowance_eligible: false },
+        special_conditions: null,
         is_active: true,
         created_at: '2026-01-01T00:00:00.000Z',
         updated_at: '2026-01-01T00:00:00.000Z',
@@ -1013,10 +993,6 @@ describe('calculatePriceFromDatabase', () => {
     expect(result.itemPrices.get(main.id)).toBe(50);
     expect(result.itemPrices.get(support.id)).toBe(50);
     expect(result.addOnPricing.addOnPrice).toBe(100);
-    expect(result.addOnPricing.breakdown).not.toContainEqual({
-      item: 'Gumpaste Allowance',
-      price: -100,
-    });
   });
 
   it('trims known quantity rules and supports fixed, flat, per-three, and per-digit semantics', async () => {

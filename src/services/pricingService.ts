@@ -92,11 +92,9 @@ export const calculatePrice = (
     const breakdown: { item: string; price: number; }[] = [];
 
     const itemPrices = new Map<string, number>();
-    let heroGumpasteTotal = 0;
-    let supportGumpasteRawTotal = 0;
+    let heroTotal = 0;
+    let supportTotal = 0;
     let nonGumpasteTotal = 0;
-
-    const GUMPASTE_ALLOWANCE = 100;
 
     // --- Process All Main Toppers in a Single Loop ---
     mainToppers.forEach(topper => {
@@ -110,11 +108,11 @@ export const calculatePrice = (
         switch (topper.type) {
             case 'edible_3d_complex':
                 price = getEdible3DComplexPrice(topper.size) * topper.quantity;
-                heroGumpasteTotal += price;
+                heroTotal += price;
                 break;
             case 'edible_3d_ordinary':
                 price = getEdible3DOrdinaryPrice(topper.size) * topper.quantity;
-                heroGumpasteTotal += price;
+                heroTotal += price;
                 break;
 
             case 'meringue_pop':
@@ -246,11 +244,11 @@ export const calculatePrice = (
         switch (element.type) {
             case 'edible_3d_support':
                 price = getSupportGumpastePrice(element.size);
-                supportGumpasteRawTotal += price;
+                supportTotal += price;
                 break;
             case 'edible_2d_support':
                 price = getEdible2DSupportPrice(element.size); // Use new function
-                supportGumpasteRawTotal += price;
+                supportTotal += price;
                 break;
 
             // --- Legacy gumpaste types are removed, logic for other types remains ---
@@ -258,8 +256,6 @@ export const calculatePrice = (
             case 'icing_doodle':
                 if (element.description?.toLowerCase().includes('intricate') || element.description?.toLowerCase().includes('complex')) {
                     price = (cakeInfo.type === 'Bento' || cakeInfo.type === 'Bento Cupcake Set') ? 50 : 100;
-                    // Note: As per old logic, this was not part of allowance. Keeping it that way unless specified.
-                    // To make it eligible, change to: supportGumpasteRawTotal += price;
                     nonGumpasteTotal += price;
                 }
                 break;
@@ -308,7 +304,7 @@ export const calculatePrice = (
                 else if (element.size === 'large') price = 100;
                 else if (element.size === 'medium') price = 50;
                 else price = 25; // small/xsmall/tiny
-                supportGumpasteRawTotal += price;
+                supportTotal += price;
                 break;
 
             case 'gumpaste_panel':
@@ -318,7 +314,7 @@ export const calculatePrice = (
                 else if (element.size === 'large') price = 200;
                 else if (element.size === 'medium') price = 100;
                 else price = 50; // small/xsmall/tiny
-                supportGumpasteRawTotal += price;
+                supportTotal += price;
                 break;
 
             case 'icing_decorations':
@@ -369,7 +365,7 @@ export const calculatePrice = (
                 else bundlePrice = 100; // small/xsmall/tiny/default
 
                 price = bundlePrice * (element.quantity || 1);
-                supportGumpasteRawTotal += price; // Eligible for allowance
+                supportTotal += price;
                 break;
 
             case 'plastic_ball_regular':
@@ -453,14 +449,7 @@ export const calculatePrice = (
     }
 
     // --- Final Calculation ---
-    const allowanceApplied = Math.min(GUMPASTE_ALLOWANCE, supportGumpasteRawTotal);
-    const supportGumpasteCharge = Math.max(0, supportGumpasteRawTotal - GUMPASTE_ALLOWANCE);
-
-    if (allowanceApplied > 0) {
-        breakdown.push({ item: "Gumpaste Allowance", price: -allowanceApplied });
-    }
-
-    const addOnPrice = heroGumpasteTotal + supportGumpasteCharge + nonGumpasteTotal;
+    const addOnPrice = heroTotal + supportTotal + nonGumpasteTotal;
 
     return {
         addOnPricing: {

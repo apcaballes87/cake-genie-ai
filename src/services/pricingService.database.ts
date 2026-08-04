@@ -269,8 +269,8 @@ export async function calculatePriceFromDatabase(
   const breakdown: { item: string; price: number; }[] = [];
   const itemPrices = new Map<string, number>();
 
-  let heroGumpasteTotal = 0;
-  let supportGumpasteRawTotal = 0;
+  let heroTotal = 0;
+  let supportTotal = 0;
   let nonGumpasteTotal = 0;
 
   const getRule = (
@@ -374,9 +374,6 @@ export async function calculatePriceFromDatabase(
     return rule;
   };
 
-  const allowanceRule = getRule('gumpaste_allowance', undefined, 'special');
-  const GUMPASTE_ALLOWANCE = allowanceRule?.price || 100;
-
   const extractTierCount = (cakeType: CakeType): number => {
     if (cakeType.includes('3 Tier')) return 3;
     if (cakeType.includes('2 Tier')) return 2;
@@ -419,9 +416,9 @@ export async function calculatePriceFromDatabase(
       }
 
       if (rule.classification === 'hero') {
-        heroGumpasteTotal += price;
+        heroTotal += price;
       } else if (rule.classification === 'support') {
-        supportGumpasteRawTotal += price;
+        supportTotal += price;
       } else {
         nonGumpasteTotal += price;
       }
@@ -471,12 +468,7 @@ export async function calculatePriceFromDatabase(
         price *= extractTierCount(cakeInfo.type);
       }
 
-      const conditions = rule.special_conditions;
-      if (conditions?.allowance_eligible) {
-        supportGumpasteRawTotal += price;
-      } else {
-        nonGumpasteTotal += price;
-      }
+      supportTotal += price;
 
     }
 
@@ -516,15 +508,7 @@ export async function calculatePriceFromDatabase(
     itemPrices.set('icing_gumpasteBaseBoard', 0);
   }
 
-  // Apply gumpaste allowance
-  const allowanceApplied = Math.min(GUMPASTE_ALLOWANCE, supportGumpasteRawTotal);
-  const supportGumpasteCharge = Math.max(0, supportGumpasteRawTotal - GUMPASTE_ALLOWANCE);
-
-  if (allowanceApplied > 0) {
-    breakdown.push({ item: "Gumpaste Allowance", price: -allowanceApplied });
-  }
-
-  const addOnPrice = heroGumpasteTotal + supportGumpasteCharge + nonGumpasteTotal;
+  const addOnPrice = heroTotal + supportTotal + nonGumpasteTotal;
 
   return {
     addOnPricing: { addOnPrice, breakdown },
