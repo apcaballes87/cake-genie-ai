@@ -381,7 +381,8 @@ export const useDesignUpdate = ({
                 // Gemini often returns "safety settings" or "blocked" in the error message
                 const isSafetyError = errorMessage.toLowerCase().includes('safety') ||
                     errorMessage.toLowerCase().includes('blocked') ||
-                    errorMessage.toLowerCase().includes('policy');
+                    errorMessage.toLowerCase().includes('policy') ||
+                    errorMessage.toLowerCase().includes('copyright');
 
                 if (isSafetyError && allowSafetyFallback) {
                     setIsSafetyFallback(true);

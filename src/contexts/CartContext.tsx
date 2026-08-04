@@ -783,9 +783,11 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     finalImageUrl: workingRecord.cartItem.customized_image_url || '',
                 };
             } else {
-                if (!registeredUploadTask && workingRecord.requiresFreshPreview) {
-                    throw new Error('The accurate cart preview is still waiting for its matching design task.');
-                }
+                // The edit task only exists in memory. After a reload/navigation it
+                // cannot be resumed, and retrying forever would leave the cart item
+                // behind its loading thumbnail. The saved optimistic preview is the
+                // exact source image captured before that edit, so upload it as the
+                // final preview when the task is no longer available.
 
                 stage = 'image_upload';
                 const imageUploadStartedAt = Date.now();

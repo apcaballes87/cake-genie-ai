@@ -17,8 +17,9 @@ export interface CartOutboxRecord {
   stage: CartOutboxStage;
   sourceSurface?: CartOutboxSourceSurface;
   /**
-   * The optimistic image is only a placeholder. It must never be promoted to
-   * the final cart preview if the matching AI generation task is unavailable.
+   * The cart asks for a newly generated preview. If its in-memory AI task is
+   * unavailable after navigation, the saved image is the last usable source
+   * preview and is used instead of leaving the cart item pending forever.
    */
   requiresFreshPreview?: boolean;
   lastError?: string;

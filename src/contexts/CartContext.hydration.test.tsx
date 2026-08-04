@@ -454,7 +454,7 @@ describe('CartProvider hydration', () => {
         vi.useRealTimers();
     });
 
-    it('does not promote an optimistic image when a required generation task is unavailable', async () => {
+    it('uses the saved source preview when a required generation task is unavailable', async () => {
         const pendingRecord: CartOutboxRecord = {
             cartItem: {
                 cart_item_id: 'pending-generated-preview',
@@ -470,8 +470,8 @@ describe('CartProvider hydration', () => {
                 addon_price: 0,
                 final_price: 1000,
                 quantity: 1,
-                original_image_url: 'data:image/png;base64,original',
-                customized_image_url: 'data:image/png;base64,stale-image-a',
+                original_image_url: 'https://example.com/original-source.webp',
+                customized_image_url: 'https://example.com/last-source-preview.webp',
                 customization_details: {},
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
@@ -498,12 +498,17 @@ describe('CartProvider hydration', () => {
         await waitFor(() => {
             expect(mocks.putCartOutbox).toHaveBeenCalledWith(expect.objectContaining({
                 requiresFreshPreview: true,
-                lastError: expect.stringMatching(/matching design task/i),
+                stage: 'image_update',
                 cartItem: expect.objectContaining({
-                    customized_image_url: 'data:image/png;base64,stale-image-a',
+                    original_image_url: 'https://example.com/original-source.webp',
+                    customized_image_url: 'https://example.com/last-source-preview.webp',
                 }),
             }));
         });
-        expect(mocks.updateCartItemImages).not.toHaveBeenCalled();
+        expect(mocks.updateCartItemImages).toHaveBeenCalledWith(
+            'pending-generated-preview',
+            'https://example.com/original-source.webp',
+            'https://example.com/last-source-preview.webp',
+        );
     });
 });

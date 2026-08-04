@@ -155,6 +155,23 @@ describe('useDesignUpdate', () => {
         expect(onSuccess).not.toHaveBeenCalled();
     });
 
+    it('uses the selected source image for a copyright-blocked cart preview', async () => {
+        vi.mocked(updateDesign).mockRejectedValueOnce(new Error('Image generation blocked by copyright policy'));
+        const onSuccess = vi.fn();
+        const { result } = renderHook(() => useDesignUpdate({ ...baseProps, onSuccess }));
+
+        await act(async () => {
+            await expect(result.current.handleUpdateDesign(undefined, {
+                requestKey: 'cart-preview-copyright-fallback',
+                commitResult: false,
+                allowSafetyFallback: true,
+            })).resolves.toBe('data:image/png;base64,image-data');
+        });
+
+        expect(result.current.isSafetyFallback).toBe(true);
+        expect(onSuccess).not.toHaveBeenCalled();
+    });
+
     it('passes state and prompt overrides through to updateDesign', async () => {
         vi.mocked(updateDesign).mockResolvedValueOnce({
             image: 'override-image',

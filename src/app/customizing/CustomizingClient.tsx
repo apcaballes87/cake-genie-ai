@@ -1349,14 +1349,25 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                     if (!baseImageSnapshot) {
                         throw new Error('Cannot generate the cart preview because its base image is missing.');
                     }
-                    previewImage = await handleUpdateDesign(undefined, {
-                        source: 'cart-preview-apply',
-                        allowSafetyFallback: false,
-                        requestKey: `cart-preview-${cartItemId}`,
-                        baseImage: baseImageSnapshot,
-                        commitResult: false,
-                        stateOverrides: visualStateSnapshot,
-                    });
+                    try {
+                        previewImage = await handleUpdateDesign(undefined, {
+                            source: 'cart-preview-apply',
+                            allowSafetyFallback: true,
+                            requestKey: `cart-preview-${cartItemId}`,
+                            baseImage: baseImageSnapshot,
+                            commitResult: false,
+                            stateOverrides: visualStateSnapshot,
+                        });
+                    } catch (error) {
+                        // A policy/copyright rejection (or another terminal image-edit
+                        // failure) must not leave the cart preview permanently pending.
+                        // Keep the exact image that the edit was going to use as its
+                        // source; it is the last customer-visible, usable design.
+                        console.warn('Cart preview generation failed; using its last source image.', error);
+                        previewImage = typeof baseImageSnapshot === 'string'
+                            ? baseImageSnapshot
+                            : `data:${baseImageSnapshot.mimeType};base64,${baseImageSnapshot.data}`;
+                    }
                 }
 
                 return uploadCartImages({
