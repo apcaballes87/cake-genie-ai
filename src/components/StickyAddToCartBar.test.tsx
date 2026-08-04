@@ -52,26 +52,34 @@ const buildProps = (): React.ComponentProps<typeof StickyAddToCartBar> => ({
     isAnalyzing: false,
     cakeInfo: null,
     warningMessage: null,
-    warningDescription: null,
-    onWarningClick: undefined,
     availability: undefined,
 });
 
 describe('StickyAddToCartBar', () => {
-    it('renders the availability bar at the top and ignores warning messages', () => {
+    it('renders the yellow toy availability warning above the availability bar', () => {
         const props = buildProps();
-        props.warningMessage = 'Toy is subject for availability';
-        props.warningDescription = 'Please message our partner shop for the availability of the toy.';
-        props.onWarningClick = vi.fn();
+        props.warningMessage = 'Toy might now be available, message us to confirm';
         props.availability = 'normal';
+
+        const { container } = render(<StickyAddToCartBar {...props} />);
+
+        const warning = screen.getByText('Toy might now be available, message us to confirm');
+        const availability = screen.getByText('Standard order. Order now, receive it by tomorrow.');
+
+        expect(warning).toBeInTheDocument();
+        expect(container.querySelector('[data-toy-availability-notification]')).toHaveClass('bg-yellow-100');
+        expect(availability).toBeDefined();
+    });
+
+    it('shows the yellow toy warning instead of the red printout conversion notification', () => {
+        const props = buildProps();
+        props.warningMessage = 'Toy might now be available, message us to confirm';
+        props.printoutConversions = { toy: true, ediblePhoto: false, cardstock: false };
 
         render(<StickyAddToCartBar {...props} />);
 
-        const warning = screen.queryByText('Toy is subject for availability');
-        const availability = screen.getByText('Standard order. Order now, receive it by tomorrow.');
-
-        expect(warning).toBeNull();
-        expect(availability).toBeDefined();
+        expect(screen.getByText('Toy might now be available, message us to confirm')).toBeInTheDocument();
+        expect(screen.queryByText('Toy changed to printout')).not.toBeInTheDocument();
     });
 
     it('offers a retry action for pricing errors', () => {

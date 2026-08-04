@@ -35,8 +35,6 @@ interface StickyAddToCartBarProps {
     isAnalyzing?: boolean;
     cakeInfo?: CakeInfoUI | null;
     warningMessage?: string | null;
-    warningDescription?: string | null;
-    onWarningClick?: () => void;
     availability?: AvailabilityType;
     className?: string;
     ediblePhotoAddonNote?: boolean;
@@ -61,8 +59,6 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
     isAnalyzing,
     cakeInfo,
     warningMessage,
-    warningDescription,
-    onWarningClick,
     availability,
     className,
     ediblePhotoAddonNote = false,
@@ -90,9 +86,15 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
         printoutConversions?.toy || printoutConversions?.ediblePhoto || printoutConversions?.cardstock,
     );
     const showAvailability = Boolean(availability && !isAnalyzing && !error);
-    const showPrintoutNotification = Boolean(hasPrintoutConversion && !isAnalyzing && !error);
-    const hasTopNotification = !error && (showAvailability || showPrintoutNotification);
-    const show = Boolean(price !== null || error || isAnalyzing || availability || hasPrintoutConversion);
+    const showToyAvailabilityWarning = Boolean(warningMessage && !isAnalyzing && !error);
+    // A currently selected toy needs an availability confirmation, so its warning
+    // takes the material-notification row instead of the printout conversion card.
+    const showPrintoutNotification = Boolean(
+        hasPrintoutConversion && !showToyAvailabilityWarning && !isAnalyzing && !error,
+    );
+    const showMaterialNotification = showToyAvailabilityWarning || showPrintoutNotification;
+    const hasTopNotification = !error && (showAvailability || showMaterialNotification);
+    const show = Boolean(price !== null || error || isAnalyzing || availability || hasPrintoutConversion || showToyAvailabilityWarning);
     const addToCartBlockReason = getAddToCartBlockReason({
         isAdding,
         isAnalyzing,
@@ -356,10 +358,27 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
         );
     };
 
+    const renderToyAvailabilityWarning = () => {
+        if (!showToyAvailabilityWarning) return null;
+
+        return (
+            <div data-toy-availability-notification className="h-[29.5px] translate-y-[8px] bg-yellow-100 rounded-t-2xl">
+                <div
+                    className="h-full w-full max-w-4xl mx-auto flex items-start justify-center gap-2 px-1 text-yellow-900 text-[10px] max-md:text-[9px] sm:text-[11px] font-bold"
+                    style={notificationBodyStyle}
+                >
+                    <span>⚠️</span>
+                    <span className="min-w-0 truncate text-center">{warningMessage}</span>
+                </div>
+            </div>
+        );
+    };
+
     const bottomNotificationColor =
         showAvailability && availability === 'rush' ? 'bg-green-100' :
         showAvailability && availability === 'same-day' ? 'bg-blue-100' :
         showAvailability && availability === 'normal' ? 'bg-slate-100' :
+        showToyAvailabilityWarning ? 'bg-yellow-100' :
         showPrintoutNotification ? 'bg-red-100' : '';
 
     const notificationBridgeColor = bottomNotificationColor;
@@ -382,13 +401,13 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                 </p>
             ) : null}
             <div className={`pointer-events-auto transition-all duration-300 max-w-4xl mx-auto w-full ${isBlurred ? 'blur-[2px] opacity-50 pointer-events-none' : ''}`}>
-                {/* Printout conversion stays in normal flow so availability cannot paint over it. */}
-                <div className={`relative z-0 grid transition-[grid-template-rows,opacity] duration-500 ease-in-out ${showPrintoutNotification ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                {/* Material status stays in normal flow so availability cannot paint over it. */}
+                <div className={`relative z-0 grid transition-[grid-template-rows,opacity] duration-500 ease-in-out ${showMaterialNotification ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                     <div
                         data-printout-wrapper
                         className="relative overflow-visible"
                     >
-                        {renderPrintoutNotification()}
+                        {renderToyAvailabilityWarning() ?? renderPrintoutNotification()}
                     </div>
                 </div>
 
@@ -416,7 +435,7 @@ const StickyAddToCartBar: React.FC<StickyAddToCartBarProps> = React.memo(({
                                     <DiscountOfferBubble 
                                         basePrice={price} 
                                         onApplied={() => setIsDiscountApplied(true)}
-                                        notificationCount={Number(showPrintoutNotification) + Number(showAvailability)}
+                                    notificationCount={Number(showMaterialNotification) + Number(showAvailability)}
                                     />
                                 )}
                             </div>

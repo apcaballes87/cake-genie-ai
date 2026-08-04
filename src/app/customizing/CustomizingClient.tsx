@@ -2989,35 +2989,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     const isRejectionError = analysisError?.startsWith('AI_REJECTION:');
     const isSharing = isPreparingSharedDesign || isSavingDesign;
 
-    const { warningMessage, warningDescription } = useMemo(() => {
-        // Check for active toys/figurines (manual selection)
-        const hasActiveToy = [...mainToppers, ...supportElements].some(
-            topper => topper.isEnabled && ['toy', 'figurine'].includes(topper.type)
-        );
-
-        if (hasActiveToy) {
-            return {
-                warningMessage: "Toy is subject for availability",
-                warningDescription: "Please message our partner shop for the availability of the toy."
-            };
-        }
-
-        // Check for auto-replaced toys (original was toy, now printout)
-        const hasReplacedToy = mainToppers.some(
-            topper => topper.isEnabled &&
-                ['toy', 'figurine'].includes(topper.original_type) &&
-                topper.type === 'printout'
-        );
-
-        if (hasReplacedToy) {
-            return {
-                warningMessage: "Toy Temporarily Replaced with Printout",
-                warningDescription: "We changed the topper to printout for now due to availability."
-            };
-        }
-
-        return { warningMessage: null, warningDescription: null };
-    }, [mainToppers]);
+    const toyAvailabilityWarning = useMemo(
+        () => [...mainToppers, ...supportElements].some(
+            topper => topper.isEnabled && ['toy', 'figurine'].includes(topper.type),
+        ),
+        [mainToppers, supportElements],
+    );
 
 
 
@@ -4430,7 +4407,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                     hideStickyBar={hideStickyBar}
                     hideAiChat={hideAiChat}
                     showAvailabilityOffset={!hideStickyBar && Boolean(availabilityType) && !isAnalyzing}
-                    showPrintoutOffset={!hideStickyBar && hasPrintoutConversionNotice && !isAnalyzing}
+                    showPrintoutOffset={!hideStickyBar && (hasPrintoutConversionNotice || toyAvailabilityWarning) && !isAnalyzing}
                     onClose={() => {
                         setActiveCustomization(null);
                         setActiveTopperSection(null);
@@ -4570,6 +4547,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                     // isBlurred={isPreSelectionModalOpen}
                     cakeInfo={cakeInfo}
                     availability={hideStickyBar ? undefined : availabilityType}
+                    warningMessage={hideStickyBar || !toyAvailabilityWarning ? null : 'Toy might now be available, message us to confirm'}
                     printoutConversions={hideStickyBar ? undefined : printoutConversions}
                     onPrintoutNotificationClick={openPrintoutConversionTarget}
                     onAddToCartUnavailableVisible={handleAddToCartUnavailableVisible}
