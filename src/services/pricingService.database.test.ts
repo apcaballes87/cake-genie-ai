@@ -234,6 +234,70 @@ const basePricingRows: PricingFixtureRule[] = [
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
   },
+  {
+    rule_id: 100,
+    item_key: 'edible_flowers_medium',
+    item_type: 'edible_flowers',
+    classification: 'support',
+    size: 'medium',
+    description: 'Medium support edible flowers',
+    price: 100,
+    category: 'support_element',
+    quantity_rule: 'buy_3_get_1_free',
+    multiplier_rule: null,
+    special_conditions: null,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    rule_id: 101,
+    item_key: 'edible_flowers_large',
+    item_type: 'edible_flowers',
+    classification: 'support',
+    size: 'large',
+    description: 'Large support edible flowers',
+    price: 150,
+    category: 'support_element',
+    quantity_rule: 'buy_3_get_1_free',
+    multiplier_rule: null,
+    special_conditions: null,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    rule_id: 102,
+    item_key: 'edible_flowers_xlarge',
+    item_type: 'edible_flowers',
+    classification: 'support',
+    size: 'xlarge',
+    description: 'X-Large support edible flowers',
+    price: 200,
+    category: 'support_element',
+    quantity_rule: 'buy_3_get_1_free',
+    multiplier_rule: null,
+    special_conditions: null,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    rule_id: 103,
+    item_key: 'plastic_ball',
+    item_type: 'plastic_ball',
+    classification: 'support',
+    size: null,
+    description: 'Legacy Plastic Ball (support element)',
+    price: 20,
+    category: 'support_element',
+    quantity_rule: 'buy_3_get_1_free',
+    multiplier_rule: null,
+    special_conditions: null,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+  },
 ];
 
 const weddingAnalysisFixture = {
@@ -386,7 +450,7 @@ describe('calculatePriceFromDatabase', () => {
     expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining('icing_text'));
   });
 
-  it('prices the wedding analysis once for its physical topper and never as flowers or message text', async () => {
+  it('prices the wedding analysis with its physical topper and edible flowers support element', async () => {
     const { calculatePriceFromDatabase } = await import('./pricingService.database');
     const mainToppers = weddingAnalysisFixture.main_toppers.map((topper, index) => ({
       ...topper,
@@ -417,16 +481,20 @@ describe('calculatePriceFromDatabase', () => {
     });
 
     expect(itemPrices.get('wedding-topper-1')).toBe(60);
-    expect(itemPrices.get('wedding-support-1')).toBe(0);
+    expect(itemPrices.get('wedding-support-1')).toBe(600);
     expect(itemPrices.get('wedding-support-2')).toBe(0);
     expect(itemPrices.get('wedding-support-3')).toBe(0);
     expect(itemPrices.get('wedding-message-1')).toBe(0);
     expect(addOnPricing).toEqual({
-      addOnPrice: 60,
+      addOnPrice: 660,
       breakdown: [
         {
           item: 'Gold acrylic Mr & Mrs topper normalized to cardstock',
           price: 60,
+        },
+        {
+          item: 'Cluster of white and beige edible roses with green leaves',
+          price: 600,
         },
       ],
     });
@@ -498,6 +566,32 @@ describe('calculatePriceFromDatabase', () => {
 
     expect(itemPrices.get('ribbon-1')).toBe(100);
     expect(addOnPricing.addOnPrice).toBe(100);
+  });
+
+  it('prices legacy plastic_ball as a support element using the support_element rule', async () => {
+    const { calculatePriceFromDatabase } = await import('./pricingService.database');
+    const warnSpy = vi.spyOn(console, 'warn');
+
+    const ball = {
+      id: 'ball-1',
+      type: 'plastic_ball',
+      material: 'non-edible',
+      description: 'Gold plastic balls scattered on top',
+      quantity: 8,
+      isEnabled: true,
+    } as SupportElementUI;
+
+    const { addOnPricing, itemPrices } = await calculatePriceFromDatabase({
+      mainToppers: [],
+      supportElements: [ball],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
+    });
+
+    expect(itemPrices.get('ball-1')).toBe(120);
+    expect(addOnPricing.addOnPrice).toBe(120);
+    expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining('plastic_ball'));
   });
 
   it('prices legacy fresh_flowers through edible flower pricing rules', async () => {
