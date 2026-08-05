@@ -45,7 +45,7 @@ interface CustomizingStepSummarySectionsProps {
     updateSupportElement: (id: string, updates: Partial<SupportElementUI>) => void;
     onTopperImageReplace: (topperId: string, file: File) => void;
     onSupportElementImageReplace: (elementId: string, file: File) => void;
-    openTopperSheet: (section?: 'main' | 'support' | null) => void;
+    openTopperSheet: (section?: 'main' | 'support' | null, expandedItemId?: string | null) => void;
     onCakeInfoChange?: (updates: Partial<CakeInfoUI>, options?: { isSystemCorrection?: boolean }) => void;
     onIcingTypeChange?: (newType: IcingDesignUI['base']) => void;
     onIcingDesignChange?: (newDesign: IcingDesignUI) => void;
@@ -120,6 +120,7 @@ const topperMaterialLabelMap: Record<MainTopperType, string> = {
     edible_3d_ordinary: 'Gumpaste (Ordinary)',
     printout: 'Printout',
     toy: 'Toy',
+    plastic_crown: 'Crown',
     figurine: 'Figurine (Simpler)',
     cardstock: 'Cardstock',
     edible_photo_top: 'Printout (Edible)',
@@ -1011,7 +1012,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                                     ...item,
                                                     itemCategory: ('classification' in item ? 'topper' : 'element'),
                                                 } as ClusteredMarker);
-                                                openTopperSheet('classification' in item ? 'main' : 'support');
+                                                openTopperSheet('classification' in item ? 'main' : 'support', item.id);
                                             }}
                                             className="min-w-0 flex-1 flex items-center gap-2 text-[11px] leading-5 text-left"
                                         >

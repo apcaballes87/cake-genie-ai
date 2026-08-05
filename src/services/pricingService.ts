@@ -166,6 +166,7 @@ export const calculatePrice = (
                 nonGumpasteTotal += price;
                 break;
             case 'toy':
+            case 'plastic_crown':
                 // High-Detail Toys pricing based on size
                 if (topper.size === 'xlarge') price = 300;
                 else if (topper.size === 'large') price = 200;

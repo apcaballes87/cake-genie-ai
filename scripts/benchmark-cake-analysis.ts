@@ -12,7 +12,7 @@ const { buildSearchAnalysisResponseSchema } = require('../src/lib/admin/searchAn
 const { SYSTEM_INSTRUCTION } = require('../src/lib/ai/prompts');
 
 const typeEnums = {
-    mainTopperTypes: ['edible_3d_complex', 'edible_3d_ordinary', 'printout', 'toy', 'figurine', 'cardstock', 'edible_photo_top', 'candle', 'icing_doodle', 'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread', 'meringue_pop', 'plastic_ball'],
+    mainTopperTypes: ['edible_3d_complex', 'edible_3d_ordinary', 'printout', 'toy', 'plastic_crown', 'figurine', 'cardstock', 'edible_photo_top', 'candle', 'icing_doodle', 'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread', 'meringue_pop', 'plastic_ball'],
     supportElementTypes: ['edible_3d_support', 'edible_2d_support', 'chocolates', 'sprinkles', 'support_printout', 'isomalt', 'dragees', 'edible_flowers', 'edible_photo_side', 'icing_doodle', 'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread', 'macarons', 'meringue', 'gumpaste_bundle', 'candy', 'gumpaste_panel', 'icing_decorations', 'gumpaste_creations', 'satin_ribbon']
 };
 

@@ -27,6 +27,7 @@ export const MAIN_TOPPER_TYPES = [
     'edible_2d_complex',
     'printout',
     'toy',
+    'plastic_crown',
     'figurine',
     'cardstock',
     'edible_photo_top',

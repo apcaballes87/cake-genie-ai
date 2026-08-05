@@ -66,4 +66,15 @@ describe('default fulfillment normalization', () => {
       printout_source_type: 'toy',
     });
   });
+
+  it('does NOT convert plastic_crown to a printout — crowns are always paid physical', () => {
+    const raw = analysisWithTopper('plastic_crown');
+    const normalized = normalizeAnalysisForDefaultFulfillment(raw);
+
+    expect(normalized.main_toppers[0]).toMatchObject({
+      type: 'plastic_crown',
+    });
+    expect(normalized.main_toppers[0]).not.toHaveProperty('original_type');
+    expect(normalized.main_toppers[0]).not.toHaveProperty('printout_source_type');
+  });
 });

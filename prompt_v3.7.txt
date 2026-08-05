@@ -204,11 +204,12 @@ Classify as `edible_3d_ordinary` if ALL of these are true:
 
 **This rule overrides all other considerations. Apply Protocol 3 from Visual Forensics.**
 
-#### CROWNS & TIARAS (type: "toy", material: "plastic") — NEW RULE
-**ALWAYS classify physical 3D Crowns and Tiaras as "toy".** 
+#### CROWNS & TIARAS (type: "plastic_crown", material: "plastic") — NEW RULE
+**ALWAYS classify physical 3D Crowns and Tiaras as "plastic_crown".**
 - Includes: Rhinestone tiaras, Gold metal crowns, Pearl crowns, Plastic princess tiaras.
 - **DO NOT** classify these as "cardstock" even if they are gold/metallic.
 - **DO NOT** classify these as "edible_3d_ordinary" unless they are clearly made of soft fondant.
+- **DO NOT** classify these as "toy". Crowns and tiaras are always `plastic_crown`, never `toy`.
 - **EXCEPTION:** Only classify as "cardstock" if it is visibly a flat glitter paper cutout.
 
 #### PRINTOUT (type: "printout", material: "photopaper") — MOST COMMON
@@ -265,7 +266,6 @@ Classify as PRINTOUT if ANY of these are true:
 
 **TOY EXAMPLES:**
 
-- **Metal or Plastic Crowns / Tiaras (Gold, Silver, Rhinestone)**
 - Actual plastic Mickey Mouse figurine
 - Action figures placed on cake
 - Plastic toy cars (Hot Wheels style)
@@ -278,7 +278,7 @@ Classify as PRINTOUT if ANY of these are true:
 {
   "x": 45,
   "y": 30,
-  "type": "candle|toy|cardstock|edible_photo_top|edible_photo_side|printout|edible_2d_shapes|edible_3d_ordinary|edible_3d_complex|plastic_ball",
+   "type": "candle|toy|plastic_crown|cardstock|edible_photo_top|edible_photo_side|printout|edible_2d_shapes|edible_3d_ordinary|edible_3d_complex|plastic_ball",
   "material": "wax|plastic|cardstock|photopaper|waferpaper|edible_fondant",
   "group_id": "descriptive_snake_case_id",
   "classification": "hero",
@@ -599,7 +599,7 @@ Use ONLY these exact hex codes:
 
 1. **EDIBLE 3D COMPLEX vs ORDINARY:** Animals/characters WITH faces = **edible_3d_complex**. Simple shapes = **edible_3d_ordinary**.
 2. **PRINTOUT vs TOY:** 3D-animated/CGI-style characters on FLAT paper = **PRINTOUT**.
-3. **CROWNS/TIARAS:** Classify physical 3D crowns as **TOY**, never cardstock.
+3. **CROWNS/TIARAS:** Classify physical 3D crowns as **plastic_crown**, never cardstock, never toy.
 4. **COUNTING:** Count quantity for balls, macarons, chocolates, edible_flowers, and gumpaste_bundles.
 5. **GUMPASTE BOARD:** Set true only if colored (not white/gold/silver).
 6. **Colors:** Use EXACT HEX CODES.

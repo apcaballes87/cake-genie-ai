@@ -148,6 +148,25 @@ const basePricingRows: PricingFixtureRule[] = [
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
   })),
+  ...([
+    ['tiny', 40],
+    ['xsmall', 60],
+  ] as const).map(([size, price], index): PricingFixtureRule => ({
+    rule_id: 200 + index,
+    item_key: `plastic_crown_${size}`,
+    item_type: 'plastic_crown',
+    classification: 'non-gumpaste',
+    size,
+    description: `${size} plastic crown`,
+    price,
+    category: 'main_topper',
+    quantity_rule: 'per_piece',
+    multiplier_rule: null,
+    special_conditions: null,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+  })),
   {
     rule_id: 14,
     item_key: 'gumpaste_bundle_small',
@@ -775,6 +794,35 @@ describe('calculatePriceFromDatabase', () => {
     expect(addOnPricing.addOnPrice).toBe(expectedPrice);
     expect(expectedPrice).toBe(unitPrice * quantity);
     expect(warnSpy.mock.calls.flat().join(' ')).not.toContain(`toy-${size}`);
+  });
+
+  it.each([
+    ['tiny', 40, 3, 120],
+    ['xsmall', 60, 10, 600],
+  ] as const)('prices %s plastic crowns at ₱%i per piece — same as toy', async (size, unitPrice, quantity, expectedPrice) => {
+    const { calculatePriceFromDatabase } = await import('./pricingService.database');
+    const warnSpy = vi.spyOn(console, 'warn');
+    const topper = {
+      id: `plastic_crown-${size}`,
+      type: 'plastic_crown',
+      description: `${size} plastic crown`,
+      quantity,
+      isEnabled: true,
+      size,
+    } as MainTopperUI;
+
+    const { addOnPricing, itemPrices } = await calculatePriceFromDatabase({
+      mainToppers: [topper],
+      supportElements: [],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
+    });
+
+    expect(itemPrices.get(topper.id)).toBe(expectedPrice);
+    expect(addOnPricing.addOnPrice).toBe(expectedPrice);
+    expect(expectedPrice).toBe(unitPrice * quantity);
+    expect(warnSpy.mock.calls.flat().join(' ')).not.toContain(`plastic_crown-${size}`);
   });
 
   it('keeps the default printout free and charges the paid rule after an explicit physical toy selection', async () => {
