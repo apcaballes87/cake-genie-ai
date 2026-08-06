@@ -23,6 +23,7 @@ const categoriesList = [
 ];
 
 const otherNavLinks = [
+  { label: 'Party Budget Calculator', href: '/party-budget-calculator', emoji: '🎈' },
   { label: 'Cold Caking', href: '/coldcaking', emoji: '🧊' },
   { label: 'How to Order', href: '/how-to-order', emoji: '📋' },
   { label: 'Payment Options', href: '/payment-options', emoji: '💳' },

@@ -8,6 +8,7 @@
 - [Cake Design Gallery](https://genie.ph/collections): Browse 7,000+ custom cake designs organized by category.
 - [Customizable Designs](https://genie.ph/customizing/): Deep-links to AI-analyzed designs ready for personalization.
 - [Cake Price Calculator](https://genie.ph/cake-price-calculator): Direct tool for AI analysis of custom cake designs.
+- [Party Budget Calculator](https://genie.ph/party-budget-calculator): Interactive tool to plan a budget for a Philippine birthday party in PHP (guests, catering, cake, entertainment) and export a branded PDF.
 - [About Genie.ph](https://genie.ph/about): Our mission to digitize the local baking industry in Cebu.
 - [Cake Ordering Guide](https://genie.ph/how-to-order): Step-by-step instructions on ordering custom cakes online.
 - [Best Cake Shops in Cebu](https://genie.ph/best-cake-shops-cebu): Top 10 comparison of Cebu bakeshops for birthday cakes, wedding cakes, ube cake, premium cafe cakes, and moist chocolate cake.

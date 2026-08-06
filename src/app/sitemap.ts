@@ -160,6 +160,7 @@ export default async function sitemap({ id }: { id: SitemapParam }): Promise<Met
             '/chatgpt-cake-design-quote',
             '/best-cake-shops-cebu',
             '/mothersdaycakes',
+            '/party-budget-calculator',
             '/faq',
             '/how-to-order',
             '/contact',

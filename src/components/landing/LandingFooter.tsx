@@ -22,7 +22,7 @@ const socialLinks = [
   { href: 'https://m.me/genieph', label: 'Messenger', icon: MessageCircle, className: 'text-blue-500 hover:bg-blue-600 hover:text-white' },
 ] as const;
 
-const exploreLinks = ['/customizing|Customize a Cake', '/coldcaking|Cold Caking', '/shop|Shop', '/collections|Collections', '/services|Services', '/about|About Us', '/compare|Compare', '/sitemap-html|HTML Sitemap'];
+const exploreLinks = ['/party-budget-calculator|Party Budget Calculator', '/customizing|Customize a Cake', '/coldcaking|Cold Caking', '/shop|Shop', '/collections|Collections', '/services|Services', '/about|About Us', '/compare|Compare', '/sitemap-html|HTML Sitemap'];
 const helpLinks = ['/contact|Contact Us', '/reviews|Customer Reviews', '/faq|FAQ', '/how-to-order|How to Order', '/delivery-rates|Delivery Rates', '/terms|Terms of Service', '/privacy|Privacy Policy', '/return-policy|Return Policy'];
 
 type LandingFooterProps = {
