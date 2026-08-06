@@ -29,6 +29,8 @@
     "browser-image-compression": "^2.0.2",
     "embla-carousel-react": "^8.6.0",
     "embla-carousel-wheel-gestures": "^8.1.0",
+    "html2pdf.js": "^0.14.0",
+    "jspdf": "^4.2.1",
     "lodash-es": "^4.17.21",
     "lucide-react": "^0.553.0",
     "next": "16.0.7",
