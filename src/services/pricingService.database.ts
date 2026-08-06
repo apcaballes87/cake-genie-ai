@@ -200,8 +200,9 @@ export async function calculatePriceFromDatabase(
       if (type === 'edible_3d_complex') return 300;
       if (['edible_2d_complex', 'edible_photo_top', 'edible_photo_print', 'edible_photo_side'].includes(type)) return 200;
       if ([
-        'edible_3d_ordinary',
-        'edible_3d_support',
+         'edible_3d_ordinary',
+         'edible_crown',
+         'edible_3d_support',
         'edible_2d_support',
         'gumpaste_bundle',
         'gumpaste_panel',
@@ -395,9 +396,7 @@ export async function calculatePriceFromDatabase(
 
       if (topper.type === 'edible_photo_top') {
         const sizeLabel = cakeInfo.size || '6" Round';
-        if (sizeLabel.includes('4"') || sizeLabel.toLowerCase().includes('bento') || cakeInfo.type === 'Bento') {
-          price = 0;
-        } else if (sizeLabel.includes('6"')) {
+        if (sizeLabel.toLowerCase().includes('bento') || cakeInfo.type === 'Bento') {
           price = 100;
         } else {
           price = 200;

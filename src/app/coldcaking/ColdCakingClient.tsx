@@ -37,7 +37,7 @@ const DEFAULT_PREVIEW_IMAGE_URL = 'https://cqmhanqnfybyxezhobkx.supabase.co/stor
 
 // Edible photo addon price per size index — matches SIZES order in ColdCakingCakePicker
 // [0]=Bento, [1]=6" Round, [2]=8" Round, [3]=8x8, [4]=8x12
-const EDIBLE_PHOTO_ADDON_PRICES: readonly number[] = [0, 100, 200, 200, 200];
+const EDIBLE_PHOTO_ADDON_PRICES: readonly number[] = [100, 200, 200, 200, 200];
 
 const relatedDesignBreakpoints = {
     default: 6,

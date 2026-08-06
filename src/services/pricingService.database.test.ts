@@ -167,6 +167,29 @@ const basePricingRows: PricingFixtureRule[] = [
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
   })),
+  ...([
+    ['tiny', 140],
+    ['xsmall', 160],
+    ['small', 200],
+    ['medium', 300],
+    ['large', 400],
+    ['xlarge', 500],
+  ] as const).map(([size, price], index): PricingFixtureRule => ({
+    rule_id: 210 + index,
+    item_key: `edible_crown_${size}`,
+    item_type: 'edible_crown',
+    classification: 'hero',
+    size,
+    description: `${size} edible crown`,
+    price,
+    category: 'main_topper',
+    quantity_rule: 'per_piece',
+    multiplier_rule: null,
+    special_conditions: null,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+  })),
   {
     rule_id: 14,
     item_key: 'gumpaste_bundle_small',
@@ -519,7 +542,7 @@ describe('calculatePriceFromDatabase', () => {
     });
   });
 
-  it('prices edible_photo_top based on cake size (Bento: 0, 6" Round: 100, others: 200)', async () => {
+  it('prices edible_photo_top based on cake size (Bento: 100, all others: 200)', async () => {
     const { calculatePriceFromDatabase } = await import('./pricingService.database');
 
     const topper = {
@@ -539,7 +562,7 @@ describe('calculatePriceFromDatabase', () => {
       icingDesign: {} as IcingDesignUI,
       cakeInfo: { type: 'Bento', size: '4" Round' } as CakeInfoUI,
     });
-    expect(resBento.itemPrices.get('topper-1')).toBe(0);
+    expect(resBento.itemPrices.get('topper-1')).toBe(100);
 
     // Test 6" Round
     const res6in = await calculatePriceFromDatabase({
@@ -549,7 +572,7 @@ describe('calculatePriceFromDatabase', () => {
       icingDesign: {} as IcingDesignUI,
       cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
     });
-    expect(res6in.itemPrices.get('topper-1')).toBe(100);
+    expect(res6in.itemPrices.get('topper-1')).toBe(200);
 
     // Test 8" Round
     const res8in = await calculatePriceFromDatabase({
@@ -823,6 +846,40 @@ describe('calculatePriceFromDatabase', () => {
     expect(addOnPricing.addOnPrice).toBe(expectedPrice);
     expect(expectedPrice).toBe(unitPrice * quantity);
     expect(warnSpy.mock.calls.flat().join(' ')).not.toContain(`plastic_crown-${size}`);
+  });
+
+  it.each([
+    ['tiny', 140, 1, 140],
+    ['xsmall', 160, 2, 320],
+    ['small', 200, 1, 200],
+    ['medium', 300, 2, 600],
+    ['large', 400, 1, 400],
+    ['xlarge', 500, 2, 1000],
+  ] as const)('prices %s edible crowns at ₱%i per piece — toy price plus ₱100', async (size, unitPrice, quantity, expectedPrice) => {
+    const { calculatePriceFromDatabase } = await import('./pricingService.database');
+    const warnSpy = vi.spyOn(console, 'warn');
+    const topper = {
+      id: `edible_crown-${size}`,
+      type: 'edible_crown',
+      material: 'edible_fondant',
+      description: `${size} fondant crown`,
+      quantity,
+      isEnabled: true,
+      size,
+    } as MainTopperUI;
+
+    const { addOnPricing, itemPrices } = await calculatePriceFromDatabase({
+      mainToppers: [topper],
+      supportElements: [],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
+    });
+
+    expect(itemPrices.get(topper.id)).toBe(expectedPrice);
+    expect(addOnPricing.addOnPrice).toBe(expectedPrice);
+    expect(expectedPrice).toBe(unitPrice * quantity);
+    expect(warnSpy.mock.calls.flat().join(' ')).not.toContain(`edible_crown-${size}`);
   });
 
   it('keeps the default printout free and charges the paid rule after an explicit physical toy selection', async () => {

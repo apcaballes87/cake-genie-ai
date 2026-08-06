@@ -175,6 +175,15 @@ export const calculatePrice = (
                 price *= topper.quantity;
                 nonGumpasteTotal += price;
                 break;
+            case 'edible_crown':
+                // Edible crowns use the legacy toy size bands plus PHP 100 per piece.
+                if (topper.size === 'xlarge') price = 400;
+                else if (topper.size === 'large') price = 300;
+                else if (topper.size === 'medium') price = 250;
+                else price = 200; // 'small', 'xsmall', 'tiny' or 'partial'
+                price *= topper.quantity;
+                nonGumpasteTotal += price;
+                break;
             case 'figurine':
                 // Simpler Figurines pricing based on size
                 if (topper.size === 'xlarge') price = 120;
@@ -189,15 +198,12 @@ export const calculatePrice = (
                 break;
             case 'edible_photo_top':
                 {
-                    // Dynamic edible photo pricing based on cake size (matches standard edible photo addon pricing)
-                    // Sizes: Bento (no addon), 6" Round (+100), 8" Round (+200), etc.
+                    // Edible photo pricing: Bento = 100, all other sizes = 200
                     const sizeLabel = cakeInfo.size || '6" Round';
-                    if (sizeLabel.includes('4"') || sizeLabel.toLowerCase().includes('bento')) {
-                        price = 0;
-                    } else if (sizeLabel.includes('6"')) {
+                    if (sizeLabel.toLowerCase().includes('bento')) {
                         price = 100;
                     } else {
-                        price = 200; // 8" Round, 8x8, 8x12, 10", etc.
+                        price = 200; // 6" Round, 8" Round, 8x8, 8x12, 10", etc.
                     }
                     nonGumpasteTotal += price;
                     break;
