@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+@theme {
+  --breakpoint-xs: 280px;
+}
+
 /* Genie landing-page theme tokens */
 :root {
   --mobile-ui-scale: 1;
