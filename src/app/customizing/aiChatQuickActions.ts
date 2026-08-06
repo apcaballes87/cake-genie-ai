@@ -12,11 +12,13 @@ const MAIN_TOY_TOPPER_TYPES = new Set<MainTopperType>(['toy', 'figurine', 'plast
 const MAIN_EDIBLE_TOPPER_TYPES = new Set<MainTopperType>([
     'edible_3d_complex',
     'edible_3d_ordinary',
+    'edible_crown',
     'edible_2d_complex',
     'edible_logo_2d',
     'edible_2d_shapes',
-    'edible_flowers',
 ]);
+
+const PRINTOUT_EXCLUDED_TYPES = new Set<MainTopperType | SupportElementType>(['edible_flowers']);
 const SUPPORT_EDIBLE_TOPPER_TYPES = new Set<SupportElementType>([
     'edible_3d_support',
     'edible_2d_support',
@@ -24,6 +26,12 @@ const SUPPORT_EDIBLE_TOPPER_TYPES = new Set<SupportElementType>([
 
 type QuickActionItem = MainTopperUI | SupportElementUI;
 type MaterialQuickActionMode = Exclude<AiChatQuickActionMode, 'edible-photo' | null>;
+
+const isPrintoutExcluded = (item: QuickActionItem): boolean => {
+    const anyItem = item as unknown as Record<string, unknown>;
+    const sourceType = String(anyItem.original_type ?? anyItem.type);
+    return PRINTOUT_EXCLUDED_TYPES.has(sourceType as MainTopperType | SupportElementType);
+};
 
 const getDesignTypes = (item: QuickActionItem): string[] => {
     const types: Array<string | undefined> = [
@@ -97,6 +105,10 @@ const updateMainTopperForAction = (
         return type ? { ...topper, type, isEnabled: true } : topper;
     }
 
+    if (action === 'printout' && isPrintoutExcluded(topper)) {
+        return topper;
+    }
+
     const sourceType = topper.printout_source_type
         ?? (topper.type !== 'printout' ? topper.type : topper.original_type !== 'printout' ? topper.original_type : undefined);
     return {
@@ -117,6 +129,10 @@ const updateSupportElementForAction = (
     }
 
     if (action === 'toy') return element;
+
+    if (action === 'printout' && isPrintoutExcluded(element)) {
+        return element;
+    }
 
     const sourceType = element.printout_source_type
         ?? (element.type !== 'support_printout' ? element.type : element.original_type !== 'support_printout' ? element.original_type : undefined);

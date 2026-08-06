@@ -70,6 +70,8 @@ export const AI_CHAT_MAIN_TOPPER_TYPES = [
     'edible_3d_complex',
     'edible_2d_complex',
     'edible_3d_ordinary',
+    'plastic_crown',
+    'edible_crown',
     'printout',
     'toy',
     'figurine',
@@ -281,6 +283,12 @@ const SUPPORT_INPUT_KEYS = [
 ] as const;
 const MESSAGE_INPUT_KEYS = ['type', 'text', 'position', 'color', 'x', 'y'] as const;
 const HEX_COLOR_PATTERN = /^#[0-9A-F]{6}$/i;
+
+const PRINTOUT_EXCLUDED_TYPES = new Set(['edible_flowers']);
+
+const isPrintoutExcludedFromTypeChange = (
+    item: { type: string; original_type?: string | null },
+): boolean => PRINTOUT_EXCLUDED_TYPES.has(item.original_type ?? item.type);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -759,6 +767,9 @@ const applyTopperOperations = (
             ...changes,
             ...(groupId === undefined ? {} : { group_id: groupId }),
         };
+        if (mappedChanges.type === 'printout' && isPrintoutExcludedFromTypeChange(currentItem)) {
+            delete mappedChanges.type;
+        }
         if (mappedChanges.type === 'printout' && !currentItem.printout_source_type) {
             const sourceType = currentItem.type !== 'printout'
                 ? currentItem.type
@@ -820,6 +831,9 @@ const applySupportOperations = (
             ...changes,
             ...(groupId === undefined ? {} : { group_id: groupId }),
         };
+        if (mappedChanges.type === 'support_printout' && isPrintoutExcludedFromTypeChange(currentItem)) {
+            delete mappedChanges.type;
+        }
         if (mappedChanges.type === 'support_printout' && !currentItem.printout_source_type) {
             const sourceType = currentItem.type !== 'support_printout'
                 ? currentItem.type

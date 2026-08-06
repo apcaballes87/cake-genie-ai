@@ -554,4 +554,58 @@ describe('applyAiChatEdit', () => {
         expect(result.requiresImageEdit).toBe(true);
         expect(result.nextState).toEqual(current);
     });
+
+    it('strips a printout type change when the target is edible_flowers', () => {
+        const current = makeSnapshot({
+            mainToppers: [{
+                id: 'flower-1',
+                type: 'edible_flowers',
+                original_type: 'edible_flowers',
+                description: 'mixed pastel flower cluster',
+                size: 'medium',
+                quantity: 1,
+                group_id: 'flowers',
+                classification: 'hero',
+                isEnabled: true,
+                price: 0,
+            }],
+        });
+
+        const result = applyAiChatEdit(current, designResponse({
+            topperOperations: [{
+                operation: 'update',
+                id: 'flower-1',
+                changes: { type: 'printout' },
+            }],
+        }));
+
+        expect(result.nextState.mainToppers[0].type).toBe('edible_flowers');
+        expect(result.changedPaths).not.toContain('mainToppers.flower-1.type');
+    });
+
+    it('strips a support_printout type change when the target is edible_flowers', () => {
+        const current = makeSnapshot({
+            supportElements: [{
+                id: 'flower-support-1',
+                type: 'edible_flowers',
+                original_type: 'edible_flowers',
+                description: 'flower cascade',
+                size: 'large',
+                group_id: 'cascade',
+                isEnabled: true,
+                price: 0,
+            }],
+        });
+
+        const result = applyAiChatEdit(current, designResponse({
+            supportOperations: [{
+                operation: 'update',
+                id: 'flower-support-1',
+                changes: { type: 'support_printout' },
+            }],
+        }));
+
+        expect(result.nextState.supportElements[0].type).toBe('edible_flowers');
+        expect(result.changedPaths).not.toContain('supportElements.flower-support-1.type');
+    });
 });

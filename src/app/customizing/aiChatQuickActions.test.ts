@@ -45,12 +45,21 @@ describe('getAiChatQuickActionMode', () => {
         expect(getAiChatQuickActionMode([], [support('support_printout', 'plastic_ball')])).toBeNull();
     });
 
+    it('does not show quick actions when only edible flowers are present', () => {
+        expect(getAiChatQuickActionMode([topper('edible_flowers')])).toBeNull();
+    });
+
+    it('does not show quick actions for edible flowers main toppers alongside support elements', () => {
+        expect(getAiChatQuickActionMode([topper('edible_flowers')], [support('edible_flowers')])).toBeNull();
+    });
+
     it('includes edible support decorations in the edible quick-action mode', () => {
         expect(getAiChatQuickActionMode([], [support('edible_3d_support')])).toBe('edible-toppers');
     });
 
     it('shows edible topper actions for edible craft toppers', () => {
         expect(getAiChatQuickActionMode([topper('edible_2d_complex')])).toBe('edible-toppers');
+        expect(getAiChatQuickActionMode([topper('edible_crown')])).toBe('edible-toppers');
     });
 
     it('gives edible-photo replacement priority over other topper groups', () => {
@@ -244,5 +253,21 @@ describe('applyAiChatQuickActionMaterial', () => {
             edibleState.mainToppers,
             'toy-toppers',
         )).toBe('edible');
+    });
+
+    it('skips edible_flowers when converting all edible toppers to printout', () => {
+        const result = applyAiChatQuickActionMaterial(
+            [topper('edible_flowers'), topper('edible_3d_complex')],
+            [],
+            'edible-toppers',
+            'printout',
+        );
+
+        expect(result.changed).toBe(true);
+        expect(result.mainToppers[0]).toEqual(topper('edible_flowers'));
+        expect(result.mainToppers[1]).toMatchObject({
+            type: 'printout',
+            printout_source_type: 'edible_3d_complex',
+        });
     });
 });
