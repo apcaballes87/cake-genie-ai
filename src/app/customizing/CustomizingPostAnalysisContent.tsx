@@ -48,11 +48,11 @@ export const CustomizingPostAnalysisContent = React.memo(({
     return (
         <div className="w-full pb-4 pt-1 space-y-4">
             <div className="flex w-full flex-col items-center gap-2 pb-4 max-md:pt-4">
-                <button
-                    type="button"
-                    onClick={onUploadAnother}
-                    className="genie-btn-primary flex w-full max-w-[520px] items-center justify-center gap-2 rounded-[1.5rem] px-4 py-3 text-sm font-bold shadow-md shadow-purple-50/50 transition-transform active:scale-[0.98] md:text-base"
-                >
+                 <button
+                     type="button"
+                     onClick={onUploadAnother}
+                     className="flex w-full max-w-[520px] items-center justify-center gap-2 rounded-[1.5rem] border border-purple-600 bg-white px-4 py-3 text-sm font-bold text-purple-600 transition-colors hover:bg-purple-50 active:scale-[0.98] md:text-base"
+                 >
                     <ImagePlus size={18} className="shrink-0" aria-hidden="true" />
                     <span>Upload Any Design - Get Instant Pricing</span>
                 </button>

@@ -1143,10 +1143,10 @@ function SSRDesignContent({
                 <p className="w-full max-w-[520px] text-center text-sm leading-6 text-neutral-600">
                     Upload other cake designs here and we&apos;ll give you instant price quotation.
                 </p>
-                <Link
-                    href="/customizing?upload=1"
-                    className="flex w-full max-w-[520px] items-center justify-center gap-2 rounded-[1.5rem] border border-purple-600 bg-white px-4 py-3 text-sm font-bold text-purple-600 transition-colors hover:bg-purple-50 active:scale-[0.98] md:text-base"
-                >
+                 <Link
+                     href="/customizing?upload=1"
+                     className="flex w-full max-w-[520px] items-center justify-center gap-2 rounded-[1.5rem] border border-purple-600 bg-white px-4 py-3 text-sm font-bold text-purple-600 transition-colors hover:bg-purple-50 active:scale-[0.98] md:text-base"
+                 >
                     <ImagePlus size={18} className="shrink-0" aria-hidden="true" />
                     <span>Upload Any Design - Get Instant Pricing</span>
                 </Link>
