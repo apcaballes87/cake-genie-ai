@@ -12,13 +12,13 @@ const toTitleCase = (value: string) => value
 // Constants
 export const topperTypeDisplayMap: Record<MainTopperType, string> = {
     'edible_3d_complex': 'Gumpaste (Complex)', 'edible_2d_complex': 'Gumpaste (2D Complex)', 'edible_3d_ordinary': 'Gumpaste (Ordinary)', 'printout': 'Printout', 'edible_photo_top': 'Printout (Edible)', 'edible_photo_print': 'Printout (Edible)', 'edible_logo_2d': 'Edible Logo (2D)',
-    'toy': 'Toy', 'plastic_crown': 'Crown', 'figurine': 'Figurine (Simpler)', 'plastic_ball': 'Plastic Ball', 'cardstock': 'Cardstock', 'candle': 'Candle', 'edible_2d_shapes': 'Gumpaste (2D)', 'edible_flowers': 'Edible Flowers',
+    'toy': 'Toy', 'plastic_crown': 'Crown', 'edible_crown': 'Edible Crown', 'figurine': 'Figurine (Simpler)', 'plastic_ball': 'Plastic Ball', 'cardstock': 'Cardstock', 'candle': 'Candle', 'edible_2d_shapes': 'Gumpaste (2D)', 'edible_flowers': 'Edible Flowers',
     'icing_doodle': 'Piped Doodles', 'icing_doodle_intricate': 'Piped Doodles', 'icing_doodle_intricate_top': 'Intricate Top Doodle', 'icing_palette_knife': 'Palette Knife Finish', 'icing_palette_knife_intricate': 'Palette Knife Finish', 'icing_brush_stroke': 'Brush Stroke Finish',
     'icing_splatter': 'Splatter Finish', 'icing_minimalist_spread': 'Minimalist Spread', 'icing_decorations': 'Icing Decorations', 'meringue_pop': 'Meringue Pop',
 };
 export const originalTypeLabelMap: Record<MainTopperType, string> = {
     'edible_3d_complex': '3D Complex', 'edible_2d_complex': '2D Complex', 'edible_3d_ordinary': '3D Ordinary', 'figurine': 'Figurine', 'toy': 'Toy', 'plastic_ball': 'Plastic Ball', 'cardstock': 'Cardstock',
-    'edible_photo_top': 'Edible Photo', 'edible_photo_print': 'Edible Photo', 'edible_logo_2d': 'Edible Logo', 'plastic_crown': 'Crown', 'printout': 'Printout', 'candle': 'Candle', 'edible_2d_shapes': '2D Shapes', 'edible_flowers': 'Edible Flowers',
+    'edible_photo_top': 'Edible Photo', 'edible_photo_print': 'Edible Photo', 'edible_logo_2d': 'Edible Logo', 'plastic_crown': 'Crown', 'edible_crown': 'Edible Crown', 'printout': 'Printout', 'candle': 'Candle', 'edible_2d_shapes': '2D Shapes', 'edible_flowers': 'Edible Flowers',
     'icing_doodle': 'Piped Doodles', 'icing_doodle_intricate': 'Piped Doodles', 'icing_doodle_intricate_top': 'Intricate Top Doodle', 'icing_palette_knife': 'Palette Knife Finish', 'icing_palette_knife_intricate': 'Palette Knife Finish', 'icing_brush_stroke': 'Brush Stroke Finish',
     'icing_splatter': 'Splatter Finish', 'icing_minimalist_spread': 'Minimalist Spread', 'icing_decorations': 'Icing Decorations', 'meringue_pop': 'Meringue Pop',
 };

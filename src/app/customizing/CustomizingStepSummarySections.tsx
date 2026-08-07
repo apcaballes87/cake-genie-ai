@@ -121,6 +121,7 @@ const topperMaterialLabelMap: Record<MainTopperType, string> = {
     printout: 'Printout',
     toy: 'Toy',
     plastic_crown: 'Crown',
+    edible_crown: 'Edible Crown',
     figurine: 'Figurine (Simpler)',
     cardstock: 'Cardstock',
     edible_photo_top: 'Printout (Edible)',
