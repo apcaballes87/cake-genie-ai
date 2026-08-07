@@ -103,7 +103,7 @@ export default function PriceListHeader() {
                 : 'pointer-events-none hidden translate-x-4 opacity-0 md:block md:translate-x-0 md:opacity-100 md:pointer-events-auto'
             }`}
           >
-            <SearchAutocomplete
+              <SearchAutocomplete
               inputRef={searchInputRef}
               onFocus={() => setIsSearchFocused(true)}
               onBlur={() => setIsSearchFocused(false)}
@@ -113,6 +113,7 @@ export default function PriceListHeader() {
               value={searchQuery}
               onChange={setSearchQuery}
               showUploadButton={false}
+              autoFocus={isSearchFocused}
               inputClassName="w-full rounded-full border border-purple-100 bg-white py-3 pl-5 pr-12 text-sm shadow-md transition-shadow focus:outline-none focus:ring-2 focus:ring-purple-400"
             />
           </div>

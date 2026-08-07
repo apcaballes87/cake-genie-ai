@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { SearchIcon, CameraIcon, Loader2, LinkIcon, LayersIcon } from './icons';
@@ -81,6 +81,8 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
+  const internalInputRef = useRef<HTMLInputElement>(null);
+  const resolvedInputRef = inputRef || internalInputRef;
 
   // FTS live product results
   const [ftsResults, setFtsResults] = useState<any[]>([]);
@@ -297,6 +299,13 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
     return () => document.removeEventListener('pointerdown', handleClickOutside);
   }, []);
 
+  // Focus the input when autoFocus prop changes (e.g. after lazy-import mount)
+  useLayoutEffect(() => {
+    if (autoFocus && resolvedInputRef.current) {
+      resolvedInputRef.current.focus({ preventScroll: true });
+    }
+  }, [autoFocus, resolvedInputRef]);
+
   // --- Fetch suggested & popular keywords on focus ---
   const handleFocus = () => {
     setShowSuggestions(true);
@@ -326,7 +335,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
     <div className={`relative w-full ${className || ''}`} ref={containerRef}>
       <div className="relative">
         <input
-          ref={inputRef}
+          ref={resolvedInputRef}
           type="text"
           autoFocus={autoFocus}
           value={query}
@@ -393,7 +402,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                           return (
                             <button
                               key={`sugg-${keyword}`}
-                              onMouseDown={(e) => e.preventDefault()}
+                              onPointerDown={(e) => e.preventDefault()}
                               onClick={() => handleSelectSuggestion(keyword)}
                               className={`px-3 py-1.5 text-sm font-medium rounded-full cursor-pointer transition-colors active:bg-purple-100 ${isSelected
                                 ? 'bg-purple-100 text-purple-700 ring-2 ring-purple-300/40'
@@ -417,7 +426,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                           return (
                             <button
                               key={`pop-${keyword}`}
-                              onMouseDown={(e) => e.preventDefault()}
+                              onPointerDown={(e) => e.preventDefault()}
                               onClick={() => handleSelectSuggestion(keyword)}
                               className={`px-3 py-1.5 text-sm font-medium rounded-full cursor-pointer transition-colors active:bg-purple-100 ${isSelected
                                 ? 'bg-purple-100 text-purple-700 ring-2 ring-purple-300/40'
@@ -440,7 +449,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                         return (
                           <button
                             key={`sameday-${keyword}`}
-                            onMouseDown={(e) => e.preventDefault()}
+                            onPointerDown={(e) => e.preventDefault()}
                             onClick={() => handleSelectSuggestion(keyword)}
                             className={`px-3 py-1.5 text-sm font-medium rounded-full cursor-pointer transition-colors active:bg-purple-200 ${isSelected
                               ? 'bg-purple-100 text-purple-700 ring-2 ring-purple-300/40'
@@ -469,7 +478,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                   {suggestions.map((suggestion, index) => (
                     <li key={suggestion}>
                       <button
-                        onMouseDown={(event) => {
+                        onPointerDown={(event) => {
                           event.preventDefault();
                         }}
                         onClick={() => handleSelectSuggestion(suggestion)}

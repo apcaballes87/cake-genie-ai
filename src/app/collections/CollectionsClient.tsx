@@ -152,6 +152,7 @@ const CollectionsClient: React.FC<CollectionsClientProps> = ({
                                     value={searchQuery}
                                     onChange={setSearchQuery}
                                     showUploadButton={false}
+                                    autoFocus={isSearchFocused}
                                     inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-purple-100 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
                                 />
                             </div>
