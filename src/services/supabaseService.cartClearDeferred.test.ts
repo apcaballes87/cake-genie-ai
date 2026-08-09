@@ -165,7 +165,7 @@ describe('deferred cart clear (data-layer track)', () => {
       guestAddress: {
         recipientName: 'Jane Doe',
         recipientPhone: '+639180000000',
-        streetAddress: '456 Real St',
+        streetAddress: 'Park Tower One, Samar Loop, Cebu City, Cebu, Philippines',
         city: 'Cebu City',
         latitude: 10.31,
         longitude: 123.88,
@@ -179,11 +179,47 @@ describe('deferred cart clear (data-layer track)', () => {
     const params = createOrderCall![1] as Record<string, unknown>;
     expect(params.p_recipient_name).toBe('Jane Doe');
     expect(params.p_recipient_phone).toBe('+639180000000');
-    expect(params.p_delivery_address).toBe('456 Real St');
+    expect(params.p_delivery_address).toBe('Park Tower One, Samar Loop, Cebu City, Cebu, Philippines');
     expect(params.p_delivery_city).toBe('Cebu City');
     // Server-calculated discount path: amount is still 0 until the
     // server-side validator in the RPC runs.
     expect(params.p_discount_amount).toBe(0);
+  });
+
+  it('stores the complete Google-selected address for a registered customer', async () => {
+    const insertMock = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: { address_id: 'addr-park-tower' },
+          error: null,
+        }),
+      }),
+    });
+    fromMock.mockReturnValue({ insert: insertMock });
+
+    const { addAddress } = await import('./supabaseService');
+    await addAddress('user-123', {
+      address_label: 'Work',
+      recipient_name: 'Jane Doe',
+      recipient_phone: '+639180000000',
+      street_address: 'Park Tower One, Samar Loop, Cebu City, Cebu, Philippines',
+      barangay: '',
+      city: 'Cebu City',
+      province: 'Cebu',
+      postal_code: '',
+      landmark: null,
+      country: 'Philippines',
+      is_default: false,
+      latitude: 10.32123,
+      longitude: 123.91456,
+    });
+
+    expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({
+      user_id: 'user-123',
+      street_address: 'Park Tower One, Samar Loop, Cebu City, Cebu, Philippines',
+      latitude: 10.32123,
+      longitude: 123.91456,
+    }));
   });
 
   it('passes buyer attribution through to create_order_from_cart', async () => {

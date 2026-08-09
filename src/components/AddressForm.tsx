@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, FormEvent, useEffect, useCallback, useRef } from 'react';
+import React, { useState, FormEvent, useEffect, useCallback, useRef, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { useAddAddress, useUpdateAddress } from '@/hooks/useAddresses';
 import { showSuccess, showError } from '@/lib/utils/toast';
@@ -59,7 +59,23 @@ const CITY_CENTER_COORDS: Record<string, { lat: number; lng: number }> = {
     'Consolacion': { lat: 10.3770, lng: 123.9617 },
 };
 
-const checkServiceability = (components: any[]): { isServiceable: boolean; city: string | null } => {
+type GoogleAddressComponent = {
+    long_name: string;
+    types: string[];
+};
+
+type GooglePlaceLike = {
+    formatted_address?: string;
+    geometry?: {
+        location?: {
+            lat: () => number;
+            lng: () => number;
+        };
+    };
+    address_components?: GoogleAddressComponent[];
+};
+
+const checkServiceability = (components: GoogleAddressComponent[]): { isServiceable: boolean; city: string | null } => {
     if (!components) return { isServiceable: false, city: null };
 
     let detectedCity: string | null = null;
@@ -81,6 +97,58 @@ const checkServiceability = (components: any[]): { isServiceable: boolean; city:
     return { isServiceable: false, city: null };
 };
 
+export type GooglePlaceLocationDetails = {
+    latitude: number;
+    longitude: number;
+    street_address: string;
+    city: string | null;
+    isServiceable: boolean;
+};
+
+/**
+ * Normalizes the fields required from a Google Places selection before they
+ * enter the address form. `formatted_address` is deliberately retained as the
+ * customer-visible street address, rather than replacing it with a later
+ * reverse-geocoded map-center result.
+ */
+export const getGooglePlaceLocationDetails = (place: GooglePlaceLike): GooglePlaceLocationDetails | null => {
+    const formattedAddress = place?.formatted_address?.trim();
+    const location = place?.geometry?.location;
+
+    if (!formattedAddress || !location) return null;
+
+    const { isServiceable, city } = checkServiceability(place.address_components || []);
+    return {
+        latitude: location.lat(),
+        longitude: location.lng(),
+        street_address: formattedAddress,
+        city,
+        isServiceable,
+    };
+};
+
+// This is a map-search control, not a postal-address form field. The
+// autocomplete token and search input type keep browser-saved addresses from
+// competing with the Google Places results.
+export const MAP_SEARCH_INPUT_ATTRIBUTES = {
+    type: 'search',
+    name: 'delivery-location-search',
+    autoComplete: 'off',
+    'data-lpignore': 'true',
+    'data-1p-ignore': true,
+    'data-form-type': 'other',
+} as const;
+
+export const MapSearchInput: React.FC<{ inputRef: RefObject<HTMLInputElement | null> }> = ({ inputRef }) => (
+    <input
+        ref={inputRef}
+        {...MAP_SEARCH_INPUT_ATTRIBUTES}
+        placeholder="Search for a building or street..."
+        aria-autocomplete="list"
+        className="w-full px-4 py-3 bg-white rounded-full shadow-lg border border-purple-200 focus:ring-2 focus:ring-purple-200 focus:border-purple-400 focus:outline-none text-sm"
+    />
+);
+
 // --- Address Form's Map Picker Modal Component ---
 const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, initialStreetAddress }: { isOpen: boolean, onClose: () => void, onLocationSelect: (details: any) => void, initialCoords?: { lat: number, lng: number } | null, initialStreetAddress?: string | null }) => {
     const { isLoaded, loadError } = useGoogleMapsLoader();
@@ -98,6 +166,7 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
     const autocompleteContainerRef = useRef<HTMLDivElement | null>(null);
     const inputRef = useRef<HTMLInputElement | null>(null);
     const mapRef = useRef<any | null>(null);
+    const selectedPlaceLocationRef = useRef<GooglePlaceLocationDetails | null>(null);
 
     useEffect(() => {
         setMounted(true);
@@ -172,7 +241,21 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
             if (map) {
                 const newCenter = map.getCenter();
                 if (newCenter) {
-                    handleReverseGeocode(newCenter.lat(), newCenter.lng());
+                    const latitude = newCenter.lat();
+                    const longitude = newCenter.lng();
+                    const selectedPlace = selectedPlaceLocationRef.current;
+
+                    // A deliberate pin move makes the map center the source of
+                    // truth again. The immediate idle event after selecting a
+                    // Google result keeps the selected place intact.
+                    if (selectedPlace && (
+                        Math.abs(selectedPlace.latitude - latitude) >= 0.0001 ||
+                        Math.abs(selectedPlace.longitude - longitude) >= 0.0001
+                    )) {
+                        selectedPlaceLocationRef.current = null;
+                    }
+
+                    handleReverseGeocode(latitude, longitude);
                 }
             }
         }, 1000); // 1 second debounce
@@ -182,6 +265,7 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
     useEffect(() => {
         if (!isOpen) {
             autocompleteElementRef.current = null;
+            selectedPlaceLocationRef.current = null;
         }
     }, [isOpen]);
 
@@ -202,23 +286,21 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                     componentRestrictions: { country: 'ph' },
                     bounds: cebuBounds,
                     strictBounds: true,
+                    fields: ['formatted_address', 'geometry', 'address_components'],
                 });
 
                 autocomplete.addListener('place_changed', () => {
                     const place = autocomplete.getPlace();
                     const currentMap = mapRef.current;
-                    if (place?.geometry?.location && currentMap) {
-                        currentMap.panTo(place.geometry.location);
+                    const selectedPlace = getGooglePlaceLocationDetails(place);
+                    if (selectedPlace && currentMap) {
+                        selectedPlaceLocationRef.current = selectedPlace;
+                        currentMap.panTo({ lat: selectedPlace.latitude, lng: selectedPlace.longitude });
                         currentMap.setZoom(17);
-                        if (place.formatted_address) {
-                            setCompleteAddress(place.formatted_address);
-                            setSuggestedAddress(place.formatted_address);
-                        }
-                        if (place.address_components) {
-                            const { isServiceable: isAllowed, city } = checkServiceability(place.address_components);
-                            setIsServiceable(isAllowed);
-                            setDetectedCity(city);
-                        }
+                        setCompleteAddress(selectedPlace.street_address);
+                        setSuggestedAddress(selectedPlace.street_address);
+                        setIsServiceable(selectedPlace.isServiceable);
+                        setDetectedCity(selectedPlace.city);
                     }
                 });
 
@@ -249,11 +331,12 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
 
         const finalCenter = map.getCenter();
         if (finalCenter) {
+            const selectedPlace = selectedPlaceLocationRef.current;
             onLocationSelect({
-                latitude: finalCenter.lat(),
-                longitude: finalCenter.lng(),
+                latitude: selectedPlace?.latitude ?? finalCenter.lat(),
+                longitude: selectedPlace?.longitude ?? finalCenter.lng(),
                 street_address: completeAddress.trim(),
-                city: detectedCity,
+                city: selectedPlace?.city ?? detectedCity,
             });
         } else {
             showError("Could not determine map location. Please try again.");
@@ -310,17 +393,7 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                             </div>
                             <div className="absolute top-4 left-0 right-0 flex justify-center px-4 pointer-events-none z-10">
                                 <div className="relative w-full max-w-lg pointer-events-auto">
-                                    <input
-                                        ref={inputRef}
-                                        type="text"
-                                        name="map-search-field"
-                                        placeholder="Search for a building or street..."
-                                        autoComplete="new-password"
-                                        data-lpignore="true"
-                                        data-1p-ignore
-                                        data-form-type="other"
-                                        className="w-full px-4 py-3 bg-white rounded-full shadow-lg border border-purple-200 focus:ring-2 focus:ring-purple-200 focus:border-purple-400 focus:outline-none text-sm"
-                                    />
+                                    <MapSearchInput inputRef={inputRef} />
                                 </div>
                             </div>
                         </>
