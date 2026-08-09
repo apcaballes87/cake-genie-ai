@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.37 Version - Plastic Crown as Separate Type**
+**v3.40 Version - Number-Shaped Cakes Are Rectangles**
 ═══════════════════════════════════════════════════════════════════════════════
 
 ## ROLE
@@ -156,6 +156,8 @@ The intentional normalizations already defined in this prompt remain in force:
   with material `icing` or visible fabric cues require `artificial_flowers`
 - physical metal, rhinestone, or plastic crowns/tiaras -> `plastic_crown`, material
   `plastic`
+- standalone molded, rolled, cut, or hand-sculpted fondant/gumpaste crowns/tiaras ->
+  `edible_crown`, material `edible_fondant`
 - acrylic or wooden toppers -> `cardstock`, material `cardstock`; the
   description may identify the visibly observed acrylic or wood construction
   but must also state that it is normalized to cardstock for fulfillment
@@ -252,6 +254,7 @@ table win.
 | Freestanding detailed edible figure | `edible_3d_complex` | `edible_fondant` | main or support by role | C1 |
 | Simple molded edible form, including a simple molded face | `edible_3d_ordinary` | `edible_fondant` | main or support by role | C1 |
 | Rigid factory-molded physical prop | `toy` | `plastic` | main topper | toy-specific table |
+| Standalone molded/cut fondant or gumpaste crown or tiara | `edible_crown` | `edible_fondant` | main topper | C1 |
 | One dominant focal plastic sphere or 3D balloon | `plastic_ball` | `plastic` | main topper | C4 |
 | Repeated or background plastic sphere | `plastic_ball_regular` | `plastic` | support element | C4 |
 | Flat edible shape used as an accent | `edible_2d_support` | `edible_fondant` | support element at every size | C5 |
@@ -509,8 +512,9 @@ candy, wax, or fabric.
 - IF the item is physically 3D and has at least two compatible manufactured
   plastic cues from the PHYSICAL DEPTH GATE → IT IS `toy` (Plastic). A visible
   seam or glossy finish is helpful but not mandatory.
-- **IF item is a CROWN or TIARA (metal, rhinestone, pearls, plastic) with physical 3D structure → IT IS "toy" (Plastic/Metal).**
-- IF positive handmade edible cues are present, inspect physical depth: detailed
+- **IF item is a CROWN or TIARA (metal, rhinestone, pearls, or plastic) with physical 3D structure → IT IS `plastic_crown` (material `plastic`).**
+- **IF a standalone crown or tiara is visibly made from fondant/gumpaste with handmade edible cues → IT IS `edible_crown` (material `edible_fondant`).**
+- If positive handmade edible cues are present on a non-crown item, inspect physical depth: detailed
   flat-backed or shallow layered artwork → `edible_2d_complex`; genuinely
   freestanding all-around sculpture → `edible_3d_complex`. A matte finish or
   lack of a visible seam alone does not establish edible construction.
@@ -620,6 +624,28 @@ Examples:
 ### SQUARE / RECTANGLE CAKE TYPE
 
 When choosing `cakeType`, prioritize the visible cake body shape before using the generic `1 Tier` label.
+
+### NUMBER-SHAPED CAKE PRECEDENCE — ALWAYS `Rectangle`
+
+If the edible cake body is deliberately cut, carved, or assembled as a readable
+numeral (`0`-`9`) or a multi-digit number, `cakeType` MUST be `Rectangle`.
+This rule overrides generic `1 Tier`, `Square`, Bento, and ordinary footprint
+heuristics. A numeral does not need to look like a rectangular sheet: curved,
+open, looped, hollow, or irregular digit outlines are still number-shaped cakes.
+
+Treat one numeral or a deliberately arranged multi-digit numeric composition as
+one accepted number-cake design, not `multiple_cakes`, even when the numerals
+have separate cutouts, gaps, or body sections. Decorations, piping, candies,
+flowers, and a message do not change this cake-type decision.
+
+For every number-shaped cake, emit `cakeType: "Rectangle"` (not `1 Tier`,
+`Square`, `Bento`, or `Rectangle Fondant`) and select the visible height from
+the allowed `Rectangle` thicknesses: `"3 in"` or `"4 in"`.
+
+Examples:
+- a cake shaped like `2`, `7`, or `0` -> `Rectangle`
+- a curved or hollow number cake shaped like `8` -> `Rectangle`
+- a birthday cake arranged as `18`, `21`, or `2026` -> `Rectangle`
 
 Use `Square` when the cake body has a square footprint or box/block shape with straight vertical sides and visible flat corners.
 
@@ -830,6 +856,14 @@ shallow-relief, or lying flush on the cake uses `edible_2d_complex`.
 The fulfillment exception for a detailed flat-backed semi-3D human or pet
 portrait relief on the cake top remains `edible_photo_top`.
 
+#### STANDALONE CROWN PRECEDENCE
+
+Standalone molded, rolled, cut, or hand-sculpted fondant/gumpaste crowns and
+tiaras always use `edible_crown`, material `edible_fondant`, before the generic
+molded-symbol rule below. A crown worn by or attached to a larger character or
+animal remains part of that larger figure unless it is a distinct separately
+modeled topper.
+
 #### MOLDED CELESTIAL / SYMBOL TOPPERS
 
 Do NOT classify a topper as `edible_3d_complex` only because it has a face,
@@ -848,7 +882,6 @@ Common `edible_3d_ordinary` molded items include:
 - hearts
 - molded fondant clouds
 - bows
-- crowns
 - plaques
 - medallions
 - mermaid tails
@@ -1130,7 +1163,7 @@ material, size, color, pose, and appearance may share one `group_id` and use
 
 ---
 
-### C1. EDIBLE 3D FIGURES — edible_3d_complex, edible_3d_ordinary
+### C1. EDIBLE 3D FIGURES — edible_3d_complex, edible_3d_ordinary, edible_crown
 
 | Size | Ratio (PD ÷ RH) | Visual Anchor |
 |------|-----------------|---------------|
@@ -1284,7 +1317,7 @@ SIZING DECISION FLOW:
 1. What TIER is this item on? → That tier's height = RH
 2. What TYPE of element is it?
    → Toy or `plastic_crown`? Measure HEIGHT and use TOY-SPECIFIC SIZING PRECEDENCE
-   → Edible 3D figure? Measure HEIGHT and use C1
+   → Edible 3D figure or `edible_crown`? Measure HEIGHT and use C1
    → Flat topper? Measure LARGER dimension
    → Flower? Measure bloom DIAMETER
    → Ball/sphere? Measure DIAMETER
@@ -1323,13 +1356,15 @@ does not override positive evidence of piped icing, edible fondant/gumpaste,
 an edible printed sheet, candy, wax, or fabric. Apply Protocol 3 from Visual
 Forensics within this established construction family.
 
-#### CROWNS & TIARAS (type: "plastic_crown", material: "plastic") — NEW RULE
-**ALWAYS classify physical 3D Crowns and Tiaras as "plastic_crown".**
-- Includes: Rhinestone tiaras, Gold metal crowns, Pearl crowns, Plastic princess tiaras.
-- **DO NOT** classify these as "cardstock" even if they are gold/metallic.
-- **DO NOT** classify these as "edible_3d_ordinary" unless they are clearly made of soft fondant.
-- **DO NOT** classify these as "toy". Crowns and tiaras are always `plastic_crown`, never `toy`.
-- **EXCEPTION:** Only classify as "cardstock" if it is visibly a flat glitter paper cutout.
+#### CROWNS & TIARAS — MATERIAL-SPECIFIC TYPES
+**ALWAYS classify a standalone 3D crown or tiara by its visible construction and material.**
+- Physical 3D crowns and tiaras made from metal, rhinestones, pearls, or plastic → `plastic_crown`, material `plastic`.
+- Molded, rolled, cut, or hand-sculpted fondant/gumpaste crowns and tiaras → `edible_crown`, material `edible_fondant`.
+- Includes: rhinestone tiaras, gold metal crowns, pearl crowns, plastic princess tiaras, and fondant/gumpaste crowns.
+- **DO NOT** classify physical crowns as `cardstock` even if they are gold/metallic.
+- **DO NOT** classify standalone edible crowns as `edible_3d_ordinary` or `edible_3d_complex`; use `edible_crown`.
+- A crown worn by or attached to a larger character/animal is an accessory detail of that figure. Keep the larger figure's appropriate type unless the crown is also a distinct separately modeled topper.
+- **EXCEPTION:** Only classify a crown as `cardstock` if it is visibly a flat glitter paper cutout.
 
 #### PRINTOUT (type: "printout", material: "photopaper") — WITHIN AN ESTABLISHED FLAT PRINTED FAMILY
 
@@ -1413,7 +1448,7 @@ uniformly manufactured character figurine defaults to `toy` with material
 
 ```json
 {
-   "type": "candle|toy|plastic_crown|cardstock|edible_photo_top|edible_logo_2d|edible_2d_complex|printout|edible_2d_shapes|edible_flowers|edible_3d_ordinary|edible_3d_complex|figurine|icing_decorations|icing_doodle|icing_doodle_intricate_top|icing_palette_knife|icing_brush_stroke|icing_splatter|icing_minimalist_spread|meringue_pop|plastic_ball",
+  "type": "candle|toy|plastic_crown|edible_crown|cardstock|edible_photo_top|edible_logo_2d|edible_2d_complex|printout|edible_2d_shapes|edible_flowers|edible_3d_ordinary|edible_3d_complex|figurine|icing_decorations|icing_doodle|icing_doodle_intricate_top|icing_palette_knife|icing_brush_stroke|icing_splatter|icing_minimalist_spread|meringue_pop|plastic_ball",
   "material": "wax|plastic|cardstock|photopaper|waferpaper|edible_fondant|icing|candy|non-edible",
   "subtype": "allowed subtype for this type when applicable",
   "group_id": "descriptive_snake_case_id",
@@ -1875,8 +1910,8 @@ pipeline.
 
 ### ✅ Example: Royal Crown Cake
 
-- **Gold Rhinestone Tiara on top → `toy`, `hero` (physical 3D prop)**
-- **Plastic Crown → `toy`, `hero`**
+- **Gold Rhinestone Tiara on top → `plastic_crown`, `hero` (physical 3D prop)**
+- **Plastic Crown → `plastic_crown`, `hero`**
 - Gold glitter paper crown → `cardstock`, `hero` (flat paper)
 
 ---
@@ -1898,7 +1933,7 @@ pipeline.
 ✅ **PRINTOUT vs CARDSTOCK vs TOY: 3D-animated graphics on flat surface = PRINTOUT**
 ✅ **Detailed flat-backed semi-3D human/pet portrait relief on top = edible_photo_top**
 ✅ **Isolated edible mermaid tails = edible_3d_ordinary; count each tail and group by size band**
-✅ **CROWNS & TIARAS: Metal/Plastic/Rhinestone = plastic_crown**
+✅ **CROWNS & TIARAS: Metal/Plastic/Rhinestone = plastic_crown; fondant/gumpaste = edible_crown**
 ✅ **Acrylic and wooden toppers = CARDSTOCK**
 ✅ Grouping: bundles, panels, counts
 ✅ Soft-icing or Fondant?
@@ -1927,10 +1962,11 @@ pipeline.
     - An established non-edible flat printed-paper piece with character images, graphics, logos, or multi-color designs → **PRINTOUT**
     - Ordinary paper/cardstock is VERY RARE and requires solid-color glitter/metallic construction with no printed graphics
     - Named fulfillment normalization: acrylic toppers and wooden toppers → **CARDSTOCK**
-5. **CROWNS/TIARAS:** Classify physical 3D crowns as **plastic_crown**, never cardstock, never toy.
+5. **CROWNS/TIARAS:** Classify physical 3D crowns as **plastic_crown** and standalone edible fondant/gumpaste crowns as **edible_crown**; flat paper crowns are **cardstock**.
 6. **GUMPASTE BOARD:** Use visible continuous covering cues, not color. White/gold/silver can be true; reflective foil, acrylic, cardboard, and standard uncovered boards are false. When true, set colors.gumpasteBaseBoardColor.
 7. **Colors:** Use EXACT HEX CODES from palette, NOT color names
 8. **Description:** Do NOT use the description as a substitute for the structured material or type. Keep it brief and object-focused. Visible construction words are allowed when useful. Any construction or material wording must agree with the final structured fields, except that a named fulfillment normalization may identify both the observed construction and its canonical normalized type/material.
+9. **Fresh Fruits** We do not use fresh fruits (and dont call anu fruit "fresh fruit"- just call it "Fondant Molded Fruit") in our topper identification all fruits that you see, you convert it too edible_3d_ordinary.
 
 ----
 

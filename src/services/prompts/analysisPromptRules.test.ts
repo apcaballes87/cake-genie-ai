@@ -16,7 +16,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.37 Version - Plastic Crown as Separate Type**');
+    expect(prompt).toContain('**v3.40 Version - Number-Shaped Cakes Are Rectangles**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('3. Visible construction of each item');
     expect(prompt).toContain('5. Type compatible with that construction and material');
@@ -28,8 +28,12 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('visible piping cues require `icing_decorations`');
     expect(prompt).toContain('visible fabric cues require `artificial_flowers`');
     expect(prompt).toContain('physical metal, rhinestone, or plastic crowns/tiaras -> `plastic_crown`');
-    expect(prompt).toContain('#### CROWNS & TIARAS (type: "plastic_crown", material: "plastic")');
-    expect(prompt).toContain('ALWAYS classify physical 3D Crowns and Tiaras as "plastic_crown"');
+    expect(prompt).toContain('standalone molded, rolled, cut, or hand-sculpted fondant/gumpaste crowns/tiaras ->');
+    expect(prompt).toContain('#### CROWNS & TIARAS — MATERIAL-SPECIFIC TYPES');
+    expect(prompt).toContain('ALWAYS classify a standalone 3D crown or tiara by its visible construction and material.');
+    expect(prompt).toContain('fondant/gumpaste crowns and tiaras → `edible_crown`');
+    expect(prompt).toContain('standalone edible crowns as `edible_3d_ordinary` or `edible_3d_complex`');
+    expect(prompt).toContain('always use `edible_crown`, material `edible_fondant`, before the generic');
     expect(prompt).not.toContain('Metal or Plastic Crowns / Tiaras (Gold, Silver, Rhinestone)');
     expect(prompt).toContain('CROWNS & TIARAS: Metal/Plastic/Rhinestone = plastic_crown');
     expect(prompt).toContain('Classify physical 3D crowns as **plastic_crown**');
@@ -255,7 +259,7 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('| `medium` | 35% to under 50% |');
     expect(prompt).toContain('| `large` | 50% to under 75% |');
     expect(prompt).toContain('| `xlarge` | 75% or greater |');
-    expect(prompt).toContain('"type": "candle|toy|plastic_crown|cardstock|edible_photo_top|edible_logo_2d|edible_2d_complex|printout');
+    expect(prompt).toContain('"type": "candle|toy|plastic_crown|edible_crown|cardstock|edible_photo_top|edible_logo_2d|edible_2d_complex|printout');
 
     expect(SYSTEM_INSTRUCTION).toContain('flat-backed, attached flush to a cake surface, or built only from shallow layered pieces MUST be classified as "edible_2d_complex"');
     expect(SYSTEM_INSTRUCTION).toContain('Use "edible_3d_complex" only for a genuinely freestanding hand-sculpted figure or object with visible all-around body depth.');
@@ -265,7 +269,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.37 Version - Plastic Crown as Separate Type**');
+    expect(prompt).toContain('**v3.40 Version - Number-Shaped Cakes Are Rectangles**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -286,7 +290,7 @@ describe('cake analysis prompt rules', () => {
   it('uses toy-specific sizing for miniature molded toys', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.37 Version - Plastic Crown as Separate Type**');
+    expect(prompt).toContain('**v3.40 Version - Number-Shaped Cakes Are Rectangles**');
     expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy` AND `plastic_crown`)');
     expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
     expect(prompt).toContain('| `tiny` | under 0.10 |');
@@ -305,10 +309,10 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('Size each toy independently.');
     expect(prompt).toContain('Never measure the footprint, height, or visual\nimpact of the whole toy scene or cluster.');
     expect(prompt).toContain('material, size, color, pose, and appearance may share one `group_id`');
-    expect(prompt).toContain('### C1. EDIBLE 3D FIGURES — edible_3d_complex, edible_3d_ordinary');
+    expect(prompt).toContain('### C1. EDIBLE 3D FIGURES — edible_3d_complex, edible_3d_ordinary, edible_crown');
     expect(prompt).not.toContain('### C1. 3D FIGURES — edible_3d_complex, edible_3d_ordinary, toy');
     expect(prompt).toContain('→ Toy or `plastic_crown`? Measure HEIGHT and use TOY-SPECIFIC SIZING PRECEDENCE');
-    expect(prompt).toContain('→ Edible 3D figure? Measure HEIGHT and use C1');
+    expect(prompt).toContain('→ Edible 3D figure or `edible_crown`? Measure HEIGHT and use C1');
     expect(prompt).toContain('For `toy` or `plastic_crown`, use TOY-SPECIFIC SIZING PRECEDENCE; otherwise look up the correct per-type table (C1-C7)');
   });
 
@@ -496,6 +500,18 @@ describe('cake analysis prompt rules', () => {
     }
   });
 
+  it('makes every number-shaped cake a Rectangle before tier and footprint defaults', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(prompt).toContain('### NUMBER-SHAPED CAKE PRECEDENCE — ALWAYS `Rectangle`');
+    expect(prompt).toContain('numeral (`0`-`9`) or a multi-digit number, `cakeType` MUST be `Rectangle`');
+    expect(prompt).toContain('This rule overrides generic `1 Tier`, `Square`, Bento, and ordinary footprint\nheuristics.');
+    expect(prompt).toContain('curved,\nopen, looped, hollow, or irregular digit outlines are still number-shaped cakes.');
+    expect(prompt).toContain('one accepted number-cake design, not `multiple_cakes`');
+    expect(prompt).toContain('`Square`, `Bento`, or `Rectangle Fondant`) and select the visible height from\nthe allowed `Rectangle` thicknesses: `"3 in"` or `"4 in"`.');
+    expect(prompt).toContain('a birthday cake arranged as `18`, `21`, or `2026` -> `Rectangle`');
+  });
+
   it('detects continuous gumpaste-covered baseboards without excluding colors', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
@@ -515,7 +531,7 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('EDIBLE 2D LOGO CRAFT TOPPERS');
     expect(prompt).toContain('Use `edible_logo_2d` for flat or shallow-relief edible logo/name/brand panels made from gumpaste or fondant craft');
     expect(prompt).toContain('matte fondant Yonex logo letters on a side panel -> `edible_logo_2d`');
-    expect(prompt).toContain('"type": "candle|toy|plastic_crown|cardstock|edible_photo_top|edible_logo_2d|edible_2d_complex|printout');
+    expect(prompt).toContain('"type": "candle|toy|plastic_crown|edible_crown|cardstock|edible_photo_top|edible_logo_2d|edible_2d_complex|printout');
   });
 
   it('keeps edible Lego brick classification in the fallback prompt source', () => {
