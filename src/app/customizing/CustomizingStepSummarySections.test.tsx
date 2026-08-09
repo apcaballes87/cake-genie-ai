@@ -216,7 +216,7 @@ describe('CustomizingStepSummarySections', () => {
             itemCategory: 'topper',
             description: 'Toy topper',
         }));
-        expect(props.openTopperSheet).toHaveBeenCalledWith('main');
+        expect(props.openTopperSheet).toHaveBeenCalledWith('main', 'topper-1');
         expect(screen.getByRole('button', { name: /Toy topper\s*\(Toy\)/i })).toBeInTheDocument();
         expect(screen.getByText(/Switch from toy toppers to edible or printed toppers/i)).toBeInTheDocument();
     });

@@ -3168,8 +3168,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     const [activeTopperSection, setActiveTopperSection] = useState<'main' | 'support' | null>(null);
     const [expandedTopperItemId, setExpandedTopperItemId] = useState<string | null>(null);
 
-    const openTopperSheet = useCallback((section: 'main' | 'support' | null = null) => {
+    const openTopperSheet = useCallback((
+        section: 'main' | 'support' | null = null,
+        expandedItemId: string | null = null,
+    ) => {
         setActiveTopperSection(section);
+        setExpandedTopperItemId(expandedItemId);
         setActiveCustomization('toppers');
     }, []);
 
