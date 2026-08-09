@@ -266,6 +266,14 @@ export async function calculatePriceFromDatabase(
   }
 
   const rules = await getPricingRules(merchantId);
+  const rulesByItemType = new Map<string, LoadedPricingRule[]>();
+  rules.forEach(ruleGroup => {
+    ruleGroup.forEach(rule => {
+      const existing = rulesByItemType.get(rule.item_type) || [];
+      existing.push(rule);
+      rulesByItemType.set(rule.item_type, existing);
+    });
+  });
 
   const breakdown: { item: string; price: number; }[] = [];
   const itemPrices = new Map<string, number>();
@@ -291,6 +299,11 @@ export async function calculatePriceFromDatabase(
       }
     } else if (category === 'message' && type === 'icing_text') {
       effectiveType = 'icing_script';
+    } else if (category === 'support_element' && type === 'edible_2d_shapes') {
+      // Older analyses sometimes placed flat edible pieces in support_elements
+      // while retaining the main-topper type. Price them through the matching
+      // support-element rules without allowing category crossover.
+      effectiveType = 'edible_2d_support';
     } else if (type === 'fresh_flowers') {
       effectiveType = 'edible_flowers';
     }
@@ -359,7 +372,19 @@ export async function calculatePriceFromDatabase(
 
     // 3. Try generic key: type (e.g., chocolates)
     const genericRules = rules.get(effectiveType);
-    const rule = findMatch(genericRules || [], size);
+    let rule = findMatch(genericRules || [], size);
+
+    // Some legacy rows use a descriptive item_key (for example candy_piece)
+    // instead of the analyzer's canonical type. Fall back to the row's declared
+    // item_type, while retaining exact size and category constraints.
+    if (!rule) {
+      const normalizedSize = size?.trim().toLowerCase();
+      const typeRules = (rulesByItemType.get(effectiveType) || []).filter(candidate => {
+        if (!normalizedSize) return candidate.size == null;
+        return candidate.size == null || candidate.size.trim().toLowerCase() === normalizedSize;
+      });
+      rule = findMatch(typeRules, size);
+    }
 
     // Icing decorations are part of the analyzed cake image but currently carry no
     // add-on charge. Keep that intentional zero-price fallback quiet until a paid

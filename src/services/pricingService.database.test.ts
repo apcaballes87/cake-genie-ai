@@ -663,6 +663,108 @@ describe('calculatePriceFromDatabase', () => {
     expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining('fresh_flowers'));
   });
 
+  it('prices every removable decoration in the floral fruit rectangle cake analysis', async () => {
+    const { calculatePriceFromDatabase } = await import('./pricingService.database');
+    pricingRows.push(
+      {
+        rule_id: 300,
+        item_key: 'edible_2d_support_small',
+        item_type: 'edible_2d_support',
+        classification: 'support',
+        size: 'small',
+        description: 'Small edible 2D support piece',
+        price: 10,
+        category: 'support_element',
+        quantity_rule: 'per_piece',
+        multiplier_rule: null,
+        special_conditions: null,
+        is_active: true,
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-01-01T00:00:00.000Z',
+      },
+      {
+        rule_id: 301,
+        item_key: 'candy_piece',
+        item_type: 'candy',
+        classification: 'support',
+        size: null,
+        description: 'Candy piece',
+        price: 15,
+        category: 'support_element',
+        quantity_rule: 'per_piece',
+        multiplier_rule: null,
+        special_conditions: null,
+        is_active: true,
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-01-01T00:00:00.000Z',
+      }
+    );
+
+    const flowers = {
+      id: 'fresh-flower-decorations',
+      type: 'edible_flowers',
+      description: 'mixed colorful edible flowers',
+      quantity: 12,
+      isEnabled: true,
+      size: 'medium',
+    } as SupportElementUI;
+    const strawberries = {
+      id: 'fresh-strawberries',
+      type: 'edible_2d_shapes',
+      description: 'fresh strawberries',
+      quantity: 10,
+      isEnabled: true,
+      size: 'small',
+    } as unknown as SupportElementUI;
+    const orangeSlices = {
+      id: 'orange-slices',
+      type: 'candy',
+      description: 'orange fruit slices',
+      quantity: 8,
+      isEnabled: true,
+      size: 'small',
+    } as SupportElementUI;
+    const makeState = () => ({
+      mainToppers: [],
+      supportElements: [flowers, strawberries, orangeSlices],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: 'Rectangle', size: '8x12', thickness: '3 in' } as CakeInfoUI,
+    });
+
+    const enabledResult = await calculatePriceFromDatabase(makeState());
+    expect(enabledResult.itemPrices.get(flowers.id)).toBe(800);
+    expect(enabledResult.itemPrices.get(strawberries.id)).toBe(100);
+    expect(enabledResult.itemPrices.get(orangeSlices.id)).toBe(120);
+    expect(enabledResult.addOnPricing.addOnPrice).toBe(1020);
+
+    strawberries.isEnabled = false;
+    orangeSlices.isEnabled = false;
+    const fruitsDisabledResult = await calculatePriceFromDatabase(makeState());
+    expect(fruitsDisabledResult.itemPrices.get(flowers.id)).toBe(800);
+    expect(fruitsDisabledResult.itemPrices.get(strawberries.id)).toBe(0);
+    expect(fruitsDisabledResult.itemPrices.get(orangeSlices.id)).toBe(0);
+    expect(fruitsDisabledResult.addOnPricing.addOnPrice).toBe(800);
+
+    flowers.isEnabled = false;
+    const allDisabledResult = await calculatePriceFromDatabase(makeState());
+    expect(allDisabledResult.itemPrices.get(flowers.id)).toBe(0);
+    expect(allDisabledResult.addOnPricing.addOnPrice).toBe(0);
+
+    const mainCandy = {
+      ...orangeSlices,
+      id: 'main-candy',
+      isEnabled: true,
+    } as unknown as MainTopperUI;
+    const wrongCategoryResult = await calculatePriceFromDatabase({
+      ...makeState(),
+      mainToppers: [mainCandy],
+      supportElements: [],
+    });
+    expect(wrongCategoryResult.itemPrices.get(mainCandy.id)).toBe(0);
+    expect(wrongCategoryResult.addOnPricing.addOnPrice).toBe(0);
+  });
+
   it('keeps zero-cost icing decorations out of the price without a missing-rule warning', async () => {
     const { calculatePriceFromDatabase } = await import('./pricingService.database');
     const warnSpy = vi.spyOn(console, 'warn');
