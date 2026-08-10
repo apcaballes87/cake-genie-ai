@@ -10,6 +10,7 @@ const LIMIT_CONFIGS: Record<string, RateLimitConfig> = {
     ai: { limit: 5, window: '60 s' },
     newsletter: { limit: 3, window: '60 s' },
     contact: { limit: 3, window: '60 s' },
+    investor: { limit: 3, window: '60 s' },
     discount: { limit: 5, window: '60 s' },
 };
 
@@ -81,7 +82,7 @@ if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
 }
 
 export async function checkRateLimit(
-    type: 'ai' | 'newsletter' | 'contact' | 'discount',
+    type: 'ai' | 'newsletter' | 'contact' | 'investor' | 'discount',
     identifier: string
 ) {
     const config = LIMIT_CONFIGS[type];

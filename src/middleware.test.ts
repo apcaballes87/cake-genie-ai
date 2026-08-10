@@ -81,6 +81,14 @@ describe('middleware', () => {
         expect(response.status).toBe(200);
     });
 
+    it('should run the investor rate limiter for api/investors', async () => {
+        const request = makeRequest('http://localhost/api/investors');
+        const response = await middleware(request);
+
+        expect(response.status).toBe(200);
+        expect(mockCheckRateLimit).toHaveBeenCalledWith('investor', expect.any(String));
+    });
+
     it('should block request and return 429 if rate limit is exceeded', async () => {
         mockCheckRateLimit.mockResolvedValue({
             success: false,

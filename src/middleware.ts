@@ -13,6 +13,7 @@ const KNOWN_ROUTES = new Set([
     'cake-price-calculator', 'cart', 'collections', 'compare',
     'contact', 'contribute', 'customizing', 'delivery-rates',
     'designs', 'faq', 'feed', 'forgot-password', 'how-to-order',
+    'investors',
     'login', 'order-confirmation', 'payment', 'payment-options',
     'privacy', 'return-policy', 'reviews', 'saved', 'search',
     'shop', 'signup', 'sitemap-html', 'sitemap-images.xml',
@@ -166,9 +167,10 @@ export async function middleware(request: NextRequest) {
     const isAiRoute = pathname.startsWith('/api/ai/analyze') || pathname.startsWith('/api/ai/edit-image')
     const isNewsletterRoute = pathname.startsWith('/api/newsletter')
     const isContactRoute = pathname.startsWith('/api/contact')
+    const isInvestorRoute = pathname.startsWith('/api/investors')
     const isDiscountRoute = pathname.startsWith('/api/signup-discount')
 
-    if (isAiRoute || isNewsletterRoute || isContactRoute || isDiscountRoute) {
+    if (isAiRoute || isNewsletterRoute || isContactRoute || isInvestorRoute || isDiscountRoute) {
         // Bypass rate limiting for authenticated admin requests using the pin
         if (pathname.startsWith('/api/ai/analyze')) {
             const adminPin = request.headers.get('x-admin-pin')
@@ -179,7 +181,7 @@ export async function middleware(request: NextRequest) {
 
         const requestWithOptionalIp = request as NextRequest & { ip?: string }
         const ip = request.headers.get('x-forwarded-for') || requestWithOptionalIp.ip || '127.0.0.1'
-        const limitType = isAiRoute ? 'ai' : isNewsletterRoute ? 'newsletter' : isContactRoute ? 'contact' : 'discount'
+        const limitType = isAiRoute ? 'ai' : isNewsletterRoute ? 'newsletter' : isContactRoute ? 'contact' : isInvestorRoute ? 'investor' : 'discount'
 
         try {
             const { checkRateLimit } = await import('@/lib/security/rateLimiter')
@@ -266,6 +268,7 @@ export const config = {
         '/api/ai/edit-image',
         '/api/newsletter',
         '/api/contact',
+        '/api/investors',
         '/api/signup-discount'
     ],
 }
