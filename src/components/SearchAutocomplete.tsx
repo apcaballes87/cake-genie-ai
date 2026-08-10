@@ -287,6 +287,14 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
     }
   };
 
+  const handleInputBlur = (event: React.FocusEvent<HTMLInputElement>) => {
+    const nextFocusedElement = event.relatedTarget;
+    if (nextFocusedElement instanceof Node && containerRef.current?.contains(nextFocusedElement)) {
+      return;
+    }
+    onBlur?.(event);
+  };
+
   // Close suggestions when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: PointerEvent) => {
@@ -348,7 +356,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
             handleFocus();
             onFocus?.(e);
           }}
-          onBlur={onBlur}
+          onBlur={handleInputBlur}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           className={inputClassName}
@@ -357,6 +365,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
           {showUploadButton && onUploadClick && (
             <button
               type="button"
+              onPointerDown={(event) => event.preventDefault()}
               onClick={onUploadClick}
               className="p-3 text-slate-500 hover:text-purple-600 rounded-full hover:bg-purple-100 transition-colors"
               aria-label="Upload an image"
@@ -366,6 +375,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
           )}
           <button
             type="button"
+            onPointerDown={(event) => event.preventDefault()}
             onClick={handleSearch}
             className="p-3 text-slate-500 hover:text-purple-600 rounded-full hover:bg-purple-100 transition-colors"
             aria-label="Search"
@@ -510,6 +520,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                         <li key={link.href}>
                           <Link
                             href={link.href}
+                            onPointerDown={(event) => event.preventDefault()}
                             onClick={() => setShowSuggestions(false)}
                             className={`w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors cursor-pointer active:bg-purple-100 ${isSelected ? 'bg-purple-50' : 'hover:bg-purple-50'}`}
                           >
@@ -541,6 +552,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                         <li key={link.href}>
                           <Link
                             href={link.href}
+                            onPointerDown={(event) => event.preventDefault()}
                             onClick={() => setShowSuggestions(false)}
                             className={`w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors cursor-pointer active:bg-purple-100 ${isSelected ? 'bg-purple-50' : 'hover:bg-purple-50'}`}
                           >
@@ -571,6 +583,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
                     return (
                       <button
                         key={product.slug}
+                        onPointerDown={(event) => event.preventDefault()}
                         onClick={() => {
                           setShowSuggestions(false);
                           logSearchAnalytics(query, 'product_click');
