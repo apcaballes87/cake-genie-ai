@@ -14,14 +14,13 @@
  * 2. Inserts two fake `cakegenie_orders` rows against a random test user:
  *      - one with `updated_at` 25h ago (should be cancelled)
  *      - one with `updated_at` 1h ago  (should be left alone)
- *    Both have `discount_code_id` pointing at the sentinel code, and
- *    we increment `times_used` by 2 to mirror the create-order path.
+ *    Both have `discount_code_id` pointing at the sentinel code. Pending
+ *    orders intentionally do not consume the discount.
  * 3. Calls the cleanup RPC.
  * 4. Asserts: old order → order_status='cancelled', payment_status='expired'.
  *    Asserts: young order → still 'pending'.
- *    Asserts: discount_codes.times_used went from +2 → 0 (decremented by 2).
- * 5. Tears down the test rows + sentinel discount code, and (defensively)
- *    restores the discount counter to 0 in case the cleanup skipped.
+ *    Asserts: discount_codes.times_used remains 0.
+ * 5. Tears down the test rows + sentinel discount code.
  *
  * Usage:
  *   npx tsx scripts/test-cleanup-abandoned-orders.ts
@@ -72,13 +71,6 @@ interface CleanupResult {
     cancelled_count: number;
     refunded_count: number;
     refunded_codes: string[];
-}
-
-interface TestRow {
-    id: string;
-    label: string;
-    expected_status: 'cancelled' | 'pending';
-    expected_payment: 'expired' | 'pending';
 }
 
 const results: { name: string; ok: boolean; detail: string }[] = [];
@@ -208,9 +200,7 @@ async function cleanupTestArtifacts(orderIds: string[], discountCodeId: string) 
             .in('order_id', orderIds);
     }
     if (discountCodeId) {
-        // Delete any discount_code_usage rows the test might have created
-        // (the create_order path inserts one, but we went directly through
-        // the orders table — so usually nothing to clean).
+        // Delete any discount usage rows the test might have created.
         await supabase
             .from('discount_code_usage')
             .delete()
@@ -255,16 +245,7 @@ async function main() {
         );
         testOrderIds.push(oldOrderId, youngOrderId);
 
-        // 3. Mirror the create-order path: bump times_used by 2.
-        //    We do this via a raw update so it shows up in the audit log
-        //    the same way the real RPC would.
-        const { error: bumpErr } = await supabase
-            .from('discount_codes')
-            .update({ times_used: 2 })
-            .eq('code_id', discountCodeId);
-        assert('discount code counter bumped to 2', !bumpErr, bumpErr?.message ?? 'ok');
-
-        // 4. Call the cleanup RPC
+        // 3. Call the cleanup RPC
         const { data: rpcData, error: rpcErr } = await supabase.rpc(
             'cleanup_abandoned_pending_orders',
             { p_age: '24 hours' },
@@ -284,7 +265,7 @@ async function main() {
             `cancelled_count=${result?.cancelled_count}`,
         );
 
-        // 5. Assert the OLD order is cancelled/expired.
+        // 4. Assert the OLD order is cancelled/expired.
         const oldRow = await fetchOrder(oldOrderId);
         assert(
             'old order → order_status=cancelled',
@@ -302,7 +283,7 @@ async function main() {
             `cancelled_at=${oldRow.cancelled_at}`,
         );
 
-        // 6. Assert the YOUNG order is untouched.
+        // 5. Assert the YOUNG order is untouched.
         const youngRow = await fetchOrder(youngOrderId);
         assert(
             'young order → order_status=pending',
@@ -315,25 +296,23 @@ async function main() {
             `payment_status=${youngRow.payment_status}`,
         );
 
-        // 7. Assert the discount counter was decremented back to 0.
+        // 6. Pending orders never consume the discount, including when they
+        //    are later expired by the cleanup job.
         const { data: dcRow, error: dcErr } = await supabase
             .from('discount_codes')
             .select('times_used')
             .eq('code_id', discountCodeId)
             .single();
         if (dcErr) throw new Error(`discount_codes re-read failed: ${dcErr.message}`);
-        // The counter started at 2 (after the bump) and the cleanup should
-        // have decremented it by 1 (the old order). The young order is
-        // still pending so its increment is preserved.
         assert(
-            'discount counter decremented by exactly 1 (old order only)',
-            dcRow?.times_used === 1,
+            'pending discount counter remains unchanged',
+            dcRow?.times_used === 0,
             `times_used=${dcRow?.times_used}`,
         );
     } catch (err) {
         console.error('Test setup or execution failed:', err);
     } finally {
-        // 8. Always tear down test artifacts.
+        // 7. Always tear down test artifacts.
         await cleanupTestArtifacts(testOrderIds, discountCodeId);
     }
 

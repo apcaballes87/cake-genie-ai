@@ -110,7 +110,8 @@ export async function validateDiscountCode(
       const { count } = await supabase
         .from('cakegenie_orders')
         .select('order_id', { count: 'exact', head: true })
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .in('payment_status', ['paid', 'partial', 'refunded']);
 
       if (count && count > 0) {
         return {
@@ -193,36 +194,6 @@ export async function validateDiscountCode(
       finalAmount: orderAmount,
       message: 'An unexpected error occurred while validating the code.',
     };
-  }
-}
-
-/**
- * Records that a user used a discount code (call after order creation)
- * NOTE: This is handled by the `create_order_from_cart` RPC and is redundant for the main flow.
- */
-export async function recordDiscountCodeUsage(
-  discountCodeId: string,
-  userId: string,
-  orderId: string
-): Promise<{ success: boolean; error?: any }> {
-  try {
-    const { error } = await supabase
-      .from('discount_code_usage')
-      .insert({
-        discount_code_id: discountCodeId,
-        user_id: userId,
-        order_id: orderId,
-      });
-
-    if (error) {
-      console.error('Error recording discount usage:', error);
-      return { success: false, error };
-    }
-
-    return { success: true };
-  } catch (error) {
-    console.error('Exception recording discount usage:', error);
-    return { success: false, error };
   }
 }
 
