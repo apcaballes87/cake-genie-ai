@@ -1,0 +1,33 @@
+{
+  "slug": "safari-jungle-mint-1-tier-cake-4d4a",
+  "image_url": "https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/customizations/safari-jungle-mint-1-tier-cake-4d4a.webp",
+  "purpose": "Gold regression fixture for freestanding Safari animal figure placement.",
+  "expected_main_toppers": [
+    {
+      "group_id": "giraffe_head",
+      "type": "edible_3d_complex",
+      "classification": "hero",
+      "size": "small"
+    },
+    {
+      "group_id": "elephant_figure",
+      "type": "edible_3d_complex",
+      "classification": "hero",
+      "size": "small"
+    },
+    {
+      "group_id": "zebra_figure",
+      "type": "edible_3d_complex",
+      "classification": "hero",
+      "size": "small"
+    }
+  ],
+  "expected_support_group_ids": [
+    "tropical_leaves"
+  ],
+  "forbidden_support_group_ids": [
+    "giraffe_head",
+    "elephant_figure",
+    "zebra_figure"
+  ]
+}

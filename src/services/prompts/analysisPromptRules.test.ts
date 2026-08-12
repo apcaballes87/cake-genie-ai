@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
 import { getAnalysisPromptWithFallback, loadFallbackAnalysisPrompt } from './promptLoader';
+import safariJungleFigureFixture from './fixtures/safari-jungle-mint-1-tier-cake-4d4a.json';
 
 const rootDir = process.cwd();
 
@@ -16,7 +17,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.40 Version - Number-Shaped Cakes Are Rectangles**');
+    expect(prompt).toContain('**v3.41 Version - Number-Shaped Cakes and Freestanding Figures**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('3. Visible construction of each item');
     expect(prompt).toContain('5. Type compatible with that construction and material');
@@ -269,7 +270,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.40 Version - Number-Shaped Cakes Are Rectangles**');
+    expect(prompt).toContain('**v3.41 Version - Number-Shaped Cakes and Freestanding Figures**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -290,7 +291,7 @@ describe('cake analysis prompt rules', () => {
   it('uses toy-specific sizing for miniature molded toys', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.40 Version - Number-Shaped Cakes Are Rectangles**');
+    expect(prompt).toContain('**v3.41 Version - Number-Shaped Cakes and Freestanding Figures**');
     expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy` AND `plastic_crown`)');
     expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
     expect(prompt).toContain('| `tiny` | under 0.10 |');
@@ -498,6 +499,34 @@ describe('cake analysis prompt rules', () => {
       expect(title.length).toBeGreaterThanOrEqual(50);
       expect(title.length).toBeLessThanOrEqual(65);
     }
+  });
+
+  it('keeps qualifying small Safari animal figures as complex main toppers', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+    const expectedFigures = safariJungleFigureFixture.expected_main_toppers;
+
+    expect(safariJungleFigureFixture.slug).toBe('safari-jungle-mint-1-tier-cake-4d4a');
+    expect(expectedFigures.map((figure) => figure.group_id)).toEqual([
+      'giraffe_head',
+      'elephant_figure',
+      'zebra_figure',
+    ]);
+    expect(expectedFigures.every((figure) => (
+      figure.type === 'edible_3d_complex'
+      && figure.classification === 'hero'
+      && figure.size === 'small'
+    ))).toBe(true);
+    expect(safariJungleFigureFixture.expected_support_group_ids).toEqual(['tropical_leaves']);
+    expect(safariJungleFigureFixture.forbidden_support_group_ids).toEqual(
+      expectedFigures.map((figure) => figure.group_id),
+    );
+
+    expect(prompt).toContain('FREESTANDING FIGURE PLACEMENT OVERRIDE (REQUIRED)');
+    expect(prompt).toContain('`edible_3d_complex` is a\nmain-topper-only generated type.');
+    expect(prompt).toContain('small, placed at the front, side, or base\nof the cake, partly behind another decoration, or visually secondary.');
+    expect(prompt).toContain('a small fondant elephant, zebra, or giraffe-head figurine');
+    expect(prompt).toContain('one `edible_3d_complex` hero in `main_toppers`');
+    expect(prompt).toContain('Use `edible_3d_ordinary` in `support_elements` for figure-like decorations\nonly when they are simple molded non-character forms');
   });
 
   it('makes every number-shaped cake a Rectangle before tier and footprint defaults', () => {
