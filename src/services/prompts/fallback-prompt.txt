@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.41 Version - Number-Shaped Cakes and Freestanding Figures**
+**v3.42 Version - All Flowers Are Edible**
 ═══════════════════════════════════════════════════════════════════════════════
 
 ## ROLE
@@ -151,9 +151,12 @@ prescribes the replacement type; use that type's canonical material.
 The intentional normalizations already defined in this prompt remain in force:
 - unsupported semi-3D human/pet portrait relief -> `edible_photo_top`,
   material `waferpaper`
-- fresh or natural-looking flowers -> `edible_flowers`, material
-  `edible_fondant`, unless visible piping cues require `icing_decorations`
-  with material `icing` or visible fabric cues require `artificial_flowers`
+- every flower-shaped decoration, including fresh-looking, natural, silk,
+  cloth, fabric-textured, artificial, or realistic flowers ->
+  `edible_flowers`, material `edible_fondant`; this named flower fulfillment
+  override wins over visible fabric cues. Only an actual piped buttercream
+  rosette with visible piping ridges and soft peaks uses
+  `icing_decorations`, material `icing`
 - physical metal, rhinestone, or plastic crowns/tiaras -> `plastic_crown`, material
   `plastic`
 - standalone molded, rolled, cut, or hand-sculpted fondant/gumpaste crowns/tiaras ->
@@ -536,13 +539,18 @@ printout.**
 - Physical 3D characters with real body depth must follow the toy-versus-edible
   material decision and must never fall back to printout
 
-### Protocol 4: THE "FLOWER" CHECK (Edible Flower Safety Rule)
+### Protocol 4: THE "FLOWER" CHECK (Required Edible Flower Fulfillment Rule)
 
-- Genie.ph does not put fresh flowers on cakes because they are not safe or hygienic for our food workflow.
-- IF a flower appears fresh, natural, realistic, or edible, classify it as "edible_flowers".
-- IF petals have veins, natural imperfections, brown edges, or fresh-flower styling → IT IS still "edible_flowers".
-- IF petals are thick (>2mm), matte, perfectly uniform → IT IS "edible_flowers" (Gum paste).
-- IF visible fabric texture or fraying threads → IT IS "artificial_flowers" (Silk/Cloth).
+- Genie.ph fulfills every visible flower as edible because non-edible flowers
+  are not safe or hygienic for our food workflow.
+- IF a flower appears fresh, natural, realistic, silk, cloth, fabric-textured,
+  artificial, or edible, classify it as `edible_flowers` with material
+  `edible_fondant`.
+- This override includes petals with veins, natural imperfections, brown edges,
+  fresh-flower styling, thick matte gum paste, visible fabric texture, or
+  fraying threads.
+- Do not describe a flower as fresh, silk, cloth, fabric, or non-edible. Describe
+  it as an edible fondant or gumpaste flower instead.
 
 ### FLOWER TYPE PRECEDENCE
 
@@ -1121,7 +1129,7 @@ Different element shapes require different measurement axes:
 | **3D figures** (edible_3d_complex, edible_3d_ordinary, toy) | **HEIGHT** — vertical extent from base to top of figure |
 | **Flat toppers** (printout, cardstock) | **LARGER** of height or width (whichever dominates) |
 | **Complex flat edible artwork** (edible_2d_complex) | Use its dedicated **SURFACE SPAN** table instead of RH |
-| **Flowers** (edible_flowers, artificial) | **DIAMETER** of the bloom face |
+| **Flowers** (edible_flowers) | **DIAMETER** of the bloom face |
 | **Spheres / balls** (plastic_ball, plastic_ball_regular, edible balls) | **DIAMETER** |
 | **2D flat decorations** (edible_2d_support) | **LONGEST dimension** (height, width, or diagonal) |
 | **Candles** | **HEIGHT** only (ignore flame) |
@@ -1225,7 +1233,7 @@ generic printout/cardstock RH ratio for this type.
 
 ---
 
-### C3. FLOWERS — edible_flowers, artificial_flowers
+### C3. FLOWERS — edible_flowers
 
 Flowers are measured by bloom **diameter**, which is perpendicular to height. Thresholds are tighter because even a small-looking flower takes significant skill.
 
@@ -1550,8 +1558,7 @@ A unique item that has no duplicates should still have its own unique group_id.
 | `icing_doodle_intricate_side` | icing | Full intricate line-art composition covering a substantial cake-side region or forming a coordinated side wrap. Use quantity 1 for the whole side region. |
 | `icing_palette_knife` | icing | `impasto` style petals where each stroke represents a leaf or a petal. It looks like a 3D painting on the cake.|
 | `plastic_ball_regular` | plastic | Round smooth plastic spheres (gold, silver, colored). Count individually |
-| `edible_flowers` | edible_fondant | Fresh-looking, natural-looking, or realistic flowers must still be classified and priced as edible flowers. Do not output `fresh_flowers`. |
-| `artificial_flowers` | non-edible | Silk/cloth flowers (not counted for pricing) |
+| `edible_flowers` | edible_fondant | Every visible flower, including fresh-looking, natural-looking, silk, cloth, fabric-textured, artificial, or realistic flowers, is fulfilled and priced as edible flowers. Only actual piped buttercream rosettes use `icing_decorations`. |
 | `thin_fabric_ribbon_bows` | non-edible | Small/thin satin, organza, or sheer fabric bow accents, dangling ribbon tails, and narrow streamers. Free decorative accent. Use quantity 1 for the set. |
 | `satin_ribbon` | non-edible | Large satin or organza fabric wrap, full/near-full side band, or substantial structured translucent ruffle. Paid large fabric feature. Use quantity 1 for the whole wrap. |
 

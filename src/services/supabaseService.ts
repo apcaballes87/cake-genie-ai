@@ -287,7 +287,7 @@ export function mapAnalysisToPricingState(analysis: HybridAnalysisResult) {
     id: uuidv4(),
     isEnabled: true,
     price: 0,
-    original_type: t.type,
+    original_type: t.original_type ?? t.type,
   }));
 
   const cakeMessages: CakeMessageUI[] = (fulfillmentAnalysis.cake_messages || []).map(t => ({

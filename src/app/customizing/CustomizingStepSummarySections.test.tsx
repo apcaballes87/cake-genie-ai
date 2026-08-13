@@ -280,7 +280,7 @@ describe('CustomizingStepSummarySections', () => {
 
         expect(screen.getByRole('button', { name: /Toy topper\s*\(Toy\)/i })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /Butterfly topper\s*\(Figurine \(Simpler\)\)/i })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /Pink flowers\s*\(Fresh Flowers\)/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Pink flowers\s*\(Edible Flowers\)/i })).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /Sugar pearls\s*\(Dragees \(Pearls\)\)/i })).not.toBeInTheDocument();
 
         fireEvent.click(screen.getByRole('button', { name: /Show more/i }));

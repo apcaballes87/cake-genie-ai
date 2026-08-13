@@ -62,7 +62,7 @@ describe('POST /api/ai/analyze', () => {
         });
         mockGetDynamicTypeEnums.mockResolvedValue({
             mainTopperTypes: ['printout'],
-            supportElementTypes: ['artificial_flowers'],
+            supportElementTypes: ['edible_flowers'],
             subtypesByType: {},
         });
         mockGenerateContent.mockResolvedValue({

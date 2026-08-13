@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { TopperCard } from './TopperCard';
+import { supportTypeDisplayMap, TopperCard } from './TopperCard';
 import { MainTopperUI, SupportElementUI } from '@/types';
 
 // Mock the icons and components that are not needed for this test
@@ -43,6 +43,11 @@ describe('TopperCard - Color Customization', () => {
     updateItem: vi.fn(),
     onImageReplace: vi.fn(),
   };
+
+  it('labels legacy flower values as edible flowers', () => {
+    expect(supportTypeDisplayMap.fresh_flowers).toBe('Edible Flowers');
+    expect(supportTypeDisplayMap.artificial_flowers).toBe('Edible Flowers');
+  });
 
   it('shows color palette for edible flowers', () => {
     const item = createMockTopper('edible_flowers', 'Flower');

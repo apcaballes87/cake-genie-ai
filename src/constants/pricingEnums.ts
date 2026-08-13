@@ -83,7 +83,6 @@ export const SUPPORT_ELEMENT_TYPES = [
     'icing_decorations',
     'gumpaste_creations',
     'edible_lego_bricks',
-    'artificial_flowers',
     'thin_fabric_ribbon_bows',
     'satin_ribbon',
     // Legacy types from database for backward compatibility

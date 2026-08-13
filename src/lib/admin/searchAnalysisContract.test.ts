@@ -22,6 +22,7 @@ const typeEnums = {
   supportElementTypes: [
     'sprinkles',
     'fresh_flowers',
+    'artificial_flowers',
     'edible_flowers',
     'icing_doodle',
     'icing_doodle_intricate_side',
@@ -80,6 +81,7 @@ describe('search analysis contract', () => {
     ]);
     expect(schema.properties.support_elements.items.properties.type.enum).toContain('edible_flowers');
     expect(schema.properties.support_elements.items.properties.type.enum).not.toContain('fresh_flowers');
+    expect(schema.properties.support_elements.items.properties.type.enum).not.toContain('artificial_flowers');
     expect(schema.properties.main_toppers.items.properties.type.enum).toContain('icing_doodle_intricate_top');
     expect(schema.properties.main_toppers.items.properties.type.enum).not.toContain('icing_doodle_intricate');
     expect(schema.properties.main_toppers.items.properties.type.enum).not.toContain('icing_palette_knife_intricate');

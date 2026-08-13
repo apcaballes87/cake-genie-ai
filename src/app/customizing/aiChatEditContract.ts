@@ -126,8 +126,6 @@ export const AI_CHAT_SUPPORT_ELEMENT_TYPES = [
     'marshmallows',
     'edible_3d_ordinary',
     'edible_lego_bricks',
-    'fresh_flowers',
-    'artificial_flowers',
     'thin_fabric_ribbon_bows',
     'satin_ribbon',
     'edible_lollipops',

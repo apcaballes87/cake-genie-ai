@@ -38,12 +38,12 @@ describe('getDynamicTypeEnums', () => {
     expect(result.subtypesByType.chocolates).toContain('ferrero');
   });
 
-  it('maps fresh flower pricing aliases to edible flowers for analyzer enums', async () => {
+  it.each(['fresh_flowers', 'artificial_flowers'])('maps legacy %s pricing aliases to edible flowers for analyzer enums', async (legacyFlowerType) => {
     const eq = vi.fn().mockResolvedValue({
       data: [
         {
-          item_type: 'fresh_flowers',
-          item_key: 'fresh_flowers',
+          item_type: legacyFlowerType,
+          item_key: legacyFlowerType,
           category: 'support_element',
           sub_item_type: null,
         },
@@ -62,7 +62,7 @@ describe('getDynamicTypeEnums', () => {
     const result = await getDynamicTypeEnums(supabase);
 
     expect(result.supportElementTypes).toContain('edible_flowers');
-    expect(result.supportElementTypes).not.toContain('fresh_flowers');
+    expect(result.supportElementTypes).not.toContain(legacyFlowerType);
   });
 
   it('keeps placement-specific intricate doodle pricing types in their matching analyzer enums', async () => {

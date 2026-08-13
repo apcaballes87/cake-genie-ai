@@ -8,6 +8,7 @@ import {
 
 const ITEM_KEY_TYPE_ALIASES: Record<string, string> = {
     fresh_flowers: 'edible_flowers',
+    artificial_flowers: 'edible_flowers',
     icing_brush_stroke: 'icing_brush_stroke',
     icing_doodle: 'icing_doodle',
     icing_doodle_intricate: 'icing_doodle',

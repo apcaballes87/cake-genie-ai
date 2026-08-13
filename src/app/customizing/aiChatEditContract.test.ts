@@ -4,6 +4,7 @@ import type {
     AiChatEditResponse,
 } from './aiChatEditContract';
 import {
+    AI_CHAT_SUPPORT_ELEMENT_TYPES,
     applyAiChatEdit,
     validateAiChatEditResponse,
 } from './aiChatEditContract';
@@ -115,6 +116,12 @@ const designResponse = (patch: NonNullable<AiChatEditResponse['patch']>): AiChat
 });
 
 describe('validateAiChatEditResponse', () => {
+    it('only exposes edible flowers for new support-element edits', () => {
+        expect(AI_CHAT_SUPPORT_ELEMENT_TYPES).toContain('edible_flowers');
+        expect(AI_CHAT_SUPPORT_ELEMENT_TYPES).not.toContain('fresh_flowers');
+        expect(AI_CHAT_SUPPORT_ELEMENT_TYPES).not.toContain('artificial_flowers');
+    });
+
     it('accepts the constrained wire contract with a stable existing target ID', () => {
         const current = makeSnapshot();
         const result = validateAiChatEditResponse(

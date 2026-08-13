@@ -304,7 +304,7 @@ export async function calculatePriceFromDatabase(
       // while retaining the main-topper type. Price them through the matching
       // support-element rules without allowing category crossover.
       effectiveType = 'edible_2d_support';
-    } else if (type === 'fresh_flowers') {
+    } else if (type === 'fresh_flowers' || type === 'artificial_flowers') {
       effectiveType = 'edible_flowers';
     }
 

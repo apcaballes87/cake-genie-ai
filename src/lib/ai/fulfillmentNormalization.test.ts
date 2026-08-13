@@ -77,4 +77,31 @@ describe('default fulfillment normalization', () => {
     expect(normalized.main_toppers[0]).not.toHaveProperty('original_type');
     expect(normalized.main_toppers[0]).not.toHaveProperty('printout_source_type');
   });
+
+  it.each(['fresh_flowers', 'artificial_flowers'] as const)(
+    'converts legacy %s support elements into edible flowers for fulfillment',
+    (sourceType) => {
+      const raw = analysisWithTopper('edible_3d_ordinary');
+      raw.support_elements = [{
+        type: sourceType,
+        material: 'non-edible',
+        description: 'red rose cluster',
+        size: 'small',
+        quantity: 3,
+        group_id: 'rose-cluster',
+      }];
+
+      const normalized = normalizeAnalysisForDefaultFulfillment(raw);
+
+      expect(normalized.support_elements[0]).toMatchObject({
+        type: 'edible_flowers',
+        material: 'edible_fondant',
+        original_type: sourceType,
+      });
+      expect(raw.support_elements[0]).toMatchObject({
+        type: sourceType,
+        material: 'non-edible',
+      });
+    },
+  );
 });

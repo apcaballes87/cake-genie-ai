@@ -636,13 +636,13 @@ describe('calculatePriceFromDatabase', () => {
     expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining('plastic_ball'));
   });
 
-  it('prices legacy fresh_flowers through edible flower pricing rules', async () => {
+  it.each(['fresh_flowers', 'artificial_flowers'] as const)('prices legacy %s through edible flower pricing rules', async (legacyFlowerType) => {
     const { calculatePriceFromDatabase } = await import('./pricingService.database');
     const warnSpy = vi.spyOn(console, 'warn');
 
     const flowers = {
       id: 'flowers-1',
-      type: 'fresh_flowers',
+      type: legacyFlowerType,
       material: 'non-edible',
       description: 'Pink natural-looking flowers',
       quantity: 4,
@@ -660,7 +660,7 @@ describe('calculatePriceFromDatabase', () => {
 
     expect(itemPrices.get('flowers-1')).toBe(30);
     expect(addOnPricing.addOnPrice).toBe(30);
-    expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining('fresh_flowers'));
+    expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining(legacyFlowerType));
   });
 
   it('prices every removable decoration in the floral fruit rectangle cake analysis', async () => {

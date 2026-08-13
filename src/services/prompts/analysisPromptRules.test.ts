@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
 import { getAnalysisPromptWithFallback, loadFallbackAnalysisPrompt } from './promptLoader';
 import safariJungleFigureFixture from './fixtures/safari-jungle-mint-1-tier-cake-4d4a.json';
+import snowWhiteFlowerFixture from './fixtures/snow-white-blue-2-tier-cake-074d.json';
 
 const rootDir = process.cwd();
 
@@ -17,7 +18,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.41 Version - Number-Shaped Cakes and Freestanding Figures**');
+    expect(prompt).toContain('**v3.42 Version - All Flowers Are Edible**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('3. Visible construction of each item');
     expect(prompt).toContain('5. Type compatible with that construction and material');
@@ -25,9 +26,9 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('Apply the 2-CUE MATERIAL RULE only when material remains ambiguous and no');
     expect(prompt).toContain('Named decisive cues such as a visible wick,');
     expect(prompt).toContain('unsupported semi-3D human/pet portrait relief -> `edible_photo_top`');
-    expect(prompt).toContain('fresh or natural-looking flowers -> `edible_flowers`');
-    expect(prompt).toContain('visible piping cues require `icing_decorations`');
-    expect(prompt).toContain('visible fabric cues require `artificial_flowers`');
+    expect(prompt).toContain('every flower-shaped decoration, including fresh-looking, natural, silk,');
+    expect(prompt).toContain('Only an actual piped buttercream\n  rosette with visible piping ridges and soft peaks uses');
+    expect(prompt).toContain('this named flower fulfillment\n  override wins over visible fabric cues');
     expect(prompt).toContain('physical metal, rhinestone, or plastic crowns/tiaras -> `plastic_crown`');
     expect(prompt).toContain('standalone molded, rolled, cut, or hand-sculpted fondant/gumpaste crowns/tiaras ->');
     expect(prompt).toContain('#### CROWNS & TIARAS — MATERIAL-SPECIFIC TYPES');
@@ -160,17 +161,20 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('| `thin_fabric_ribbon_bows` | non-edible | Small/thin satin, organza, or sheer fabric bow accents, dangling ribbon tails, and narrow streamers.');
   });
 
-  it('classifies fresh-looking flowers as edible flowers in the fallback prompt source', () => {
+  it('classifies every flower style as edible flowers in the fallback prompt source', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('Genie.ph does not put fresh flowers on cakes because they are not safe or hygienic for our food workflow.');
-    expect(prompt).toContain('IF a flower appears fresh, natural, realistic, or edible, classify it as "edible_flowers".');
+    expect(prompt).toContain('Protocol 4: THE "FLOWER" CHECK (Required Edible Flower Fulfillment Rule)');
+    expect(prompt).toContain('Genie.ph fulfills every visible flower as edible because non-edible flowers');
+    expect(prompt).toContain('IF a flower appears fresh, natural, realistic, silk, cloth, fabric-textured,');
+    expect(prompt).toContain('artificial, or edible, classify it as `edible_flowers` with material');
+    expect(prompt).toContain('visible fabric texture, or\n  fraying threads.');
     expect(prompt).toContain('FLOWER TYPE PRECEDENCE');
     expect(prompt).toContain('Do NOT classify fondant/gumpaste flowers as `edible_3d_ordinary`');
     expect(prompt).toContain('small gold fondant flowers on a mahjong cake -> `edible_flowers`');
-    expect(prompt).toContain('Do not output `fresh_flowers`.');
-    expect(prompt).not.toContain('IT IS "fresh_flowers"');
-    expect(prompt).not.toContain('| `fresh_flowers` |');
+    expect(prompt).toContain('### C3. FLOWERS — edible_flowers');
+    expect(prompt).not.toContain('fresh_flowers');
+    expect(prompt).not.toContain('artificial_flowers');
     expect(prompt).not.toContain('Basic roses without fine detail');
   });
 
@@ -270,7 +274,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.41 Version - Number-Shaped Cakes and Freestanding Figures**');
+    expect(prompt).toContain('**v3.42 Version - All Flowers Are Edible**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -291,7 +295,7 @@ describe('cake analysis prompt rules', () => {
   it('uses toy-specific sizing for miniature molded toys', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.41 Version - Number-Shaped Cakes and Freestanding Figures**');
+    expect(prompt).toContain('**v3.42 Version - All Flowers Are Edible**');
     expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy` AND `plastic_crown`)');
     expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
     expect(prompt).toContain('| `tiny` | under 0.10 |');
@@ -527,6 +531,22 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('a small fondant elephant, zebra, or giraffe-head figurine');
     expect(prompt).toContain('one `edible_3d_complex` hero in `main_toppers`');
     expect(prompt).toContain('Use `edible_3d_ordinary` in `support_elements` for figure-like decorations\nonly when they are simple molded non-character forms');
+  });
+
+  it('keeps the Snow White rose cluster as paid edible flowers', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(snowWhiteFlowerFixture.slug).toBe('snow-white-blue-2-tier-cake-074d');
+    expect(snowWhiteFlowerFixture.expected_support_element).toMatchObject({
+      group_id: 'red_flower_cluster',
+      type: 'edible_flowers',
+      material: 'edible_fondant',
+      size: 'small',
+      quantity: 3,
+    });
+    expect(prompt).toContain('Every visible flower, including fresh-looking, natural-looking, silk, cloth,');
+    expect(prompt).toContain('is fulfilled and priced as edible flowers.');
+    expect(prompt).not.toContain('artificial_flowers');
   });
 
   it('makes every number-shaped cake a Rectangle before tier and footprint defaults', () => {

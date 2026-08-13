@@ -1,0 +1,17 @@
+{
+  "slug": "snow-white-blue-2-tier-cake-074d",
+  "source_url": "https://genie.ph/customizing/snow-white-blue-2-tier-cake-074d",
+  "purpose": "Gold regression fixture for edible-flower fulfillment and pricing.",
+  "expected_support_element": {
+    "group_id": "red_flower_cluster",
+    "type": "edible_flowers",
+    "material": "edible_fondant",
+    "size": "small",
+    "quantity": 3,
+    "description": "three edible red fondant or gumpaste roses between the tiers"
+  },
+  "forbidden_types": [
+    "fresh_flowers",
+    "artificial_flowers"
+  ]
+}
