@@ -757,7 +757,7 @@ export const CustomizingHeroPanel = memo(({
                                 <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
                                     {activeHeroLoader ? (
                                         <div
-                                            className="flex h-9 max-md:min-h-[44px] px-3.5 max-md:px-3 items-center gap-2.5 max-md:gap-2 rounded-full bg-white/95 text-purple-600 shadow-lg ring-1 ring-purple-100 backdrop-blur-md transition-all duration-300 animate-pulse pointer-events-none"
+                                            className="flex py-1 px-3.5 max-md:px-3 items-center gap-2.5 max-md:gap-2 rounded-full bg-white/95 text-purple-600 shadow-lg ring-1 ring-purple-100 backdrop-blur-md transition-all duration-300 animate-pulse pointer-events-none"
                                             aria-label={activeHeroLoader.label}
                                             title={activeHeroLoader.label}
                                         >

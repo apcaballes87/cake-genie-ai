@@ -178,6 +178,10 @@ describe('CustomizingHeroPanel', () => {
         render(<CustomizingHeroPanel {...props} />);
 
         expect(screen.getByLabelText('ai is editing your background')).toBeInTheDocument();
+        const loader = screen.getByLabelText('ai is editing your background');
+        expect(loader.className).toContain('py-1');
+        expect(loader.className).not.toContain('h-9');
+        expect(loader.className).not.toContain('max-md:min-h-[44px]');
     });
 
     it('does not show the removed icing-mask loader', () => {
