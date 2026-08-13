@@ -26,6 +26,46 @@ export const SEARCH_ANALYSIS_REJECTION_REASONS = GENERATED_ANALYSIS_REJECTION_RE
 export const SEARCH_ANALYSIS_ICING_BASES = GENERATED_ANALYSIS_ICING_BASES;
 export const SEARCH_ANALYSIS_COLOR_TYPES = GENERATED_ANALYSIS_COLOR_TYPES;
 
+const TINY_SUGAR_PEARL_OR_BEAD = /\b(?:sugar\s+)?(?:pearl|bead)s?\b|\bnonpareils?\b/i;
+const SCATTERED_OR_REPEATED = /\b(?:scattered?|sprinkled?|repeated|multiple|many|around|across)\b/i;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Keeps the support-element contract aligned with the fulfillment rule for
+ * sprinkle-scale pearls. The model prompt is authoritative; this is a narrow
+ * final guard for the known expensive misclassification, not a general
+ * reclassification of fondant spheres.
+ */
+function normalizeTinySugarPearlSprinkles(result: unknown): unknown {
+  if (!isRecord(result) || !Array.isArray(result.support_elements)) return result;
+
+  let changed = false;
+  const supportElements = result.support_elements.map((value) => {
+    if (!isRecord(value)) return value;
+    if (value.type !== 'edible_3d_ordinary') return value;
+    if (value.size !== 'tiny' && value.size !== 'xsmall') return value;
+
+    const text = `${String(value.group_id ?? '')} ${String(value.description ?? '')}`;
+    const repeatedQuantity = typeof value.quantity === 'number' && value.quantity >= 2;
+    if (!TINY_SUGAR_PEARL_OR_BEAD.test(text) || (!repeatedQuantity && !SCATTERED_OR_REPEATED.test(text))) {
+      return value;
+    }
+
+    changed = true;
+    return {
+      ...value,
+      type: 'sprinkles',
+      material: 'candy',
+      quantity: 1,
+    };
+  });
+
+  return changed ? { ...result, support_elements: supportElements } : result;
+}
+
 export function buildSearchAnalysisResponseSchema(typeEnums: GeneratedAnalysisTypeEnums) {
   const mainTopperTypes = typeEnums.mainTopperTypes.filter(
     (type) => GENERATED_MAIN_TOPPER_TYPES.includes(type as never),
@@ -220,5 +260,8 @@ export function postProcessSearchAnalysisResult(
       reconciledThickness: reconciled.cakeThickness,
     });
   }
-  return validateGeneratedCakeAnalysisResult(reconciledResult, typeEnums);
+  return validateGeneratedCakeAnalysisResult(
+    normalizeTinySugarPearlSprinkles(reconciledResult),
+    typeEnums,
+  );
 }

@@ -27,6 +27,7 @@ const typeEnums = {
     'icing_doodle',
     'icing_doodle_intricate_side',
     'chocolates',
+    'edible_3d_ordinary',
     'plastic_ball',
     'plastic_ball_regular',
   ],
@@ -240,6 +241,53 @@ describe('search analysis contract', () => {
       cakeType: '1 Tier Fondant',
       cakeThickness: '4 in',
     }), typeEnums)).toThrow(/requires fondant/i);
+  });
+
+  it('normalizes repeated tiny sugar pearls to one candy sprinkles support item', () => {
+    const generated = validAnalysis({
+      support_elements: [{
+        type: 'edible_3d_ordinary',
+        material: 'edible_fondant',
+        group_id: 'tiny_white_sugar_pearls',
+        color: '#FFFFFF',
+        size: 'tiny',
+        quantity: 15,
+        description: 'tiny white sugar pearl beads scattered on top and sides',
+      }],
+    });
+
+    const result = postProcessSearchAnalysisResult(generated, typeEnums);
+
+    expect(result.support_elements).toEqual([expect.objectContaining({
+      type: 'sprinkles',
+      material: 'candy',
+      quantity: 1,
+    })]);
+    expect((generated.support_elements as Array<Record<string, unknown>>)[0]).toMatchObject({
+      type: 'edible_3d_ordinary',
+      material: 'edible_fondant',
+      quantity: 15,
+    });
+  });
+
+  it('keeps a single substantial fondant pearl as an ordinary 3D support item', () => {
+    const result = postProcessSearchAnalysisResult(validAnalysis({
+      support_elements: [{
+        type: 'edible_3d_ordinary',
+        material: 'edible_fondant',
+        group_id: 'small_fondant_pearl',
+        color: '#FFFFFF',
+        size: 'small',
+        quantity: 1,
+        description: 'one small molded fondant pearl decoration',
+      }],
+    }), typeEnums);
+
+    expect(result.support_elements[0]).toMatchObject({
+      type: 'edible_3d_ordinary',
+      material: 'edible_fondant',
+      quantity: 1,
+    });
   });
 
   it('requires exact rejection messages and complete icing colors', () => {

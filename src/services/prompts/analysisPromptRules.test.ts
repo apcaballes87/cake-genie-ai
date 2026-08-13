@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
 import { getAnalysisPromptWithFallback, loadFallbackAnalysisPrompt } from './promptLoader';
+import minimalistSugarPearlFixture from './fixtures/minimalist-birthday-ivory-1-tier-cake-717c.json';
 import safariJungleFigureFixture from './fixtures/safari-jungle-mint-1-tier-cake-4d4a.json';
 import snowWhiteFlowerFixture from './fixtures/snow-white-blue-2-tier-cake-074d.json';
 
@@ -18,7 +19,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.42 Version - All Flowers Are Edible**');
+    expect(prompt).toContain('**v3.43 Version - Tiny Sugar Pearls Are Sprinkles**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('3. Visible construction of each item');
     expect(prompt).toContain('5. Type compatible with that construction and material');
@@ -274,7 +275,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.42 Version - All Flowers Are Edible**');
+    expect(prompt).toContain('**v3.43 Version - Tiny Sugar Pearls Are Sprinkles**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -295,7 +296,7 @@ describe('cake analysis prompt rules', () => {
   it('uses toy-specific sizing for miniature molded toys', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.42 Version - All Flowers Are Edible**');
+    expect(prompt).toContain('**v3.43 Version - Tiny Sugar Pearls Are Sprinkles**');
     expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy` AND `plastic_crown`)');
     expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
     expect(prompt).toContain('| `tiny` | under 0.10 |');
@@ -547,6 +548,30 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('Every visible flower, including fresh-looking, natural-looking, silk, cloth,');
     expect(prompt).toContain('is fulfilled and priced as edible flowers.');
     expect(prompt).not.toContain('artificial_flowers');
+  });
+
+  it('makes tiny scattered sugar pearls and beads grouped candy sprinkles', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(minimalistSugarPearlFixture.slug).toBe('minimalist-birthday-ivory-1-tier-cake-717c');
+    expect(minimalistSugarPearlFixture.expected_support_element).toMatchObject({
+      group_id: 'tiny_white_sugar_pearls',
+      type: 'sprinkles',
+      material: 'candy',
+      size: 'tiny',
+      quantity: 1,
+    });
+    expect(minimalistSugarPearlFixture.forbidden_types).toEqual([
+      'edible_3d_ordinary',
+      'plastic_ball_regular',
+      'premium_sprinkles',
+    ]);
+    expect(prompt).toContain('TINY SUGAR PEARLS / BEADS / NONPAREILS — `sprinkles` PRECEDENCE (REQUIRED)');
+    expect(prompt).toContain('Before applying the generic SPHERE CHECK');
+    expect(prompt).toContain('`type: "sprinkles"`, `material: "candy"`, and `quantity: 1`');
+    expect(prompt).toContain('This is a fulfillment classification override');
+    expect(prompt).toContain('Do NOT emit these tiny scattered/repeated pearls or beads as');
+    expect(prompt).toContain('every tiny/xsmall scattered or repeated sugar pearl');
   });
 
   it('makes every number-shaped cake a Rectangle before tier and footprint defaults', () => {

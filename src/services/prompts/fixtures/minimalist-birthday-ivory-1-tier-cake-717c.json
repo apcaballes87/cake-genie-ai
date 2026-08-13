@@ -1,0 +1,18 @@
+{
+  "slug": "minimalist-birthday-ivory-1-tier-cake-717c",
+  "source_url": "https://genie.ph/customizing/minimalist-birthday-ivory-1-tier-cake-717c",
+  "purpose": "Regression fixture for tiny scattered sugar-pearl sprinkle fulfillment.",
+  "expected_support_element": {
+    "group_id": "tiny_white_sugar_pearls",
+    "type": "sprinkles",
+    "material": "candy",
+    "size": "tiny",
+    "quantity": 1,
+    "description": "tiny white sugar pearl sprinkles scattered on top and sides"
+  },
+  "forbidden_types": [
+    "edible_3d_ordinary",
+    "plastic_ball_regular",
+    "premium_sprinkles"
+  ]
+}

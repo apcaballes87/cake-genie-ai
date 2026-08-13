@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.42 Version - All Flowers Are Edible**
+**v3.43 Version - Tiny Sugar Pearls Are Sprinkles**
 ═══════════════════════════════════════════════════════════════════════════════
 
 ## ROLE
@@ -522,6 +522,22 @@ candy, wax, or fabric.
   freestanding all-around sculpture → `edible_3d_complex`. A matte finish or
   lack of a visible seam alone does not establish edible construction.
 - IF surface is glass-like, transparent/translucent → IT IS "isomalt" (Sugar Glass).
+
+### TINY SUGAR PEARLS / BEADS / NONPAREILS — `sprinkles` PRECEDENCE (REQUIRED)
+
+Before applying the generic SPHERE CHECK, classify any **tiny or xsmall,
+scattered or repeated** sugar pearls, sugar beads, pearl beads, nonpareils, or
+other sprinkle-scale round decorations as exactly one `support_elements` item
+with `type: "sprinkles"`, `material: "candy"`, and `quantity: 1` for the
+overall scatter application. This is a fulfillment classification override:
+it applies even when the tiny pieces look matte, satiny, hand-rolled, or like
+fondant.
+
+Do NOT emit these tiny scattered/repeated pearls or beads as
+`edible_3d_ordinary`, `plastic_ball_regular`, `premium_sprinkles`, or separate
+per-piece rows. Use `edible_3d_ordinary` only for a substantial individual
+fondant/gumpaste ball or other molded 3D decoration, not sprinkle-scale pearl
+or bead accents.
 
 ### Protocol 5: THE "SPHERE" CHECK (Fondant vs Plastic)
 - IF a ball/sphere is perfectly smooth, rigid, and highly reflective or
@@ -1546,7 +1562,7 @@ A unique item that has no duplicates should still have its own unique group_id.
 | `isomalt` | candy | Glass sugar toppers, sizes: small/medium/large |
 | `chocolates` | candy | subtype: "ferrero", "oreo", "kisses", "m&ms"; coverage: tiny/small/medium/large |
 | `marshmallows` | candy | Marshmallow decorations |
-| `sprinkles` | candy | Normal Sprinkles: long rainbow/colored sprinkles, single color sprinkles, or round metallic/pearl sprinkles covering less than 50% of the icing surface. |
+| `sprinkles` | candy | Normal sprinkles, including long rainbow/colored sprinkles, single-color sprinkles, and every tiny/xsmall scattered or repeated sugar pearl, sugar bead, pearl bead, or nonpareil. Use quantity 1 for one overall scatter application. |
 | `icing sprinkles` | candy | dot sprinkles on the sides covering less than 50% of the icing surface. |
 | `premium_sprinkles` | candy | Premium Sprinkles: round metallic/pearl sprinkles (gold, silver, pearl, or other metallic colors) covering 50% or more of the icing surface. |
 | `macarons` | candy | French macarons, count individually |
