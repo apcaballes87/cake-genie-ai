@@ -28,42 +28,305 @@ export const SEARCH_ANALYSIS_COLOR_TYPES = GENERATED_ANALYSIS_COLOR_TYPES;
 
 const TINY_SUGAR_PEARL_OR_BEAD = /\b(?:sugar\s+)?(?:pearl|bead)s?\b|\bnonpareils?\b/i;
 const SCATTERED_OR_REPEATED = /\b(?:scattered?|sprinkled?|repeated|multiple|many|around|across)\b/i;
+const SECONDARY_OBJECT_CONNECTOR = /\b(?:topped\s+with|covered\s+(?:in|with)|decorated\s+with|finished\s+with|featuring|with)\b/i;
+const MULTIPLE_PRIMARY_OBJECTS = /\b(?:and|plus|alongside)\b|[;&+]/i;
+const SAFE_DESCRIPTOR_PATTERN = [
+  'descriptor', 'black', 'blue', 'brown', 'champagne', 'colorful', 'coral',
+  'edible', 'fondant', 'gold', 'green', 'gumpaste', 'ivory', 'lavender',
+  'metallic', 'mint', 'multicolor', 'navy', 'orange', 'peach', 'pink',
+  'purple', 'rainbow', 'red', 'silver', 'tan', 'teal', 'white', 'yellow',
+  'top', 'sides?', 'base', 'front', 'back',
+].join('|');
+const SAFE_COORDINATED_DESCRIPTORS = new RegExp(
+  `\\b(?:${SAFE_DESCRIPTOR_PATTERN})\\s*(?:,\\s*)?(?:and|&)\\s+(?:${SAFE_DESCRIPTOR_PATTERN})\\b`,
+  'gi',
+);
+const SECONDARY_LEAD_IN = /\b(?:around|behind|beside|near|under|beneath|next\s+to|wearing|holding|carrying|containing|surrounded\s+by|adorned(?:\s+(?:by|with))?)\b/i;
+const PRIMARY_GROUPING_OF = /\b(?:cluster|bouquet|arrangement|set|pair|group)\s+of\b/gi;
+
+type ItemRole = 'main' | 'support';
+type TargetRole = ItemRole | 'preserve';
+
+type DescriptionTypeRule = {
+  id: string;
+  material: string;
+  targetRole: TargetRole;
+  targetType: string | Partial<Record<ItemRole, string>>;
+  quantity?: number;
+  matches: (primaryDescription: string, item: Record<string, unknown>, role: ItemRole) => boolean;
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function containsPrimaryNoun(description: string, noun: RegExp) {
+  const match = noun.exec(description);
+  if (!match || match.index === undefined) return false;
+  const nounPrefix = description.slice(0, match.index);
+  return !SECONDARY_LEAD_IN.test(nounPrefix)
+    && !/\bof\b/i.test(nounPrefix.replace(PRIMARY_GROUPING_OF, ''));
+}
+
+function hasAllTerms(description: string, terms: RegExp[]) {
+  return terms.every((term) => term.test(description));
+}
+
+function hasMultiplePrimaryObjects(description: string) {
+  let remaining = description;
+  let previous: string;
+  do {
+    previous = remaining;
+    remaining = remaining.replace(SAFE_COORDINATED_DESCRIPTORS, ' descriptor ');
+  } while (remaining !== previous);
+  return MULTIPLE_PRIMARY_OBJECTS.test(remaining);
+}
+
+const DESCRIPTION_TYPE_RULES: DescriptionTypeRule[] = [
+  {
+    id: 'icing_sprinkles',
+    targetType: 'icing_decorations',
+    material: 'icing',
+    targetRole: 'preserve',
+    matches: (primary) => hasAllTerms(primary, [
+      /\bsprinkles\b/i,
+      /\b(?:icing|piped|buttercream)\b/i,
+    ]),
+  },
+  {
+    id: 'premium_sprinkles',
+    targetType: 'premium_sprinkles',
+    material: 'candy',
+    targetRole: 'support',
+    quantity: 1,
+    matches: (primary) => hasAllTerms(primary, [/\bpremium\b/i, /\bsprinkles\b/i])
+      && !/\b(?:icing|piped|buttercream)\b/i.test(primary),
+  },
+  {
+    id: 'sprinkles',
+    targetType: 'sprinkles',
+    material: 'candy',
+    targetRole: 'support',
+    quantity: 1,
+    matches: (primary) => /\bsprinkles\b/i.test(primary)
+      && !/\b(?:premium|icing|piped|buttercream)\b/i.test(primary),
+  },
+  {
+    id: 'tiny_sugar_pearls',
+    targetType: 'sprinkles',
+    material: 'candy',
+    targetRole: 'support',
+    quantity: 1,
+    matches: (_primary, item, role) => {
+      if (role !== 'support' || item.type !== 'edible_3d_ordinary') return false;
+      if (item.size !== 'tiny' && item.size !== 'xsmall') return false;
+      const text = `${String(item.group_id ?? '')} ${String(item.description ?? '')}`;
+      const repeatedQuantity = typeof item.quantity === 'number' && item.quantity >= 2;
+      return TINY_SUGAR_PEARL_OR_BEAD.test(text)
+        && (repeatedQuantity || SCATTERED_OR_REPEATED.test(text));
+    },
+  },
+  {
+    id: 'dragees',
+    targetType: 'dragees',
+    material: 'candy',
+    targetRole: 'support',
+    matches: (primary) => (
+      /\bdrag(?:e|é)es?\b/i.test(primary) && !/\bsprinkle\b/i.test(primary)
+    ),
+  },
+  {
+    id: 'edible_flowers',
+    targetType: 'edible_flowers',
+    material: 'edible_fondant',
+    targetRole: 'preserve',
+    matches: (primary) => containsPrimaryNoun(primary, /\bflowers?\b/i) && (
+      /\b(?:edible|fondant|gumpaste)\b[^,.;]{0,40}\bflowers?\b/i.test(primary)
+      || /\bflowers?\b[^,.;]{0,40}\b(?:edible|fondant|gumpaste)\b/i.test(primary)
+    ),
+  },
+  {
+    id: 'candle',
+    targetType: 'candle',
+    material: 'wax',
+    targetRole: 'main',
+    matches: (primary) => (
+      containsPrimaryNoun(primary, /\bcandles?\b/i)
+      && !/\b(?:candle[ -]?holders?|candle[ -]?shaped|edible|fondant|gumpaste)\b/i.test(primary)
+    ),
+  },
+  {
+    id: 'edible_crown',
+    targetType: 'edible_crown',
+    material: 'edible_fondant',
+    targetRole: 'main',
+    matches: (primary) => (
+      containsPrimaryNoun(primary, /\b(?:crowns?|tiaras?)\b/i)
+      && /\b(?:edible|fondant|gumpaste)\b/i.test(primary)
+    ),
+  },
+  {
+    id: 'plastic_crown',
+    targetType: 'plastic_crown',
+    material: 'plastic',
+    targetRole: 'main',
+    matches: (primary) => (
+      containsPrimaryNoun(primary, /\b(?:crowns?|tiaras?)\b/i)
+      && /\b(?:plastic|metal|rhinestone)\b/i.test(primary)
+    ),
+  },
+  {
+    id: 'printout',
+    targetType: { main: 'printout', support: 'support_printout' },
+    material: 'photopaper',
+    targetRole: 'preserve',
+    matches: (primary) => (
+      containsPrimaryNoun(primary, /\bprintouts?\b/i)
+      || /\bprinted[ -]paper\s+(?:cutouts?|toppers?)\b/i.test(primary)
+    ),
+  },
+  {
+    id: 'cardstock',
+    targetType: 'cardstock',
+    material: 'cardstock',
+    targetRole: 'main',
+    matches: (primary) => containsPrimaryNoun(primary, /\bcard[ -]?stock\b/i),
+  },
+  {
+    id: 'toy',
+    targetType: 'toy',
+    material: 'plastic',
+    targetRole: 'main',
+    matches: (primary) => (
+      containsPrimaryNoun(primary, /\btoys?\b/i)
+      && !/\btoy\s+story\b/i.test(primary)
+      && !/\b(?:edible|fondant|gumpaste)\b/i.test(primary)
+    ),
+  },
+  {
+    id: 'edible_3d_complex',
+    targetType: 'edible_3d_complex',
+    material: 'edible_fondant',
+    targetRole: 'main',
+    matches: (primary) => hasAllTerms(primary, [
+      /\b(?:complex|detailed|intricate)\b/i,
+      /\b(?:edible|fondant|gumpaste)\b/i,
+      /\b3[ -]?d\b/i,
+    ]),
+  },
+  {
+    id: 'edible_3d_ordinary',
+    targetType: 'edible_3d_ordinary',
+    material: 'edible_fondant',
+    targetRole: 'preserve',
+    matches: (primary) => hasAllTerms(primary, [
+      /\b(?:ordinary|simple[ -]molded)\b/i,
+      /\b(?:edible|fondant|gumpaste)\b/i,
+      /\b3[ -]?d\b/i,
+    ]),
+  },
+];
+
+function getTargetType(rule: DescriptionTypeRule, role: ItemRole) {
+  return typeof rule.targetType === 'string' ? rule.targetType : rule.targetType[role];
+}
+
+function reconcileDescriptionItem(
+  item: Record<string, unknown>,
+  sourceRole: ItemRole,
+  typeEnums: GeneratedAnalysisTypeEnums,
+): { item: Record<string, unknown>; role: ItemRole } | null {
+  if (typeof item.description !== 'string') return null;
+
+  const primaryDescription = item.description.split(SECONDARY_OBJECT_CONNECTOR, 1)[0].trim();
+  if (!primaryDescription) return null;
+
+  const matchingRules = DESCRIPTION_TYPE_RULES.filter((rule) => (
+    rule.matches(primaryDescription, item, sourceRole)
+  ));
+  const matchedTypes = new Set(matchingRules.map((rule) => {
+    const role = rule.targetRole === 'preserve' ? sourceRole : rule.targetRole;
+    return getTargetType(rule, role);
+  }));
+  if (matchedTypes.size !== 1) return null;
+
+  const rule = matchingRules[0];
+  const includesTinySugarPearlGuard = matchingRules.some(({ id }) => id === 'tiny_sugar_pearls');
+  if (!includesTinySugarPearlGuard && hasMultiplePrimaryObjects(primaryDescription)) {
+    return null;
+  }
+
+  const targetRole = rule.targetRole === 'preserve' ? sourceRole : rule.targetRole;
+  const targetType = getTargetType(rule, targetRole);
+  if (!targetType) return null;
+  if (targetRole === 'main' && !typeEnums.mainTopperTypes.includes(targetType)) return null;
+  if (targetRole === 'support' && !typeEnums.supportElementTypes.includes(targetType)) return null;
+
+  let color: unknown;
+  if (targetRole === 'support') {
+    color = item.color;
+    if (typeof color !== 'string' && Array.isArray(item.colors)) {
+      color = item.colors.find((value) => typeof value === 'string');
+    }
+    if (typeof color !== 'string') return null;
+  }
+
+  const nextItem: Record<string, unknown> = {
+    ...item,
+    type: targetType,
+    material: rule.material,
+  };
+  if (rule.quantity !== undefined) nextItem.quantity = rule.quantity;
+  if (item.type !== targetType) delete nextItem.subtype;
+
+  if (targetRole === 'main') {
+    nextItem.classification = 'hero';
+  } else {
+    delete nextItem.classification;
+    nextItem.color = color;
+  }
+
+  return { item: nextItem, role: targetRole };
+}
+
 /**
- * Keeps the support-element contract aligned with the fulfillment rule for
- * sprinkle-scale pearls. The model prompt is authoritative; this is a narrow
- * final guard for the known expensive misclassification, not a general
- * reclassification of fondant spheres.
+ * Reconciles only explicit primary-object wording. Secondary garnish phrases,
+ * ambiguous rows, and unknown nouns remain unchanged for strict validation.
  */
-function normalizeTinySugarPearlSprinkles(result: unknown): unknown {
-  if (!isRecord(result) || !Array.isArray(result.support_elements)) return result;
+function reconcileDescriptionTypes(
+  result: unknown,
+  typeEnums: GeneratedAnalysisTypeEnums,
+): unknown {
+  if (!isRecord(result)
+    || !Array.isArray(result.main_toppers)
+    || !Array.isArray(result.support_elements)) return result;
 
   let changed = false;
-  const supportElements = result.support_elements.map((value) => {
-    if (!isRecord(value)) return value;
-    if (value.type !== 'edible_3d_ordinary') return value;
-    if (value.size !== 'tiny' && value.size !== 'xsmall') return value;
+  const mainToppers: unknown[] = [];
+  const supportElements: unknown[] = [];
 
-    const text = `${String(value.group_id ?? '')} ${String(value.description ?? '')}`;
-    const repeatedQuantity = typeof value.quantity === 'number' && value.quantity >= 2;
-    if (!TINY_SUGAR_PEARL_OR_BEAD.test(text) || (!repeatedQuantity && !SCATTERED_OR_REPEATED.test(text))) {
-      return value;
-    }
+  const reconcileRole = (values: unknown[], sourceRole: ItemRole) => {
+    values.forEach((value) => {
+      if (!isRecord(value)) {
+        (sourceRole === 'main' ? mainToppers : supportElements).push(value);
+        return;
+      }
 
-    changed = true;
-    return {
-      ...value,
-      type: 'sprinkles',
-      material: 'candy',
-      quantity: 1,
-    };
-  });
+      const reconciled = reconcileDescriptionItem(value, sourceRole, typeEnums);
+      if (!reconciled) {
+        (sourceRole === 'main' ? mainToppers : supportElements).push(value);
+        return;
+      }
 
-  return changed ? { ...result, support_elements: supportElements } : result;
+      changed = true;
+      (reconciled.role === 'main' ? mainToppers : supportElements).push(reconciled.item);
+    });
+  };
+
+  reconcileRole(result.main_toppers, 'main');
+  reconcileRole(result.support_elements, 'support');
+
+  return changed ? { ...result, main_toppers: mainToppers, support_elements: supportElements } : result;
 }
 
 export function buildSearchAnalysisResponseSchema(typeEnums: GeneratedAnalysisTypeEnums) {
@@ -261,7 +524,7 @@ export function postProcessSearchAnalysisResult(
     });
   }
   return validateGeneratedCakeAnalysisResult(
-    normalizeTinySugarPearlSprinkles(reconciledResult),
+    reconcileDescriptionTypes(reconciledResult, typeEnums),
     typeEnums,
   );
 }

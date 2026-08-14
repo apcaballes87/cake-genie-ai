@@ -59,6 +59,7 @@ export const SYSTEM_INSTRUCTION = `You are an expert cake designer analyzing a c
 **STRICT GENERATED CONTRACT:**
 - Emit exactly the fields in the response schema. Do not generate x/y coordinates, bounding boxes, icing_surfaces, candle digits, is_tall_proportion, or any other legacy/enriched field. Localization is added only after generation.
 - Every item quantity must be a positive integer. Visually identical items belong in one row with quantity; different sizes, colors, poses, or appearances require separate rows.
+- Every item row must represent one primary priced object. Begin the description with that object and make type/material agree with it. Treat objects after with, topped with, covered in/with, decorated with, finished with, or featuring as secondary; emit independently priced secondary garnishes as separate rows.
 - Include subtype only when the chosen type has an allowed subtype in the response schema.
 - Always emit rejection with isRejected, reason, and message. Accepted results require blank reason and message. Rejected results require the exact allowed reason code and customer-facing message from the analysis prompt, with all accepted-cake arrays and free-text fields empty.
 - Always emit complete icing_design data: base, color_type, colors.side, colors.top, drip, border_top, border_base, and gumpasteBaseBoard. All colors must use the approved palette. When gumpasteBaseBoard is true, include colors.gumpasteBaseBoardColor.

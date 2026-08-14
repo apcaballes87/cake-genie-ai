@@ -16,14 +16,28 @@ const typeEnums = {
     'icing_doodle_intricate_top',
     'edible_photo_top',
     'edible_2d_complex',
+    'edible_3d_complex',
     'edible_3d_ordinary',
+    'edible_flowers',
+    'candle',
+    'toy',
+    'plastic_crown',
+    'edible_crown',
+    'cardstock',
+    'icing_decorations',
     'plastic_ball',
   ],
   supportElementTypes: [
     'sprinkles',
+    'premium_sprinkles',
+    'dragees',
+    'support_printout',
+    'edible_2d_support',
     'fresh_flowers',
     'artificial_flowers',
     'edible_flowers',
+    'icing_decorations',
+    'meringue',
     'icing_doodle',
     'icing_doodle_intricate_side',
     'chocolates',
@@ -88,6 +102,7 @@ describe('search analysis contract', () => {
     expect(schema.properties.main_toppers.items.properties.type.enum).not.toContain('icing_palette_knife_intricate');
     expect(schema.properties.main_toppers.items.properties.type.enum).not.toContain('edible_photo_print');
     expect(schema.properties.main_toppers.items.properties.type.enum).toContain('edible_2d_complex');
+    expect(schema.properties.main_toppers.items.properties.type.enum).toContain('edible_crown');
     expect(schema.properties.support_elements.items.properties.type.enum).not.toContain('edible_2d_complex');
     expect(schema.properties.support_elements.items.properties.type.enum).toContain('icing_doodle_intricate_side');
     expect(schema.properties.support_elements.items.properties.type.enum).toContain('plastic_ball_regular');
@@ -287,6 +302,235 @@ describe('search analysis contract', () => {
       type: 'edible_3d_ordinary',
       material: 'edible_fondant',
       quantity: 1,
+    });
+  });
+
+  it.each([
+    ['colorful sprinkles on top', 'edible_2d_support'],
+    ['tiny red heart sprinkles scattered across the sides', 'icing_decorations'],
+    ['pink and gold sprinkles scattered on top', 'edible_2d_support'],
+    ['red, white & blue sprinkles around the base', 'edible_2d_support'],
+    ['pink, gold, and white sprinkles on top', 'edible_2d_support'],
+    ['red and white and blue sprinkles on top', 'edible_2d_support'],
+  ])('corrects %s to one candy sprinkles row', (description, generatedType) => {
+    const result = postProcessSearchAnalysisResult(validAnalysis({
+      support_elements: [{
+        type: generatedType,
+        material: generatedType === 'icing_decorations' ? 'icing' : 'edible_fondant',
+        group_id: 'tiny_red_accents',
+        color: '#FF0000',
+        size: 'tiny',
+        quantity: 12,
+        description,
+      }],
+    }), typeEnums);
+
+    expect(result.support_elements).toEqual([expect.objectContaining({
+      type: 'sprinkles',
+      material: 'candy',
+      quantity: 1,
+    })]);
+  });
+
+  it('corrects explicit edible flowers without changing their support role', () => {
+    const result = postProcessSearchAnalysisResult(validAnalysis({
+      support_elements: [{
+        type: 'edible_3d_ordinary',
+        material: 'candy',
+        group_id: 'small_pink_flowers',
+        color: '#FFC0CB',
+        size: 'small',
+        quantity: 3,
+        description: 'small pink fondant flowers',
+      }],
+    }), typeEnums);
+
+    expect(result.main_toppers).toEqual([]);
+    expect(result.support_elements[0]).toMatchObject({
+      type: 'edible_flowers',
+      material: 'edible_fondant',
+      quantity: 3,
+    });
+  });
+
+  it('moves an explicit complex edible 3D object to a hero main row and clears its old subtype', () => {
+    const generated = validAnalysis({
+      support_elements: [{
+        type: 'edible_3d_ordinary',
+        material: 'candy',
+        group_id: 'medium_dragon',
+        color: '#008000',
+        size: 'medium',
+        quantity: 1,
+        description: 'detailed edible 3D dragon figure',
+        subtype: 'ice_cream_cone',
+      }],
+    });
+
+    const result = postProcessSearchAnalysisResult(generated, typeEnums);
+
+    expect(result.support_elements).toEqual([]);
+    expect(result.main_toppers).toEqual([expect.objectContaining({
+      type: 'edible_3d_complex',
+      material: 'edible_fondant',
+      classification: 'hero',
+      description: 'detailed edible 3D dragon figure',
+    })]);
+    expect(result.main_toppers[0]).not.toHaveProperty('subtype');
+    expect((generated.support_elements as Array<Record<string, unknown>>)[0]).toHaveProperty(
+      'type',
+      'edible_3d_ordinary',
+    );
+  });
+
+  it.each([
+    ['fondant donuts with sprinkles', 'edible_3d_ordinary', 'edible_fondant'],
+    ['meringue kisses with sprinkles', 'meringue', 'candy'],
+    ['piped icing dollops topped with sprinkles', 'icing_decorations', 'icing'],
+  ])('preserves the primary object in composite description: %s', (description, type, material) => {
+    const result = postProcessSearchAnalysisResult(validAnalysis({
+      support_elements: [{
+        type,
+        material,
+        group_id: 'composite_primary',
+        color: '#FFFFFF',
+        size: 'small',
+        quantity: 2,
+        description,
+      }],
+    }), typeEnums);
+
+    expect(result.support_elements[0]).toMatchObject({ type, material, quantity: 2 });
+  });
+
+  it.each([
+    'small fondant figure decoration',
+    'simple fondant shape',
+    'fondant flowers and sprinkles',
+    'gold round metallic pearl sprinkle dragees',
+    'white fondant candle holders',
+    'fondant clouds behind the number candle',
+    'hand-sculpted fondant lion wearing a crown',
+    'fondant vase holding edible flowers',
+    'fondant lion surrounded by edible flowers',
+    'sprinkle-covered fondant donut',
+    'sprinkle donut topper',
+    'fondant toy car',
+  ])('leaves generic or ambiguous primary wording unchanged: %s', (description) => {
+    const result = postProcessSearchAnalysisResult(validAnalysis({
+      support_elements: [{
+        type: 'edible_3d_ordinary',
+        material: 'edible_fondant',
+        group_id: 'ambiguous_item',
+        color: '#FFFFFF',
+        size: 'small',
+        quantity: 1,
+        description,
+      }],
+    }), typeEnums);
+
+    expect(result.support_elements[0]).toMatchObject({
+      type: 'edible_3d_ordinary',
+      material: 'edible_fondant',
+    });
+  });
+
+  it('moves a main sprinkles row to support only when it already has a usable color', () => {
+    const result = postProcessSearchAnalysisResult(validAnalysis({
+      main_toppers: [{
+        type: 'edible_3d_ordinary',
+        material: 'edible_fondant',
+        group_id: 'rainbow_sprinkles',
+        classification: 'support',
+        color: '#FF0000',
+        size: 'tiny',
+        quantity: 20,
+        description: 'rainbow sprinkles scattered on top',
+        subtype: 'ice_cream_cone',
+      }],
+    }), typeEnums);
+
+    expect(result.main_toppers).toEqual([]);
+    expect(result.support_elements).toEqual([expect.objectContaining({
+      type: 'sprinkles',
+      material: 'candy',
+      color: '#FF0000',
+      quantity: 1,
+    })]);
+    expect(result.support_elements[0]).not.toHaveProperty('classification');
+    expect(result.support_elements[0]).not.toHaveProperty('subtype');
+  });
+
+  it('uses an existing colors entry when a canonical support row is missing color', () => {
+    const result = postProcessSearchAnalysisResult(validAnalysis({
+      support_elements: [{
+        type: 'sprinkles',
+        material: 'candy',
+        group_id: 'red_sprinkles',
+        colors: ['#FF0000'],
+        size: 'tiny',
+        quantity: 1,
+        description: 'red sprinkles scattered on top',
+      }],
+    }), typeEnums);
+
+    expect(result.support_elements[0]).toMatchObject({
+      type: 'sprinkles',
+      material: 'candy',
+      color: '#FF0000',
+    });
+  });
+
+  it.each([
+    ['premium gold sprinkles', 'premium_sprinkles', 'candy'],
+    ['silver dragees', 'dragees', 'candy'],
+    ['piped icing sprinkles on the sides', 'icing_decorations', 'icing'],
+    ['cluster of edible flowers', 'edible_flowers', 'edible_fondant'],
+    ['bouquet of fondant flowers', 'edible_flowers', 'edible_fondant'],
+    ['small fondant edible 3D ordinary topper', 'edible_3d_ordinary', 'edible_fondant'],
+    ['small printed paper cutout', 'support_printout', 'photopaper'],
+  ])('maps explicit support wording %s to %s', (description, type, material) => {
+    const result = postProcessSearchAnalysisResult(validAnalysis({
+      support_elements: [{
+        type: 'edible_3d_ordinary',
+        material: 'edible_fondant',
+        group_id: 'explicit_support_item',
+        color: '#C0C0C0',
+        size: 'small',
+        quantity: 2,
+        description,
+      }],
+    }), typeEnums);
+
+    expect(result.support_elements[0]).toMatchObject({ type, material });
+  });
+
+  it.each([
+    ['single birthday candle', 'candle', 'wax'],
+    ['set of birthday candles', 'candle', 'wax'],
+    ['fondant edible crown', 'edible_crown', 'edible_fondant'],
+    ['metallic fondant crown', 'edible_crown', 'edible_fondant'],
+    ['plastic rhinestone tiara', 'plastic_crown', 'plastic'],
+    ['printed paper printout', 'printout', 'photopaper'],
+    ['gold cardstock topper', 'cardstock', 'cardstock'],
+    ['small plastic toy', 'toy', 'plastic'],
+  ])('maps explicit main wording %s to %s', (description, type, material) => {
+    const result = postProcessSearchAnalysisResult(validAnalysis({
+      main_toppers: [{
+        type: 'edible_3d_ordinary',
+        material: 'edible_fondant',
+        group_id: 'explicit_main_item',
+        classification: 'support',
+        size: 'small',
+        quantity: 1,
+        description,
+      }],
+    }), typeEnums);
+
+    expect(result.main_toppers[0]).toMatchObject({
+      type,
+      material,
+      classification: 'hero',
     });
   });
 

@@ -19,7 +19,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.43 Version - Tiny Sugar Pearls Are Sprinkles**');
+    expect(prompt).toContain('**v3.44 Version - Primary Object Description-to-Type Consistency**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('3. Visible construction of each item');
     expect(prompt).toContain('5. Type compatible with that construction and material');
@@ -77,6 +77,33 @@ describe('cake analysis prompt rules', () => {
     expect(SYSTEM_INSTRUCTION).toContain('When gumpasteBaseBoard is true, include colors.gumpasteBaseBoardColor');
     expect(SYSTEM_INSTRUCTION).toContain('Use the active analysis prompt as the only source for sizing boundaries');
     expect(SYSTEM_INSTRUCTION).toContain('Use plastic_ball only for one dominant focal plastic sphere');
+    expect(SYSTEM_INSTRUCTION).toContain('Every item row must represent one primary priced object');
+  });
+
+  it('keeps primary priced objects aligned with type and material before emission', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(prompt).toContain('ONE PRIMARY PRICED OBJECT PER ROW — DESCRIPTION/TYPE CONSISTENCY (REQUIRED)');
+    expect(prompt).toContain('Begin `description` with that primary object');
+    expect(prompt).toContain('visible image evidence and named fulfillment normalizations\nremain authoritative');
+    for (const connector of [
+      '`with`',
+      '`topped with`',
+      '`covered in`',
+      '`covered with`',
+      '`decorated with`',
+      '`finished with`',
+      '`featuring`',
+    ]) {
+      expect(prompt).toContain(connector);
+    }
+    expect(prompt).toContain('`colorful sprinkles scattered on top` -> `sprinkles`, material `candy`');
+    expect(prompt).toContain('`fondant donut with sprinkles` -> `edible_3d_ordinary`, material');
+    expect(prompt).toContain('`meringue kisses with sprinkles` -> `meringue`, material `candy`');
+    expect(prompt).toContain('`piped icing dollops topped with sprinkles` -> `icing_decorations`, material');
+    expect(prompt).toContain('If the secondary garnish is independently priced or countable, emit it as its');
+    expect(prompt).not.toContain('| `icing sprinkles` |');
+    expect(prompt).toContain('| `icing_decorations` | icing | Piped icing elements such as dots, rosettes, swirls, and borders.');
   });
 
   it('requires positive flat-paper evidence and prevents volumetric figurines from becoming printouts', () => {
@@ -275,7 +302,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.43 Version - Tiny Sugar Pearls Are Sprinkles**');
+    expect(prompt).toContain('**v3.44 Version - Primary Object Description-to-Type Consistency**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -296,7 +323,7 @@ describe('cake analysis prompt rules', () => {
   it('uses toy-specific sizing for miniature molded toys', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.43 Version - Tiny Sugar Pearls Are Sprinkles**');
+    expect(prompt).toContain('**v3.44 Version - Primary Object Description-to-Type Consistency**');
     expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy` AND `plastic_crown`)');
     expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
     expect(prompt).toContain('| `tiny` | under 0.10 |');

@@ -34,6 +34,7 @@ describe('getDynamicTypeEnums', () => {
 
     expect(result.supportElementTypes).toContain('support_printout');
     expect(result.mainTopperTypes).toContain('icing_doodle');
+    expect(result.mainTopperTypes).toContain('edible_crown');
     expect(result.subtypesByType.icing_doodle).toEqual(['icing_doodle_intricate']);
     expect(result.subtypesByType.chocolates).toContain('ferrero');
   });

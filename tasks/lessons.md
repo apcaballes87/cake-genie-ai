@@ -1,5 +1,7 @@
 # Lessons
 
+- When a cake-analysis description/type mismatch can be corrected at the existing strict post-processing seam, prefer a narrow primary-object reconciliation table over redesigning the whole taxonomy. Split secondary garnish phrases first, preserve composite descriptions, and leave ambiguous rows unchanged.
+
 - When a Google OAuth flow is supposed to return to a specific page, do not rely only on the callback query parameter. Persist the validated internal destination before leaving the browser and add a post-auth recovery path for providers or callbacks that drop `next`.
 
 - When a public Shopify upload still fails after switching to an existing bucket, do not assume a broad `public` storage policy is actually the effective client path. Verify the exact project, bucket, policy, and anonymous REST upload with the same public key, then provision a dedicated bucket/policy contract for the integration.

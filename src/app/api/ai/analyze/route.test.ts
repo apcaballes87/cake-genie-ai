@@ -61,8 +61,8 @@ describe('POST /api/ai/analyze', () => {
             version: '1.0',
         });
         mockGetDynamicTypeEnums.mockResolvedValue({
-            mainTopperTypes: ['printout'],
-            supportElementTypes: ['edible_flowers'],
+            mainTopperTypes: ['printout', 'edible_3d_ordinary'],
+            supportElementTypes: ['edible_flowers', 'edible_2d_support', 'sprinkles'],
             subtypesByType: {},
         });
         mockGenerateContent.mockResolvedValue({
@@ -160,6 +160,43 @@ describe('POST /api/ai/analyze', () => {
         expect(response.status).toBe(200);
         expect(payload.cakeType).toBe('1 Tier Fondant');
         expect(payload.cakeThickness).toBe('5 in');
+    });
+
+    it('returns a canonical sprinkles tuple from the shared post-processor', async () => {
+        mockGetOrCreatePromptCache.mockResolvedValue(null);
+        mockGenerateContent.mockResolvedValue({
+            text: JSON.stringify({
+                ...validAnalysis,
+                support_elements: [{
+                    type: 'edible_2d_support',
+                    material: 'edible_fondant',
+                    group_id: 'tiny_rainbow_sprinkles',
+                    color: '#FF0000',
+                    size: 'tiny',
+                    quantity: 20,
+                    description: 'colorful sprinkles on top',
+                }],
+            }),
+        });
+
+        const { POST } = await import('./route');
+        const request = new NextRequest('http://localhost/api/ai/analyze', {
+            method: 'POST',
+            body: JSON.stringify({
+                imageData: 'base64-data',
+                mimeType: 'image/png',
+            }),
+        });
+
+        const response = await POST(request);
+        const payload = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(payload.support_elements).toEqual([expect.objectContaining({
+            type: 'sprinkles',
+            material: 'candy',
+            quantity: 1,
+        })]);
     });
 
     it('reuses cached prompt details and enum config across hot requests', async () => {

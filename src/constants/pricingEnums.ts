@@ -28,6 +28,7 @@ export const MAIN_TOPPER_TYPES = [
     'printout',
     'toy',
     'plastic_crown',
+    'edible_crown',
     'figurine',
     'cardstock',
     'edible_photo_top',

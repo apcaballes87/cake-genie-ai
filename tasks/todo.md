@@ -1,5 +1,23 @@
 # Tasks
 
+## Reconcile primary description objects with canonical AI types (2026-08-14)
+
+### Plan
+
+- [x] Verify the shared fresh-analysis post-processor, active prompt version, fallback parity, and existing sugar-pearl guard.
+- [x] Add a conservative table-driven primary-object reconciler and restore `edible_crown` to the generated main-topper schema.
+- [ ] Release prompt v3.44 with the one-primary-priced-object rule and canonical icing-decoration wording.
+- [x] Run contract, prompt, pricing, route, and production-build checks.
+- [ ] Publish the scoped code and prompt migration, then verify fresh no-cache images without changing cached analyses or pricing.
+
+### Review
+
+- The shared post-processor now reconciles only explicit primary-object wording, moves rows between main/support roles when required fields already exist, clears stale subtypes, and runs the strict validator afterward. Secondary garnish phrases, generic nouns, attached accessories, singular `sprinkle` adjectives, and ambiguous mixed-object rows remain unchanged.
+- `edible_crown` is restored to generated main-topper enums. Prompt v3.44 is derived byte-for-byte from live v3.43 by the new migration; expected fallback/live MD5 is `c80520a8bc4ccc110f8cc687db34390e`.
+- Verification passed: 148 focused contract/prompt/route/pricing tests, scoped ESLint, isolated implementation TypeScript, migration/fallback parity, and `git diff --check`.
+- The webpack production build compiled successfully and reached TypeScript, then stopped on pre-existing invalid named exports in Next page modules. The default Turbopack build cannot follow the isolated worktree's external `node_modules` symlink. Neither blocker is in the changed files.
+- Production code publish, prompt activation, and fresh no-cache image verification remain pending.
+
 ## Diagnose Cakes & Memories to Genie.ph cake-analysis handoff (2026-07-13)
 
 ### Plan
