@@ -33,7 +33,11 @@ describe('imageStudio helpers', () => {
     expect(prompt).toContain('Output a photorealistic, high-resolution bakery catalog image');
     expect(prompt).toContain('1:1 square aspect ratio');
     expect(prompt).toContain('final image is perfectly square');
-    expect(prompt).toContain('If its a cupcakes or cupcake set image, remove the box and cupcake holder');
+    expect(prompt).toContain('HIGHEST PRIORITY — if the source contains a whole cake alongside cupcakes');
+    expect(prompt).toContain('4-inch Bento + 5 Cupcakes set must remain exactly one 4-inch bento cake plus exactly five cupcakes');
+    expect(prompt).toContain('For every composite cake set (a whole cake alongside cupcakes), change only the background');
+    expect(prompt).toContain('If — and only if — the source contains cupcakes with no whole cake');
+    expect(prompt).toContain('A cake-and-cupcake composite set is one product subject');
     expect(prompt).toContain('translate that text into English');
     expect(prompt).toContain('foreign (non-English) language');
     expect(prompt).toContain('English text on the source cake should be preserved as-is');
@@ -50,6 +54,9 @@ describe('imageStudio helpers', () => {
     expect(systemInstruction).toContain('never like a screenshot');
     expect(systemInstruction).toContain('simple background swap');
     expect(systemInstruction).toContain('Convert cake and cupcake references');
+    expect(systemInstruction).toContain('A source that contains a whole cake alongside cupcakes is one indivisible composite product set');
+    expect(systemInstruction).toContain('4-inch Bento + 5 Cupcakes set must remain one 4-inch bento cake plus exactly five cupcakes');
+    expect(systemInstruction).toContain('For composite cake sets, change only the background and natural studio lighting/contact shadows');
   });
 
   it('creates a deterministic storage path', () => {
