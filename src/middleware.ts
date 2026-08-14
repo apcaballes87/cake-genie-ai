@@ -164,7 +164,9 @@ export async function middleware(request: NextRequest) {
     if (invalidCollectionPage) return invalidCollectionPage
 
     // Edge Rate Limiting check
-    const isAiRoute = pathname.startsWith('/api/ai/analyze') || pathname.startsWith('/api/ai/edit-image')
+    const isAiRoute = pathname.startsWith('/api/ai/analyze')
+        || pathname.startsWith('/api/ai/edit-image')
+        || pathname.startsWith('/api/ai/cold-cake-edit')
     const isNewsletterRoute = pathname.startsWith('/api/newsletter')
     const isContactRoute = pathname.startsWith('/api/contact')
     const isInvestorRoute = pathname.startsWith('/api/investors')
@@ -266,6 +268,7 @@ export const config = {
         '/((?!api|_next|favicon\\.ico|.*\\..*).*)',
         '/api/ai/analyze',
         '/api/ai/edit-image',
+        '/api/ai/cold-cake-edit',
         '/api/newsletter',
         '/api/contact',
         '/api/investors',

@@ -137,6 +137,15 @@ describe('middleware', () => {
         expect(mockCheckRateLimit).toHaveBeenCalledWith('ai', expect.any(String));
     });
 
+    it('should rate limit /api/ai/cold-cake-edit as an AI route', async () => {
+        const request = makeRequest('http://localhost/api/ai/cold-cake-edit');
+        const response = await middleware(request);
+
+        expect(response).toBeInstanceOf(NextResponse);
+        expect(response.status).toBe(200);
+        expect(mockCheckRateLimit).toHaveBeenCalledWith('ai', expect.any(String));
+    });
+
     it('redirects short legacy customizer aliases to their modern cake slug', async () => {
         const request = makeRequest('http://localhost/customizing/bicycle-sky-blue-1-tier-8fe7');
         const response = await middleware(request);

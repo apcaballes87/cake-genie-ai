@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAI } from '@/lib/ai/client';
 import { normalizeAiRouteError } from '@/lib/ai/routeError';
+import { isQuotaLikeError } from '@/lib/ai/withQuotaRetry';
 
 export const maxDuration = 60;
 const MODEL_NAME = 'gemini-3.1-flash-lite-image';
+const FALLBACK_MODEL_NAME = 'gemini-2.5-flash-image';
 
 const SYSTEM_INSTRUCTION = `You are a professional food photographer and cake artist specializing in photorealistic edible photo cakes and printed cake designs.
 
@@ -99,25 +101,52 @@ The result must look like a real professionally-made edible photo cake from a ba
         ];
 
         const aiClient = getAI(req);
-        const response = await aiClient.models.generateContent({
-            model: MODEL_NAME,
-            contents: [{ role: 'user', parts }],
-            config: {
-                systemInstruction: SYSTEM_INSTRUCTION,
-                responseModalities: ['IMAGE'],
-            },
-        });
+        const modelAttempts = [MODEL_NAME, FALLBACK_MODEL_NAME];
 
-        const generatedImage = extractGeneratedImage(response);
+        for (const [attemptIndex, modelName] of modelAttempts.entries()) {
+            try {
+                const response = await aiClient.models.generateContent({
+                    model: modelName,
+                    contents: [{ role: 'user', parts }],
+                    config: {
+                        systemInstruction: SYSTEM_INSTRUCTION,
+                        responseModalities: ['IMAGE'],
+                    },
+                });
 
-        if (generatedImage) {
-            console.log(`[AI TRACE ${traceId}] /api/ai/cold-cake-edit:success`, {
-                durationMs: Date.now() - startedAt,
-            });
-            return NextResponse.json({
-                imageData: generatedImage.imageData,
-                mimeType: generatedImage.mimeType,
-            });
+                const generatedImage = extractGeneratedImage(response);
+
+                if (generatedImage) {
+                    console.log(`[AI TRACE ${traceId}] /api/ai/cold-cake-edit:success`, {
+                        durationMs: Date.now() - startedAt,
+                        model: modelName,
+                    });
+                    return NextResponse.json({
+                        imageData: generatedImage.imageData,
+                        mimeType: generatedImage.mimeType,
+                    });
+                }
+
+                if (attemptIndex < modelAttempts.length - 1) {
+                    console.warn(`[AI TRACE ${traceId}] /api/ai/cold-cake-edit:fallback`, {
+                        fromModel: modelName,
+                        toModel: modelAttempts[attemptIndex + 1],
+                        reason: 'empty-response',
+                    });
+                    continue;
+                }
+            } catch (error) {
+                const hasFallback = attemptIndex < modelAttempts.length - 1;
+                if (!hasFallback || !isQuotaLikeError(error)) {
+                    throw error;
+                }
+
+                console.warn(`[AI TRACE ${traceId}] /api/ai/cold-cake-edit:fallback`, {
+                    fromModel: modelName,
+                    toModel: modelAttempts[attemptIndex + 1],
+                    reason: 'quota',
+                });
+            }
         }
 
         console.error(`[AI TRACE ${traceId}] /api/ai/cold-cake-edit:empty-response`, {
