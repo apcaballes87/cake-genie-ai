@@ -5,6 +5,7 @@ import type {
   BuyerAttributionRecord,
   CommerceOrderSnapshot,
 } from '@/types';
+import type { TierFlavorAssignment } from '@/lib/tierFlavorMapping';
 
 /**
  * The status of a customer's order in the fulfillment process.
@@ -23,6 +24,8 @@ export type PaymentStatus = 'pending' | 'verifying' | 'partial' | 'paid' | 'refu
  */
 export interface CustomizationDetails {
   flavors: string[];
+  /** Explicit multi-tier size-to-flavor associations. Absent on legacy orders. */
+  tier_flavors?: TierFlavorAssignment[];
   mainToppers: {
     description: string;
     type: string;

@@ -137,5 +137,27 @@ describe('buildCartCustomizationDetails', () => {
     expect(result.ai_chat_history).toEqual(aiChatHistory);
     expect(result.chat_history).toEqual(['make the side pink']);
     expect(result.additionalInstructions).toBe('Match the uploaded reference.');
+
+    const tieredResult = buildCartCustomizationDetails({
+      cakeInfo: {
+        ...cakeInfo,
+        type: '3 Tier Fondant',
+        size: '7"10"14" Fondant',
+        flavors: ['Vanilla Cake', 'Ube Cake', 'Chocolate Cake'],
+      },
+      mainToppers,
+      supportElements,
+      cakeMessages,
+      icingDesign,
+      additionalInstructions: 'Match the uploaded reference.',
+      aiChatHistory,
+      commerceSnapshot: result.commerce_snapshot!,
+    });
+
+    expect(tieredResult.tier_flavors).toEqual([
+      { tier: 'top', size: '7"', flavor: 'Vanilla Cake' },
+      { tier: 'middle', size: '10"', flavor: 'Ube Cake' },
+      { tier: 'bottom', size: '14"', flavor: 'Chocolate Cake' },
+    ]);
   });
 });

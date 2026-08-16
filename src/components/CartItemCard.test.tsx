@@ -98,4 +98,35 @@ describe('CartItemCard', () => {
 
     expect(screen.getByText('View Customization Details').closest('details')).toHaveAttribute('open');
   });
+
+  it('shows persisted tier sizes beside their assigned flavors', () => {
+    const item: CartItem = {
+      id: 'tiered-cart-item',
+      image: 'https://example.com/cake.webp',
+      status: 'complete',
+      type: '3 Tier Fondant',
+      thickness: '5 in',
+      size: '7"10"14" Fondant',
+      totalPrice: 12599,
+      details: {
+        flavors: ['Vanilla Cake', 'Ube Cake', 'Chocolate Cake'],
+        tier_flavors: [
+          { tier: 'top', size: '7"', flavor: 'Vanilla Cake' },
+          { tier: 'middle', size: '10"', flavor: 'Ube Cake' },
+          { tier: 'bottom', size: '14"', flavor: 'Chocolate Cake' },
+        ],
+        mainToppers: [],
+        supportElements: [],
+        cakeMessages: [],
+        icingDesign: { base: 'fondant', drip: false, gumpasteBaseBoard: false, colors: {} },
+        additionalInstructions: '',
+      },
+    };
+
+    render(<CartItemCard item={item} onRemove={vi.fn()} onZoom={vi.fn()} />);
+
+    expect(screen.getByText('7" Top Tier Flavor:')).toBeInTheDocument();
+    expect(screen.getByText('10" Middle Tier Flavor:')).toBeInTheDocument();
+    expect(screen.getByText('14" Bottom Tier Flavor:')).toBeInTheDocument();
+  });
 });

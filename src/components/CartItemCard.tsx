@@ -88,6 +88,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom, app
         : item.details.flavors.length === 3
             ? ['Top Tier', 'Middle Tier', 'Bottom Tier']
             : ['Flavor'];
+    const tierFlavors = item.details.tier_flavors;
 
     const colorLabelMap: Record<string, string> = {
         side: 'Side',
@@ -148,7 +149,11 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom, app
                     <summary className="text-xs font-semibold text-slate-600 cursor-pointer">View Customization Details</summary>
                     <div className="mt-2 pl-2 border-l-2 border-purple-100 space-y-1.5 text-xs text-slate-500">
                         <DetailItem label="Type" value={`${item.type}, ${item.thickness}, ${item.size}`} />
-                        {item.details.flavors.length === 1 ? (
+                        {tierFlavors?.length ? (
+                            tierFlavors.map(({ tier, size, flavor }) => (
+                                <DetailItem key={tier} label={`${size} ${tier[0].toUpperCase()}${tier.slice(1)} Tier Flavor`} value={flavor} />
+                            ))
+                        ) : item.details.flavors.length === 1 ? (
                             <DetailItem label="Flavor" value={item.details.flavors[0]} />
                         ) : (
                             item.details.flavors.map((flavor, idx) => (
@@ -241,7 +246,11 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, onRemove, onZoom, app
                 <summary className="text-xs font-semibold text-slate-600 cursor-pointer">View Customization Details</summary>
                 <div className="mt-2 pl-2 border-l-2 border-purple-100 space-y-1.5 text-xs text-slate-500">
                     <DetailItem label="Type" value={`${item.type}, ${item.thickness}, ${item.size}`} />
-                    {item.details.flavors.length === 1 ? (
+                    {tierFlavors?.length ? (
+                        tierFlavors.map(({ tier, size, flavor }) => (
+                            <DetailItem key={tier} label={`${size} ${tier[0].toUpperCase()}${tier.slice(1)} Tier Flavor`} value={flavor} />
+                        ))
+                    ) : item.details.flavors.length === 1 ? (
                         <DetailItem label="Flavor" value={item.details.flavors[0]} />
                     ) : (
                         item.details.flavors.map((flavor, idx) => (

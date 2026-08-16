@@ -1,5 +1,7 @@
 // types.ts
 
+import type { TierFlavorAssignment } from '@/lib/tierFlavorMapping';
+
 export type { GeneratedCakeAnalysisResult } from '@/lib/ai/generatedAnalysisContract';
 
 // --- Base Types from Gemini Analysis ---
@@ -221,6 +223,7 @@ export interface AiChatHistoryEntry {
 
 export interface CartItemDetails {
   flavors: string[];
+  tier_flavors?: TierFlavorAssignment[];
   mainToppers: {
     description: string;
     type: string;

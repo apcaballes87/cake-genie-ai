@@ -1,6 +1,7 @@
 import type { AiChatHistoryEntry, CakeInfoUI, CakeMessageUI, IcingDesignUI, MainTopperUI, SupportElementUI, CommerceOrderSnapshot } from '@/types';
 import type { CustomizationDetails } from '@/lib/database.types';
 import { getLegacyChatHistory } from '@/lib/commerce/aiChatHistory';
+import { buildTierFlavorAssignments } from '@/lib/tierFlavorMapping';
 
 interface BuildCartCustomizationDetailsInput {
   cakeInfo: CakeInfoUI;
@@ -16,8 +17,15 @@ interface BuildCartCustomizationDetailsInput {
 export function buildCartCustomizationDetails(
   input: BuildCartCustomizationDetailsInput,
 ): CustomizationDetails {
+  const tierFlavors = buildTierFlavorAssignments(
+    input.cakeInfo.type,
+    input.cakeInfo.size,
+    input.cakeInfo.flavors,
+  );
+
   return {
     flavors: input.cakeInfo.flavors,
+    ...(tierFlavors ? { tier_flavors: tierFlavors } : {}),
     mainToppers: input.mainToppers
       .filter((topper) => topper.isEnabled)
       .map((topper) => ({
