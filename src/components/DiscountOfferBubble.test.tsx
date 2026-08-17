@@ -52,7 +52,7 @@ describe('DiscountOfferBubble', () => {
   it('moves the collapsed offer above two stacked notifications', () => {
     render(<DiscountOfferBubble basePrice={800} notificationCount={2} />);
 
-    const teaser = screen.getByText('SIGN UP & GET 20% OFF!!').parentElement?.parentElement;
+    const teaser = screen.getByText('SIGN UP & GET 10% OFF!!').parentElement?.parentElement;
     expect(teaser).toHaveClass('mb-[108px]');
   });
 

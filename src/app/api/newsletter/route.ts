@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
                     code: candidate,
                     public_code: true,
                     is_active: true,
-                    discount_percentage: 20,
+                    discount_percentage: 10,
                     max_uses: 1,
                     times_used: 0,
                     free_delivery: false,

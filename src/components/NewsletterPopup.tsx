@@ -213,7 +213,7 @@ export default function NewsletterPopup() {
               <div className="text-3xl mb-3">🎉</div>
               <h2 id="newsletter-popup-title" className="text-2xl font-extrabold text-gray-900 mb-3">YOU&apos;RE ALL SET!</h2>
 
-              <p className="text-base text-gray-600 mb-5">Here&apos;s your 20% off discount code:</p>
+              <p className="text-base text-gray-600 mb-5">Here&apos;s your 10% off discount code:</p>
               <div className="bg-purple-50 border-2 border-dashed border-purple-300 rounded-xl py-3 px-6 inline-block mb-4 shadow-sm">
                 <span className="text-2xl font-bold tracking-wider text-purple-700">{discountCode}</span>
               </div>
@@ -236,7 +236,7 @@ export default function NewsletterPopup() {
             /* ── Sign-up form ── */
             <div>
               <h2 id="newsletter-popup-title" className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-[1.15] mb-2 tracking-tight text-center">
-                CREATE AN ACCOUNT &amp; GET <span className="text-purple-600 italic">20% OFF</span> YOUR FIRST ORDER
+                CREATE AN ACCOUNT &amp; GET <span className="text-purple-600 italic">10% OFF</span> YOUR FIRST ORDER
               </h2>
               <p className="text-gray-500 mb-6 text-sm text-center leading-relaxed">
                 Sign up for free to unlock your exclusive discount code.
@@ -315,7 +315,7 @@ export default function NewsletterPopup() {
                     disabled={status === 'loading'}
                     className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold py-3 px-2 rounded-xl transition-all shadow-lg active:scale-[0.98] disabled:opacity-70 whitespace-nowrap text-[12px] sm:text-sm"
                   >
-                    {status === 'loading' ? 'SIGNING UP…' : 'SIGN UP & SAVE 20%'}
+                    {status === 'loading' ? 'SIGNING UP…' : 'SIGN UP & SAVE 10%'}
                   </button>
                   <button
                     type="button"

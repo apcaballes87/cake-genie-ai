@@ -57,7 +57,7 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
   // Prevent the OAuth-return effect running more than once per mount
   const oauthHandledRef = useRef(false);
 
-  const discountedPrice = basePrice * 0.8;
+  const discountedPrice = basePrice * 0.9;
   const savings = basePrice - discountedPrice;
   const collapsedOffsetClass = notificationCount > 1
     ? 'mb-[108px]'
@@ -100,7 +100,7 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
       localStorage.setItem('cart_applied_discount', JSON.stringify(validationResult));
 
       setAppliedCode(code);
-      showSuccess(`20% Discount Unlocked! Code ${code} applied.`);
+      showSuccess(`10% Discount Unlocked! Code ${code} applied.`);
       setStatus('success');
       setHasApplied(true);
       onApplied?.();
@@ -178,7 +178,7 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
       localStorage.setItem('cart_applied_discount', JSON.stringify(validationResult));
 
       setAppliedCode(code);
-      showSuccess(`20% Discount Unlocked! Code ${code} applied. Check your email to confirm your account.`);
+      showSuccess(`10% Discount Unlocked! Code ${code} applied. Check your email to confirm your account.`);
       setStatus('success');
       setHasApplied(true);
       if (onApplied) onApplied();
@@ -247,7 +247,7 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
 
             <div className="text-[11px] max-md:text-[9px] font-extrabold flex items-center gap-1 text-emerald-700 uppercase tracking-tight">
               <Sparkles className="w-3 h-3 fill-emerald-600" />
-              SIGN UP &amp; GET 20% OFF!!
+              SIGN UP &amp; GET 10% OFF!!
             </div>
 
             <div className="flex items-center gap-2">
@@ -282,8 +282,8 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
             </div>
             <p className="text-[11px] text-gray-600 leading-relaxed">
               {isAuthenticated
-                ? `Apply your exclusive 20% discount and save ₱${savings.toLocaleString()} on this order.`
-                : `Sign up to get a unique 20% off code and save ₱${savings.toLocaleString()} immediately.`}
+                ? `Apply your exclusive 10% discount and save ₱${savings.toLocaleString()} on this order.`
+                : `Sign up to get a unique 10% off code and save ₱${savings.toLocaleString()} immediately.`}
             </p>
           </div>
 
@@ -307,7 +307,7 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
               >
                 {status === 'loading' ? 'APPLYING…' : (
                   <>
-                    APPLY 20% DISCOUNT
+                    APPLY 10% DISCOUNT
                     <ChevronRight className="w-4 h-4" />
                   </>
                 )}
@@ -381,7 +381,7 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
                   >
                     {status === 'loading' ? 'SIGNING UP…' : (
                       <>
-                        GET MY 20% DISCOUNT
+                        GET MY 10% DISCOUNT
                         <ChevronRight className="w-4 h-4" />
                       </>
                     )}

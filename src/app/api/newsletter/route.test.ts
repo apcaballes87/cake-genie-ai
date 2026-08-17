@@ -88,6 +88,7 @@ describe('POST /api/newsletter', () => {
     expect(payload.code).toMatch(/^GENIE[A-Z2-9]{7}$/)
     expect(fromMock).toHaveBeenCalledWith('cakegenie_newsletter_subscribers')
     expect(fromMock).toHaveBeenCalledWith('discount_codes')
+    expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ discount_percentage: 10 }))
   })
 
   it('returns existing code for already subscribed email', async () => {

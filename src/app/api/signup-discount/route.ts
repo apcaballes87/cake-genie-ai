@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
                     // creation, so this is not a real authorization gap.
                     public_code: true,
                     is_active: true,
-                    discount_percentage: 20,
+                    discount_percentage: 10,
                     max_uses: 1,
                     times_used: 0,
                     free_delivery: false,
