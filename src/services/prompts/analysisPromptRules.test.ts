@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
 import { getAnalysisPromptWithFallback, loadFallbackAnalysisPrompt } from './promptLoader';
+import floralPinkPeonyFixture from './fixtures/floral-pink-pink-1-tier-cake-1931.json';
 import minimalistSugarPearlFixture from './fixtures/minimalist-birthday-ivory-1-tier-cake-717c.json';
 import safariJungleFigureFixture from './fixtures/safari-jungle-mint-1-tier-cake-4d4a.json';
 import snowWhiteFlowerFixture from './fixtures/snow-white-blue-2-tier-cake-074d.json';
@@ -19,7 +20,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.44 Version - Primary Object Description-to-Type Consistency**');
+    expect(prompt).toContain('**v3.46 Version - Flower Fulfillment Unit Boundaries**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('3. Visible construction of each item');
     expect(prompt).toContain('5. Type compatible with that construction and material');
@@ -302,7 +303,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.44 Version - Primary Object Description-to-Type Consistency**');
+    expect(prompt).toContain('**v3.46 Version - Flower Fulfillment Unit Boundaries**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -323,7 +324,7 @@ describe('cake analysis prompt rules', () => {
   it('uses toy-specific sizing for miniature molded toys', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.44 Version - Primary Object Description-to-Type Consistency**');
+    expect(prompt).toContain('**v3.46 Version - Flower Fulfillment Unit Boundaries**');
     expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy` AND `plastic_crown`)');
     expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
     expect(prompt).toContain('| `tiny` | under 0.10 |');
@@ -575,6 +576,61 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('Every visible flower, including fresh-looking, natural-looking, silk, cloth,');
     expect(prompt).toContain('is fulfilled and priced as edible flowers.');
     expect(prompt).not.toContain('artificial_flowers');
+  });
+
+  it('counts mixed-size top peonies as individual main-topper flower pieces', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+    const expectedFlowers = floralPinkPeonyFixture.expected_main_toppers;
+
+    expect(floralPinkPeonyFixture.slug).toBe('floral-pink-pink-1-tier-cake-1931');
+    expect(expectedFlowers).toEqual([
+      {
+        group_id: 'large_pink_peony_flowers',
+        type: 'edible_flowers',
+        material: 'edible_fondant',
+        classification: 'hero',
+        size: 'large',
+        quantity: 3,
+        description: 'three large pink peony flowers on top',
+      },
+      {
+        group_id: 'medium_pink_peony_flower',
+        type: 'edible_flowers',
+        material: 'edible_fondant',
+        classification: 'hero',
+        size: 'medium',
+        quantity: 1,
+        description: 'one medium pink peony flower on top',
+      },
+    ]);
+    expect(floralPinkPeonyFixture.forbidden_grouping).toEqual({
+      description: 'large pink peony flower cluster on top',
+      quantity: 1,
+      subtype: 'flower_cluster',
+    });
+    expect(prompt).toContain('FLOWER PIECE COUNTING AND SIZE PRECEDENCE (BOTH MAIN AND SUPPORT — REQUIRED)');
+    expect(prompt).toContain('A bouquet, cluster, spray, or arrangement describes placement only.');
+    expect(prompt).toContain('Count each clearly\nvisible bloom or flower head as one physical flower piece');
+    expect(prompt).toContain('Different sizes or\nappearances require separate rows.');
+    expect(prompt).toContain('do not use `subtype: "flower_cluster"` as a substitute');
+    expect(prompt).toContain('VISIBLE FLOWER UNIT BOUNDARY AND BAKERY FULFILLMENT IDENTITY');
+    expect(prompt).toContain('applies only\nwhen the PEONY-STYLE TOP SET OVERRIDE signature below is satisfied');
+    expect(prompt).toContain('touching flowers\nwith independently bounded outer petals remain separate pieces');
+    expect(prompt).toContain('genuinely\nmixed flower identities remain separate product rows');
+    expect(prompt).toContain('one continuous outer petal boundary');
+    expect(prompt).toContain('Use bakery fulfillment identity rather than strict botanical taxonomy.');
+    expect(prompt).toContain('normalize\nall of those top flowers to the dominant peony fulfillment identity');
+    expect(prompt).toContain('PEONY-STYLE TOP SET OVERRIDE (HIGHEST FLOWER-COUNTING PRIORITY)');
+    expect(prompt).toContain('treat it as one standardized peony-style top set');
+    expect(prompt).toContain('output exactly these two `main_toppers` flower rows');
+    expect(prompt).toContain('quantity `3`, described\n  as three large pink peony flowers on top');
+    expect(prompt).toContain('quantity `1`, described\n  as one medium pink peony flower on top');
+    expect(prompt).toContain('These two rows exhaust the entire\ntop arrangement.');
+    expect(prompt).toContain('in another\nrow in either array.');
+    expect(prompt).toContain('below the top rim on the cake side');
+    expect(prompt).toContain('description must not say top or top\nedge');
+    expect(prompt).toContain('three large pink peonies and one medium pink peony');
+    expect(prompt).toContain('Tiny/xsmall scattered or repeated sugar pearls, sugar beads,');
   });
 
   it('makes tiny scattered sugar pearls and beads grouped candy sprinkles', () => {

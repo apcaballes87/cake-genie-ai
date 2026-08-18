@@ -1,0 +1,31 @@
+{
+  "slug": "floral-pink-pink-1-tier-cake-1931",
+  "image_url": "https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/customizations/floral-pink-pink-1-tier-cake-1931.webp",
+  "source_url": "https://genie.ph/customizing/floral-pink-pink-1-tier-cake-1931",
+  "purpose": "Gold regression fixture for individual mixed-size hero flower counting.",
+  "expected_main_toppers": [
+    {
+      "group_id": "large_pink_peony_flowers",
+      "type": "edible_flowers",
+      "material": "edible_fondant",
+      "classification": "hero",
+      "size": "large",
+      "quantity": 3,
+      "description": "three large pink peony flowers on top"
+    },
+    {
+      "group_id": "medium_pink_peony_flower",
+      "type": "edible_flowers",
+      "material": "edible_fondant",
+      "classification": "hero",
+      "size": "medium",
+      "quantity": 1,
+      "description": "one medium pink peony flower on top"
+    }
+  ],
+  "forbidden_grouping": {
+    "description": "large pink peony flower cluster on top",
+    "quantity": 1,
+    "subtype": "flower_cluster"
+  }
+}

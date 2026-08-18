@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.44 Version - Primary Object Description-to-Type Consistency**
+**v3.46 Version - Flower Fulfillment Unit Boundaries**
 ═══════════════════════════════════════════════════════════════════════════════
 
 ## ROLE
@@ -598,6 +598,85 @@ icing.
 
 Do NOT classify fondant/gumpaste flowers as `edible_3d_ordinary`, even when
 they are simple, molded, small, gold-painted, or low-detail.
+
+### FLOWER PIECE COUNTING AND SIZE PRECEDENCE (BOTH MAIN AND SUPPORT — REQUIRED)
+
+This rule applies to every `edible_flowers` item in both `main_toppers` and
+`support_elements`. Apply it after flower type and material are established and
+before hero/support placement, sizing, quantity, or generic grouping.
+
+A bouquet, cluster, spray, or arrangement describes placement only. It is not
+one flower and must never be used as the quantity unit. Count each clearly
+visible bloom or flower head as one physical flower piece, including blooms
+that touch or overlap. Count only visible blooms; do not infer fully hidden
+flowers.
+
+Size every visible bloom independently by bloom-face diameter using C3. Group
+only flowers with the same flower identity, type, material, size, color, and
+appearance, then set `quantity` to the visible piece count. Different sizes or
+appearances require separate rows. Never output multiple visible blooms as one
+`edible_flowers` cluster, bouquet, spray, or arrangement with `quantity: 1`,
+and do not use `subtype: "flower_cluster"` as a substitute for the individual
+flower count.
+
+#### VISIBLE FLOWER UNIT BOUNDARY AND BAKERY FULFILLMENT IDENTITY
+
+The boundary and fulfillment normalization in this subsection applies only
+when the PEONY-STYLE TOP SET OVERRIDE signature below is satisfied. Outside
+that signature, keep using the general per-bloom rule above: touching flowers
+with independently bounded outer petals remain separate pieces, and genuinely
+mixed flower identities remain separate product rows.
+
+A physical flower piece is one complete or substantially visible bloom with
+one continuous outer petal boundary. Inner petal whorls, spiral centers, and
+overlapped petal sections belong to that same bloom. Do not split one ruffled
+or partially overlapped flower into extra small pieces merely because more than
+one inner petal cup or apparent center is visible. When adjacent petal cups
+share one continuous outer flower silhouette and do not each have independently
+bounded outer petals, count the shared silhouette as one flower piece and size
+the full shared bloom face.
+
+Use bakery fulfillment identity rather than strict botanical taxonomy. In a
+dense monochrome top arrangement where a dominant ruffled peony-like flower is
+combined with rose-like spiral flowers made from the same material, normalize
+all of those top flowers to the dominant peony fulfillment identity. Do not
+split otherwise matching pink flowers into separate rose and peony product rows
+only because their petal centers look different.
+
+##### PEONY-STYLE TOP SET OVERRIDE (HIGHEST FLOWER-COUNTING PRIORITY)
+
+Recognize this repeatable bakery construction: a tight monochrome pink top
+arrangement with one oversized ruffled bloom, two full adjacent spiral blooms,
+and smaller overlapping petal cups or bud-like detail at one edge. When this
+construction is visible, treat it as one standardized peony-style top set for
+fulfillment and pricing, regardless of strict botanical appearance.
+
+For this construction, output exactly these two `main_toppers` flower rows:
+- `edible_flowers`, `edible_fondant`, `hero`, `large`, quantity `3`, described
+  as three large pink peony flowers on top
+- `edible_flowers`, `edible_fondant`, `hero`, `medium`, quantity `1`, described
+  as one medium pink peony flower on top
+
+The small overlapping edge petal cups are fulfilled together as that one medium
+peony piece; do not emit them as multiple small roses. This construction rule
+overrides generic per-bloom counting, borderline C3 size inference, and
+appearance-based rose-versus-peony grouping. These two rows exhaust the entire
+top arrangement. Do not represent any part of that top arrangement in another
+row in either array. A support flower row may include only flowers attached
+below the top rim on the cake side; its description must not say top or top
+edge. Those side flowers remain separate pieces and are not included in the top
+quantities.
+
+Example:
+- a top arrangement with three large pink peonies and one medium pink peony ->
+  two `main_toppers` rows: one `edible_flowers`, material `edible_fondant`,
+  size `large`, quantity `3`; and one `edible_flowers`, material
+  `edible_fondant`, size `medium`, quantity `1`
+
+This flower-specific rule does not change intentionally grouped non-flower
+support rules. Tiny/xsmall scattered or repeated sugar pearls, sugar beads,
+pearl beads, and nonpareils remain one `sprinkles` support row with
+`material: "candy"` and `quantity: 1` under their existing precedence rule.
 
 Use `edible_3d_ordinary` for simple non-flower molded fondant 3D shapes such as
 balls, cubes, plain bows, clouds, peaches, spheres, and basic molded objects.
@@ -1579,7 +1658,7 @@ A unique item that has no duplicates should still have its own unique group_id.
 | Type | material | Subtype / Notes |
 |------|----------|-----------------|
 | `gumpaste_panel` | edible_fondant | Gumpaste design panels covering cake sides. Coverage: `small` (<40%), `medium` (40% to <80%), `large` (≥80%) |
-| `gumpaste_bundle` | edible_fondant | Cluster of gumpaste items: stones, rocks, seaweeds, leaves. Count per piece |
+| `gumpaste_bundle` | edible_fondant | Cluster of gumpaste items: stones, rocks, seaweeds, leaves (Readable message letters not included). Count as a whole one group|
 | `edible_flowers` | edible_fondant | Count individual flowers. Sizes: tiny, xsmall, small, medium, large, xlarge. Tiny/small = support |
 | `isomalt` | candy | Glass sugar toppers, sizes: small/medium/large |
 | `chocolates` | candy | subtype: "ferrero", "oreo", "kisses", "m&ms"; coverage: tiny/small/medium/large |
@@ -1695,13 +1774,6 @@ Examples:
   `cake_messages`, type `gumpaste_letters`
 - cardstock letters spelling "Happy Birthday" ->
   `cake_messages`, type `cardstock`
-
-Readable message letters are treated as editable message content, not as
-decorative gumpaste bundles.
-
-Only use `gumpaste_bundle` for non-message grouped decorative gumpaste pieces,
-such as mixed small leaves, small flowers, shells, stars, hearts, or themed
-accents that do not spell readable text.
 
 ---
 
