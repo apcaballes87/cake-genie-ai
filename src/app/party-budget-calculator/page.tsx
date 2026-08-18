@@ -44,7 +44,7 @@ const faqItems = [
   {
     question: 'Is my data saved anywhere?',
     answer:
-      'Your numbers are stored locally in your browser only (localStorage). Nothing is uploaded to our servers. Clear your browser data and the calculator resets.',
+      'Your planner auto-saves locally in your browser. If you press Save Details and sign in or create an account, your party budget is also saved securely to your Genie.ph account so you can open it on another device.',
   },
   {
     question: 'Can I export my budget to PDF?',

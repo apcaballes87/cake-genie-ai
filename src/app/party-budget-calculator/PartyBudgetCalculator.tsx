@@ -1,9 +1,11 @@
 'use client';
 
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import {
   Download,
   FileText,
+  Save,
+  Loader2,
   Plus,
   Trash2,
   AlertCircle,
@@ -18,18 +20,18 @@ import {
   Gamepad2,
   type LucideIcon,
 } from 'lucide-react';
-
-type BudgetItem = {
-  id: string;
-  label: string;
-  description: string;
-  cost: number; // unit cost
-  qty?: number;
-  vendor?: string;
-  perGuest?: boolean;
-  perChild?: boolean;
-  isCustom?: boolean;
-};
+import { useAuth } from '@/contexts/AuthContext';
+import { showError, showSuccess } from '@/lib/utils/toast';
+import PartyBudgetSignupModal from '@/components/PartyBudgetSignupModal';
+import { getPartyBudget, savePartyBudget } from '@/services/partyBudgetService';
+import {
+  PARTY_BUDGET_ITEMS_STORAGE_KEY,
+  PARTY_BUDGET_META_STORAGE_KEY,
+  PENDING_PARTY_BUDGET_SAVE_KEY,
+  isPartyBudgetSnapshot,
+  type PartyBudgetItem as BudgetItem,
+  type PartyBudgetSnapshot,
+} from '@/lib/partyBudget';
 
 type Category = {
   id: string;
@@ -148,6 +150,7 @@ const labelClass = 'block text-xs font-semibold uppercase tracking-[0.18em] text
 
 export default function PartyBudgetCalculator() {
   const printRef = useRef<HTMLDivElement>(null);
+  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   const [partyDate, setPartyDate] = useState('');
   const [guestCount, setGuestCount] = useState(30);
@@ -157,6 +160,10 @@ export default function PartyBudgetCalculator() {
   const [overallBudget, setOverallBudget] = useState('');
   const [contingency, setContingency] = useState(8);
   const [lineItems, setLineItems] = useState<Record<string, BudgetItem[]>>(initialLineItems);
+  const [hasHydrated, setHasHydrated] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
+  const cloudSyncUserRef = useRef<string | null>(null);
 
   const guestCountRef = useRef<HTMLInputElement>(null);
   const childCountRef = useRef<HTMLInputElement>(null);
@@ -232,8 +239,8 @@ export default function PartyBudgetCalculator() {
     setOverallBudget('');
     setContingency(8);
     setLineItems(initialLineItems);
-    localStorage.removeItem('party-budget-data');
-    localStorage.removeItem('party-budget-meta');
+    localStorage.removeItem(PARTY_BUDGET_ITEMS_STORAGE_KEY);
+    localStorage.removeItem(PARTY_BUDGET_META_STORAGE_KEY);
   };
 
   const subtotal = useMemo(() => {
@@ -263,29 +270,23 @@ export default function PartyBudgetCalculator() {
   });
 
   useEffect(() => {
-    localStorage.setItem('party-budget-data', JSON.stringify(lineItems));
-  }, [lineItems]);
-
-  useEffect(() => {
-    localStorage.setItem('party-budget-meta', JSON.stringify(globalState));
-  }, [globalState]);
-
-  useEffect(() => {
-    const savedItems = localStorage.getItem('party-budget-data');
+    const savedItems = localStorage.getItem(PARTY_BUDGET_ITEMS_STORAGE_KEY);
     if (savedItems) {
       try {
         const parsed = JSON.parse(savedItems) as Record<string, BudgetItem[]>;
-        Object.values(parsed).forEach((items) => {
-          items.forEach((item) => {
-            if (item.qty == null) item.qty = 1;
+        if (parsed && typeof parsed === 'object' && Object.values(parsed).every(Array.isArray)) {
+          Object.values(parsed).forEach((items) => {
+            items.forEach((item) => {
+              if (item.qty == null) item.qty = 1;
+            });
           });
-        });
-        setLineItems({ ...initialLineItems, ...parsed });
+          setLineItems({ ...initialLineItems, ...parsed });
+        }
       } catch {
         // ignore parse errors
       }
     }
-    const savedMeta = localStorage.getItem('party-budget-meta');
+    const savedMeta = localStorage.getItem(PARTY_BUDGET_META_STORAGE_KEY);
     if (savedMeta) {
       try {
          const parsed = JSON.parse(savedMeta);
@@ -300,7 +301,93 @@ export default function PartyBudgetCalculator() {
         // ignore parse errors
       }
     }
+    setHasHydrated(true);
   }, []);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    localStorage.setItem(PARTY_BUDGET_ITEMS_STORAGE_KEY, JSON.stringify(lineItems));
+  }, [hasHydrated, lineItems]);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    localStorage.setItem(PARTY_BUDGET_META_STORAGE_KEY, JSON.stringify(globalState));
+  }, [globalState, hasHydrated]);
+
+  const applySnapshot = useCallback((snapshot: PartyBudgetSnapshot) => {
+    const { meta, lineItems: savedLineItems } = snapshot;
+    setPartyDate(meta.partyDate || '');
+    setGuestCount(meta.guestCount || 30);
+    setChildCount(meta.childCount ?? 0);
+    setKidsAttending(meta.kidsAttending ?? true);
+    setCurrency(meta.currency || 'PHP');
+    setOverallBudget(meta.overallBudget || '');
+    setContingency(meta.contingency ?? 8);
+    setLineItems({ ...initialLineItems, ...savedLineItems });
+  }, []);
+
+  const persistPartyBudget = useCallback(async (clearPendingSave: boolean) => {
+    if (!user || user.is_anonymous || !isAuthenticated) return false;
+
+    setIsSaving(true);
+    try {
+      await savePartyBudget(
+        user.id,
+        { meta: globalState, lineItems },
+        {
+          partyDate,
+          guestCount,
+          totalAmount: total,
+          budgetAmount: budget > 0 ? budget : null,
+          currency,
+        }
+      );
+      if (clearPendingSave) localStorage.removeItem(PENDING_PARTY_BUDGET_SAVE_KEY);
+      setIsSignupModalOpen(false);
+      showSuccess('Party budget saved to your account.');
+      return true;
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Could not save your party budget.');
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [budget, currency, globalState, guestCount, isAuthenticated, lineItems, partyDate, total, user]);
+
+  useEffect(() => {
+    if (!hasHydrated || isAuthLoading || !isAuthenticated || !user || user.is_anonymous) return;
+    if (cloudSyncUserRef.current === user.id) return;
+    cloudSyncUserRef.current = user.id;
+
+    const syncAccountBudget = async () => {
+      if (localStorage.getItem(PENDING_PARTY_BUDGET_SAVE_KEY)) {
+        await persistPartyBudget(true);
+        return;
+      }
+
+      try {
+        const savedBudget = await getPartyBudget(user.id);
+        if (savedBudget && isPartyBudgetSnapshot(savedBudget.budget_data)) {
+          applySnapshot(savedBudget.budget_data);
+        }
+      } catch (error) {
+        cloudSyncUserRef.current = null;
+        showError(error instanceof Error ? error.message : 'Could not load your saved party budget.');
+      }
+    };
+
+    void syncAccountBudget();
+  }, [applySnapshot, hasHydrated, isAuthLoading, isAuthenticated, persistPartyBudget, user]);
+
+  const handleSaveDetails = async () => {
+    if (!isAuthenticated || !user || user.is_anonymous) {
+      localStorage.setItem(PENDING_PARTY_BUDGET_SAVE_KEY, 'true');
+      setIsSignupModalOpen(true);
+      return;
+    }
+
+    await persistPartyBudget(false);
+  };
 
   const handleExportPDF = () => {
     (async () => {
@@ -373,7 +460,7 @@ export default function PartyBudgetCalculator() {
       const tableWidth = cx - startX;
       const rightCols = new Set([2, 3, 4]);
 
-      const heads = ['Item', 'Business', 'Qty', 'Unit price', 'Total'];
+      const heads = ['Item', 'Details', 'Qty', 'Unit price', 'Total'];
 
       const drawTableHead = () => {
         const rowH = 20;
@@ -515,8 +602,8 @@ export default function PartyBudgetCalculator() {
             type="text"
             value={item.vendor ?? ''}
             onChange={(e) => updateItem(categoryId, item.id, { vendor: e.target.value })}
-            placeholder="Business name (optional)"
-            aria-label={`${item.label || 'Item'} business name`}
+            placeholder="Details (Optional)"
+            aria-label={`${item.label || 'Item'} details`}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 placeholder-slate-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
           />
         </div>
@@ -689,7 +776,7 @@ export default function PartyBudgetCalculator() {
               </div>
             </div>
             <p className="mt-4 text-xs text-slate-500">
-              Your planner auto-saves in your browser. Enter your details to see real-time totals.
+              Your planner auto-saves in this browser. Use Save Details to keep it in your Genie.ph account.
             </p>
           </div>
 
@@ -761,8 +848,17 @@ export default function PartyBudgetCalculator() {
 
             <div className="mt-6 space-y-2.5">
               <button
+                type="button"
+                onClick={handleSaveDetails}
+                disabled={isSaving || isAuthLoading}
+                className="genie-btn-primary inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-bold shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {isSaving ? 'Saving...' : 'Save Details'}
+              </button>
+              <button
                 onClick={handleExportPDF}
-                className="genie-btn-primary inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-bold shadow-md"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-purple-200 bg-purple-50 px-6 py-3 text-sm font-bold text-purple-700 shadow-sm transition-colors hover:bg-purple-100"
               >
                 <Download className="h-4 w-4" />
                 Export PDF
@@ -777,6 +873,7 @@ export default function PartyBudgetCalculator() {
           </div>
         </aside>
       </div>
+      {isSignupModalOpen ? <PartyBudgetSignupModal onClose={() => setIsSignupModalOpen(false)} /> : null}
     </section>
   );
 }

@@ -3,12 +3,15 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { Package, MapPin, Heart, LogOut, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Package, MapPin, Heart, LogOut, ChevronRight, ArrowLeft, PartyPopper, CalendarDays } from 'lucide-react';
 import MobileBottomNav from '@/components/MobileBottomNav';
+import { getPartyBudget } from '@/services/partyBudgetService';
+import type { SavedPartyBudget } from '@/lib/partyBudget';
 
 const AccountClient: React.FC = () => {
     const router = useRouter();
-    const { user, isAuthenticated, signOut } = useAuth();
+    const { user, isAuthenticated, isLoading, signOut } = useAuth();
+    const [partyBudget, setPartyBudget] = React.useState<SavedPartyBudget | null>(null);
 
     const handleSignOut = async () => {
         await signOut();
@@ -17,12 +20,29 @@ const AccountClient: React.FC = () => {
 
     // Redirect if not authenticated
     React.useEffect(() => {
-        if (!isAuthenticated || user?.is_anonymous) {
+        if (!isLoading && (!isAuthenticated || user?.is_anonymous)) {
             router.push('/login');
         }
-    }, [isAuthenticated, user, router]);
+    }, [isAuthenticated, isLoading, user, router]);
 
-    if (!isAuthenticated || user?.is_anonymous) {
+    React.useEffect(() => {
+        if (!isAuthenticated || !user || user.is_anonymous) return;
+        let isActive = true;
+
+        getPartyBudget(user.id)
+            .then((savedBudget) => {
+                if (isActive) setPartyBudget(savedBudget);
+            })
+            .catch(() => {
+                if (isActive) setPartyBudget(null);
+            });
+
+        return () => {
+            isActive = false;
+        };
+    }, [isAuthenticated, user]);
+
+    if (isLoading || !isAuthenticated || user?.is_anonymous) {
         return null;
     }
 
@@ -48,6 +68,11 @@ const AccountClient: React.FC = () => {
             path: '/saved',
         },
         {
+            icon: PartyPopper,
+            label: 'My Party Budget',
+            path: '/party-budget-calculator',
+        },
+        {
             icon: LogOut,
             label: 'Logout',
             path: null,
@@ -69,6 +94,46 @@ const AccountClient: React.FC = () => {
             <div className="mb-6">
                 <p className="text-sm text-slate-600">{user?.email}</p>
             </div>
+
+            {partyBudget ? (
+                <section className="mb-6 rounded-2xl border border-purple-200 bg-purple-50/60 p-5" aria-labelledby="saved-party-budget-title">
+                    <div className="flex items-start justify-between gap-4">
+                        <div>
+                            <div className="flex items-center gap-2 text-purple-700">
+                                <PartyPopper className="h-5 w-5" />
+                                <h2 id="saved-party-budget-title" className="font-bold">My Party Budget</h2>
+                            </div>
+                            <p className="mt-3 text-2xl font-black text-slate-900">
+                                {new Intl.NumberFormat('en-PH', {
+                                    style: 'currency',
+                                    currency: partyBudget.currency,
+                                    maximumFractionDigits: 0,
+                                }).format(partyBudget.total_amount)}
+                            </p>
+                            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
+                                <span>{partyBudget.guest_count} guests</span>
+                                {partyBudget.party_date ? (
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <CalendarDays className="h-4 w-4" />
+                                        {new Date(`${partyBudget.party_date}T00:00:00`).toLocaleDateString('en-PH', {
+                                            month: 'short',
+                                            day: 'numeric',
+                                            year: 'numeric',
+                                        })}
+                                    </span>
+                                ) : null}
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => router.push('/party-budget-calculator')}
+                            className="shrink-0 rounded-full bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700"
+                        >
+                            View budget
+                        </button>
+                    </div>
+                </section>
+            ) : null}
 
             {/* Menu Items */}
             <div className="space-y-4">
