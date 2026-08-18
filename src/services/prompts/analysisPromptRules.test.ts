@@ -4,7 +4,9 @@ import { describe, expect, it } from 'vitest';
 
 import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
 import { getAnalysisPromptWithFallback, loadFallbackAnalysisPrompt } from './promptLoader';
+import floralCakeLightPinkFixture from './fixtures/floral-cake-light-pink-2-tier-cake-1773.json';
 import floralPinkPeonyFixture from './fixtures/floral-pink-pink-1-tier-cake-1931.json';
+import lavenderFloralFixture from './fixtures/lavender-floral-lavender-2-tier-cake-1f73.json';
 import minimalistSugarPearlFixture from './fixtures/minimalist-birthday-ivory-1-tier-cake-717c.json';
 import safariJungleFigureFixture from './fixtures/safari-jungle-mint-1-tier-cake-4d4a.json';
 import snowWhiteFlowerFixture from './fixtures/snow-white-blue-2-tier-cake-074d.json';
@@ -20,7 +22,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.46 Version - Flower Fulfillment Unit Boundaries**');
+    expect(prompt).toContain('**v3.47 Version - Color-Invariant Floral Wreath Consistency**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('3. Visible construction of each item');
     expect(prompt).toContain('5. Type compatible with that construction and material');
@@ -303,7 +305,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.46 Version - Flower Fulfillment Unit Boundaries**');
+    expect(prompt).toContain('**v3.47 Version - Color-Invariant Floral Wreath Consistency**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -324,7 +326,7 @@ describe('cake analysis prompt rules', () => {
   it('uses toy-specific sizing for miniature molded toys', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.46 Version - Flower Fulfillment Unit Boundaries**');
+    expect(prompt).toContain('**v3.47 Version - Color-Invariant Floral Wreath Consistency**');
     expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy` AND `plastic_crown`)');
     expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
     expect(prompt).toContain('| `tiny` | under 0.10 |');
@@ -631,6 +633,70 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('description must not say top or top\nedge');
     expect(prompt).toContain('three large pink peonies and one medium pink peony');
     expect(prompt).toContain('Tiny/xsmall scattered or repeated sugar pearls, sugar beads,');
+  });
+
+  it('keeps recolored open-center floral wreath variants structurally identical', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+    const fixtures = [lavenderFloralFixture, floralCakeLightPinkFixture];
+    const expectedStructure = lavenderFloralFixture.expected_structure;
+
+    expect(fixtures.map((fixture) => fixture.slug)).toEqual([
+      'lavender-floral-lavender-2-tier-cake-1f73',
+      'floral-cake-light-pink-2-tier-cake-1773',
+    ]);
+    expect(fixtures.every((fixture) => (
+      fixture.variant_group === 'open-center-floral-wreath-3-3-6'
+      && fixture.expected_structure.main_toppers.length === 2
+      && fixture.expected_structure.support_elements.length === 4
+    ))).toBe(true);
+    expect(floralCakeLightPinkFixture.expected_structure).toEqual(expectedStructure);
+    expect(expectedStructure.main_toppers).toEqual([
+      {
+        family: 'layered_rose_blooms',
+        type: 'edible_flowers',
+        material: 'edible_fondant',
+        classification: 'hero',
+        size: 'medium',
+        quantity: 3,
+      },
+      {
+        family: 'broad_five_petal_blossoms',
+        type: 'edible_flowers',
+        material: 'edible_fondant',
+        classification: 'hero',
+        size: 'medium',
+        quantity: 3,
+      },
+    ]);
+    expect(expectedStructure.support_elements).toEqual([
+      expect.objectContaining({ family: 'integrated_filler_flower_sprigs', type: 'edible_flowers', size: 'small', quantity: 6 }),
+      expect.objectContaining({ family: 'top_rim_piping', type: 'icing_decorations', size: 'small', quantity: 1 }),
+      expect.objectContaining({ family: 'upper_tier_side_piping', type: 'icing_decorations', size: 'small', quantity: 1 }),
+      expect.objectContaining({ family: 'lower_base_piping', type: 'icing_decorations', size: 'small', quantity: 1 }),
+    ]);
+    expect(fixtures.every((fixture) => (
+      fixture.expected_structure.icing_design.border_top
+      && fixture.expected_structure.icing_design.border_base
+      && fixture.forbidden_interpretations.includes('peony_style_top_set')
+      && fixture.forbidden_interpretations.includes('mixed_flowers_and_piped_icing')
+    ))).toBe(true);
+
+    expect(prompt).toContain('COLOR-INVARIANT FLORAL GEOMETRY PRECEDENCE (REQUIRED)');
+    expect(prompt).toContain('it must not change type, material, role, physical\ncount, grouping structure, or size');
+    expect(prompt).toContain('OPEN-CENTER TOP-RIM FLOWER WREATH/CROWN PRECEDENCE');
+    expect(prompt).toContain('Filler-flower sprigs alone never\nestablish this wreath signature.');
+    expect(prompt).toContain('An open-center perimeter wreath is not a compact\npeony-style top set.');
+    expect(prompt).toContain('three layered rolled\nrose blooms, three broad five-petal blossoms, and six integrated filler-flower');
+    expect(prompt).toContain('`edible_fondant`, `hero`, `medium`, quantity `3`');
+    expect(prompt).toContain('`edible_flowers`, `edible_fondant`, `small`, quantity `6`');
+    expect(prompt).toContain('Count each visibly\nseparate sprig, not every miniature bud.');
+    expect(prompt).toContain('Never combine\nflowers and piped icing in one row or description.');
+    expect(prompt).toContain('OPEN-CENTER WREATH FULL-BLOOM HERO ROUTING OVERRIDE');
+    expect(prompt).toContain('`tiny`, `xsmall`, and `small` full blooms remain\n`support_elements`.');
+    expect(prompt).toContain('Top-rim\npiping, tier-side swags/ruffles, and lower/base piping must be separate');
+    expect(prompt).toContain('FINAL OPEN-CENTER WREATH OUTPUT CHECK');
+    expect(prompt).toContain('if any piping region is cropped, occluded, or not visible, emit only the\n  visibly present regions');
+    expect(prompt).toContain('The lavender and light-pink versions of this construction must have this same\nstructural contract.');
   });
 
   it('makes tiny scattered sugar pearls and beads grouped candy sprinkles', () => {

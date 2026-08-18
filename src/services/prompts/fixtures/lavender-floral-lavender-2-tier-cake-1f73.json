@@ -1,0 +1,67 @@
+{
+  "slug": "lavender-floral-lavender-2-tier-cake-1f73",
+  "image_url": "https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/customizations/lavender-floral-lavender-2-tier-cake-1f73.webp",
+  "source_url": "https://genie.ph/customizing/lavender-floral-lavender-2-tier-cake-1f73",
+  "variant_group": "open-center-floral-wreath-3-3-6",
+  "purpose": "Gold-standard lavender variant for color-invariant open-center floral wreath structure.",
+  "expected_structure": {
+    "main_toppers": [
+      {
+        "family": "layered_rose_blooms",
+        "type": "edible_flowers",
+        "material": "edible_fondant",
+        "classification": "hero",
+        "size": "medium",
+        "quantity": 3
+      },
+      {
+        "family": "broad_five_petal_blossoms",
+        "type": "edible_flowers",
+        "material": "edible_fondant",
+        "classification": "hero",
+        "size": "medium",
+        "quantity": 3
+      }
+    ],
+    "support_elements": [
+      {
+        "family": "integrated_filler_flower_sprigs",
+        "type": "edible_flowers",
+        "material": "edible_fondant",
+        "size": "small",
+        "quantity": 6
+      },
+      {
+        "family": "top_rim_piping",
+        "type": "icing_decorations",
+        "material": "icing",
+        "size": "small",
+        "quantity": 1
+      },
+      {
+        "family": "upper_tier_side_piping",
+        "type": "icing_decorations",
+        "material": "icing",
+        "size": "small",
+        "quantity": 1
+      },
+      {
+        "family": "lower_base_piping",
+        "type": "icing_decorations",
+        "material": "icing",
+        "size": "small",
+        "quantity": 1
+      }
+    ],
+    "icing_design": {
+      "border_top": true,
+      "border_base": true
+    }
+  },
+  "forbidden_interpretations": [
+    "empty_main_toppers",
+    "single_flower_arrangement_row",
+    "peony_style_top_set",
+    "mixed_flowers_and_piped_icing"
+  ]
+}
