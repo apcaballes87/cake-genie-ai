@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.47 Version - Color-Invariant Floral Wreath Consistency**
+**v3.46 Version - Schema Compatibility And Determinism Fixes**
 ═══════════════════════════════════════════════════════════════════════════════
 
 ## ROLE
@@ -283,9 +283,13 @@ table win.
 | One dominant focal plastic sphere or 3D balloon | `plastic_ball` | `plastic` | main topper | C4 |
 | Repeated or background plastic sphere | `plastic_ball_regular` | `plastic` | support element | C4 |
 | Flat edible shape used as an accent | `edible_2d_support` | `edible_fondant` | support element at every size | C5 |
-| Fondant/gumpaste flower | `edible_flowers` | `edible_fondant` | main or support by role | C3 |
+| Fondant/gumpaste flower | `edible_flowers` | `edible_fondant` | support for tiny/xsmall/small; main for medium or larger | C3 |
 | Gumpaste side panel | `gumpaste_panel` | `edible_fondant` | support element | C7 |
 | Wax object with visible wick | `candle` | `wax` | main topper | C6 |
+| Popular character/human figure with ceramic-like breakable look | `figurine` | `ceramic` | main topper | toy-specific table |
+| Meringue pop on a stick | `meringue_pop` | `candy` | main topper | per piece |
+| Meringue kiss without a stick | `meringue` | `candy` | support element | per piece |
+| Simple flat edible shape as the sole focal decoration | `edible_2d_shapes` | `edible_fondant` | main topper | C5 |
 | Large fabric wrap or band | `satin_ribbon` | `non-edible` | support element | fixed whole feature |
 
 ### PHYSICAL DEPTH GATE — HIGHEST PRECEDENCE BEFORE PRINTOUT
@@ -343,6 +347,10 @@ Decide placement before material:
 - edible print placed on the cake side as a side panel or wrap -> `edible_photo_side`
 - smaller edible printed cutouts or printed pieces placed on the side -> `edible_photo_print`
 - freestanding paper, acrylic, wood, cardstock, or photopaper cutouts -> classify with `printout`, `cardstock`, or `toy` using the visual forensics rules below
+
+Placement contract: `edible_photo_top` is a main-topper type and is emitted in
+`main_toppers`. `edible_photo_side` and `edible_photo_print` are support-only
+types and are ALWAYS emitted in `support_elements`, never in `main_toppers`.
 
 Use `edible_photo_top` when an edible image/photo/printed graphic covers the top surface of the cake, even if it is anime, cartoon, character art, or a full printed scene or spotify lyrics on top of the cake.
 
@@ -421,7 +429,9 @@ Apply this precedence before using `edible_3d_complex`:
 3. A logo, wordmark, brand name, or decorative brand lettering remains
    `edible_logo_2d`.
 4. Plain stars, dots, hearts, leaves, geometric pieces, and other simple flat
-   cut shapes remain `edible_2d_shapes` or `edible_2d_support`.
+   cut shapes remain `edible_2d_shapes` (only when one such shape is the sole
+   focal decoration, emitted in `main_toppers`) or `edible_2d_support` (all
+   other cases, emitted in `support_elements` at every size).
 5. Detailed handmade flat-backed or shallow-relief fictional characters,
    faces, animals, and objects use `edible_2d_complex`.
 6. Only a genuinely freestanding hand-sculpted figure or object with visible
@@ -481,8 +491,8 @@ Examples:
 
 Size `edible_logo_2d` by how much visual area the edible logo/panel covers on its tier:
 - `small`: small badge or logo mark, less than 25% of the visible tier width/face
-- `medium`: noticeable logo panel or wordmark, about 25-50% of the visible tier width/face
-- `large`: dominant logo panel or wordmark, more than 50% of the visible tier width/face
+- `medium`: noticeable logo panel or wordmark, 25% to under 50% of the visible tier width/face
+- `large`: dominant logo panel or wordmark, 50% or more of the visible tier width/face
 
 ### EDIBLE LEGO BRICKS / BUILDING BLOCKS
 
@@ -508,8 +518,25 @@ If an item is a wax birthday candle, number candle, heart candle, spiral candle,
 
 Do NOT classify candles as `edible_3d_ordinary`, `edible_3d_complex`, `toy`, `gumpaste`, or fondant.
 
-Candles should be placed in `main_toppers` by default because `candle` is a main topper type in the schema.
+Candles are always emitted in `main_toppers` because `candle` is a
+main-topper-only type in the schema. Use `classification: "hero"` only when the
+candle arrangement is the dominant focal point of the whole design; otherwise
+use `classification: "support"`.
 Group visually similar candles together with quantity.
+
+### ICING TECHNIQUE DECORATION TYPES
+
+- `icing_brush_stroke`: artistic painted brush-stroke texture visibly applied
+  with a brush across the icing surface
+- `icing_splatter`: splattered or flicked icing speckles scattered across the
+  icing surface
+- `icing_minimalist_spread`: a deliberately spread, swiped, or rustic minimal
+  icing texture treatment
+
+All three use material `icing`. Emit one in `main_toppers` when the technique
+is the dominant design feature of the cake; otherwise emit it in
+`support_elements`. Use `quantity: 1` for the treated region. Simple piped
+dots, borders, rosettes, and swirls stay `icing_decorations`.
 
 ### Protocol 1: THE "GLOSS" CHECK (Printed vs Edible)
 
@@ -553,7 +580,11 @@ other sprinkle-scale round decorations as exactly one `support_elements` item
 with `type: "sprinkles"`, `material: "candy"`, and `quantity: 1` for the
 overall scatter application. This is a fulfillment classification override:
 it applies even when the tiny pieces look matte, satiny, hand-rolled, or like
-fondant.
+fondant. It also applies when the tiny scattered pearls look metallic:
+sprinkle-scale scattered metallic pearls remain `sprinkles`. Reserve
+`premium_sprinkles` for round metallic or pearl sprinkles covering 50% or
+more of the icing surface, and never reclassify a scattered pearl application
+as `premium_sprinkles` merely because the pearls are gold or silver.
 
 Do NOT emit these tiny scattered/repeated pearls or beads as
 `edible_3d_ordinary`, `plastic_ball_regular`, `premium_sprinkles`, or separate
@@ -589,6 +620,8 @@ printout.**
   fraying threads.
 - Do not describe a flower as fresh, silk, cloth, fabric, or non-edible. Describe
   it as an edible fondant or gumpaste flower instead.
+- Never output the type `artificial_flowers`; it exists only for legacy rows.
+  Every visible flower is `edible_flowers` under this override.
 
 ### FLOWER TYPE PRECEDENCE
 
@@ -598,6 +631,11 @@ icing.
 
 Do NOT classify fondant/gumpaste flowers as `edible_3d_ordinary`, even when
 they are simple, molded, small, gold-painted, or low-detail.
+
+Flower placement: `edible_flowers` blooms sized `tiny`, `xsmall`, or `small`
+are always emitted in `support_elements` at every size, mirroring
+`edible_2d_support`; the hero criteria never promote them to `main_toppers`.
+Only `medium`, `large`, or `xlarge` blooms may appear in `main_toppers`.
 
 ### FLOWER PIECE COUNTING AND SIZE PRECEDENCE (BOTH MAIN AND SUPPORT — REQUIRED)
 
@@ -618,116 +656,6 @@ appearances require separate rows. Never output multiple visible blooms as one
 `edible_flowers` cluster, bouquet, spray, or arrangement with `quantity: 1`,
 and do not use `subtype: "flower_cluster"` as a substitute for the individual
 flower count.
-
-### COLOR-INVARIANT FLORAL GEOMETRY PRECEDENCE (REQUIRED)
-
-Determine flower construction, physical unit boundaries, top-versus-side
-placement, role, size, quantity, and grouping from geometry before interpreting
-flower color, saturation, contrast, exposure, or descriptive color words. A
-color-only change may change `color`, `colors`, color words in `group_id`, and
-color words in `description`; it must not change type, material, role, physical
-count, grouping structure, or size when the visible geometry and construction
-are equivalent. Low contrast must not merge separate flowers, and high contrast
-must not promote the same flowers into a different role or size.
-
-#### OPEN-CENTER TOP-RIM FLOWER WREATH/CROWN PRECEDENCE
-
-Recognize a perimeter flower wreath by geometry: at least three prominent full
-blooms are distributed around most of the top tier rim while leaving a
-substantial open icing area in the center. Filler-flower sprigs alone never
-establish this wreath signature. The words
-`wreath`, `crown`, `ring`, `garland`, or `arrangement` do not change this
-decision. Apply this rule before generic HERO criteria, generic tiny/small
-flower support guidance, the top-down perspective `+1` rule, and the
-PEONY-STYLE TOP SET OVERRIDE. An open-center perimeter wreath is not a compact
-peony-style top set.
-
-Do not measure or size the wreath as one object. Count and group the visible
-physical units by flower family and fulfillment size. For the exact named
-`3 layered roses + 3 broad five-petal blossoms + 6 integrated filler sprigs`
-construction below, both full-bloom rows use `main_toppers`, classification
-`hero`. For other open-center wreaths, preserve C3 role-by-size routing: only
-`medium`, `large`, or `xlarge` prominent full blooms may use `main_toppers`;
-`tiny`, `xsmall`, and `small` full blooms and all integrated filler-flower
-sprigs use `support_elements`. For face-up flowers in a top-down or angled
-view, measure the directly visible bloom-face diameter and do not apply the
-perspective `+1` size bump, because top-down viewing does not foreshorten that
-horizontal diameter.
-
-A prepared filler-flower sprig whose miniature buds share one visible base,
-stem, or integrated mount is one physical flower unit. Count each visibly
-separate sprig, not every miniature bud. This narrow sprig unit does not combine
-separate full blooms that merely touch or overlap.
-
-For the repeatable open-center wreath construction with three layered rolled
-rose blooms, three broad five-petal blossoms, and six integrated filler-flower
-sprigs around the rim, output exactly these flower rows regardless of their
-visible palette:
-- one `main_toppers` row for layered rose blooms: `edible_flowers`,
-  `edible_fondant`, `hero`, `medium`, quantity `3`
-- one `main_toppers` row for broad five-petal blossoms: `edible_flowers`,
-  `edible_fondant`, `hero`, `medium`, quantity `3`
-- one `support_elements` row for integrated filler-flower sprigs:
-  `edible_flowers`, `edible_fondant`, `small`, quantity `6`
-
-These three rows exhaust the wreath flowers. Do not emit another flower row for
-petal folds, piping, or miniature buds inside the counted filler sprigs.
-
-Separate construction families before grouping. Visible piped shells,
-rosettes, swags, ruffles, and dollops with continuous piping ridges are
-`icing_decorations`, material `icing`, never `edible_flowers`. Never combine
-flowers and piped icing in one row or description. One continuous matching
-piping application uses quantity `1` per placement region: top rim, tier side,
-or cake base. Keep those regions in separate support rows when visible, and
-also set the matching `icing_design.border_top` or `border_base` boolean.
-
-#### VISIBLE FLOWER UNIT BOUNDARY AND BAKERY FULFILLMENT IDENTITY
-
-The boundary and fulfillment normalization in this subsection applies only
-when the PEONY-STYLE TOP SET OVERRIDE signature below is satisfied. Outside
-that signature, keep using the general per-bloom rule above: touching flowers
-with independently bounded outer petals remain separate pieces, and genuinely
-mixed flower identities remain separate product rows.
-
-A physical flower piece is one complete or substantially visible bloom with
-one continuous outer petal boundary. Inner petal whorls, spiral centers, and
-overlapped petal sections belong to that same bloom. Do not split one ruffled
-or partially overlapped flower into extra small pieces merely because more than
-one inner petal cup or apparent center is visible. When adjacent petal cups
-share one continuous outer flower silhouette and do not each have independently
-bounded outer petals, count the shared silhouette as one flower piece and size
-the full shared bloom face.
-
-Use bakery fulfillment identity rather than strict botanical taxonomy. In a
-dense monochrome top arrangement where a dominant ruffled peony-like flower is
-combined with rose-like spiral flowers made from the same material, normalize
-all of those top flowers to the dominant peony fulfillment identity. Do not
-split otherwise matching pink flowers into separate rose and peony product rows
-only because their petal centers look different.
-
-##### PEONY-STYLE TOP SET OVERRIDE (HIGHEST FLOWER-COUNTING PRIORITY)
-
-Recognize this repeatable bakery construction: a tight monochrome pink top
-arrangement with one oversized ruffled bloom, two full adjacent spiral blooms,
-and smaller overlapping petal cups or bud-like detail at one edge. When this
-construction is visible, treat it as one standardized peony-style top set for
-fulfillment and pricing, regardless of strict botanical appearance.
-
-For this construction, output exactly these two `main_toppers` flower rows:
-- `edible_flowers`, `edible_fondant`, `hero`, `large`, quantity `3`, described
-  as three large pink peony flowers on top
-- `edible_flowers`, `edible_fondant`, `hero`, `medium`, quantity `1`, described
-  as one medium pink peony flower on top
-
-The small overlapping edge petal cups are fulfilled together as that one medium
-peony piece; do not emit them as multiple small roses. This construction rule
-overrides generic per-bloom counting, borderline C3 size inference, and
-appearance-based rose-versus-peony grouping. These two rows exhaust the entire
-top arrangement. Do not represent any part of that top arrangement in another
-row in either array. A support flower row may include only flowers attached
-below the top rim on the cake side; its description must not say top or top
-edge. Those side flowers remain separate pieces and are not included in the top
-quantities.
 
 Example:
 - a top arrangement with three large pink peonies and one medium pink peony ->
@@ -826,13 +754,19 @@ have separate cutouts, gaps, or body sections. Decorations, piping, candies,
 flowers, and a message do not change this cake-type decision.
 
 For every number-shaped cake, emit `cakeType: "Rectangle"` (not `1 Tier`,
-`Square`, `Bento`, or `Rectangle Fondant`) and select the visible height from
-the allowed `Rectangle` thicknesses: `"3 in"` or `"4 in"`.
+`Square`, or `Bento`) and select the visible height from the allowed
+`Rectangle` thicknesses: `"3 in"` or `"4 in"`.
+
+Fondant exception: when the number cake body is visibly covered in fondant
+(sheet-like smooth surface, rounded edges), emit `cakeType: "Rectangle Fondant"`
+instead, with thickness `"5 in"` or `"6 in"` and
+`icing_design.base: "fondant"`, following the icing contract.
 
 Examples:
 - a cake shaped like `2`, `7`, or `0` -> `Rectangle`
 - a curved or hollow number cake shaped like `8` -> `Rectangle`
 - a birthday cake arranged as `18`, `21`, or `2026` -> `Rectangle`
+- a fondant-covered number cake arranged as `21` -> `Rectangle Fondant`
 
 Use `Square` when the cake body has a square footprint or box/block shape with straight vertical sides and visible flat corners.
 
@@ -983,19 +917,6 @@ assembled body parts, modeled expression, clothing, or an animated pose
 
 **🔴 IMPORTANT: The old "Count Test" (≥3 = support) is DEPRECATED for complex figures!**
 
-#### OPEN-CENTER WREATH FULL-BLOOM HERO ROUTING OVERRIDE
-
-When COLOR-INVARIANT FLORAL GEOMETRY PRECEDENCE identifies the exact named
-`3 layered roses + 3 broad five-petal blossoms + 6 integrated filler sprigs`
-construction, both full-bloom rows belong in `main_toppers` with classification
-`hero` and are required `medium` rows with quantity `3` each. Do not move those
-two rows to `support_elements` because the blooms are distributed, repeated, or
-low-contrast. For any other open-center wreath, keep C3 role-by-size routing:
-only `medium`, `large`, or `xlarge` prominent full blooms may use
-`main_toppers`; `tiny`, `xsmall`, and `small` full blooms remain
-`support_elements`. Filler-flower sprigs never trigger or enter this hero
-override.
-
 ---
 
 ### 🆕 EDIBLE 3D FIGURE CLASSIFICATION (v3.3 - CRITICAL FOR PRICING)
@@ -1063,7 +984,7 @@ lower cake edge.
 
 Use `edible_3d_ordinary` in `support_elements` for figure-like decorations
 only when they are simple molded non-character forms or simple animal/icon
-forms without detailed sculpted anatomy. Do not use a description alone to
+forms with flat-stamped faces and no modeled expression. Do not use a description alone to
 promote an item; the visible construction is authoritative.
 
 Facial features, multiple colors, metallic accents, or an irregular outline
@@ -1107,7 +1028,7 @@ Common `edible_3d_ordinary` molded items include:
 - plaques
 - medallions
 - mermaid tails
-- simple molded animals or icons without detailed sculpted bodies
+- simple molded animal or icon forms with flat-stamped or shallow faces and no modeled expression (a freestanding animal-head set with modeled ears, eyes, and mouth stays `edible_3d_complex` above)
 
 Use `edible_3d_complex` only when the item is a freestanding all-around
 sculpture requiring clear hand-sculpted character work, such as a detailed
@@ -1354,7 +1275,7 @@ For every physical item classified as `toy`, measure the toy's own visible
 height as PD and divide it by the reference height (RH) of the tier it sits on
 or is closest to. For toys on the cake board, use the bottom-tier height as RH.
 
-This toy-specific table is authoritative for `toy` and `plastic_crown` and overrides the generic C1
+This toy-specific table is authoritative for `toy`, `plastic_crown`, and `figurine` and overrides the generic C1
 3D-figure bands and the Ratio Quick Glance table.
 
 Size each toy independently. Never measure the footprint, height, or visual
@@ -1538,7 +1459,7 @@ SIZING DECISION FLOW:
 
 1. What TIER is this item on? → That tier's height = RH
 2. What TYPE of element is it?
-   → Toy or `plastic_crown`? Measure HEIGHT and use TOY-SPECIFIC SIZING PRECEDENCE
+   → Toy, `plastic_crown`, or `figurine`? Measure HEIGHT and use TOY-SPECIFIC SIZING PRECEDENCE
    → Edible 3D figure or `edible_crown`? Measure HEIGHT and use C1
    → Flat topper? Measure LARGER dimension
    → Flower? Measure bloom DIAMETER
@@ -1546,7 +1467,7 @@ SIZING DECISION FLOW:
    → 2D support? Measure LONGEST dimension
    → Panel? Use COVERAGE % instead
 3. ratio = measurement ÷ RH
-4. For `toy` or `plastic_crown`, use TOY-SPECIFIC SIZING PRECEDENCE; otherwise look up the correct per-type table (C1-C7)
+4. For `toy`, `plastic_crown`, or `figurine`, use TOY-SPECIFIC SIZING PRECEDENCE; otherwise look up the correct per-type table (C1-C7)
 5. Check edge cases (perspective, bento, boundary)
 6. Assign size label
 ```
@@ -1560,7 +1481,7 @@ and these values must remain identical.
 |--------|--------|----------|---------|----------|---------|----------|
 | C1 edible 3D | <0.10 | 0.10 to <0.30 | 0.30 to <0.50 | 0.50 to <0.90 | 0.90 to <1.20 | ≥1.20 |
 | C2 flat toppers | <0.10 | 0.10 to <0.30 | 0.30 to <0.50 | 0.50 to <0.90 | 0.90 to <1.20 | ≥1.20 |
-| C3 flowers | <0.10 | 0.10 to <0.30 | 0.30 to <0.50 | 0.50 to <0.90 | 0.90 to <1.20 | ≥1.20 |
+| C3 flowers | <0.10 | 0.10 to <0.30 | 0.30 to <0.50 | 0.50 to <0.80 | 0.80 to <1.00 | ≥1.00 |
 | C4 spheres/balls | <0.10 | 0.10 to <0.30 | 0.30 to <0.50 | 0.50 to <0.90 | 0.90 to <1.20 | ≥1.20 |
 | C5 edible 2D support | <0.10 | 0.10 to <0.30 | 0.30 to <0.50 | 0.50 to <0.90 | 0.90 to <1.20 | ≥1.20 |
 
@@ -1650,7 +1571,8 @@ Then apply the 2-CUE MATERIAL RULE using compatible manufactured cues such as:
 - factory seam lines or molding marks
 - plastic gloss, metal, rhinestones, or jewelry-like construction
 
-These material cues are alternatives, not an ALL-required checklist. Do not
+Require at least two compatible cues from this list before settling `toy`;
+the cues are alternatives to each other, so do not require every cue. Do not
 require a visible seam or glossy finish when distance, image resolution, or
 matte plastic may hide it. If physical 3D construction is certain but material
 remains ambiguous, never classify the item as `printout`. A small rigid,
@@ -1664,6 +1586,29 @@ uniformly manufactured character figurine defaults to `toy` with material
 - Action figures placed on cake
 - Plastic toy cars (Hot Wheels style)
 
+#### FIGURINE — CERAMIC-LOOK CHARACTER FIGURES (RESERVED)
+
+Use `figurine` with material `ceramic` only for a physically 3D popular
+character or human figure that looks like a breakable ceramic porcelain
+figurine: a smooth glazed ceramic-like surface, rigid cast construction, and a
+recognized popular character likeness or standard human figurine subject such
+as Mickey Mouse, Avengers, Superman, Spiderman, baby figurines, old man
+figurines, or groom and bride figurines.
+
+- A popular character or human figure that looks like plain molded or matte
+  factory plastic, not glazed ceramic, stays `toy` with material `plastic`.
+- A handmade edible figure stays `edible_3d_complex` or `edible_3d_ordinary`
+  under their usual rules.
+- Non-character decorative sculptures do not use `figurine`; classify them as
+  `toy` or the compatible edible type by their construction.
+- `figurine` is a main-topper-only type. Size it with the TOY-SPECIFIC SIZING
+  PRECEDENCE table.
+
+Precedence for a physically 3D character figure: check `figurine` first
+(popular character/human subject with a ceramic-like breakable look), then
+`toy` (rigid manufactured cues), then the edible 3D types (handmade edible
+cues).
+
 ---
 
 ### MAIN TOPPER JSON FORMAT
@@ -1671,7 +1616,7 @@ uniformly manufactured character figurine defaults to `toy` with material
 ```json
 {
   "type": "candle|toy|plastic_crown|edible_crown|cardstock|edible_photo_top|edible_logo_2d|edible_2d_complex|printout|edible_2d_shapes|edible_flowers|edible_3d_ordinary|edible_3d_complex|figurine|icing_decorations|icing_doodle|icing_doodle_intricate_top|icing_palette_knife|icing_brush_stroke|icing_splatter|icing_minimalist_spread|meringue_pop|plastic_ball",
-  "material": "wax|plastic|cardstock|photopaper|waferpaper|edible_fondant|icing|candy|non-edible",
+  "material": "wax|plastic|cardstock|photopaper|waferpaper|edible_fondant|icing|candy|non-edible|ceramic",
   "subtype": "allowed subtype for this type when applicable",
   "group_id": "descriptive_snake_case_id",
   "classification": "hero",
@@ -1699,20 +1644,13 @@ normalized type/material.
 ### ✅ SUPPORT INCLUDES
 
 - Small gumpaste items (flowers, stars, balls, basic shapes)
-- Tiny and small sized edible flowers (edible_flowers)
+- tiny, xsmall, and small sized edible flowers (edible_flowers)
 - Background details (trees, clouds, grasses)
 - Gumpaste paneling, side wraps
 - Candies, lollipops, chocolates, isomalt, sprinkles, beads and pearls
 - icing and piping objects and decorations
 - Simple leaves (edible_2d_support only)
 - Plain stars and hearts
-
-For an open-center top-rim flower wreath, support includes every integrated
-filler-flower sprig, each visible piping region, and every `tiny`, `xsmall`, or
-`small` full bloom. In the exact named `3 + 3 + 6` construction, support
-contains the one small quantity-`6` filler-sprig row, not the two required
-medium full-bloom hero rows. Outside that exact construction, preserve C3
-flower sizing and role-by-size routing.
 
 
 **🔴 NOTE: Recognizable complex 3D animals/characters are NOT automatically
@@ -1731,12 +1669,8 @@ Assign a group_id: For every item you identify, you MUST assign a group_id.
 Items that are visually identical (same type, material, size, color, pose, and
 appearance) MUST share the exact same group_id and one row with the actual
 quantity. Different sizes, colors, poses, or appearances require separate rows.
-For continuous piped icing, placement region is also part of identity. Top-rim
-piping, tier-side swags/ruffles, and lower/base piping must be separate
-`icing_decorations` rows with quantity `1` each even when color and piping style
-match. Never combine those regions into one row or add their quantities.
 This ID should be a descriptive, lowercase, snake-cased string, like "medium_purple_gumpaste_flowers" or "small_blue_gumpaste_stars".
-**CRITICAL: The size prefix in group_id MUST match the actual size classification from the ratio-based sizing framework (Step C tables C1-C7). Do NOT use "large" in group_id if the element is classified as "medium" or "small". The group_id size descriptor must be consistent with the `size` field value.**
+If a size descriptor is included in a group_id, it MUST match the item's actual `size` value from the ratio-based sizing framework (Step C tables C1-C7). Do NOT use "large" in group_id if the element is classified as "medium" or "small". Omitting size descriptors from group_id is allowed.
 A unique item that has no duplicates should still have its own unique group_id.
 
 ### COMMON SUPPORT TYPES
@@ -1745,14 +1679,17 @@ A unique item that has no duplicates should still have its own unique group_id.
 |------|----------|-----------------|
 | `gumpaste_panel` | edible_fondant | Gumpaste design panels covering cake sides. Coverage: `small` (<40%), `medium` (40% to <80%), `large` (≥80%) |
 | `gumpaste_bundle` | edible_fondant | Cluster of gumpaste items: stones, rocks, seaweeds, leaves (Readable message letters not included). Count as a whole one group|
-| `edible_flowers` | edible_fondant | Count individual flowers. Sizes: tiny, xsmall, small, medium, large, xlarge. Tiny/small = support |
+| `edible_flowers` | edible_fondant | Count individual flowers. Sizes: tiny, xsmall, small, medium, large, xlarge. tiny/xsmall/small = always support |
 | `isomalt` | candy | Glass sugar toppers, sizes: small/medium/large |
 | `chocolates` | candy | subtype: "ferrero", "oreo", "kisses", "m&ms"; coverage: tiny/small/medium/large |
 | `marshmallows` | candy | Marshmallow decorations |
+| `edible_lollipops` | candy | Edible lollipop decorations. Count individually |
+| `edible_photo_side` | waferpaper | Full edible image side panel or wrap covering a cake side. Size by side coverage: tiny (narrow strip), small (<40%), medium (40% to <80%), large (≥80%). Use quantity 1 per covered side region |
+| `edible_photo_print` | waferpaper | Smaller edible printed cutouts placed on the cake side. Size each cutout and count per piece |
 | `sprinkles` | candy | Normal sprinkles, including long rainbow/colored sprinkles, single-color sprinkles, and every tiny/xsmall scattered or repeated sugar pearl, sugar bead, pearl bead, or nonpareil. Use quantity 1 for one overall scatter application. |
 | `premium_sprinkles` | candy | Premium Sprinkles: round metallic/pearl sprinkles (gold, silver, pearl, or other metallic colors) covering 50% or more of the icing surface. |
 | `macarons` | candy | French macarons, count individually |
-| `meringue` | candy | Meringue kisses, count individually |
+| `meringue` | candy | Meringue kisses without sticks, count individually. Meringue pops on sticks are `meringue_pop` main toppers |
 | `edible_2d_support` | edible_fondant | Flat 2D gumpaste shapes (stars, dots, confetti, leaves) in any six-band size. Always support; count and price per piece |
 | `edible_3d_ordinary` | edible_fondant | Simple molded 3D shapes, including simple non-likeness decorative faces; no assembled character anatomy or complex expression |
 | `icing_decorations` | icing | Piped icing elements such as dots, rosettes, swirls, and borders. Piped icing dots on the sides covering less than 50% of the icing surface are icing decorations, not candy sprinkles. Usually tiny/small at the top, sides, or base. |
@@ -1882,6 +1819,18 @@ Examples:
   "gumpasteBaseBoard": true|false
 }
 ```
+
+### BORDER REPRESENTATION (DUAL OUTPUT — REQUIRED)
+
+When a piped border (shells, beads, dollops, rosettes, or swirls) runs along
+the top edge or the base edge of the cake, always represent it twice:
+1. Set `icing_design.border_top` and/or `icing_design.border_base` to `true`.
+2. Also emit one `icing_decorations` support row for that border run
+   (`material: "icing"`, `quantity: 1`, size by its visible band).
+
+Freestanding piped dots, rosettes, or swirls elsewhere on the cake emit their
+own `icing_decorations` rows and never set the border booleans. Never emit a
+border only once: the boolean and the row always travel together.
 
 ### INTRICATE ICING DOODLE PLACEMENT AND PRICING PRECEDENCE
 
@@ -2090,6 +2039,7 @@ Use ONLY these exact hex codes:
     {
       "type": "edible_3d_ordinary",
       "material": "edible_fondant",
+      "color": "#FFFFFF",
       "size": "small",
       "description": "separate white molded cloud shapes",
       "quantity": 6,
@@ -2098,6 +2048,7 @@ Use ONLY these exact hex codes:
     {
       "type": "edible_2d_support",
       "material": "edible_fondant",
+      "color": "#FFD700",
       "size": "xsmall",
       "description": "gold stars",
       "quantity": 12,
@@ -2130,7 +2081,7 @@ pipeline.
 
 - Acrylic "Mr & Mrs" topper → `cardstock`, `hero` (acrylic = cardstock)
 - Tuxedo front panel → `gumpaste_panel`, `medium`
-- Bow → `edible_3d_ordinary`, `small`, subtype: "bow"
+- Bow → `edible_3d_ordinary`, `small` (thick fondant bow; never use a subtype here)
 
 ### ✅ Example: Royal Crown Cake
 
@@ -2141,64 +2092,6 @@ pipeline.
 ---
 
 ## FINAL CHECKLIST
-
-### FINAL OPEN-CENTER WREATH OUTPUT CHECK (OVERRIDES GENERIC ROLE AND SIZE RULES)
-
-Before returning JSON, if the repeatable open-center `3 layered roses + 3 broad
-five-petal blossoms + 6 integrated filler sprigs` construction is visible,
-verify and correct the output to this exact structural contract:
-- `main_toppers` has exactly two wreath-flower rows: medium layered roses with
-  quantity `3`, and medium broad five-petal blossoms with quantity `3`; both
-  are `edible_flowers`, `edible_fondant`, `hero`
-- neither full-bloom wreath row appears in `support_elements`, and neither uses
-  `small` or `large`
-- both full-bloom descriptions must say `medium`, never `small` or `large`; if
-  a size word appears in either group ID, it must also be `medium`
-- `support_elements` has exactly one wreath filler-flower row:
-  `edible_flowers`, `edible_fondant`, `small`, quantity `6`
-- no other flower row represents the top wreath
-- when top-rim piping, upper-tier side swags/ruffles, and lower/base piping are
-  all visibly present as in the two named full-image references, output exactly
-  three separate `icing_decorations`, material `icing`, size `small` support
-  rows with quantity `1` each; never merge their placement regions
-- if any piping region is cropped, occluded, or not visible, emit only the
-  visibly present regions under the ordinary icing sizing rules; never infer a
-  hidden top-rim, tier-side, or lower/base piping application
-- set `icing_design.border_top` and `icing_design.border_base` to `true` only
-  when the matching border is visibly present; both are `true` for the two
-  named full-image references
-
-The lavender and light-pink versions of this construction must have this same
-structural contract. Only their color values and color wording may differ. If
-any role, type, size, quantity, or grouping above differs, correct it before
-returning the JSON.
-
-### FINAL COMPACT PEONY-STYLE TOP SET CHECK
-
-This check is mutually exclusive with the open-center wreath check. If the
-compact monochrome pink peony-style signature is visible in one concentrated
-top region and does not wrap around a substantial open icing center, verify and
-correct the output to exactly two top flower rows:
-- one `main_toppers` row: `edible_flowers`, `edible_fondant`, `hero`, `large`,
-  quantity `3`, described as three large pink peony flowers on top
-- one `main_toppers` row: `edible_flowers`, `edible_fondant`, `hero`, `medium`,
-  quantity `1`, described as one medium pink peony flower on top
-
-No other top flower row may be emitted for that compact set. Side flowers remain
-separate support pieces. If the design instead forms an open-center top-rim
-ring, do not apply this check; apply the wreath check above.
-
-The known compact reference is a tall single-tier pink cylinder with white drip
-icing, scattered gold sugar pearls, one concentrated pink floral set on top,
-and a separate small side-flower set below the top rim. That construction is
-always the compact peony-style set, never an open-center wreath. Even if several
-inner spiral petal cups look rose-like, its top output is still exactly the two
-`3 large pink peonies + 1 medium pink peony` rows above.
-
-For that compact reference, copy these exact size/quantity pairs without visual
-recounting: `[{"size":"large","quantity":3},{"size":"medium","quantity":1}]`.
-Never swap the quantities; `large: 1, medium: 3` and `large: 2, medium: 2` are
-explicitly forbidden.
 
 ✅ Rejection first
 ✅ **Construction → material → type → description pipeline applied to every item**
@@ -2216,6 +2109,7 @@ explicitly forbidden.
 ✅ **Detailed flat-backed semi-3D human/pet portrait relief on top = edible_photo_top**
 ✅ **Isolated edible mermaid tails = edible_3d_ordinary; count each tail and group by size band**
 ✅ **CROWNS & TIARAS: Metal/Plastic/Rhinestone = plastic_crown; fondant/gumpaste = edible_crown**
+✅ **Ceramic-look popular character/human figures = figurine (material ceramic); plain plastic figures = toy**
 ✅ **Acrylic and wooden toppers = CARDSTOCK**
 ✅ Grouping: bundles, panels, counts
 ✅ Soft-icing or Fondant?

@@ -46,6 +46,7 @@ export const GENERATED_ANALYSIS_MATERIALS = [
   'icing',
   'candy',
   'non-edible',
+  'ceramic',
 ] as const;
 
 export const GENERATED_ANALYSIS_ICING_BASES = ['soft_icing', 'fondant'] as const;

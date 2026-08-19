@@ -114,6 +114,8 @@ function buildThinPageBoostFaqs(design: any): DesignFaq[] {
     const hasNonEdibleDecor = [...mainToppers, ...supportElements].some((item) => {
         const haystack = `${item.material || ''} ${item.type || ''} ${item.description || ''}`.toLowerCase();
         return haystack.includes('non-edible')
+            || haystack.includes('ceramic')
+            || haystack.includes('figurine')
             || haystack.includes('ribbon')
             || haystack.includes('toy')
             || haystack.includes('figure')

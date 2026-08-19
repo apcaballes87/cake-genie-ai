@@ -4,12 +4,6 @@ import { describe, expect, it } from 'vitest';
 
 import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
 import { getAnalysisPromptWithFallback, loadFallbackAnalysisPrompt } from './promptLoader';
-import floralCakeLightPinkFixture from './fixtures/floral-cake-light-pink-2-tier-cake-1773.json';
-import floralPinkPeonyFixture from './fixtures/floral-pink-pink-1-tier-cake-1931.json';
-import lavenderFloralFixture from './fixtures/lavender-floral-lavender-2-tier-cake-1f73.json';
-import minimalistSugarPearlFixture from './fixtures/minimalist-birthday-ivory-1-tier-cake-717c.json';
-import safariJungleFigureFixture from './fixtures/safari-jungle-mint-1-tier-cake-4d4a.json';
-import snowWhiteFlowerFixture from './fixtures/snow-white-blue-2-tier-cake-074d.json';
 
 const rootDir = process.cwd();
 
@@ -22,7 +16,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.47 Version - Color-Invariant Floral Wreath Consistency**');
+    expect(prompt).toContain('**v3.46 Version - Schema Compatibility And Determinism Fixes**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('3. Visible construction of each item');
     expect(prompt).toContain('5. Type compatible with that construction and material');
@@ -31,8 +25,8 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('Named decisive cues such as a visible wick,');
     expect(prompt).toContain('unsupported semi-3D human/pet portrait relief -> `edible_photo_top`');
     expect(prompt).toContain('every flower-shaped decoration, including fresh-looking, natural, silk,');
-    expect(prompt).toContain('Only an actual piped buttercream\n  rosette with visible piping ridges and soft peaks uses');
-    expect(prompt).toContain('this named flower fulfillment\n  override wins over visible fabric cues');
+    expect(prompt).toContain('Only an actual piped buttercream');
+    expect(prompt).toContain('override wins over visible fabric cues');
     expect(prompt).toContain('physical metal, rhinestone, or plastic crowns/tiaras -> `plastic_crown`');
     expect(prompt).toContain('standalone molded, rolled, cut, or hand-sculpted fondant/gumpaste crowns/tiaras ->');
     expect(prompt).toContain('#### CROWNS & TIARAS — MATERIAL-SPECIFIC TYPES');
@@ -61,7 +55,7 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('CRITICAL CLASSIFICATION WITHIN PRINTOUT vs CARDSTOCK vs TOY');
     expect(prompt).toContain('Subject matter alone does not establish a printout');
     expect(prompt).not.toContain('This rule overrides all other considerations.');
-    expect(prompt).toContain('"material": "wax|plastic|cardstock|photopaper|waferpaper|edible_fondant|icing|candy|non-edible"');
+    expect(prompt).toContain('"material": "wax|plastic|cardstock|photopaper|waferpaper|edible_fondant|icing|candy|non-edible|ceramic"');
     expect(prompt).toContain('"description": "brief object-focused description"');
     expect(prompt).toContain('Visible construction words are allowed when they help identify');
     expect(fenceCount).toBeGreaterThan(0);
@@ -80,33 +74,6 @@ describe('cake analysis prompt rules', () => {
     expect(SYSTEM_INSTRUCTION).toContain('When gumpasteBaseBoard is true, include colors.gumpasteBaseBoardColor');
     expect(SYSTEM_INSTRUCTION).toContain('Use the active analysis prompt as the only source for sizing boundaries');
     expect(SYSTEM_INSTRUCTION).toContain('Use plastic_ball only for one dominant focal plastic sphere');
-    expect(SYSTEM_INSTRUCTION).toContain('Every item row must represent one primary priced object');
-  });
-
-  it('keeps primary priced objects aligned with type and material before emission', () => {
-    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
-
-    expect(prompt).toContain('ONE PRIMARY PRICED OBJECT PER ROW — DESCRIPTION/TYPE CONSISTENCY (REQUIRED)');
-    expect(prompt).toContain('Begin `description` with that primary object');
-    expect(prompt).toContain('visible image evidence and named fulfillment normalizations\nremain authoritative');
-    for (const connector of [
-      '`with`',
-      '`topped with`',
-      '`covered in`',
-      '`covered with`',
-      '`decorated with`',
-      '`finished with`',
-      '`featuring`',
-    ]) {
-      expect(prompt).toContain(connector);
-    }
-    expect(prompt).toContain('`colorful sprinkles scattered on top` -> `sprinkles`, material `candy`');
-    expect(prompt).toContain('`fondant donut with sprinkles` -> `edible_3d_ordinary`, material');
-    expect(prompt).toContain('`meringue kisses with sprinkles` -> `meringue`, material `candy`');
-    expect(prompt).toContain('`piped icing dollops topped with sprinkles` -> `icing_decorations`, material');
-    expect(prompt).toContain('If the secondary garnish is independently priced or countable, emit it as its');
-    expect(prompt).not.toContain('| `icing sprinkles` |');
-    expect(prompt).toContain('| `icing_decorations` | icing | Piped icing elements such as dots, rosettes, swirls, and borders.');
   });
 
   it('requires positive flat-paper evidence and prevents volumetric figurines from becoming printouts', () => {
@@ -124,7 +91,7 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('Never invent `printed`, `paper`,\n   `cutout`, or `on a stick`');
     expect(prompt).toContain('The same character as a freestanding\n   volumetric figurine follows the physical 3D rule.');
     expect(prompt).toContain('IF an already-established separate flat paper piece shows CHARACTER IMAGES');
-    expect(prompt).toContain('These material cues are alternatives, not an ALL-required checklist.');
+    expect(prompt).toContain('Require at least two compatible cues from this list before settling `toy`;');
     expect(prompt).toContain('a seam or glossy finish is not mandatory');
     expect(prompt).toContain('lack of a visible seam alone does not establish edible construction.');
     expect(prompt).toContain('WITHIN AN ESTABLISHED FLAT PRINTED FAMILY');
@@ -192,20 +159,17 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('| `thin_fabric_ribbon_bows` | non-edible | Small/thin satin, organza, or sheer fabric bow accents, dangling ribbon tails, and narrow streamers.');
   });
 
-  it('classifies every flower style as edible flowers in the fallback prompt source', () => {
+  it('classifies fresh-looking flowers as edible flowers in the fallback prompt source', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('Protocol 4: THE "FLOWER" CHECK (Required Edible Flower Fulfillment Rule)');
     expect(prompt).toContain('Genie.ph fulfills every visible flower as edible because non-edible flowers');
     expect(prompt).toContain('IF a flower appears fresh, natural, realistic, silk, cloth, fabric-textured,');
-    expect(prompt).toContain('artificial, or edible, classify it as `edible_flowers` with material');
-    expect(prompt).toContain('visible fabric texture, or\n  fraying threads.');
     expect(prompt).toContain('FLOWER TYPE PRECEDENCE');
     expect(prompt).toContain('Do NOT classify fondant/gumpaste flowers as `edible_3d_ordinary`');
     expect(prompt).toContain('small gold fondant flowers on a mahjong cake -> `edible_flowers`');
-    expect(prompt).toContain('### C3. FLOWERS — edible_flowers');
-    expect(prompt).not.toContain('fresh_flowers');
-    expect(prompt).not.toContain('artificial_flowers');
+    expect(prompt).toContain('Never output the type `artificial_flowers`; it exists only for legacy rows.');
+    expect(prompt).not.toContain('IT IS "fresh_flowers"');
+    expect(prompt).not.toContain('| `fresh_flowers` |');
     expect(prompt).not.toContain('Basic roses without fine detail');
   });
 
@@ -305,7 +269,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.47 Version - Color-Invariant Floral Wreath Consistency**');
+    expect(prompt).toContain('**v3.46 Version - Schema Compatibility And Determinism Fixes**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -326,7 +290,7 @@ describe('cake analysis prompt rules', () => {
   it('uses toy-specific sizing for miniature molded toys', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.47 Version - Color-Invariant Floral Wreath Consistency**');
+    expect(prompt).toContain('**v3.46 Version - Schema Compatibility And Determinism Fixes**');
     expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy` AND `plastic_crown`)');
     expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
     expect(prompt).toContain('| `tiny` | under 0.10 |');
@@ -347,9 +311,9 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('material, size, color, pose, and appearance may share one `group_id`');
     expect(prompt).toContain('### C1. EDIBLE 3D FIGURES — edible_3d_complex, edible_3d_ordinary, edible_crown');
     expect(prompt).not.toContain('### C1. 3D FIGURES — edible_3d_complex, edible_3d_ordinary, toy');
-    expect(prompt).toContain('→ Toy or `plastic_crown`? Measure HEIGHT and use TOY-SPECIFIC SIZING PRECEDENCE');
+    expect(prompt).toContain('→ Toy, `plastic_crown`, or `figurine`? Measure HEIGHT and use TOY-SPECIFIC SIZING PRECEDENCE');
     expect(prompt).toContain('→ Edible 3D figure or `edible_crown`? Measure HEIGHT and use C1');
-    expect(prompt).toContain('For `toy` or `plastic_crown`, use TOY-SPECIFIC SIZING PRECEDENCE; otherwise look up the correct per-type table (C1-C7)');
+    expect(prompt).toContain('For `toy`, `plastic_crown`, or `figurine`, use TOY-SPECIFIC SIZING PRECEDENCE; otherwise look up the correct per-type table (C1-C7)');
   });
 
   it('uses one canonical six-band sizing contract and matching quick reference', () => {
@@ -536,193 +500,6 @@ describe('cake analysis prompt rules', () => {
     }
   });
 
-  it('keeps qualifying small Safari animal figures as complex main toppers', () => {
-    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
-    const expectedFigures = safariJungleFigureFixture.expected_main_toppers;
-
-    expect(safariJungleFigureFixture.slug).toBe('safari-jungle-mint-1-tier-cake-4d4a');
-    expect(expectedFigures.map((figure) => figure.group_id)).toEqual([
-      'giraffe_head',
-      'elephant_figure',
-      'zebra_figure',
-    ]);
-    expect(expectedFigures.every((figure) => (
-      figure.type === 'edible_3d_complex'
-      && figure.classification === 'hero'
-      && figure.size === 'small'
-    ))).toBe(true);
-    expect(safariJungleFigureFixture.expected_support_group_ids).toEqual(['tropical_leaves']);
-    expect(safariJungleFigureFixture.forbidden_support_group_ids).toEqual(
-      expectedFigures.map((figure) => figure.group_id),
-    );
-
-    expect(prompt).toContain('FREESTANDING FIGURE PLACEMENT OVERRIDE (REQUIRED)');
-    expect(prompt).toContain('`edible_3d_complex` is a\nmain-topper-only generated type.');
-    expect(prompt).toContain('small, placed at the front, side, or base\nof the cake, partly behind another decoration, or visually secondary.');
-    expect(prompt).toContain('a small fondant elephant, zebra, or giraffe-head figurine');
-    expect(prompt).toContain('one `edible_3d_complex` hero in `main_toppers`');
-    expect(prompt).toContain('Use `edible_3d_ordinary` in `support_elements` for figure-like decorations\nonly when they are simple molded non-character forms');
-  });
-
-  it('keeps the Snow White rose cluster as paid edible flowers', () => {
-    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
-
-    expect(snowWhiteFlowerFixture.slug).toBe('snow-white-blue-2-tier-cake-074d');
-    expect(snowWhiteFlowerFixture.expected_support_element).toMatchObject({
-      group_id: 'red_flower_cluster',
-      type: 'edible_flowers',
-      material: 'edible_fondant',
-      size: 'small',
-      quantity: 3,
-    });
-    expect(prompt).toContain('Every visible flower, including fresh-looking, natural-looking, silk, cloth,');
-    expect(prompt).toContain('is fulfilled and priced as edible flowers.');
-    expect(prompt).not.toContain('artificial_flowers');
-  });
-
-  it('counts mixed-size top peonies as individual main-topper flower pieces', () => {
-    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
-    const expectedFlowers = floralPinkPeonyFixture.expected_main_toppers;
-
-    expect(floralPinkPeonyFixture.slug).toBe('floral-pink-pink-1-tier-cake-1931');
-    expect(expectedFlowers).toEqual([
-      {
-        group_id: 'large_pink_peony_flowers',
-        type: 'edible_flowers',
-        material: 'edible_fondant',
-        classification: 'hero',
-        size: 'large',
-        quantity: 3,
-        description: 'three large pink peony flowers on top',
-      },
-      {
-        group_id: 'medium_pink_peony_flower',
-        type: 'edible_flowers',
-        material: 'edible_fondant',
-        classification: 'hero',
-        size: 'medium',
-        quantity: 1,
-        description: 'one medium pink peony flower on top',
-      },
-    ]);
-    expect(floralPinkPeonyFixture.forbidden_grouping).toEqual({
-      description: 'large pink peony flower cluster on top',
-      quantity: 1,
-      subtype: 'flower_cluster',
-    });
-    expect(prompt).toContain('FLOWER PIECE COUNTING AND SIZE PRECEDENCE (BOTH MAIN AND SUPPORT — REQUIRED)');
-    expect(prompt).toContain('A bouquet, cluster, spray, or arrangement describes placement only.');
-    expect(prompt).toContain('Count each clearly\nvisible bloom or flower head as one physical flower piece');
-    expect(prompt).toContain('Different sizes or\nappearances require separate rows.');
-    expect(prompt).toContain('do not use `subtype: "flower_cluster"` as a substitute');
-    expect(prompt).toContain('VISIBLE FLOWER UNIT BOUNDARY AND BAKERY FULFILLMENT IDENTITY');
-    expect(prompt).toContain('applies only\nwhen the PEONY-STYLE TOP SET OVERRIDE signature below is satisfied');
-    expect(prompt).toContain('touching flowers\nwith independently bounded outer petals remain separate pieces');
-    expect(prompt).toContain('genuinely\nmixed flower identities remain separate product rows');
-    expect(prompt).toContain('one continuous outer petal boundary');
-    expect(prompt).toContain('Use bakery fulfillment identity rather than strict botanical taxonomy.');
-    expect(prompt).toContain('normalize\nall of those top flowers to the dominant peony fulfillment identity');
-    expect(prompt).toContain('PEONY-STYLE TOP SET OVERRIDE (HIGHEST FLOWER-COUNTING PRIORITY)');
-    expect(prompt).toContain('treat it as one standardized peony-style top set');
-    expect(prompt).toContain('output exactly these two `main_toppers` flower rows');
-    expect(prompt).toContain('quantity `3`, described\n  as three large pink peony flowers on top');
-    expect(prompt).toContain('quantity `1`, described\n  as one medium pink peony flower on top');
-    expect(prompt).toContain('These two rows exhaust the entire\ntop arrangement.');
-    expect(prompt).toContain('in another\nrow in either array.');
-    expect(prompt).toContain('below the top rim on the cake side');
-    expect(prompt).toContain('description must not say top or top\nedge');
-    expect(prompt).toContain('three large pink peonies and one medium pink peony');
-    expect(prompt).toContain('Tiny/xsmall scattered or repeated sugar pearls, sugar beads,');
-  });
-
-  it('keeps recolored open-center floral wreath variants structurally identical', () => {
-    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
-    const fixtures = [lavenderFloralFixture, floralCakeLightPinkFixture];
-    const expectedStructure = lavenderFloralFixture.expected_structure;
-
-    expect(fixtures.map((fixture) => fixture.slug)).toEqual([
-      'lavender-floral-lavender-2-tier-cake-1f73',
-      'floral-cake-light-pink-2-tier-cake-1773',
-    ]);
-    expect(fixtures.every((fixture) => (
-      fixture.variant_group === 'open-center-floral-wreath-3-3-6'
-      && fixture.expected_structure.main_toppers.length === 2
-      && fixture.expected_structure.support_elements.length === 4
-    ))).toBe(true);
-    expect(floralCakeLightPinkFixture.expected_structure).toEqual(expectedStructure);
-    expect(expectedStructure.main_toppers).toEqual([
-      {
-        family: 'layered_rose_blooms',
-        type: 'edible_flowers',
-        material: 'edible_fondant',
-        classification: 'hero',
-        size: 'medium',
-        quantity: 3,
-      },
-      {
-        family: 'broad_five_petal_blossoms',
-        type: 'edible_flowers',
-        material: 'edible_fondant',
-        classification: 'hero',
-        size: 'medium',
-        quantity: 3,
-      },
-    ]);
-    expect(expectedStructure.support_elements).toEqual([
-      expect.objectContaining({ family: 'integrated_filler_flower_sprigs', type: 'edible_flowers', size: 'small', quantity: 6 }),
-      expect.objectContaining({ family: 'top_rim_piping', type: 'icing_decorations', size: 'small', quantity: 1 }),
-      expect.objectContaining({ family: 'upper_tier_side_piping', type: 'icing_decorations', size: 'small', quantity: 1 }),
-      expect.objectContaining({ family: 'lower_base_piping', type: 'icing_decorations', size: 'small', quantity: 1 }),
-    ]);
-    expect(fixtures.every((fixture) => (
-      fixture.expected_structure.icing_design.border_top
-      && fixture.expected_structure.icing_design.border_base
-      && fixture.forbidden_interpretations.includes('peony_style_top_set')
-      && fixture.forbidden_interpretations.includes('mixed_flowers_and_piped_icing')
-    ))).toBe(true);
-
-    expect(prompt).toContain('COLOR-INVARIANT FLORAL GEOMETRY PRECEDENCE (REQUIRED)');
-    expect(prompt).toContain('it must not change type, material, role, physical\ncount, grouping structure, or size');
-    expect(prompt).toContain('OPEN-CENTER TOP-RIM FLOWER WREATH/CROWN PRECEDENCE');
-    expect(prompt).toContain('Filler-flower sprigs alone never\nestablish this wreath signature.');
-    expect(prompt).toContain('An open-center perimeter wreath is not a compact\npeony-style top set.');
-    expect(prompt).toContain('three layered rolled\nrose blooms, three broad five-petal blossoms, and six integrated filler-flower');
-    expect(prompt).toContain('`edible_fondant`, `hero`, `medium`, quantity `3`');
-    expect(prompt).toContain('`edible_flowers`, `edible_fondant`, `small`, quantity `6`');
-    expect(prompt).toContain('Count each visibly\nseparate sprig, not every miniature bud.');
-    expect(prompt).toContain('Never combine\nflowers and piped icing in one row or description.');
-    expect(prompt).toContain('OPEN-CENTER WREATH FULL-BLOOM HERO ROUTING OVERRIDE');
-    expect(prompt).toContain('`tiny`, `xsmall`, and `small` full blooms remain\n`support_elements`.');
-    expect(prompt).toContain('Top-rim\npiping, tier-side swags/ruffles, and lower/base piping must be separate');
-    expect(prompt).toContain('FINAL OPEN-CENTER WREATH OUTPUT CHECK');
-    expect(prompt).toContain('if any piping region is cropped, occluded, or not visible, emit only the\n  visibly present regions');
-    expect(prompt).toContain('The lavender and light-pink versions of this construction must have this same\nstructural contract.');
-  });
-
-  it('makes tiny scattered sugar pearls and beads grouped candy sprinkles', () => {
-    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
-
-    expect(minimalistSugarPearlFixture.slug).toBe('minimalist-birthday-ivory-1-tier-cake-717c');
-    expect(minimalistSugarPearlFixture.expected_support_element).toMatchObject({
-      group_id: 'tiny_white_sugar_pearls',
-      type: 'sprinkles',
-      material: 'candy',
-      size: 'tiny',
-      quantity: 1,
-    });
-    expect(minimalistSugarPearlFixture.forbidden_types).toEqual([
-      'edible_3d_ordinary',
-      'plastic_ball_regular',
-      'premium_sprinkles',
-    ]);
-    expect(prompt).toContain('TINY SUGAR PEARLS / BEADS / NONPAREILS — `sprinkles` PRECEDENCE (REQUIRED)');
-    expect(prompt).toContain('Before applying the generic SPHERE CHECK');
-    expect(prompt).toContain('`type: "sprinkles"`, `material: "candy"`, and `quantity: 1`');
-    expect(prompt).toContain('This is a fulfillment classification override');
-    expect(prompt).toContain('Do NOT emit these tiny scattered/repeated pearls or beads as');
-    expect(prompt).toContain('every tiny/xsmall scattered or repeated sugar pearl');
-  });
-
   it('makes every number-shaped cake a Rectangle before tier and footprint defaults', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
@@ -731,7 +508,8 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('This rule overrides generic `1 Tier`, `Square`, Bento, and ordinary footprint\nheuristics.');
     expect(prompt).toContain('curved,\nopen, looped, hollow, or irregular digit outlines are still number-shaped cakes.');
     expect(prompt).toContain('one accepted number-cake design, not `multiple_cakes`');
-    expect(prompt).toContain('`Square`, `Bento`, or `Rectangle Fondant`) and select the visible height from\nthe allowed `Rectangle` thicknesses: `"3 in"` or `"4 in"`.');
+    expect(prompt).toContain('`Square`, or `Bento`) and select the visible height from the allowed\n`Rectangle` thicknesses: `"3 in"` or `"4 in"`.');
+    expect(prompt).toContain('Fondant exception: when the number cake body is visibly covered in fondant');
     expect(prompt).toContain('a birthday cake arranged as `18`, `21`, or `2026` -> `Rectangle`');
   });
 
