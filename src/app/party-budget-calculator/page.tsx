@@ -140,25 +140,18 @@ export default function PartyBudgetCalculatorPage() {
 
       <LandingHeader />
 
-      <main className="min-h-screen bg-slate-50 px-4 py-12 sm:px-6 lg:px-8">
+      <main className="min-h-screen genie-page-bg px-4 py-12 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <section className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm md:p-10">
-            <h1 className="max-w-3xl text-4xl font-black tracking-tight text-slate-900 md:text-5xl">
-               Birthday Party Budget Calculator Philippines
-            </h1>
+          <section className="rounded-3xl border border-purple-100 bg-white p-8 shadow-sm md:p-10">
+            <h1 className="max-w-3xl text-4xl font-black tracking-tight text-slate-900 md:text-5xl">Birthday Party Budget Calculator Philippines</h1>
             <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-600">
-              Plan every peso of your child&rsquo;s big day with a live calculator built on real 2026
-              Philippine vendor averages. Enter your budget, adjust guest count, and export a
-              printable PDF to share with your partner, venue, or caterer.
-            </p>
-            <p className="mt-3 text-sm text-slate-500">
-              Average Costs of Birthdays in 2026: ₱30,000 – ₱120,000
+              Plan every peso of your child&rsquo;s big day. Enter your budget, adjust guest count, and export a printable PDF.
             </p>
           </section>
 
           <PartyBudgetCalculator />
 
-          <section className="mt-12 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm md:p-10">
+          <section className="mt-12 rounded-3xl border border-purple-100 bg-white p-8 shadow-sm md:p-10">
             <h2 className="text-3xl font-bold tracking-tight text-slate-900">
               How to plan your kids birthday party budget — a complete 2026 guide
             </h2>
@@ -209,7 +202,7 @@ export default function PartyBudgetCalculatorPage() {
                 <div className="mt-4 overflow-x-auto">
                   <table className="w-full text-left text-sm">
                     <thead>
-                      <tr className="border-b border-slate-200">
+                      <tr className="border-b border-purple-100">
                         <th className="pb-2 font-semibold text-slate-900">Category group</th>
                         <th className="pb-2 font-semibold text-slate-900">Share of budget</th>
                         <th className="pb-2 font-semibold text-slate-900">On a ₱120,000 budget</th>
@@ -217,7 +210,7 @@ export default function PartyBudgetCalculatorPage() {
                     </thead>
                     <tbody>
                       {budgetAllocation.map((row) => (
-                        <tr key={row.category} className="border-b border-slate-100">
+                        <tr key={row.category} className="border-b border-purple-50">
                           <td className="py-3">
                             <div className="font-medium text-slate-900">{row.category}</div>
                             <p className="text-xs text-slate-500">{row.note}</p>
@@ -258,7 +251,7 @@ export default function PartyBudgetCalculatorPage() {
               </div>
             </div>
 
-            <section className="mt-10 rounded-2xl border border-slate-200 bg-slate-50 p-6">
+            <section className="mt-10 rounded-2xl border border-purple-100 bg-slate-50 p-6">
               <h3 className="text-xl font-bold text-slate-900">Real 2026 average kids party costs in the Philippines</h3>
               <p className="mt-2 text-sm text-slate-600">
                 National medians from 2025–2026 supplier surveys. Use these as a sanity check against
@@ -266,17 +259,17 @@ export default function PartyBudgetCalculatorPage() {
               </p>
               <div className="mt-4 overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-200">
-                      <th className="pb-2 text-left font-semibold text-slate-900">Category</th>
-                      <th className="pb-2 text-left font-semibold text-slate-900">Typical share</th>
-                      <th className="pb-2 text-left font-semibold text-slate-900">Average cost (PHP)</th>
-                      <th className="pb-2 text-left font-semibold text-slate-900">Budget range</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {philippineAverages.map((row) => (
-                      <tr key={row.category} className="border-b border-slate-100">
+                    <thead>
+                      <tr className="border-b border-purple-100">
+                        <th className="pb-2 text-left font-semibold text-slate-900">Category</th>
+                        <th className="pb-2 text-left font-semibold text-slate-900">Typical share</th>
+                        <th className="pb-2 text-left font-semibold text-slate-900">Average cost (PHP)</th>
+                        <th className="pb-2 text-left font-semibold text-slate-900">Budget range</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {philippineAverages.map((row) => (
+                        <tr key={row.category} className="border-b border-purple-50">
                         <td className="py-2.5 font-medium text-slate-900">{row.category}</td>
                         <td className="py-2.5 text-slate-600">{row.typicalShare}</td>
                         <td className="py-2.5 font-semibold text-purple-700">{row.avgCost}</td>
@@ -289,7 +282,7 @@ export default function PartyBudgetCalculatorPage() {
             </section>
           </section>
 
-          <section className="mt-12 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm md:p-10">
+          <section className="mt-12 rounded-3xl border border-purple-100 bg-white p-8 shadow-sm md:p-10">
             <h2 className="text-3xl font-bold tracking-tight text-slate-900">
               10 smart ways to cut kids party costs without cutting fun
             </h2>
@@ -308,7 +301,7 @@ export default function PartyBudgetCalculatorPage() {
             </div>
           </section>
 
-          <section className="mt-12 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm md:p-10">
+          <section className="mt-12 rounded-3xl border border-purple-100 bg-white p-8 shadow-sm md:p-10">
             <h2 className="text-3xl font-bold tracking-tight text-slate-900">
               Kids party budget timeline — when to budget each item
             </h2>
@@ -326,13 +319,13 @@ export default function PartyBudgetCalculatorPage() {
             </div>
           </section>
 
-          <section className="mt-12 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm md:p-10">
+          <section className="mt-12 rounded-3xl border border-purple-100 bg-white p-8 shadow-sm md:p-10">
             <h2 className="text-3xl font-bold tracking-tight text-slate-900">
                Birthday Party Budget Calculator Philippines — FAQ
             </h2>
             <div className="mt-6 space-y-6">
               {faqItems.map((item) => (
-                <div key={item.question} className="border-b border-slate-100 pb-6 last:border-b-0 last:pb-0">
+                <div key={item.question} className="border-b border-purple-100 pb-6 last:border-b-0 last:pb-0">
                   <h3 className="text-lg font-semibold text-slate-900">{item.question}</h3>
                   <p className="mt-2 text-base leading-7 text-slate-600">{item.answer}</p>
                 </div>

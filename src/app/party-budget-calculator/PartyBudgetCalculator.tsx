@@ -144,7 +144,7 @@ const initialLineItems: Record<string, BudgetItem[]> = {
 };
 
 const inputClass =
-  'mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30';
+  'mt-1 w-full rounded-lg border border-purple-100 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30';
 
 const labelClass = 'block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500';
 
@@ -580,14 +580,14 @@ export default function PartyBudgetCalculator() {
                 value={item.label}
                 onChange={(e) => updateItem(categoryId, item.id, { label: e.target.value })}
                 placeholder="Custom item name"
-                className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-900 placeholder-slate-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                    className="w-full rounded-lg border border-purple-100 px-3 py-1.5 text-sm text-slate-900 placeholder-slate-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
               />
               <input
                 type="text"
                 value={item.description}
                 onChange={(e) => updateItem(categoryId, item.id, { description: e.target.value })}
                 placeholder="Description (optional)"
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-1 text-xs text-slate-600 placeholder-slate-400 focus:border-purple-500 focus:outline-none"
+                className="mt-1 w-full rounded-lg border border-purple-100 px-3 py-1 text-xs text-slate-600 placeholder-slate-400 focus:border-purple-500 focus:outline-none"
               />
             </>
           ) : (
@@ -604,7 +604,7 @@ export default function PartyBudgetCalculator() {
             onChange={(e) => updateItem(categoryId, item.id, { vendor: e.target.value })}
             placeholder="Details (Optional)"
             aria-label={`${item.label || 'Item'} details`}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 placeholder-slate-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+            className="w-full rounded-lg border border-purple-100 px-3 py-2 text-xs text-slate-600 placeholder-slate-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
           />
         </div>
         <div className="grid grid-cols-2 gap-2 sm:contents">
@@ -612,9 +612,9 @@ export default function PartyBudgetCalculator() {
              <div>
                <label
                  htmlFor={`${item.id}-qty`}
-                 className={`block w-full cursor-pointer rounded-lg border border-slate-200 px-2 py-2 text-center text-sm text-slate-900 focus-within:border-purple-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-purple-500/30 ${
-                   lockedQty ? 'bg-slate-50 text-slate-500' : ''
-                 }`}
+                  className={`block w-full cursor-pointer rounded-lg border border-purple-100 px-2 py-2 text-center text-sm text-slate-900 focus-within:border-purple-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-purple-500/30 ${
+                    lockedQty ? 'bg-purple-50 text-slate-500' : ''
+                  }`}
                  onClick={() => {
                    if (item.perGuest) focusGuestCount();
                    else if (item.perChild) focusChildCount();
@@ -643,7 +643,7 @@ export default function PartyBudgetCalculator() {
               value={item.cost}
               onChange={(e) => handleCostChange(categoryId, item.id, e.target.value)}
               aria-label={`${item.label || 'Item'} unit cost`}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 pl-7 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+              className="w-full rounded-lg border border-purple-100 px-3 py-2 pl-7 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
             />
           </div>
         </div>
@@ -667,7 +667,7 @@ export default function PartyBudgetCalculator() {
     const items = lineItems[category.id] || [];
     const Icon = categoryIcons[category.id] || Package;
     return (
-      <div key={category.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div key={category.id} className="rounded-2xl border border-purple-100 bg-white p-5 shadow-sm">
         <div className="mb-1 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
@@ -687,7 +687,7 @@ export default function PartyBudgetCalculator() {
         </div>
         <button
           onClick={() => handleAddItem(category.id)}
-          className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-purple-400 hover:text-purple-700"
+          className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-dashed border-purple-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-purple-400 hover:text-purple-700"
         >
           <Plus className="h-3.5 w-3.5" />
           Add custom item
@@ -700,7 +700,7 @@ export default function PartyBudgetCalculator() {
     <section ref={printRef} className="mt-8">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div>
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+           <div className="rounded-3xl border border-purple-100 bg-white p-6 shadow-sm md:p-8">
             <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="text-2xl font-black text-slate-900">Interactive Calculator</h2>
               <p className="text-xs text-slate-500">Tap any field &mdash; totals update instantly.</p>
@@ -729,7 +729,7 @@ export default function PartyBudgetCalculator() {
                       type="checkbox"
                       checked={kidsAttending}
                       onChange={(e) => setKidsAttending(e.target.checked)}
-                      className="h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-2 focus:ring-purple-500/30"
+                      className="h-4 w-4 rounded border-purple-300 text-purple-600 focus:ring-2 focus:ring-purple-500/30"
                     />
                     <label htmlFor="kidsAttending" className={labelClass}>
                       Kids attending
@@ -759,7 +759,7 @@ export default function PartyBudgetCalculator() {
                     value={overallBudget}
                     onChange={(e) => setOverallBudget(e.target.value)}
                     placeholder="e.g. 50000"
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 pl-7 text-sm text-slate-900 placeholder-slate-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                    className="w-full rounded-lg border border-purple-100 px-3 py-2 pl-7 text-sm text-slate-900 placeholder-slate-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
                   />
                 </div>
               </div>
@@ -784,7 +784,7 @@ export default function PartyBudgetCalculator() {
         </div>
 
         <aside className="self-start lg:sticky lg:top-24">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="rounded-3xl border border-purple-100 bg-white p-6 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Your running total</p>
             <p className="mt-2 text-4xl font-black text-slate-900">{formatCurrency(total, currency)}</p>
             <p className="mt-1 text-xs text-slate-500">
@@ -813,12 +813,12 @@ export default function PartyBudgetCalculator() {
                 )}
               </div>
             ) : (
-              <p className="mt-4 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
+              <p className="mt-4 rounded-lg bg-purple-50 px-3 py-2 text-xs text-slate-500">
                 Add an overall budget above to track progress.
               </p>
             )}
 
-            <div className="mt-5 space-y-2.5 border-t border-slate-100 pt-4">
+            <div className="mt-5 space-y-2.5 border-t border-purple-100 pt-4">
               {initialCategories.map((cat, i) => {
                 const catTotal = categoryTotals[cat.id] || 0;
                 const pct = subtotal > 0 ? (catTotal / subtotal) * 100 : 0;
@@ -865,7 +865,7 @@ export default function PartyBudgetCalculator() {
               </button>
               <button
                 onClick={handleReset}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-purple-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-purple-50"
               >
                 <FileText className="h-4 w-4" /> Reset planner
               </button>
