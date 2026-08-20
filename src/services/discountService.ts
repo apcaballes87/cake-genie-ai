@@ -3,13 +3,39 @@ import type { DiscountValidationResult } from '@/types';
 
 const supabase = getSupabaseClient();
 
+export type DiscountValidationOptions = {
+  email?: string;
+  eligibleSubtotal?: number;
+  eligibleQuantity?: number;
+};
+
+export type UserDiscountCode = {
+  code_id: string;
+  code: string;
+  discount_amount: number | null;
+  discount_percentage: number | null;
+};
+
+type CreatorDiscountRpcResult = {
+  valid: boolean;
+  code_id: string | null;
+  discount_amount: number;
+  original_amount: number;
+  final_amount: number;
+  message: string;
+  free_delivery: boolean;
+  discount_type: string | null;
+  discount_value: number;
+};
+
 /**
  * Validates a discount code and returns the calculated discount
  * Checks all restrictions: active, expired, usage limits, user restrictions, etc.
  */
 export async function validateDiscountCode(
   code: string,
-  orderAmount: number
+  orderAmount: number,
+  options: DiscountValidationOptions = {}
 ): Promise<DiscountValidationResult> {
   try {
     const normalizedCode = code.trim().toUpperCase();
@@ -22,8 +48,32 @@ export async function validateDiscountCode(
       .eq('code', normalizedCode)
       .single();
 
-    // Code doesn't exist
+    // Private creator codes are intentionally hidden by RLS. Validate them
+    // through a sanitized RPC instead of exposing their email restriction.
     if (error || !discountCode) {
+      const { data: creatorResult, error: creatorError } = await supabase.rpc('validate_creator_discount_code', {
+        p_code: normalizedCode,
+        p_order_amount: orderAmount,
+        p_email: options.email?.trim().toLowerCase() || null,
+        p_eligible_subtotal: options.eligibleSubtotal ?? null,
+        p_eligible_quantity: options.eligibleQuantity ?? null,
+      });
+      const creatorValidation = (Array.isArray(creatorResult) ? creatorResult[0] : creatorResult) as CreatorDiscountRpcResult | null;
+
+      if (!creatorError && creatorValidation) {
+        return {
+          valid: creatorValidation.valid,
+          discountAmount: Number(creatorValidation.discount_amount ?? 0),
+          codeId: creatorValidation.code_id || undefined,
+          originalAmount: Number(creatorValidation.original_amount ?? orderAmount),
+          finalAmount: Number(creatorValidation.final_amount ?? orderAmount),
+          message: creatorValidation.message,
+          freeDelivery: creatorValidation.free_delivery,
+          discountType: creatorValidation.discount_type as DiscountValidationResult['discountType'],
+          discountValue: Number(creatorValidation.discount_value ?? 0),
+        };
+      }
+
       return {
         valid: false,
         discountAmount: 0,
@@ -78,6 +128,31 @@ export async function validateDiscountCode(
         finalAmount: orderAmount,
         message: `Minimum order amount of ₱${discountCode.minimum_order_amount} required`,
       };
+    }
+
+    if (discountCode.eligible_email
+      && options.email?.trim().toLowerCase() !== String(discountCode.eligible_email).trim().toLowerCase()) {
+      return {
+        valid: false,
+        discountAmount: 0,
+        originalAmount: orderAmount,
+        finalAmount: orderAmount,
+        message: 'This code is only valid for the creator email',
+      };
+    }
+
+    let discountBaseAmount = orderAmount;
+    if (Array.isArray(discountCode.applies_to_cake_types) && discountCode.applies_to_cake_types.length > 0) {
+      if (!options.eligibleSubtotal || options.eligibleSubtotal <= 0) {
+        return {
+          valid: false,
+          discountAmount: 0,
+          originalAmount: orderAmount,
+          finalAmount: orderAmount,
+          message: 'This code requires an eligible bento cake in your cart',
+        };
+      }
+      discountBaseAmount = options.eligibleSubtotal;
     }
 
     // Get current user
@@ -148,7 +223,7 @@ export async function validateDiscountCode(
     if (discountCode.discount_amount) {
       discountAmount = discountCode.discount_amount;
     } else if (discountCode.discount_percentage) {
-      discountAmount = (orderAmount * discountCode.discount_percentage) / 100;
+      discountAmount = (discountBaseAmount * discountCode.discount_percentage) / 100;
     }
 
     console.log('🎫 Discount calculation:', {
@@ -166,7 +241,7 @@ export async function validateDiscountCode(
     }
 
     // Ensure discount doesn't exceed order amount, but don't let it go below zero.
-    discountAmount = Math.min(discountAmount, orderAmount);
+    discountAmount = Math.min(discountAmount, discountBaseAmount);
     const finalAmount = Math.max(0, orderAmount - discountAmount);
 
     const freeDelivery = discountCode.free_delivery === true;
@@ -200,13 +275,13 @@ export async function validateDiscountCode(
 /**
  * Get user's available discount codes.
  */
-export async function getUserDiscountCodes(): Promise<any[]> {
+export async function getUserDiscountCodes(): Promise<UserDiscountCode[]> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
 
     // Temporarily disabled - RPC function not yet created
-    const userDiscounts: any[] = [];
+    const userDiscounts: UserDiscountCode[] = [];
     return userDiscounts;
   } catch (error) {
     console.error('Exception fetching user discount codes:', error);

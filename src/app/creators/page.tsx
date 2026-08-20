@@ -3,19 +3,60 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { submitCreatorApplication, type CreatorSubmission } from './actions';
-import { isAppError, getErrorMessage } from '@/lib/errors';
-import { Camera, Gift, Percent, Video, Menu, Search } from 'lucide-react';
+import {
+    checkCreatorPromoCode,
+    submitCreatorApplication,
+    type CreatorApplicationResult,
+    type CreatorSubmission,
+} from './actions';
+import { normalizeCreatorPromoCode } from './promoCode';
+import { AppError, isAppError, getErrorMessage } from '@/lib/errors';
+import { Camera, Check, CheckCircle, Copy, Gift, Menu, Search } from 'lucide-react';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import { COMMON_ASSETS } from '@/constants';
 import { getCuratedCollectionHref } from '@/lib/seo/collectionLinks';
 
+function CodeRow({
+    label,
+    value,
+    copiedCode,
+    onCopy,
+}: {
+    label: string;
+    value: string;
+    copiedCode: string | null;
+    onCopy: (value: string) => void;
+}) {
+    const copied = copiedCode === value;
+
+    return (
+        <div className="space-y-1.5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-purple-700">{label}</p>
+            <div className="flex items-center gap-2 rounded-xl border border-purple-200 bg-white p-2">
+                <code className="min-w-0 flex-1 break-all px-2 text-sm font-bold text-gray-900">{value}</code>
+                <button
+                    type="button"
+                    onClick={() => onCopy(value)}
+                    className="shrink-0 genie-btn-secondary rounded-lg p-2"
+                    aria-label={`Copy ${label}`}
+                >
+                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </button>
+            </div>
+        </div>
+    );
+}
+
 export default function CreatorsLandingPage() {
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [applicationResult, setApplicationResult] = useState<CreatorApplicationResult | null>(null);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [promoCodeTouched, setPromoCodeTouched] = useState(false);
+    const [promoCodeStatus, setPromoCodeStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'error'>('idle');
+    const [copiedCode, setCopiedCode] = useState<string | null>(null);
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isOccasionOpen, setIsOccasionOpen] = useState(false);
@@ -78,9 +119,7 @@ export default function CreatorsLandingPage() {
         agreed_to_terms: false,
     });
 
-    const generatePromoCode = (handle: string) => {
-        return handle.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-    };
+    const generatePromoCode = (handle: string) => normalizeCreatorPromoCode(handle);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type, checked } = e.target;
@@ -91,16 +130,55 @@ export default function CreatorsLandingPage() {
                 [name]: type === 'checkbox' ? checked : type === 'number' ? (value ? parseInt(value) : undefined) : value,
             };
 
-            // Auto-generate promo code if a handle changed
+            if (name === 'promo_code') {
+                nextData.promo_code = normalizeCreatorPromoCode(value);
+                setPromoCodeTouched(true);
+                setPromoCodeStatus('idle');
+            }
+
+            // Auto-generate promo code from the first available handle until
+            // the creator explicitly edits the code.
             if (['tiktok_handle', 'instagram_handle', 'facebook_handle'].includes(name)) {
                 const handleToUse = nextData.tiktok_handle || nextData.instagram_handle || nextData.facebook_handle;
-                if (handleToUse) {
-                    nextData.promo_code = generatePromoCode(handleToUse);
+                if (!promoCodeTouched) {
+                    nextData.promo_code = generatePromoCode(handleToUse || '');
+                    setPromoCodeStatus('idle');
                 }
             }
 
             return nextData;
         });
+    };
+
+    useEffect(() => {
+        const code = normalizeCreatorPromoCode(formData.promo_code || '');
+        if (code.length < 4 || code.length > 24) {
+            setPromoCodeStatus('idle');
+            return;
+        }
+
+        let cancelled = false;
+        const timer = window.setTimeout(async () => {
+            setPromoCodeStatus('checking');
+            const result = await checkCreatorPromoCode(code);
+            if (cancelled) return;
+            setPromoCodeStatus(result.available ? 'available' : result.message === 'Could not verify this code right now.' ? 'error' : 'taken');
+        }, 350);
+
+        return () => {
+            cancelled = true;
+            window.clearTimeout(timer);
+        };
+    }, [formData.promo_code]);
+
+    const copyCode = async (value: string) => {
+        try {
+            await navigator.clipboard.writeText(value);
+            setCopiedCode(value);
+            window.setTimeout(() => setCopiedCode(current => current === value ? null : current), 1800);
+        } catch {
+            setErrorMsg('Copy failed. Please select and copy the code manually.');
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -109,8 +187,17 @@ export default function CreatorsLandingPage() {
         setIsSubmitting(true);
 
         try {
-            const result = await submitCreatorApplication(formData);
+            const availability = await checkCreatorPromoCode(formData.promo_code);
+            if (!availability.available) {
+                throw new AppError(availability.message || 'That promo code is already taken. Please choose another one.', 'CONFLICT');
+            }
+
+            const result = await submitCreatorApplication({
+                ...formData,
+                promo_code: normalizeCreatorPromoCode(formData.promo_code),
+            });
             if (result && result.success) {
+                setApplicationResult(result);
                 setSuccess(true);
             }
         } catch (err) {
@@ -125,20 +212,55 @@ export default function CreatorsLandingPage() {
     };
 
     if (success) {
+        const referralLink = applicationResult ? `https://genie.ph/${applicationResult.referralCode}` : 'https://genie.ph/YOURCODE';
         return (
             <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-transparent">
-                <div className="max-w-md w-full bg-white/95 rounded-3xl shadow-xl border border-purple-100/50 p-8 text-center space-y-6">
+                <div className="max-w-2xl w-full bg-white/95 rounded-3xl shadow-xl border border-purple-100/50 p-6 sm:p-8 space-y-7">
                     <div className="w-16 h-16 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center mx-auto shadow-inner">
-                        <Gift className="w-8 h-8" />
+                        <CheckCircle className="w-8 h-8" />
                     </div>
-                    <h2 className="text-2xl font-extrabold text-gray-900">Application Received!</h2>
-                    <p className="text-gray-600 leading-relaxed text-sm">
+                    <div className="text-center space-y-3">
+                        <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">Application Received!</h1>
+                        <p className="text-gray-600 leading-relaxed text-sm">
                         Thank you for applying to the <span className="text-purple-600 font-bold">Genie.ph</span> Creator UGC Collab!
-                        We will reach out to you via email or phone with more details about the collaboration shortly.
-                    </p>
+                        Your codes are ready below. Please save them before leaving this page.
+                        </p>
+                    </div>
+
+                    {applicationResult && (
+                        <div className="space-y-4 text-left">
+                            <section className="rounded-2xl border border-purple-100 bg-purple-50/60 p-5 space-y-3">
+                                <h2 className="text-lg font-bold text-gray-900">A. Free Bento Cake</h2>
+                                <p className="text-sm text-gray-600 leading-relaxed">
+                                    Receive a complimentary bento cake for your content creation. Use it to record your experience and create a review. Delivery is charged at the regular delivery rate.
+                                </p>
+                                <p className="text-sm text-gray-700 leading-relaxed">
+                                    Focus your content on how easy it is to order online through Genie.ph: upload a design, get an instant quote, customize the cake, and complete the order without waiting for long chat replies.
+                                </p>
+                                <CodeRow label="Free bento code" value={applicationResult.bentoCode} copiedCode={copiedCode} onCopy={copyCode} />
+                            </section>
+
+                            <section className="rounded-2xl border border-purple-100 bg-white p-5 space-y-3">
+                                <h2 className="text-lg font-bold text-gray-900">B. 50% Personal Voucher</h2>
+                                <p className="text-sm text-gray-600 leading-relaxed">
+                                    This voucher is valid once for the email address used in your application. It gives 50% off the cake subtotal, capped at ₱1,500. Delivery is not discounted.
+                                </p>
+                                <CodeRow label="Personal voucher code" value={applicationResult.voucherCode} copiedCode={copiedCode} onCopy={copyCode} />
+                            </section>
+
+                            <section className="rounded-2xl border border-purple-100 bg-white p-5 space-y-3">
+                                <h2 className="text-lg font-bold text-gray-900">C. Share Your Creator Link</h2>
+                                <p className="text-sm text-gray-600 leading-relaxed">
+                                    Share your link with your audience. They receive 10% off, and you receive 15% commission for each successful order using your code.
+                                </p>
+                                <CodeRow label="Your unique link" value={referralLink} copiedCode={copiedCode} onCopy={copyCode} />
+                            </section>
+                        </div>
+                    )}
+
                     <button
                         onClick={() => window.location.href = '/'}
-                        className="mt-4 w-full genie-btn-primary font-bold py-3.5 rounded-xl shadow-md"
+                        className="w-full genie-btn-primary font-bold py-3.5 rounded-xl shadow-md"
                     >
                         Back to Home
                     </button>
@@ -268,10 +390,10 @@ export default function CreatorsLandingPage() {
                     {/* Perks Section (Left Sidebar) */}
                     <div className="lg:col-span-1 space-y-6">
                         <div className="bg-white/95 rounded-3xl border border-purple-100/50 shadow-md p-6">
-                            <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                                 <Gift className="w-5 h-5 text-purple-600" />
                                 Your Perks
-                            </h3>
+                            </h2>
                             <ul className="space-y-4">
                                 <li className="flex gap-3">
                                     <div className="mt-0.5 shrink-0 w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-700 font-bold text-sm">1</div>
@@ -304,7 +426,7 @@ export default function CreatorsLandingPage() {
                             <h2 className="text-2xl font-bold text-gray-900 mb-6">Apply Now</h2>
 
                             {errorMsg && (
-                                <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-md">
+                                <div role="alert" className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-md">
                                     <p className="font-medium">{errorMsg}</p>
                                 </div>
                             )}
@@ -316,8 +438,9 @@ export default function CreatorsLandingPage() {
                                     <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Personal Details</h3>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                                            <label htmlFor="creator-name" className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
                                             <input
+                                                id="creator-name"
                                                 required
                                                 type="text"
                                                 name="name"
@@ -325,11 +448,13 @@ export default function CreatorsLandingPage() {
                                                 onChange={handleInputChange}
                                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-400 focus:border-transparent outline-none transition-all text-gray-800"
                                                 placeholder="Juan Dela Cruz"
+                                                autoComplete="name"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Email Address *</label>
+                                            <label htmlFor="creator-email" className="block text-sm font-medium text-gray-700 mb-1">Email Address *</label>
                                             <input
+                                                id="creator-email"
                                                 required
                                                 type="email"
                                                 name="email"
@@ -337,11 +462,13 @@ export default function CreatorsLandingPage() {
                                                 onChange={handleInputChange}
                                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-400 focus:border-transparent outline-none transition-all text-gray-800"
                                                 placeholder="juan@example.com"
+                                                autoComplete="email"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Contact Number *</label>
+                                            <label htmlFor="creator-contact-number" className="block text-sm font-medium text-gray-700 mb-1">Contact Number *</label>
                                             <input
+                                                id="creator-contact-number"
                                                 required
                                                 type="tel"
                                                 name="contact_number"
@@ -349,11 +476,13 @@ export default function CreatorsLandingPage() {
                                                 onChange={handleInputChange}
                                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-400 focus:border-transparent outline-none transition-all text-gray-800"
                                                 placeholder="09123456789"
+                                                autoComplete="tel"
                                             />
                                         </div>
                                         <div className="sm:col-span-2">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Address *</label>
+                                            <label htmlFor="creator-address" className="block text-sm font-medium text-gray-700 mb-1">Delivery Address *</label>
                                             <input
+                                                id="creator-address"
                                                 required
                                                 type="text"
                                                 name="address"
@@ -361,6 +490,7 @@ export default function CreatorsLandingPage() {
                                                 onChange={handleInputChange}
                                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-400 focus:border-transparent outline-none transition-all text-gray-800"
                                                 placeholder="Complete address for cake delivery"
+                                                autoComplete="street-address"
                                             />
                                         </div>
                                     </div>
@@ -370,8 +500,9 @@ export default function CreatorsLandingPage() {
                                 <div className="space-y-4">
                                     <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Content Profile</h3>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Content Niche / Type *</label>
+                                        <label htmlFor="creator-content-niche" className="block text-sm font-medium text-gray-700 mb-1">Content Niche / Type *</label>
                                         <input
+                                            id="creator-content-niche"
                                             required
                                             type="text"
                                             name="content_niche"
@@ -394,10 +525,11 @@ export default function CreatorsLandingPage() {
                                     {/* TikTok */}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">TikTok Handle</label>
+                                            <label htmlFor="creator-tiktok-handle" className="block text-sm font-medium text-gray-700 mb-1">TikTok Handle</label>
                                             <div className="relative">
                                                 <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">@</span>
                                                 <input
+                                                    id="creator-tiktok-handle"
                                                     type="text"
                                                     name="tiktok_handle"
                                                     value={formData.tiktok_handle}
@@ -408,9 +540,11 @@ export default function CreatorsLandingPage() {
                                             </div>
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">TikTok Followers (optional)</label>
+                                            <label htmlFor="creator-tiktok-followers" className="block text-sm font-medium text-gray-700 mb-1">TikTok Followers (optional)</label>
                                             <input
+                                                id="creator-tiktok-followers"
                                                 type="number"
+                                                min={0}
                                                 name="tiktok_followers"
                                                 value={formData.tiktok_followers || ''}
                                                 onChange={handleInputChange}
@@ -423,10 +557,11 @@ export default function CreatorsLandingPage() {
                                     {/* Instagram */}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Instagram Handle</label>
+                                            <label htmlFor="creator-instagram-handle" className="block text-sm font-medium text-gray-700 mb-1">Instagram Handle</label>
                                             <div className="relative">
                                                 <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">@</span>
                                                 <input
+                                                    id="creator-instagram-handle"
                                                     type="text"
                                                     name="instagram_handle"
                                                     value={formData.instagram_handle}
@@ -437,9 +572,11 @@ export default function CreatorsLandingPage() {
                                             </div>
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Instagram Followers (optional)</label>
+                                            <label htmlFor="creator-instagram-followers" className="block text-sm font-medium text-gray-700 mb-1">Instagram Followers (optional)</label>
                                             <input
+                                                id="creator-instagram-followers"
                                                 type="number"
+                                                min={0}
                                                 name="instagram_followers"
                                                 value={formData.instagram_followers || ''}
                                                 onChange={handleInputChange}
@@ -452,8 +589,9 @@ export default function CreatorsLandingPage() {
                                     {/* Facebook */}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Facebook Page/Profile</label>
+                                            <label htmlFor="creator-facebook-handle" className="block text-sm font-medium text-gray-700 mb-1">Facebook Page/Profile</label>
                                             <input
+                                                id="creator-facebook-handle"
                                                 type="text"
                                                 name="facebook_handle"
                                                 value={formData.facebook_handle}
@@ -463,9 +601,11 @@ export default function CreatorsLandingPage() {
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Facebook Followers (optional)</label>
+                                            <label htmlFor="creator-facebook-followers" className="block text-sm font-medium text-gray-700 mb-1">Facebook Followers (optional)</label>
                                             <input
+                                                id="creator-facebook-followers"
                                                 type="number"
+                                                min={0}
                                                 name="facebook_followers"
                                                 value={formData.facebook_followers || ''}
                                                 onChange={handleInputChange}
@@ -478,26 +618,42 @@ export default function CreatorsLandingPage() {
                                 <div className="space-y-4">
                                     <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Custom Promo Code</h3>
                                     <div className="bg-purple-50/50 p-5 rounded-2xl border border-purple-100">
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Your unique 10% off promo code (automatically generated) *
+                                        <label htmlFor="creator-promo-code" className="block text-sm font-medium text-gray-700 mb-2">
+                                            Your unique 10% off promo code (editable) *
                                         </label>
                                         <div className="flex gap-2">
                                             <input
+                                                id="creator-promo-code"
                                                 required
-                                                readOnly
                                                 type="text"
                                                 name="promo_code"
                                                 value={formData.promo_code}
-                                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed outline-none uppercase font-mono"
+                                                onChange={handleInputChange}
+                                                maxLength={24}
+                                                autoComplete="off"
+                                                inputMode="text"
+                                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-800 outline-none uppercase font-mono focus:ring-2 focus:ring-purple-400 focus:border-transparent"
                                                 placeholder="Automatically generated from your handle"
                                             />
+                                        </div>
+                                        <div className="mt-2 flex items-center justify-between gap-3 text-xs">
+                                            <span className={promoCodeStatus === 'available' ? 'text-green-700' : promoCodeStatus === 'taken' || promoCodeStatus === 'error' ? 'text-red-700' : 'text-gray-500'}>
+                                                {promoCodeStatus === 'checking' && 'Checking code availability...'}
+                                                {promoCodeStatus === 'available' && 'Code is available.'}
+                                                {promoCodeStatus === 'taken' && 'Code is already taken. Edit it to choose another.'}
+                                                {promoCodeStatus === 'error' && 'Could not verify the code right now.'}
+                                                {promoCodeStatus === 'idle' && 'You can edit the automatically generated code.'}
+                                            </span>
+                                            <span className="font-mono text-purple-700">
+                                                genie.ph/{formData.promo_code || 'YOURCODE'}
+                                            </span>
                                         </div>
                                         <div className="mt-4 space-y-2">
                                             <p className="text-sm font-bold text-purple-700">How it works:</p>
                                             <ul className="text-xs text-gray-650 space-y-1.5 list-disc pl-4">
                                                 <li>Your audience gets <strong>10% OFF</strong> when they use your code at checkout.</li>
                                                 <li>You get <strong>15% COMMISSION</strong> for every successful order using your code.</li>
-                                                <li>Share your unique link: <code className="bg-purple-100 px-1.5 py-0.5 rounded text-purple-700 font-mono">genie.ph/YOURCODE</code></li>
+                                                <li>Share your unique link: <code className="bg-purple-100 px-1.5 py-0.5 rounded text-purple-700 font-mono">genie.ph/{formData.promo_code || 'YOURCODE'}</code></li>
                                             </ul>
                                         </div>
                                     </div>
@@ -518,7 +674,7 @@ export default function CreatorsLandingPage() {
                                         </div>
                                         <div className="text-sm">
                                             <p className="font-medium text-gray-900 group-hover:text-purple-600 transition-colors">
-                                                The "Voucher" Consent *
+                                                The &quot;Voucher&quot; Consent *
                                             </p>
                                             <p className="text-gray-500 mt-1">
                                                 I agree to create 1 TikTok/Reel showcasing my Genie.ph custom cake in exchange for the perks listed above.
@@ -527,13 +683,17 @@ export default function CreatorsLandingPage() {
                                     </label>
                                 </div>
 
+                                <p className="text-xs leading-relaxed text-gray-500">
+                                    We use your contact details and submitted social profiles to review and coordinate this collaboration. See our <Link href="/privacy" className="text-purple-700 underline">Privacy Policy</Link> for details.
+                                </p>
+
                                 {/* Submit Button */}
                                 <div className="pt-4">
                                     <button
                                         type="submit"
-                                        disabled={isSubmitting}
+                                        disabled={isSubmitting || promoCodeStatus === 'checking' || promoCodeStatus === 'taken'}
                                         className={`w-full py-4 rounded-xl font-bold text-lg text-white transition-all shadow-md hover:shadow-lg flex justify-center items-center gap-2
-                                            ${isSubmitting ? 'bg-purple-300 cursor-not-allowed' : 'genie-btn-primary hover:-translate-y-0.5'}`}
+                                            ${isSubmitting || promoCodeStatus === 'checking' || promoCodeStatus === 'taken' ? 'bg-purple-300 cursor-not-allowed' : 'genie-btn-primary hover:-translate-y-0.5'}`}
                                     >
                                         {isSubmitting ? (
                                             <>

@@ -1,96 +1,191 @@
 'use server';
 
 import { createClient } from '@supabase/supabase-js';
-import { AppError, type ErrorCode, wrapError } from '@/lib/errors';
+import { AppError, getErrorMessage, wrapError } from '@/lib/errors';
+import { normalizeCreatorPromoCode } from './promoCode';
 
-// Use the service role key to bypass RLS for unique checking and inserting reliably
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabase = createClient(supabaseUrl, supabaseKey, {
-    auth: { persistSession: false },
-});
+const supabase = supabaseServiceKey
+    ? createClient(supabaseUrl, supabaseServiceKey, {
+        auth: { persistSession: false },
+    })
+    : null;
+
+const RESERVED_CODES = new Set([
+    'ABOUT', 'ACCOUNT', 'ADMIN', 'API', 'AUTH', 'BLOG', 'CART', 'COLLECTIONS',
+    'COMPARE', 'CONTACT', 'CUSTOMIZING', 'FAQ', 'LOGIN', 'PAYMENT', 'PRIVACY',
+    'REVIEWS', 'SEARCH', 'SHOP', 'SIGNUP', 'TERMS',
+]);
 
 export type CreatorSubmission = {
     name: string;
     email: string;
     contact_number: string;
     address: string;
-
     content_niche: string;
-
     tiktok_handle?: string;
     tiktok_followers?: number;
-
     instagram_handle?: string;
     instagram_followers?: number;
-
     facebook_handle?: string;
     facebook_followers?: number;
-
     promo_code: string;
     agreed_to_terms: boolean;
 };
 
-export async function submitCreatorApplication(data: CreatorSubmission) {
+export type CreatorApplicationResult = {
+    success: true;
+    creatorId: string;
+    referralCode: string;
+    bentoCode: string;
+    voucherCode: string;
+};
+
+export type PromoCodeAvailability = {
+    available: boolean;
+    code: string;
+    message?: string;
+};
+
+function requireServiceClient() {
+    if (!supabase) {
+        throw new AppError('Creator applications are temporarily unavailable.', 'DATABASE_ERROR');
+    }
+
+    return supabase;
+}
+
+function validateCreatorSubmission(data: CreatorSubmission) {
+    if (!data.name?.trim() || !data.email?.trim() || !data.contact_number?.trim() || !data.address?.trim() || !data.content_niche?.trim()) {
+        throw new AppError('Please fill in all required application details.', 'VALIDATION_ERROR');
+    }
+
+    if (!/^\S+@\S+\.\S+$/.test(data.email.trim())) {
+        throw new AppError('Please provide a valid email address.', 'VALIDATION_ERROR');
+    }
+
+    if (!data.agreed_to_terms) {
+        throw new AppError('You must agree to the creator collaboration terms.', 'VALIDATION_ERROR');
+    }
+
+    if (!data.tiktok_handle?.trim() && !data.instagram_handle?.trim() && !data.facebook_handle?.trim()) {
+        throw new AppError('Please provide at least one social media handle.', 'VALIDATION_ERROR');
+    }
+
+    for (const followers of [data.tiktok_followers, data.instagram_followers, data.facebook_followers]) {
+        if (followers !== undefined && (!Number.isInteger(followers) || followers < 0)) {
+            throw new AppError('Follower counts must be zero or greater.', 'VALIDATION_ERROR');
+        }
+    }
+
+    const promoCode = normalizeCreatorPromoCode(data.promo_code || '');
+    if (promoCode.length < 4 || promoCode.length > 24) {
+        throw new AppError('Your custom promo code must be 4 to 24 letters or numbers.', 'VALIDATION_ERROR');
+    }
+
+    if (RESERVED_CODES.has(promoCode)) {
+        throw new AppError('That promo code is reserved. Please choose another code.', 'CONFLICT');
+    }
+
+    return promoCode;
+}
+
+export async function checkCreatorPromoCode(code: string): Promise<PromoCodeAvailability> {
+    const normalizedCode = normalizeCreatorPromoCode(code || '');
+
+    if (normalizedCode.length < 4 || normalizedCode.length > 24) {
+        return {
+            available: false,
+            code: normalizedCode,
+            message: 'Use 4 to 24 letters or numbers.',
+        };
+    }
+
+    if (RESERVED_CODES.has(normalizedCode)) {
+        return {
+            available: false,
+            code: normalizedCode,
+            message: 'That code is reserved.',
+        };
+    }
+
     try {
-        // 1. Basic Validation
-        if (!data.name || !data.email || !data.contact_number || !data.address) {
-            throw new AppError('Please fill in all required personal details.', 'VALIDATION_ERROR');
+        const client = requireServiceClient();
+        const [{ data: creatorMatches, error: creatorError }, { data: discountMatches, error: discountError }] = await Promise.all([
+            client.from('creators').select('id').ilike('promo_code', normalizedCode).limit(1),
+            client.from('discount_codes').select('code_id').ilike('code', normalizedCode).limit(1),
+        ]);
+
+        if (creatorError || discountError) {
+            throw creatorError || discountError;
         }
 
-        if (!data.agreed_to_terms) {
-            throw new AppError('You must agree to the terms to proceed.', 'VALIDATION_ERROR');
+        const available = creatorMatches.length === 0 && discountMatches.length === 0;
+        return {
+            available,
+            code: normalizedCode,
+            message: available ? 'Promo code is available.' : 'That promo code is already taken.',
+        };
+    } catch (error) {
+        console.error('Error checking creator promo code:', error);
+        return {
+            available: false,
+            code: normalizedCode,
+            message: 'Could not verify this code right now.',
+        };
+    }
+}
+
+export async function submitCreatorApplication(data: CreatorSubmission): Promise<CreatorApplicationResult> {
+    try {
+        const client = requireServiceClient();
+        const promoCode = validateCreatorSubmission(data);
+
+        const { data: result, error } = await client.rpc('submit_creator_application', {
+            p_name: data.name.trim(),
+            p_email: data.email.trim().toLowerCase(),
+            p_contact_number: data.contact_number.trim(),
+            p_address: data.address.trim(),
+            p_content_niche: data.content_niche.trim(),
+            p_tiktok_handle: data.tiktok_handle?.trim() || null,
+            p_tiktok_followers: data.tiktok_followers ?? null,
+            p_instagram_handle: data.instagram_handle?.trim() || null,
+            p_instagram_followers: data.instagram_followers ?? null,
+            p_facebook_handle: data.facebook_handle?.trim() || null,
+            p_facebook_followers: data.facebook_followers ?? null,
+            p_promo_code: promoCode,
+            p_agreed_to_terms: true,
+        });
+
+        if (error) {
+            if (error.code === '23505' || error.message.includes('CREATOR_PROMO_CODE_TAKEN')) {
+                throw new AppError('That promo code is already taken. Please choose another one.', 'CONFLICT');
+            }
+
+            if (error.code === '22023') {
+                throw new AppError(error.message, 'VALIDATION_ERROR');
+            }
+
+            throw error;
         }
 
-        // 2. Validate at least one social handle
-        const hasSocialHandle = !!(data.tiktok_handle || data.instagram_handle || data.facebook_handle);
-        if (!hasSocialHandle) {
-            throw new AppError('Please provide at least one social media handle.', 'VALIDATION_ERROR');
+        const application = Array.isArray(result) ? result[0] : result;
+        if (!application?.creator_id || !application.referral_code || !application.bento_code || !application.voucher_code) {
+            throw new AppError('The application was not completed. Please try again.', 'DATABASE_ERROR');
         }
 
-        // 3. Clean up the promo code
-        // Remove spaces and special characters, make it uppercase for consistency
-        const cleanPromoCode = data.promo_code.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-
-        if (!cleanPromoCode) {
-             throw new AppError('Invalid promo code selected.', 'VALIDATION_ERROR');
-        }
-
-        // 4. Check for promo code uniqueness
-        const { data: existing, error: checkError } = await supabase
-            .from('creators')
-            .select('id')
-            .ilike('promo_code', cleanPromoCode)
-            .single();
-
-        if (existing) {
-            throw new AppError('This promo code is already taken. Please select a different one or append numbers to it.', 'CONFLICT');
-        }
-
-        // Ignore single row not found error (which is what we want)
-        if (checkError && checkError.code !== 'PGRST116') {
-             console.error('Error checking promo code:', JSON.stringify(checkError, Object.getOwnPropertyNames(checkError), 2));
-             throw new AppError('Failed to verify promo code availability.', 'DATABASE_ERROR');
-        }
-
-        // 5. Insert into Database
-        const { error: insertError } = await supabase
-            .from('creators')
-            .insert({
-                ...data,
-                promo_code: cleanPromoCode
-            });
-
-        if (insertError) {
-             console.error('Error inserting creator:', JSON.stringify(insertError, Object.getOwnPropertyNames(insertError), 2));
-             // Handle unique constraint violation specifically just in case of race condition
-             if (insertError.code === '23505' && insertError.message.includes('promo_code')) {
-                 throw new AppError('This promo code is already taken. Please select a different one.', 'CONFLICT');
-             }
-             throw new AppError('Failed to submit application. Please try again later.', 'DATABASE_ERROR');
-        }
-
-        return { success: true };
-    } catch (error) { throw wrapError(error, 'Failed to submit application', 'DATABASE_ERROR'); }
+        return {
+            success: true,
+            creatorId: application.creator_id,
+            referralCode: application.referral_code,
+            bentoCode: application.bento_code,
+            voucherCode: application.voucher_code,
+        };
+    } catch (error) {
+        const wrapped = wrapError(error, 'Failed to submit application', 'DATABASE_ERROR');
+        console.error('Error submitting creator application:', getErrorMessage(wrapped));
+        throw wrapped;
+    }
 }

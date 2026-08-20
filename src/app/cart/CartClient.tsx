@@ -780,7 +780,18 @@ function CartClient() {
 
         setIsValidatingCode(true);
         console.log('🎫 [CartClient] Applying discount:', { code, subtotal });
-        const result = await validateDiscountCode(code, subtotal);
+        const eligibleBentoSubtotal = cartItems
+            .filter(item => String(item.cake_type || '').toLowerCase() === 'bento')
+            .reduce((sum, item) => sum + (item.final_price * item.quantity), 0);
+        const eligibleBentoQuantity = cartItems
+            .filter(item => String(item.cake_type || '').toLowerCase() === 'bento')
+            .reduce((sum, item) => sum + item.quantity, 0);
+        const checkoutEmail = isAnonymous ? guestEmail : user?.email || '';
+        const result = await validateDiscountCode(code, subtotal, {
+            email: checkoutEmail,
+            eligibleSubtotal: eligibleBentoSubtotal,
+            eligibleQuantity: eligibleBentoQuantity,
+        });
         console.log('🎫 [CartClient] Discount result:', result);
         setIsValidatingCode(false);
 
@@ -818,7 +829,7 @@ function CartClient() {
                 showError(result.message || 'Invalid discount code');
             }
         }
-    }, [discountCode, subtotal, appliedDiscount, handleRemoveDiscount]);
+    }, [discountCode, subtotal, appliedDiscount, handleRemoveDiscount, cartItems, guestEmail, isAnonymous, user?.email]);
 
     const {
         isLoaded: isMapsLoaded,
@@ -1046,7 +1057,7 @@ function CartClient() {
             handleApplyDiscount(discountCode, { silent: true });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [subtotal]);
+    }, [subtotal, guestEmail]);
 
     const correctedDates = useMemo(() => {
         if (isLoadingDates || !availabilitySettings) return availableDates;

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const { supabaseMock } = vi.hoisted(() => ({
   supabaseMock: {
     from: vi.fn(),
+    rpc: vi.fn(),
     auth: {
       getUser: vi.fn(),
     },
@@ -29,9 +30,10 @@ const discountCode = {
   user_id: null,
   one_per_user: false,
   new_users_only: true,
-  discount_percentage: 10,
-  discount_amount: null,
-  max_discount_amount: null,
+  discount_percentage: 10 as number | null,
+  discount_amount: null as number | null,
+  max_discount_amount: null as number | null,
+  applies_to_cake_types: null as string[] | null,
   free_delivery: false,
 };
 
@@ -113,5 +115,72 @@ describe('validateDiscountCode', () => {
     });
     expect(usage.eq).toHaveBeenNthCalledWith(1, 'discount_code_id', CODE_ID);
     expect(usage.eq).toHaveBeenNthCalledWith(2, 'user_id', USER_ID);
+  });
+
+  it('caps a percentage discount at its configured maximum', async () => {
+    const codeQuery = discountCodeQuery({ discount_percentage: 50, max_discount_amount: 1500, new_users_only: false });
+    supabaseMock.from.mockReturnValueOnce(codeQuery);
+
+    const result = await validateDiscountCode('welcome10', 4000);
+
+    expect(result).toMatchObject({
+      valid: true,
+      discountAmount: 1500,
+      finalAmount: 2500,
+    });
+  });
+
+  it('uses the eligible subtotal for cake-type-scoped codes', async () => {
+    const codeQuery = discountCodeQuery({
+      discount_percentage: 100,
+      applies_to_cake_types: ['Bento'],
+      new_users_only: false,
+    });
+    supabaseMock.from.mockReturnValueOnce(codeQuery);
+
+    const result = await validateDiscountCode('welcome10', 2000, {
+      eligibleSubtotal: 650,
+    });
+
+    expect(result).toMatchObject({
+      valid: true,
+      discountAmount: 650,
+      originalAmount: 2000,
+      finalAmount: 1350,
+    });
+  });
+
+  it('validates private creator codes through the sanitized RPC', async () => {
+    const missingCodeQuery = discountCodeQuery();
+    missingCodeQuery.single.mockResolvedValue({ data: null, error: { code: 'PGRST116' } });
+    supabaseMock.from.mockReturnValueOnce(missingCodeQuery);
+    supabaseMock.rpc.mockResolvedValueOnce({
+      data: [{
+        valid: true,
+        code_id: CODE_ID,
+        discount_amount: 1500,
+        original_amount: 4000,
+        final_amount: 2500,
+        message: 'Discount code applied successfully!',
+        free_delivery: false,
+        discount_type: 'percentage',
+        discount_value: 50,
+      }],
+      error: null,
+    });
+
+    const result = await validateDiscountCode('GENIE50ABC123', 4000, {
+      email: 'creator@example.com',
+    });
+
+    expect(result).toMatchObject({
+      valid: true,
+      discountAmount: 1500,
+      finalAmount: 2500,
+    });
+    expect(supabaseMock.rpc).toHaveBeenCalledWith('validate_creator_discount_code', expect.objectContaining({
+      p_code: 'GENIE50ABC123',
+      p_email: 'creator@example.com',
+    }));
   });
 });
