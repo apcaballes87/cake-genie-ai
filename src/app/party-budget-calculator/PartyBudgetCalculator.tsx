@@ -10,6 +10,7 @@ import {
   Trash2,
   AlertCircle,
   Building2,
+  ChevronDown,
   UtensilsCrossed,
   Cake,
   PartyPopper,
@@ -160,6 +161,7 @@ export default function PartyBudgetCalculator() {
   const [overallBudget, setOverallBudget] = useState('');
   const [contingency, setContingency] = useState(8);
   const [lineItems, setLineItems] = useState<Record<string, BudgetItem[]>>(initialLineItems);
+  const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
   const [hasHydrated, setHasHydrated] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
@@ -663,12 +665,23 @@ export default function PartyBudgetCalculator() {
     );
   };
 
+  const toggleCategory = (categoryId: string) => {
+    setCollapsedCategories((prev) => ({ ...prev, [categoryId]: !prev[categoryId] }));
+  };
+
   const renderCategory = (category: Category) => {
     const items = lineItems[category.id] || [];
     const Icon = categoryIcons[category.id] || Package;
+    const isCollapsed = !!collapsedCategories[category.id];
     return (
       <div key={category.id} className="rounded-2xl border border-purple-100 bg-white p-5 shadow-sm">
-        <div className="mb-1 flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={() => toggleCategory(category.id)}
+          aria-expanded={!isCollapsed}
+          aria-controls={`category-items-${category.id}`}
+          className="mb-1 flex w-full items-center justify-between gap-3 rounded-lg text-left"
+        >
           <div className="flex items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
               <Icon className="h-4.5 w-4.5" />
@@ -678,20 +691,29 @@ export default function PartyBudgetCalculator() {
               <p className="text-xs text-slate-500">{category.description}</p>
             </div>
           </div>
-          <div className="text-base font-bold text-purple-700">
-            {formatCurrency(categoryTotals[category.id] || 0, currency)}
+          <div className="flex shrink-0 items-center gap-2">
+            <span className="text-base font-bold text-purple-700">
+              {formatCurrency(categoryTotals[category.id] || 0, currency)}
+            </span>
+            <ChevronDown
+              className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`}
+            />
           </div>
-        </div>
-         <div className="divide-y divide-dashed divide-slate-200">
-          {visibleItems(items).map((item) => renderLineItem(category.id, item))}
-        </div>
-        <button
-          onClick={() => handleAddItem(category.id)}
-          className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-dashed border-purple-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-purple-400 hover:text-purple-700"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Add custom item
         </button>
+        {!isCollapsed && (
+          <div id={`category-items-${category.id}`}>
+            <div className="divide-y divide-dashed divide-slate-200">
+              {visibleItems(items).map((item) => renderLineItem(category.id, item))}
+            </div>
+            <button
+              onClick={() => handleAddItem(category.id)}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-dashed border-purple-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-purple-400 hover:text-purple-700"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add custom item
+            </button>
+          </div>
+        )}
       </div>
     );
   };
@@ -708,6 +730,22 @@ export default function PartyBudgetCalculator() {
               <div>
                 <label className={labelClass}>Party date</label>
                 <input type="date" value={partyDate} onChange={(e) => setPartyDate(e.target.value)} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Overall budget</label>
+                <div className="relative mt-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
+                    {symbolMap[currency] || ''}
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={overallBudget}
+                    onChange={(e) => setOverallBudget(e.target.value)}
+                    placeholder="e.g. 50000"
+                    className="w-full rounded-lg border border-purple-100 px-3 py-2 pl-7 text-sm text-slate-900 placeholder-slate-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                  />
+                </div>
               </div>
               <div>
                 <label className={labelClass}>Total guests</label>
@@ -744,22 +782,6 @@ export default function PartyBudgetCalculator() {
                       className={inputClass}
                     />
                   )}
-                </div>
-              </div>
-              <div>
-                <label className={labelClass}>Overall budget (optional)</label>
-                <div className="relative mt-1">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
-                    {symbolMap[currency] || ''}
-                  </span>
-                  <input
-                    type="number"
-                    min="0"
-                    value={overallBudget}
-                    onChange={(e) => setOverallBudget(e.target.value)}
-                    placeholder="e.g. 50000"
-                    className="w-full rounded-lg border border-purple-100 px-3 py-2 pl-7 text-sm text-slate-900 placeholder-slate-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
-                  />
                 </div>
               </div>
               <div>
