@@ -1,7 +1,7 @@
 'use server';
 
 import { createClient } from '@supabase/supabase-js';
-import { AppError, getErrorMessage, wrapError } from '@/lib/errors';
+import { AppError, getErrorMessage } from '@/lib/errors';
 import { normalizeCreatorPromoCode } from './promoCode';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -42,6 +42,14 @@ export type CreatorApplicationResult = {
     bentoCode: string;
     voucherCode: string;
 };
+
+export type CreatorSubmissionFailure = {
+    success: false;
+    error: string;
+    code?: string;
+};
+
+export type CreatorSubmissionResult = CreatorApplicationResult | CreatorSubmissionFailure;
 
 export type PromoCodeAvailability = {
     available: boolean;
@@ -138,7 +146,7 @@ export async function checkCreatorPromoCode(code: string): Promise<PromoCodeAvai
     }
 }
 
-export async function submitCreatorApplication(data: CreatorSubmission): Promise<CreatorApplicationResult> {
+export async function submitCreatorApplication(data: CreatorSubmission): Promise<CreatorSubmissionResult> {
     try {
         const client = requireServiceClient();
         const promoCode = validateCreatorSubmission(data);
@@ -161,19 +169,19 @@ export async function submitCreatorApplication(data: CreatorSubmission): Promise
 
         if (error) {
             if (error.code === '23505' || error.message.includes('CREATOR_PROMO_CODE_TAKEN')) {
-                throw new AppError('That promo code is already taken. Please choose another one.', 'CONFLICT');
+                return { success: false, error: 'That promo code is already taken. Please choose another one.', code: 'CONFLICT' };
             }
 
             if (error.code === '22023') {
-                throw new AppError(error.message, 'VALIDATION_ERROR');
+                return { success: false, error: error.message, code: 'VALIDATION_ERROR' };
             }
 
-            throw error;
+            return { success: false, error: 'We could not process your application right now. Please try again later.' };
         }
 
         const application = Array.isArray(result) ? result[0] : result;
         if (!application?.creator_id || !application.referral_code || !application.bento_code || !application.voucher_code) {
-            throw new AppError('The application was not completed. Please try again.', 'DATABASE_ERROR');
+            return { success: false, error: 'The application was not completed. Please try again.', code: 'DATABASE_ERROR' };
         }
 
         return {
@@ -184,8 +192,8 @@ export async function submitCreatorApplication(data: CreatorSubmission): Promise
             voucherCode: application.voucher_code,
         };
     } catch (error) {
-        const wrapped = wrapError(error, 'Failed to submit application', 'DATABASE_ERROR');
-        console.error('Error submitting creator application:', getErrorMessage(wrapped));
-        throw wrapped;
+        const message = getErrorMessage(error);
+        console.error('Error submitting creator application:', message);
+        return { success: false, error: message, code: 'DATABASE_ERROR' };
     }
 }

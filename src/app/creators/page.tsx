@@ -10,7 +10,7 @@ import {
     type CreatorSubmission,
 } from './actions';
 import { normalizeCreatorPromoCode } from './promoCode';
-import { AppError, isAppError, getErrorMessage } from '@/lib/errors';
+import { getErrorMessage } from '@/lib/errors';
 import { Camera, Check, CheckCircle, Copy, Gift, Menu, Search } from 'lucide-react';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
@@ -189,23 +189,22 @@ export default function CreatorsLandingPage() {
         try {
             const availability = await checkCreatorPromoCode(formData.promo_code);
             if (!availability.available) {
-                throw new AppError(availability.message || 'That promo code is already taken. Please choose another one.', 'CONFLICT');
+                setErrorMsg(availability.message || 'That promo code is already taken. Please choose another one.');
+                return;
             }
 
             const result = await submitCreatorApplication({
                 ...formData,
                 promo_code: normalizeCreatorPromoCode(formData.promo_code),
             });
-            if (result && result.success) {
+            if (result.success) {
                 setApplicationResult(result);
                 setSuccess(true);
+            } else {
+                setErrorMsg(result.error);
             }
         } catch (err) {
-            if (isAppError(err)) {
-                setErrorMsg(err.message);
-            } else {
-                setErrorMsg(getErrorMessage(err));
-            }
+            setErrorMsg(getErrorMessage(err));
         } finally {
             setIsSubmitting(false);
         }
