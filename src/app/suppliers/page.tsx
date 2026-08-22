@@ -3,6 +3,10 @@ import SuppliersDirectoryClient from './SuppliersDirectoryClient';
 import { createClient } from '@supabase/supabase-js';
 import type { Supplier } from './SuppliersDirectoryClient';
 
+// Fetch supplier listings at request time so newly approved suppliers appear
+// immediately instead of being baked into a static build.
+export const dynamic = 'force-dynamic';
+
 export const metadata = buildMarketingPageMetadata({
   title: 'Metro Cebu Party & Event Suppliers Directory',
   description: "Browse Cebu's premier event coordinators, planners, wedding hosts, stylists, mobile coffee carts, and party rentals in our Metro Cebu directory.",
