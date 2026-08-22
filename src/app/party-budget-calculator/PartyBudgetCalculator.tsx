@@ -169,6 +169,7 @@ export default function PartyBudgetCalculator() {
 
   const guestCountRef = useRef<HTMLInputElement>(null);
   const childCountRef = useRef<HTMLInputElement>(null);
+  const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const focusGuestCount = () => {
     guestCountRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -177,6 +178,13 @@ export default function PartyBudgetCalculator() {
   const focusChildCount = () => {
     childCountRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     setTimeout(() => childCountRef.current?.focus(), 400);
+  };
+
+  const scrollToCategory = (categoryId: string) => {
+    const el = categoryRefs.current[categoryId];
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
 
   const globalState = useMemo(
@@ -674,7 +682,12 @@ export default function PartyBudgetCalculator() {
     const Icon = categoryIcons[category.id] || Package;
     const isCollapsed = !!collapsedCategories[category.id];
     return (
-      <div key={category.id} className="rounded-2xl border border-purple-100 bg-white p-5 shadow-sm">
+      <div
+        key={category.id}
+        id={`category-card-${category.id}`}
+        ref={(el) => { categoryRefs.current[category.id] = el; }}
+        className="rounded-2xl border border-purple-100 bg-white p-5 shadow-sm"
+      >
         <button
           type="button"
           onClick={() => toggleCategory(category.id)}
@@ -844,15 +857,19 @@ export default function PartyBudgetCalculator() {
                 const catTotal = categoryTotals[cat.id] || 0;
                 const pct = subtotal > 0 ? (catTotal / subtotal) * 100 : 0;
                 return (
-                  <div key={cat.id}>
-                    <div className="flex items-center gap-2 text-xs">
+                    <div key={cat.id}>
+                    <button
+                      type="button"
+                      onClick={() => scrollToCategory(cat.id)}
+                      className="flex w-full items-center gap-2 text-xs text-left hover:opacity-80 transition-opacity"
+                    >
                       <span
                         className="h-2 w-2 shrink-0 rounded-full"
                         style={{ backgroundColor: breakdownPalette[i % breakdownPalette.length] }}
                       />
                       <span className="flex-1 truncate text-slate-600">{cat.label}</span>
                       <span className="font-semibold text-slate-900">{formatCurrency(catTotal, currency)}</span>
-                    </div>
+                    </button>
                     <div className="mt-1 h-1 w-full rounded-full bg-slate-100">
                       <div
                         className="h-1 rounded-full transition-all duration-300"
