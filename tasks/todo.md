@@ -1,5 +1,21 @@
 # Tasks
 
+## Harden creator application configuration failures (2026-08-22)
+
+### Plan
+
+- [x] Inspect the creator form action and the `PROMPT_CREATORS_FIX.md` failure contract.
+- [x] Make missing or invalid Supabase server configuration return a friendly result instead of failing during module import.
+- [x] Add focused regression coverage and run tests, lint, diff checks, and the relevant build verification.
+
+### Review
+
+- `src/app/creators/actions.ts` now creates the service-role Supabase client lazily inside the action path, validates both required environment variables, and converts invalid configuration into the existing friendly creator-application failure instead of an import-time exception. Unexpected server errors are also returned with a generic user-facing message.
+- Added regression coverage for missing URL, missing service key, and invalid URL configuration in `src/app/creators/actions.test.ts`.
+- Verification passed: 4 focused Vitest tests, scoped ESLint with 0 errors, `git diff --check`, and a live production `/creators` route smoke check with no browser console errors.
+- `npm run build` and full `tsc --noEmit` remain blocked by unrelated mixed-tree errors, starting with `src/app/api/admin/ai-prompts/route.ts` importing missing `getAllPromptVersions`; the touched creator files are not reported by either failure.
+- Production still needs `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and the creator migrations in the deployed Supabase project for applications to generate codes successfully.
+
 ## Reconcile primary description objects with canonical AI types (2026-08-14)
 
 ### Plan

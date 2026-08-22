@@ -1,17 +1,8 @@
 'use server';
 
 import { createClient } from '@supabase/supabase-js';
-import { AppError, getErrorMessage } from '@/lib/errors';
+import { AppError, isAppError } from '@/lib/errors';
 import { normalizeCreatorPromoCode } from './promoCode';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-const supabase = supabaseServiceKey
-    ? createClient(supabaseUrl, supabaseServiceKey, {
-        auth: { persistSession: false },
-    })
-    : null;
 
 const RESERVED_CODES = new Set([
     'ABOUT', 'ACCOUNT', 'ADMIN', 'API', 'AUTH', 'BLOG', 'CART', 'COLLECTIONS',
@@ -58,11 +49,20 @@ export type PromoCodeAvailability = {
 };
 
 function requireServiceClient() {
-    if (!supabase) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+
+    if (!supabaseUrl || !supabaseServiceKey) {
         throw new AppError('Creator applications are temporarily unavailable.', 'DATABASE_ERROR');
     }
 
-    return supabase;
+    try {
+        return createClient(supabaseUrl, supabaseServiceKey, {
+            auth: { persistSession: false },
+        });
+    } catch (error) {
+        throw new AppError('Creator applications are temporarily unavailable.', 'DATABASE_ERROR', 500, error);
+    }
 }
 
 function validateCreatorSubmission(data: CreatorSubmission) {
@@ -192,8 +192,16 @@ export async function submitCreatorApplication(data: CreatorSubmission): Promise
             voucherCode: application.voucher_code,
         };
     } catch (error) {
-        const message = getErrorMessage(error);
-        console.error('Error submitting creator application:', message);
-        return { success: false, error: message, code: 'DATABASE_ERROR' };
+        if (isAppError(error)) {
+            console.error('Error submitting creator application:', error.message);
+            return { success: false, error: error.message, code: error.code };
+        }
+
+        console.error('Error submitting creator application:', error);
+        return {
+            success: false,
+            error: 'We could not process your application right now. Please try again later.',
+            code: 'DATABASE_ERROR',
+        };
     }
 }
