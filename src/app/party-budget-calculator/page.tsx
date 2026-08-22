@@ -143,8 +143,8 @@ export default function PartyBudgetCalculatorPage() {
       <main className="min-h-screen genie-page-bg px-4 py-12 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <section className="rounded-3xl border border-purple-100 bg-white p-8 shadow-sm md:p-10">
-            <h1 className="max-w-3xl text-4xl font-black tracking-tight text-slate-900 md:text-5xl">Birthday Party Budget Calculator Philippines</h1>
-            <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-600">
+            <h1 className="text-4xl font-black tracking-tight text-slate-900 lg:whitespace-nowrap md:text-5xl">Birthday Party Budget Calculator Philippines</h1>
+            <p className="mt-5 text-lg leading-8 text-slate-600 lg:whitespace-nowrap">
               Plan every peso of your child&rsquo;s big day. Enter your budget, adjust guest count, and export a printable PDF.
             </p>
           </section>

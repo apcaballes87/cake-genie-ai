@@ -701,9 +701,8 @@ export default function PartyBudgetCalculator() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div>
            <div className="rounded-3xl border border-purple-100 bg-white p-6 shadow-sm md:p-8">
-            <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
+            <div className="mb-5">
               <h2 className="text-2xl font-black text-slate-900">Interactive Calculator</h2>
-              <p className="text-xs text-slate-500">Tap any field &mdash; totals update instantly.</p>
             </div>
             <div className="grid grid-cols-1 gap-4 xs:grid-cols-2 lg:grid-cols-4">
               <div>
