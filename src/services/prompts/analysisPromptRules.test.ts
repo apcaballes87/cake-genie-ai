@@ -16,7 +16,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.46 Version - Schema Compatibility And Determinism Fixes**');
+    expect(prompt).toContain('**v3.48 Version - Conditioned Wafer Paper Wave Fulfillment**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('3. Visible construction of each item');
     expect(prompt).toContain('5. Type compatible with that construction and material');
@@ -221,6 +221,39 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('Use `edible_photo_print` only for smaller edible printed cutouts or printed pieces placed on the side of the cake');
   });
 
+  it('classifies conditioned wafer-paper vertical waves as their own priced support type', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+    const fixture = JSON.parse(readPrompt('src/services/prompts/fixtures/minimalist-white-white-1-tier-cake-00e0.json')) as {
+      expected_support_element: Record<string, unknown>;
+      tier_quantity_map: Record<string, number>;
+      forbidden_types: string[];
+    };
+
+    expect(prompt).toContain('CONDITIONED WAFER PAPER VERTICAL-WAVE SIDE WRAP (REQUIRED)');
+    expect(prompt).toContain('Thin wafer paper strips are softened with a light\nmist of water/alcohol, shaped into loose waves, and adhered upright along the\nperimeter');
+    expect(prompt).toContain('`type: "edible_photo_side_wave"`, `material: "waferpaper"`');
+    expect(prompt).toContain('- 1 Tier -> quantity `1`');
+    expect(prompt).toContain('- 2 Tier -> quantity `3`');
+    expect(prompt).toContain('- 3 Tier -> quantity `4`');
+    expect(prompt).toContain('Continuous piped,\nspread, or palette-knife icing texture without separate thin upright sheets');
+    expect(prompt).toContain('PRE-EMISSION UPRIGHT WAFER-PAPER SIDE CHECKPOINT (REQUIRED)');
+    expect(prompt).toContain('distinct thin upright strips or\npanels with their own loose wavy edges and visible separation from the iced');
+    expect(prompt).toContain('Do not use this type from wave wording alone');
+
+    expect(fixture.expected_support_element).toMatchObject({
+      type: 'edible_photo_side_wave',
+      material: 'waferpaper',
+      size: 'large',
+      quantity: 1,
+    });
+    expect(fixture.tier_quantity_map).toEqual({ '1 Tier': 1, '2 Tier': 3, '3 Tier': 4 });
+    expect(fixture.forbidden_types).toEqual(expect.arrayContaining([
+      'edible_photo_side',
+      'icing_decorations',
+      'gumpaste_panel',
+    ]));
+  });
+
   it('normalizes unsupported semi-3D portrait reliefs to an edible photo on top', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
@@ -269,7 +302,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.46 Version - Schema Compatibility And Determinism Fixes**');
+    expect(prompt).toContain('**v3.48 Version - Conditioned Wafer Paper Wave Fulfillment**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -290,7 +323,7 @@ describe('cake analysis prompt rules', () => {
   it('uses toy-specific sizing for miniature molded toys', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.46 Version - Schema Compatibility And Determinism Fixes**');
+    expect(prompt).toContain('**v3.48 Version - Conditioned Wafer Paper Wave Fulfillment**');
     expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy` AND `plastic_crown`)');
     expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
     expect(prompt).toContain('| `tiny` | under 0.10 |');

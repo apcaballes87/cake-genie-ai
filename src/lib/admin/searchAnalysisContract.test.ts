@@ -36,6 +36,7 @@ const typeEnums = {
     'fresh_flowers',
     'artificial_flowers',
     'edible_flowers',
+    'edible_photo_side_wave',
     'icing_decorations',
     'meringue',
     'icing_doodle',
@@ -95,6 +96,7 @@ describe('search analysis contract', () => {
       'cardstock',
     ]);
     expect(schema.properties.support_elements.items.properties.type.enum).toContain('edible_flowers');
+    expect(schema.properties.support_elements.items.properties.type.enum).toContain('edible_photo_side_wave');
     expect(schema.properties.support_elements.items.properties.type.enum).not.toContain('fresh_flowers');
     expect(schema.properties.support_elements.items.properties.type.enum).not.toContain('artificial_flowers');
     expect(schema.properties.main_toppers.items.properties.type.enum).toContain('icing_doodle_intricate_top');
@@ -283,6 +285,55 @@ describe('search analysis contract', () => {
       material: 'edible_fondant',
       quantity: 15,
     });
+  });
+
+  it.each([
+    ['1 Tier', '4 in', 1],
+    ['2 Tier', '4 in', 3],
+    ['3 Tier', '4 in', 4],
+  ])('adds the conditioned wafer-paper wave fulfillment row for a %s', (cakeType, cakeThickness, quantity) => {
+    const result = postProcessSearchAnalysisResult(validAnalysis({
+      cakeType,
+      cakeThickness,
+      alt_text: 'White minimalist birthday cake with vertical textured waves, white flowers, and a gold candle.',
+      seo_description: 'A white cake has distinctive vertical wave textured sides around the full cake perimeter.',
+    }), typeEnums);
+
+    expect(result.support_elements).toEqual([expect.objectContaining({
+      type: 'edible_photo_side_wave',
+      material: 'waferpaper',
+      color: '#FFFFFF',
+      size: 'large',
+      quantity,
+      group_id: 'conditioned_waferpaper_vertical_wave_side_wrap',
+    })]);
+  });
+
+  it('does not convert explicitly piped, buttercream, palette-knife, spatula, or combed side waves', () => {
+    const result = postProcessSearchAnalysisResult(validAnalysis({
+      alt_text: 'White cake with piped vertical buttercream waves around the sides.',
+      seo_description: 'The palette-knife frosting creates a continuous textured wave side finish.',
+    }), typeEnums);
+
+    expect(result.support_elements).toEqual([]);
+  });
+
+  it('does not duplicate a conditioned wafer-paper wave row already emitted by the model', () => {
+    const result = postProcessSearchAnalysisResult(validAnalysis({
+      alt_text: 'White cake with vertical textured waves around the sides.',
+      seo_description: 'Vertical waves cover the cake perimeter.',
+      support_elements: [{
+        type: 'edible_photo_side_wave',
+        material: 'waferpaper',
+        group_id: 'conditioned_waferpaper_vertical_wave_side_wrap',
+        color: '#FFFFFF',
+        size: 'large',
+        quantity: 1,
+        description: 'conditioned wafer paper vertical wave side wrap',
+      }],
+    }), typeEnums);
+
+    expect(result.support_elements).toHaveLength(1);
   });
 
   it('keeps a single substantial fondant pearl as an ordinary 3D support item', () => {

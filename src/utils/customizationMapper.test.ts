@@ -89,4 +89,37 @@ describe('mapAnalysisToState', () => {
             type: 'edible_photo_side',
         });
     });
+
+    it('preserves conditioned wafer-paper waves without photo-wrap conversion', () => {
+        const state = mapAnalysisToState({
+            cakeType: '2 Tier',
+            cakeThickness: '4 in',
+            main_toppers: [],
+            support_elements: [{
+                type: 'edible_photo_side_wave',
+                material: 'waferpaper',
+                color: '#FFFFFF',
+                size: 'large',
+                quantity: 3,
+                group_id: 'conditioned_waferpaper_vertical_wave_side_wrap',
+                description: 'conditioned white wafer paper vertical waves around the cake sides',
+            }],
+            cake_messages: [],
+            icing_design: {
+                base: 'soft_icing',
+                color_type: 'single',
+                colors: { top: '#FFFFFF', side: '#FFFFFF' },
+                border_top: false,
+                border_base: false,
+                drip: false,
+                gumpasteBaseBoard: false,
+            },
+        } satisfies HybridAnalysisResult);
+
+        expect(state.supportElements?.[0]).toMatchObject({
+            original_type: 'edible_photo_side_wave',
+            type: 'edible_photo_side_wave',
+            quantity: 3,
+        });
+    });
 });

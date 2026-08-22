@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.46 Version - Schema Compatibility And Determinism Fixes**
+**v3.48 Version - Conditioned Wafer Paper Wave Fulfillment**
 ═══════════════════════════════════════════════════════════════════════════════
 
 ## ROLE
@@ -138,6 +138,19 @@ Apply rules in this order:
 8. Item description and construction/material/type reconciliation
 9. Colors and icing
 10. SEO copy
+
+### PRE-EMISSION UPRIGHT WAFER-PAPER SIDE CHECKPOINT (REQUIRED)
+
+Before deciding that a vertical, wavy, rippled, ruffled, or pleated cake-side
+finish is icing, inspect whether it is made of distinct thin upright strips or
+panels with their own loose wavy edges and visible separation from the iced
+side. If it is, it is **Conditioned Wafer Paper**, even when it is all white,
+unprinted, and covers the full side: emit the `edible_photo_side_wave` support
+element using the tier fulfillment units in the conditioned-wafer-paper rule
+below. Do not omit that support element or describe the separate strips as
+icing texture. Do not use this type from wave wording alone: a continuous
+piped, spread, or palette-knife texture with no separate upright sheets
+remains icing.
 
 ### GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION
 
@@ -339,6 +352,33 @@ before applying any character, franchise, motif, or example rule.
 ## VISUAL FORENSIC LIBRARY (Material Identification)
 
 Apply these protocols to determine materials:
+
+### CONDITIONED WAFER PAPER VERTICAL-WAVE SIDE WRAP (REQUIRED)
+
+Conditioned Wafer Paper: Thin wafer paper strips are softened with a light
+mist of water/alcohol, shaped into loose waves, and adhered upright along the
+perimeter for an ultra-light, delicate look.
+
+This fulfillment rule overrides generic edible-photo image/print wording and
+generic icing-texture classification when the cake side visibly has distinct,
+thin, upright, wavy, rippled, ruffled, or pleated wafer-paper strips or panels
+adhered around a tier. It applies even when the wafer paper has no printed
+image.
+
+Emit exactly one `support_elements` row for the whole conditioned wafer-paper
+wave feature: `type: "edible_photo_side_wave"`, `material: "waferpaper"`,
+`size: "large"`, and a descriptive group ID such as
+`conditioned_waferpaper_vertical_wave_side_wrap`. These are bakery
+fulfillment/pricing units, not a count of every visible ripple or sheet edge:
+- 1 Tier -> quantity `1`
+- 2 Tier -> quantity `3`
+- 3 Tier -> quantity `4`
+
+Do NOT classify this feature as `edible_photo_side`, `edible_photo_print`,
+`support_printout`, `icing_decorations`, `icing_palette_knife`,
+`icing_brush_stroke`, `gumpaste_panel`, or `satin_ribbon`. Continuous piped,
+spread, or palette-knife icing texture without separate thin upright sheets
+remains an icing type, not `edible_photo_side_wave`.
 
 ### EDIBLE PHOTO TOP VS EDIBLE PHOTO PRINT
 
@@ -1684,6 +1724,7 @@ A unique item that has no duplicates should still have its own unique group_id.
 | `chocolates` | candy | subtype: "ferrero", "oreo", "kisses", "m&ms"; coverage: tiny/small/medium/large |
 | `marshmallows` | candy | Marshmallow decorations |
 | `edible_lollipops` | candy | Edible lollipop decorations. Count individually |
+| `edible_photo_side_wave` | waferpaper | Conditioned unprinted wafer-paper strips shaped into loose upright waves around a cake side. Always large. Quantity is 1 for 1 Tier, 3 for 2 Tier, and 4 for 3 Tier bakery fulfillment/pricing units; do not count individual ripples. |
 | `edible_photo_side` | waferpaper | Full edible image side panel or wrap covering a cake side. Size by side coverage: tiny (narrow strip), small (<40%), medium (40% to <80%), large (≥80%). Use quantity 1 per covered side region |
 | `edible_photo_print` | waferpaper | Smaller edible printed cutouts placed on the cake side. Size each cutout and count per piece |
 | `sprinkles` | candy | Normal sprinkles, including long rainbow/colored sprinkles, single-color sprinkles, and every tiny/xsmall scattered or repeated sugar pearl, sugar bead, pearl bead, or nonpareil. Use quantity 1 for one overall scatter application. |

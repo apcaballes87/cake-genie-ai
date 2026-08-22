@@ -127,4 +127,29 @@ describe('getDynamicTypeEnums', () => {
     expect(result.mainTopperTypes).toContain('edible_2d_complex');
     expect(result.supportElementTypes).not.toContain('edible_2d_complex');
   });
+
+  it('admits the conditioned wafer-paper wave pricing type in support enums', async () => {
+    const eq = vi.fn().mockResolvedValue({
+      data: [{
+        item_type: 'edible_photo_side_wave',
+        item_key: 'edible_photo_side_wave_large',
+        category: 'support_element',
+        sub_item_type: null,
+      }],
+      error: null,
+    });
+
+    const supabase = {
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq,
+        })),
+      })),
+    };
+
+    const result = await getDynamicTypeEnums(supabase);
+
+    expect(result.supportElementTypes).toContain('edible_photo_side_wave');
+    expect(result.mainTopperTypes).not.toContain('edible_photo_side_wave');
+  });
 });

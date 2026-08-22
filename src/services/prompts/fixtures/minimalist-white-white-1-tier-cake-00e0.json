@@ -1,0 +1,30 @@
+{
+  "slug": "minimalist-white-white-1-tier-cake-00e0",
+  "image_url": "https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/customizations/minimalist-white-white-1-tier-cake-00e0.webp",
+  "source_url": "https://genie.ph/customizing/minimalist-white-white-1-tier-cake-00e0",
+  "purpose": "Regression fixture for conditioned wafer-paper vertical-wave side-wrap fulfillment and pricing units.",
+  "expected_support_element": {
+    "group_id": "conditioned_waferpaper_vertical_wave_side_wrap",
+    "type": "edible_photo_side_wave",
+    "material": "waferpaper",
+    "color": "#FFFFFF",
+    "size": "large",
+    "quantity": 1,
+    "description": "conditioned white wafer paper strips softened and shaped into loose upright vertical waves around the cake side"
+  },
+  "tier_quantity_map": {
+    "1 Tier": 1,
+    "2 Tier": 3,
+    "3 Tier": 4
+  },
+  "forbidden_types": [
+    "edible_photo_side",
+    "edible_photo_print",
+    "support_printout",
+    "icing_decorations",
+    "icing_palette_knife",
+    "icing_brush_stroke",
+    "gumpaste_panel",
+    "satin_ribbon"
+  ]
+}

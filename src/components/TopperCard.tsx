@@ -24,7 +24,7 @@ export const originalTypeLabelMap: Record<MainTopperType, string> = {
 };
 export const supportTypeDisplayMap: Record<SupportElementType, string> = {
     'edible_3d_support': 'Gumpaste (3D)', 'edible_2d_support': 'Gumpaste (2D)', 'chocolates': 'Chocolates',
-    'sprinkles': 'Sprinkles', 'premium_sprinkles': 'Premium Sprinkles', 'dragees': 'Dragees (Pearls)', 'support_printout': 'Printout', 'edible_photo_side': 'Printout (Edible)', 'edible_photo_print': 'Printout (Edible)',
+    'sprinkles': 'Sprinkles', 'premium_sprinkles': 'Premium Sprinkles', 'dragees': 'Dragees (Pearls)', 'support_printout': 'Printout', 'edible_photo_side': 'Printout (Edible)', 'edible_photo_side_wave': 'Conditioned Wafer Paper Waves', 'edible_photo_print': 'Printout (Edible)',
     'isomalt': 'Isomalt (Sugar Glass)', 'edible_flowers': 'Edible Flowers', 'icing_doodle': 'Piped Doodles', 'icing_doodle_intricate_side': 'Intricate Side Doodles', 'icing_palette_knife': 'Palette Knife Finish',
     'icing_brush_stroke': 'Brush Stroke Finish', 'icing_splatter': 'Splatter Finish', 'icing_minimalist_spread': 'Minimalist Spread',
     'plastic_ball': 'Plastic Ball', 'plastic_ball_regular': 'Plastic Ball', 'plastic_ball_disco': 'Disco Ball',

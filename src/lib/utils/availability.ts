@@ -41,7 +41,7 @@ export function getDesignAvailability(design: DesignData): AvailabilityType {
 
     // Truly complex, hand-sculpted or assembled items.
     const hasHighlyComplexDecorations = allItems.some(item =>
-        ['edible_3d_complex', 'edible_2d_complex', 'edible_3d_ordinary'].includes(item.type) || // Handmade complex artwork and 3D sculptures.
+        ['edible_3d_complex', 'edible_2d_complex', 'edible_3d_ordinary', 'edible_photo_side_wave'].includes(item.type) || // Handmade complex artwork, shaped wafer-paper waves, and 3D sculptures.
         item.type === 'edible_2d_support' || // Large panels (was 'gumpaste_panel')
         item.type === 'edible_flowers'    // Intricate sugar flowers
     );

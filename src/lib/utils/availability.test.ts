@@ -56,6 +56,23 @@ describe('getDesignAvailability', () => {
         expect(getDesignAvailability(design)).toBe('normal');
     });
 
+    it('returns normal for conditioned wafer-paper wave side wraps', () => {
+        const design: DesignData = {
+            cakeType: '1 Tier',
+            cakeSize: '6" Round',
+            icingBase: 'soft_icing',
+            drip: false,
+            gumpasteBaseBoard: false,
+            mainToppers: [],
+            supportElements: [{
+                type: 'edible_photo_side_wave',
+                description: 'conditioned wafer paper vertical waves around the side',
+            }],
+        };
+
+        expect(getDesignAvailability(design)).toBe('normal');
+    });
+
     it.each([
         ['icing_doodle_intricate_top', 'mainToppers'],
         ['icing_doodle_intricate_side', 'supportElements'],

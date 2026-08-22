@@ -340,6 +340,22 @@ const basePricingRows: PricingFixtureRule[] = [
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
   },
+  {
+    rule_id: 104,
+    item_key: 'edible_photo_side_wave_large',
+    item_type: 'edible_photo_side_wave',
+    classification: 'non-gumpaste',
+    size: 'large',
+    description: 'Conditioned wafer paper wave side wrap',
+    price: 500,
+    category: 'support_element',
+    quantity_rule: 'per_piece',
+    multiplier_rule: null,
+    special_conditions: null,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+  },
 ];
 
 const weddingAnalysisFixture = {
@@ -1229,6 +1245,34 @@ describe('calculatePriceFromDatabase', () => {
       expect(result.addOnPricing.addOnPrice).toBe(rawPrice);
     }
   );
+
+  it.each([
+    ['1 Tier', 1, 500],
+    ['2 Tier', 3, 1500],
+    ['3 Tier', 4, 2000],
+  ] as const)('prices a %s conditioned wafer-paper wave wrap from its fulfillment units', async (cakeType, quantity, expectedPrice) => {
+    const { calculatePriceFromDatabase } = await import('./pricingService.database');
+    const support = {
+      id: `conditioned-wafer-paper-wave-${cakeType}`,
+      type: 'edible_photo_side_wave',
+      material: 'waferpaper',
+      description: 'conditioned white wafer paper vertical waves around the cake sides',
+      quantity,
+      isEnabled: true,
+      size: 'large',
+    } as SupportElementUI;
+
+    const result = await calculatePriceFromDatabase({
+      mainToppers: [],
+      supportElements: [support],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: cakeType, size: '6" Round' } as CakeInfoUI,
+    });
+
+    expect(result.itemPrices.get(support.id)).toBe(expectedPrice);
+    expect(result.addOnPricing.addOnPrice).toBe(expectedPrice);
+  });
 
   it('prices ordinary edible 3D pieces identically in main and support categories without allowance', async () => {
     const { calculatePriceFromDatabase } = await import('./pricingService.database');

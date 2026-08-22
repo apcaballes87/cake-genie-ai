@@ -154,6 +154,7 @@ const supportMaterialLabelMap: Record<SupportElementType, string> = {
     dragees: 'Dragees (Pearls)',
     edible_flowers: 'Edible Flowers',
     edible_photo_side: 'Printout (Edible)',
+    edible_photo_side_wave: 'Conditioned Wafer Paper Waves',
     edible_photo_print: 'Printout (Edible)',
     icing_doodle: 'Piped Doodles',
     icing_doodle_intricate_side: 'Intricate Side Doodles',
