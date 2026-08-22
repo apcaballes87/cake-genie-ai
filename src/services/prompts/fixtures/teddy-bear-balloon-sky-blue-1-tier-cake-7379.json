@@ -1,0 +1,21 @@
+{
+  "slug": "teddy-bear-balloon-sky-blue-1-tier-cake-7379",
+  "source_image_url": "https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/customizations/teddy-bear-balloon-sky-blue-1-tier-cake-7379.webp",
+  "cake_type": "1 Tier",
+  "case_description": "A teddy bear basket is topped by a clustered arrangement of blue and gold plastic balloon spheres.",
+  "expected_balloon_support": {
+    "type": "plastic_ball_regular",
+    "material": "plastic",
+    "placement": "support_elements",
+    "quantity": "one per separately visible ball",
+    "quantity_method": "one-to-one direct visual tally of distinguishable ball outlines",
+    "split_rows_by": [
+      "color",
+      "size"
+    ],
+    "exclude_hidden_balls": true
+  },
+  "forbidden_main_topper_types": [
+    "plastic_ball"
+  ]
+}

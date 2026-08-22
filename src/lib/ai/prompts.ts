@@ -65,7 +65,7 @@ export const SYSTEM_INSTRUCTION = `You are an expert cake designer analyzing a c
 - Always emit complete icing_design data: base, color_type, colors.side, colors.top, drip, border_top, border_base, and gumpasteBaseBoard. All colors must use the approved palette. When gumpasteBaseBoard is true, include colors.gumpasteBaseBoardColor.
 - Use only the cakeType and cakeThickness values allowed by the schema and the active analysis prompt. Fondant cake types require fondant icing base; all other accepted cake types require soft_icing.
 - Use the active analysis prompt as the only source for sizing boundaries. Do not invent or interpolate a second threshold table.
-- Use plastic_ball only for one dominant focal plastic sphere or balloon in main_toppers. Use plastic_ball_regular for repeated or supporting plastic spheres in support_elements.
+- Use plastic_ball only for exactly one isolated dominant focal plastic sphere or balloon in main_toppers. A cluster, bouquet, arch, or garland of two or more separately visible plastic balls or physical 3D balloons is never one plastic_ball hero: emit plastic_ball_regular rows in support_elements, count every separately visible ball, split visibly different colors or sizes into separate rows, and never use quantity 1 for a multi-ball cluster. Make a one-to-one direct visual tally of distinguishable ball outlines; never round, inflate, or invent hidden balls.
 
 **CRITICAL PRICING RULE - NO GENERIC TYPES:**
 - You MUST NEVER use the generic word "topper" as a 'type'. 
