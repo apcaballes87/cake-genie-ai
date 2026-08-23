@@ -238,5 +238,189 @@
       "contact_via": "facebook",
       "added_by": "manual-research"
     }
+  },
+  {
+    "business_name": "Trippys Food Corporation",
+    "name": "Trippys Food",
+    "contact_number": "09176333353",
+    "description": "Premium Cebu lechon, party trays, and full-service catering since 2012. Whole roasted lechon, boneless lechon belly, Filipino party trays, and customizable menus for birthdays, weddings, and corporate events across Metro Cebu.",
+    "facebook_page_url": "https://www.facebook.com/TrippysFood",
+    "website_url": "https://trippysfood.com/",
+    "extra_link_url": null,
+    "metadata": {
+      "area": "Talisay City, Cebu",
+      "services": [
+        "lechon",
+        "lechon belly",
+        "party trays",
+        "full-service catering",
+        "wedding catering",
+        "corporate catering"
+      ],
+      "price_range": "₱₱₱",
+      "source_url": "https://trippysfood.com/",
+      "contact_via": "phone",
+      "added_by": "manual-research"
+    }
+  },
+  {
+    "business_name": "Ayers Lechon",
+    "name": "Ayers Lechon",
+    "contact_number": "Contact via Facebook",
+    "description": "Authentic Cebu charcoal-roasted lechon with multiple branches across Metro Cebu. Known for crispy golden skin and tender flavorful meat. Offers whole lechon, belly lechon, and spicy belly lechon for events and daily orders.",
+    "facebook_page_url": "https://www.facebook.com/AyersLechon",
+    "website_url": "https://www.cebuayerslechon.com/",
+    "extra_link_url": null,
+    "metadata": {
+      "area": "Metro Cebu (multiple branches)",
+      "services": [
+        "whole lechon",
+        "belly lechon",
+        "spicy belly lechon",
+        "event catering",
+        "delivery"
+      ],
+      "price_range": "₱₱₱",
+      "source_url": "https://www.cebuayerslechon.com/",
+      "contact_via": "facebook",
+      "added_by": "manual-research"
+    }
+  },
+  {
+    "business_name": "Ricos Lechon",
+    "name": "Ricos Lechon",
+    "contact_number": "09178238263",
+    "description": "Iconic Cebu lechon brand established in 1995, internationally renowned. Traditional Cebu lechon roasted with garlic and leeks. Multiple branches in Metro Cebu including Axis Entertainment Center, Ayala Malls Central Bloc, and a Fulfillment Center for whole lechon orders.",
+    "facebook_page_url": "https://www.facebook.com/RicosLechonOfficial",
+    "website_url": "https://ricoslechon.com/",
+    "extra_link_url": null,
+    "metadata": {
+      "area": "Cebu City",
+      "services": [
+        "whole lechon",
+        "lechon restaurant",
+        "lechon fulfillment",
+        "event orders",
+        "catering"
+      ],
+      "price_range": "₱₱₱",
+      "source_url": "https://ricoslechon.com/",
+      "contact_via": "phone",
+      "added_by": "manual-research"
+    }
+  },
+  {
+    "business_name": "Mr. Liempo",
+    "name": "Mr. Liempo",
+    "contact_number": "Contact via Facebook",
+    "description": "Leading lechon liempo and lechon chicken chain in the Visayas since 2009. Multiple outlets across Metro Cebu including Mandaue, Lapu-Lapu, Cebu City, Talisay, and more. Signature bellyciously delicious marinated products.",
+    "facebook_page_url": "https://www.facebook.com/mrliempo",
+    "website_url": "https://www.mrliempo.com/",
+    "extra_link_url": null,
+    "metadata": {
+      "area": "Mandaue City (HQ), multiple Metro Cebu branches",
+      "services": [
+        "lechon liempo",
+        "lechon chicken",
+        "event catering",
+        "bulk orders",
+        "delivery"
+      ],
+      "price_range": "₱₱",
+      "source_url": "https://www.mrliempo.com/",
+      "contact_via": "facebook",
+      "added_by": "manual-research"
+    }
+  },
+  {
+    "business_name": "House of Delish",
+    "name": "House of Delish",
+    "contact_number": "Contact via Facebook",
+    "description": "Catering arm of Bright Star Industries Inc., a trusted name in food distribution since 1995. Provides buffet catering, packed meals, and food trays for corporate events, family gatherings, and special occasions across Cebu.",
+    "facebook_page_url": "https://www.facebook.com/houseofdelish",
+    "website_url": "https://bsii.ph/",
+    "extra_link_url": null,
+    "metadata": {
+      "area": "Cebu City",
+      "services": [
+        "buffet catering",
+        "packed meals",
+        "food trays",
+        "corporate catering",
+        "family gatherings"
+      ],
+      "price_range": "₱₱",
+      "source_url": "https://bsii.ph/",
+      "contact_via": "facebook",
+      "added_by": "manual-research"
+    }
+  },
+  {
+    "business_name": "Ruthys Lechon",
+    "name": "Ruthys Lechon",
+    "contact_number": "Contact via Facebook",
+    "description": "Legendary Talisay City lechon restaurant since 1945, known as one of the birthplaces of Cebu lechon. Rich, deep-flavored lechon roasted since pre-dawn hours. Open only on Friday and Sunday mornings and sells out fast.",
+    "facebook_page_url": "Contact via Facebook",
+    "website_url": null,
+    "extra_link_url": null,
+    "metadata": {
+      "area": "Talisay City, Cebu",
+      "services": [
+        "whole lechon",
+        "lechon by the kilo",
+        "grilled seafood",
+        "lechon catering"
+      ],
+      "price_range": "₱₱",
+      "source_url": "https://www.youtube.com/watch?v=t1DcBHNI4q4",
+      "contact_via": "facebook",
+      "added_by": "manual-research"
+    }
+  },
+  {
+    "business_name": "MAGIS Food Catering Services",
+    "name": "MAGIS Food Catering",
+    "contact_number": "09177167060",
+    "description": "Reputable Cebu City catering provider known for high-quality dishes and elegant presentation. Offers a wide variety of menu options including chicken wings, lasagna, and Filipino favorites. Affordable pricing with negotiable packages.",
+    "facebook_page_url": "Contact via Facebook",
+    "website_url": null,
+    "extra_link_url": null,
+    "metadata": {
+      "area": "Cebu City",
+      "services": [
+        "event catering",
+        "buffet catering",
+        "party trays",
+        "wedding catering",
+        "corporate catering"
+      ],
+      "price_range": "₱₱",
+      "source_url": "https://magis-food-catering-services.wheree.com/",
+      "contact_via": "phone",
+      "added_by": "manual-research"
+    }
+  },
+  {
+    "business_name": "Helens Native Lechon",
+    "name": "Helens Native Lechon",
+    "contact_number": "09278783210",
+    "description": "Cebu-based lechon specialist offering traditional native lechon and a signature Lechon Party Box filled with Cebu delicacies including ngohiong, chicharon bulaklak, sisig, lumpiang Shanghai, and more. Perfect for gatherings and pasalubong.",
+    "facebook_page_url": "Contact via Facebook",
+    "website_url": null,
+    "extra_link_url": null,
+    "metadata": {
+      "area": "Cebu City",
+      "services": [
+        "native lechon",
+        "lechon party box",
+        "Cebu delicacies",
+        "event catering",
+        "pasalubong"
+      ],
+      "price_range": "₱₱",
+      "source_url": "https://www.sunstar.com.ph/cebu/lifestyle/cebu-food-trip-in-a-box",
+      "contact_via": "phone",
+      "added_by": "manual-research"
+    }
   }
 ]

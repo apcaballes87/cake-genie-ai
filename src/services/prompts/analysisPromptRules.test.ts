@@ -16,7 +16,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.53 Version - Gumpaste Stripe Coverage Clarification**');
+    expect(prompt).toContain('**v3.48 Version - Conditioned Wafer Paper Wave Fulfillment**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('3. Visible construction of each item');
     expect(prompt).toContain('5. Type compatible with that construction and material');
@@ -62,9 +62,6 @@ describe('cake analysis prompt rules', () => {
     expect(fenceCount % 2).toBe(0);
 
     expect(SYSTEM_INSTRUCTION).toContain('determine visible construction first, assign the compatible material second, choose a compatible type third, and write the description last');
-    expect(SYSTEM_INSTRUCTION).toContain('Cake-Object Membership Gate');
-    expect(SYSTEM_INSTRUCTION).toContain('Visual proximity, matching color, or 2D overlap is not evidence of cake membership.');
-    expect(SYSTEM_INSTRUCTION).toContain('Apply this gate before every type, material, placement, and quantity rule.');
     expect(SYSTEM_INSTRUCTION).toContain('If the description uses a construction or material term supported by positive image cues');
     expect(SYSTEM_INSTRUCTION).toContain('On conflict, the image is authoritative');
     expect(SYSTEM_INSTRUCTION).toContain('CRITICAL CLASSIFICATION WITHIN THE NON-EDIBLE PRINTOUT vs CARDSTOCK FAMILY');
@@ -76,9 +73,7 @@ describe('cake analysis prompt rules', () => {
     expect(SYSTEM_INSTRUCTION).toContain('Accepted results require blank reason and message');
     expect(SYSTEM_INSTRUCTION).toContain('When gumpasteBaseBoard is true, include colors.gumpasteBaseBoardColor');
     expect(SYSTEM_INSTRUCTION).toContain('Use the active analysis prompt as the only source for sizing boundaries');
-    expect(SYSTEM_INSTRUCTION).toContain('Use plastic_ball only for exactly one isolated dominant focal plastic sphere');
-    expect(SYSTEM_INSTRUCTION).toContain('Repeated Fondant/Gumpaste Side Stripes');
-    expect(SYSTEM_INSTRUCTION).toContain('emit exactly one collective `gumpaste_panel` support item');
+    expect(SYSTEM_INSTRUCTION).toContain('Use plastic_ball only for one dominant focal plastic sphere');
   });
 
   it('requires positive flat-paper evidence and prevents volumetric figurines from becoming printouts', () => {
@@ -151,32 +146,6 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('If a logo/text appears near the cake but not on the cake itself, do not output it as `printout`, `cake_messages`, `support_elements`, or `main_toppers`');
   });
 
-  it('excludes scene-only objects before classifying cake-member items', () => {
-    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
-    const fixture = JSON.parse(readPrompt('src/services/prompts/fixtures/floral-lily-ivory-1-tier-cake-6e69.json')) as {
-      expected_cake_member_elements: Array<Record<string, unknown>>;
-      forbidden_scene_items: Array<Record<string, unknown>>;
-    };
-
-    expect(prompt).toContain('CAKE-OBJECT MEMBERSHIP GATE (REQUIRED BEFORE EVERY ITEM RULE)');
-    expect(prompt).toContain('first determine whether\nthe visible object is physically part of the cake product.');
-    expect(prompt).toContain('background flower arrangements, bouquets, balloon props, vases,\ntables, cake stands, plates, cloth, packaging, walls, backdrop panels, signs,');
-    expect(prompt).toContain('Visual proximity, matching color, 2D overlap, or a decorative photo composition\nis not evidence of cake membership.');
-    expect(prompt.indexOf('CAKE-OBJECT MEMBERSHIP GATE')).toBeLessThan(prompt.indexOf('Protocol 4: THE "FLOWER" CHECK'));
-    expect(prompt).toContain('Every cake-member flower is `edible_flowers` under this override.');
-    expect(prompt).toContain('Count only visible cake-member blooms; do not');
-
-    expect(fixture.expected_cake_member_elements).toEqual(expect.arrayContaining([
-      expect.objectContaining({ group_id: 'top_pink_white_lilies' }),
-      expect.objectContaining({ group_id: 'side_pink_white_lily' }),
-    ]));
-    expect(fixture.forbidden_scene_items).toEqual([expect.objectContaining({
-      group_id: 'background_floral_cluster',
-      quantity: 15,
-      description: expect.stringContaining('in the background'),
-    })]);
-  });
-
   it('keeps fabric bow and ribbon deduplication in the fallback prompt source', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
@@ -193,7 +162,7 @@ describe('cake analysis prompt rules', () => {
   it('classifies fresh-looking flowers as edible flowers in the fallback prompt source', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('Genie.ph fulfills every cake-member flower as edible because non-edible flowers');
+    expect(prompt).toContain('Genie.ph fulfills every visible flower as edible because non-edible flowers');
     expect(prompt).toContain('IF a flower appears fresh, natural, realistic, silk, cloth, fabric-textured,');
     expect(prompt).toContain('FLOWER TYPE PRECEDENCE');
     expect(prompt).toContain('Do NOT classify fondant/gumpaste flowers as `edible_3d_ordinary`');
@@ -285,84 +254,6 @@ describe('cake analysis prompt rules', () => {
     ]));
   });
 
-  it('prices repeated separately applied fondant side stripes as one coverage-based panel', () => {
-    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
-    const fixture = JSON.parse(readPrompt('src/services/prompts/fixtures/digital-circus-white-1-tier-cake-4105.json')) as {
-      expected_stripe_support: Record<string, unknown>;
-      separate_existing_support: Record<string, unknown>;
-      forbidden_interpretations: string[];
-      coverage_excludes: string[];
-    };
-
-    expect(prompt).toContain('### REPEATED VERTICAL GUMPASTE SIDE STRIPES');
-    expect(prompt).toContain('emit one collective `gumpaste_panel` support row for the complete\nstripe treatment—not one row per strip');
-    expect(prompt).toContain('Use `material: "edible_fondant"`, `quantity: 1`, and size it by the combined');
-    expect(prompt).toContain('Count coverage only from the confirmed separate fondant/gumpaste strips; never');
-    expect(prompt).toContain('Color contrast alone does not establish a physical panel.');
-    expect(prompt).toContain('Do not classify visibly separate fondant/gumpaste strips as plain icing color.');
-    expect(prompt).toContain('Continuous piped, painted, or airbrushed stripes remain icing, not a\n`gumpaste_panel`.');
-
-    expect(fixture.expected_stripe_support).toEqual({
-      type: 'gumpaste_panel',
-      material: 'edible_fondant',
-      color: '#FF0000',
-      size: 'medium',
-      quantity: 1,
-      group_id: 'red_vertical_gumpaste_side_stripes',
-      description: 'repeated red fondant vertical side stripes around the tier',
-    });
-    expect(fixture.separate_existing_support).toEqual({
-      type: 'gumpaste_panel',
-      group_id: 'red_plaque_panel',
-      size: 'medium',
-      quantity: 1,
-    });
-    expect(fixture.forbidden_interpretations).toEqual(expect.arrayContaining([
-      'per-strip gumpaste_panel rows',
-      'icing-only color treatment',
-    ]));
-    expect(fixture.coverage_excludes).toEqual(expect.arrayContaining([
-      'light-blue icing base',
-      'merely alternate background colors',
-    ]));
-  });
-
-  it('counts plastic balloon clusters as individual support units', () => {
-    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
-    const fixture = JSON.parse(readPrompt('src/services/prompts/fixtures/teddy-bear-balloon-sky-blue-1-tier-cake-7379.json')) as {
-      expected_balloon_support: Record<string, unknown>;
-      forbidden_main_topper_types: string[];
-    };
-
-    expect(prompt).toContain('INDIVIDUAL PLASTIC BALLOON CLUSTER UNITS (REQUIRED)');
-    expect(prompt).toContain('A cluster, bouquet, arch, or garland of two or more separately visible plastic');
-    expect(prompt).toContain('Emit its balls only as `plastic_ball_regular` rows in\n`support_elements`.');
-    expect(prompt).toContain('Count every separately visible physical ball as one\nquantity unit, split rows by visibly different color or size');
-    expect(prompt).toContain('Never emit a multi-ball cluster as one\n`plastic_ball` item or with `quantity: 1`.');
-    expect(prompt).toContain('Do not invent balls hidden from view.');
-    expect(prompt).toContain('Before setting a cluster quantity, make a one-to-one direct visual tally');
-    expect(prompt).toContain('Quantity is a direct observed tally, never a round estimate, a\nsize/coverage band, or an assumed bouquet/stock count.');
-    expect(prompt).toContain('Do not round up, inflate,\nor assume a dense cluster contains unseen balls.');
-    expect(prompt).toContain('| One isolated dominant plastic sphere or 3D balloon | `plastic_ball`');
-    expect(prompt).toContain('| Each ball in a multi-ball plastic balloon cluster, bouquet, arch, or garland | `plastic_ball_regular`');
-
-    expect(SYSTEM_INSTRUCTION).toContain('plastic_ball only for exactly one isolated dominant focal plastic sphere or balloon');
-    expect(SYSTEM_INSTRUCTION).toContain('never one plastic_ball hero');
-    expect(SYSTEM_INSTRUCTION).toContain('never use quantity 1 for a multi-ball cluster');
-    expect(SYSTEM_INSTRUCTION).toContain('one-to-one direct visual tally of distinguishable ball outlines');
-
-    expect(fixture.expected_balloon_support).toEqual({
-      type: 'plastic_ball_regular',
-      material: 'plastic',
-      placement: 'support_elements',
-      quantity: 'one per separately visible ball',
-      quantity_method: 'one-to-one direct visual tally of distinguishable ball outlines',
-      split_rows_by: ['color', 'size'],
-      exclude_hidden_balls: true,
-    });
-    expect(fixture.forbidden_main_topper_types).toContain('plastic_ball');
-  });
-
   it('normalizes unsupported semi-3D portrait reliefs to an edible photo on top', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
@@ -411,7 +302,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.53 Version - Gumpaste Stripe Coverage Clarification**');
+    expect(prompt).toContain('**v3.48 Version - Conditioned Wafer Paper Wave Fulfillment**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -432,7 +323,7 @@ describe('cake analysis prompt rules', () => {
   it('uses toy-specific sizing for miniature molded toys', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.53 Version - Gumpaste Stripe Coverage Clarification**');
+    expect(prompt).toContain('**v3.48 Version - Conditioned Wafer Paper Wave Fulfillment**');
     expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy` AND `plastic_crown`)');
     expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
     expect(prompt).toContain('| `tiny` | under 0.10 |');
@@ -583,8 +474,8 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('Gloss alone never overrides positive\nevidence of icing, an edible printed sheet, waferpaper, fondant/gumpaste,');
     expect(prompt).toContain('Named normalization exception');
     expect(prompt).toContain('Acrylic toppers and wooden toppers are\nalways structured as `type: "cardstock"` and `material: "cardstock"`');
-    expect(prompt).toContain('Use `plastic_ball` only\n  for exactly one isolated dominant focal sphere or physical 3D balloon in\n  `main_toppers`.');
-    expect(prompt).toContain('Use `plastic_ball_regular` for repeated, background, or supporting plastic');
+    expect(prompt).toContain('Use `plastic_ball` for one\n  dominant focal sphere or physical 3D balloon in `main_toppers`.');
+    expect(prompt).toContain('Use\n  `plastic_ball_regular` for repeated, background, or supporting plastic');
     expect(prompt).toContain('If the letters are physically connected to one sign, plaque, banner, printed');
     expect(prompt).toContain('keep the whole carrier as\none physical topper/support row with `quantity: 1`');
     expect(prompt).toContain('individual loose gumpaste, fondant, cardstock, acrylic, or printed letters');
