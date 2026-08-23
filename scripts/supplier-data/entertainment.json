@@ -240,5 +240,143 @@
     },
     "profile_photo_url": null,
     "cover_photo_url": null
+  },
+  {
+    "name": "Fotomatic Cebu",
+    "description": "Cebu-based photobooth rental service providing instant prints, fun props, and interactive photo experiences for weddings, birthdays, and corporate events.",
+    "business_name": "Fotomatic Cebu",
+    "contact_number": "Contact via Facebook",
+    "website": "https://www.facebook.com/fotomaticcebu",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "photobooth",
+        "instant prints",
+        "event photography"
+      ],
+      "price_range": "₱₱₱",
+      "source_url": "https://www.facebook.com/fotomaticcebu"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "360 Events Cebu",
+    "description": "Premium photobooth and 360 video booth provider in Cebu offering RetroBooth, Magazine Booth, London Booth, and Onsite Portrait Studio for weddings and corporate events.",
+    "business_name": "360 Events Cebu",
+    "contact_number": "Contact via website",
+    "website": "https://360eventscebu.com/",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "360 video booth",
+        "retro booth",
+        "magazine booth",
+        "onsite portrait studio",
+        "video guestbook"
+      ],
+      "price_range": "₱₱₱₱",
+      "source_url": "https://360eventscebu.com/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Photobooth Bai",
+    "description": "Premium photo booth provider in Cebu City catering to corporate events, private functions, and special occasions with quality prints and professional service.",
+    "business_name": "Photobooth Bai",
+    "contact_number": "09495937805",
+    "website": "https://www.facebook.com/photoboothbai",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "photobooth",
+        "corporate events",
+        "private functions"
+      ],
+      "price_range": "₱₱₱",
+      "source_url": "https://www.facebook.com/photoboothbai"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Elevents Photobooth",
+    "description": "Cebu photobooth provider offering magazine-style booths, self-service booths, and standard photobooths for weddings and events.",
+    "business_name": "Elevents Photobooth",
+    "contact_number": "Contact via Facebook",
+    "website": "https://www.facebook.com/eleventsphotobooth",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "magazine booth",
+        "self-service booth",
+        "standard photobooth"
+      ],
+      "price_range": "₱₱₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/listing-category/photobooths-activities/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Glam Up Booths & Beyond",
+    "description": "Full-service photobooth provider in Cebu offering 360 video booth, mirror booth, magazine booth, digital frames, and roving photoman for events.",
+    "business_name": "Glam Up Booths & Beyond",
+    "contact_number": "09662466252",
+    "website": "https://www.facebook.com/glamupbooths",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "360 video booth",
+        "mirror booth",
+        "magazine booth",
+        "digital frames",
+        "roving photoman"
+      ],
+      "price_range": "₱₱₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/listing-category/photobooths-activities/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Photobooth by Den Production Films",
+    "description": "Cinematic photobooth experience in Cebu with bilingual photo templates, magazine-style prints, QR code sharing, and Tagalog/Bisaya captions.",
+    "business_name": "Photobooth by Den Production Films",
+    "contact_number": "09678366883",
+    "website": "https://www.facebook.com/denproductionfilms",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "cinematic photobooth",
+        "magazine-style prints",
+        "QR code sharing",
+        "bilingual templates"
+      ],
+      "price_range": "₱₱₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/listing-category/photobooths-activities/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Snapprise",
+    "description": "Instax and receipt-style photo booth in Cebu offering unique instant photo prints for weddings, birthdays, and celebrations.",
+    "business_name": "Snapprise",
+    "contact_number": "09959621578",
+    "website": "https://www.facebook.com/snappriseph",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "instax booth",
+        "receipt photo booth",
+        "instant prints"
+      ],
+      "price_range": "₱₱₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/listing-category/photobooths-activities/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
   }
 ]
