@@ -378,5 +378,163 @@
     },
     "profile_photo_url": null,
     "cover_photo_url": null
+  },
+  {
+    "name": "KPUP Mobile Party Playground",
+    "description": "Cebu-based mobile playground rental company bringing setup toys to your party venue or home. Playground good for 6 hours with customizable packages.",
+    "business_name": "KPUP Mobile Party Playground",
+    "contact_number": "09420011124",
+    "email": "kpupcebu@gmail.com",
+    "website": "https://www.facebook.com/kpupcebu",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "mobile playground",
+        "kids party rental",
+        "soft play"
+      ],
+      "price_range": "₱₱",
+      "source_url": "https://cakesandmemories.com/blogs/news/list-of-mobile-playpens-in-cebu-city"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Tiny Troopers Mobile Party Playpen",
+    "description": "Mobile party playpen rental in Cebu offering inflatable and soft play setups for kids' birthday parties and family gatherings.",
+    "business_name": "Tiny Troopers Mobile Party Playpen",
+    "contact_number": "09193587347",
+    "website": "https://www.facebook.com/tinytroopersmobilepartyplaypen",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "mobile playpen",
+        "kids party rental",
+        "inflatables"
+      ],
+      "price_range": "₱₱",
+      "source_url": "https://cakesandmemories.com/blogs/news/list-of-mobile-playpens-in-cebu-city"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Funbee Cebu Mobile Playground",
+    "description": "Mobile playground rental service in Cebu with a range of packages for kids' parties, from affordable to premium setups.",
+    "business_name": "Funbee Cebu Mobile Playground",
+    "contact_number": "09230860496",
+    "email": "cebuplayground@gmail.com",
+    "website": "https://www.facebook.com/cebuplayground",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "mobile playground",
+        "kids party rental",
+        "soft play"
+      ],
+      "price_range": "₱₱",
+      "source_url": "https://cakesandmemories.com/blogs/news/list-of-mobile-playpens-in-cebu-city"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "INNZ Mobile Playground and Rentals",
+    "description": "Mobile playground and party rentals in Cebu offering soft play, inflatables, and complete kids' party packages.",
+    "business_name": "INNZ Mobile Playground and Rentals",
+    "contact_number": "09310159189",
+    "email": "innzmobileplayground@gmail.com",
+    "website": "https://www.facebook.com/mobileplaygroundandrentals",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "mobile playground",
+        "inflatables",
+        "party rentals"
+      ],
+      "price_range": "₱₱",
+      "source_url": "https://cakesandmemories.com/blogs/news/list-of-mobile-playpens-in-cebu-city"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "The Playtime Cebu",
+    "description": "Affordable mobile playground rental in Tisa, Cebu City. Offers playtime packages with free bubble machine for confirmed bookings.",
+    "business_name": "The Playtime Cebu",
+    "contact_number": "09617731842",
+    "website": "https://www.facebook.com/profile.php?id=100085170895101",
+    "metadata": {
+      "area": "Cebu City",
+      "services": [
+        "mobile playground",
+        "bubble machine",
+        "kids party rental"
+      ],
+      "price_range": "₱",
+      "source_url": "https://cakesandmemories.com/blogs/news/list-of-mobile-playpens-in-cebu-city"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Little Barangay Mobile Party Playpen",
+    "description": "Mobile party playpen rental in Cebu offering colorful play setups, inflatables, and complete kids' party entertainment packages.",
+    "business_name": "Little Barangay Mobile Party Playpen",
+    "contact_number": "09165631829",
+    "email": "littlebarangaycebu@gmail.com",
+    "website": "https://www.facebook.com/littlebarangay",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "mobile playpen",
+        "inflatables",
+        "kids party entertainment"
+      ],
+      "price_range": "₱₱",
+      "source_url": "https://cakesandmemories.com/blogs/news/list-of-mobile-playpens-in-cebu-city"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "The Little Play Factory",
+    "description": "Mobile playground rental in Cebu offering soft play, ball pits, and themed play setups for birthdays and events.",
+    "business_name": "The Little Play Factory",
+    "contact_number": "09288924308",
+    "email": "thelittleplayfactorycebu@yahoo.com",
+    "website": "https://www.facebook.com/profile.php?id=100087263685677",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "mobile playground",
+        "soft play",
+        "ball pit",
+        "themed party setup"
+      ],
+      "price_range": "₱₱",
+      "source_url": "https://cakesandmemories.com/blogs/news/list-of-mobile-playpens-in-cebu-city"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "DASH Playhouse",
+    "description": "Mobile playhouse rental in Cebu offering compact and colorful play setups for intimate kids' parties and gatherings.",
+    "business_name": "DASH Playhouse",
+    "contact_number": "09198455748",
+    "website": "https://www.facebook.com/profile.php?id=100090318338427",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "mobile playhouse",
+        "soft play",
+        "kids party rental"
+      ],
+      "price_range": "₱",
+      "source_url": "https://cakesandmemories.com/blogs/news/list-of-mobile-playpens-in-cebu-city"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
   }
 ]
