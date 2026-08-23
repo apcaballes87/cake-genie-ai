@@ -1,0 +1,25 @@
+{
+  "slug": "christening-cake-pink-2-tier-fondant-cake-9698",
+  "source_image_url": "https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/customizations/christening-cake-pink-2-tier-fondant-cake-9698.webp",
+  "historical_cache_id": "0004b390-0419-4291-aba2-842bf43e4025",
+  "intricate_flower_examples": [
+    "rose",
+    "tulip",
+    "stargazer",
+    "sunflower",
+    "peony"
+  ],
+  "expected_main_topper": {
+    "type": "edible_flowers",
+    "material": "edible_fondant",
+    "classification": "hero",
+    "size": "medium"
+  },
+  "excluded_from_override": [
+    "tiny buds",
+    "simple blossoms",
+    "flat flower cutouts",
+    "generic filler flowers",
+    "piped buttercream rosettes"
+  ]
+}

@@ -28,9 +28,12 @@ export const SEARCH_ANALYSIS_COLOR_TYPES = GENERATED_ANALYSIS_COLOR_TYPES;
 
 const TINY_SUGAR_PEARL_OR_BEAD = /\b(?:sugar\s+)?(?:pearl|bead)s?\b|\bnonpareils?\b/i;
 const SCATTERED_OR_REPEATED = /\b(?:scattered?|sprinkled?|repeated|multiple|many|around|across)\b/i;
-const VERTICAL_WAVE_FINISH = /\b(?:vertical|upright)\b[\s\S]{0,48}\b(?:waves?|wavy|ripples?|ruffles?|pleats?)\b|\b(?:waves?|wavy|ripples?|ruffles?|pleats?)\b[\s\S]{0,48}\b(?:vertical|upright)\b/i;
-const SIDE_FINISH_SCOPE = /\b(?:side|sides|sidewall|perimeter|tier)\b/i;
-const EXPLICIT_ICING_WAVE_CONSTRUCTION = /\b(?:piped|buttercream|palette[- ]knife|spatula|comb(?:ed|ing)?)\b[\s\S]{0,60}\b(?:side|sides|vertical|upright|waves?|wavy|ripples?|ruffles?|pleats?)\b|\b(?:side|sides|vertical|upright|waves?|wavy|ripples?|ruffles?|pleats?)\b[\s\S]{0,60}\b(?:piped|buttercream|palette[- ]knife|spatula|comb(?:ed|ing)?)\b/i;
+const EXPLICIT_SCENE_ONLY_LOCATION = /\b(?:in|against|from)\s+(?:the\s+)?(?:photo\s+)?(?:background|backdrop|scene)\b|\bbehind\s+(?:the\s+)?cake\b|\b(?:photo|scene)\s+(?:prop|staging)\b/i;
+const EXPLICIT_CAKE_MEMBERSHIP = /\b(?:on|onto|attached(?:\s+to)?|adhered(?:\s+to)?|inserted\s+into|wrapped\s+around|resting\s+on)\s+(?:the\s+)?(?:cake(?:\s+(?:top|side|surface|base|board))?|tier|cake\s+board|board)\b|\baround\s+(?:the\s+)?cake\s+base\b/i;
+const WAFER_PAPER_TERM = /\bwafer(?:\s|-)?paper\b|\bwaferpaper\b/i;
+const UPRIGHT_WAFER_SHEETS = /\b(?:upright|vertical)\b/i;
+const LOOSE_WAFER_EDGES = /\b(?:loose|free)\b[\s\S]{0,32}\b(?:wavy|ruffled|pleated)\b[\s\S]{0,32}\bedges?\b/i;
+const FULL_HEIGHT_WAFER_WRAP = /\b(?:repeated|full[- ]height|predominantly\s+full[- ]height|perimeter)\b[\s\S]{0,48}\b(?:wrap|side|tier|sheets?|strips?)\b|\b(?:wrap|side|tier|sheets?|strips?)\b[\s\S]{0,48}\b(?:repeated|full[- ]height|predominantly\s+full[- ]height|perimeter)\b/i;
 const SECONDARY_OBJECT_CONNECTOR = /\b(?:topped\s+with|covered\s+(?:in|with)|decorated\s+with|finished\s+with|featuring|with)\b/i;
 const MULTIPLE_PRIMARY_OBJECTS = /\b(?:and|plus|alongside)\b|[;&+]/i;
 const SAFE_DESCRIPTOR_PATTERN = [
@@ -49,12 +52,6 @@ const PRIMARY_GROUPING_OF = /\b(?:cluster|bouquet|arrangement|set|pair|group)\s+
 
 type ItemRole = 'main' | 'support';
 type TargetRole = ItemRole | 'preserve';
-
-const CONDITIONED_WAFER_PAPER_WAVE_QUANTITY: Partial<Record<string, number>> = {
-  '1 Tier': 1,
-  '2 Tier': 3,
-  '3 Tier': 4,
-};
 
 type DescriptionTypeRule = {
   id: string;
@@ -339,62 +336,62 @@ function reconcileDescriptionTypes(
 }
 
 /**
- * The full-image model repeatedly describes this known fulfillment style as
- * "vertical icing waves" even when the visual cue is the separate upright
- * wafer-paper side finish. Restrict the repair to the model's vertical-wave
- * side language, leave explicit piped/buttercream/palette/spatula/combed
- * construction alone, and never alter historical cached analyses.
+ * The model can occasionally acknowledge that a valid-looking object is only a
+ * photo-scene prop, then still emit it as a priced cake element. Remove only
+ * rows with explicit scene-only wording and no explicit cake-membership cue;
+ * never infer scene status from a generic word such as "background" alone.
+ * This operates only on fresh generation results before validation/persistence.
  */
-function reconcileConditionedWaferPaperWaves(
-  result: unknown,
-  typeEnums: GeneratedAnalysisTypeEnums,
-): unknown {
+function removeExplicitSceneOnlyItems(result: unknown): unknown {
   if (!isRecord(result)
-    || !Array.isArray(result.support_elements)
-    || !typeEnums.supportElementTypes.includes('edible_photo_side_wave')) return result;
+    || !Array.isArray(result.main_toppers)
+    || !Array.isArray(result.support_elements)) return result;
 
   if (isRecord(result.rejection) && result.rejection.isRejected === true) return result;
 
-  const quantity = typeof result.cakeType === 'string'
-    ? CONDITIONED_WAFER_PAPER_WAVE_QUANTITY[result.cakeType]
-    : undefined;
-  if (!quantity) return result;
+  const keepCakeMemberItems = (items: unknown[]) => items.filter((item) => {
+    if (!isRecord(item) || typeof item.description !== 'string') return true;
+    return !EXPLICIT_SCENE_ONLY_LOCATION.test(item.description)
+      || EXPLICIT_CAKE_MEMBERSHIP.test(item.description);
+  });
+  const mainToppers = keepCakeMemberItems(result.main_toppers);
+  const supportElements = keepCakeMemberItems(result.support_elements);
 
-  if (result.support_elements.some((element) => (
-    isRecord(element) && element.type === 'edible_photo_side_wave'
-  ))) return result;
+  if (mainToppers.length === result.main_toppers.length
+    && supportElements.length === result.support_elements.length) return result;
 
-  const visibleDescription = [result.alt_text, result.seo_description]
-    .filter((value): value is string => typeof value === 'string')
-    .join(' ');
-  if (!VERTICAL_WAVE_FINISH.test(visibleDescription)
-    || !SIDE_FINISH_SCOPE.test(visibleDescription)
-    || EXPLICIT_ICING_WAVE_CONSTRUCTION.test(visibleDescription)) return result;
+  return { ...result, main_toppers: mainToppers, support_elements: supportElements };
+}
 
-  const icingColors = isRecord(result.icing_design) && isRecord(result.icing_design.colors)
-    ? result.icing_design.colors
-    : null;
-  const sideColor = icingColors?.side;
-  const color = typeof sideColor === 'string'
-    && GENERATED_ANALYSIS_COLOR_HEXES.includes(sideColor as never)
-    ? sideColor
-    : '#FFFFFF';
+function hasDirectWaferPaperWaveEvidence(description: string): boolean {
+  return WAFER_PAPER_TERM.test(description)
+    && UPRIGHT_WAFER_SHEETS.test(description)
+    && LOOSE_WAFER_EDGES.test(description)
+    && FULL_HEIGHT_WAFER_WRAP.test(description);
+}
 
-  return {
-    ...result,
-    support_elements: [
-      ...result.support_elements,
-      {
-        type: 'edible_photo_side_wave',
-        material: 'waferpaper',
-        group_id: 'conditioned_waferpaper_vertical_wave_side_wrap',
-        color,
-        size: 'large',
-        quantity,
-        description: 'conditioned wafer paper vertical wave side wrap around the cake perimeter',
-      },
-    ],
-  };
+/**
+ * This priced type is valid only for separately visible full-height wafer-paper
+ * sheets. Text-only repair cannot establish those visual facts, so never add a
+ * wave row from generated SEO/alt wording. Instead, fail closed by removing a
+ * model-emitted wave row unless its own description confirms wafer material,
+ * vertical placement, loose wavy edges, and a repeated/full-height side wrap.
+ * This operates only on fresh generation results.
+ */
+function removeUnverifiedConditionedWaferPaperWaves(result: unknown): unknown {
+  if (!isRecord(result) || !Array.isArray(result.support_elements)) return result;
+
+  if (isRecord(result.rejection) && result.rejection.isRejected === true) return result;
+
+  const supportElements = result.support_elements.filter((element) => (
+    !isRecord(element)
+    || element.type !== 'edible_photo_side_wave'
+    || (typeof element.description === 'string' && hasDirectWaferPaperWaveEvidence(element.description))
+  ));
+
+  return supportElements.length === result.support_elements.length
+    ? result
+    : { ...result, support_elements: supportElements };
 }
 
 export function buildSearchAnalysisResponseSchema(typeEnums: GeneratedAnalysisTypeEnums) {
@@ -592,9 +589,8 @@ export function postProcessSearchAnalysisResult(
     });
   }
   return validateGeneratedCakeAnalysisResult(
-    reconcileConditionedWaferPaperWaves(
-      reconcileDescriptionTypes(reconciledResult, typeEnums),
-      typeEnums,
+    removeUnverifiedConditionedWaferPaperWaves(
+      reconcileDescriptionTypes(removeExplicitSceneOnlyItems(reconciledResult), typeEnums),
     ),
     typeEnums,
   );

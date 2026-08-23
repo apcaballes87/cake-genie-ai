@@ -16,7 +16,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.48 Version - Conditioned Wafer Paper Wave Fulfillment**');
+    expect(prompt).toContain('**v3.55 Version - Evidence-Gated Wafer Waves, Intricate Flowers, and Output Reconciliation**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('3. Visible construction of each item');
     expect(prompt).toContain('5. Type compatible with that construction and material');
@@ -73,7 +73,11 @@ describe('cake analysis prompt rules', () => {
     expect(SYSTEM_INSTRUCTION).toContain('Accepted results require blank reason and message');
     expect(SYSTEM_INSTRUCTION).toContain('When gumpasteBaseBoard is true, include colors.gumpasteBaseBoardColor');
     expect(SYSTEM_INSTRUCTION).toContain('Use the active analysis prompt as the only source for sizing boundaries');
-    expect(SYSTEM_INSTRUCTION).toContain('Use plastic_ball only for one dominant focal plastic sphere');
+    expect(SYSTEM_INSTRUCTION).toContain('Use plastic_ball only for exactly one isolated dominant focal plastic sphere');
+    expect(SYSTEM_INSTRUCTION).toContain('Intricate Flower Minimum Size');
+    expect(SYSTEM_INSTRUCTION).toContain('such as an intricate rose, tulip, stargazer, sunflower, or peony');
+    expect(SYSTEM_INSTRUCTION).toContain('Conditioned Wafer-Paper Side Waves');
+    expect(SYSTEM_INSTRUCTION).toContain('all four cues: individually distinguishable thin paper sheets/strips');
   });
 
   it('requires positive flat-paper evidence and prevents volumetric figurines from becoming printouts', () => {
@@ -162,7 +166,7 @@ describe('cake analysis prompt rules', () => {
   it('classifies fresh-looking flowers as edible flowers in the fallback prompt source', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('Genie.ph fulfills every visible flower as edible because non-edible flowers');
+    expect(prompt).toContain('Genie.ph fulfills every cake-member flower as edible because non-edible flowers');
     expect(prompt).toContain('IF a flower appears fresh, natural, realistic, silk, cloth, fabric-textured,');
     expect(prompt).toContain('FLOWER TYPE PRECEDENCE');
     expect(prompt).toContain('Do NOT classify fondant/gumpaste flowers as `edible_3d_ordinary`');
@@ -235,10 +239,12 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('- 1 Tier -> quantity `1`');
     expect(prompt).toContain('- 2 Tier -> quantity `3`');
     expect(prompt).toContain('- 3 Tier -> quantity `4`');
-    expect(prompt).toContain('Continuous piped,\nspread, or palette-knife icing texture without separate thin upright sheets');
+    expect(prompt).toContain('only when all four direct-image cues in the\nPRE-EMISSION UPRIGHT WAFER-PAPER SIDE CHECKPOINT are visible');
+    expect(prompt).toContain('repeated, individually distinguishable thin upright sheets with loose/free\nwavy edges and visible separation from the iced side');
     expect(prompt).toContain('PRE-EMISSION UPRIGHT WAFER-PAPER SIDE CHECKPOINT (REQUIRED)');
-    expect(prompt).toContain('distinct thin upright strips or\npanels with their own loose wavy edges and visible separation from the iced');
-    expect(prompt).toContain('Do not use this type from wave wording alone');
+    expect(prompt).toContain('Emit it only when the image directly shows **all** of these construction cues');
+    expect(prompt).toContain('Do not infer this type from white color, generic words such as wave, ruffle');
+    expect(prompt).toContain('flowers, leaves, butterflies, lace, plaques, quilted/fondant panels, piped');
 
     expect(fixture.expected_support_element).toMatchObject({
       type: 'edible_photo_side_wave',
@@ -251,6 +257,54 @@ describe('cake analysis prompt rules', () => {
       'edible_photo_side',
       'icing_decorations',
       'gumpaste_panel',
+    ]));
+  });
+
+  it('excludes non-wafer floral, quilted, and piped side decoration from the wafer-wave type', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+    const fixture = JSON.parse(readPrompt('src/services/prompts/fixtures/christening-pink-cake-pink-2-tier-cake-9690.json')) as {
+      visible_side_construction: string[];
+      forbidden_support_type: string;
+      forbidden_description: string;
+      required_wafer_evidence: string[];
+    };
+
+    expect(prompt).toContain('If\nall four cues are not directly visible, omit `edible_photo_side_wave`.');
+    expect(prompt).toContain('floral or butterfly cascades; quilted/fondant panels; lace; plaques; and\nisolated decorative side accents are not `edible_photo_side_wave`.');
+    expect(fixture.visible_side_construction).toEqual(expect.arrayContaining([
+      'quilted pink fondant side panels',
+      'white floral and butterfly accents',
+      'piped icing borders',
+    ]));
+    expect(fixture.forbidden_support_type).toBe('edible_photo_side_wave');
+    expect(fixture.forbidden_description).toContain('conditioned wafer paper vertical wave');
+    expect(fixture.required_wafer_evidence).toHaveLength(4);
+  });
+
+  it('promotes intricate sculpted flowers to at least medium heroes', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+    const fixture = JSON.parse(readPrompt('src/services/prompts/fixtures/christening-cake-pink-2-tier-fondant-cake-9698.json')) as {
+      intricate_flower_examples: string[];
+      expected_main_topper: Record<string, unknown>;
+      excluded_from_override: string[];
+    };
+
+    expect(prompt).toContain('### INTRICATE FLOWER MINIMUM-SIZE PRECEDENCE');
+    expect(prompt).toContain('such as an intricate rose, tulip, stargazer, sunflower, or\npeony');
+    expect(prompt).toContain('has a minimum size of `medium`');
+    expect(prompt).toContain('overrides a\nsmaller raw C3 diameter estimate');
+    expect(prompt).toContain('Do not promote tiny\nbuds, simple blossoms, flat flower cutouts, generic filler flowers, or actual\npiped buttercream rosettes.');
+
+    expect(fixture.intricate_flower_examples).toEqual(['rose', 'tulip', 'stargazer', 'sunflower', 'peony']);
+    expect(fixture.expected_main_topper).toEqual({
+      type: 'edible_flowers',
+      material: 'edible_fondant',
+      classification: 'hero',
+      size: 'medium',
+    });
+    expect(fixture.excluded_from_override).toEqual(expect.arrayContaining([
+      'tiny buds',
+      'piped buttercream rosettes',
     ]));
   });
 
@@ -302,7 +356,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.48 Version - Conditioned Wafer Paper Wave Fulfillment**');
+    expect(prompt).toContain('**v3.55 Version - Evidence-Gated Wafer Waves, Intricate Flowers, and Output Reconciliation**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -323,7 +377,7 @@ describe('cake analysis prompt rules', () => {
   it('uses toy-specific sizing for miniature molded toys', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.48 Version - Conditioned Wafer Paper Wave Fulfillment**');
+    expect(prompt).toContain('**v3.55 Version - Evidence-Gated Wafer Waves, Intricate Flowers, and Output Reconciliation**');
     expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy` AND `plastic_crown`)');
     expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
     expect(prompt).toContain('| `tiny` | under 0.10 |');
@@ -474,8 +528,8 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('Gloss alone never overrides positive\nevidence of icing, an edible printed sheet, waferpaper, fondant/gumpaste,');
     expect(prompt).toContain('Named normalization exception');
     expect(prompt).toContain('Acrylic toppers and wooden toppers are\nalways structured as `type: "cardstock"` and `material: "cardstock"`');
-    expect(prompt).toContain('Use `plastic_ball` for one\n  dominant focal sphere or physical 3D balloon in `main_toppers`.');
-    expect(prompt).toContain('Use\n  `plastic_ball_regular` for repeated, background, or supporting plastic');
+    expect(prompt).toContain('Use `plastic_ball` only\n  for exactly one isolated dominant focal sphere or physical 3D balloon in\n  `main_toppers`.');
+    expect(prompt).toContain('Use `plastic_ball_regular` for repeated, background, or supporting plastic\nspheres in `support_elements`.');
     expect(prompt).toContain('If the letters are physically connected to one sign, plaque, banner, printed');
     expect(prompt).toContain('keep the whole carrier as\none physical topper/support row with `quantity: 1`');
     expect(prompt).toContain('individual loose gumpaste, fondant, cardstock, acrylic, or printed letters');

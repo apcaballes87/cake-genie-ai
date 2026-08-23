@@ -287,25 +287,41 @@ describe('search analysis contract', () => {
     });
   });
 
-  it.each([
-    ['1 Tier', '4 in', 1],
-    ['2 Tier', '4 in', 3],
-    ['3 Tier', '4 in', 4],
-  ])('adds the conditioned wafer-paper wave fulfillment row for a %s', (cakeType, cakeThickness, quantity) => {
+  it('does not invent a conditioned wafer-paper wave row from generic vertical-wave prose', () => {
     const result = postProcessSearchAnalysisResult(validAnalysis({
-      cakeType,
-      cakeThickness,
       alt_text: 'White minimalist birthday cake with vertical textured waves, white flowers, and a gold candle.',
       seo_description: 'A white cake has distinctive vertical wave textured sides around the full cake perimeter.',
     }), typeEnums);
 
+    expect(result.support_elements).toEqual([]);
+  });
+
+  it('drops explicit scene-only items while retaining an attached cake member', () => {
+    const result = postProcessSearchAnalysisResult(validAnalysis({
+      support_elements: [
+        {
+          type: 'edible_flowers',
+          material: 'edible_fondant',
+          group_id: 'scene_flowers',
+          color: '#FFC0CB',
+          size: 'medium',
+          quantity: 4,
+          description: 'pink flowers in the background',
+        },
+        {
+          type: 'edible_flowers',
+          material: 'edible_fondant',
+          group_id: 'attached_flowers',
+          color: '#FFC0CB',
+          size: 'medium',
+          quantity: 2,
+          description: 'pink flowers attached to the cake side',
+        },
+      ],
+    }), typeEnums);
+
     expect(result.support_elements).toEqual([expect.objectContaining({
-      type: 'edible_photo_side_wave',
-      material: 'waferpaper',
-      color: '#FFFFFF',
-      size: 'large',
-      quantity,
-      group_id: 'conditioned_waferpaper_vertical_wave_side_wrap',
+      group_id: 'attached_flowers',
     })]);
   });
 
@@ -318,22 +334,61 @@ describe('search analysis contract', () => {
     expect(result.support_elements).toEqual([]);
   });
 
-  it('does not duplicate a conditioned wafer-paper wave row already emitted by the model', () => {
+  it('removes a model-emitted wafer-wave row without all direct construction evidence', () => {
     const result = postProcessSearchAnalysisResult(validAnalysis({
-      alt_text: 'White cake with vertical textured waves around the sides.',
-      seo_description: 'Vertical waves cover the cake perimeter.',
       support_elements: [{
         type: 'edible_photo_side_wave',
         material: 'waferpaper',
         group_id: 'conditioned_waferpaper_vertical_wave_side_wrap',
         color: '#FFFFFF',
         size: 'large',
-        quantity: 1,
-        description: 'conditioned wafer paper vertical wave side wrap',
+        quantity: 3,
+        description: 'white conditioned wafer paper vertical wave side wrap',
       }],
     }), typeEnums);
 
-    expect(result.support_elements).toHaveLength(1);
+    expect(result.support_elements).toEqual([]);
+  });
+
+  it('retains an evidence-backed conditioned wafer-paper wave row', () => {
+    const result = postProcessSearchAnalysisResult(validAnalysis({
+      support_elements: [{
+        type: 'edible_photo_side_wave',
+        material: 'waferpaper',
+        group_id: 'conditioned_waferpaper_vertical_wave_side_wrap',
+        color: '#FFFFFF',
+        size: 'large',
+        quantity: 3,
+        description: 'repeated full-height perimeter wrap of distinct separate thin upright wafer paper strips with loose free wavy edges',
+      }],
+    }), typeEnums);
+
+    expect(result.support_elements).toEqual([expect.objectContaining({
+      type: 'edible_photo_side_wave',
+      material: 'waferpaper',
+      quantity: 3,
+    })]);
+  });
+
+  it('retains the concise direct-construction description emitted for the true wafer-wave reference', () => {
+    const result = postProcessSearchAnalysisResult(validAnalysis({
+      support_elements: [{
+        type: 'edible_photo_side_wave',
+        material: 'waferpaper',
+        group_id: 'wafer_paper_side_wrap',
+        color: '#FFFFFF',
+        size: 'large',
+        quantity: 1,
+        description: 'repeated vertical white wafer-paper side wrap with loose wavy edges',
+      }],
+    }), typeEnums);
+
+    expect(result.support_elements).toEqual([expect.objectContaining({
+      type: 'edible_photo_side_wave',
+      material: 'waferpaper',
+      quantity: 1,
+      description: 'repeated vertical white wafer-paper side wrap with loose wavy edges',
+    })]);
   });
 
   it('keeps a single substantial fondant pearl as an ordinary 3D support item', () => {
