@@ -10,6 +10,46 @@ const RESERVED_CODES = new Set([
     'REVIEWS', 'SEARCH', 'SHOP', 'SIGNUP', 'TERMS',
 ]);
 
+const CREATOR_APPLICATION_UNAVAILABLE_ERROR = 'Creator applications are temporarily unavailable. Please try again later.';
+const CREATOR_APPLICATION_GENERIC_ERROR = 'We could not process your application right now. Please try again later.';
+
+type CreatorRpcError = {
+    code?: string | null;
+    message?: string | null;
+    details?: string | null;
+    hint?: string | null;
+};
+
+function isCreatorInfrastructureError(error: unknown) {
+    const candidate = error as CreatorRpcError;
+    const code = candidate.code?.toUpperCase();
+    return [
+        '401',
+        '403',
+        '42501',
+        '42883',
+        'PGRST202',
+        'PGRST301',
+    ].includes(code || '') || /invalid jwt|permission denied|function .* does not exist/i.test(candidate.message || '');
+}
+
+function creatorRpcFailure(error: CreatorRpcError): CreatorSubmissionFailure {
+    console.error('Creator application RPC failed:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+    });
+
+    return {
+        success: false,
+        error: isCreatorInfrastructureError(error)
+            ? CREATOR_APPLICATION_UNAVAILABLE_ERROR
+            : CREATOR_APPLICATION_GENERIC_ERROR,
+        code: 'DATABASE_ERROR',
+    };
+}
+
 export type CreatorSubmission = {
     name: string;
     email: string;
@@ -141,7 +181,9 @@ export async function checkCreatorPromoCode(code: string): Promise<PromoCodeAvai
         return {
             available: false,
             code: normalizedCode,
-            message: 'Could not verify this code right now.',
+            message: isAppError(error) || isCreatorInfrastructureError(error)
+                ? CREATOR_APPLICATION_UNAVAILABLE_ERROR
+                : 'Could not verify this code right now.',
         };
     }
 }
@@ -176,7 +218,7 @@ export async function submitCreatorApplication(data: CreatorSubmission): Promise
                 return { success: false, error: error.message, code: 'VALIDATION_ERROR' };
             }
 
-            return { success: false, error: 'We could not process your application right now. Please try again later.' };
+            return creatorRpcFailure(error);
         }
 
         const application = Array.isArray(result) ? result[0] : result;
@@ -197,10 +239,10 @@ export async function submitCreatorApplication(data: CreatorSubmission): Promise
             return { success: false, error: error.message, code: error.code };
         }
 
-        console.error('Error submitting creator application:', error);
+        console.error('Error submitting creator application:', error instanceof Error ? error.message : error);
         return {
             success: false,
-            error: 'We could not process your application right now. Please try again later.',
+            error: CREATOR_APPLICATION_GENERIC_ERROR,
             code: 'DATABASE_ERROR',
         };
     }

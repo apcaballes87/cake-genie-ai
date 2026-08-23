@@ -1,5 +1,37 @@
 # Tasks
 
+## Fix creator application failure feedback (2026-08-23)
+
+### Plan
+
+- [x] Trace the creator RPC failure and current error placement.
+- [x] Classify infrastructure failures safely and move the error alert below the submit button.
+- [x] Run focused tests/lint and verify the rendered source without submitting a real application.
+
+### Review
+
+- The workspace Supabase project responds to the creator RPC and exposes the expected `creators` and `discount_codes` columns; the reported generic text is the action's unknown-RPC-error fallback, so infrastructure failures are now logged with metadata and classified as temporary unavailability without exposing database details.
+- The error alert now renders directly below `Apply for Collab` with `role="alert"` and `aria-live="assertive"`.
+- Verification passed: 5 focused Vitest tests, scoped ESLint with 0 errors, and `git diff --check`. The local browser smoke check was blocked by an existing stale Next dev lock/process that held port 3002 but did not serve the page; no real application was submitted.
+- `npm run build` remains blocked before the creator route by the unrelated mixed-tree `src/app/api/admin/ai-prompts/route.ts` import of missing `getAllPromptVersions`.
+- Production Vercel environment values could not be inspected because the local Vercel CLI has no credentials. The deployed project must still point `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` at the same Supabase project with the creator migrations applied.
+
+## Add conditioned wafer-paper wave support pricing (2026-08-22)
+
+### Plan
+
+- [x] Add `edible_photo_side_wave` as a canonical support-element type, with clear customizer labels and validation coverage.
+- [x] Add a ₱500-per-unit `edible_photo_side_wave_large` pricing rule through a transaction-safe migration; the analyzer maps one-, two-, and three-tier fulfillment to quantities 1, 3, and 4 respectively.
+- [x] Prepare v3.48 prompt/fallback parity that recognizes conditioned vertical wafer-paper waves without changing historical cache rows.
+- [x] Add a source-image fixture and focused enum, prompt, and pricing regressions; verify local prompt parity and diff hygiene.
+
+### Review
+
+- Published as `08d611fd fix(ai): classify conditioned wafer-paper side waves`. Focused tests: 157 passed; migration-generated and fallback prompt MD5: `ec97bd2220713f89edba76d2626bf7e8`; diff checks passed.
+- A narrow fresh-analysis guard now recognizes the known vertical-wave side signature while preserving explicitly piped, buttercream, palette-knife, spatula, and combed icing finishes. A fresh non-persisted run of the reported source emitted one large `edible_photo_side_wave`/`waferpaper` row with quantity 1, pricing to ₱500.
+- Production build is blocked by unrelated untracked admin-route work importing missing `getAllPromptVersions`; targeted ESLint is blocked by four existing `any` errors in `src/types.ts`.
+- Production verification: v3.48 is the sole active prompt with MD5 `ec97bd2220713f89edba76d2626bf7e8`; active `edible_photo_side_wave_large` is ₱500 with `per_piece`; historical cache `67682d99-5da2-4021-800c-8a8984846b8c` remains unchanged at ₱1,199. A fresh non-persisted run using the live prompt emitted one large wafer-paper wave row at quantity 1 (₱500).
+
 ## Harden creator application configuration failures (2026-08-22)
 
 ### Plan

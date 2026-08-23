@@ -1,0 +1,175 @@
+{%- if section.settings.full_width -%}
+  {%- assign full_width = true -%}
+{%- endif -%}
+
+{%- assign upload_id = 'featured-cake-upload-' | append: section.id -%}
+
+<div id="section-{{ section.id }}" class="{% unless section.settings.show_on_desktop %} medium--hide large--hide{% endunless %} {% unless section.settings.show_on_mobile %} small--hide{% endunless %} {% if full_width %}section-full-width section-no-title{% endif %} {{ section.settings.section_style }}" data-section-id="{{ section.id }}" data-section-type="featured-image-upload-section">
+  <div class="box">
+    <div class="{%- if full_width -%}wrapper-full{%- else -%}wrapper{%- endif -%}" style="margin-top:-17px; margin-bottom:-30px">
+
+      {%- if request.page_type == 'index' -%}
+        <div class="center" style="margin-bottom:15px">
+          <ul class="inner-nav-containers">
+            <li class="site-nav__item site-nav--open" style="width:100%;">
+              {%- render 'search-bar' -%}
+            </li>
+          </ul>
+        </div>
+
+        {%- liquid
+          assign collection_handle = 'normal-products'
+          assign collection_link = collections[collection_handle]
+          assign collection_products_count = collection_link.all_products_count
+        -%}
+        <div><p><center><h4>{{ collection_products_count | prepend: 'We currently have ' | append: ' cake designs in this website!' }}</h4></center></p></div>
+      {%- endif -%}
+
+      <button type="button" id="{{ upload_id }}-trigger" class="image-upload-trigger" aria-controls="{{ upload_id }}-input" aria-label="Upload a cake design for instant pricing">
+        {%- if section.settings.image != blank -%}
+          <div class="media-wrapper" style="padding-top:{{ 1 | divided_by: section.settings.image.aspect_ratio | times: 100}}%;">
+            <img class="media lazyload" {%- render 'lazysizes', img: section.settings.image, img_type: 'responsive' -%} alt="{{ section.settings.image.alt | escape }}">
+          </div>
+        {%- else -%}
+          {{ 'lifestyle-1' | placeholder_svg_tag: 'placeholder-svg' }}
+        {%- endif -%}
+      </button>
+      <input type="file" id="{{ upload_id }}-input" accept="image/*" hidden>
+      <div id="{{ upload_id }}-status" class="image-upload-status" role="status" aria-live="polite" hidden>
+        <span class="image-upload-spinner" aria-hidden="true"></span>
+        <span id="{{ upload_id }}-status-text">Preparing your image…</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  #{{ upload_id }}-trigger { display:block; width:100%; padding:0; border:0; background:transparent; cursor:pointer; }
+  #{{ upload_id }}-trigger:focus-visible { outline:3px solid #d66c84; outline-offset:4px; }
+  #{{ upload_id }}-status { display:flex; align-items:center; justify-content:center; gap:.6rem; min-height:3rem; margin:1rem auto; color:#d66c84; font-weight:600; text-align:center; }
+  #{{ upload_id }}-status[hidden] { display:none; }
+  #{{ upload_id }}-status .image-upload-spinner { width:22px; height:22px; border:3px solid rgba(0,0,0,.12); border-left-color:#d66c84; border-radius:50%; animation:featured-cake-upload-spin .8s linear infinite; }
+  @keyframes featured-cake-upload-spin { to { transform:rotate(360deg); } }
+</style>
+
+{%- comment -%}
+  The Supabase project, bucket, compression limits, and redirect match
+  docs/integrations/shopify_page.liquid (Cake Price Calculator).
+{%- endcomment -%}
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+  (() => {
+    const root = document.getElementById('{{ upload_id }}-trigger');
+    const input = document.getElementById('{{ upload_id }}-input');
+    const status = document.getElementById('{{ upload_id }}-status');
+    const statusText = document.getElementById('{{ upload_id }}-status-text');
+    if (!root || !input || !status || !statusText || root.dataset.uploadBound === 'true') return;
+    root.dataset.uploadBound = 'true';
+
+    const SUPABASE_URL = 'https://cqmhanqnfybyxezhobkx.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxbWhhbnFuZnlieXhlemhvYmt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2MjEwMTgsImV4cCI6MjA3NTE5NzAxOH0.7Et4dx3c8MXXpVVC5tXzM2nFZ203lx9WnAagWsakXks';
+    const BUCKET_NAME = 'cakegenie';
+    const IMG_MAX_LONG_EDGE = 1800;
+    const IMG_TARGET_MAX_BYTES = 1200000;
+
+    const setStatus = (message) => {
+      status.hidden = false;
+      statusText.textContent = message;
+    };
+
+    const canvasToBlob = (canvas, type, quality) => new Promise((resolve) => canvas.toBlob(resolve, type, quality));
+
+    async function prepareImage(file) {
+      if (!file.type.startsWith('image/') || file.type === 'image/gif') return { blob: file, ext: (file.name.split('.').pop() || 'jpg').toLowerCase() };
+      let bitmap;
+      if ('createImageBitmap' in window) {
+        try { bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (_) {}
+      }
+      if (!bitmap) {
+        bitmap = await new Promise((resolve, reject) => {
+          const image = new Image();
+          image.onload = () => resolve(image);
+          image.onerror = reject;
+          image.src = URL.createObjectURL(file);
+        });
+      }
+      const longEdge = Math.max(bitmap.width, bitmap.height);
+      if (longEdge <= IMG_MAX_LONG_EDGE && file.size <= IMG_TARGET_MAX_BYTES) return { blob: file, ext: (file.name.split('.').pop() || 'jpg').toLowerCase() };
+      const scale = Math.min(1, IMG_MAX_LONG_EDGE / longEdge);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+      const context = canvas.getContext('2d');
+      context.imageSmoothingQuality = 'high';
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      let quality = .85;
+      let blob;
+      do {
+        blob = await canvasToBlob(canvas, 'image/webp', quality);
+        quality -= .1;
+      } while (blob && blob.size > IMG_TARGET_MAX_BYTES && quality >= .6);
+      return { blob: blob || file, ext: blob ? 'webp' : (file.name.split('.').pop() || 'jpg').toLowerCase() };
+    }
+
+    async function handleFile(file) {
+      if (!file || !file.type.startsWith('image/')) {
+        setStatus('Please choose an image file.');
+        return;
+      }
+      root.disabled = true;
+      setStatus('Optimizing image…');
+      try {
+        if (!window.supabase) throw new Error('Supabase SDK missing');
+        const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const prepared = await prepareImage(file);
+        setStatus('Uploading…');
+        const path = `${Date.now()}.${prepared.ext || 'jpg'}`;
+        const { data, error } = await client.storage.from(BUCKET_NAME).upload(path, prepared.blob, {
+          contentType: prepared.blob.type || 'image/webp',
+          upsert: false
+        });
+        if (error) throw error;
+        const { data: publicData } = client.storage.from(BUCKET_NAME).getPublicUrl(data.path);
+        setStatus('Redirecting to Genie.ph for AI cake analysis…');
+        window.location.href = `https://genie.ph/customizing?ref=${encodeURIComponent(publicData.publicUrl)}&source=shopify`;
+      } catch (error) {
+        console.error('Featured cake upload failed:', error);
+        root.disabled = false;
+        setStatus('Upload failed. Please try again.');
+      }
+    }
+
+    root.addEventListener('click', () => input.click());
+    root.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); input.click(); }
+    });
+    input.addEventListener('change', () => handleFile(input.files && input.files[0]));
+  })();
+</script>
+
+{% schema %}
+  {
+    "name": "t:sections.featured_image.name",
+    "class": "featured-image-section",
+    "settings": [
+       { "type": "checkbox", "id": "show_on_desktop", "label": "t:sections.featured_image.settings.show_on_desktop.label", "default": true },
+       { "type": "checkbox", "id": "show_on_mobile", "label": "t:sections.featured_image.settings.show_on_mobile.label", "default": true },
+       { "type": "checkbox", "id": "full_width", "label": "t:sections.featured_image.settings.full_width.label", "default": true },
+       { "type": "image_picker", "id": "image", "label": "t:sections.featured_image.settings.image.label" },
+       {
+         "type": "select",
+         "id": "section_style",
+         "label": "t:sections.featured_image.settings.section_style.label",
+         "default": "section-blank",
+         "options": [
+           { "value": "section-blank", "label": "t:sections.featured_image.settings.section_style.options__1.label" },
+           { "value": "section-default", "label": "t:sections.featured_image.settings.section_style.options__2.label" },
+           { "value": "section-border", "label": "t:sections.featured_image.settings.section_style.options__3.label" }
+         ]
+       }
+    ],
+    "presets": [
+      { "name": "t:sections.featured_image.presets.name", "category": "t:sections.featured_image.presets.category" }
+    ]
+  }
+{% endschema %}

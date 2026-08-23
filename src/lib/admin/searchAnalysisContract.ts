@@ -31,8 +31,6 @@ const SCATTERED_OR_REPEATED = /\b(?:scattered?|sprinkled?|repeated|multiple|many
 const VERTICAL_WAVE_FINISH = /\b(?:vertical|upright)\b[\s\S]{0,48}\b(?:waves?|wavy|ripples?|ruffles?|pleats?)\b|\b(?:waves?|wavy|ripples?|ruffles?|pleats?)\b[\s\S]{0,48}\b(?:vertical|upright)\b/i;
 const SIDE_FINISH_SCOPE = /\b(?:side|sides|sidewall|perimeter|tier)\b/i;
 const EXPLICIT_ICING_WAVE_CONSTRUCTION = /\b(?:piped|buttercream|palette[- ]knife|spatula|comb(?:ed|ing)?)\b[\s\S]{0,60}\b(?:side|sides|vertical|upright|waves?|wavy|ripples?|ruffles?|pleats?)\b|\b(?:side|sides|vertical|upright|waves?|wavy|ripples?|ruffles?|pleats?)\b[\s\S]{0,60}\b(?:piped|buttercream|palette[- ]knife|spatula|comb(?:ed|ing)?)\b/i;
-const EXPLICIT_SCENE_ONLY_LOCATION = /\b(?:in|against|from)\s+(?:the\s+)?(?:photo\s+)?(?:background|backdrop|scene)\b|\bbehind\s+(?:the\s+)?cake\b|\b(?:photo|scene)\s+(?:prop|staging)\b/i;
-const EXPLICIT_CAKE_MEMBERSHIP = /\b(?:on|onto|attached(?:\s+to)?|adhered(?:\s+to)?|inserted\s+into|wrapped\s+around|resting\s+on)\s+(?:the\s+)?(?:cake(?:\s+(?:top|side|surface|base|board))?|tier|cake\s+board|board)\b|\baround\s+(?:the\s+)?cake\s+base\b/i;
 const SECONDARY_OBJECT_CONNECTOR = /\b(?:topped\s+with|covered\s+(?:in|with)|decorated\s+with|finished\s+with|featuring|with)\b/i;
 const MULTIPLE_PRIMARY_OBJECTS = /\b(?:and|plus|alongside)\b|[;&+]/i;
 const SAFE_DESCRIPTOR_PATTERN = [
@@ -341,34 +339,6 @@ function reconcileDescriptionTypes(
 }
 
 /**
- * The model can occasionally acknowledge that a valid-looking object is only a
- * photo-scene prop, then still emit it as a priced cake element. Remove only
- * rows with explicit scene-only wording and no explicit cake-membership cue;
- * never infer scene status from a generic word such as "background" alone.
- * This operates only on fresh generation results before validation/persistence.
- */
-function removeExplicitSceneOnlyItems(result: unknown): unknown {
-  if (!isRecord(result)
-    || !Array.isArray(result.main_toppers)
-    || !Array.isArray(result.support_elements)) return result;
-
-  if (isRecord(result.rejection) && result.rejection.isRejected === true) return result;
-
-  const keepCakeMemberItems = (items: unknown[]) => items.filter((item) => {
-    if (!isRecord(item) || typeof item.description !== 'string') return true;
-    return !EXPLICIT_SCENE_ONLY_LOCATION.test(item.description)
-      || EXPLICIT_CAKE_MEMBERSHIP.test(item.description);
-  });
-  const mainToppers = keepCakeMemberItems(result.main_toppers);
-  const supportElements = keepCakeMemberItems(result.support_elements);
-
-  if (mainToppers.length === result.main_toppers.length
-    && supportElements.length === result.support_elements.length) return result;
-
-  return { ...result, main_toppers: mainToppers, support_elements: supportElements };
-}
-
-/**
  * The full-image model repeatedly describes this known fulfillment style as
  * "vertical icing waves" even when the visual cue is the separate upright
  * wafer-paper side finish. Restrict the repair to the model's vertical-wave
@@ -623,7 +593,7 @@ export function postProcessSearchAnalysisResult(
   }
   return validateGeneratedCakeAnalysisResult(
     reconcileConditionedWaferPaperWaves(
-      reconcileDescriptionTypes(removeExplicitSceneOnlyItems(reconciledResult), typeEnums),
+      reconcileDescriptionTypes(reconciledResult, typeEnums),
       typeEnums,
     ),
     typeEnums,

@@ -80,3 +80,7 @@
 # Lesson: Put shared mobile presentation rules at the global page seam
 
 - When a mobile visual rule is intended to apply across the site, verify representative static, interactive, search, commerce, and dynamic routes before choosing a component-local wrapper. A route-local zoom can make one page look right while every other page stays at the default scale; use the global `body` mobile breakpoint and confirm fixed UI plus desktop behavior separately.
+
+# Lesson: Separate live prompt state from a proposed migration version
+
+- When discussing an un-applied AI prompt release, state the current live version first and describe the higher version only as proposed/local. Never let a proposed migration version read as if it were active in production.

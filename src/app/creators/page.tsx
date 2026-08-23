@@ -424,12 +424,6 @@ export default function CreatorsLandingPage() {
                         <div className="bg-white/95 rounded-3xl border border-purple-100/50 shadow-md p-6 sm:p-8">
                             <h2 className="text-2xl font-bold text-gray-900 mb-6">Apply Now</h2>
 
-                            {errorMsg && (
-                                <div role="alert" className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-md">
-                                    <p className="font-medium">{errorMsg}</p>
-                                </div>
-                            )}
-
                             <form onSubmit={handleSubmit} className="space-y-6">
 
                                 {/* Personal Details */}
@@ -705,6 +699,16 @@ export default function CreatorsLandingPage() {
                                             </>
                                         )}
                                     </button>
+                                    {errorMsg && (
+                                        <div
+                                            id="creator-form-error"
+                                            role="alert"
+                                            aria-live="assertive"
+                                            className="mt-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-md"
+                                        >
+                                            <p className="font-medium">{errorMsg}</p>
+                                        </div>
+                                    )}
                                 </div>
 
                             </form>
