@@ -18,7 +18,9 @@
       "source_url": "https://cebuweddingsuppliers.com/listing/angels-events-corner-cebu/"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "name": "Bridal Keepsake Cebu",
@@ -38,7 +40,9 @@
       "source_url": "https://cebuweddingsuppliers.com/listing/bridal-keepsake-cebu/"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "name": "Piccello - Live Photo Bingo",
@@ -58,7 +62,9 @@
       "source_url": "https://cebuweddingsuppliers.com/listing-category/others-unique-services/"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "name": "Event Aspects",
@@ -79,7 +85,8 @@
       "source_url": "https://eventaspects.com/"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null
   },
   {
     "name": "CEA Creatives and Events",
@@ -100,7 +107,9 @@
       "source_url": "https://ceacreatives.com/"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": "Stomping Grounds, Pres. Roxas St, Brgy. Kasambagan, Cebu City 6000",
+    "email": "info@ceacreatives.com"
   },
   {
     "name": "Beckett's Events and Services",
@@ -121,7 +130,9 @@
       "source_url": "https://beckett.ph/"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "name": "Folio Fable Studios",
@@ -140,7 +151,9 @@
       "source_url": "https://cebuweddingsuppliers.com/listing-category/others-unique-services/"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "name": "XYNK Events Management Services",
@@ -160,7 +173,9 @@
       "source_url": "https://cebuweddingsuppliers.com/listing-category/sounds-lights/"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "name": "Azul Marketing + Events Management",
@@ -180,7 +195,9 @@
       "source_url": "https://www.ame.ph/"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "name": "Bridal Basics",
@@ -199,6 +216,8 @@
       "source_url": "https://ekasal.com/listing/bridal-basics.html"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   }
 ]

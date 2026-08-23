@@ -31,7 +31,9 @@
       ]
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": "National Highway, Basak, Mandaue City, 6014",
+    "email": "cebuballoons@gmail.com"
   },
   {
     "business_name": "Eleven36 Balloons Cebu Party and Events",
@@ -61,7 +63,9 @@
       ]
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "Balloon Decor Cebu",
@@ -89,7 +93,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "Pauleen's Balloon & Decor Studio",
@@ -112,7 +118,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "Hannah's Cake Decors & Party Needs",
@@ -136,7 +144,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "DF Balloons and Party Essentials Cebu",
@@ -162,7 +172,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "Kate's Balloons and Party Needs Supplier",
@@ -185,7 +197,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "PinkLemonade Balloons and Party Favors Cebu",
@@ -209,7 +223,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "Pop Luxury Balloons",
@@ -233,6 +249,8 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   }
 ]

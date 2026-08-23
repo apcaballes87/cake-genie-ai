@@ -21,7 +21,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "Floral TOUCH by Chaty Archival",
@@ -45,7 +47,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "First of April Flowers & Styling",
@@ -69,7 +73,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "Blush Flower Creations and Events",
@@ -93,7 +99,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "Simple Wishes",
@@ -117,7 +125,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "Chasing Perfection Weddings and Events",
@@ -141,7 +151,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "Artsy Cebu",
@@ -165,7 +177,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "Events with Love",
@@ -190,7 +204,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "Fleur Cebu Inc",
@@ -214,7 +230,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": "Paseo Arcenas, Banawa, Cebu City",
+    "email": "fleurcebu@gmail.com"
   },
   {
     "business_name": "Modern Petals Cebu",
@@ -238,6 +256,8 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   }
 ]

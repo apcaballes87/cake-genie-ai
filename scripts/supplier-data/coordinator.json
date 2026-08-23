@@ -20,7 +20,8 @@
       "contact_via": "phone"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "email": null
   },
   {
     "business_name": "Snoogie Weddings and Events",
@@ -43,7 +44,8 @@
       "contact_via": "phone"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "email": null
   },
   {
     "business_name": "Belle Mariee Weddings",
@@ -67,7 +69,8 @@
       "contact_via": "phone"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "email": null
   },
   {
     "business_name": "NM Event Planners",
@@ -91,7 +94,8 @@
       "contact_via": "phone"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "email": null
   },
   {
     "business_name": "Cebu Weddings and Events Planner by Jacky Acebes",
@@ -114,7 +118,8 @@
       "contact_via": "phone"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "email": null
   },
   {
     "business_name": "Concept and Ideas Events Cebu",
@@ -138,7 +143,8 @@
       "contact_via": "phone"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "email": null
   },
   {
     "business_name": "Tcarcel Events Planning",
@@ -162,7 +168,8 @@
       "contact_via": "phone"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "email": null
   },
   {
     "business_name": "Heavenly Weddings Cebu",
@@ -185,7 +192,8 @@
       "contact_via": "phone"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "email": null
   },
   {
     "business_name": "Vangails Perfect Union Events Services",
@@ -209,7 +217,8 @@
       "contact_via": "phone"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "email": null
   },
   {
     "business_name": "Bliss Unlimited",
@@ -217,7 +226,7 @@
     "contact_person": "Tisha Cue",
     "contact_number": "0917 626 6211",
     "business_type": "coordinator",
-    "address": "Cebu City",
+    "address": null,
     "description": "Cebu wedding planner led by Tisha Cue. Known for detail-oriented, hands-on approach and flexibility in adapting to changing plans while preserving what matters most to couples.",
     "website": "https://www.instagram.com/blissunlimited",
     "metadata": {
@@ -232,7 +241,8 @@
       "contact_via": "phone"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "email": "blissunlimited@gmail.com"
   },
   {
     "business_name": "BBF Events PH",
@@ -255,7 +265,8 @@
       "contact_via": "phone"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "email": null
   },
   {
     "business_name": "Happy Seven Weddings and Events",
@@ -278,6 +289,7 @@
       "contact_via": "phone"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "email": null
   }
 ]

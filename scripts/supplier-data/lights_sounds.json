@@ -16,7 +16,9 @@
       "source_url": "https://cebuweddingsuppliers.com/listing-category/sounds-lights/"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "name": "CJ Mobile Professional Lights and Audio",
@@ -36,7 +38,9 @@
       "source_url": "https://cebuweddingsuppliers.com/listing-category/sounds-lights/"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "name": "i Wil Lights and Sounds",
@@ -55,7 +59,9 @@
       "source_url": "https://cebuweddingsuppliers.com/listing-category/sounds-lights/"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "name": "MAQI Lights and Sounds Equipment Rentals",
@@ -74,7 +80,9 @@
       "source_url": "https://cebuweddingsuppliers.com/listing-category/sounds-lights/"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "name": "Cebu Sounds and Lights",
@@ -96,7 +104,9 @@
       "source_url": "https://cebusoundsandlights.com/"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "name": "Cebu NS Professional Lights and Sounds",
@@ -115,7 +125,9 @@
       "source_url": "https://cebuweddingsuppliers.com/listing/cebu-ns-professional-lights-sounds/"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "name": "Cyryl Prod. Lights and Sound Rental",
@@ -134,14 +146,16 @@
       "source_url": "https://cebuweddingsuppliers.com/listing-category/sounds-lights/"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "name": "Black Plug Productions",
     "description": "Cebu-based professional audio rental company specializing in concerts, band competitions, acoustic sessions, and event sound systems.",
     "business_name": "Black Plug Productions",
     "contact_number": "09228123386",
-    "email": "hello@blackplugproductions.com",
+    "email": "info@blackplugproductions.com",
     "website": "https://www.blackplugproductions.com/",
     "metadata": {
       "area": "Mabolo, Cebu",
@@ -155,7 +169,8 @@
       "source_url": "https://www.blackplugproductions.com/"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": "70-A F. Gochan St, Mabolo, Cebu City"
   },
   {
     "name": "Taylor Audio",
@@ -175,7 +190,9 @@
       "source_url": "https://www.businesslist.ph/company/265003/taylor-audioaudio-and-lights-provider"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "name": "Cybersound",
@@ -197,6 +214,8 @@
       "source_url": "https://cybersound.ph/"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   }
 ]

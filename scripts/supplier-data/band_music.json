@@ -24,7 +24,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "On-the-Cover Band",
@@ -50,7 +52,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "DJ Ran Sayam",
@@ -76,7 +80,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "Dom Gelvez Event Violinist",
@@ -102,7 +108,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "Adlib Band",
@@ -129,7 +137,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "Momentum Band",
@@ -155,7 +165,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "DJ Neil Verzosa",
@@ -181,7 +193,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "Kerara Soul Cebu",
@@ -208,7 +222,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "The Kars",
@@ -234,7 +250,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "DJ Ed Zimmer",
@@ -260,6 +278,8 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   }
 ]

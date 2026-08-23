@@ -4,7 +4,7 @@
     "description": "Cebu-based mobile cocktail bar offering personalized cocktail experiences for weddings, birthdays, and corporate events across Cebu and neighboring provinces.",
     "business_name": "The Alchemy Mobile Bar",
     "contact_number": "09669000057",
-    "email": "thealchemycebu@gmail.com",
+    "email": "info@thealchemycebu.com",
     "website": "https://www.facebook.com/thealchemycebu",
     "metadata": {
       "area": "Cebu City, Panglao, Bohol, Negros",
@@ -18,7 +18,8 @@
       "source_url": "https://sugbo.ph/2025/alchemy-mobile-bar/"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null
   },
   {
     "name": "The Vault Room Mobile Bar",
@@ -38,7 +39,9 @@
       "source_url": "https://www.sunstar.com.ph/cebu/the-vault-room-mobile-bar"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "name": "Booze & Beans Coffee & Cocktails Mobile Bar",
@@ -58,7 +61,9 @@
       "source_url": "https://cebuweddingsuppliers.com/listing/booze-beans-coffee-cocktails-mobile-bar/"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "name": "Calbeans Cafe",
@@ -77,7 +82,9 @@
       "source_url": "https://cebuweddingsuppliers.com/listing/calbeans-cafe/"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "name": "Charli George Bar",
@@ -96,7 +103,9 @@
       "source_url": "https://cebuweddingsuppliers.com/listing/charli-george-bar-cebu/"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "name": "Mr. Bartender Cebu",
@@ -115,7 +124,9 @@
       "source_url": "https://cebuweddingsuppliers.com/listing/mr-bartender-cebu/"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "name": "Mox Degrees",
@@ -135,7 +146,9 @@
       "source_url": "https://cebuweddingsuppliers.com/listing/mox-degrees/"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "name": "Dissy Yummies Party Food Carts",
@@ -155,6 +168,8 @@
       "source_url": "https://cebuweddingsuppliers.com/listing/dissy-yummies-party-food-carts/"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   }
 ]

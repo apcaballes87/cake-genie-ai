@@ -25,7 +25,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "Event Photographers Cebu (EPiC)",
@@ -49,7 +51,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "Jones Silva Creatives",
@@ -76,7 +80,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "Portraits by Bukool",
@@ -109,7 +115,9 @@
       ]
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "SMILE Video and Photography",
@@ -136,7 +144,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "Tagqir",
@@ -163,7 +173,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "Badlit Studio",
@@ -192,7 +204,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "Bahandi Studios",
@@ -221,7 +235,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "Cristian Caraca Photography",
@@ -245,7 +261,9 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   },
   {
     "business_name": "Den Formilleza Films",
@@ -273,6 +291,8 @@
       "added_by": "manual-research"
     },
     "profile_photo_url": null,
-    "cover_photo_url": null
+    "cover_photo_url": null,
+    "address": null,
+    "email": null
   }
 ]

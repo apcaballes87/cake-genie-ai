@@ -83,6 +83,8 @@ async function main() {
     business_name: s.business_name,
     description: s.description,
     business_type: businessType,
+    email: s.email ?? null,
+    address: s.address ?? null,
     facebook_page_url: s.facebook_page_url ?? s.website ?? null,
     website_url: s.website_url ?? s.website ?? null,
     extra_link_url: s.extra_link_url ?? null,
