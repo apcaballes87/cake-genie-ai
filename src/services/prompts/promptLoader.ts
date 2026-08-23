@@ -16,6 +16,9 @@ type SupabasePromptClient = {
           single(): PromiseLike<PromptQueryResult>;
         };
       };
+      order(column: string, opts?: { ascending: boolean }): {
+        limit(count: number): PromiseLike<{ data: unknown[] | null; error: unknown }>;
+      };
     };
   };
 };
@@ -63,4 +66,28 @@ export async function getActivePromptDetails(supabase: SupabasePromptClient): Pr
     promptText: loadFallbackAnalysisPrompt(),
     version: 'fallback'
   };
+}
+
+type PromptVersionRow = {
+  id: string | number;
+  version: string | number | null;
+  is_active: boolean | null;
+  created_at: string | null;
+};
+
+export async function getAllPromptVersions(
+  supabase: SupabasePromptClient,
+): Promise<PromptVersionRow[]> {
+  const { data, error } = await supabase
+    .from('ai_prompts')
+    .select('id, version, is_active, created_at')
+    .order('created_at', { ascending: false })
+    .limit(100);
+
+  if (error) {
+    console.warn('Failed to fetch prompt versions:', error);
+    return [];
+  }
+
+  return (data ?? []) as PromptVersionRow[];
 }
