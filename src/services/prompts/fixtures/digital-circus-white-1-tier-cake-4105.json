@@ -1,0 +1,29 @@
+{
+  "slug": "digital-circus-white-1-tier-cake-4105",
+  "source_image_url": "https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/customizations/digital-circus-white-1-tier-cake-4105.webp",
+  "historical_cache_id": "22dd99ad-aff1-4152-8ee1-b91167eeec21",
+  "case_description": "A light-blue one-tier cake has repeated, visibly separate opaque red fondant vertical side stripes. The stripes are distinct from the separate red fondant plaque on the front and the lower white star band.",
+  "expected_stripe_support": {
+    "type": "gumpaste_panel",
+    "material": "edible_fondant",
+    "color": "#FF0000",
+    "size": "medium",
+    "quantity": 1,
+    "group_id": "red_vertical_gumpaste_side_stripes",
+    "description": "repeated red fondant vertical side stripes around the tier"
+  },
+  "separate_existing_support": {
+    "type": "gumpaste_panel",
+    "group_id": "red_plaque_panel",
+    "size": "medium",
+    "quantity": 1
+  },
+  "forbidden_interpretations": [
+    "per-strip gumpaste_panel rows",
+    "icing-only color treatment"
+  ],
+  "coverage_excludes": [
+    "light-blue icing base",
+    "merely alternate background colors"
+  ]
+}

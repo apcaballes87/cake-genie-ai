@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.51 Version - Cake-Object Membership Gate**
+**v3.53 Version - Gumpaste Stripe Coverage Clarification**
 ═══════════════════════════════════════════════════════════════════════════════
 
 ## ROLE
@@ -1491,6 +1491,21 @@ Panels use **% of tier side surface area**, not height ratio:
 | `small` | **< 40%** of the tier's visible side surface |
 | `medium` | **40% to < 80%** |
 | `large` | **≥ 80%** |
+
+### REPEATED VERTICAL GUMPASTE SIDE STRIPES
+
+When separate opaque fondant/gumpaste vertical strips or bands repeat around a
+cake side, emit one collective `gumpaste_panel` support row for the complete
+stripe treatment—not one row per strip.
+
+Use `material: "edible_fondant"`, `quantity: 1`, and size it by the combined
+coverage of the tier side: `small` <40%, `medium` 40% to <80%, `large` ≥80%.
+Count coverage only from the confirmed separate fondant/gumpaste strips; never
+include the icing base, underlying frosting, or merely alternate background
+colors. Color contrast alone does not establish a physical panel.
+Do not classify visibly separate fondant/gumpaste strips as plain icing color.
+Continuous piped, painted, or airbrushed stripes remain icing, not a
+`gumpaste_panel`.
 
 ---
 

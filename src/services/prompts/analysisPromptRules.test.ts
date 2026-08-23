@@ -16,7 +16,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.51 Version - Cake-Object Membership Gate**');
+    expect(prompt).toContain('**v3.53 Version - Gumpaste Stripe Coverage Clarification**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('3. Visible construction of each item');
     expect(prompt).toContain('5. Type compatible with that construction and material');
@@ -77,6 +77,8 @@ describe('cake analysis prompt rules', () => {
     expect(SYSTEM_INSTRUCTION).toContain('When gumpasteBaseBoard is true, include colors.gumpasteBaseBoardColor');
     expect(SYSTEM_INSTRUCTION).toContain('Use the active analysis prompt as the only source for sizing boundaries');
     expect(SYSTEM_INSTRUCTION).toContain('Use plastic_ball only for exactly one isolated dominant focal plastic sphere');
+    expect(SYSTEM_INSTRUCTION).toContain('Repeated Fondant/Gumpaste Side Stripes');
+    expect(SYSTEM_INSTRUCTION).toContain('emit exactly one collective `gumpaste_panel` support item');
   });
 
   it('requires positive flat-paper evidence and prevents volumetric figurines from becoming printouts', () => {
@@ -283,6 +285,48 @@ describe('cake analysis prompt rules', () => {
     ]));
   });
 
+  it('prices repeated separately applied fondant side stripes as one coverage-based panel', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+    const fixture = JSON.parse(readPrompt('src/services/prompts/fixtures/digital-circus-white-1-tier-cake-4105.json')) as {
+      expected_stripe_support: Record<string, unknown>;
+      separate_existing_support: Record<string, unknown>;
+      forbidden_interpretations: string[];
+      coverage_excludes: string[];
+    };
+
+    expect(prompt).toContain('### REPEATED VERTICAL GUMPASTE SIDE STRIPES');
+    expect(prompt).toContain('emit one collective `gumpaste_panel` support row for the complete\nstripe treatment—not one row per strip');
+    expect(prompt).toContain('Use `material: "edible_fondant"`, `quantity: 1`, and size it by the combined');
+    expect(prompt).toContain('Count coverage only from the confirmed separate fondant/gumpaste strips; never');
+    expect(prompt).toContain('Color contrast alone does not establish a physical panel.');
+    expect(prompt).toContain('Do not classify visibly separate fondant/gumpaste strips as plain icing color.');
+    expect(prompt).toContain('Continuous piped, painted, or airbrushed stripes remain icing, not a\n`gumpaste_panel`.');
+
+    expect(fixture.expected_stripe_support).toEqual({
+      type: 'gumpaste_panel',
+      material: 'edible_fondant',
+      color: '#FF0000',
+      size: 'medium',
+      quantity: 1,
+      group_id: 'red_vertical_gumpaste_side_stripes',
+      description: 'repeated red fondant vertical side stripes around the tier',
+    });
+    expect(fixture.separate_existing_support).toEqual({
+      type: 'gumpaste_panel',
+      group_id: 'red_plaque_panel',
+      size: 'medium',
+      quantity: 1,
+    });
+    expect(fixture.forbidden_interpretations).toEqual(expect.arrayContaining([
+      'per-strip gumpaste_panel rows',
+      'icing-only color treatment',
+    ]));
+    expect(fixture.coverage_excludes).toEqual(expect.arrayContaining([
+      'light-blue icing base',
+      'merely alternate background colors',
+    ]));
+  });
+
   it('counts plastic balloon clusters as individual support units', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fixture = JSON.parse(readPrompt('src/services/prompts/fixtures/teddy-bear-balloon-sky-blue-1-tier-cake-7379.json')) as {
@@ -367,7 +411,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.51 Version - Cake-Object Membership Gate**');
+    expect(prompt).toContain('**v3.53 Version - Gumpaste Stripe Coverage Clarification**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -388,7 +432,7 @@ describe('cake analysis prompt rules', () => {
   it('uses toy-specific sizing for miniature molded toys', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.51 Version - Cake-Object Membership Gate**');
+    expect(prompt).toContain('**v3.53 Version - Gumpaste Stripe Coverage Clarification**');
     expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy` AND `plastic_crown`)');
     expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
     expect(prompt).toContain('| `tiny` | under 0.10 |');
