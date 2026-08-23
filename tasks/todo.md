@@ -1,5 +1,23 @@
 # Tasks
 
+## Continue debugging creator application production failure (2026-08-23)
+
+### Plan
+
+- [x] Trace the server action, preflight promo check, RPC call, and error placement.
+- [x] Verify Vercel production configuration, deployment commit, runtime logs, and Supabase RPC/schema state.
+- [x] Fix the production database dependency and add focused regression coverage.
+- [x] Run focused tests, scoped ESLint, production build, and a non-submitting deployed preflight check.
+- [x] Confirm the production RPC can generate codes inside a rolled-back probe transaction.
+
+### Review
+
+- Root cause: production `submit_creator_application` ran with `search_path=public, pg_catalog, pg_temp`, while `pgcrypto` was installed in `extensions`; both unqualified `gen_random_bytes(6)` calls therefore failed with PostgreSQL `42883` after the RPC began code generation.
+- Vercel production is on `37fa6ec`, has the expected Supabase URL and service-role variable configured, and its runtime log showed the exact `gen_random_bytes(integer)` failure. The creators/discount-code schema and 13-argument RPC are present; service-role validation reaches the function and anon execution is denied.
+- Added `20260823090000_fix_creator_pgcrypto_search_path.sql`, applied remotely as Supabase migration `20260823080651`. Fresh creator migrations now also create pgcrypto explicitly and qualify the generator calls.
+- Verification passed: 6 focused Vitest tests, scoped ESLint with 0 errors (4 existing `<img>` warnings), `npm run build`, `git diff --check`, production preflight reported `Code is available.`, and the rolled-back valid RPC probe left 0 creator and referral rows.
+- No real production creator application was submitted. The production database fix is deployed; the source commit remains local until explicitly pushed.
+
 ## Fix creator application failure feedback (2026-08-23)
 
 ### Plan

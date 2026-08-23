@@ -3,6 +3,10 @@
 -- 2. A private, email-bound free-bento code.
 -- 3. A private, email-bound 50% voucher capped at PHP 1,500.
 
+-- Supabase installs pgcrypto in the extensions schema. Keep it explicit because
+-- the SECURITY DEFINER RPC below uses a locked search_path.
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+
 ALTER TABLE public.discount_codes
     ADD COLUMN IF NOT EXISTS creator_id UUID NULL,
     ADD COLUMN IF NOT EXISTS code_purpose TEXT NULL,
@@ -192,7 +196,7 @@ BEGIN
 
     v_bento_created := FALSE;
     FOR attempt IN 1..12 LOOP
-        v_bento_code := 'GENIEBENTO' || upper(substr(encode(gen_random_bytes(6), 'hex'), 1, 8));
+        v_bento_code := 'GENIEBENTO' || upper(substr(encode(extensions.gen_random_bytes(6), 'hex'), 1, 8));
         BEGIN
             INSERT INTO public.discount_codes (
                 creator_id,
@@ -241,7 +245,7 @@ BEGIN
 
     v_voucher_created := FALSE;
     FOR attempt IN 1..12 LOOP
-        v_voucher_code := 'GENIE50' || upper(substr(encode(gen_random_bytes(6), 'hex'), 1, 8));
+        v_voucher_code := 'GENIE50' || upper(substr(encode(extensions.gen_random_bytes(6), 'hex'), 1, 8));
         BEGIN
             INSERT INTO public.discount_codes (
                 creator_id,

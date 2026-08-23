@@ -101,4 +101,37 @@ describe('creator promo codes', () => {
       code: 'DATABASE_ERROR',
     });
   });
+
+  it('maps missing pgcrypto function resolution to a temporary-unavailable result', async () => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
+    createClientMock.mockReturnValue({ rpc: rpcMock });
+    rpcMock.mockResolvedValue({
+      data: null,
+      error: {
+        code: '42883',
+        message: 'function gen_random_bytes(integer) does not exist',
+        details: null,
+        hint: 'No function matches the given name and argument types.',
+      },
+    });
+
+    const { submitCreatorApplication } = await import('./actions');
+    const result = await submitCreatorApplication({
+      name: 'Test Creator',
+      email: 'creator@example.com',
+      contact_number: '09170000000',
+      address: 'Cebu City',
+      content_niche: 'Food',
+      tiktok_handle: '@testcreator',
+      promo_code: 'TESTCREATOR',
+      agreed_to_terms: true,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Creator applications are temporarily unavailable. Please try again later.',
+      code: 'DATABASE_ERROR',
+    });
+  });
 });
