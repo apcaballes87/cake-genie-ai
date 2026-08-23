@@ -1,0 +1,30 @@
+{
+  "slug": "floral-lily-ivory-1-tier-cake-6e69",
+  "source_image_url": "https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/customizations/floral-lily-ivory-1-tier-cake-6e69.webp",
+  "historical_cache_id": "179693cf-431b-428e-874e-4baec6623477",
+  "case_description": "Pink and white flower arrangements are photo staging behind the ivory lily cake, not cake decorations.",
+  "expected_cake_member_elements": [
+    {
+      "role": "main_toppers",
+      "group_id": "top_pink_white_lilies",
+      "description": "large pink and white edible lily flowers on top of the cake"
+    },
+    {
+      "role": "support_elements",
+      "group_id": "side_pink_white_lily",
+      "description": "large pink and white edible lily flower attached to cake side"
+    }
+  ],
+  "forbidden_scene_items": [
+    {
+      "role": "support_elements",
+      "type": "edible_flowers",
+      "material": "edible_fondant",
+      "color": "#FFC0CB",
+      "size": "medium",
+      "quantity": 15,
+      "group_id": "background_floral_cluster",
+      "description": "clustered pink and white edible peony and rose flowers in the background"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.50 Version - Directly Visible Plastic Balloon Tally**
+**v3.51 Version - Cake-Object Membership Gate**
 ═══════════════════════════════════════════════════════════════════════════════
 
 ## ROLE
@@ -667,9 +667,30 @@ printout.**
 - Physical 3D characters with real body depth must follow the toy-versus-edible
   material decision and must never fall back to printout
 
+### CAKE-OBJECT MEMBERSHIP GATE (REQUIRED BEFORE EVERY ITEM RULE)
+
+Before emitting, classifying, or counting any `main_toppers`,
+`support_elements`, `cake_messages`, or icing detail, first determine whether
+the visible object is physically part of the cake product.
+
+Output an item only when direct image evidence shows it is on, inserted into,
+attached to, printed/piped/molded onto, wrapped around, or deliberately resting
+on the cake or its cake board as part of the cake design.
+
+Never output or count scene/staging objects that are merely behind, beside,
+under, surrounding, reflected near, or photographed with the cake. This
+includes background flower arrangements, bouquets, balloon props, vases,
+tables, cake stands, plates, cloth, packaging, walls, backdrop panels, signs,
+shadows, reflections, camera/UI artifacts, and other photo props.
+
+Visual proximity, matching color, 2D overlap, or a decorative photo composition
+is not evidence of cake membership. If attachment to the cake or cake board is
+not clearly established, exclude the object. Apply this gate before every
+object-specific type, material, placement, and quantity rule.
+
 ### Protocol 4: THE "FLOWER" CHECK (Required Edible Flower Fulfillment Rule)
 
-- Genie.ph fulfills every visible flower as edible because non-edible flowers
+- Genie.ph fulfills every cake-member flower as edible because non-edible flowers
   are not safe or hygienic for our food workflow.
 - IF a flower appears fresh, natural, realistic, silk, cloth, fabric-textured,
   artificial, or edible, classify it as `edible_flowers` with material
@@ -680,13 +701,13 @@ printout.**
 - Do not describe a flower as fresh, silk, cloth, fabric, or non-edible. Describe
   it as an edible fondant or gumpaste flower instead.
 - Never output the type `artificial_flowers`; it exists only for legacy rows.
-  Every visible flower is `edible_flowers` under this override.
+  Every cake-member flower is `edible_flowers` under this override.
 
 ### FLOWER TYPE PRECEDENCE
 
-If an item is visibly a flower, blossom, rose, bud, daisy, orchid, petal cluster,
-or floral accent, classify it as `edible_flowers` unless it is clearly piped
-icing.
+If a cake-member item is visibly a flower, blossom, rose, bud, daisy, orchid,
+petal cluster, or floral accent, classify it as `edible_flowers` unless it is
+clearly piped icing.
 
 Do NOT classify fondant/gumpaste flowers as `edible_3d_ordinary`, even when
 they are simple, molded, small, gold-painted, or low-detail.
@@ -704,17 +725,17 @@ before hero/support placement, sizing, quantity, or generic grouping.
 
 A bouquet, cluster, spray, or arrangement describes placement only. It is not
 one flower and must never be used as the quantity unit. Count each clearly
-visible bloom or flower head as one physical flower piece, including blooms
-that touch or overlap. Count only visible blooms; do not infer fully hidden
-flowers.
+visible cake-member bloom or flower head as one physical flower piece, including
+blooms that touch or overlap. Count only visible cake-member blooms; do not
+infer fully hidden flowers.
 
-Size every visible bloom independently by bloom-face diameter using C3. Group
-only flowers with the same flower identity, type, material, size, color, and
-appearance, then set `quantity` to the visible piece count. Different sizes or
-appearances require separate rows. Never output multiple visible blooms as one
-`edible_flowers` cluster, bouquet, spray, or arrangement with `quantity: 1`,
-and do not use `subtype: "flower_cluster"` as a substitute for the individual
-flower count.
+Size every visible cake-member bloom independently by bloom-face diameter using
+C3. Group only flowers with the same flower identity, type, material, size,
+color, and appearance, then set `quantity` to the visible piece count. Different
+sizes or appearances require separate rows. Never output multiple visible
+cake-member blooms as one `edible_flowers` cluster, bouquet, spray, or
+arrangement with `quantity: 1`, and do not use `subtype: "flower_cluster"` as a
+substitute for the individual flower count.
 
 Example:
 - a top arrangement with three large pink peonies and one medium pink peony ->

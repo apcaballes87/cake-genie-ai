@@ -16,7 +16,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.50 Version - Directly Visible Plastic Balloon Tally**');
+    expect(prompt).toContain('**v3.51 Version - Cake-Object Membership Gate**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('3. Visible construction of each item');
     expect(prompt).toContain('5. Type compatible with that construction and material');
@@ -62,6 +62,9 @@ describe('cake analysis prompt rules', () => {
     expect(fenceCount % 2).toBe(0);
 
     expect(SYSTEM_INSTRUCTION).toContain('determine visible construction first, assign the compatible material second, choose a compatible type third, and write the description last');
+    expect(SYSTEM_INSTRUCTION).toContain('Cake-Object Membership Gate');
+    expect(SYSTEM_INSTRUCTION).toContain('Visual proximity, matching color, or 2D overlap is not evidence of cake membership.');
+    expect(SYSTEM_INSTRUCTION).toContain('Apply this gate before every type, material, placement, and quantity rule.');
     expect(SYSTEM_INSTRUCTION).toContain('If the description uses a construction or material term supported by positive image cues');
     expect(SYSTEM_INSTRUCTION).toContain('On conflict, the image is authoritative');
     expect(SYSTEM_INSTRUCTION).toContain('CRITICAL CLASSIFICATION WITHIN THE NON-EDIBLE PRINTOUT vs CARDSTOCK FAMILY');
@@ -146,6 +149,32 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('If a logo/text appears near the cake but not on the cake itself, do not output it as `printout`, `cake_messages`, `support_elements`, or `main_toppers`');
   });
 
+  it('excludes scene-only objects before classifying cake-member items', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+    const fixture = JSON.parse(readPrompt('src/services/prompts/fixtures/floral-lily-ivory-1-tier-cake-6e69.json')) as {
+      expected_cake_member_elements: Array<Record<string, unknown>>;
+      forbidden_scene_items: Array<Record<string, unknown>>;
+    };
+
+    expect(prompt).toContain('CAKE-OBJECT MEMBERSHIP GATE (REQUIRED BEFORE EVERY ITEM RULE)');
+    expect(prompt).toContain('first determine whether\nthe visible object is physically part of the cake product.');
+    expect(prompt).toContain('background flower arrangements, bouquets, balloon props, vases,\ntables, cake stands, plates, cloth, packaging, walls, backdrop panels, signs,');
+    expect(prompt).toContain('Visual proximity, matching color, 2D overlap, or a decorative photo composition\nis not evidence of cake membership.');
+    expect(prompt.indexOf('CAKE-OBJECT MEMBERSHIP GATE')).toBeLessThan(prompt.indexOf('Protocol 4: THE "FLOWER" CHECK'));
+    expect(prompt).toContain('Every cake-member flower is `edible_flowers` under this override.');
+    expect(prompt).toContain('Count only visible cake-member blooms; do not');
+
+    expect(fixture.expected_cake_member_elements).toEqual(expect.arrayContaining([
+      expect.objectContaining({ group_id: 'top_pink_white_lilies' }),
+      expect.objectContaining({ group_id: 'side_pink_white_lily' }),
+    ]));
+    expect(fixture.forbidden_scene_items).toEqual([expect.objectContaining({
+      group_id: 'background_floral_cluster',
+      quantity: 15,
+      description: expect.stringContaining('in the background'),
+    })]);
+  });
+
   it('keeps fabric bow and ribbon deduplication in the fallback prompt source', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
@@ -162,7 +191,7 @@ describe('cake analysis prompt rules', () => {
   it('classifies fresh-looking flowers as edible flowers in the fallback prompt source', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('Genie.ph fulfills every visible flower as edible because non-edible flowers');
+    expect(prompt).toContain('Genie.ph fulfills every cake-member flower as edible because non-edible flowers');
     expect(prompt).toContain('IF a flower appears fresh, natural, realistic, silk, cloth, fabric-textured,');
     expect(prompt).toContain('FLOWER TYPE PRECEDENCE');
     expect(prompt).toContain('Do NOT classify fondant/gumpaste flowers as `edible_3d_ordinary`');
@@ -338,7 +367,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.50 Version - Directly Visible Plastic Balloon Tally**');
+    expect(prompt).toContain('**v3.51 Version - Cake-Object Membership Gate**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -359,7 +388,7 @@ describe('cake analysis prompt rules', () => {
   it('uses toy-specific sizing for miniature molded toys', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.50 Version - Directly Visible Plastic Balloon Tally**');
+    expect(prompt).toContain('**v3.51 Version - Cake-Object Membership Gate**');
     expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy` AND `plastic_crown`)');
     expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
     expect(prompt).toContain('| `tiny` | under 0.10 |');
