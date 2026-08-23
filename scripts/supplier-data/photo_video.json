@@ -1,0 +1,255 @@
+[
+  {
+    "business_name": "X Marks The Spot Photo & Video",
+    "name": "X Marks The Spot Photo & Video",
+    "contact_number": "09272013090",
+    "description": "Cebu City photo and video team specializing in wedding and anniversary films, same-day edits, Instagram reels, content creation, corporate events, and family celebrations.",
+    "facebook_page_url": "https://www.facebook.com/xmarksthespotmedia/",
+    "website_url": null,
+    "extra_link_url": null,
+    "metadata": {
+      "area": "Cebu City",
+      "services": [
+        "wedding films",
+        "anniversary films",
+        "same-day edit",
+        "Instagram reels",
+        "content creation",
+        "corporate events",
+        "family celebrations",
+        "photo & video"
+      ],
+      "price_range": null,
+      "source_url": "https://www.facebook.com/xmarksthespotmedia/",
+      "contact_via": "phone",
+      "added_by": "manual-research"
+    }
+  },
+  {
+    "business_name": "Event Photographers Cebu (EPiC)",
+    "name": "Event Photographers Cebu (EPiC)",
+    "contact_number": "Contact via Facebook",
+    "description": "Cebu City collective of freelance photographers and videographers committed to quality, performance, and professionalism for weddings, debuts, and events.",
+    "facebook_page_url": "https://www.facebook.com/EPiCphotographers/",
+    "website_url": null,
+    "extra_link_url": null,
+    "metadata": {
+      "area": "Cebu City",
+      "services": [
+        "event photography",
+        "event videography",
+        "weddings",
+        "debuts"
+      ],
+      "price_range": null,
+      "source_url": "https://www.facebook.com/EPiCphotographers/",
+      "contact_via": "facebook",
+      "added_by": "manual-research"
+    }
+  },
+  {
+    "business_name": "Jones Silva Creatives",
+    "name": "Jones Silva Creatives",
+    "contact_number": "09053521219",
+    "description": "Cebu City commercial photographer and multimedia producer (Skyrise IT Park) specializing in events, corporate and advertising projects, aerial drone, and video production.",
+    "facebook_page_url": "https://www.facebook.com/jonessilvacreatives",
+    "website_url": "https://www.jonessilvacreatives.com/",
+    "extra_link_url": null,
+    "metadata": {
+      "area": "Cebu City (Skyrise IT Park)",
+      "services": [
+        "event photography",
+        "corporate/commercial photography",
+        "aerial drone photography",
+        "event video coverage",
+        "corporate videos",
+        "video editing",
+        "advertising"
+      ],
+      "price_range": null,
+      "source_url": "https://www.jonessilvacreatives.com/",
+      "contact_via": "phone",
+      "added_by": "manual-research"
+    }
+  },
+  {
+    "business_name": "Portraits by Bukool",
+    "name": "Portraits by Bukool",
+    "contact_number": "09166765808",
+    "description": "Cebu wedding photographer and videographer offering weddings, prenups, debuts, corporate events, family portraiture, aerial photography, real estate, product shoots, and same-day-edit films.",
+    "facebook_page_url": "https://www.facebook.com/PortraitsByBukool/",
+    "website_url": "https://bukool.com/",
+    "extra_link_url": null,
+    "metadata": {
+      "area": "Cebu City",
+      "services": [
+        "wedding photography",
+        "prenup/engagement",
+        "debut",
+        "corporate events",
+        "family portraiture",
+        "aerial photography",
+        "real estate",
+        "product photography",
+        "SDE video"
+      ],
+      "price_range": null,
+      "source_url": "https://bukool.com/",
+      "contact_via": "phone",
+      "added_by": "manual-research",
+      "alternate_contacts": ["09194028508", "09472891990"]
+    }
+  },
+  {
+    "business_name": "SMILE Video and Photography",
+    "name": "SMILE Video and Photography",
+    "contact_number": "09505212345",
+    "description": "Cebu City (Labangon) and Parkmall Mandaue studio offering budget-friendly event coverage, weddings, debuts, corporate events, studio shoots, self-portraits, and photobooth.",
+    "facebook_page_url": "https://web.facebook.com/smilevideoandphotography",
+    "website_url": "https://smilevideoandphotography.com/",
+    "extra_link_url": null,
+    "metadata": {
+      "area": "Cebu City (Labangon) / Mandaue (Parkmall)",
+      "services": [
+        "studio shoot",
+        "self-portrait",
+        "short event coverage",
+        "wedding",
+        "photobooth",
+        "debut",
+        "corporate event"
+      ],
+      "price_range": null,
+      "source_url": "https://smilevideoandphotography.com/",
+      "contact_via": "phone",
+      "added_by": "manual-research"
+    }
+  },
+  {
+    "business_name": "Tagqir",
+    "name": "Tagqir",
+    "contact_number": "Contact via website",
+    "description": "Cebu and Visayas professional event photography and videography with full-day coverage, drone aerial shots, and expert editing for weddings, corporate events, and special occasions.",
+    "facebook_page_url": null,
+    "website_url": "https://tagqir.com/",
+    "extra_link_url": null,
+    "metadata": {
+      "area": "Cebu & Visayas",
+      "services": [
+        "event photography",
+        "event videography",
+        "full-day coverage",
+        "drone aerial",
+        "weddings",
+        "corporate events",
+        "special occasions"
+      ],
+      "price_range": null,
+      "source_url": "https://tagqir.com/",
+      "contact_via": "website",
+      "added_by": "manual-research"
+    }
+  },
+  {
+    "business_name": "Badlit Studio",
+    "name": "Badlit Studio",
+    "contact_number": "09565514527",
+    "description": "Lapu-Lapu City professional photography business offering civil weddings, church wedding documentation, elopements, pre-wedding photo sessions, and candid/event/portrait/wedding photography with artistic approach.",
+    "facebook_page_url": "https://www.facebook.com/badlit.studio",
+    "website_url": "https://cebuweddingsuppliers.com/listing/badlit-studio/",
+    "extra_link_url": null,
+    "metadata": {
+      "area": "Lapu-Lapu City",
+      "services": [
+        "civil weddings",
+        "church wedding documentation",
+        "elopements",
+        "pre-wedding photo sessions",
+        "candid shots",
+        "event photography",
+        "portrait photography",
+        "pre-event shoots",
+        "wedding photography"
+      ],
+      "price_range": null,
+      "source_url": "https://cebuweddingsuppliers.com/listing/badlit-studio/",
+      "contact_via": "phone",
+      "added_by": "manual-research"
+    }
+  },
+  {
+    "business_name": "Bahandi Studios",
+    "name": "Bahandi Studios",
+    "contact_number": "09994602090",
+    "description": "Cebu City photography studio capturing the shimmer of stories and weight of candid moments, offering candid shots, creative editing, drone photography, event photography, online galleries, portrait photography, pre-event shoots, theme adaptation, and wedding photography.",
+    "facebook_page_url": "http://www.facebook.com/bahandistudios",
+    "website_url": "https://cebuweddingsuppliers.com/listing/bahandi-studios/",
+    "extra_link_url": null,
+    "metadata": {
+      "area": "Cebu City",
+      "services": [
+        "candid shots",
+        "creative editing",
+        "drone photography",
+        "event photography",
+        "online galleries",
+        "portrait photography",
+        "pre-event shoots",
+        "theme adaptation",
+        "wedding photography"
+      ],
+      "price_range": null,
+      "source_url": "https://cebuweddingsuppliers.com/listing/bahandi-studios/",
+      "contact_via": "phone",
+      "added_by": "manual-research"
+    }
+  },
+  {
+    "business_name": "Cristian Caraca Photography",
+    "name": "Cristian Caraca Photography",
+    "contact_number": "09260049334",
+    "description": "Toledo City, Cebu passionate photographer offering genuine, honest, and true-to-life photography for weddings, events, portraits, and pre-event shoots with artistic documentation.",
+    "facebook_page_url": "https://www.facebook.com/cristiancaracaph",
+    "website_url": "https://cristiancaracaphotography.my.canva.site/ccph",
+    "extra_link_url": null,
+    "metadata": {
+      "area": "Toledo City, Cebu",
+      "services": [
+        "event photography",
+        "portrait photography",
+        "pre-event shoots",
+        "wedding photography"
+      ],
+      "price_range": null,
+      "source_url": "https://cebuweddingsuppliers.com/listing/cristian-caraca-photography/",
+      "contact_via": "phone",
+      "added_by": "manual-research"
+    }
+  },
+  {
+    "business_name": "Den Formilleza Films",
+    "name": "Den Formilleza Films",
+    "contact_number": "09678366883",
+    "description": "Lapu-Lapu City cinematic storytelling studio with Filipino soul offering weddings, events, branded features, legacy films, bilingual scripting (English/Tagalog/Bisaya), magazine-style visuals, and collaborative storytelling.",
+    "facebook_page_url": "https://www.instagram.com/denformillezafilms/",
+    "website_url": "https://denformillezafilms.myportfolio.com/",
+    "extra_link_url": null,
+    "metadata": {
+      "area": "Lapu-Lapu City",
+      "services": [
+        "cinematic wedding films",
+        "event coverage",
+        "branded features",
+        "legacy films",
+        "bilingual scripting",
+        "magazine-style visuals",
+        "collaborative storytelling",
+        "drone coverage"
+      ],
+      "price_range": null,
+      "source_url": "https://cebuweddingsuppliers.com/listing/den-formilleza-films/",
+      "contact_via": "phone",
+      "added_by": "manual-research"
+    }
+  }
+]
