@@ -1,7 +1,7 @@
 import { getAI, getOrCreatePromptCache } from '@/lib/ai/client';
 import { createClient } from '@/lib/supabase/client';
 import { buildSearchAnalysisGenerationConfig, postProcessSearchAnalysisResult } from '@/lib/admin/searchAnalysisContract';
-import { getActivePromptDetails } from '@/services/prompts/promptLoader';
+import { getActivePromptDetails, getPromptDetailsByVersion } from '@/services/prompts/promptLoader';
 import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
 import { logRejectedUpload } from '@/lib/ai/rejectedUploads';
 import { getDynamicTypeEnums } from '@/lib/ai/utils';
@@ -32,6 +32,7 @@ type RunCakeAnalysisInput = {
     sourceContext?: string | null;
     sourceRoute?: string;
     persistRejectedUpload?: boolean;
+    promptVersion?: string;
 };
 
 type RunCakeAnalysisResult = {
@@ -107,12 +108,19 @@ export async function runActiveCakeAnalysis({
     sourceContext,
     sourceRoute = 'api/ai/analyze',
     persistRejectedUpload = true,
+    promptVersion,
 }: RunCakeAnalysisInput): Promise<RunCakeAnalysisResult> {
     const supabase = createClient();
     const [promptDetails, typeEnums] = await Promise.all([
-        getCachedPromptDetails(supabase),
+        promptVersion
+            ? getPromptDetailsByVersion(supabase as unknown as Parameters<typeof getPromptDetailsByVersion>[0], promptVersion)
+            : getCachedPromptDetails(supabase),
         getCachedTypeEnums(supabase),
     ]);
+
+    if (!promptDetails) {
+        throw new Error(`AI prompt version ${promptVersion} was not found.`);
+    }
 
     const aiClient = getAI(requestContext);
     const baseConfig = buildSearchAnalysisGenerationConfig(typeEnums);

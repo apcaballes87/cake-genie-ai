@@ -8,18 +8,20 @@ type PromptQueryResult = {
   error: unknown;
 };
 
+type PromptQuery = {
+  eq(column: string, value: boolean | string | number): {
+    limit(count: number): {
+      single(): PromiseLike<PromptQueryResult>;
+    };
+  };
+  order(column: string, opts?: { ascending: boolean }): {
+    limit(count: number): PromiseLike<{ data: unknown[] | null; error: unknown }>;
+  };
+};
+
 type SupabasePromptClient = {
   from(table: string): {
-    select(columns: string): {
-      eq(column: string, value: boolean): {
-        limit(count: number): {
-          single(): PromiseLike<PromptQueryResult>;
-        };
-      };
-      order(column: string, opts?: { ascending: boolean }): {
-        limit(count: number): PromiseLike<{ data: unknown[] | null; error: unknown }>;
-      };
-    };
+    select(columns: string): PromptQuery;
   };
 };
 
@@ -66,6 +68,31 @@ export async function getActivePromptDetails(supabase: SupabasePromptClient): Pr
     promptText: loadFallbackAnalysisPrompt(),
     version: 'fallback'
   };
+}
+
+export async function getPromptDetailsByVersion(
+  supabase: SupabasePromptClient,
+  version: string,
+): Promise<{ promptText: string; version: string } | null> {
+  try {
+    const { data, error } = await supabase
+      .from('ai_prompts')
+      .select('prompt_text, version')
+      .eq('version', version)
+      .limit(1)
+      .single();
+
+    if (!error && data?.prompt_text) {
+      return {
+        promptText: data.prompt_text,
+        version: String(data.version || version),
+      };
+    }
+  } catch (err) {
+    console.warn(`Failed to fetch AI prompt version ${version}:`, err);
+  }
+
+  return null;
 }
 
 type PromptVersionRow = {
