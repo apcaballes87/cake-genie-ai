@@ -1,12 +1,202 @@
 [
-  {"name":"Cebu City Projector Rental","description":"Cebu-based projector rental service offering affordable projection equipment for weddings and events.","business_name":"Cebu City Projector Rental","contact_number":"09053020589","website":"https://cebuweddingsuppliers.com/listing-category/sounds-lights/","metadata":{"area":"Cebu","services":["projector rental","screen rental","event projection"],"price_range":"₱₱","source_url":"https://cebuweddingsuppliers.com/listing-category/sounds-lights/"}},
-  {"name":"CJ Mobile Professional Lights and Audio","description":"Cebu-based event equipment rental specializing in LED walls, staging and trusses, audio systems, and wedding audio and lights.","business_name":"CJ Mobile Professional Lights and Audio","contact_number":"+639328886382","website":"https://cebuweddingsuppliers.com/listing-category/sounds-lights/","metadata":{"area":"Cebu","services":["LED wall rental","staging and trusses","audio systems","wedding lights and sounds"],"price_range":"₱₱₱","source_url":"https://cebuweddingsuppliers.com/listing-category/sounds-lights/"}},
-  {"name":"i Wil Lights and Sounds","description":"Cebu-based lights and sounds rental service for weddings and events in Mandaue City.","business_name":"i Wil Lights and Sounds","contact_number":"09288161907","website":"https://cebuweddingsuppliers.com/listing-category/sounds-lights/","metadata":{"area":"Mandaue City","services":["wedding lights and sounds","event audio","stage lighting"],"price_range":"₱₱₱","source_url":"https://cebuweddingsuppliers.com/listing-category/sounds-lights/"}},
-  {"name":"MAQI Lights and Sounds Equipment Rentals","description":"Cebu-based lights and sounds equipment rental service for weddings and special events.","business_name":"MAQI Lights and Sounds Equipment Rentals","contact_number":"0323443525","website":"https://cebuweddingsuppliers.com/listing-category/sounds-lights/","metadata":{"area":"Cebu","services":["lights rental","sounds rental","event equipment"],"price_range":"₱₱₱","source_url":"https://cebuweddingsuppliers.com/listing-category/sounds-lights/"}},
-  {"name":"Cebu Sounds and Lights","description":"Cebu-based professional audio, lighting, visual, staging, and video system rental and setup for corporate events, weddings, and special events.","business_name":"Cebu Sounds and Lights","contact_number":"09328885183","website":"https://cebusoundsandlights.com/","metadata":{"area":"Cebu","services":["sound system setup","lights setup","LED wall","smoke machine","moving heads","full band setup"],"price_range":"₱₱₱","source_url":"https://cebusoundsandlights.com/"}},
-  {"name":"Cebu NS Professional Lights and Sounds","description":"Cebu-based professional lights and sounds rental service available for bookings anywhere in Cebu.","business_name":"Cebu NS Professional Lights and Sounds","contact_number":"Contact via Facebook","website":"https://cebuweddingsuppliers.com/listing/cebu-ns-professional-lights-sounds/","metadata":{"area":"Cebu","services":["professional lights","professional sounds","event equipment rental"],"price_range":"₱₱₱","source_url":"https://cebuweddingsuppliers.com/listing/cebu-ns-professional-lights-sounds/"}},
-  {"name":"Cyryl Prod. Lights and Sound Rental","description":"Cebu-based lights and sound rental service for events and weddings in Nazareth, Cebu City.","business_name":"Cyryl Prod. Lights and Sound Rental","contact_number":"Contact via Facebook","website":"https://cebuweddingsuppliers.com/listing-category/sounds-lights/","metadata":{"area":"Cebu","services":["lights rental","sound rental","event equipment"],"price_range":"₱₱₱","source_url":"https://cebuweddingsuppliers.com/listing-category/sounds-lights/"}},
-  {"name":"Black Plug Productions","description":"Cebu-based professional audio rental company specializing in concerts, band competitions, acoustic sessions, and event sound systems.","business_name":"Black Plug Productions","contact_number":"09228123386","email":"hello@blackplugproductions.com","website":"https://www.blackplugproductions.com/","metadata":{"area":"Mabolo, Cebu","services":["professional audio rental","concert sound systems","band equipment","acoustic session setups"],"price_range":"₱₱₱₱","source_url":"https://www.blackplugproductions.com/"}},
-  {"name":"Taylor Audio","description":"Cebu-based audio and lights provider offering sound and lights rental for bands, events, and weddings.","business_name":"Taylor Audio","contact_number":"09176217456","website":"https://www.businesslist.ph/company/265003/taylor-audioaudio-and-lights-provider","metadata":{"area":"Cebu","services":["band equipment rental","lights rental","band rehearsal studio","wedding audio"],"price_range":"₱₱₱","source_url":"https://www.businesslist.ph/company/265003/taylor-audioaudio-and-lights-provider"}},
-  {"name":"Cybersound","description":"Over 10 years providing professional lights, sounds, LCD projectors, LED walls, LED TVs, stage trusses, and genset services for events.","business_name":"Cybersound","contact_number":"Contact via website","website":"https://cybersound.ph/","metadata":{"area":"Cebu","services":["professional lights","LCD projector rental","LED wall rental","LED TV rental","stage trusses","genset"],"price_range":"₱₱₱₱","source_url":"https://cybersound.ph/"}}
+  {
+    "name": "Cebu City Projector Rental",
+    "description": "Cebu-based projector rental service offering affordable projection equipment for weddings and events.",
+    "business_name": "Cebu City Projector Rental",
+    "contact_number": "09053020589",
+    "website": "https://cebuweddingsuppliers.com/listing-category/sounds-lights/",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "projector rental",
+        "screen rental",
+        "event projection"
+      ],
+      "price_range": "₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/listing-category/sounds-lights/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "CJ Mobile Professional Lights and Audio",
+    "description": "Cebu-based event equipment rental specializing in LED walls, staging and trusses, audio systems, and wedding audio and lights.",
+    "business_name": "CJ Mobile Professional Lights and Audio",
+    "contact_number": "+639328886382",
+    "website": "https://cebuweddingsuppliers.com/listing-category/sounds-lights/",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "LED wall rental",
+        "staging and trusses",
+        "audio systems",
+        "wedding lights and sounds"
+      ],
+      "price_range": "₱₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/listing-category/sounds-lights/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "i Wil Lights and Sounds",
+    "description": "Cebu-based lights and sounds rental service for weddings and events in Mandaue City.",
+    "business_name": "i Wil Lights and Sounds",
+    "contact_number": "09288161907",
+    "website": "https://cebuweddingsuppliers.com/listing-category/sounds-lights/",
+    "metadata": {
+      "area": "Mandaue City",
+      "services": [
+        "wedding lights and sounds",
+        "event audio",
+        "stage lighting"
+      ],
+      "price_range": "₱₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/listing-category/sounds-lights/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "MAQI Lights and Sounds Equipment Rentals",
+    "description": "Cebu-based lights and sounds equipment rental service for weddings and special events.",
+    "business_name": "MAQI Lights and Sounds Equipment Rentals",
+    "contact_number": "0323443525",
+    "website": "https://cebuweddingsuppliers.com/listing-category/sounds-lights/",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "lights rental",
+        "sounds rental",
+        "event equipment"
+      ],
+      "price_range": "₱₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/listing-category/sounds-lights/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Cebu Sounds and Lights",
+    "description": "Cebu-based professional audio, lighting, visual, staging, and video system rental and setup for corporate events, weddings, and special events.",
+    "business_name": "Cebu Sounds and Lights",
+    "contact_number": "09328885183",
+    "website": "https://cebusoundsandlights.com/",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "sound system setup",
+        "lights setup",
+        "LED wall",
+        "smoke machine",
+        "moving heads",
+        "full band setup"
+      ],
+      "price_range": "₱₱₱",
+      "source_url": "https://cebusoundsandlights.com/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Cebu NS Professional Lights and Sounds",
+    "description": "Cebu-based professional lights and sounds rental service available for bookings anywhere in Cebu.",
+    "business_name": "Cebu NS Professional Lights and Sounds",
+    "contact_number": "Contact via Facebook",
+    "website": "https://cebuweddingsuppliers.com/listing/cebu-ns-professional-lights-sounds/",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "professional lights",
+        "professional sounds",
+        "event equipment rental"
+      ],
+      "price_range": "₱₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/listing/cebu-ns-professional-lights-sounds/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Cyryl Prod. Lights and Sound Rental",
+    "description": "Cebu-based lights and sound rental service for events and weddings in Nazareth, Cebu City.",
+    "business_name": "Cyryl Prod. Lights and Sound Rental",
+    "contact_number": "Contact via Facebook",
+    "website": "https://cebuweddingsuppliers.com/listing-category/sounds-lights/",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "lights rental",
+        "sound rental",
+        "event equipment"
+      ],
+      "price_range": "₱₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/listing-category/sounds-lights/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Black Plug Productions",
+    "description": "Cebu-based professional audio rental company specializing in concerts, band competitions, acoustic sessions, and event sound systems.",
+    "business_name": "Black Plug Productions",
+    "contact_number": "09228123386",
+    "email": "hello@blackplugproductions.com",
+    "website": "https://www.blackplugproductions.com/",
+    "metadata": {
+      "area": "Mabolo, Cebu",
+      "services": [
+        "professional audio rental",
+        "concert sound systems",
+        "band equipment",
+        "acoustic session setups"
+      ],
+      "price_range": "₱₱₱₱",
+      "source_url": "https://www.blackplugproductions.com/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Taylor Audio",
+    "description": "Cebu-based audio and lights provider offering sound and lights rental for bands, events, and weddings.",
+    "business_name": "Taylor Audio",
+    "contact_number": "09176217456",
+    "website": "https://www.businesslist.ph/company/265003/taylor-audioaudio-and-lights-provider",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "band equipment rental",
+        "lights rental",
+        "band rehearsal studio",
+        "wedding audio"
+      ],
+      "price_range": "₱₱₱",
+      "source_url": "https://www.businesslist.ph/company/265003/taylor-audioaudio-and-lights-provider"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Cybersound",
+    "description": "Over 10 years providing professional lights, sounds, LCD projectors, LED walls, LED TVs, stage trusses, and genset services for events.",
+    "business_name": "Cybersound",
+    "contact_number": "Contact via website",
+    "website": "https://cybersound.ph/",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "professional lights",
+        "LCD projector rental",
+        "LED wall rental",
+        "LED TV rental",
+        "stage trusses",
+        "genset"
+      ],
+      "price_range": "₱₱₱₱",
+      "source_url": "https://cybersound.ph/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  }
 ]

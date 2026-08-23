@@ -35,6 +35,8 @@ export interface Supplier {
   websiteUrl: string | null;
   extraLinkUrl: string | null;
   imageUrl: string;
+  profilePhotoUrl: string | null;
+  coverPhotoUrl: string | null;
   listedAt: string;
 }
 
@@ -261,12 +263,24 @@ export default function SuppliersDirectoryClient({ suppliers }: { suppliers: Sup
                 {/* Header Image */}
                 <div className="relative aspect-video w-full bg-slate-100 overflow-hidden">
                   <img
-                    src={supplier.imageUrl}
+                    src={supplier.coverPhotoUrl || supplier.imageUrl}
                     alt={supplier.name}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     loading="lazy"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
+                  
+                  {/* Profile Photo Avatar (bottom-left) */}
+                  {supplier.profilePhotoUrl && (
+                    <div className="absolute bottom-3 left-3 w-12 h-12 rounded-full border-2 border-white shadow-md overflow-hidden bg-white">
+                      <img
+                        src={supplier.profilePhotoUrl}
+                        alt={`${supplier.name} profile`}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    </div>
+                  )}
                   
                   {/* Category Pill Tag */}
                   <span className="absolute top-3 left-3 bg-white/95 backdrop-blur-xs text-purple-700 text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-sm">
@@ -398,11 +412,22 @@ export default function SuppliersDirectoryClient({ suppliers }: { suppliers: Sup
             {/* Modal Image Header */}
             <div className="relative aspect-video w-full bg-slate-100 shrink-0">
               <img
-                src={activeSupplier.imageUrl}
+                src={activeSupplier.coverPhotoUrl || activeSupplier.imageUrl}
                 alt={activeSupplier.name}
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+              
+              {/* Profile Photo Avatar (bottom-left) */}
+              {activeSupplier.profilePhotoUrl && (
+                <div className="absolute bottom-14 left-5 w-16 h-16 rounded-full border-3 border-white shadow-lg overflow-hidden bg-white">
+                  <img
+                    src={activeSupplier.profilePhotoUrl}
+                    alt={`${activeSupplier.name} profile`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
               
               {/* Close Button */}
               <button

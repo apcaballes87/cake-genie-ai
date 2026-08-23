@@ -1,10 +1,166 @@
 [
-  {"name":"Steekers Printing Services","description":"Cebu-based printing service offering die-cut invitations, sliding invitations, flat card invitations, and personalized souvenirs for weddings and events.","business_name":"Steekers Printing Services","contact_number":"Contact via Facebook","website":"https://cebuweddingsuppliers.com/listing-category/invitations-stationery/","metadata":{"area":"Consolacion","services":["die-cut invitations","sliding invitations","flat cards","souvenirs"],"price_range":"₱₱","source_url":"https://cebuweddingsuppliers.com/listing-category/invitations-stationery/"}},
-  {"name":"Printfection by Mai","description":"Cebu-based one-stop shop for creativity and memories — personalized souvenirs, fun bead stations, unique giveaways, and custom t-shirt printing.","business_name":"Printfection by Mai","contact_number":"Contact via Facebook","website":"https://cebuweddingsuppliers.com/listing/printfection-by-mai/","metadata":{"area":"Cebu","services":["personalized souvenirs","bead stations","custom t-shirt printing","giveaways"],"price_range":"₱₱","source_url":"https://cebuweddingsuppliers.com/listing/printfection-by-mai/"}},
-  {"name":"Panalangin Crafts","description":"Handmade and personalized souvenirs, wood-engraved pieces, invitations, and onsite services including perfume bar and leather stamping.","business_name":"Panalangin Crafts","contact_number":"09693161854","website":"https://www.facebook.com/panalangincrafts","metadata":{"area":"Cebu","services":["handmade souvenirs","invitations","perfume bar","leather stamping","pick-and-press printing"],"price_range":"₱₱₱","source_url":"https://cebuweddingsuppliers.com/top-10-cebu-wedding-booths-guest-experience-services-for-2025/"}},
-  {"name":"IMB Prints Cebu","description":"Cebu-based personalized giveaways and keepsakes provider specializing in custom wrapper cookies, personalized drink bottles, stickers, and labels.","business_name":"IMB Prints Cebu","contact_number":"Contact via Facebook","website":"https://cebuweddingsuppliers.com/listing/imb-prints/","metadata":{"area":"Cebu","services":["personalized giveaways","custom wrapper cookies","drink bottles","stickers and labels"],"price_range":"₱₱₱","source_url":"https://cebuweddingsuppliers.com/listing/imb-prints/"}},
-  {"name":"Maimadelle Paper Designs","description":"Cebu-based paper designs and invitations studio offering custom wedding invitations, save-the-dates, menu cards, and stationery.","business_name":"Maimadelle Paper Designs","contact_number":"Contact via Facebook","website":"https://cebuweddingsuppliers.com/listing-category/invitations-stationery/","metadata":{"area":"Mandaue City","services":["custom wedding invitations","save-the-dates","menu cards","signage","table numbers"],"price_range":"₱₱₱₱","source_url":"https://cebuweddingsuppliers.com/listing-category/invitations-stationery/"}},
-  {"name":"PaperTech","description":"DTI and BIR-registered printing solutions offering die-cut invitations, sliding invitations, flat cards, and personalized souvenirs.","business_name":"PaperTech","contact_number":"09488807486","website":"https://www.interiola.com/PH/Malinao/108176664295541/PaperTech","metadata":{"area":"Malinao","services":["die-cut invitations","sliding invitations","souvenirs","sticker labels","thank you tags"],"price_range":"₱₱","source_url":"https://www.interiola.com/PH/Malinao/108176664295541/PaperTech"}},
-  {"name":"Haraguro Digital","description":"Cebu-based digital marketing agency offering event printables including invitations, banners, programs, tickets, and certificates.","business_name":"Haraguro Digital","contact_number":"Contact via website","website":"https://haragurodigital.com/event-printables/","metadata":{"area":"Cebu","services":["wedding invitations","birthday invitations","corporate invitations","certificates","banners"],"price_range":"₱₱₱","source_url":"https://haragurodigital.com/event-printables/"}},
-  {"name":"Playful Creations","description":"Affordable customizable souvenirs and fun onsite services including sublimation, wood engraving, and DIY press printing.","business_name":"Playful Creations","contact_number":"Contact via Facebook","website":"https://www.facebook.com/playfulcreationscebu","metadata":{"area":"Cebu","services":["sublimation printing","wood engraving","perfume bar","DIY press printing"],"price_range":"₱₱₱","source_url":"https://cebuweddingsuppliers.com/top-10-cebu-wedding-booths-guest-experience-services-for-2025/"}}
+  {
+    "name": "Steekers Printing Services",
+    "description": "Cebu-based printing service offering die-cut invitations, sliding invitations, flat card invitations, and personalized souvenirs for weddings and events.",
+    "business_name": "Steekers Printing Services",
+    "contact_number": "Contact via Facebook",
+    "website": "https://cebuweddingsuppliers.com/listing-category/invitations-stationery/",
+    "metadata": {
+      "area": "Consolacion",
+      "services": [
+        "die-cut invitations",
+        "sliding invitations",
+        "flat cards",
+        "souvenirs"
+      ],
+      "price_range": "₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/listing-category/invitations-stationery/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Printfection by Mai",
+    "description": "Cebu-based one-stop shop for creativity and memories — personalized souvenirs, fun bead stations, unique giveaways, and custom t-shirt printing.",
+    "business_name": "Printfection by Mai",
+    "contact_number": "Contact via Facebook",
+    "website": "https://cebuweddingsuppliers.com/listing/printfection-by-mai/",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "personalized souvenirs",
+        "bead stations",
+        "custom t-shirt printing",
+        "giveaways"
+      ],
+      "price_range": "₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/listing/printfection-by-mai/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Panalangin Crafts",
+    "description": "Handmade and personalized souvenirs, wood-engraved pieces, invitations, and onsite services including perfume bar and leather stamping.",
+    "business_name": "Panalangin Crafts",
+    "contact_number": "09693161854",
+    "website": "https://www.facebook.com/panalangincrafts",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "handmade souvenirs",
+        "invitations",
+        "perfume bar",
+        "leather stamping",
+        "pick-and-press printing"
+      ],
+      "price_range": "₱₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/top-10-cebu-wedding-booths-guest-experience-services-for-2025/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "IMB Prints Cebu",
+    "description": "Cebu-based personalized giveaways and keepsakes provider specializing in custom wrapper cookies, personalized drink bottles, stickers, and labels.",
+    "business_name": "IMB Prints Cebu",
+    "contact_number": "Contact via Facebook",
+    "website": "https://cebuweddingsuppliers.com/listing/imb-prints/",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "personalized giveaways",
+        "custom wrapper cookies",
+        "drink bottles",
+        "stickers and labels"
+      ],
+      "price_range": "₱₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/listing/imb-prints/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Maimadelle Paper Designs",
+    "description": "Cebu-based paper designs and invitations studio offering custom wedding invitations, save-the-dates, menu cards, and stationery.",
+    "business_name": "Maimadelle Paper Designs",
+    "contact_number": "Contact via Facebook",
+    "website": "https://cebuweddingsuppliers.com/listing-category/invitations-stationery/",
+    "metadata": {
+      "area": "Mandaue City",
+      "services": [
+        "custom wedding invitations",
+        "save-the-dates",
+        "menu cards",
+        "signage",
+        "table numbers"
+      ],
+      "price_range": "₱₱₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/listing-category/invitations-stationery/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "PaperTech",
+    "description": "DTI and BIR-registered printing solutions offering die-cut invitations, sliding invitations, flat cards, and personalized souvenirs.",
+    "business_name": "PaperTech",
+    "contact_number": "09488807486",
+    "website": "https://www.interiola.com/PH/Malinao/108176664295541/PaperTech",
+    "metadata": {
+      "area": "Malinao",
+      "services": [
+        "die-cut invitations",
+        "sliding invitations",
+        "souvenirs",
+        "sticker labels",
+        "thank you tags"
+      ],
+      "price_range": "₱₱",
+      "source_url": "https://www.interiola.com/PH/Malinao/108176664295541/PaperTech"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Haraguro Digital",
+    "description": "Cebu-based digital marketing agency offering event printables including invitations, banners, programs, tickets, and certificates.",
+    "business_name": "Haraguro Digital",
+    "contact_number": "Contact via website",
+    "website": "https://haragurodigital.com/event-printables/",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "wedding invitations",
+        "birthday invitations",
+        "corporate invitations",
+        "certificates",
+        "banners"
+      ],
+      "price_range": "₱₱₱",
+      "source_url": "https://haragurodigital.com/event-printables/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Playful Creations",
+    "description": "Affordable customizable souvenirs and fun onsite services including sublimation, wood engraving, and DIY press printing.",
+    "business_name": "Playful Creations",
+    "contact_number": "Contact via Facebook",
+    "website": "https://www.facebook.com/playfulcreationscebu",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "sublimation printing",
+        "wood engraving",
+        "perfume bar",
+        "DIY press printing"
+      ],
+      "price_range": "₱₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/top-10-cebu-wedding-booths-guest-experience-services-for-2025/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  }
 ]

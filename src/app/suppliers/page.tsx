@@ -25,6 +25,8 @@ type SupplierSignupRow = {
   website_url: string | null;
   extra_link_url: string | null;
   image_url: string | null;
+  profile_photo_url: string | null;
+  cover_photo_url: string | null;
 }
 
 const SUPPLIER_TYPE_LABELS: Record<string, string> = {
@@ -68,6 +70,8 @@ function mapSignupToSupplier(row: SupplierSignupRow): Supplier {
     websiteUrl: row.website_url,
     extraLinkUrl: row.extra_link_url,
     imageUrl: row.image_url || 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/genie-logo-header-360.webp',
+    profilePhotoUrl: row.profile_photo_url,
+    coverPhotoUrl: row.cover_photo_url,
     listedAt: row.created_at,
   };
 }
@@ -91,7 +95,7 @@ async function getSignupSuppliers(): Promise<Supplier[]> {
 
   const { data, error } = await supabase
     .from('cakegenie_supplier_signups')
-    .select('id, created_at, name, contact_number, business_name, description, business_type, facebook_page_url, website_url, extra_link_url, image_url')
+    .select('id, created_at, name, contact_number, business_name, description, business_type, facebook_page_url, website_url, extra_link_url, image_url, profile_photo_url, cover_photo_url')
     .in('status', ['new', 'reviewing', 'approved'])
     .order('created_at', { ascending: false });
 
@@ -174,7 +178,7 @@ function SuppliersSchema({ suppliers }: { suppliers: Supplier[] }) {
           item: {
             '@type': 'LocalBusiness',
             name: supplier.name,
-            image: supplier.imageUrl,
+            image: supplier.coverPhotoUrl || supplier.imageUrl,
             description: supplier.description,
             category: supplier.categoryLabel,
             telephone: supplier.contactNumber,

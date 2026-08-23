@@ -86,6 +86,8 @@ async function main() {
     facebook_page_url: s.facebook_page_url ?? null,
     website_url: s.website_url ?? null,
     extra_link_url: s.extra_link_url ?? null,
+    profile_photo_url: s.profile_photo_url ?? null,
+    cover_photo_url: s.cover_photo_url ?? null,
     status: 'approved',
     reviewed_at: new Date().toISOString(),
     source: 'admin-seed',

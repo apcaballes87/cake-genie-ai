@@ -1,12 +1,198 @@
 [
-  {"name":"Makeup by Nicko Dela Peña","description":"Cebu-based bridal makeup artist known for soft glam, Thai-style precision, Korean radiance, and natural beauty that enhances rather than overpowers.","business_name":"Makeup by Nicko Dela Peña","contact_number":"09175199601","email":"Nikkodelapena68@gmail.com","website":"https://www.facebook.com/nikko0218","metadata":{"area":"Cebu","services":["bridal makeup","soft glam","Thai-style","Korean radiance"],"price_range":"₱₱₱₱","source_url":"https://cebuweddingsuppliers.com/top-10-cebu-wedding-hair-and-makeup-artists-2025/"}},
-  {"name":"Kristel Baflor Makeup","description":"Cebu-based bridal makeup artist known for soft glam, romantic eyes, and creating looks that feel romantic yet timeless.","business_name":"Kristel Baflor Makeup","contact_number":"09165977592","website":"https://www.facebook.com/kbaflor","metadata":{"area":"Cebu","services":["bridal makeup","soft glam","romantic eyes"],"price_range":"₱₱₱","source_url":"https://cebuweddingsuppliers.com/top-10-cebu-wedding-hair-and-makeup-artists-2025/"}},
-  {"name":"Secanara Hands Hair and Makeup Service","description":"20 years of experience in hair and makeup, known for natural and minimalist, yet classic and timeless style.","business_name":"Secanara Hands Hair and Makeup Service","contact_number":"09399182826","email":"jomerarances2014@gmail.com","website":"https://www.facebook.com/jomer.arances","metadata":{"area":"Cebu","services":["bridal hair and makeup","natural minimalist style","airbrush makeup"],"price_range":"₱₱₱₱","source_url":"https://cebuweddingsuppliers.com/top-10-cebu-wedding-hair-and-makeup-artists-2025/"}},
-  {"name":"Raisa Bercede","description":"Cebu-based bridal makeup artist with clean and fresh style, strong YouTube and social media presence, and consistent soft flattering looks.","business_name":"Raisa Bercede","contact_number":"Contact via Facebook","website":"https://www.facebook.com/raisabercede","metadata":{"area":"Cebu","services":["bridal makeup","clean and fresh style","editorial","workshops"],"price_range":"₱₱₱₱","source_url":"https://cebuweddingsuppliers.com/top-10-cebu-wedding-hair-and-makeup-artists-2025/"}},
-  {"name":"Janice TheBeautyfairy","description":"Cebu-based HMUA known for soft, romantic, and flattering makeup for weddings and editorials.","business_name":"Janice TheBeautyfairy","contact_number":"09953951511","website":"https://www.facebook.com/janice.matabarillo","metadata":{"area":"Cebu","services":["bridal makeup","soft romantic style","editorial makeup"],"price_range":"₱₱₱₱","source_url":"https://cebuweddingsuppliers.com/top-10-cebu-wedding-hair-and-makeup-artists-2025/"}},
-  {"name":"Shyra Qyumbi","description":"Cebu-based makeup artist and hairstylist known for fresh, glowy looks that enhance natural beauty.","business_name":"Shyra Qyumbi","contact_number":"Contact via Facebook","website":"https://www.facebook.com/Qyumbi.Shyra","metadata":{"area":"Cebu","services":["bridal makeup","bridal hair","fresh glowy looks"],"price_range":"₱₱₱","source_url":"https://cebuweddingsuppliers.com/top-10-cebu-wedding-hair-and-makeup-artists-2025/"}},
-  {"name":"Margarette Bud","description":"12 years of experience in hair and makeup, known for classic and fresh approach with passion and compassion.","business_name":"Margarette Bud","contact_number":"09335329431","email":"veejay7650@yahoo.com","website":"https://www.facebook.com/margarette.bud.5","metadata":{"area":"Cebu","services":["bridal hair and makeup","classic fresh style"],"price_range":"₱₱₱₱","source_url":"https://cebuweddingsuppliers.com/top-10-cebu-wedding-hair-and-makeup-artists-2025/"}},
-  {"name":"Scarlet Tumalon","description":"More than 15 years of experience as makeup artist, known for enhancing natural beauty and one-bride-per-day policy.","business_name":"Scarlet Tumalon","contact_number":"Contact via Facebook","website":"https://www.facebook.com/scarlet.tumalon","metadata":{"area":"Cebu","services":["bridal makeup","pageant makeup","ad campaigns","one-bride-per-day"],"price_range":"₱₱₱₱","source_url":"https://cebuweddingsuppliers.com/top-10-cebu-wedding-hair-and-makeup-artists-2025/"}},
-  {"name":"Kian Valencia","description":"One of Cebu's most visible makeup artists, known for high-impact editorial-style glam with flawless skin and sculpted features.","business_name":"Kian Valencia","contact_number":"Contact via Facebook","website":"https://www.facebook.com/kianahv","metadata":{"area":"Cebu","services":["bridal makeup","editorial glam","flawless skin","sculpted features"],"price_range":"₱₱₱₱","source_url":"https://cebuweddingsuppliers.com/top-10-cebu-wedding-hair-and-makeup-artists-2025/"}},
-  {"name":"Erwin Monteza","description":"Long-time trusted name in Cebu weddings, known for natural but camera-ready makeup with soft contouring and clean finishes.","business_name":"Erwin Monteza","contact_number":"09763678160","website":"https://www.facebook.com/erwins03","metadata":{"area":"Cebu","services":["bridal makeup","natural camera-ready style","soft contouring"],"price_range":"₱₱₱₱","source_url":"https://cebuweddingsuppliers.com/top-10-cebu-wedding-hair-and-makeup-artists-2025/"}}
+  {
+    "name": "Makeup by Nicko Dela Peña",
+    "description": "Cebu-based bridal makeup artist known for soft glam, Thai-style precision, Korean radiance, and natural beauty that enhances rather than overpowers.",
+    "business_name": "Makeup by Nicko Dela Peña",
+    "contact_number": "09175199601",
+    "email": "Nikkodelapena68@gmail.com",
+    "website": "https://www.facebook.com/nikko0218",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "bridal makeup",
+        "soft glam",
+        "Thai-style",
+        "Korean radiance"
+      ],
+      "price_range": "₱₱₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/top-10-cebu-wedding-hair-and-makeup-artists-2025/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Kristel Baflor Makeup",
+    "description": "Cebu-based bridal makeup artist known for soft glam, romantic eyes, and creating looks that feel romantic yet timeless.",
+    "business_name": "Kristel Baflor Makeup",
+    "contact_number": "09165977592",
+    "website": "https://www.facebook.com/kbaflor",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "bridal makeup",
+        "soft glam",
+        "romantic eyes"
+      ],
+      "price_range": "₱₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/top-10-cebu-wedding-hair-and-makeup-artists-2025/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Secanara Hands Hair and Makeup Service",
+    "description": "20 years of experience in hair and makeup, known for natural and minimalist, yet classic and timeless style.",
+    "business_name": "Secanara Hands Hair and Makeup Service",
+    "contact_number": "09399182826",
+    "email": "jomerarances2014@gmail.com",
+    "website": "https://www.facebook.com/jomer.arances",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "bridal hair and makeup",
+        "natural minimalist style",
+        "airbrush makeup"
+      ],
+      "price_range": "₱₱₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/top-10-cebu-wedding-hair-and-makeup-artists-2025/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Raisa Bercede",
+    "description": "Cebu-based bridal makeup artist with clean and fresh style, strong YouTube and social media presence, and consistent soft flattering looks.",
+    "business_name": "Raisa Bercede",
+    "contact_number": "Contact via Facebook",
+    "website": "https://www.facebook.com/raisabercede",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "bridal makeup",
+        "clean and fresh style",
+        "editorial",
+        "workshops"
+      ],
+      "price_range": "₱₱₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/top-10-cebu-wedding-hair-and-makeup-artists-2025/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Janice TheBeautyfairy",
+    "description": "Cebu-based HMUA known for soft, romantic, and flattering makeup for weddings and editorials.",
+    "business_name": "Janice TheBeautyfairy",
+    "contact_number": "09953951511",
+    "website": "https://www.facebook.com/janice.matabarillo",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "bridal makeup",
+        "soft romantic style",
+        "editorial makeup"
+      ],
+      "price_range": "₱₱₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/top-10-cebu-wedding-hair-and-makeup-artists-2025/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Shyra Qyumbi",
+    "description": "Cebu-based makeup artist and hairstylist known for fresh, glowy looks that enhance natural beauty.",
+    "business_name": "Shyra Qyumbi",
+    "contact_number": "Contact via Facebook",
+    "website": "https://www.facebook.com/Qyumbi.Shyra",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "bridal makeup",
+        "bridal hair",
+        "fresh glowy looks"
+      ],
+      "price_range": "₱₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/top-10-cebu-wedding-hair-and-makeup-artists-2025/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Margarette Bud",
+    "description": "12 years of experience in hair and makeup, known for classic and fresh approach with passion and compassion.",
+    "business_name": "Margarette Bud",
+    "contact_number": "09335329431",
+    "email": "veejay7650@yahoo.com",
+    "website": "https://www.facebook.com/margarette.bud.5",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "bridal hair and makeup",
+        "classic fresh style"
+      ],
+      "price_range": "₱₱₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/top-10-cebu-wedding-hair-and-makeup-artists-2025/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Scarlet Tumalon",
+    "description": "More than 15 years of experience as makeup artist, known for enhancing natural beauty and one-bride-per-day policy.",
+    "business_name": "Scarlet Tumalon",
+    "contact_number": "Contact via Facebook",
+    "website": "https://www.facebook.com/scarlet.tumalon",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "bridal makeup",
+        "pageant makeup",
+        "ad campaigns",
+        "one-bride-per-day"
+      ],
+      "price_range": "₱₱₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/top-10-cebu-wedding-hair-and-makeup-artists-2025/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Kian Valencia",
+    "description": "One of Cebu's most visible makeup artists, known for high-impact editorial-style glam with flawless skin and sculpted features.",
+    "business_name": "Kian Valencia",
+    "contact_number": "Contact via Facebook",
+    "website": "https://www.facebook.com/kianahv",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "bridal makeup",
+        "editorial glam",
+        "flawless skin",
+        "sculpted features"
+      ],
+      "price_range": "₱₱₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/top-10-cebu-wedding-hair-and-makeup-artists-2025/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Erwin Monteza",
+    "description": "Long-time trusted name in Cebu weddings, known for natural but camera-ready makeup with soft contouring and clean finishes.",
+    "business_name": "Erwin Monteza",
+    "contact_number": "09763678160",
+    "website": "https://www.facebook.com/erwins03",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "bridal makeup",
+        "natural camera-ready style",
+        "soft contouring"
+      ],
+      "price_range": "₱₱₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/top-10-cebu-wedding-hair-and-makeup-artists-2025/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  }
 ]

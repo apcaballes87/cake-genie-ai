@@ -26,8 +26,12 @@
       "source_url": "https://www.cebuballoons.com/",
       "contact_via": "phone",
       "added_by": "manual-research",
-      "alternate_contacts": ["09052609018 (Mark)"]
-    }
+      "alternate_contacts": [
+        "09052609018 (Mark)"
+      ]
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
   },
   {
     "business_name": "Eleven36 Balloons Cebu Party and Events",
@@ -52,8 +56,12 @@
       "source_url": "https://www.eleven36balloons.com/",
       "contact_via": "phone",
       "added_by": "manual-research",
-      "alternate_contacts": ["09174849009"]
-    }
+      "alternate_contacts": [
+        "09174849009"
+      ]
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
   },
   {
     "business_name": "Balloon Decor Cebu",
@@ -79,7 +87,9 @@
       "source_url": "https://balloondecorcebu.blogspot.com/",
       "contact_via": "facebook",
       "added_by": "manual-research"
-    }
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
   },
   {
     "business_name": "Pauleen's Balloon & Decor Studio",
@@ -100,7 +110,9 @@
       "source_url": "https://www.facebook.com/profile.php?id=61559236082090",
       "contact_via": "facebook",
       "added_by": "manual-research"
-    }
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
   },
   {
     "business_name": "Hannah's Cake Decors & Party Needs",
@@ -122,7 +134,9 @@
       "source_url": "https://www.facebook.com/hannahspartyneeds/",
       "contact_via": "facebook",
       "added_by": "manual-research"
-    }
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
   },
   {
     "business_name": "DF Balloons and Party Essentials Cebu",
@@ -146,7 +160,9 @@
       "source_url": "https://www.facebook.com/dyfrballoonsandpartyneeds/",
       "contact_via": "facebook",
       "added_by": "manual-research"
-    }
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
   },
   {
     "business_name": "Kate's Balloons and Party Needs Supplier",
@@ -167,7 +183,9 @@
       "source_url": "https://www.facebook.com/KatePartySupply/",
       "contact_via": "facebook",
       "added_by": "manual-research"
-    }
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
   },
   {
     "business_name": "PinkLemonade Balloons and Party Favors Cebu",
@@ -189,7 +207,9 @@
       "source_url": "https://pinklemonadeballoons.wixsite.com/pinklemonadeballoons",
       "contact_via": "facebook",
       "added_by": "manual-research"
-    }
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
   },
   {
     "business_name": "Pop Luxury Balloons",
@@ -211,6 +231,8 @@
       "source_url": "https://www.popluxuryballoons.com/",
       "contact_via": "facebook",
       "added_by": "manual-research"
-    }
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
   }
 ]

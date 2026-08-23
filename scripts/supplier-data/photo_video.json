@@ -23,7 +23,9 @@
       "source_url": "https://www.facebook.com/xmarksthespotmedia/",
       "contact_via": "phone",
       "added_by": "manual-research"
-    }
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
   },
   {
     "business_name": "Event Photographers Cebu (EPiC)",
@@ -45,7 +47,9 @@
       "source_url": "https://www.facebook.com/EPiCphotographers/",
       "contact_via": "facebook",
       "added_by": "manual-research"
-    }
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
   },
   {
     "business_name": "Jones Silva Creatives",
@@ -70,7 +74,9 @@
       "source_url": "https://www.jonessilvacreatives.com/",
       "contact_via": "phone",
       "added_by": "manual-research"
-    }
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
   },
   {
     "business_name": "Portraits by Bukool",
@@ -97,8 +103,13 @@
       "source_url": "https://bukool.com/",
       "contact_via": "phone",
       "added_by": "manual-research",
-      "alternate_contacts": ["09194028508", "09472891990"]
-    }
+      "alternate_contacts": [
+        "09194028508",
+        "09472891990"
+      ]
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
   },
   {
     "business_name": "SMILE Video and Photography",
@@ -123,7 +134,9 @@
       "source_url": "https://smilevideoandphotography.com/",
       "contact_via": "phone",
       "added_by": "manual-research"
-    }
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
   },
   {
     "business_name": "Tagqir",
@@ -148,7 +161,9 @@
       "source_url": "https://tagqir.com/",
       "contact_via": "website",
       "added_by": "manual-research"
-    }
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
   },
   {
     "business_name": "Badlit Studio",
@@ -175,7 +190,9 @@
       "source_url": "https://cebuweddingsuppliers.com/listing/badlit-studio/",
       "contact_via": "phone",
       "added_by": "manual-research"
-    }
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
   },
   {
     "business_name": "Bahandi Studios",
@@ -202,7 +219,9 @@
       "source_url": "https://cebuweddingsuppliers.com/listing/bahandi-studios/",
       "contact_via": "phone",
       "added_by": "manual-research"
-    }
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
   },
   {
     "business_name": "Cristian Caraca Photography",
@@ -224,7 +243,9 @@
       "source_url": "https://cebuweddingsuppliers.com/listing/cristian-caraca-photography/",
       "contact_via": "phone",
       "added_by": "manual-research"
-    }
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
   },
   {
     "business_name": "Den Formilleza Films",
@@ -250,6 +271,8 @@
       "source_url": "https://cebuweddingsuppliers.com/listing/den-formilleza-films/",
       "contact_via": "phone",
       "added_by": "manual-research"
-    }
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
   }
 ]

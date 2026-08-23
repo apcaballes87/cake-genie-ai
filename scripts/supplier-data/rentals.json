@@ -1,10 +1,166 @@
 [
-  {"name":"Prima Rentals Party Needs & Events","description":"Party needs and event equipment rental in Guadalupe, Cebu City offering tables, chairs, tents, and backdrop services.","business_name":"Prima Rentals Party Needs & Events","contact_number":"09672048016","website":"https://www.facebook.com/PrimaRentals","metadata":{"area":"Guadalupe, Cebu City","services":["tables","chairs","tents","backdrop","party needs"],"price_range":"₱₱₱₱","source_url":"https://cebuweddingsuppliers.com/listing-category/furniture-rentals/"}},
-  {"name":"T&C Rental and Event Services","description":"Event rental services on Don Gil Garcia Street, Cebu City providing tables, chairs, and event equipment.","business_name":"T&C Rental and Event Services","contact_number":"Contact via Facebook","website":"https://www.facebook.com/TandCRental","metadata":{"area":"Don Gil Garcia Street, Cebu City","services":["tables","chairs","event equipment","tents"],"price_range":"₱₱₱₱","source_url":"https://cebuweddingsuppliers.com/listing-category/furniture-rentals/"}},
-  {"name":"Ct & T Party Equipment Rentals","description":"Party equipment rental in Mandaue City offering tents, chairs, tables, and complete party setups.","business_name":"Ct & T Party Equipment Rentals","contact_number":"(032) 516-9429","website":"https://www.facebook.com/CtandTPartyEquipmentRentals","metadata":{"area":"Casuntingan, Mandaue City 6000","services":["tents","chairs","tables","party equipment"],"price_range":"₱₱₱","source_url":"https://yellow-pages.ph/company/ct-t-party-equipment-rentals-CEB960000001"}},
-  {"name":"All Time Cebu","description":"Party supplies and event equipment rental in Talisay City, Cebu with red carpet and event setup services.","business_name":"All Time Cebu","contact_number":"(032) 238-9976","website":"https://www.facebook.com/alltimecebu","metadata":{"area":"Zone 5, 1165 Brgy. Lagtang, Talisay City, Cebu 6045","services":["party supplies","red carpet","event equipment"],"price_range":"₱₱₱","source_url":"https://alltimecebu.com"}},
-  {"name":"Minglanilla Party Rentals","description":"Affordable tables and chairs rental serving Minglanilla and Cebu City with catering equipment sets.","business_name":"Minglanilla Party Rentals","contact_number":"09953492394","website":"https://www.instagram.com/reel/DC9LfPAy1s_/","metadata":{"area":"Minglanilla and Cebu City","services":["tables","chairs","catering equipment","party set-up"],"price_range":"₱₱₱","source_url":"https://www.instagram.com/reel/DC9LfPAy1s_/"}},
-  {"name":"PartyFactory Cebu","description":"Full-service party provider offering balloon decorations, tables, chairs, inflatable rentals, and customizable party packages.","business_name":"PartyFactory Cebu","contact_number":"09055232006","website":"https://www.facebook.com/partyfactory.cebucity","metadata":{"area":"Cebu City","services":["balloon decorations","tables","chairs","party packages","inflatable rentals"],"price_range":"₱₱₱","source_url":"http://partyfactorycebu.blogspot.com"}},
-  {"name":"JCE Event Rentals","description":"Established in 1995, JCE specializes in inflatables, game booths, food kiosks, venue design, and complete event equipment rental.","business_name":"JCE Event Rentals","contact_number":"Contact via email","email":"inquire@jceeventrentals.com","website":"https://www.facebook.com/JCEEventRentals","metadata":{"area":"Cebu","services":["inflatables","game booths","food kiosks","venue design","event equipment"],"price_range":"₱₱₱₱","source_url":"https://linkedin.com/company/jceeventrentals"}},
-  {"name":"Cebu Party Needs and Events","description":"Complete party needs supplier offering tables, chairs, tents, backdrop, and event supplies in Cebu City.","business_name":"Cebu Party Needs and Events","contact_number":"Contact via Facebook","website":"https://www.facebook.com/CebuPartyNeedsAndEvents","metadata":{"area":"Cebu City","services":["tables","chairs","tents","backdrop","party supplies"],"price_range":"₱₱₱","source_url":"https://www.facebook.com/CebuPartyNeedsAndEvents"}}
+  {
+    "name": "Prima Rentals Party Needs & Events",
+    "description": "Party needs and event equipment rental in Guadalupe, Cebu City offering tables, chairs, tents, and backdrop services.",
+    "business_name": "Prima Rentals Party Needs & Events",
+    "contact_number": "09672048016",
+    "website": "https://www.facebook.com/PrimaRentals",
+    "metadata": {
+      "area": "Guadalupe, Cebu City",
+      "services": [
+        "tables",
+        "chairs",
+        "tents",
+        "backdrop",
+        "party needs"
+      ],
+      "price_range": "₱₱₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/listing-category/furniture-rentals/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "T&C Rental and Event Services",
+    "description": "Event rental services on Don Gil Garcia Street, Cebu City providing tables, chairs, and event equipment.",
+    "business_name": "T&C Rental and Event Services",
+    "contact_number": "Contact via Facebook",
+    "website": "https://www.facebook.com/TandCRental",
+    "metadata": {
+      "area": "Don Gil Garcia Street, Cebu City",
+      "services": [
+        "tables",
+        "chairs",
+        "event equipment",
+        "tents"
+      ],
+      "price_range": "₱₱₱₱",
+      "source_url": "https://cebuweddingsuppliers.com/listing-category/furniture-rentals/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Ct & T Party Equipment Rentals",
+    "description": "Party equipment rental in Mandaue City offering tents, chairs, tables, and complete party setups.",
+    "business_name": "Ct & T Party Equipment Rentals",
+    "contact_number": "(032) 516-9429",
+    "website": "https://www.facebook.com/CtandTPartyEquipmentRentals",
+    "metadata": {
+      "area": "Casuntingan, Mandaue City 6000",
+      "services": [
+        "tents",
+        "chairs",
+        "tables",
+        "party equipment"
+      ],
+      "price_range": "₱₱₱",
+      "source_url": "https://yellow-pages.ph/company/ct-t-party-equipment-rentals-CEB960000001"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "All Time Cebu",
+    "description": "Party supplies and event equipment rental in Talisay City, Cebu with red carpet and event setup services.",
+    "business_name": "All Time Cebu",
+    "contact_number": "(032) 238-9976",
+    "website": "https://www.facebook.com/alltimecebu",
+    "metadata": {
+      "area": "Zone 5, 1165 Brgy. Lagtang, Talisay City, Cebu 6045",
+      "services": [
+        "party supplies",
+        "red carpet",
+        "event equipment"
+      ],
+      "price_range": "₱₱₱",
+      "source_url": "https://alltimecebu.com"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Minglanilla Party Rentals",
+    "description": "Affordable tables and chairs rental serving Minglanilla and Cebu City with catering equipment sets.",
+    "business_name": "Minglanilla Party Rentals",
+    "contact_number": "09953492394",
+    "website": "https://www.instagram.com/reel/DC9LfPAy1s_/",
+    "metadata": {
+      "area": "Minglanilla and Cebu City",
+      "services": [
+        "tables",
+        "chairs",
+        "catering equipment",
+        "party set-up"
+      ],
+      "price_range": "₱₱₱",
+      "source_url": "https://www.instagram.com/reel/DC9LfPAy1s_/"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "PartyFactory Cebu",
+    "description": "Full-service party provider offering balloon decorations, tables, chairs, inflatable rentals, and customizable party packages.",
+    "business_name": "PartyFactory Cebu",
+    "contact_number": "09055232006",
+    "website": "https://www.facebook.com/partyfactory.cebucity",
+    "metadata": {
+      "area": "Cebu City",
+      "services": [
+        "balloon decorations",
+        "tables",
+        "chairs",
+        "party packages",
+        "inflatable rentals"
+      ],
+      "price_range": "₱₱₱",
+      "source_url": "http://partyfactorycebu.blogspot.com"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "JCE Event Rentals",
+    "description": "Established in 1995, JCE specializes in inflatables, game booths, food kiosks, venue design, and complete event equipment rental.",
+    "business_name": "JCE Event Rentals",
+    "contact_number": "Contact via email",
+    "email": "inquire@jceeventrentals.com",
+    "website": "https://www.facebook.com/JCEEventRentals",
+    "metadata": {
+      "area": "Cebu",
+      "services": [
+        "inflatables",
+        "game booths",
+        "food kiosks",
+        "venue design",
+        "event equipment"
+      ],
+      "price_range": "₱₱₱₱",
+      "source_url": "https://linkedin.com/company/jceeventrentals"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  },
+  {
+    "name": "Cebu Party Needs and Events",
+    "description": "Complete party needs supplier offering tables, chairs, tents, backdrop, and event supplies in Cebu City.",
+    "business_name": "Cebu Party Needs and Events",
+    "contact_number": "Contact via Facebook",
+    "website": "https://www.facebook.com/CebuPartyNeedsAndEvents",
+    "metadata": {
+      "area": "Cebu City",
+      "services": [
+        "tables",
+        "chairs",
+        "tents",
+        "backdrop",
+        "party supplies"
+      ],
+      "price_range": "₱₱₱",
+      "source_url": "https://www.facebook.com/CebuPartyNeedsAndEvents"
+    },
+    "profile_photo_url": null,
+    "cover_photo_url": null
+  }
 ]
