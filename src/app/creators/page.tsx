@@ -231,7 +231,7 @@ export default function CreatorsLandingPage() {
                             <section className="rounded-2xl border border-purple-100 bg-purple-50/60 p-5 space-y-3">
                                 <h2 className="text-lg font-bold text-gray-900">A. Free Bento Cake</h2>
                                 <p className="text-sm text-gray-600 leading-relaxed">
-                                    Receive a complimentary bento cake for your content creation. Use it to record your experience and create a review. Delivery is charged at the regular delivery rate.
+                                    Receive a complimentary bento cake for your content creation. Use it to record your experience and create a review. Delivery is charged at the regular delivery rate but delivery is free within Cebu City.
                                 </p>
                                 <p className="text-sm text-gray-700 leading-relaxed">
                                     Focus your content on how easy it is to order online through Genie.ph: upload a design, get an instant quote, customize the cake, and complete the order without waiting for long chat replies.
@@ -242,7 +242,7 @@ export default function CreatorsLandingPage() {
                             <section className="rounded-2xl border border-purple-100 bg-white p-5 space-y-3">
                                 <h2 className="text-lg font-bold text-gray-900">B. 50% Personal Voucher</h2>
                                 <p className="text-sm text-gray-600 leading-relaxed">
-                                    This voucher is valid once for the email address used in your application. It gives 50% off the cake subtotal, capped at ₱1,500. Delivery is not discounted.
+                                    This voucher is valid once for the email address used in your application. It gives 50% off the cake subtotal, capped at ₱1,500. Delivery is not discounted. The voucher starts inactive and is activated once you submit a video reel.
                                 </p>
                                 <CodeRow label="Personal voucher code" value={applicationResult.voucherCode} copiedCode={copiedCode} onCopy={copyCode} />
                             </section>
@@ -405,7 +405,7 @@ export default function CreatorsLandingPage() {
                                     <div className="mt-0.5 shrink-0 w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-700 font-bold text-sm">2</div>
                                     <div>
                                         <h4 className="font-semibold text-gray-900">50% Off Voucher</h4>
-                                        <p className="text-sm text-gray-600">Get a massive discount on your next personal custom cake order.</p>
+                                        <p className="text-sm text-gray-600">Get 50% off your next personal custom cake order after you submit a video reel.</p>
                                     </div>
                                 </li>
                                 <li className="flex gap-3">

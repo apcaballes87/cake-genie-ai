@@ -1,5 +1,19 @@
 # Tasks
 
+## Set creator personal vouchers inactive until video-reel submission (2026-08-23)
+
+### Plan
+
+- [x] Update the creator success-screen copy for voucher activation and Cebu City delivery.
+- [x] Make newly issued personal creator vouchers inactive by default and deactivate existing active creator vouchers through a migration.
+- [x] Verify the focused creator checks and build/lint status without submitting an application or changing production data.
+
+### Review
+
+- The personal voucher is now created with `is_active = FALSE` in the source RPC. A follow-up migration adds an insert guard for `creator_voucher` rows and deactivates any existing active personal vouchers, leaving later activation as an explicit update after video-reel submission.
+- The free-bento copy now says delivery is charged at the regular rate but free within Cebu City. The voucher copy states that the code starts inactive and is activated after video-reel submission.
+- No production data was changed for this edit. A read-only production check found one creator voucher, already inactive and unused.
+
 ## Continue debugging creator application production failure (2026-08-23)
 
 ### Plan
