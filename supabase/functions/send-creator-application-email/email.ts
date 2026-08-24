@@ -10,7 +10,7 @@ export type CreatorApplicationEmailPayload = {
 
 export const CREATOR_EMAIL_FROM = 'Genie PH <orders@mail.genie.ph>';
 export const CREATOR_EMAIL_SUBJECT = 'Your Genie.ph Creator UGC Collab Codes';
-export const CREATOR_EMAIL_LOGO_URL = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/new%20genie%20logo%20long.webp';
+export const CREATOR_EMAIL_LOGO_URL = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/genie-logo-header.webp';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
