@@ -20,6 +20,27 @@ type CreatorRpcError = {
     hint?: string | null;
 };
 
+type CreatorEmailApplication = {
+    creatorId: string;
+    name: string;
+    recipientEmail: string;
+    bentoCode: string;
+    voucherCode: string;
+    referralCode: string;
+};
+
+type CreatorEmailClient = {
+    functions: {
+        invoke: (
+            functionName: string,
+            options: { body: Record<string, string> },
+        ) => Promise<{
+            data: { success?: boolean } | null;
+            error: { message?: string } | null;
+        }>;
+    };
+};
+
 function isCreatorInfrastructureError(error: unknown) {
     const candidate = error as CreatorRpcError;
     const code = candidate.code?.toUpperCase();
@@ -48,6 +69,38 @@ function creatorRpcFailure(error: CreatorRpcError): CreatorSubmissionFailure {
             : CREATOR_APPLICATION_GENERIC_ERROR,
         code: 'DATABASE_ERROR',
     };
+}
+
+function getEmailDomain(email: string) {
+    return email.split('@')[1]?.toLowerCase() || 'unknown';
+}
+
+async function sendCreatorApplicationEmail(
+    client: CreatorEmailClient,
+    application: CreatorEmailApplication,
+) {
+    try {
+        const { data, error } = await client.functions.invoke('send-creator-application-email', {
+            body: {
+                ...application,
+                referralLink: `https://genie.ph/${application.referralCode}`,
+            },
+        });
+
+        if (error || !data?.success) {
+            console.error('Creator application email failed:', {
+                creatorId: application.creatorId,
+                recipientDomain: getEmailDomain(application.recipientEmail),
+                message: error?.message || 'Email function did not confirm delivery',
+            });
+        }
+    } catch (error) {
+        console.error('Creator application email invocation failed:', {
+            creatorId: application.creatorId,
+            recipientDomain: getEmailDomain(application.recipientEmail),
+            message: error instanceof Error ? error.message : 'Unknown email invocation error',
+        });
+    }
 }
 
 export type CreatorSubmission = {
@@ -225,6 +278,15 @@ export async function submitCreatorApplication(data: CreatorSubmission): Promise
         if (!application?.creator_id || !application.referral_code || !application.bento_code || !application.voucher_code) {
             return { success: false, error: 'The application was not completed. Please try again.', code: 'DATABASE_ERROR' };
         }
+
+        await sendCreatorApplicationEmail(client, {
+            creatorId: application.creator_id,
+            name: data.name.trim(),
+            recipientEmail: data.email.trim().toLowerCase(),
+            bentoCode: application.bento_code,
+            voucherCode: application.voucher_code,
+            referralCode: application.referral_code,
+        });
 
         return {
             success: true,
