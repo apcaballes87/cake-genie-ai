@@ -1,4 +1,3 @@
-import { withSupabase } from 'npm:@supabase/server';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { handleCreatorApplicationEmail } from './handler.ts';
 
@@ -10,13 +9,8 @@ declare const Deno: {
 
 const environment = {
   resendApiKey: Deno.env.get('RESEND_API_KEY') || '',
+  serviceRoleKey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '',
+  secretKeys: Deno.env.get('SUPABASE_SECRET_KEYS') || '',
 };
 
-const authenticatedHandler = withSupabase({ auth: 'secret' }, (request) => handleCreatorApplicationEmail(request, {
-  ...environment,
-  authenticated: true,
-}));
-
-serve((request) => request.method === 'OPTIONS'
-  ? handleCreatorApplicationEmail(request, environment)
-  : authenticatedHandler(request));
+serve((request) => handleCreatorApplicationEmail(request, environment));
