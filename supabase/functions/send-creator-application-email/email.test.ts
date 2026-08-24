@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildCreatorApplicationEmailHtml,
+  buildCreatorApplicationEmailText,
   buildResendEmailRequest,
   validateCreatorApplicationEmailPayload,
 } from './email';
@@ -39,6 +40,16 @@ describe('creator application email payloads', () => {
     expect(html).toContain('The voucher starts inactive');
     expect(html).toContain('Delivery is charged at the regular delivery rate but delivery is free within Cebu City.');
     expect(html).toContain('https://genie.ph/TESTCREATOR');
+    expect(html).toContain('new%20genie%20logo%20long.webp');
+    expect(html).toContain('This is an automated message from Genie.ph');
+  });
+
+  it('builds a readable plain-text fallback', () => {
+    const text = buildCreatorApplicationEmailText(payload);
+
+    expect(text).toContain('FREE BENTO CODE: GENIEBENTO12345678');
+    expect(text).toContain('PERSONAL VOUCHER CODE: GENIE50ABCDEF12');
+    expect(text).toContain('YOUR UNIQUE LINK: https://genie.ph/TESTCREATOR');
   });
 
   it('builds the Resend message with the requested sender and recipient', () => {
@@ -46,6 +57,7 @@ describe('creator application email payloads', () => {
       from: 'Genie PH <orders@mail.genie.ph>',
       to: ['creator@example.com'],
       subject: 'Your Genie.ph Creator UGC Collab Codes',
+      text: expect.stringContaining('APPLICATION RECEIVED!'),
     });
   });
 });

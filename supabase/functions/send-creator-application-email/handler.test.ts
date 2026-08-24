@@ -1,9 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 import { handleCreatorApplicationEmail } from './handler';
 
-const environment = { resendApiKey: 're_test_key' };
+const environment = {
+  resendApiKey: 're_test_key',
+  serviceRoleKey: 'legacy-service-role-key',
+  secretKeys: JSON.stringify({ default: 'sb_secret_test' }),
+};
 
-const serviceRoleToken = `header.${Buffer.from(JSON.stringify({ role: 'service_role' })).toString('base64url')}.signature`;
+const serviceRoleToken = 'legacy-service-role-key';
+const secretKey = 'sb_secret_test';
 
 const payload = {
   creatorId: '11111111-1111-4111-8111-111111111111',
@@ -17,12 +22,18 @@ const payload = {
 
 const authorizedRequest = (body?: unknown, method = 'POST') => new Request('https://example.supabase.co/functions/v1/send-creator-application-email', {
   method,
+  headers: { apikey: secretKey, 'Content-Type': 'application/json' },
+  body: body === undefined ? undefined : JSON.stringify(body),
+});
+
+const legacyAuthorizedRequest = (body?: unknown, method = 'GET') => new Request('https://example.supabase.co/functions/v1/send-creator-application-email', {
+  method,
   headers: { Authorization: `Bearer ${serviceRoleToken}`, 'Content-Type': 'application/json' },
   body: body === undefined ? undefined : JSON.stringify(body),
 });
 
 describe('send-creator-application-email handler', () => {
-  it('rejects callers without the service-role bearer token', async () => {
+  it('rejects callers without a configured server key', async () => {
     const response = await handleCreatorApplicationEmail(
       new Request('https://example.supabase.co/functions/v1/send-creator-application-email', {
         method: 'POST',
@@ -33,6 +44,13 @@ describe('send-creator-application-email handler', () => {
     );
 
     expect(response.status).toBe(401);
+  });
+
+  it('accepts a Supabase secret key through apikey without a bearer header', async () => {
+    const response = await handleCreatorApplicationEmail(authorizedRequest(undefined, 'GET'), environment, vi.fn());
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ success: true, configured: true });
   });
 
   it('validates POST payloads before calling Resend', async () => {
@@ -67,6 +85,7 @@ describe('send-creator-application-email handler', () => {
       to: ['creator@example.com'],
       subject: 'Your Genie.ph Creator UGC Collab Codes',
     });
+    expect(body.text).toContain('FREE BENTO CODE: GENIEBENTO12345678');
   });
 
   it('returns a safe provider failure without exposing the provider response', async () => {
@@ -79,7 +98,7 @@ describe('send-creator-application-email handler', () => {
   });
 
   it('supports an authenticated no-send health check', async () => {
-    const response = await handleCreatorApplicationEmail(authorizedRequest(undefined, 'GET'), environment, vi.fn());
+    const response = await handleCreatorApplicationEmail(legacyAuthorizedRequest(), environment, vi.fn());
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ success: true, configured: true });

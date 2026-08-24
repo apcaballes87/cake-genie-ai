@@ -6,6 +6,9 @@ import {
 
 export type CreatorApplicationEmailEnvironment = {
   resendApiKey: string;
+  serviceRoleKey?: string;
+  secretKeys?: string;
+  authenticated?: boolean;
 };
 
 type FetchLike = typeof fetch;
@@ -22,18 +25,27 @@ function getBearerToken(request: Request) {
   return header.startsWith('Bearer ') ? header.slice('Bearer '.length) : null;
 }
 
-function isServiceRoleToken(token: string | null) {
-  if (!token) return false;
+function getConfiguredSecretKeys(secretKeys: string | undefined) {
+  if (!secretKeys) return [];
 
   try {
-    const payload = token.split('.')[1];
-    if (!payload) return false;
-    const normalizedPayload = payload.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(payload.length / 4) * 4, '=');
-    const claims = JSON.parse(atob(normalizedPayload)) as { role?: unknown };
-    return claims.role === 'service_role';
+    const parsed = JSON.parse(secretKeys) as unknown;
+    if (!parsed || typeof parsed !== 'object') return [];
+    return Object.values(parsed).filter((value): value is string => typeof value === 'string' && value.length > 0);
   } catch {
-    return false;
+    return [];
   }
+}
+
+function isAuthorizedRequest(request: Request, environment: CreatorApplicationEmailEnvironment) {
+  const apiKey = request.headers.get('apikey')?.trim();
+  const bearerToken = getBearerToken(request)?.trim();
+  const configuredKeys = [
+    environment.serviceRoleKey,
+    ...getConfiguredSecretKeys(environment.secretKeys),
+  ].filter((value): value is string => Boolean(value));
+
+  return [apiKey, bearerToken].some((candidate) => candidate && configuredKeys.includes(candidate));
 }
 
 export async function handleCreatorApplicationEmail(
@@ -45,7 +57,7 @@ export async function handleCreatorApplicationEmail(
     return new Response('ok', { headers: corsHeaders });
   }
 
-  if (!isServiceRoleToken(getBearerToken(request))) {
+  if (!environment.authenticated && !isAuthorizedRequest(request, environment)) {
     return jsonResponse({ success: false, error: 'Unauthorized.' }, 401);
   }
 

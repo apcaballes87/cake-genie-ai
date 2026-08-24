@@ -10,6 +10,7 @@ export type CreatorApplicationEmailPayload = {
 
 export const CREATOR_EMAIL_FROM = 'Genie PH <orders@mail.genie.ph>';
 export const CREATOR_EMAIL_SUBJECT = 'Your Genie.ph Creator UGC Collab Codes';
+export const CREATOR_EMAIL_LOGO_URL = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/new%20genie%20logo%20long.webp';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -98,10 +99,16 @@ export function buildCreatorApplicationEmailHtml(payload: CreatorApplicationEmai
     <title>${CREATOR_EMAIL_SUBJECT}</title>
   </head>
   <body style="margin:0;background:#f7f3fb;color:#3f4b61;font-family:Arial,Helvetica,sans-serif;">
-    <div style="max-width:680px;margin:0 auto;padding:32px 16px;">
-      <div style="padding:32px 24px;background:#ffffff;border-radius:24px;">
-        <h1 style="margin:0;text-align:center;color:#172033;font-size:34px;line-height:1.15;">Application Received!</h1>
-        <p style="margin:20px auto 28px;max-width:580px;text-align:center;font-size:17px;line-height:1.65;">
+    <div style="max-width:600px;margin:0 auto;padding:0;">
+      <div style="text-align:center;padding:30px 20px;background:#ffffff;">
+        <img src="${CREATOR_EMAIL_LOGO_URL}" alt="Genie.ph" style="max-width:280px;height:auto;display:block;margin:0 auto;">
+      </div>
+      <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#ffffff;padding:30px;text-align:center;border-radius:10px 10px 0 0;">
+        <h1 style="margin:0;font-size:28px;line-height:1.15;">Application Received!</h1>
+        <p style="margin:10px 0 0;font-size:16px;line-height:1.5;">Your Creator UGC Collab codes are ready</p>
+      </div>
+      <div style="padding:30px;background:#ffffff;border:1px solid #e0e0e0;border-top:0;border-radius:0 0 10px 10px;">
+        <p style="margin:0 auto 28px;max-width:580px;text-align:center;font-size:17px;line-height:1.65;">
           Hi ${name}, thank you for applying to the <strong style="color:#a855f7;">Genie.ph</strong> Creator UGC Collab. Your codes are below—please save them before leaving this email.
         </p>
 
@@ -124,9 +131,38 @@ export function buildCreatorApplicationEmailHtml(payload: CreatorApplicationEmai
 
         <p style="margin:28px 0 0;text-align:center;color:#697386;font-size:13px;line-height:1.6;">Genie.ph Creator UGC Collab</p>
       </div>
+      <div style="text-align:center;padding:20px;color:#666;font-size:14px;line-height:1.6;">
+        <p style="margin:0;">This is an automated message from Genie.ph</p>
+        <p style="margin:6px 0 0;">© 2026 Genie.ph - Making celebrations magical, one cake at a time ✨</p>
+      </div>
     </div>
   </body>
 </html>`;
+}
+
+export function buildCreatorApplicationEmailText(payload: CreatorApplicationEmailPayload) {
+  return `APPLICATION RECEIVED!
+
+Hi ${payload.name}, thank you for applying to the Genie.ph Creator UGC Collab. Your codes are below—please save them before leaving this email.
+
+A. FREE BENTO CAKE (UP TO ₱499)
+Receive up to ₱499 off one bento cake for your content creation. If customizations make the bento cake cost more than ₱499, you pay the difference. Use it to record your experience and create a review. Delivery is charged at the regular delivery rate but delivery is free within Cebu City.
+
+Focus your content on how easy it is to order online through Genie.ph: upload a design, get an instant quote, customize the cake, and complete the order without waiting for long chat replies.
+
+FREE BENTO CODE: ${payload.bentoCode}
+
+B. 50% PERSONAL VOUCHER
+This voucher is valid once for the email address used in your application. It gives 50% off the cake subtotal, capped at ₱1,500. Delivery is not discounted. The voucher starts inactive and is activated once you submit a video reel.
+
+PERSONAL VOUCHER CODE: ${payload.voucherCode}
+
+C. SHARE YOUR CREATOR LINK
+Share your link with your audience. They receive 10% off, and you receive 15% commission for each successful order using your code.
+
+YOUR UNIQUE LINK: ${payload.referralLink}
+
+Genie.ph Creator UGC Collab`;
 }
 
 export function buildResendEmailRequest(payload: CreatorApplicationEmailPayload) {
@@ -135,5 +171,6 @@ export function buildResendEmailRequest(payload: CreatorApplicationEmailPayload)
     to: [payload.recipientEmail],
     subject: CREATOR_EMAIL_SUBJECT,
     html: buildCreatorApplicationEmailHtml(payload),
+    text: buildCreatorApplicationEmailText(payload),
   };
 }

@@ -29,16 +29,11 @@ type CreatorEmailApplication = {
     referralCode: string;
 };
 
-type CreatorEmailClient = {
-    functions: {
-        invoke: (
-            functionName: string,
-            options: { body: Record<string, string> },
-        ) => Promise<{
-            data: { success?: boolean } | null;
-            error: { message?: string } | null;
-        }>;
-    };
+type CreatorEmailFetch = typeof fetch;
+
+type CreatorServiceConfig = {
+    supabaseUrl: string;
+    supabaseServiceKey: string;
 };
 
 function isCreatorInfrastructureError(error: unknown) {
@@ -76,22 +71,31 @@ function getEmailDomain(email: string) {
 }
 
 async function sendCreatorApplicationEmail(
-    client: CreatorEmailClient,
+    config: CreatorServiceConfig,
     application: CreatorEmailApplication,
+    fetchImpl: CreatorEmailFetch = fetch,
 ) {
     try {
-        const { data, error } = await client.functions.invoke('send-creator-application-email', {
-            body: {
-                ...application,
-                referralLink: `https://genie.ph/${application.referralCode}`,
+        const response = await fetchImpl(
+            `${config.supabaseUrl.replace(/\/+$/, '')}/functions/v1/send-creator-application-email`,
+            {
+                method: 'POST',
+                headers: {
+                    apikey: config.supabaseServiceKey,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ...application,
+                    referralLink: `https://genie.ph/${application.referralCode}`,
+                }),
             },
-        });
+        );
 
-        if (error || !data?.success) {
+        if (!response.ok) {
             console.error('Creator application email failed:', {
                 creatorId: application.creatorId,
                 recipientDomain: getEmailDomain(application.recipientEmail),
-                message: error?.message || 'Email function did not confirm delivery',
+                message: `Email function returned HTTP ${response.status}`,
             });
         }
     } catch (error) {
@@ -141,7 +145,7 @@ export type PromoCodeAvailability = {
     message?: string;
 };
 
-function requireServiceClient() {
+function requireServiceConfig(): CreatorServiceConfig {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
 
@@ -149,13 +153,21 @@ function requireServiceClient() {
         throw new AppError('Creator applications are temporarily unavailable.', 'DATABASE_ERROR');
     }
 
+    return { supabaseUrl, supabaseServiceKey };
+}
+
+function createServiceClient(config: CreatorServiceConfig) {
     try {
-        return createClient(supabaseUrl, supabaseServiceKey, {
+        return createClient(config.supabaseUrl, config.supabaseServiceKey, {
             auth: { persistSession: false },
         });
     } catch (error) {
         throw new AppError('Creator applications are temporarily unavailable.', 'DATABASE_ERROR', 500, error);
     }
+}
+
+function requireServiceClient() {
+    return createServiceClient(requireServiceConfig());
 }
 
 function validateCreatorSubmission(data: CreatorSubmission) {
@@ -243,7 +255,8 @@ export async function checkCreatorPromoCode(code: string): Promise<PromoCodeAvai
 
 export async function submitCreatorApplication(data: CreatorSubmission): Promise<CreatorSubmissionResult> {
     try {
-        const client = requireServiceClient();
+        const serviceConfig = requireServiceConfig();
+        const client = createServiceClient(serviceConfig);
         const promoCode = validateCreatorSubmission(data);
 
         const { data: result, error } = await client.rpc('submit_creator_application', {
@@ -279,7 +292,7 @@ export async function submitCreatorApplication(data: CreatorSubmission): Promise
             return { success: false, error: 'The application was not completed. Please try again.', code: 'DATABASE_ERROR' };
         }
 
-        await sendCreatorApplicationEmail(client, {
+        await sendCreatorApplicationEmail(serviceConfig, {
             creatorId: application.creator_id,
             name: data.name.trim(),
             recipientEmail: data.email.trim().toLowerCase(),
