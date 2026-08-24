@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { normalizeCreatorPromoCode } from './promoCode';
 
-const { createClientMock, rpcMock, functionsInvokeMock } = vi.hoisted(() => ({
+const { createClientMock, rpcMock, emailFetchMock } = vi.hoisted(() => ({
   createClientMock: vi.fn(),
   rpcMock: vi.fn(),
-  functionsInvokeMock: vi.fn(),
+  emailFetchMock: vi.fn(),
 }));
 
 vi.mock('@supabase/supabase-js', () => ({
@@ -26,7 +26,8 @@ afterEach(() => {
   vi.resetModules();
   createClientMock.mockReset();
   rpcMock.mockReset();
-  functionsInvokeMock.mockReset();
+  emailFetchMock.mockReset();
+  vi.unstubAllGlobals();
 });
 
 describe('creator promo codes', () => {
@@ -74,7 +75,7 @@ describe('creator promo codes', () => {
   it('converts an unavailable creator RPC into a clear failure result', async () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
-    createClientMock.mockReturnValue({ rpc: rpcMock, functions: { invoke: functionsInvokeMock } });
+    createClientMock.mockReturnValue({ rpc: rpcMock });
     rpcMock.mockResolvedValue({
       data: null,
       error: {
@@ -102,13 +103,13 @@ describe('creator promo codes', () => {
       error: 'Creator applications are temporarily unavailable. Please try again later.',
       code: 'DATABASE_ERROR',
     });
-    expect(functionsInvokeMock).not.toHaveBeenCalled();
+    expect(emailFetchMock).not.toHaveBeenCalled();
   });
 
   it('maps missing pgcrypto function resolution to a temporary-unavailable result', async () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
-    createClientMock.mockReturnValue({ rpc: rpcMock, functions: { invoke: functionsInvokeMock } });
+    createClientMock.mockReturnValue({ rpc: rpcMock });
     rpcMock.mockResolvedValue({
       data: null,
       error: {
@@ -141,7 +142,7 @@ describe('creator promo codes', () => {
   it('sends the generated codes to the creator email after the RPC succeeds', async () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
-    createClientMock.mockReturnValue({ rpc: rpcMock, functions: { invoke: functionsInvokeMock } });
+    createClientMock.mockReturnValue({ rpc: rpcMock });
     rpcMock.mockResolvedValue({
       data: [{
         creator_id: '11111111-1111-4111-8111-111111111111',
@@ -151,7 +152,11 @@ describe('creator promo codes', () => {
       }],
       error: null,
     });
-    functionsInvokeMock.mockResolvedValue({ data: { success: true, emailId: 'email-123' }, error: null });
+    vi.stubGlobal('fetch', emailFetchMock);
+    emailFetchMock.mockResolvedValue(new Response(JSON.stringify({ success: true, emailId: 'email-123' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }));
 
     const { submitCreatorApplication } = await import('./actions');
     const result = await submitCreatorApplication({
@@ -172,8 +177,13 @@ describe('creator promo codes', () => {
       bentoCode: 'GENIEBENTO12345678',
       voucherCode: 'GENIE50ABCDEF12',
     });
-    expect(functionsInvokeMock).toHaveBeenCalledWith('send-creator-application-email', {
-      body: {
+    expect(emailFetchMock).toHaveBeenCalledWith('https://example.supabase.co/functions/v1/send-creator-application-email', {
+      method: 'POST',
+      headers: {
+        apikey: 'test-service-role-key',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         creatorId: '11111111-1111-4111-8111-111111111111',
         name: 'Test Creator',
         recipientEmail: 'creator@example.com',
@@ -181,14 +191,14 @@ describe('creator promo codes', () => {
         voucherCode: 'GENIE50ABCDEF12',
         referralCode: 'TESTCREATOR',
         referralLink: 'https://genie.ph/TESTCREATOR',
-      },
+      }),
     });
   });
 
   it('keeps the application successful when email delivery fails', async () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
-    createClientMock.mockReturnValue({ rpc: rpcMock, functions: { invoke: functionsInvokeMock } });
+    createClientMock.mockReturnValue({ rpc: rpcMock });
     rpcMock.mockResolvedValue({
       data: [{
         creator_id: '22222222-2222-4222-8222-222222222222',
@@ -198,7 +208,11 @@ describe('creator promo codes', () => {
       }],
       error: null,
     });
-    functionsInvokeMock.mockResolvedValue({ data: null, error: { message: 'Edge Function unavailable' } });
+    vi.stubGlobal('fetch', emailFetchMock);
+    emailFetchMock.mockResolvedValue(new Response(JSON.stringify({ success: false, error: 'Edge Function unavailable' }), {
+      status: 502,
+      headers: { 'Content-Type': 'application/json' },
+    }));
 
     const { submitCreatorApplication } = await import('./actions');
     const result = await submitCreatorApplication({
@@ -216,6 +230,6 @@ describe('creator promo codes', () => {
       success: true,
       creatorId: '22222222-2222-4222-8222-222222222222',
     });
-    expect(functionsInvokeMock).toHaveBeenCalledTimes(1);
+    expect(emailFetchMock).toHaveBeenCalledTimes(1);
   });
 });

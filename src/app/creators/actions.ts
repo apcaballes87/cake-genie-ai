@@ -34,18 +34,6 @@ type CreatorServiceConfig = {
     supabaseServiceKey: string;
 };
 
-type CreatorEmailClient = {
-    functions: {
-        invoke: (
-            functionName: string,
-            options: { body: Record<string, string> },
-        ) => Promise<{
-            data: { success?: boolean } | null;
-            error: { message?: string } | null;
-        }>;
-    };
-};
-
 function isCreatorInfrastructureError(error: unknown) {
     const candidate = error as CreatorRpcError;
     const code = candidate.code?.toUpperCase();
@@ -81,22 +69,28 @@ function getEmailDomain(email: string) {
 }
 
 async function sendCreatorApplicationEmail(
-    client: CreatorEmailClient,
+    config: CreatorServiceConfig,
     application: CreatorEmailApplication,
 ) {
     try {
-        const { data, error } = await client.functions.invoke('send-creator-application-email', {
-            body: {
+        const response = await fetch(`${config.supabaseUrl}/functions/v1/send-creator-application-email`, {
+            method: 'POST',
+            headers: {
+                apikey: config.supabaseServiceKey,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
                 ...application,
                 referralLink: `https://genie.ph/${application.referralCode}`,
-            },
+            }),
         });
+        const data = await response.json().catch(() => null) as { success?: boolean; error?: string } | null;
 
-        if (error || !data?.success) {
+        if (!response.ok || !data?.success) {
             console.error('Creator application email failed:', {
                 creatorId: application.creatorId,
                 recipientDomain: getEmailDomain(application.recipientEmail),
-                message: error?.message || 'Email function did not confirm delivery',
+                message: data?.error || `Email function returned HTTP ${response.status}`,
             });
         }
     } catch (error) {
@@ -293,7 +287,7 @@ export async function submitCreatorApplication(data: CreatorSubmission): Promise
             return { success: false, error: 'The application was not completed. Please try again.', code: 'DATABASE_ERROR' };
         }
 
-        await sendCreatorApplicationEmail(client, {
+        await sendCreatorApplicationEmail(serviceConfig, {
             creatorId: application.creator_id,
             name: data.name.trim(),
             recipientEmail: data.email.trim().toLowerCase(),
