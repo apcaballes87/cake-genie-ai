@@ -12,7 +12,7 @@ const environment = {
   resendApiKey: Deno.env.get('RESEND_API_KEY') || '',
 };
 
-const authenticatedHandler = withSupabase({ auth: 'secret' }, (request) => handleCreatorApplicationEmail(request, {
+const authenticatedHandler = withSupabase({ auth: 'secret:pinterest' }, (request) => handleCreatorApplicationEmail(request, {
   ...environment,
   authenticated: true,
 }));
