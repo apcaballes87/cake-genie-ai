@@ -1,4 +1,4 @@
-import { corsHeaders } from '../_shared/cors.ts';
+import { corsHeaders } from './cors.ts';
 import {
   buildResendEmailRequest,
   validateCreatorApplicationEmailPayload,

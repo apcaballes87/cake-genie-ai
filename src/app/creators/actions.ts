@@ -29,11 +29,21 @@ type CreatorEmailApplication = {
     referralCode: string;
 };
 
-type CreatorEmailFetch = typeof fetch;
-
 type CreatorServiceConfig = {
     supabaseUrl: string;
     supabaseServiceKey: string;
+};
+
+type CreatorEmailClient = {
+    functions: {
+        invoke: (
+            functionName: string,
+            options: { body: Record<string, string> },
+        ) => Promise<{
+            data: { success?: boolean } | null;
+            error: { message?: string } | null;
+        }>;
+    };
 };
 
 function isCreatorInfrastructureError(error: unknown) {
@@ -71,31 +81,22 @@ function getEmailDomain(email: string) {
 }
 
 async function sendCreatorApplicationEmail(
-    config: CreatorServiceConfig,
+    client: CreatorEmailClient,
     application: CreatorEmailApplication,
-    fetchImpl: CreatorEmailFetch = fetch,
 ) {
     try {
-        const response = await fetchImpl(
-            `${config.supabaseUrl.replace(/\/+$/, '')}/functions/v1/send-creator-application-email`,
-            {
-                method: 'POST',
-                headers: {
-                    apikey: config.supabaseServiceKey,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    ...application,
-                    referralLink: `https://genie.ph/${application.referralCode}`,
-                }),
+        const { data, error } = await client.functions.invoke('send-creator-application-email', {
+            body: {
+                ...application,
+                referralLink: `https://genie.ph/${application.referralCode}`,
             },
-        );
+        });
 
-        if (!response.ok) {
+        if (error || !data?.success) {
             console.error('Creator application email failed:', {
                 creatorId: application.creatorId,
                 recipientDomain: getEmailDomain(application.recipientEmail),
-                message: `Email function returned HTTP ${response.status}`,
+                message: error?.message || 'Email function did not confirm delivery',
             });
         }
     } catch (error) {
@@ -292,7 +293,7 @@ export async function submitCreatorApplication(data: CreatorSubmission): Promise
             return { success: false, error: 'The application was not completed. Please try again.', code: 'DATABASE_ERROR' };
         }
 
-        await sendCreatorApplicationEmail(serviceConfig, {
+        await sendCreatorApplicationEmail(client, {
             creatorId: application.creator_id,
             name: data.name.trim(),
             recipientEmail: data.email.trim().toLowerCase(),
