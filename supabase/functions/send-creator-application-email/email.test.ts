@@ -40,7 +40,7 @@ describe('creator application email payloads', () => {
     expect(html).toContain('The voucher starts inactive');
     expect(html).toContain('Delivery is charged at the regular delivery rate but delivery is free within Cebu City.');
     expect(html).toContain('https://genie.ph/TESTCREATOR');
-    expect(html).toContain('genie-logo-header.webp');
+    expect(html).toContain('genieph%20logo%20long.jpg');
     expect(html).toContain('This is an automated message from Genie.ph');
   });
 
