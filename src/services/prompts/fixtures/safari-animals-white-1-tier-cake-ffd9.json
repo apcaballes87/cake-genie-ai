@@ -1,0 +1,59 @@
+{
+  "slug": "safari-animals-white-1-tier-cake-ffd9",
+  "image_url": "https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/customizations/safari-animals-white-1-tier-cake-ffd9.webp",
+  "purpose": "Regression fixture for molded freestanding Safari animal figure precedence beside a cake tier.",
+  "expected_main_toppers": [
+    {
+      "group_id": "lion_figure",
+      "type": "edible_3d_complex",
+      "material": "edible_fondant",
+      "classification": "hero",
+      "size": "large",
+      "quantity": 1
+    },
+    {
+      "group_id": "giraffe_figure",
+      "type": "edible_3d_complex",
+      "material": "edible_fondant",
+      "classification": "hero",
+      "size": "medium",
+      "quantity": 1
+    },
+    {
+      "group_id": "elephant_figure",
+      "type": "edible_3d_complex",
+      "material": "edible_fondant",
+      "classification": "hero",
+      "size": "medium",
+      "quantity": 1
+    },
+    {
+      "group_id": "number_one_topper",
+      "type": "edible_3d_ordinary",
+      "material": "edible_fondant",
+      "classification": "hero",
+      "size": "large",
+      "quantity": 1
+    }
+  ],
+  "expected_support_elements": [
+    {
+      "group_id": "monstera_leaf_accents",
+      "type": "edible_2d_support",
+      "material": "edible_fondant",
+      "size": "small",
+      "quantity": 6
+    },
+    {
+      "group_id": "bunting_banner_side",
+      "type": "edible_2d_support",
+      "material": "edible_fondant",
+      "size": "small",
+      "quantity": 1
+    }
+  ],
+  "forbidden_support_group_ids": [
+    "giraffe_figure",
+    "elephant_figure"
+  ]
+}

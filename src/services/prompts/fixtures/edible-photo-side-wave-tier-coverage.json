@@ -1,0 +1,25 @@
+{
+  "purpose": "Regression fixture for edible_photo_side_wave quantity based on directly visible covered tiers, not total cake tiers.",
+  "cases": [
+    {
+      "cake_type": "2 Tier",
+      "visible_wave_tiers": ["bottom"],
+      "expected_quantity": 1
+    },
+    {
+      "cake_type": "3 Tier",
+      "visible_wave_tiers": ["middle"],
+      "expected_quantity": 1
+    },
+    {
+      "cake_type": "3 Tier",
+      "visible_wave_tiers": ["top", "bottom"],
+      "expected_quantity": 3
+    },
+    {
+      "cake_type": "3 Tier",
+      "visible_wave_tiers": ["top", "middle", "bottom"],
+      "expected_quantity": 4
+    }
+  ]
+}

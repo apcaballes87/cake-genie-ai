@@ -1,0 +1,18 @@
+{
+  "slug": "60th-birthday-white-2-tier-fondant-cake-1f7d",
+  "image_url": "https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/customizations/60th-birthday-white-2-tier-fondant-cake-1f7d.webp",
+  "historical_cache_id": "6c5bddec-075b-4679-b9ea-2f444a8df06c",
+  "purpose": "Regression fixture for direct wafer-sheet identification: broad petal ruffles must not be described as conditioned wafer-paper side waves.",
+  "observed_side_construction": [
+    "broad overlapping cupped and scalloped flower-petal ruffles",
+    "dense lower-tier ruffle mass without traceable narrow sheet faces",
+    "no directly resolved free outer edges belonging to separately attached strips"
+  ],
+  "forbidden_support_type": "edible_photo_side_wave",
+  "forbidden_copy_terms": [
+    "wafer",
+    "wafer paper",
+    "wafer-paper"
+  ],
+  "allowed_non_wafer_type": "edible_3d_ordinary"
+}
