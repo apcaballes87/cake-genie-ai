@@ -679,6 +679,7 @@ export default function PartyBudgetCalculator() {
 
   const renderCategory = (category: Category) => {
     const items = lineItems[category.id] || [];
+    const visibleCategoryItems = visibleItems(items);
     const Icon = categoryIcons[category.id] || Package;
     const isCollapsed = !!collapsedCategories[category.id];
     return (
@@ -705,8 +706,15 @@ export default function PartyBudgetCalculator() {
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <span className="text-base font-bold text-purple-700">
-              {formatCurrency(categoryTotals[category.id] || 0, currency)}
+            <span className="text-right">
+              <span className="block text-base font-bold text-purple-700">
+                {formatCurrency(categoryTotals[category.id] || 0, currency)}
+              </span>
+              {isCollapsed ? (
+                <span className="mt-0.5 block text-xs font-medium leading-tight text-slate-500">
+                  {visibleCategoryItems.length} {visibleCategoryItems.length === 1 ? 'item' : 'items'}
+                </span>
+              ) : null}
             </span>
             <ChevronDown
               className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`}
@@ -716,7 +724,7 @@ export default function PartyBudgetCalculator() {
         {!isCollapsed && (
           <div id={`category-items-${category.id}`}>
             <div className="divide-y divide-dashed divide-slate-200">
-              {visibleItems(items).map((item) => renderLineItem(category.id, item))}
+              {visibleCategoryItems.map((item) => renderLineItem(category.id, item))}
             </div>
             <button
               onClick={() => handleAddItem(category.id)}

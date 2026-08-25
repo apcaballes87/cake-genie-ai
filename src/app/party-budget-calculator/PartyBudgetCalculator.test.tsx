@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PartyBudgetCalculator from './PartyBudgetCalculator';
@@ -117,5 +117,29 @@ describe('PartyBudgetCalculator', () => {
     expect(mocks.savePartyBudget.mock.calls[0][0]).toBe('customer-2');
     expect(localStorage.getItem(PENDING_PARTY_BUDGET_SAVE_KEY)).toBeNull();
     expect(mocks.getPartyBudget).not.toHaveBeenCalled();
+  });
+
+  it('shows the visible row count below the price only while a category is collapsed', async () => {
+    const user = userEvent.setup();
+    render(<PartyBudgetCalculator />);
+
+    const foodCard = document.getElementById('category-card-food');
+    expect(foodCard).not.toBeNull();
+    const food = within(foodCard!);
+    const toggle = food.getByRole('button', { name: /Food & Catering/ });
+
+    expect(food.queryByText('2 items')).not.toBeInTheDocument();
+    await user.click(toggle);
+    expect(food.getByText('2 items')).toBeVisible();
+    expect(food.queryByLabelText('Catering (per guest) details')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('checkbox', { name: 'Kids attending' }));
+    expect(food.getByText('1 item')).toBeVisible();
+
+    await user.click(toggle);
+    expect(food.queryByText('1 item')).not.toBeInTheDocument();
+    await user.click(food.getByRole('button', { name: 'Add custom item' }));
+    await user.click(toggle);
+    expect(food.getByText('2 items')).toBeVisible();
   });
 });
