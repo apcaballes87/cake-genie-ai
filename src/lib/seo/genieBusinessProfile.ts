@@ -7,6 +7,7 @@ export const genieBusinessProfile = {
     'Genie.ph is an AI-powered custom cake marketplace in Cebu that helps customers upload a design, get instant pricing, customize details, and order from vetted local bakers.',
   shortDescription:
     'AI-powered custom cake marketplace in Cebu with instant pricing, customization, and Metro Cebu delivery.',
+  foundedYear: 2025,
   siteUrl: GENIE_BASE_URL,
   organizationId: `${GENIE_BASE_URL}/#organization`,
   websiteId: `${GENIE_BASE_URL}/#website`,

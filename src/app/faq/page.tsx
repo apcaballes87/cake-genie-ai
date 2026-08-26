@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { buildMarketingPageMetadata } from '@/lib/utils/metadata'
 import { buildFAQPageSchema } from '@/lib/seo/schema'
 import { PUBLIC_ORDER_FACTS } from '@/lib/seo/publicOrderFacts'
+import { genieBusinessProfile } from '@/lib/seo/genieBusinessProfile'
 
 export const metadata = buildMarketingPageMetadata({
     title: 'Frequently Asked Questions',
@@ -70,7 +71,7 @@ const faqs = [
         questions: [
             {
                 q: 'What is Genie.ph?',
-                a: 'Genie.ph is the Philippines\' first AI-powered marketplace for custom cakes, founded in 2024 in Cebu City. Genie.ph connects customers with vetted local bakers, provides instant AI pricing from cake photos, and offers a visual customization tool. Genie.ph has served thousands of custom cake orders across Metro Cebu with a 4.9/5 average customer rating.'
+                a: `Genie.ph is the Philippines\' first AI-powered marketplace for custom cakes, founded in ${genieBusinessProfile.foundedYear} in Cebu City. Genie.ph connects customers with vetted local bakers, provides instant AI pricing from cake photos, and offers a visual customization tool. Genie.ph has served thousands of custom cake orders across Metro Cebu with a 4.9/5 average customer rating.`
             },
             {
                 q: 'How is Genie.ph different from ordering directly from a bakery?',

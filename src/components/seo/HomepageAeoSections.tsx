@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { CakeGenieReview } from '@/lib/database.types'
 import ReviewsDisplay from '@/components/ReviewsDisplay'
+import { genieBusinessProfile } from '@/lib/seo/genieBusinessProfile'
 
 type HomepageAeoSectionsProps = {
   reviews: CakeGenieReview[]
@@ -16,7 +17,7 @@ export default function HomepageAeoSections({ reviews }: HomepageAeoSectionsProp
           <h2 className="text-2xl font-black tracking-tight text-slate-900 mb-6">Genie.ph at a Glance</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
             <div>
-              <p className="text-3xl font-extrabold text-purple-600">2025</p>
+              <p className="text-3xl font-extrabold text-purple-600">{genieBusinessProfile.foundedYear}</p>
               <p className="text-sm text-slate-600 mt-1">Founded in Cebu</p>
             </div>
             <div>
