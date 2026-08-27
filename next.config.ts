@@ -149,6 +149,11 @@ const nextConfig: NextConfig = {
         destination: '/blog/bento-cake-guide-2026',
         permanent: true,
       },
+      {
+        source: '/google-reviews',
+        destination: 'https://www.google.com/maps/place/Genie.ph/@10.3125689,123.8942337,18z/data=!4m8!3m7!1s0x33a999ad7bbf0375:0x113e78a16bc0a441!8m2!3d10.3125663!4d123.8955238!9m1!1b1!16s%2Fg%2F11z073yl0w?entry=ttu&g_ep=EgoyMDI2MDgyNC4wIKXMDSoASAFQAw%3D%3D',
+        permanent: true,
+      },
     ]
   },
   // Remove console.log in production builds for cleaner output
