@@ -3,6 +3,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { AppError, isAppError } from '@/lib/errors';
 import { normalizeCreatorPromoCode } from './promoCode';
+import { areCreatorApplicationsOpen, CREATOR_APPLICATION_CLOSED_MESSAGE } from './programStatus';
 
 const RESERVED_CODES = new Set([
     'ABOUT', 'ACCOUNT', 'ADMIN', 'API', 'AUTH', 'BLOG', 'CART', 'COLLECTIONS',
@@ -203,6 +204,14 @@ function validateCreatorSubmission(data: CreatorSubmission) {
 export async function checkCreatorPromoCode(code: string): Promise<PromoCodeAvailability> {
     const normalizedCode = normalizeCreatorPromoCode(code || '');
 
+    if (!areCreatorApplicationsOpen()) {
+        return {
+            available: false,
+            code: normalizedCode,
+            message: CREATOR_APPLICATION_CLOSED_MESSAGE,
+        };
+    }
+
     if (normalizedCode.length < 4 || normalizedCode.length > 24) {
         return {
             available: false,
@@ -249,6 +258,14 @@ export async function checkCreatorPromoCode(code: string): Promise<PromoCodeAvai
 }
 
 export async function submitCreatorApplication(data: CreatorSubmission): Promise<CreatorSubmissionResult> {
+    if (!areCreatorApplicationsOpen()) {
+        return {
+            success: false,
+            error: CREATOR_APPLICATION_CLOSED_MESSAGE,
+            code: 'PROGRAM_CLOSED',
+        };
+    }
+
     try {
         const serviceConfig = requireServiceConfig();
         const client = createServiceClient(serviceConfig);

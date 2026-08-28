@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { normalizeCreatorPromoCode } from './promoCode';
 
 const { createClientMock, rpcMock, emailFetchMock } = vi.hoisted(() => ({
@@ -14,7 +14,12 @@ vi.mock('@supabase/supabase-js', () => ({
 const originalCreatorEnv = {
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
   serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+  applicationsOpen: process.env.NEXT_PUBLIC_CREATOR_APPLICATIONS_OPEN,
 };
+
+beforeEach(() => {
+  process.env.NEXT_PUBLIC_CREATOR_APPLICATIONS_OPEN = 'true';
+});
 
 afterEach(() => {
   if (originalCreatorEnv.supabaseUrl === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -22,6 +27,9 @@ afterEach(() => {
 
   if (originalCreatorEnv.serviceKey === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY;
   else process.env.SUPABASE_SERVICE_ROLE_KEY = originalCreatorEnv.serviceKey;
+
+  if (originalCreatorEnv.applicationsOpen === undefined) delete process.env.NEXT_PUBLIC_CREATOR_APPLICATIONS_OPEN;
+  else process.env.NEXT_PUBLIC_CREATOR_APPLICATIONS_OPEN = originalCreatorEnv.applicationsOpen;
 
   vi.resetModules();
   createClientMock.mockReset();
@@ -34,6 +42,30 @@ describe('creator promo codes', () => {
   it('normalizes handles and editable codes to uppercase alphanumeric values', () => {
     expect(normalizeCreatorPromoCode('@rawan.ph!')).toBe('RAWANPH');
     expect(normalizeCreatorPromoCode('My Custom-Code')).toBe('MYCUSTOMCODE');
+  });
+
+  it('blocks creator applications while the program is closed without touching Supabase', async () => {
+    process.env.NEXT_PUBLIC_CREATOR_APPLICATIONS_OPEN = 'false';
+
+    const { submitCreatorApplication } = await import('./actions');
+    const result = await submitCreatorApplication({
+      name: 'Test Creator',
+      email: 'creator@example.com',
+      contact_number: '09170000000',
+      address: 'Cebu City',
+      content_niche: 'Food',
+      tiktok_handle: '@testcreator',
+      promo_code: 'TESTCREATOR',
+      agreed_to_terms: true,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'We’re already full for the Xdeal Collab Program for September. We’ll open applications again next month for October. You’ll be the first to know when applications open—we’ll message and email you.',
+      code: 'PROGRAM_CLOSED',
+    });
+    expect(createClientMock).not.toHaveBeenCalled();
+    expect(emailFetchMock).not.toHaveBeenCalled();
   });
 
   it.each([

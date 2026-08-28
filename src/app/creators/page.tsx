@@ -10,6 +10,7 @@ import {
     type CreatorSubmission,
 } from './actions';
 import { normalizeCreatorPromoCode } from './promoCode';
+import { areCreatorApplicationsOpen, CREATOR_APPLICATION_CLOSED_MESSAGE } from './programStatus';
 import { getErrorMessage } from '@/lib/errors';
 import { Camera, Check, CheckCircle, Copy, Gift, Menu, Search } from 'lucide-react';
 import { LandingFooter } from '@/components/landing/LandingFooter';
@@ -63,6 +64,7 @@ export default function CreatorsLandingPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchFocused, setIsSearchFocused] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
+    const creatorApplicationsOpen = areCreatorApplicationsOpen();
 
     const categoriesList = [
         { id: 'Birthday', name: 'Birthday' },
@@ -151,6 +153,11 @@ export default function CreatorsLandingPage() {
     };
 
     useEffect(() => {
+        if (!creatorApplicationsOpen) {
+            setPromoCodeStatus('idle');
+            return;
+        }
+
         const code = normalizeCreatorPromoCode(formData.promo_code || '');
         if (code.length < 4 || code.length > 24) {
             setPromoCodeStatus('idle');
@@ -169,7 +176,7 @@ export default function CreatorsLandingPage() {
             cancelled = true;
             window.clearTimeout(timer);
         };
-    }, [formData.promo_code]);
+    }, [creatorApplicationsOpen, formData.promo_code]);
 
     const copyCode = async (value: string) => {
         try {
@@ -184,6 +191,11 @@ export default function CreatorsLandingPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setErrorMsg(null);
+
+        if (!creatorApplicationsOpen) {
+            return;
+        }
+
         setIsSubmitting(true);
 
         try {
@@ -699,14 +711,16 @@ export default function CreatorsLandingPage() {
                                             </>
                                         )}
                                     </button>
-                                    {errorMsg && (
+                                    {(errorMsg || !creatorApplicationsOpen) && (
                                         <div
                                             id="creator-form-error"
                                             role="alert"
                                             aria-live="assertive"
-                                            className="mt-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-md"
+                                            className={`mt-4 p-4 rounded-r-md border-l-4 ${creatorApplicationsOpen
+                                                ? 'bg-red-50 border-red-500 text-red-700'
+                                                : 'bg-amber-50 border-amber-500 text-amber-800'}`}
                                         >
-                                            <p className="font-medium">{errorMsg}</p>
+                                            <p className="font-medium">{creatorApplicationsOpen ? errorMsg : CREATOR_APPLICATION_CLOSED_MESSAGE}</p>
                                         </div>
                                     )}
                                 </div>
