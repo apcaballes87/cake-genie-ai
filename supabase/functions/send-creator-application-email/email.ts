@@ -113,13 +113,13 @@ export function buildCreatorApplicationEmailHtml(payload: CreatorApplicationEmai
         </p>
 
         ${section('A. Free Bento Cake (up to ₱499)', `
-          <p style="margin:0;font-size:16px;line-height:1.65;">Receive up to ₱499 off one bento cake for your content creation. If customizations make the bento cake cost more than ₱499, you pay the difference. Use it to record your experience and create a review. Delivery is charged at the regular delivery rate but delivery is free within Cebu City.</p>
-          <p style="margin:16px 0 0;font-size:16px;line-height:1.65;">Focus your content on how easy it is to order online through Genie.ph: upload a design, get an instant quote, customize the cake, and complete the order without waiting for long chat replies.</p>
+          <p style="margin:0;font-size:16px;line-height:1.65;">Visit Genie.ph first and place your own bento cake order. Choose a design from our collection or upload your own design, customize your cake, and get an instant quote. At checkout, apply the free bento code below to get your bento cake order free (up to ₱499 off). Use it to record your experience and create a review. Delivery is charged at the regular delivery rate but delivery is free within Cebu City.</p>
+          <p style="margin:16px 0 0;font-size:16px;line-height:1.65;">Focus your content on how easy it is to order online through Genie.ph: choose or upload your own design, get an instant quote, customize the cake, and complete the order without waiting for long chat replies.</p>
           ${codeBox('Free bento code', payload.bentoCode)}
         `, '#fcf8ff')}
 
         ${section('B. 50% Personal Voucher', `
-          <p style="margin:0;font-size:16px;line-height:1.65;">This voucher is valid once for the email address used in your application. It gives 50% off the cake subtotal, capped at ₱1,500. Delivery is not discounted. The voucher starts inactive and is activated once you submit a video reel.</p>
+          <p style="margin:0;font-size:16px;line-height:1.65;">This voucher is valid once for the email address used in your application. It gives 50% off the cake subtotal, capped at ₱1,500. Free Delivery within Cebu City. This voucher is inactive and will be activated once you submit a video reel.</p>
           ${codeBox('Personal voucher code', payload.voucherCode)}
         `)}
 
@@ -146,14 +146,14 @@ export function buildCreatorApplicationEmailText(payload: CreatorApplicationEmai
 Hi ${payload.name}, thank you for applying to the Genie.ph Creator UGC Collab. Your codes are below—please save them before leaving this email.
 
 A. FREE BENTO CAKE (UP TO ₱499)
-Receive up to ₱499 off one bento cake for your content creation. If customizations make the bento cake cost more than ₱499, you pay the difference. Use it to record your experience and create a review. Delivery is charged at the regular delivery rate but delivery is free within Cebu City.
+Visit Genie.ph first and place your own bento cake order. Choose a design from our collection or upload your own design, customize your cake, and get an instant quote. At checkout, apply the free bento code below to get your bento cake order free (up to ₱499 off). Use it to record your experience and create a review. Delivery is charged at the regular delivery rate but delivery is free within Cebu City.
 
-Focus your content on how easy it is to order online through Genie.ph: upload a design, get an instant quote, customize the cake, and complete the order without waiting for long chat replies.
+Focus your content on how easy it is to order online through Genie.ph: choose or upload your own design, get an instant quote, customize the cake, and complete the order without waiting for long chat replies.
 
 FREE BENTO CODE: ${payload.bentoCode}
 
 B. 50% PERSONAL VOUCHER
-This voucher is valid once for the email address used in your application. It gives 50% off the cake subtotal, capped at ₱1,500. Delivery is not discounted. The voucher starts inactive and is activated once you submit a video reel.
+This voucher is valid once for the email address used in your application. It gives 50% off the cake subtotal, capped at ₱1,500. Free Delivery within Cebu City. This voucher is inactive and will be activated once you submit a video reel.
 
 PERSONAL VOUCHER CODE: ${payload.voucherCode}
 

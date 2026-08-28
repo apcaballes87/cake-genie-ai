@@ -229,12 +229,12 @@ export default function CreatorsLandingPage() {
                     {applicationResult && (
                         <div className="space-y-4 text-left">
                             <section className="rounded-2xl border border-purple-100 bg-purple-50/60 p-5 space-y-3">
-                                <h2 className="text-lg font-bold text-gray-900">A. Free Bento Cake</h2>
+                                <h2 className="text-lg font-bold text-gray-900">A. Free Bento Cake (up to ₱499)</h2>
                                 <p className="text-sm text-gray-600 leading-relaxed">
-                                    Receive a complimentary bento cake for your content creation. Use it to record your experience and create a review. Delivery is charged at the regular delivery rate but delivery is free within Cebu City.
+                                    Visit Genie.ph first and place your own bento cake order. Choose a design from our collection or upload your own design, customize your cake, and get an instant quote. At checkout, apply the free bento code below to get your bento cake order free (up to ₱499 off). Use it to record your experience and create a review. Delivery is charged at the regular delivery rate but delivery is free within Cebu City.
                                 </p>
                                 <p className="text-sm text-gray-700 leading-relaxed">
-                                    Focus your content on how easy it is to order online through Genie.ph: upload a design, get an instant quote, customize the cake, and complete the order without waiting for long chat replies.
+                                    Focus your content on how easy it is to order online through Genie.ph: choose or upload your own design, get an instant quote, customize the cake, and complete the order without waiting for long chat replies.
                                 </p>
                                 <CodeRow label="Free bento code" value={applicationResult.bentoCode} copiedCode={copiedCode} onCopy={copyCode} />
                             </section>
@@ -242,7 +242,7 @@ export default function CreatorsLandingPage() {
                             <section className="rounded-2xl border border-purple-100 bg-white p-5 space-y-3">
                                 <h2 className="text-lg font-bold text-gray-900">B. 50% Personal Voucher</h2>
                                 <p className="text-sm text-gray-600 leading-relaxed">
-                                    This voucher is valid once for the email address used in your application. It gives 50% off the cake subtotal, capped at ₱1,500. Delivery is not discounted. The voucher starts inactive and is activated once you submit a video reel.
+                                    This voucher is valid once for the email address used in your application. It gives 50% off the cake subtotal, capped at ₱1,500. Free Delivery within Cebu City. This voucher is inactive and will be activated once you submit a video reel.
                                 </p>
                                 <CodeRow label="Personal voucher code" value={applicationResult.voucherCode} copiedCode={copiedCode} onCopy={copyCode} />
                             </section>
@@ -397,8 +397,8 @@ export default function CreatorsLandingPage() {
                                 <li className="flex gap-3">
                                     <div className="mt-0.5 shrink-0 w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-700 font-bold text-sm">1</div>
                                     <div>
-                                        <h4 className="font-semibold text-gray-900">Free Bento Cake</h4>
-                                        <p className="text-sm text-gray-600">Receive a complimentary bento cake for your content creation.</p>
+                                        <h4 className="font-semibold text-gray-900">Free Bento Cake (up to ₱499)</h4>
+                                        <p className="text-sm text-gray-600">Visit Genie.ph, choose or upload your own design, and use the free bento code to get up to ₱499 off your bento cake order.</p>
                                     </div>
                                 </li>
                                 <li className="flex gap-3">
