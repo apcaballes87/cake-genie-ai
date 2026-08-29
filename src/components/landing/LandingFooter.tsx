@@ -273,6 +273,24 @@ export function LandingFooter({ reviewSummary }: LandingFooterProps) {
                 />
               </a>
               <a
+                href="https://productfame.com/products/genie-ph"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="ProductFame Top 1 Daily Winner"
+                className="h-[34px] transition-opacity hover:opacity-80"
+              >
+                <img
+                  src="https://productfame.com/badges/top1-light.svg"
+                  alt="ProductFame Top 1 Daily Winner"
+                  width="195"
+                  height="58"
+                  className="h-full w-auto object-contain"
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
+                />
+              </a>
+              <a
                 href="https://starthub.zip"
                 title="starthub.zip"
                 className="text-sm font-semibold text-purple-700 underline underline-offset-4 transition-colors hover:text-purple-900"
