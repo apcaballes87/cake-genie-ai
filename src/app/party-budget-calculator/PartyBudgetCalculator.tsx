@@ -787,30 +787,27 @@ export default function PartyBudgetCalculator() {
                  />
               </div>
               <div>
-                <div className="flex items-end gap-3">
-                  <div className="flex items-center gap-2">
-                    <input
-                      id="kidsAttending"
-                      type="checkbox"
-                      checked={kidsAttending}
-                      onChange={(e) => setKidsAttending(e.target.checked)}
-                      className="h-4 w-4 rounded border-purple-300 text-purple-600 focus:ring-2 focus:ring-purple-500/30"
-                    />
-                    <label htmlFor="kidsAttending" className={labelClass}>
-                      Kids attending
-                    </label>
-                  </div>
-                  {kidsAttending && (
-                    <input
-                      ref={childCountRef}
-                      type="number"
-                      min="0"
-                      value={childCount}
-                      onChange={(e) => setChildCount(Math.max(0, parseInt(e.target.value) || 0))}
-                      className={inputClass}
-                    />
-                  )}
+                <div className="flex items-center gap-2">
+                  <input
+                    id="kidsAttending"
+                    type="checkbox"
+                    checked={kidsAttending}
+                    onChange={(e) => setKidsAttending(e.target.checked)}
+                    className="h-4 w-4 rounded border-purple-300 text-purple-600 focus:ring-2 focus:ring-purple-500/30"
+                  />
+                  <label htmlFor="kidsAttending" className={labelClass}>
+                    Kids attending
+                  </label>
                 </div>
+                <input
+                  ref={childCountRef}
+                  type="number"
+                  min="0"
+                  value={childCount}
+                  onChange={(e) => setChildCount(Math.max(0, parseInt(e.target.value) || 0))}
+                  disabled={!kidsAttending}
+                  className={`${inputClass} ${!kidsAttending ? 'opacity-50 cursor-not-allowed' : ''}`}
+                />
               </div>
               <div>
                 <label className={labelClass}>Contingency buffer (%)</label>
