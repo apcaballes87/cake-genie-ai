@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { calculatePriceFromDatabase } from '@/services/pricingService.database';
-import { getCakeBasePriceOptions } from '@/services/supabaseService';
+import { getCakeBasePriceOptionsForCatalog } from '@/services/supabaseService';
 import {
     HybridAnalysisResult,
     MainTopperUI,
@@ -22,6 +22,7 @@ import {
 import { roundDownToNearest99 } from '@/lib/utils/pricing';
 import { withTimeout } from '@/lib/utils/timeout';
 import { calculateIcingTypePriceDelta, type IcingPriceOption } from '@/lib/pricing/icingTypePrice';
+import type { BasePriceCatalog } from '@/lib/pricing/basePriceCatalog';
 
 const PRICING_QUERY_TIMEOUT_MS = 8_000;
 
@@ -42,8 +43,8 @@ const cakeTypeDisplayMap: Record<CakeType, string> = {
 };
 
 const pricingKeys = {
-    basePrice: (type?: CakeType, thickness?: CakeThickness) =>
-        ['pricing', 'base', type, thickness] as const,
+    basePrice: (type?: CakeType, thickness?: CakeThickness, catalog: BasePriceCatalog = 'genie') =>
+        ['pricing', 'base', type, thickness, catalog] as const,
     addOnPrice: (uiStateKey: string, merchantId?: string) => ['pricing', 'addon', uiStateKey, merchantId] as const,
     icingTypePriceDelta: (
         type?: CakeType,
@@ -51,7 +52,8 @@ const pricingKeys = {
         size?: string,
         icingBase?: IcingDesignUI['base'] | null,
         currentPrice?: number,
-    ) => ['pricing', 'icing-type-delta', type, thickness, size, icingBase, currentPrice] as const,
+        catalog: BasePriceCatalog = 'genie',
+    ) => ['pricing', 'icing-type-delta', type, thickness, size, icingBase, currentPrice, catalog] as const,
 };
 
 type PricingUiState = {
@@ -79,6 +81,7 @@ interface UsePricingProps {
     initialPriceInfo?: BasePriceInfo | null;
     analysisId: string | null;
     merchantId?: string;
+    basePriceCatalog?: BasePriceCatalog;
 }
 
 async function calculateAddOnPrice(uiState: PricingUiState, merchantId?: string) {
@@ -96,6 +99,7 @@ export const usePricing = ({
     initialPriceInfo = null,
     analysisId,
     merchantId,
+    basePriceCatalog = 'genie',
 }: UsePricingProps) => {
     const lastProcessedAnalysisId = useRef<string | null>(null);
 
@@ -106,14 +110,14 @@ export const usePricing = ({
         isPlaceholderData,
         refetch: refetchBasePrice,
     } = useQuery({
-        queryKey: pricingKeys.basePrice(cakeInfo?.type, cakeInfo?.thickness),
+        queryKey: pricingKeys.basePrice(cakeInfo?.type, cakeInfo?.thickness, basePriceCatalog),
         queryFn: async () => {
             if (!cakeInfo?.type || !cakeInfo?.thickness) {
                 return { options: [], effectiveThickness: cakeInfo?.thickness };
             }
 
             let results = await withTimeout(
-                getCakeBasePriceOptions(cakeInfo.type, cakeInfo.thickness),
+                getCakeBasePriceOptionsForCatalog(cakeInfo.type, cakeInfo.thickness, basePriceCatalog),
                 PRICING_QUERY_TIMEOUT_MS,
                 'Pricing lookup timed out. Please retry.',
             );
@@ -123,7 +127,7 @@ export const usePricing = ({
                 const defaultThickness = DEFAULT_THICKNESS_MAP[cakeInfo.type];
                 if (defaultThickness && defaultThickness !== cakeInfo.thickness) {
                     const fallbackResults = await withTimeout(
-                        getCakeBasePriceOptions(cakeInfo.type, defaultThickness),
+                        getCakeBasePriceOptionsForCatalog(cakeInfo.type, defaultThickness, basePriceCatalog),
                         PRICING_QUERY_TIMEOUT_MS,
                         'Fallback pricing lookup timed out. Please retry.',
                     );
@@ -262,6 +266,7 @@ export const usePricing = ({
             cakeInfo?.size,
             currentIcingBase,
             basePrice,
+            basePriceCatalog,
         ),
         queryFn: async () => {
             const emptyDeltas: Record<IcingDesignUI['base'], number | null> = {
@@ -283,7 +288,7 @@ export const usePricing = ({
                 const counterpartOptions = (await Promise.all(
                     alternateThicknesses.map(async (thickness) => {
                         const options = await withTimeout(
-                            getCakeBasePriceOptions(alternateType, thickness),
+                            getCakeBasePriceOptionsForCatalog(alternateType, thickness, basePriceCatalog),
                             PRICING_QUERY_TIMEOUT_MS,
                             'Icing type pricing lookup timed out.',
                         );

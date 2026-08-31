@@ -5,12 +5,12 @@ import { describe, expect, it, vi } from 'vitest';
 import type { CakeInfoUI, IcingDesignUI } from '@/types';
 
 const mocks = vi.hoisted(() => ({
-    getCakeBasePriceOptions: vi.fn(),
+    getCakeBasePriceOptionsForCatalog: vi.fn(),
     calculatePriceFromDatabase: vi.fn(),
 }));
 
 vi.mock('@/services/supabaseService', () => ({
-    getCakeBasePriceOptions: mocks.getCakeBasePriceOptions,
+    getCakeBasePriceOptionsForCatalog: mocks.getCakeBasePriceOptionsForCatalog,
 }));
 
 vi.mock('@/services/pricingService.database', () => ({
@@ -42,7 +42,7 @@ describe('usePricing icing type comparisons', () => {
             addOnPricing: { addOnPrice: 0, breakdown: [] },
             itemPrices: new Map(),
         });
-        mocks.getCakeBasePriceOptions.mockImplementation(async (type: string, thickness: string) => {
+        mocks.getCakeBasePriceOptionsForCatalog.mockImplementation(async (type: string, thickness: string) => {
             if (type === '1 Tier' && thickness === '3 in') {
                 return [{ size: '6" Round', price: 1199 }];
             }
@@ -74,5 +74,43 @@ describe('usePricing icing type comparisons', () => {
         await waitFor(() => {
             expect(result.current.icingTypePriceDeltas.fondant).toBe(800);
         });
+    });
+
+    it('uses a separate query key and catalog for a Cakes & Memories handoff', async () => {
+        mocks.calculatePriceFromDatabase.mockResolvedValue({
+            addOnPricing: { addOnPrice: 0, breakdown: [] },
+            itemPrices: new Map(),
+        });
+        mocks.getCakeBasePriceOptionsForCatalog.mockResolvedValue([{ size: '6" Round', price: 1299 }]);
+
+        const queryClient = new QueryClient({
+            defaultOptions: { queries: { retry: false } },
+        });
+        const wrapper = ({ children }: { children: React.ReactNode }) => (
+            <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        );
+
+        const { usePricing } = await import('./usePricing');
+        const { result } = renderHook(() => usePricing({
+            analysisResult: null,
+            mainToppers: [],
+            supportElements: [],
+            cakeMessages: [],
+            icingDesign,
+            cakeInfo,
+            onCakeInfoCorrection: vi.fn(),
+            analysisId: null,
+            basePriceCatalog: 'cakes_and_memories',
+        }), { wrapper });
+
+        await waitFor(() => {
+            expect(result.current.basePrice).toBe(1299);
+        });
+        expect(mocks.getCakeBasePriceOptionsForCatalog).toHaveBeenCalledWith(
+            '1 Tier',
+            '3 in',
+            'cakes_and_memories',
+        );
+        expect(queryClient.getQueryState(['pricing', 'base', '1 Tier', '3 in', 'cakes_and_memories'])).toBeDefined();
     });
 });

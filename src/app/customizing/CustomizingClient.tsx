@@ -106,6 +106,10 @@ import {
     shouldLoadPropDesign,
     shouldLogShopifyCseMount,
 } from './customizingClientGuards';
+import {
+    getBasePriceCatalogForEntrySource,
+    type BasePriceCatalog,
+} from '@/lib/pricing/basePriceCatalog';
 
 const PreSelectionModal = dynamic(
     () => import('@/components/PreSelectionModal').then((mod) => mod.PreSelectionModal),
@@ -386,9 +390,16 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     const routeSlug = params?.slug || currentSlug;
     const slug = hasNewUpload ? null : routeSlug;
     const supabase = useMemo(() => createClient(), []);
+    const [basePriceCatalog, setBasePriceCatalog] = useState<BasePriceCatalog>(
+        () => getBasePriceCatalogForEntrySource(preloadSource),
+    );
 
     const [activeCustomization, setActiveCustomization] = useState<string | null>(null);
     const [reviewSummary, setReviewSummary] = useState<{ total: number; averageRating: number } | null>(initialReviewSummary || null);
+
+    useEffect(() => {
+        setBasePriceCatalog(getBasePriceCatalogForEntrySource(preloadSource));
+    }, [preloadSource]);
 
     useEffect(() => {
         if (initialReviewSummary) return;
@@ -702,6 +713,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         aiChatRequestIdRef.current = null;
         aiChatRequestInFlightRef.current = false;
         setIsAiProcessing(false);
+        setBasePriceCatalog('genie');
 
         // Reset associations with original design/slug
         setHasNewUpload(true);
@@ -1017,7 +1029,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
 
     // --- Hooks ---
     const { addOnPricing, itemPrices, basePriceOptions: hookBasePriceOptions, isFetchingBasePrice, basePriceError, basePrice, finalPrice, icingTypePriceDeltas, retryPricing } = usePricing({
-        analysisResult, mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo, onCakeInfoCorrection: handleCakeInfoChange, analysisId, merchantId: merchant?.merchant_id
+        analysisResult, mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo, onCakeInfoCorrection: handleCakeInfoChange, analysisId, merchantId: merchant?.merchant_id, basePriceCatalog
     });
 
     // Use initialPrices for SSR if hook data isn't ready yet
@@ -2325,6 +2337,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                     return;
                 }
 
+                setBasePriceCatalog(getBasePriceCatalogForEntrySource(sourceParam));
+
                 if (!imageUrlParam) {
                     return;
                 }
@@ -2414,7 +2428,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                         setIsAnalyzing(false);
                         setIsPreSelectionModalOpen(false);
                         isLoadingShopifyCseRef.current = false;
-                    }
+                    },
+                    { imageUrl }
                 );
 
             } catch (_err: unknown) {
@@ -2435,6 +2450,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
         const refUrl = urlParams.get('ref');
+        const sourceParam = resolveEntrySourceParam(urlParams);
         const fromSaved = urlParams.get('fromSaved') === 'true';
         const fromMerchant = urlParams.get('fromMerchant') === 'true';
 
@@ -2442,6 +2458,8 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
             lastProcessedDesignRefUrl.current = null;
             return;
         }
+
+        setBasePriceCatalog(getBasePriceCatalogForEntrySource(sourceParam));
 
         if (isImageManagementLoading) {
             return;
@@ -2875,6 +2893,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         isLoadingShopifyCseRef.current = false;
         lastProcessedDesignRefUrl.current = null;
         setPreloadedHeroImage(null);
+        setBasePriceCatalog('genie');
         setActiveTab('original');
         setIsPreSelectionModalOpen(false);
         setAnalysisError(null);

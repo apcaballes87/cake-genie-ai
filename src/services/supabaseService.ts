@@ -30,6 +30,7 @@ import {
   rankRelatedProducts,
 } from './relatedProductSearch';
 import { normalizeAnalysisForDefaultFulfillment } from '@/lib/ai/fulfillmentNormalization';
+import type { BasePriceCatalog } from '@/lib/pricing/basePriceCatalog';
 
 // The default client (uses @supabase/ssr browser client)
 const supabase: SupabaseClient = getSupabaseClient();
@@ -124,6 +125,33 @@ export const getCakeBasePriceOptions = async (
     }
     throw new Error("Could not connect to the pricing database.");
   }
+};
+
+/**
+ * Standard Genie pricing remains a public-table lookup. The alternate catalog
+ * is resolved by the server so its feature flag stays server-only.
+ */
+export const getCakeBasePriceOptionsForCatalog = async (
+  type: CakeType,
+  thickness: CakeThickness,
+  catalog: BasePriceCatalog,
+): Promise<BasePriceInfo[]> => {
+  if (catalog === 'genie') {
+    return getCakeBasePriceOptions(type, thickness);
+  }
+
+  const params = new URLSearchParams({ catalog, type, thickness });
+  const response = await fetch(`/api/pricing/base-options?${params.toString()}`);
+  const payload = await response.json().catch(() => null) as {
+    error?: string;
+    options?: BasePriceInfo[];
+  } | null;
+
+  if (!response.ok) {
+    throw new Error(payload?.error || 'Could not connect to the pricing database.');
+  }
+
+  return payload?.options || [];
 };
 
 export const getLowestCakeBasePriceOptions = async (
