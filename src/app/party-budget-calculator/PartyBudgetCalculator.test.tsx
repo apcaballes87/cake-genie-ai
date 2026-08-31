@@ -119,6 +119,108 @@ describe('PartyBudgetCalculator', () => {
     expect(mocks.getPartyBudget).not.toHaveBeenCalled();
   });
 
+  it('clears the pending-save flag when reset is clicked', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem(PENDING_PARTY_BUDGET_SAVE_KEY, 'true');
+
+    render(<PartyBudgetCalculator />);
+
+    await user.click(screen.getByRole('button', { name: 'Save Details' }));
+
+    expect(localStorage.getItem(PENDING_PARTY_BUDGET_SAVE_KEY)).toBe('true');
+
+    await user.click(screen.getByRole('button', { name: /Reset planner/ }));
+
+    expect(localStorage.getItem(PENDING_PARTY_BUDGET_SAVE_KEY)).toBeNull();
+    expect(localStorage.getItem(PARTY_BUDGET_ITEMS_STORAGE_KEY)).toBeNull();
+    expect(localStorage.getItem(PARTY_BUDGET_META_STORAGE_KEY)).toBeNull();
+  });
+
+  it('fetches cloud data on mount for a logged-in user (second-device scenario)', async () => {
+    const cloudSnapshot = {
+      meta: {
+        partyDate: '2026-12-25',
+        guestCount: 50,
+        childCount: 30,
+        kidsAttending: true,
+        currency: 'USD',
+        overallBudget: '10000',
+        contingency: 10,
+      },
+      lineItems: {
+        venue: [{
+          id: 'cloud-venue',
+          label: 'Cloud venue',
+          description: 'From another device',
+          cost: 3000,
+          qty: 1,
+        }],
+      },
+    };
+    mocks.getPartyBudget.mockResolvedValue({ budget_data: cloudSnapshot });
+    mocks.auth.user = { id: 'user-device-2', is_anonymous: false };
+    mocks.auth.isAuthenticated = true;
+
+    render(<PartyBudgetCalculator />);
+
+    await waitFor(() => expect(mocks.getPartyBudget).toHaveBeenCalledWith('user-device-2'));
+    expect(screen.getByLabelText('Cloud venue unit cost')).toHaveValue(3000);
+    expect(screen.getByDisplayValue('2026-12-25')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('10000')).toBeInTheDocument();
+  });
+
+  it('overwrites stale localStorage with cloud data on re-login', async () => {
+    localStorage.setItem(PARTY_BUDGET_ITEMS_STORAGE_KEY, JSON.stringify({
+      venue: [{
+        id: 'stale-venue',
+        label: 'Stale venue',
+        description: 'Old local data',
+        cost: 999,
+        qty: 1,
+      }],
+    }));
+    localStorage.setItem(PARTY_BUDGET_META_STORAGE_KEY, JSON.stringify({
+      partyDate: '2026-01-01',
+      guestCount: 10,
+      childCount: 5,
+      kidsAttending: false,
+      currency: 'PHP',
+      overallBudget: '5000',
+      contingency: 5,
+    }));
+
+    const cloudSnapshot = {
+      meta: {
+        partyDate: '2026-06-15',
+        guestCount: 80,
+        childCount: 40,
+        kidsAttending: true,
+        currency: 'EUR',
+        overallBudget: '20000',
+        contingency: 12,
+      },
+      lineItems: {
+        venue: [{
+          id: 'cloud-venue-fresh',
+          label: 'Fresh cloud venue',
+          description: 'From cloud',
+          cost: 5000,
+          qty: 1,
+        }],
+      },
+    };
+    mocks.getPartyBudget.mockResolvedValue({ budget_data: cloudSnapshot });
+    mocks.auth.user = { id: 'user-relogin', is_anonymous: false };
+    mocks.auth.isAuthenticated = true;
+
+    render(<PartyBudgetCalculator />);
+
+    await waitFor(() => expect(mocks.getPartyBudget).toHaveBeenCalledWith('user-relogin'));
+    expect(screen.getByLabelText('Fresh cloud venue unit cost')).toHaveValue(5000);
+    expect(screen.getByDisplayValue('2026-06-15')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('20000')).toBeInTheDocument();
+  });
+
   it('shows the visible row count below the price only while a category is collapsed', async () => {
     const user = userEvent.setup();
     render(<PartyBudgetCalculator />);

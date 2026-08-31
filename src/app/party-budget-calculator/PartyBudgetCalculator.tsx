@@ -242,16 +242,17 @@ export default function PartyBudgetCalculator() {
 
   const handleReset = () => {
      setPartyDate('');
-    setGuestCount(30);
-    setChildCount(20);
-    setKidsAttending(true);
-    setCurrency('PHP');
-    setOverallBudget('');
-    setContingency(8);
-    setLineItems(initialLineItems);
-    localStorage.removeItem(PARTY_BUDGET_ITEMS_STORAGE_KEY);
-    localStorage.removeItem(PARTY_BUDGET_META_STORAGE_KEY);
-  };
+     setGuestCount(30);
+     setChildCount(20);
+     setKidsAttending(true);
+     setCurrency('PHP');
+     setOverallBudget('');
+     setContingency(8);
+     setLineItems(initialLineItems);
+     localStorage.removeItem(PARTY_BUDGET_ITEMS_STORAGE_KEY);
+     localStorage.removeItem(PARTY_BUDGET_META_STORAGE_KEY);
+     localStorage.removeItem(PENDING_PARTY_BUDGET_SAVE_KEY);
+   };
 
   const subtotal = useMemo(() => {
     let sum = 0;
@@ -388,6 +389,12 @@ export default function PartyBudgetCalculator() {
 
     void syncAccountBudget();
   }, [applySnapshot, hasHydrated, isAuthLoading, isAuthenticated, persistPartyBudget, user]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      cloudSyncUserRef.current = null;
+    }
+  }, [isAuthenticated, user]);
 
   const handleSaveDetails = async () => {
     if (!isAuthenticated || !user || user.is_anonymous) {
