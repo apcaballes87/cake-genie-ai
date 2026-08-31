@@ -747,7 +747,7 @@ export default function PartyBudgetCalculator() {
   };
 
   return (
-    <section ref={printRef} className="mt-8">
+    <section ref={printRef} className="mt-8 pb-32 md:pb-0">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div>
            <div className="rounded-3xl border border-purple-100 bg-white p-6 shadow-sm md:p-8">
@@ -924,6 +924,39 @@ export default function PartyBudgetCalculator() {
         </aside>
       </div>
       {isSignupModalOpen ? <PartyBudgetSignupModal onClose={() => setIsSignupModalOpen(false)} /> : null}
+
+      {/* Mobile bottom bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-purple-100 bg-white/95 px-4 py-3 shadow-[0_-2px_10px_rgba(0,0,0,0.06)] backdrop-blur-lg md:hidden">
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Your running total</p>
+            <p className="truncate text-xl font-black text-slate-900">{formatCurrency(total, currency)}</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              onClick={handleExportPDF}
+              className="genie-btn-primary inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-bold shadow-md"
+            >
+              <Download className="h-3.5 w-3.5" />
+              PDF
+            </button>
+            <button
+              onClick={handleSaveDetails}
+              disabled={isSaving || isAuthLoading}
+              className="inline-flex items-center gap-1.5 rounded-full border border-purple-200 bg-purple-50 px-4 py-2.5 text-xs font-bold text-purple-700 shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              Save
+            </button>
+          </div>
+        </div>
+        <button
+          onClick={handleReset}
+          className="mt-1.5 w-full text-center text-[11px] font-semibold text-slate-400 underline-offset-2 hover:text-slate-600 hover:underline"
+        >
+          Reset planner
+        </button>
+      </div>
     </section>
   );
 }
