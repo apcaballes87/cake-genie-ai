@@ -11,12 +11,16 @@ describe('buildCakeTypePriceSummaries', () => {
       { type: '1 Tier', thickness: '4 in', cakesize: '6" Round', price: 1100, display_order: 2 },
       { type: '1 Tier', thickness: '3 in', cakesize: '8" Round', price: 1400, display_order: 3 },
       { type: '1 Tier Fondant', thickness: '5 in', cakesize: '6" Round', price: 1600, display_order: 1 },
+      { type: 'Slab Cake', thickness: '6 in', cakesize: '4x12', price: 1699, display_order: 1 },
+      { type: 'Slab Cake', thickness: '6 in', cakesize: '5x14', price: 2199, display_order: 2 },
+      { type: 'Slab Cake', thickness: '6 in', cakesize: '6x16', price: 2899, display_order: 3 },
       { type: 'Cupcake', thickness: '2 in', cakesize: 'Box of 12', price: 780, display_order: 3 },
     ]);
 
     expect(summaries.map((summary) => summary.cakeType)).toEqual([
       '1 Tier',
       '1 Tier Fondant',
+      'Slab Cake',
       'Cupcake',
     ]);
 
@@ -41,5 +45,19 @@ describe('buildCakeTypePriceSummaries', () => {
         prices: [{ size: '6" Round', price: 1100 }],
       },
     ]);
+
+    expect(summaries[2]).toMatchObject({
+      cakeType: 'Slab Cake',
+      filterKey: 'soft-icing',
+      defaultThickness: '6 in',
+      priceGroups: [{
+        thickness: '6 in',
+        prices: [
+          { size: '4x12', price: 1699 },
+          { size: '5x14', price: 2199 },
+          { size: '6x16', price: 2899 },
+        ],
+      }],
+    });
   });
 });

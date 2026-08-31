@@ -38,6 +38,7 @@ export const CAKE_TYPES: CakeType[] = [
   '1 Tier', '2 Tier', '3 Tier',
   '1 Tier Fondant', '2 Tier Fondant', '3 Tier Fondant',
   'Square', 'Rectangle',
+  'Slab Cake',
   'Square Fondant', 'Rectangle Fondant',
   'Cupcake',
   'Bento Cupcake Set'
@@ -50,6 +51,7 @@ export const SOFT_ICING_CAKE_TYPES: CakeType[] = [
   '3 Tier',
   'Square',
   'Rectangle',
+  'Slab Cake',
   'Cupcake',
   'Bento Cupcake Set'
 ];
@@ -89,6 +91,7 @@ export const getEquivalentCakeTypeForIcingBase = (
         return 'Square Fondant';
       case 'Rectangle':
       case 'Rectangle Fondant':
+      case 'Slab Cake':
         return 'Rectangle Fondant';
       default:
         return '1 Tier Fondant';
@@ -111,6 +114,8 @@ export const getEquivalentCakeTypeForIcingBase = (
     case 'Rectangle':
     case 'Rectangle Fondant':
       return 'Rectangle';
+    case 'Slab Cake':
+      return 'Slab Cake';
     case 'Bento':
     default:
       return 'Bento';
@@ -121,6 +126,17 @@ export const getEquivalentCakeSizeForIcingBase = (
   cakeSize: CakeSize,
   base: IcingDesign['base']
 ): CakeSize => {
+  const slabSizeToRectangleSize: Record<string, CakeSize> = {
+    '4x12': '8x12',
+    '5x14': '10x14',
+    '6x16': '12x16',
+  };
+  const normalizedSize = cakeSize.trim().toLowerCase();
+
+  if (base === 'fondant' && slabSizeToRectangleSize[normalizedSize]) {
+    return slabSizeToRectangleSize[normalizedSize];
+  }
+
   // Square and Rectangle numeric format sizes are identical for both soft icing and fondant in DB
   const isNumericSquareOrRect = /^(8x8|10x10|8x12|10x14|12x16)$/i.test(cakeSize.trim());
   if (isNumericSquareOrRect) {
@@ -156,6 +172,7 @@ export const DEFAULT_THICKNESS_MAP: Record<CakeType, CakeThickness> = {
   '3 Tier': '4 in',
   'Square': '4 in',
   'Rectangle': '4 in',
+  'Slab Cake': '6 in',
   '1 Tier Fondant': '5 in',
   '2 Tier Fondant': '5 in',
   '3 Tier Fondant': '5 in',
@@ -172,6 +189,7 @@ export const THICKNESS_OPTIONS_MAP: Record<CakeType, CakeThickness[]> = {
   '3 Tier': ['4 in', '5 in'],
   'Square': ['3 in', '4 in'],
   'Rectangle': ['3 in', '4 in'],
+  'Slab Cake': ['6 in'],
   '1 Tier Fondant': ['5 in', '6 in'],
   '2 Tier Fondant': ['5 in', '6 in'],
   '3 Tier Fondant': ['5 in', '6 in'],
@@ -364,6 +382,7 @@ export const CAKE_TYPE_THUMBNAILS: Record<CakeType, string> = {
   '3 Tier Fondant': `${storageBaseUrl}/3tier.webp`,
   'Square': `${storageBaseUrl}/square.webp`,
   'Rectangle': `${storageBaseUrl}/rectangle.webp`,
+  'Slab Cake': `${storageBaseUrl}/rectangle.webp`,
   'Bento': `${storageBaseUrl}/bento.webp`,
   'Square Fondant': `${storageBaseUrl}/square.webp`,
   'Rectangle Fondant': `${storageBaseUrl}/rectangle.webp`,
@@ -407,6 +426,10 @@ export const CAKE_SIZE_THUMBNAILS: Record<string, string> = {
   '8x12': `${storageBaseUrl}/rectangle.webp`,
   '10x14': `${storageBaseUrl}/rectangle.webp`,
   '12x16': `${storageBaseUrl}/rectangle.webp`,
+  // Slab Cake
+  '4x12': `${storageBaseUrl}/rectangle.webp`,
+  '5x14': `${storageBaseUrl}/rectangle.webp`,
+  '6x16': `${storageBaseUrl}/rectangle.webp`,
   '2oz - 12 pieces': `${storageBaseUrl}/bento.webp`,
 };
 
@@ -418,6 +441,7 @@ export const DEFAULT_SIZE_MAP: Record<CakeType, CakeSize> = {
   '3 Tier': '5"8"10"',
   'Square': '8x8',
   'Rectangle': '8x12',
+  'Slab Cake': '4x12',
   '1 Tier Fondant': '6" Round Fondant',
   '2 Tier Fondant': '6"9" Fondant',
   '3 Tier Fondant': '5"8"10"Fondant',

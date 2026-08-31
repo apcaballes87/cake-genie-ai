@@ -491,7 +491,8 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                                    normType.includes('2 tier') || 
                                    normType.includes('3 tier') || 
                                    normType.includes('square') || 
-                                   normType.includes('rectangle');
+                                   normType.includes('rectangle') ||
+                                   normType.includes('slab cake');
 
         let hasChange = false;
         const newFlavors = [...cakeInfo.flavors];
@@ -532,7 +533,7 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
 
         // Keep the current family grouping intact so shape changes stay scoped.
         const normalizeForGroup = (type: string) => type.replace(/\s+Fondant$/i, '');
-        const standardGroup = ['Bento', '1 Tier', 'Square', 'Rectangle'];
+        const standardGroup = ['Bento', '1 Tier', 'Square', 'Rectangle', 'Slab Cake'];
         const multiTierGroup = ['2 Tier', '3 Tier'];
         const currentBaseType = normalizeForGroup(cakeInfo.type);
         const isCurrentlyStandard = standardGroup.includes(currentBaseType);

@@ -427,6 +427,7 @@ export function buildSearchAnalysisResponseSchema(typeEnums: GeneratedAnalysisTy
           '1 Tier = 3 in, 4 in, 5 in, or 6 in;',
           '2 Tier or 3 Tier = 4 in or 5 in;',
           'Square or Rectangle = 3 in or 4 in;',
+          'Slab Cake = 6 in;',
           'every Fondant cake type, including tiered, Square Fondant, and Rectangle Fondant = 5 in or 6 in;',
           'Bento, Cupcake, or Bento Cupcake Set = 2 in.',
           'Rejected: empty string.',

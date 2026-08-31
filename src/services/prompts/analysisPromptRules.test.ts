@@ -16,7 +16,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.61 Version - Wave-Covered Tier Quantity**');
+    expect(prompt).toContain('**v3.63 Version - Slab Cake Type**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('3. Visible construction of each item');
     expect(prompt).toContain('5. Type compatible with that construction and material');
@@ -394,7 +394,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.61 Version - Wave-Covered Tier Quantity**');
+    expect(prompt).toContain('**v3.63 Version - Slab Cake Type**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -415,7 +415,7 @@ describe('cake analysis prompt rules', () => {
   it('uses toy-specific sizing for miniature molded toys', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.61 Version - Wave-Covered Tier Quantity**');
+    expect(prompt).toContain('**v3.63 Version - Slab Cake Type**');
     expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy` AND `plastic_crown`)');
     expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
     expect(prompt).toContain('| `tiny` | under 0.10 |');
@@ -649,6 +649,7 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('| `1 Tier` | `"3 in"`, `"4 in"`, `"5 in"`, `"6 in"` |');
     expect(prompt).toContain('| `2 Tier`, `3 Tier` | `"4 in"`, `"5 in"` |');
     expect(prompt).toContain('| `Square`, `Rectangle` | `"3 in"`, `"4 in"` |');
+    expect(prompt).toContain('| `Slab Cake` | `"6 in"` |');
     expect(prompt).toContain('| `1 Tier Fondant`, `2 Tier Fondant`, `3 Tier Fondant` | `"5 in"`, `"6 in"` |');
     expect(prompt).toContain('| `Bento`, `Cupcake`, `Bento Cupcake Set` | `"2 in"` |');
 
@@ -657,6 +658,16 @@ describe('cake analysis prompt rules', () => {
       expect(title.length).toBeGreaterThanOrEqual(50);
       expect(title.length).toBeLessThanOrEqual(65);
     }
+  });
+
+  it('defines Slab Cake as a 6-inch soft-icing long-format cake without inferring a size', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(prompt).toContain('`"Slab Cake"`');
+    expect(prompt).toContain('### SLAB CAKE — TALL, NARROW RECTANGLE');
+    expect(prompt).toContain('4x12, 5x14, or 6x16 slab formats');
+    expect(prompt).toContain('It MUST use `cakeThickness: "6 in"` and `icing_design.base: "soft_icing"`.');
+    expect(prompt).toContain('Do not infer or emit an exact slab size from the image; the customer chooses the\nsize after analysis.');
   });
 
   it('makes every number-shaped cake a Rectangle before tier and footprint defaults', () => {

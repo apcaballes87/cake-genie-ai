@@ -35,6 +35,7 @@ const cakeTypeDisplayMap: Record<CakeType, string> = {
     '3 Tier Fondant': '3 Tier Fondant',
     'Square': 'Square',
     'Rectangle': 'Rectangle',
+    'Slab Cake': 'Slab Cake',
     'Bento': 'Bento',
     'Square Fondant': 'Square Fondant',
     'Rectangle Fondant': 'Rectangle Fondant',

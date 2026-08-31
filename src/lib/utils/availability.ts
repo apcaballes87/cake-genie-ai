@@ -103,6 +103,7 @@ export function calculateCartAvailability(items: CartItem[]): AvailabilityType {
             '3 Tier Fondant': '3 Tier Fondant',
             'Square': 'Square',
             'Rectangle': 'Rectangle',
+            'Slab Cake': 'Slab Cake',
             'Bento': 'Bento'
         };
         const cakeType = stringToCakeType[item.type] || item.type as CakeType;

@@ -41,6 +41,7 @@ export const AI_CHAT_CAKE_FAMILIES = [
     '3 Tier',
     'Square',
     'Rectangle',
+    'Slab Cake',
     'Bento',
     'Cupcake',
     'Bento Cupcake Set',

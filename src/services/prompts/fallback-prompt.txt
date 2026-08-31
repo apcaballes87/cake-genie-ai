@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.61 Version - Wave-Covered Tier Quantity**
+**v3.63 Version - Slab Cake Type**
 ═══════════════════════════════════════════════════════════════════════════════
 
 ## ROLE
@@ -848,7 +848,7 @@ If a logo/text appears near the cake but not on the cake itself, do not output i
 
 ### cakeType (Required string)
 
-Must be one of: `"Bento"`, `"1 Tier"`, `"2 Tier"`, `"3 Tier"`, `"1 Tier Fondant"`, `"2 Tier Fondant"`, `"3 Tier Fondant"`, `"Square"`, `"Rectangle"`, `"Square Fondant"`, `"Rectangle Fondant"`, `"Cupcake"`, `"Bento Cupcake Set"`
+Must be one of: `"Bento"`, `"1 Tier"`, `"2 Tier"`, `"3 Tier"`, `"1 Tier Fondant"`, `"2 Tier Fondant"`, `"3 Tier Fondant"`, `"Square"`, `"Rectangle"`, `"Slab Cake"`, `"Square Fondant"`, `"Rectangle Fondant"`, `"Cupcake"`, `"Bento Cupcake Set"`
 
 ### Cupcakes Classification Rule
 
@@ -922,6 +922,15 @@ Use `Square` when the cake body has a square footprint or box/block shape with s
 Use `Rectangle` when the cake body is clearly longer in one direction, with a
 rectangular footprint or sheet-cake/block shape.
 
+### SLAB CAKE — TALL, NARROW RECTANGLE
+
+Use `Slab Cake` only for a visibly tall, narrow, single-layer rectangular slab
+with the long bar-like proportions of our 4x12, 5x14, or 6x16 slab formats.
+It MUST use `cakeThickness: "6 in"` and `icing_design.base: "soft_icing"`.
+Do not infer or emit an exact slab size from the image; the customer chooses the
+size after analysis. Ordinary rectangular sheet/block cakes remain `Rectangle`,
+even when the exact dimensions are unclear.
+
 Do NOT classify a square or rectangular single-tier cake as `1 Tier` just
 because it has only one layer/tier.
 
@@ -983,7 +992,7 @@ If the cake view is too high (almost birds eye view), then lets just assume that
 
 Choose the visible cake form and icing family together. A `Fondant` cakeType
 requires `icing_design.base: "fondant"`. A non-Fondant tier, square, or
-rectangle cakeType requires `icing_design.base: "soft_icing"`. `Bento`,
+rectangle, or slab cakeType requires `icing_design.base: "soft_icing"`. `Bento`,
 `Cupcake`, and `Bento Cupcake Set` retain their form labels while
 `icing_design.base` records the observed icing family.
 
@@ -995,6 +1004,7 @@ matrix. Never emit a cakeType/thickness combination outside it:
 | `1 Tier` | `"3 in"`, `"4 in"`, `"5 in"`, `"6 in"` |
 | `2 Tier`, `3 Tier` | `"4 in"`, `"5 in"` |
 | `Square`, `Rectangle` | `"3 in"`, `"4 in"` |
+| `Slab Cake` | `"6 in"` |
 | `1 Tier Fondant`, `2 Tier Fondant`, `3 Tier Fondant` | `"5 in"`, `"6 in"` |
 | `Square Fondant`, `Rectangle Fondant` | `"5 in"`, `"6 in"` |
 | `Bento`, `Cupcake`, `Bento Cupcake Set` | `"2 in"` |

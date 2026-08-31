@@ -9,6 +9,7 @@ export const CANONICAL_CAKE_TYPES: readonly CakeType[] = [
   '3 Tier Fondant',
   'Square',
   'Rectangle',
+  'Slab Cake',
   'Bento',
   'Square Fondant',
   'Rectangle Fondant',
@@ -52,6 +53,7 @@ export function normalizeCakeType(rawType: unknown, fallback: CakeType = '1 Tier
     if (slugLike.includes('1-tier')) return '1 Tier Fondant';
   }
 
+  if (slugLike.includes('slab')) return 'Slab Cake';
   if (slugLike.includes('rectangle')) return 'Rectangle';
   if (slugLike.includes('square')) return 'Square';
   if (slugLike.includes('bento')) return 'Bento';

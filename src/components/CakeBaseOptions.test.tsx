@@ -44,6 +44,7 @@ describe('CakeBaseOptions', () => {
         expect(screen.getAllByText('3 Tier (Soft icing)').length).toBeGreaterThan(0);
         expect(screen.getAllByText('Square').length).toBeGreaterThan(0);
         expect(screen.getAllByText('Rectangle').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Slab Cake').length).toBeGreaterThan(0);
         expect(screen.queryByText('1 Tier Fondant')).not.toBeInTheDocument();
         expect(screen.queryByText('Square Fondant')).not.toBeInTheDocument();
     });

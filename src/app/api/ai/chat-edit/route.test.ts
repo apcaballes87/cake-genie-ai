@@ -146,6 +146,7 @@ describe('/api/ai/chat-edit', () => {
             '3 Tier',
             'Square',
             'Rectangle',
+            'Slab Cake',
             'Bento',
             'Cupcake',
             'Bento Cupcake Set',

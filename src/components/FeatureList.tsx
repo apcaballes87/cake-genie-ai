@@ -56,7 +56,7 @@ interface FeatureListProps {
 const cakeTypeDisplayMap: Record<CakeType, string> = {
     '1 Tier': '1 Tier (Soft icing)', '2 Tier': '2 Tier (Soft icing)', '3 Tier': '3 Tier (Soft icing)',
     '1 Tier Fondant': '1 Tier Fondant', '2 Tier Fondant': '2 Tier Fondant', '3 Tier Fondant': '3 Tier Fondant',
-    'Square': 'Square', 'Rectangle': 'Rectangle', 'Bento': 'Bento',
+    'Square': 'Square', 'Rectangle': 'Rectangle', 'Slab Cake': 'Slab Cake', 'Bento': 'Bento',
     'Square Fondant': 'Square Fondant', 'Rectangle Fondant': 'Rectangle Fondant',
     'Cupcake': 'Cupcake',
     'Bento Cupcake Set': 'Bento Cupcake Set',

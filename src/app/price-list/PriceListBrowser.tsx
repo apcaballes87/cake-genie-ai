@@ -45,6 +45,7 @@ const COMBINED_CAKE_TYPE_GROUPS: { title: string; types: CakeType[] }[] = [
   { title: '3 Tier', types: ['3 Tier', '3 Tier Fondant'] },
   { title: 'Square', types: ['Square', 'Square Fondant'] },
   { title: 'Rectangle', types: ['Rectangle', 'Rectangle Fondant'] },
+  { title: 'Slab Cake', types: ['Slab Cake'] },
   { title: 'Bento', types: ['Bento'] },
   { title: 'Cupcake', types: ['Cupcake'] },
   { title: 'Bento Cupcake Set', types: ['Bento Cupcake Set'] },

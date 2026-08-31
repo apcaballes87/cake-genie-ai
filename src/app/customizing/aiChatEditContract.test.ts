@@ -347,6 +347,22 @@ describe('applyAiChatEdit', () => {
         }
     });
 
+    it('keeps Slab Cake soft icing when a chat request asks for fondant', () => {
+        const current = makeSnapshot({
+            cakeInfo: {
+                type: 'Slab Cake',
+                thickness: '6 in',
+                size: '4x12',
+                flavors: ['Chocolate Cake'],
+            },
+        });
+
+        const result = applyAiChatEdit(current, designResponse({ icing: { base: 'fondant' } }));
+
+        expect(result.nextState.cakeInfo).toEqual(current.cakeInfo);
+        expect(result.nextState.icingDesign.base).toBe('soft_icing');
+    });
+
     it('converts fondant back to soft icing while retaining a thickness valid for the destination', () => {
         const current = makeSnapshot({
             cakeInfo: {

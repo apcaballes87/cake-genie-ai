@@ -83,6 +83,11 @@ const PRICE_LIST_META: Record<
     filterLabel: 'Soft icing',
     note: 'Rectangle cakes suited for larger celebrations and sheet-style layouts.',
   },
+  'Slab Cake': {
+    filterKey: 'soft-icing',
+    filterLabel: 'Soft icing',
+    note: 'Tall, narrow slab cakes for long-format celebrations and shared servings.',
+  },
   Bento: {
     filterKey: 'party',
     filterLabel: 'Party sets',

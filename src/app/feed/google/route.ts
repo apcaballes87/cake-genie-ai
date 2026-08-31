@@ -16,6 +16,7 @@ const CAKE_TYPE_THICKNESS_MAP: Record<string, CakeThickness> = {
     '3 Tier': '4 in',
     'Square': '3 in',
     'Rectangle': '3 in',
+    'Slab Cake': '6 in',
     '1 Tier Fondant': '5 in',
     '2 Tier Fondant': '5 in',
     '3 Tier Fondant': '5 in',

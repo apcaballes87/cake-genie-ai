@@ -126,7 +126,9 @@ describe('search analysis contract', () => {
     expect(schema.properties.icing_design.properties.colors.required).toEqual(['side', 'top']);
     expect(schema.properties.icing_design.properties.gumpasteBaseBoard.type).toBeDefined();
     expect(schema.properties.cakeType.description).toContain('Bento Cupcake Set');
+    expect(schema.properties.cakeType.description).toContain('Slab Cake');
     expect(schema.properties.cakeThickness.description).toContain('6 in');
+    expect(schema.properties.cakeThickness.description).toContain('Slab Cake = 6 in');
     expect(schema.properties.cakeThickness.description).toContain(
       'every Fondant cake type, including tiered, Square Fondant, and Rectangle Fondant = 5 in or 6 in',
     );
@@ -221,6 +223,8 @@ describe('search analysis contract', () => {
     ['1 Tier Fondant', '6 in', '6 in'],
     ['2 Tier', '6 in', '5 in'],
     ['Square', '5 in', '4 in'],
+    ['Slab Cake', '4 in', '6 in'],
+    ['Slab Cake', '6 in', '6 in'],
     ['Bento', '4 in', '2 in'],
     ['Cupcake', '3 in', '2 in'],
     ['Bento Cupcake Set', '5 in', '2 in'],
