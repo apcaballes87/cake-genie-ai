@@ -803,7 +803,7 @@ export default function PartyBudgetCalculator() {
                   ref={childCountRef}
                   type="number"
                   min="0"
-                  value={childCount}
+                  value={kidsAttending ? childCount : 0}
                   onChange={(e) => setChildCount(Math.max(0, parseInt(e.target.value) || 0))}
                   disabled={!kidsAttending}
                   className={`${inputClass} ${!kidsAttending ? 'opacity-50 cursor-not-allowed' : ''}`}
