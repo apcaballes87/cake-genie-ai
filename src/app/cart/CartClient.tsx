@@ -2068,8 +2068,11 @@ function CartClient() {
                 <div className="max-w-4xl mx-auto genie-card rounded-2xl animate-fade-in">
                     <style>{`.animate-fade-in { animation: fadeIn 0.3s ease-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } } .animate-fade-in-fast { animation: fadeInFast 0.2s ease-out; } @keyframes fadeInFast { from { opacity: 0; } to { opacity: 1; } } `}</style>
 
-                    <div className="flex justify-between items-center px-4 pt-4 pb-3 border-b border-purple-100">
-                        <h1 className="text-2xl font-bold text-slate-900">Your <span className="text-purple-400">Cart</span></h1>
+                    <div className="flex justify-between items-start px-4 pt-4 pb-3 border-b border-purple-100">
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-900">Your <span className="text-purple-400">Cart</span></h1>
+                            <p className="mt-1 text-sm text-slate-500">Shop: Cakes and Memories Bakeshop</p>
+                        </div>
                         <button onClick={handleClose} className="p-2 genie-icon-button rounded-full transition-colors" aria-label="Close cart">
                             <CloseIcon />
                         </button>
