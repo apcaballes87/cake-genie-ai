@@ -74,6 +74,10 @@ export interface BlockedDateInfo {
   blocked_time_end: string | null;
 }
 
+type PublicBlockedDateRow = BlockedDateInfo & {
+  blocked_date: string;
+};
+
 // --- Dynamic Config Fetchers ---
 
 export const savePricingFeedback = async (feedback: PricingFeedback): Promise<void> => {
@@ -3099,19 +3103,18 @@ export async function getAvailableDeliveryDates(startDate: string, numDays: numb
 
 export async function getBlockedDatesInRange(startDate: string, endDate: string): Promise<Record<string, BlockedDateInfo[]>> {
   try {
-    const { data, error } = await supabase
-      .from('blocked_dates')
-      .select('blocked_date, closure_reason, is_all_day, blocked_time_start, blocked_time_end')
-      .gte('blocked_date', startDate)
-      .lte('blocked_date', endDate)
-      .eq('is_active', true);
+    const { data, error } = await supabase.rpc('get_public_blocked_dates', {
+      start_date: startDate,
+      end_date: endDate,
+    });
 
     if (error) {
       throw error;
     }
 
     const groupedByDate: Record<string, BlockedDateInfo[]> = {};
-    (data || []).forEach(row => {
+    const rows = (data || []) as PublicBlockedDateRow[];
+    rows.forEach(row => {
       const date = row.blocked_date;
       if (!groupedByDate[date]) {
         groupedByDate[date] = [];

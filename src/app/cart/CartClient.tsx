@@ -1023,7 +1023,11 @@ function CartClient() {
         staleTime: 5 * 60 * 1000, // 5 minutes
     });
 
-    const { data: blockedDatesMap, isLoading: isLoadingBlockedDates } = useQuery({
+    const {
+        data: blockedDatesMap,
+        isLoading: isLoadingBlockedDates,
+        isError: isBlockedDatesError,
+    } = useQuery({
         queryKey: ['blocked-dates-range', fetchRange.numDays],
         queryFn: () => {
             const startDate = fetchRange.startDate;
@@ -1144,6 +1148,13 @@ function CartClient() {
     }, []);
 
     const getDateStatus = useCallback((dateInfo: AvailableDate) => {
+        if (isBlockedDatesError) {
+            return {
+                isDisabled: true,
+                reason: 'Could not verify date availability. Please refresh and try again.'
+            };
+        }
+
         const date = dateInfo.available_date;
         const blocksOnDate = blockedDatesMap?.[date];
         const isFullyBlocked = blocksOnDate?.some(block => block.is_all_day) ?? false;
@@ -1203,7 +1214,7 @@ function CartClient() {
         }
 
         return { isDisabled: false, reason: null };
-    }, [blockedDatesMap, cartAvailability, availabilitySettings, leadTimeOptions]);
+    }, [blockedDatesMap, cartAvailability, availabilitySettings, leadTimeOptions, isBlockedDatesError]);
 
     const disabledSlots = useMemo(() => {
         const newDisabledSlots = eventDate

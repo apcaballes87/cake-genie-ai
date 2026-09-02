@@ -276,6 +276,50 @@ describe('deferred cart clear (data-layer track)', () => {
     });
   });
 
+  it('loads blocked dates through the public availability RPC', async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: [
+        {
+          blocked_date: '2026-09-09',
+          closure_reason: 'Fully Booked',
+          is_all_day: true,
+          blocked_time_start: null,
+          blocked_time_end: null,
+        },
+        {
+          blocked_date: '2026-09-10',
+          closure_reason: 'Afternoon unavailable',
+          is_all_day: false,
+          blocked_time_start: '14:00:00',
+          blocked_time_end: '18:00:00',
+        },
+      ],
+      error: null,
+    });
+
+    const { getBlockedDatesInRange } = await import('./supabaseService');
+    const result = await getBlockedDatesInRange('2026-09-09', '2026-09-10');
+
+    expect(rpcMock).toHaveBeenCalledWith('get_public_blocked_dates', {
+      start_date: '2026-09-09',
+      end_date: '2026-09-10',
+    });
+    expect(result).toEqual({
+      '2026-09-09': [{
+        closure_reason: 'Fully Booked',
+        is_all_day: true,
+        blocked_time_start: null,
+        blocked_time_end: null,
+      }],
+      '2026-09-10': [{
+        closure_reason: 'Afternoon unavailable',
+        is_all_day: false,
+        blocked_time_start: '14:00:00',
+        blocked_time_end: '18:00:00',
+      }],
+    });
+  });
+
   it('clear_cart_for_paid_order is reachable via the supabase.rpc() call boundary', async () => {
     // This is the contract test for the new server-side helper
     // defined in supabase/migrations/20260612130000_defer_cart_clear_to_payment.sql.

@@ -1,5 +1,21 @@
 # Tasks
 
+## Enforce blocked delivery dates in cart and checkout (2026-09-02)
+
+### Plan
+
+- [x] Trace the live blocked-date row, RLS policies, cart lookup, and order RPCs.
+- [x] Add a safe public blocked-date RPC and fail-closed cart handling.
+- [x] Enforce active global blocked dates and time slots at the order boundary.
+- [x] Run focused tests, production build, and live database verification.
+
+### Review
+
+- The active global block for 2026-09-09 is now returned to anonymous customers as all-day unavailable.
+- Both standard and split order inserts are protected by `enforce_blocked_delivery_order`.
+- Verification passed: 10 focused Vitest tests, `npm run build`, and live anonymous-role RPC checks.
+- The Supabase migration `20260902090000_enforce_public_blocked_delivery_dates` was applied successfully. No existing orders or block records were modified.
+
 ## Switch Vertex AI to project-7626fc57-8f9e-4dd3-bf9 (2026-09-02)
 
 ### Plan
