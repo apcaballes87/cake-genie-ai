@@ -1,0 +1,24 @@
+{
+  "slug": "my-melody-light-pink-1-tier-cake-308d",
+  "source_image_url": "https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/customizations/my-melody-light-pink-1-tier-cake-308d.webp",
+  "historical_cache_id": "4b3ec5be-6e6d-4880-9b5e-b19a151a6b71",
+  "observed_side_construction": [
+    "short ridged buttercream ruffles piped around the cake side",
+    "stacked red shell and rosette piping rather than separate paper sheets"
+  ],
+  "forbidden_support_type": "edible_photo_side_wave",
+  "forbidden_copy_terms": [
+    "wafer",
+    "wafer paper",
+    "wafer-paper"
+  ],
+  "expected_support_element": {
+    "group_id": "piped_dark_red_side_ruffles",
+    "type": "icing_decorations",
+    "material": "icing",
+    "color": "#8B0000",
+    "size": "small",
+    "quantity": 1,
+    "description": "piped dark red icing ruffle band around the cake side"
+  }
+}

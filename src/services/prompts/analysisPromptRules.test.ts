@@ -16,7 +16,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.64 Version - Slab Cake, Bento Montage, and Flower Row Reconciliation**');
+    expect(prompt).toContain('**v3.65 Version - Wafer-Paper Strip and Piped-Ruffle Reconciliation**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('3. Visible construction of each item');
     expect(prompt).toContain('5. Type compatible with that construction and material');
@@ -359,6 +359,33 @@ describe('cake analysis prompt rules', () => {
     expect(petalFixture.allowed_non_wafer_type).toBe('edible_3d_ordinary');
   });
 
+  it('keeps piped ruffle bands out of the wafer-paper side-wave type', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+    const fixture = JSON.parse(readPrompt('src/services/prompts/fixtures/my-melody-light-pink-1-tier-cake-308d.json')) as {
+      observed_side_construction: string[];
+      forbidden_support_type: string;
+      forbidden_copy_terms: string[];
+      expected_support_element: Record<string, unknown>;
+    };
+
+    expect(prompt).toContain('**Paper-strip versus piped-ruffle decision (mandatory):**');
+    expect(prompt).toContain('predominantly full-height **vertical\nsheets**');
+    expect(prompt).toContain('Anything extruded through a pastry tip, including white or vertically arranged\npiped ruffles, is `icing_decorations` with material `icing`');
+    expect(prompt).toContain('Piped ruffle bands are not wafer-paper strips: buttercream extrusion leaves');
+    expect(prompt).toContain('short ridges, shells, fans, rosettes, or stacked swirls rather than separate\npaper-thin vertical planes');
+    expect(fixture.observed_side_construction).toEqual(expect.arrayContaining([
+      'short ridged buttercream ruffles piped around the cake side',
+      'stacked red shell and rosette piping rather than separate paper sheets',
+    ]));
+    expect(fixture.forbidden_support_type).toBe('edible_photo_side_wave');
+    expect(fixture.forbidden_copy_terms).toEqual(['wafer', 'wafer paper', 'wafer-paper']);
+    expect(fixture.expected_support_element).toMatchObject({
+      type: 'icing_decorations',
+      material: 'icing',
+      quantity: 1,
+    });
+  });
+
   it('promotes intricate sculpted flowers to at least medium heroes', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fixture = JSON.parse(readPrompt('src/services/prompts/fixtures/christening-cake-pink-2-tier-fondant-cake-9698.json')) as {
@@ -434,7 +461,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.64 Version - Slab Cake, Bento Montage, and Flower Row Reconciliation**');
+    expect(prompt).toContain('**v3.65 Version - Wafer-Paper Strip and Piped-Ruffle Reconciliation**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -455,7 +482,7 @@ describe('cake analysis prompt rules', () => {
   it('uses toy-specific sizing for miniature molded toys', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.64 Version - Slab Cake, Bento Montage, and Flower Row Reconciliation**');
+    expect(prompt).toContain('**v3.65 Version - Wafer-Paper Strip and Piped-Ruffle Reconciliation**');
     expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy` AND `plastic_crown`)');
     expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
     expect(prompt).toContain('| `tiny` | under 0.10 |');
