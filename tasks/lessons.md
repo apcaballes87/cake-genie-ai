@@ -1,5 +1,7 @@
 # Lessons
 
+- After changing Vercel environment variables, verify the deployed function's raw provider resource and redeploy before diagnosing Google IAM. The dashboard can show corrected values while the live deployment still uses its previous environment snapshot.
+
 - When a cake-analysis description/type mismatch can be corrected at the existing strict post-processing seam, prefer a narrow primary-object reconciliation table over redesigning the whole taxonomy. Split secondary garnish phrases first, preserve composite descriptions, and leave ambiguous rows unchanged.
 
 - When a Google OAuth flow is supposed to return to a specific page, do not rely only on the callback query parameter. Persist the validated internal destination before leaving the browser and add a post-auth recovery path for providers or callbacks that drop `next`.

@@ -1,5 +1,26 @@
 # Tasks
 
+## Switch Vertex AI to project-7626fc57-8f9e-4dd3-bf9 (2026-09-02)
+
+### Plan
+
+- [x] Authenticate and select `getkeyk@gmail.com` with project `project-7626fc57-8f9e-4dd3-bf9`.
+- [x] Verify or create the required Vertex AI APIs, service account, Workload Identity pool/provider, and IAM bindings.
+- [x] Generate the new Vercel external-account credential configuration and verify the final Google Cloud state.
+- [x] Update Vercel environment variables and redeploy only after the user confirms the new credential configuration is in place.
+
+### Review
+
+- gcloud is active as `getkeyk@gmail.com` on `project-7626fc57-8f9e-4dd3-bf9` (project number `390147061757`).
+- Enabled `aiplatform.googleapis.com`, `iamcredentials.googleapis.com`, and `sts.googleapis.com`.
+- Created `vercel-vertex-ai`, `vercel-pool`, and provider `vercel` using the existing team issuer `https://oidc.vercel.com/apcaballes87s-projects`.
+- Granted `roles/aiplatform.user` to the service account and scoped `roles/iam.workloadIdentityUser` to Genie.ph production only.
+- Generated `vercel-gcp-credentials.getkeyk.json`; Vercel's dashboard was used because the local Vercel CLI has no credentials.
+- Updated local `VERTEX_AI_PROJECT` to the new project; retained the old batch GCS URI because no replacement bucket was provisioned.
+- Vercel had stale `VERTEX_AI_PROJECT` and `GOOGLE_CLIENT_EMAIL` values from `project-83cee0bf...`; both were updated, the existing WIF JSON was confirmed to target the new project, and production deployment `E3KPQrSgnjZ996cX3xdF6t1aHn8V` completed successfully.
+- Live `POST https://genie.ph/api/ai/validate` returned HTTP 200 with `{"classification":"not_a_cake"}` after redeploy. The prior 403 log explicitly showed Vertex calls still targeting `project-83cee0bf...`.
+
+
 ## Set creator personal vouchers inactive until video-reel submission (2026-08-23)
 
 ### Plan
