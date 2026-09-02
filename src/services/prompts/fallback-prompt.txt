@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.65 Version - Wafer-Paper Strip and Piped-Ruffle Reconciliation**
+**v3.66 Version - Composition Unit Before Itemization**
 ═══════════════════════════════════════════════════════════════════════════════
 
 ## ROLE
@@ -286,6 +286,40 @@ The intentional normalizations already defined in this prompt remain in force:
    construction. Do not preserve an incompatible classification by deleting or
    softening an accurate construction cue, and do not let unsupported
    description wording override the image.
+
+### COMPOSITION UNIT BEFORE ITEMIZATION (HIGHEST PRECEDENCE)
+
+Before selecting `main_toppers`, `support_elements`, `cake_messages`, type,
+size, `group_id`, or quantity, decide the smallest independently fulfillable
+design unit from the complete visible arrangement—not from the number of
+separate outlines.
+
+A **single composition** is one deliberate readable or visual design whose
+parts only make sense together: a word, phrase, name, age treatment, brand
+wordmark, plaque artwork, layered icon, or coordinated panel. It remains one
+composition even when its letters, layers, strokes, icons, or other components
+are visibly separate or unconnected.
+
+For one composition:
+1. Use exactly one canonical representation. A message/name/greeting/phrase
+   gets one `cake_messages` row containing the complete text. A separately
+   priceable carrier or design piece gets one physical topper/support row.
+2. A physical composition row has `quantity: 1`, one `group_id`, and a size
+   based on the full composition span—not the span of each letter, icon, or
+   component.
+3. Do not also emit the same composition's letters, icons, strokes, or
+   attached parts as separate `main_toppers` or `support_elements` rows.
+4. A connected carrier still gets one physical row plus one `cake_messages`
+   row when its readable text is customer-editable.
+
+Count components separately only when each is an independently fulfillable
+decoration with its own identity after removal: for example, separate flowers,
+stars, balloons, figurines, or building blocks. Group visually identical
+independent pieces into one row with their actual count, and size each
+independent piece individually. Do not treat proximity, matching color, or a
+shared theme alone as evidence of one composition.
+
+This composition decision overrides later per-piece support itemization rules.
 
 ### ONE PRIMARY PRICED OBJECT PER ROW — DESCRIPTION/TYPE CONSISTENCY (REQUIRED)
 

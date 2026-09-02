@@ -1,0 +1,30 @@
+{
+  "slug": "roblox-blue-1-tier-cake-789e",
+  "historical_cache_id": "bb3a0241-5ed1-4f54-a6f9-02e81bcf822e",
+  "source_image_url": "https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/customizations/roblox-blue-1-tier-cake-789e.webp",
+  "observed_compositions": [
+    "single red fondant ROBLOX wordmark assembled from separate letters across the cake side",
+    "single red happy birthday greeting across the cake top"
+  ],
+  "expected_physical_composition": {
+    "type": "edible_logo_2d",
+    "material": "edible_fondant",
+    "color": "#FF0000",
+    "group_id": "roblox_wordmark",
+    "classification": "hero",
+    "size": "large",
+    "quantity": 1
+  },
+  "expected_message_composition": {
+    "text": "happy birthday",
+    "type": "icing_script",
+    "color": "#FF0000",
+    "position": "top"
+  },
+  "independent_piece_counterexamples": [
+    "separate flowers",
+    "separate stars",
+    "separate balloons",
+    "separate building blocks"
+  ]
+}

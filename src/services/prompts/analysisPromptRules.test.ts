@@ -16,7 +16,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.65 Version - Wafer-Paper Strip and Piped-Ruffle Reconciliation**');
+    expect(prompt).toContain('**v3.66 Version - Composition Unit Before Itemization**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('3. Visible construction of each item');
     expect(prompt).toContain('5. Type compatible with that construction and material');
@@ -458,10 +458,46 @@ describe('cake analysis prompt rules', () => {
     expect(SYSTEM_INSTRUCTION).toContain('Do not classify handmade layered fondant/gumpaste character artwork as a printout merely because it depicts a character');
   });
 
+  it('groups one composed message or design before counting independently fulfillable pieces', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+    const fixture = JSON.parse(readPrompt('src/services/prompts/fixtures/roblox-blue-1-tier-cake-789e.json')) as {
+      expected_physical_composition: Record<string, unknown>;
+      expected_message_composition: Record<string, unknown>;
+      independent_piece_counterexamples: string[];
+    };
+
+    expect(prompt).toContain('### COMPOSITION UNIT BEFORE ITEMIZATION (HIGHEST PRECEDENCE)');
+    expect(prompt).toContain('It remains one\ncomposition even when its letters, layers, strokes, icons, or other components\nare visibly separate or unconnected.');
+    expect(prompt).toContain('A physical composition row has');
+    expect(prompt).toContain('based on the full composition span—not the span of each letter, icon, or');
+    expect(prompt).toContain('This composition decision overrides later per-piece support itemization rules.');
+    expect(fixture.expected_physical_composition).toEqual({
+      type: 'edible_logo_2d',
+      material: 'edible_fondant',
+      color: '#FF0000',
+      group_id: 'roblox_wordmark',
+      classification: 'hero',
+      size: 'large',
+      quantity: 1,
+    });
+    expect(fixture.expected_message_composition).toEqual({
+      text: 'happy birthday',
+      type: 'icing_script',
+      color: '#FF0000',
+      position: 'top',
+    });
+    expect(fixture.independent_piece_counterexamples).toEqual([
+      'separate flowers',
+      'separate stars',
+      'separate balloons',
+      'separate building blocks',
+    ]);
+  });
+
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.65 Version - Wafer-Paper Strip and Piped-Ruffle Reconciliation**');
+    expect(prompt).toContain('**v3.66 Version - Composition Unit Before Itemization**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -482,7 +518,7 @@ describe('cake analysis prompt rules', () => {
   it('uses toy-specific sizing for miniature molded toys', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.65 Version - Wafer-Paper Strip and Piped-Ruffle Reconciliation**');
+    expect(prompt).toContain('**v3.66 Version - Composition Unit Before Itemization**');
     expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy` AND `plastic_crown`)');
     expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
     expect(prompt).toContain('| `tiny` | under 0.10 |');
