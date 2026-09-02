@@ -2138,7 +2138,7 @@ function CartClient() {
                         </div>
                     ) : (
                         <div className="space-y-4 px-4">
-                            <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2">
+                            <div className="space-y-3 pr-2">
                                 {Object.entries(groupedItems).map(([merchantName, items]) => (
                                     <div key={merchantName} className="mb-6 last:mb-0">
                                         {merchantName !== 'Cake Genie' && (
