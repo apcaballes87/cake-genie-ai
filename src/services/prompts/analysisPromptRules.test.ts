@@ -16,7 +16,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.63 Version - Slab Cake Type**');
+    expect(prompt).toContain('**v3.64 Version - Slab Cake, Bento Montage, and Flower Row Reconciliation**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('3. Visible construction of each item');
     expect(prompt).toContain('5. Type compatible with that construction and material');
@@ -181,6 +181,36 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).not.toContain('Basic roses without fine detail');
   });
 
+  it('counts flower rows by individual bloom without collective row wording', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+    const fixture = JSON.parse(readPrompt('src/services/prompts/fixtures/chamomile-floral-ivory-2-tier-cake-6565.json')) as {
+      expected_main_topper: Record<string, unknown>;
+      forbidden_collective_terms: string[];
+    };
+
+    expect(prompt).toContain('### FLOWER ROW QUANTITY–WORDING RECONCILIATION (REQUIRED)');
+    expect(prompt).toContain('Every `edible_flowers` row is priced by individual bloom.');
+    expect(prompt).toContain('Do not use `cluster`, `bouquet`, `spray`,');
+    expect(prompt).toContain('`top_chamomile_flowers`');
+    expect(fixture.expected_main_topper).toEqual({
+      type: 'edible_flowers',
+      material: 'edible_fondant',
+      classification: 'hero',
+      size: 'large',
+      quantity: 25,
+      group_id: 'top_chamomile_flowers',
+      description: '25 individual chamomile flowers arranged on top',
+    });
+    expect(fixture.forbidden_collective_terms).toEqual([
+      'cluster',
+      'bouquet',
+      'spray',
+      'arrangement',
+      'bunch',
+      'group',
+    ]);
+  });
+
   it('splits full intricate icing doodles into flat top and side regions', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
@@ -227,6 +257,16 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('EDIBLE PHOTO TOP VS EDIBLE PHOTO PRINT');
     expect(prompt).toContain('Use `edible_photo_top` when an edible image/photo/printed graphic covers the top surface of the cake');
     expect(prompt).toContain('Use `edible_photo_print` only for smaller edible printed cutouts or printed pieces placed on the side of the cake');
+  });
+
+  it('keeps the Bento multi-icon photo-top normalization alongside the Slab Cake rule', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(prompt).toContain('### BENTO MULTI-ICON TOP MONTAGE TO EDIBLE PHOTO TOP (REQUIRED)');
+    expect(prompt).toContain('When there are **three or more** such icons');
+    expect(prompt).toContain('exactly one `edible_photo_top` in `main_toppers`');
+    expect(prompt).toContain('Do not apply this normalization to a Bento with only one or two');
+    expect(prompt).toContain('### SLAB CAKE — TALL, NARROW RECTANGLE');
   });
 
   it('classifies conditioned wafer-paper vertical waves as their own priced support type', () => {
@@ -394,7 +434,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.63 Version - Slab Cake Type**');
+    expect(prompt).toContain('**v3.64 Version - Slab Cake, Bento Montage, and Flower Row Reconciliation**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -415,7 +455,7 @@ describe('cake analysis prompt rules', () => {
   it('uses toy-specific sizing for miniature molded toys', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.63 Version - Slab Cake Type**');
+    expect(prompt).toContain('**v3.64 Version - Slab Cake, Bento Montage, and Flower Row Reconciliation**');
     expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy` AND `plastic_crown`)');
     expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
     expect(prompt).toContain('| `tiny` | under 0.10 |');

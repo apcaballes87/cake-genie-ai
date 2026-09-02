@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.63 Version - Slab Cake Type**
+**v3.64 Version - Slab Cake, Bento Montage, and Flower Row Reconciliation**
 ═══════════════════════════════════════════════════════════════════════════════
 
 ## ROLE
@@ -448,6 +448,38 @@ Use `edible_photo_print` only for smaller edible printed cutouts or printed piec
 
 If the image is the main flat printed design on the cake top, choose `edible_photo_top`, not `edible_photo_print` and not `printout`.
 
+### BENTO MULTI-ICON TOP MONTAGE TO EDIBLE PHOTO TOP (REQUIRED)
+
+This is a business fulfillment normalization that overrides literal fondant,
+shallow-relief, piped-doodle, and per-icon construction classifications below.
+
+After `cakeType: "Bento"` is confirmed, count the distinct detailed non-text
+hobby, sport, work, travel, vehicle, gaming, or interest icons deliberately
+distributed across the cake top. When there are **three or more** such icons
+forming one coordinated top montage, classify the entire icon montage as
+exactly one `edible_photo_top` in `main_toppers`—even when a generated image
+makes the icons look like shallow fondant relief or piped/doodled illustration.
+This is one fulfillable printed edible-photo top, not individual crafted icons.
+
+Use `material: "waferpaper"`, `classification: "hero"`, `size: "large"`,
+and `quantity: 1`, with one group ID such as
+`bento_multi_icon_edible_photo_top`. Describe it as one edible printed top
+montage containing the observed icon subjects.
+
+Do NOT also emit any montage icon as `edible_2d_complex`,
+`edible_3d_complex`, `edible_3d_ordinary`, `edible_2d_shapes`,
+`edible_2d_support`, `edible_logo_2d`, `icing_doodle`,
+`icing_doodle_intricate_top`, `icing_decorations`, `printout`, or a support
+element. Do not itemize the individual laptop, headset, sports ball, paddle,
+luggage, airplane, vehicle, logo, globe, or similar montage subjects.
+
+Keep a separately visible birthday/name message in `cake_messages`, and keep
+only genuinely separate simple accents such as borders, dots, hearts, or
+sprinkles under their normal rules. A true freestanding figure with clear
+all-around body depth above the top remains separate and is not part of this
+photo montage. Do not apply this normalization to a Bento with only one or two
+detailed icon subjects.
+
 ### UNSUPPORTED SEMI-3D PORTRAIT RELIEF TO EDIBLE PHOTO TOP
 
 This is a business fulfillment normalization that overrides the literal material and depth rules below.
@@ -827,6 +859,19 @@ Examples:
 - piped buttercream rosettes -> `icing_decorations`
 - plain fondant peach -> `edible_3d_ordinary`
 
+### FLOWER ROW QUANTITY–WORDING RECONCILIATION (REQUIRED)
+
+Every `edible_flowers` row is priced by individual bloom. When `quantity` is
+2 or more, `group_id` and `description` must name the individual plural flowers
+and agree with that count. Do not use `cluster`, `bouquet`, `spray`,
+`arrangement`, `bunch`, or `group` as the counted object or primary noun in
+that row.
+
+For example, 25 chamomile blooms on top must use a group ID such as
+`top_chamomile_flowers` and description `25 individual chamomile flowers
+arranged on top`, never `top_chamomile_cluster` or `cluster of chamomile
+flowers on top`.
+
 ### IGNORE NON-DESIGN BRANDING / WATERMARKS / PACKAGING TEXT
 
 Do NOT include bakery logos, shop marks, watermarks, stamps, printed labels, social media handles, or brand text unless they are physically attached to or printed on the edible cake surface as part of the requested cake design.
@@ -991,8 +1036,8 @@ If the cake view is too high (almost birds eye view), then lets just assume that
 ### cakeType, Icing Base, and cakeThickness Contract
 
 Choose the visible cake form and icing family together. A `Fondant` cakeType
-requires `icing_design.base: "fondant"`. A non-Fondant tier, square, or
-rectangle, or slab cakeType requires `icing_design.base: "soft_icing"`. `Bento`,
+requires `icing_design.base: "fondant"`. A non-Fondant tier, square, rectangle, or
+slab cakeType requires `icing_design.base: "soft_icing"`. `Bento`,
 `Cupcake`, and `Bento Cupcake Set` retain their form labels while
 `icing_design.base` records the observed icing family.
 

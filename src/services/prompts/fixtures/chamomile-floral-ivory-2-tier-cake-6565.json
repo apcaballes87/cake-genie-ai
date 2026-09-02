@@ -1,0 +1,24 @@
+{
+  "slug": "chamomile-floral-ivory-2-tier-cake-6565",
+  "image_url": "https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/customizations/chamomile-floral-ivory-2-tier-cake-6565.webp",
+  "historical_cache_id": "874da828-7eb6-4a85-8716-489253eae3b9",
+  "purpose": "Regression fixture for per-piece flower rows: the many visible chamomile blooms are counted individually, not as one collective flower object.",
+  "observed_top_flowers": "approximately 25 individual chamomile blooms arranged together on top",
+  "expected_main_topper": {
+    "type": "edible_flowers",
+    "material": "edible_fondant",
+    "classification": "hero",
+    "size": "large",
+    "quantity": 25,
+    "group_id": "top_chamomile_flowers",
+    "description": "25 individual chamomile flowers arranged on top"
+  },
+  "forbidden_collective_terms": [
+    "cluster",
+    "bouquet",
+    "spray",
+    "arrangement",
+    "bunch",
+    "group"
+  ]
+}
