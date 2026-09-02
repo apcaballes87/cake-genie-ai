@@ -747,7 +747,7 @@ export default function PartyBudgetCalculator() {
   };
 
   return (
-    <section ref={printRef} className="mt-8 pb-32 md:pb-0">
+    <section ref={printRef} className="mt-8 pb-40 md:pb-0">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div>
            <div className="rounded-3xl border border-purple-100 bg-white p-6 shadow-sm md:p-8">
@@ -925,37 +925,39 @@ export default function PartyBudgetCalculator() {
       </div>
       {isSignupModalOpen ? <PartyBudgetSignupModal onClose={() => setIsSignupModalOpen(false)} /> : null}
 
-      {/* Mobile bottom bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-purple-100 bg-white/95 px-4 py-3 shadow-[0_-2px_10px_rgba(0,0,0,0.06)] backdrop-blur-lg md:hidden">
-        <div className="flex items-center gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Your running total</p>
-            <p className="truncate text-xl font-black text-slate-900">{formatCurrency(total, currency)}</p>
+      {/* Mobile bottom bar — mirrors StickyAddToCartBar style */}
+      <div className="fixed bottom-0 left-0 right-0 z-90 pointer-events-none md:hidden">
+        <div className="pointer-events-auto bg-white/80 backdrop-blur-lg px-3 pt-3 pb-[calc(20px+env(safe-area-inset-bottom))] rounded-t-2xl shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.1)] border-t border-slate-200">
+          <div className="flex justify-between items-center gap-3">
+            <div className="min-w-[80px]">
+              <p className="text-[10px] max-md:text-[9px] font-bold uppercase tracking-wider text-slate-500">Your running total</p>
+              <p className="text-lg font-bold text-slate-800">{formatCurrency(total, currency)}</p>
+            </div>
+            <div className="flex flex-1 gap-2 min-w-0">
+              <button
+                onClick={handleSaveDetails}
+                disabled={isSaving || isAuthLoading}
+                className="h-12 shrink-0 inline-flex items-center justify-center gap-2 rounded-xl border border-purple-200 bg-purple-50 px-4 text-sm font-bold text-purple-700 shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSaving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+                Save
+              </button>
+              <button
+                onClick={handleExportPDF}
+                className="flex-1 min-w-0 h-12 genie-btn-primary font-bold py-3 px-4 rounded-xl text-sm whitespace-nowrap"
+              >
+                <Download className="h-5 w-5 shrink-0" />
+                Export PDF
+              </button>
+            </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              onClick={handleExportPDF}
-              className="genie-btn-primary inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-bold shadow-md"
-            >
-              <Download className="h-3.5 w-3.5" />
-              PDF
-            </button>
-            <button
-              onClick={handleSaveDetails}
-              disabled={isSaving || isAuthLoading}
-              className="inline-flex items-center gap-1.5 rounded-full border border-purple-200 bg-purple-50 px-4 py-2.5 text-xs font-bold text-purple-700 shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-              Save
-            </button>
-          </div>
+          <button
+            onClick={handleReset}
+            className="mt-2 w-full text-center text-[10px] max-md:text-[9px] font-medium text-slate-500"
+          >
+            Reset planner
+          </button>
         </div>
-        <button
-          onClick={handleReset}
-          className="mt-1.5 w-full text-center text-[11px] font-semibold text-slate-400 underline-offset-2 hover:text-slate-600 hover:underline"
-        >
-          Reset planner
-        </button>
       </div>
     </section>
   );
