@@ -22,6 +22,8 @@ describe('cake analysis prompt rules', () => {
     expect(migration).toContain("v366_md5 constant text := '0a3708bf78fb23c9f0020c09c2e6e40b'");
     expect(migration).toContain(`v367_md5 constant text := '${fallbackMd5}'`);
     expect(migration).toContain("where is_active = true and btrim(size) in ('tiny', 'xsmall', 'xlarge')");
+    expect(migration).toContain('fallback_source_size');
+    expect(migration).toContain('uses_global_higher_fallback');
   });
 
   it('classifies every item through construction, material, type, and description consistency', () => {
