@@ -25,6 +25,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { showError, showSuccess } from '@/lib/utils/toast';
 import PartyBudgetSignupModal from '@/components/PartyBudgetSignupModal';
 import { getPartyBudget, savePartyBudget } from '@/services/partyBudgetService';
+import PartyBudgetImageUpload from '@/components/PartyBudgetImageUpload';
+import { getAllBudgetImages } from '@/services/partyBudgetImagesService';
 import {
   PARTY_BUDGET_ITEMS_STORAGE_KEY,
   PARTY_BUDGET_META_STORAGE_KEY,
@@ -32,6 +34,7 @@ import {
   isPartyBudgetSnapshot,
   type PartyBudgetItem as BudgetItem,
   type PartyBudgetSnapshot,
+  type PartyBudgetImage,
 } from '@/lib/partyBudget';
 
 type Category = {
@@ -165,6 +168,7 @@ export default function PartyBudgetCalculator() {
   const [hasHydrated, setHasHydrated] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
+  const [imagesMap, setImagesMap] = useState<Record<string, PartyBudgetImage[]>>({});
   const cloudSyncUserRef = useRef<string | null>(null);
 
   const guestCountRef = useRef<HTMLInputElement>(null);
@@ -251,8 +255,9 @@ export default function PartyBudgetCalculator() {
      setLineItems(initialLineItems);
      localStorage.removeItem(PARTY_BUDGET_ITEMS_STORAGE_KEY);
      localStorage.removeItem(PARTY_BUDGET_META_STORAGE_KEY);
-     localStorage.removeItem(PENDING_PARTY_BUDGET_SAVE_KEY);
-   };
+      localStorage.removeItem(PENDING_PARTY_BUDGET_SAVE_KEY);
+      setImagesMap({});
+    };
 
   const subtotal = useMemo(() => {
     let sum = 0;
@@ -386,6 +391,18 @@ export default function PartyBudgetCalculator() {
       } catch (error) {
         cloudSyncUserRef.current = null;
         showError(error instanceof Error ? error.message : 'Could not load your saved party budget.');
+      }
+
+      try {
+        const images = await getAllBudgetImages(user.id);
+        const grouped: Record<string, PartyBudgetImage[]> = {};
+        images.forEach((img) => {
+          if (!grouped[img.item_id]) grouped[img.item_id] = [];
+          grouped[img.item_id].push(img);
+        });
+        setImagesMap(grouped);
+      } catch {
+        // Images are optional; don't block budget load
       }
     };
 
@@ -587,97 +604,105 @@ export default function PartyBudgetCalculator() {
   const renderLineItem = (categoryId: string, item: BudgetItem) => {
     const isCustom = item.isCustom;
     const lockedQty = item.perGuest || item.perChild;
+    const itemImages = imagesMap[item.id] || [];
     return (
-      <div
-        key={item.id}
-        className="grid grid-cols-1 gap-2 py-3 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_76px_minmax(120px,0.9fr)_110px] sm:items-center sm:gap-3"
-      >
-        <div>
-          {isCustom ? (
-            <>
-              <input
-                type="text"
-                value={item.label}
-                onChange={(e) => updateItem(categoryId, item.id, { label: e.target.value })}
-                placeholder="Custom item name"
-                    className="w-full rounded-lg border border-purple-100 px-3 py-1.5 text-sm text-slate-900 placeholder-slate-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
-              />
-              <input
-                type="text"
-                value={item.description}
-                onChange={(e) => updateItem(categoryId, item.id, { description: e.target.value })}
-                placeholder="Description (Business Name, notes, etc.)"
-                className="mt-1 w-full rounded-lg border border-purple-100 px-3 py-1 text-xs text-slate-600 placeholder-slate-400 focus:border-purple-500 focus:outline-none"
-              />
-            </>
-          ) : (
-            <>
-              <p className="text-sm font-medium text-slate-900">{item.label}</p>
-              <p className="text-xs text-slate-500">{item.description}</p>
-            </>
-          )}
-        </div>
-        <div>
-          <input
-            type="text"
-            value={item.vendor ?? ''}
-            onChange={(e) => updateItem(categoryId, item.id, { vendor: e.target.value })}
-            placeholder="Details (Optional)"
-            aria-label={`${item.label || 'Item'} details`}
-            className="w-full rounded-lg border border-purple-100 px-3 py-2 text-xs text-slate-600 placeholder-slate-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-2 sm:contents">
-           <div className="contents">
-             <div>
-               <label
-                 htmlFor={`${item.id}-qty`}
-                  className={`block w-full cursor-pointer rounded-lg border border-purple-100 px-2 py-2 text-center text-sm text-slate-900 focus-within:border-purple-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-purple-500/30 ${
-                    lockedQty ? 'bg-purple-50 text-slate-500' : ''
-                  }`}
-                 onClick={() => {
-                   if (item.perGuest) focusGuestCount();
-                   else if (item.perChild) focusChildCount();
-                 }}
-               >
-                 <input
-                   id={`${item.id}-qty`}
-                   type="number"
-                   min="0"
-                   value={getQty(item)}
-                   disabled={lockedQty}
-                   onChange={(e) => handleQtyChange(categoryId, item.id, e.target.value)}
-                   aria-label={`${item.label || 'Item'} quantity`}
-                   className="w-full appearance-none bg-transparent text-center focus:outline-none"
-                 />
-                </label>
-           </div>
-         </div>
-           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
-              {symbolMap[currency] || ''}
-            </span>
+      <div key={item.id} className="py-3">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_76px_minmax(120px,0.9fr)_minmax(80px,auto)_110px] sm:items-center sm:gap-3">
+          <div>
+            {isCustom ? (
+              <>
+                <input
+                  type="text"
+                  value={item.label}
+                  onChange={(e) => updateItem(categoryId, item.id, { label: e.target.value })}
+                  placeholder="Custom item name"
+                      className="w-full rounded-lg border border-purple-100 px-3 py-1.5 text-sm text-slate-900 placeholder-slate-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                />
+                <input
+                  type="text"
+                  value={item.description}
+                  onChange={(e) => updateItem(categoryId, item.id, { description: e.target.value })}
+                  placeholder="Description (Business Name, notes, etc.)"
+                  className="mt-1 w-full rounded-lg border border-purple-100 px-3 py-1 text-xs text-slate-600 placeholder-slate-400 focus:border-purple-500 focus:outline-none"
+                />
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-medium text-slate-900">{item.label}</p>
+                <p className="text-xs text-slate-500">{item.description}</p>
+              </>
+            )}
+          </div>
+          <div>
             <input
-              type="number"
-              min="0"
-              value={item.cost}
-              onChange={(e) => handleCostChange(categoryId, item.id, e.target.value)}
-              aria-label={`${item.label || 'Item'} unit cost`}
-              className="w-full rounded-lg border border-purple-100 px-3 py-2 pl-7 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+              type="text"
+              value={item.vendor ?? ''}
+              onChange={(e) => updateItem(categoryId, item.id, { vendor: e.target.value })}
+              placeholder="Details (Optional)"
+              aria-label={`${item.label || 'Item'} details`}
+              className="w-full rounded-lg border border-purple-100 px-3 py-2 text-xs text-slate-600 placeholder-slate-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
             />
           </div>
-        </div>
-        <div className="flex items-center justify-end gap-2">
-          <span className="text-sm font-bold text-slate-900">{formatCurrency(getLineTotal(item), currency)}</span>
-          {isCustom && (
-            <button
-              onClick={() => handleRemoveItem(categoryId, item.id)}
-              aria-label="Remove custom item"
-              className="rounded-lg border border-red-200 p-1.5 text-red-600 hover:bg-red-50"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          )}
+          <div className="grid grid-cols-2 gap-2 sm:contents">
+             <div className="contents">
+               <div>
+                 <label
+                   htmlFor={`${item.id}-qty`}
+                    className={`block w-full cursor-pointer rounded-lg border border-purple-100 px-2 py-2 text-center text-sm text-slate-900 focus-within:border-purple-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-purple-500/30 ${
+                      lockedQty ? 'bg-purple-50 text-slate-500' : ''
+                    }`}
+                   onClick={() => {
+                     if (item.perGuest) focusGuestCount();
+                     else if (item.perChild) focusChildCount();
+                   }}
+                 >
+                   <input
+                     id={`${item.id}-qty`}
+                     type="number"
+                     min="0"
+                     value={getQty(item)}
+                     disabled={lockedQty}
+                     onChange={(e) => handleQtyChange(categoryId, item.id, e.target.value)}
+                     aria-label={`${item.label || 'Item'} quantity`}
+                     className="w-full appearance-none bg-transparent text-center focus:outline-none"
+                   />
+                 </label>
+            </div>
+          </div>
+             <div className="relative">
+             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
+               {symbolMap[currency] || ''}
+             </span>
+             <input
+               type="number"
+               min="0"
+               value={item.cost}
+               onChange={(e) => handleCostChange(categoryId, item.id, e.target.value)}
+               aria-label={`${item.label || 'Item'} unit cost`}
+               className="w-full rounded-lg border border-purple-100 px-3 py-2 pl-7 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+             />
+           </div>
+          </div>
+          <PartyBudgetImageUpload
+            userId={user?.id ?? null}
+            isAuthenticated={isAuthenticated}
+            itemId={item.id}
+            categoryId={categoryId}
+            images={itemImages}
+            onImagesChange={(updated) => setImagesMap((prev) => ({ ...prev, [item.id]: updated }))}
+          />
+          <div className="flex items-center justify-end gap-2">
+            <span className="text-sm font-bold text-slate-900">{formatCurrency(getLineTotal(item), currency)}</span>
+            {isCustom && (
+              <button
+                onClick={() => handleRemoveItem(categoryId, item.id)}
+                aria-label="Remove custom item"
+                className="rounded-lg border border-red-200 p-1.5 text-red-600 hover:bg-red-50"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );

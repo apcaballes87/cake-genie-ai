@@ -42,6 +42,17 @@ export type SavedPartyBudget = {
   updated_at: string;
 };
 
+export type PartyBudgetImage = {
+  id: string;
+  user_id: string;
+  item_id: string;
+  category_id: string;
+  image_url: string;
+  file_path: string;
+  sort_order: number;
+  created_at: string;
+};
+
 export function isPartyBudgetSnapshot(value: unknown): value is PartyBudgetSnapshot {
   if (!value || typeof value !== 'object') return false;
   const snapshot = value as Partial<PartyBudgetSnapshot>;
