@@ -37,7 +37,6 @@ import {
 type Category = {
   id: string;
   label: string;
-  description: string;
 };
 
 const exchangeRates: Record<string, number> = {
@@ -96,15 +95,15 @@ const formatCurrency = (amount: number, curr: string): string => {
 };
 
 const initialCategories: Category[] = [
-  { id: 'venue', label: 'Venue & Setup', description: 'Party venue rental, tables, chairs, balloon setup' },
-  { id: 'food', label: 'Food & Catering', description: 'Kids meal sets, adult meals, snacks, drinks' },
-  { id: 'cake', label: 'Cakes & Desserts', description: 'Themed birthday cake, dessert table, cupcakes' },
-  { id: 'entertainment', label: 'Entertainment', description: 'Clown, magician, character mascot, DJ or sound' },
-  { id: 'decorations', label: 'Party Decorations', description: 'Balloons, backdrop, banners, thematic supplies' },
-  { id: 'photo', label: 'Photography & Video', description: 'Kid-focused photographer, video coverage' },
-  { id: 'favors', label: 'Party Favors', description: 'Loot bags, toys, giveaways for children' },
-  { id: 'supplies', label: 'Party Supplies', description: 'Plates, cups, utensils, serving ware, signage' },
-  { id: 'activities', label: 'Games & Activities', description: 'Inflatables, face painting, arts & crafts' },
+  { id: 'venue', label: 'Venue & Setup' },
+  { id: 'food', label: 'Food & Catering' },
+  { id: 'cake', label: 'Cakes & Desserts' },
+  { id: 'entertainment', label: 'Entertainment' },
+  { id: 'decorations', label: 'Party Decorations' },
+  { id: 'photo', label: 'Photography & Video' },
+  { id: 'favors', label: 'Party Favors' },
+  { id: 'supplies', label: 'Party Supplies' },
+  { id: 'activities', label: 'Games & Activities' },
 ];
 
 const initialLineItems: Record<string, BudgetItem[]> = {
@@ -607,7 +606,7 @@ export default function PartyBudgetCalculator() {
                 type="text"
                 value={item.description}
                 onChange={(e) => updateItem(categoryId, item.id, { description: e.target.value })}
-                placeholder="Description (optional)"
+                placeholder="Description (Business Name, notes, etc.)"
                 className="mt-1 w-full rounded-lg border border-purple-100 px-3 py-1 text-xs text-slate-600 placeholder-slate-400 focus:border-purple-500 focus:outline-none"
               />
             </>
@@ -713,7 +712,6 @@ export default function PartyBudgetCalculator() {
             </span>
             <div>
               <h3 className="text-base font-bold text-slate-900">{category.label}</h3>
-              <p className="text-xs text-slate-500">{category.description}</p>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
