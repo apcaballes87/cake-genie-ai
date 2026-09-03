@@ -26,22 +26,32 @@ describe('cake analysis prompt rules', () => {
 
   it('keeps the v3.68 migration guarded by the live v3.67 checksum and fallback parity', () => {
     const migration = readPrompt('supabase/migrations/20260903130000_deploy_prompt_v368_flat_symbol_reconciliation.sql');
-    const fallback = readPrompt('src/services/prompts/fallback-prompt.txt');
-    const fallbackMd5 = createHash('md5').update(fallback).digest('hex');
 
     expect(migration).toContain("source_prompt_version <> '3.67'");
     expect(migration).toContain("v367_md5 constant text := '4d49dc39935f23075a380111ef5d114f'");
-    expect(migration).toContain(`v368_md5 constant text := '${fallbackMd5}'`);
+    expect(migration).toContain("v368_md5 constant text := '5eca029210ecc50deec4f3a909785e77'");
     expect(migration).toContain('VOLUMETRIC CELESTIAL / SYMBOL TOPPERS');
     expect(migration).toContain('support stick alone does not establish that volume');
     expect(migration).toContain('molded stars = `edible_3d_ordinary` or `edible_2d_support`');
+  });
+
+  it('keeps the v3.69 migration guarded by the live v3.68 checksum and fallback parity', () => {
+    const migration = readPrompt('supabase/migrations/20260903140000_deploy_prompt_v369_flat_2d_composition_boundary.sql');
+    const fallback = readPrompt('src/services/prompts/fallback-prompt.txt');
+    const fallbackMd5 = createHash('md5').update(fallback).digest('hex');
+
+    expect(migration).toContain("source_prompt_version <> '3.68'");
+    expect(migration).toContain("v368_md5 constant text := '5eca029210ecc50deec4f3a909785e77'");
+    expect(migration).toContain(`v369_md5 constant text := '${fallbackMd5}'`);
+    expect(migration).toContain('Flat 2D Composition Complexity Boundary');
+    expect(migration).toContain('A single simple cut motif');
   });
 
   it('classifies every item through construction, material, type, and description consistency', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.68 Version - Flat Symbol Construction and Role Reconciliation**');
+    expect(prompt).toContain('**v3.69 Version - Flat 2D Composition Complexity Boundary**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('3. Visible construction of each item');
     expect(prompt).toContain('5. Type compatible with that construction and material');
@@ -454,11 +464,13 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('Describe the fulfillable result as an edible photo portrait on top, not as a sculpted fondant portrait.');
   });
 
-  it('classifies detailed flat-backed edible artwork as edible 2D complex without stealing adjacent types', () => {
+  it('requires a detailed multi-component composition for edible 2D complex without stealing adjacent types', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
     expect(prompt).toContain('EDIBLE 2D COMPLEX ARTWORK — FLAT-BACKED OR SHALLOW RELIEF');
-    expect(prompt).toContain('Use `edible_2d_complex` for detailed handmade edible artwork made from fondant');
+    expect(prompt).toContain('Use `edible_2d_complex` only for one detailed, composed handmade edible artwork');
+    expect(prompt).toContain('freestanding all-around body depth; flat placement alone does not establish\ncomplexity.');
+    expect(prompt).toContain('A single simple cut motif, or a repeated/focal group of identical simple motifs');
     expect(prompt).toContain('Do not place\n`edible_2d_complex` in `support_elements`.');
     expect(prompt).toContain('A recognizable human or pet likeness in unsupported detailed relief remains');
     expect(prompt).toContain('A logo, wordmark, brand name, or decorative brand lettering remains\n   `edible_logo_2d`.');
@@ -475,7 +487,8 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('| `large` | 50% or greater |');
     expect(prompt).toContain('"type": "candle|toy|plastic_crown|edible_crown|cardstock|edible_photo_top|edible_logo_2d|edible_2d_complex|printout');
 
-    expect(SYSTEM_INSTRUCTION).toContain('flat-backed, attached flush to a cake surface, or built only from shallow layered pieces MUST be classified as "edible_2d_complex"');
+    expect(SYSTEM_INSTRUCTION).toContain('Use "edible_2d_complex" only for one detailed, composed flat fondant/gumpaste artwork built from visibly distinct components');
+    expect(SYSTEM_INSTRUCTION).toContain('A readable logo, wordmark, or brand design remains "edible_logo_2d".');
     expect(SYSTEM_INSTRUCTION).toContain('Use "edible_3d_complex" only for a genuinely freestanding hand-sculpted figure or object with visible all-around body depth.');
     expect(SYSTEM_INSTRUCTION).toContain('Do not classify handmade layered fondant/gumpaste character artwork as a printout merely because it depicts a character');
   });
@@ -519,7 +532,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.68 Version - Flat Symbol Construction and Role Reconciliation**');
+    expect(prompt).toContain('**v3.69 Version - Flat 2D Composition Complexity Boundary**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -540,7 +553,7 @@ describe('cake analysis prompt rules', () => {
   it('uses toy-specific sizing for miniature molded toys', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.68 Version - Flat Symbol Construction and Role Reconciliation**');
+    expect(prompt).toContain('**v3.69 Version - Flat 2D Composition Complexity Boundary**');
     expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy` AND `plastic_crown`)');
     expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
     expect(prompt).toContain('| `small` | under 0.50 |');
@@ -723,6 +736,10 @@ describe('cake analysis prompt rules', () => {
       expected_main_toppers: Array<Record<string, unknown>>;
       expected_support_elements: Array<Record<string, unknown>>;
       forbidden_type: string;
+      v369_flat_star_retry: {
+        emitted_type: string;
+        expected_main_topper: Record<string, unknown>;
+      };
     };
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
@@ -737,10 +754,24 @@ describe('cake analysis prompt rules', () => {
       expect.objectContaining({ group_id: 'side_white_stars', type: 'edible_2d_support' }),
     ]));
     expect(fixture.forbidden_type).toBe('edible_3d_ordinary');
+    expect(fixture.v369_flat_star_retry.emitted_type).toBe('edible_2d_complex');
+    expect(fixture.v369_flat_star_retry.expected_main_topper).toEqual(expect.objectContaining({
+      group_id: 'top_star_toppers',
+      type: 'edible_2d_shapes',
+      material: 'edible_fondant',
+      size: 'large',
+      quantity: 3,
+      classification: 'hero',
+    }));
     expect(prompt).toContain('A mold name, cutter, stamp, shallow relief, apparent\nshadow, or support stick alone does not establish that volume.');
     expect(prompt).toContain('A thin planar, cut, stamped, flat-backed, or shallow-relief star, heart, sun,');
     expect(prompt).toContain('Use `edible_2d_shapes` for one flat focal\nshape or a coherent focal group of flat toppers; otherwise use\n`edible_2d_support`.');
     expect(prompt).not.toContain('molded stars = `edible_3d_ordinary` or `edible_2d_support`');
+    expect(prompt).toContain('A single simple cut motif, or a repeated/focal group of identical simple motifs');
+    expect(prompt).toContain('Large span, multiple colors, a flat back, shallow relief,\nor an upright support stick does not add components or make a simple motif\ncomplex.');
+    expect(SYSTEM_INSTRUCTION).toContain('HANDMADE EDIBLE 2D COMPOSITION');
+    expect(SYSTEM_INSTRUCTION).toContain('A single simple cut motif, or a repeated/focal group of identical simple motifs');
+    expect(SYSTEM_INSTRUCTION).toContain('Flat backing, flush placement, shallow relief, size, multiple colors, or an upright support stick alone never establishes complexity.');
   });
 
   it('scopes printed gloss, named normalizations, plastic balls, and connected signs', () => {

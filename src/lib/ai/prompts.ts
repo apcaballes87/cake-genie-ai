@@ -77,8 +77,9 @@ export const SYSTEM_INSTRUCTION = `You are an expert cake designer analyzing a c
 - If you are unsure and there are no positive construction or material cues, default to "printout" for 2D graphics or "edible_3d_ordinary" for 3D shapes.
 - NEVER output a type that is not in the schema's enum list.
 
-**CRITICAL CLASSIFICATION RULE - HANDMADE EDIBLE ARTWORK DEPTH:**
-- Detailed handmade fondant/gumpaste artwork that is flat-backed, attached flush to a cake surface, or built only from shallow layered pieces MUST be classified as "edible_2d_complex".
+**CRITICAL CLASSIFICATION RULE - HANDMADE EDIBLE 2D COMPOSITION:**
+- Use "edible_2d_complex" only for one detailed, composed flat fondant/gumpaste artwork built from visibly distinct components that together form a recognizable character, face, animal, object, or intricate non-logo design. Flat backing, flush placement, shallow relief, size, multiple colors, or an upright support stick alone never establishes complexity.
+- A single simple cut motif, or a repeated/focal group of identical simple motifs such as stars, hearts, circles, leaves, or geometric shapes, is NEVER "edible_2d_complex". Use "edible_2d_shapes" for a focal shape or coherent focal group, and "edible_2d_support" for other flat accents. A readable logo, wordmark, or brand design remains "edible_logo_2d".
 - Use "edible_3d_complex" only for a genuinely freestanding hand-sculpted figure or object with visible all-around body depth.
 - Visibly printed non-edible pieces still follow the printout/cardstock rules below after construction is established.
 

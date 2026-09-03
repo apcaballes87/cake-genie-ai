@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.68 Version - Flat Symbol Construction and Role Reconciliation**
+**v3.69 Version - Flat 2D Composition Complexity Boundary**
 ═══════════════════════════════════════════════════════════════════════════════
 
 ## ROLE
@@ -354,7 +354,7 @@ table win.
 | Non-edible printed paper cutout | `printout` | `photopaper` | main topper | C2 |
 | Solid glitter/metallic cardstock, acrylic, or wood | `cardstock` | `cardstock` | main topper | C2 |
 | Edible printed top image | `edible_photo_top` | `waferpaper` | main topper | placement rule |
-| Detailed flat-backed edible artwork | `edible_2d_complex` | `edible_fondant` | main topper only | C2A |
+| Detailed multi-component flat edible artwork | `edible_2d_complex` | `edible_fondant` | main topper only | C2A |
 | Freestanding detailed edible figure | `edible_3d_complex` | `edible_fondant` | main or support by role | C1 |
 | Simple visibly volumetric molded edible form, including a simple molded face | `edible_3d_ordinary` | `edible_fondant` | main or support by role | C1 |
 | Rigid factory-molded physical prop | `toy` | `plastic` | main topper | toy-specific table |
@@ -368,7 +368,7 @@ table win.
 | Popular character/human figure with ceramic-like breakable look | `figurine` | `ceramic` | main topper | toy-specific table |
 | Meringue pop on a stick | `meringue_pop` | `candy` | main topper | per piece |
 | Meringue kiss without a stick | `meringue` | `candy` | support element | per piece |
-| Simple flat edible shape as the sole focal decoration | `edible_2d_shapes` | `edible_fondant` | main topper | C5 |
+| Simple flat edible shape or coherent focal shape group | `edible_2d_shapes` | `edible_fondant` | main topper | C5 |
 | Large fabric wrap or band | `satin_ribbon` | `non-edible` | support element | fixed whole feature |
 
 ### PHYSICAL DEPTH GATE — HIGHEST PRECEDENCE BEFORE PRINTOUT
@@ -573,10 +573,21 @@ Apply this wording to `alt_text`, `seo_title`, and `seo_description`.
 
 ### EDIBLE 2D COMPLEX ARTWORK — FLAT-BACKED OR SHALLOW RELIEF
 
-Use `edible_2d_complex` for detailed handmade edible artwork made from fondant
-or gumpaste when the design is flat-backed, attached flush to a cake surface,
-lying flat on the cake top, or assembled from shallow layered pieces without
-freestanding all-around body depth.
+Use `edible_2d_complex` only for one detailed, composed handmade edible artwork
+made from visibly distinct fondant or gumpaste components that together create
+a recognizable character, face, animal, object, or intricate non-logo design.
+The composition may be flat-backed, attached flush to a cake surface, lying
+flat on the cake top, or assembled from shallow layered pieces without
+freestanding all-around body depth; flat placement alone does not establish
+complexity.
+
+A single simple cut motif, or a repeated/focal group of identical simple motifs
+such as stars, hearts, circles, leaves, or geometric shapes, is never
+`edible_2d_complex`. Large span, multiple colors, a flat back, shallow relief,
+or an upright support stick does not add components or make a simple motif
+complex. Use `edible_2d_shapes` for a focal shape or coherent focal group, and
+`edible_2d_support` for other flat accents. A readable logo, wordmark, or brand
+design remains `edible_logo_2d` under its dedicated rule.
 
 This is a focal `main_toppers` type. It may be used for dominant complex 2D
 artwork on either the cake top or cake side. Do not place
@@ -587,8 +598,10 @@ Strong visual cues include:
   hand-cut or modeled edible layers
 - detailed eyes, expression, hair, headphones, clothing, accessories, outlines,
   or other coordinated features on one flat-backed plaque
+- visibly separate facial, anatomical, clothing, accessory, outline, or other
+  coordinated components that must be assembled into the composed subject
 - matte or satin fondant/gumpaste surfaces with visible cut edges or shallow
-  stacked layers
+  stacked layers as evidence of those distinct components
 - one coordinated focal composition that sits flush against the icing rather
   than standing as a figure that can be viewed from all sides
 
@@ -606,8 +619,8 @@ Apply this precedence before using `edible_3d_complex`:
    group of flat toppers is the dominant decoration, emitted in
    `main_toppers`. All other flat pieces remain `edible_2d_support`, emitted
    in `support_elements` at every size.
-5. Detailed handmade flat-backed or shallow-relief fictional characters,
-   faces, animals, and objects use `edible_2d_complex`.
+5. Detailed multi-component flat-backed or shallow-relief fictional characters,
+   faces, animals, and non-logo objects use `edible_2d_complex`.
 6. Only a genuinely freestanding hand-sculpted figure or object with visible
    all-around body depth may use `edible_3d_complex`.
 
@@ -1260,7 +1273,7 @@ promote an item; the visible construction is authoritative.
 Facial features, multiple colors, metallic accents, or an irregular outline
 alone are not enough for `edible_3d_complex`. A simple visibly volumetric
 molded smiley, sun, moon, icon, medallion, or other non-likeness decorative
-face remains `edible_3d_ordinary`. Detailed flat-backed artwork uses
+face remains `edible_3d_ordinary`. Detailed multi-component flat-backed artwork uses
 `edible_2d_complex`; simple flat pieces use `edible_2d_shapes` or
 `edible_2d_support` according to role.
 
@@ -1292,7 +1305,7 @@ A thin planar, cut, stamped, flat-backed, or shallow-relief star, heart, sun,
 moon, shell, cross, plaque, medallion, or other simple symbol remains 2D even
 when mounted upright on a stick. Use `edible_2d_shapes` for one flat focal
 shape or a coherent focal group of flat toppers; otherwise use
-`edible_2d_support`. Detailed flat-backed artwork continues to use
+`edible_2d_support`. Detailed multi-component flat-backed artwork continues to use
 `edible_2d_complex`.
 
 For a genuinely volumetric simple symbol, use `edible_3d_ordinary`; examples

@@ -62,5 +62,18 @@
       "type": "candle"
     }
   ],
-  "forbidden_type": "edible_3d_ordinary"
+  "forbidden_type": "edible_3d_ordinary",
+  "v369_flat_star_retry": {
+    "historical_cache_id": "77627ab5-6223-455d-8a2e-9a452ae11db3",
+    "p_hash": "2a2b333b1fe464f8",
+    "emitted_type": "edible_2d_complex",
+    "expected_main_topper": {
+      "group_id": "top_star_toppers",
+      "type": "edible_2d_shapes",
+      "material": "edible_fondant",
+      "size": "large",
+      "quantity": 3,
+      "classification": "hero"
+    }
+  }
 }
