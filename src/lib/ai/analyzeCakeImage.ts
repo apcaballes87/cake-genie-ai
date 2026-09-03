@@ -1,6 +1,10 @@
 import { getAI, getOrCreatePromptCache } from '@/lib/ai/client';
 import { createClient } from '@/lib/supabase/client';
-import { buildSearchAnalysisGenerationConfig, postProcessSearchAnalysisResult } from '@/lib/admin/searchAnalysisContract';
+import {
+    buildSearchAnalysisGenerationConfig,
+    getAnalysisGenerationSizeSchema,
+    postProcessSearchAnalysisResult,
+} from '@/lib/admin/searchAnalysisContract';
 import { getActivePromptDetails, getPromptDetailsByVersion } from '@/services/prompts/promptLoader';
 import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
 import { logRejectedUpload } from '@/lib/ai/rejectedUploads';
@@ -9,6 +13,7 @@ import {
     GeneratedAnalysisContractError,
     type GeneratedCakeAnalysisResult,
 } from '@/lib/ai/generatedAnalysisContract';
+import { ANALYSIS_SIZE_SCHEMA } from '@/lib/ai/analysisSize';
 
 export const ANALYSIS_MODEL = 'gemini-3.5-flash-lite';
 export const AI_REQUEST_TIMEOUT_MS = 120_000;
@@ -36,7 +41,7 @@ type RunCakeAnalysisInput = {
 };
 
 type RunCakeAnalysisResult = {
-    result: GeneratedCakeAnalysisResult;
+    result: GeneratedCakeAnalysisResult & { analysis_size_schema: typeof ANALYSIS_SIZE_SCHEMA };
     promptVersion: string;
 };
 
@@ -123,7 +128,8 @@ export async function runActiveCakeAnalysis({
     }
 
     const aiClient = getAI(requestContext);
-    const baseConfig = buildSearchAnalysisGenerationConfig(typeEnums);
+    const sizeSchema = getAnalysisGenerationSizeSchema(promptDetails.version);
+    const baseConfig = buildSearchAnalysisGenerationConfig(typeEnums, sizeSchema);
     let response;
     let cacheName: string | null = null;
 
@@ -188,7 +194,7 @@ export async function runActiveCakeAnalysis({
     const jsonText = (response.text || '').trim();
     let result: GeneratedCakeAnalysisResult;
     try {
-        result = postProcessSearchAnalysisResult(JSON.parse(jsonText), typeEnums);
+        result = postProcessSearchAnalysisResult(JSON.parse(jsonText), typeEnums, sizeSchema);
     } catch (error) {
         console.error('Failed to parse AI response:', jsonText);
         if (error instanceof GeneratedAnalysisContractError) throw error;
@@ -214,5 +220,8 @@ export async function runActiveCakeAnalysis({
         });
     }
 
-    return { result, promptVersion: promptDetails.version };
+    return {
+        result: { ...result, analysis_size_schema: ANALYSIS_SIZE_SCHEMA },
+        promptVersion: promptDetails.version,
+    };
 }

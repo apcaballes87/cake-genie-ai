@@ -10,7 +10,7 @@ import {
     CAKE_MESSAGE_TYPES,
     isValidMainTopperType,
     isValidSupportElementType,
-    isValidSize,
+    isValidPersistedSize,
     getValidSubtypesForType,
 } from '@/constants/pricingEnums';
 import { createLogger } from './logger';
@@ -75,7 +75,7 @@ export function validateAnalysis(input: ValidationInput): ValidationResult {
         }
 
         // Check size
-        if (topper.size && !isValidSize(topper.size) && topper.size !== 'mixed') {
+        if (topper.size && !isValidPersistedSize(topper.size) && topper.size !== 'mixed') {
             warnings.push({
                 field: `${fieldPrefix}.size`,
                 value: topper.size,
@@ -114,7 +114,7 @@ export function validateAnalysis(input: ValidationInput): ValidationResult {
 
         // Check size (treat coverage as size for backward compatibility)
         const effectiveSize = element.size || (element as any).coverage;
-        if (effectiveSize && !isValidSize(effectiveSize) && effectiveSize !== 'mixed') {
+        if (effectiveSize && !isValidPersistedSize(effectiveSize) && effectiveSize !== 'mixed') {
             warnings.push({
                 field: `${fieldPrefix}.size`,
                 value: effectiveSize,

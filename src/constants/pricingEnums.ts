@@ -13,8 +13,11 @@
  * Valid sizes for pricing rules
  * These MUST match the database pricing_rules.size column values
  */
-export const VALID_SIZES = ['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge'] as const;
+export const VALID_SIZES = ['small', 'medium', 'large'] as const;
 export type ValidSize = typeof VALID_SIZES[number];
+
+/** Persisted inputs accepted only while historical records are hydrated. */
+export const LEGACY_PERSISTED_SIZES = ['tiny', 'xsmall', 'xlarge'] as const;
 
 /**
  * Main topper types for hero elements
@@ -148,6 +151,10 @@ export function isValidSupportElementType(type: string): type is SupportElementT
 
 export function isValidSize(size: string): size is ValidSize {
     return VALID_SIZES.includes(size as ValidSize);
+}
+
+export function isValidPersistedSize(size: string): boolean {
+    return isValidSize(size) || LEGACY_PERSISTED_SIZES.includes(size as typeof LEGACY_PERSISTED_SIZES[number]);
 }
 
 export function getValidSubtypesForType(type: string): readonly string[] {

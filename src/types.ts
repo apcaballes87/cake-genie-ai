@@ -1,6 +1,7 @@
 // types.ts
 
 import type { TierFlavorAssignment } from '@/lib/tierFlavorMapping';
+import type { AnalysisSizeSchema, CanonicalAnalysisSize, LegacyAnalysisSize } from '@/lib/ai/analysisSize';
 
 export type { GeneratedCakeAnalysisResult } from '@/lib/ai/generatedAnalysisContract';
 
@@ -14,7 +15,8 @@ export type MainTopperType = 'edible_3d_complex' | 'edible_3d_ordinary' | 'edibl
 export type SupportElementType = 'edible_3d_support' | 'edible_2d_support' | 'chocolates' | 'sprinkles' | 'premium_sprinkles' | 'support_printout' | 'isomalt' | 'dragees' | 'edible_flowers' | 'edible_photo_side' | 'edible_photo_side_wave' | 'edible_photo_print' | 'icing_doodle' | 'icing_doodle_intricate_side' | 'icing_palette_knife' | 'icing_brush_stroke' | 'icing_splatter' | 'icing_minimalist_spread' | 'plastic_ball_regular' | 'plastic_ball_disco' | 'plastic_ball' | 'macarons' | 'meringue' | 'gumpaste_bundle' | 'candy' | 'gumpaste_panel' | 'icing_decorations' | 'gumpaste_creations' | 'marshmallows' | 'edible_3d_ordinary' | 'edible_lego_bricks' | 'fresh_flowers' | 'artificial_flowers' | 'thin_fabric_ribbon_bows' | 'satin_ribbon' | 'edible_lollipops' | 'printout';
 export type CakeMessageType = 'gumpaste_letters' | 'icing_script' | 'printout' | 'cardstock';
 
-export type Size = 'small' | 'medium' | 'large' | 'tiny' | 'xsmall' | 'xlarge' | 'mixed';
+/** UI accepts legacy values only while persisted records are being hydrated. */
+export type Size = CanonicalAnalysisSize | LegacyAnalysisSize | 'mixed';
 
 export interface Color {
   name: string;
@@ -133,6 +135,8 @@ export interface BaseBoard {
 }
 
 export interface HybridAnalysisResult {
+  /** Absent means a pre-v3.67 six-band persisted analysis. */
+  analysis_size_schema?: AnalysisSizeSchema;
   cakeType: CakeType;
   cakeThickness: CakeThickness;
   main_toppers: MainTopper[];
@@ -411,7 +415,7 @@ export interface PricingRule {
   item_key: string;
   item_type: string;
   classification: string | null;  // 'hero', 'support', 'special', 'message', 'icing'
-  size: 'large' | 'medium' | 'small' | 'tiny' | 'xsmall' | 'xlarge' | null;
+  size: CanonicalAnalysisSize | LegacyAnalysisSize | null;
   description: string;
   price: number;
   category: 'main_topper' | 'support_element' | 'special' | 'message' | 'icing_feature' | null;

@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
+import { createHash } from 'crypto';
 import { describe, expect, it } from 'vitest';
 
 import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
@@ -12,11 +13,22 @@ function readPrompt(path: string) {
 }
 
 describe('cake analysis prompt rules', () => {
+  it('keeps the v3.67 migration guarded by the live v3.66 checksum and fallback parity', () => {
+    const migration = readPrompt('supabase/migrations/20260902143000_deploy_prompt_v367_three_band_sizing.sql');
+    const fallback = readPrompt('src/services/prompts/fallback-prompt.txt');
+    const fallbackMd5 = createHash('md5').update(fallback).digest('hex');
+
+    expect(migration).toContain("source_prompt_version <> '3.66'");
+    expect(migration).toContain("v366_md5 constant text := '0a3708bf78fb23c9f0020c09c2e6e40b'");
+    expect(migration).toContain(`v367_md5 constant text := '${fallbackMd5}'`);
+    expect(migration).toContain("where is_active = true and btrim(size) in ('tiny', 'xsmall', 'xlarge')");
+  });
+
   it('classifies every item through construction, material, type, and description consistency', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.65 Version - Wafer-Paper Strip and Piped-Ruffle Reconciliation**');
+    expect(prompt).toContain('**v3.67 Version - Three-Band Sizing and Pricing Compatibility**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('3. Visible construction of each item');
     expect(prompt).toContain('5. Type compatible with that construction and material');
@@ -445,12 +457,9 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('separate red fondant ROBLOX wordmark on the cake side -> one');
     expect(prompt).toContain('`edible_logo_2d`, not `edible_2d_complex`, not `edible_lego_bricks`');
     expect(prompt).toContain('Size `edible_2d_complex` by surface span, not by the 3D figure height table.');
-    expect(prompt).toContain('| `tiny` | under 10% |');
-    expect(prompt).toContain('| `xsmall` | 10% to under 20% |');
-    expect(prompt).toContain('| `small` | 20% to under 35% |');
-    expect(prompt).toContain('| `medium` | 35% to under 50% |');
-    expect(prompt).toContain('| `large` | 50% to under 75% |');
-    expect(prompt).toContain('| `xlarge` | 75% or greater |');
+    expect(prompt).toContain('| `small` | under 20% |');
+    expect(prompt).toContain('| `medium` | 20% to under 50% |');
+    expect(prompt).toContain('| `large` | 50% or greater |');
     expect(prompt).toContain('"type": "candle|toy|plastic_crown|edible_crown|cardstock|edible_photo_top|edible_logo_2d|edible_2d_complex|printout');
 
     expect(SYSTEM_INSTRUCTION).toContain('flat-backed, attached flush to a cake surface, or built only from shallow layered pieces MUST be classified as "edible_2d_complex"');
@@ -461,7 +470,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.65 Version - Wafer-Paper Strip and Piped-Ruffle Reconciliation**');
+    expect(prompt).toContain('**v3.67 Version - Three-Band Sizing and Pricing Compatibility**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -482,18 +491,14 @@ describe('cake analysis prompt rules', () => {
   it('uses toy-specific sizing for miniature molded toys', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.65 Version - Wafer-Paper Strip and Piped-Ruffle Reconciliation**');
+    expect(prompt).toContain('**v3.67 Version - Three-Band Sizing and Pricing Compatibility**');
     expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy` AND `plastic_crown`)');
     expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
-    expect(prompt).toContain('| `tiny` | under 0.10 |');
-    expect(prompt).toContain('| `xsmall` | 0.10 to under 0.50 |');
-    expect(prompt).toContain('| `small` | 0.50 to under 0.80 |');
-    expect(prompt).toContain('| `medium` | 0.80 to under 1.10 |');
-    expect(prompt).toContain('| `large` | 1.10 to under 1.40 |');
-    expect(prompt).toContain('| `xlarge` | 1.40 or greater |');
+    expect(prompt).toContain('| `small` | under 0.50 |');
+    expect(prompt).toContain('| `medium` | 0.50 to under 1.10 |');
+    expect(prompt).toContain('| `large` | 1.10 or greater |');
     expect(prompt).toContain('Miniature molded army men, miniature soldiers, and similarly scaled mini action');
-    expect(prompt).toContain('figures that are each at least 0.10 and less than 0.50 of the reference-tier');
-    expect(prompt).toContain('Toys below 0.10 remain `tiny`.');
+    expect(prompt).toContain('figures below 0.50 of the reference-tier height are `small`');
     expect(prompt).toContain('For toys, compensate for perspective by estimating the toy\'s true visible');
     expect(prompt).toContain('This replaces the global perspective `+1`\nrule for toys.');
     expect(prompt).toContain('Do not apply any additional category bump after using the\ntoy-specific table.');
@@ -508,29 +513,28 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('For `toy`, `plastic_crown`, or `figurine`, use TOY-SPECIFIC SIZING PRECEDENCE; otherwise look up the correct per-type table (C1-C7)');
   });
 
-  it('uses one canonical six-band sizing contract and matching quick reference', () => {
+  it('uses one canonical three-band sizing contract and matching quick reference', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
-    const canonicalSixBands = [
-      '| `tiny` | **< 0.10**',
-      '| `xsmall` | **0.10 to < 0.30**',
-      '| `small` | **0.30 to < 0.50**',
-      '| `medium` | **0.50 to < 0.90**',
-      '| `large` | **0.90 to < 1.20**',
-      '| `xlarge` | **≥ 1.20**',
+    const canonicalThreeBands = [
+      '| `small` | **< 0.30**',
+      '| `medium` | **0.30 to < 0.90**',
+      '| `large` | **≥ 0.90**',
     ];
 
     expect(prompt).toContain('CANONICAL ITEM FAMILY MATRIX — AUTHORITATIVE');
-    for (const band of canonicalSixBands) {
+    for (const band of canonicalThreeBands) {
       expect(prompt).toContain(band);
     }
     expect(prompt).toContain('Ratio Quick Glance (exact mirror of the authoritative tables)');
-    expect(prompt).toContain('The general C1-C5 families share one six-band ratio scale');
-    expect(prompt).toContain('Flat toppers use the same canonical six ratio bands as C1');
+    expect(prompt).toContain('All sizing output uses only `small`, `medium`, or `large`.');
+    expect(prompt).toContain('Flat toppers use the same canonical three ratio bands as C1');
     expect(prompt).toContain('### C4. SPHERES & BALLS — plastic_ball, plastic_ball_regular, edible round elements');
-    expect(prompt).toContain('A **small gap**? → `tiny`, `xsmall`, or `small`.');
-    expect(prompt).toContain('| C1 edible 3D | <0.10 | 0.10 to <0.30 | 0.30 to <0.50 | 0.50 to <0.90 | 0.90 to <1.20 | ≥1.20 |');
-    expect(prompt).toContain('| C5 edible 2D support | <0.10 | 0.10 to <0.30 | 0.30 to <0.50 | 0.50 to <0.90 | 0.90 to <1.20 | ≥1.20 |');
+    expect(prompt).toContain('A **small gap**? → `small`.');
+    expect(prompt).toContain('| C1 edible 3D | <0.30 | 0.30 to <0.90 | ≥0.90 |');
+    expect(prompt).toContain('| C5 edible 2D support | <0.30 | 0.30 to <0.90 | ≥0.90 |');
     expect(prompt).toContain('`edible_2d_support` remains in `support_elements` at every size.');
+    expect(prompt).toContain('5 tiny stars in a cluster → each star is `small`, quantity = 5.');
+    expect(prompt).not.toContain('5 tiny stars in a cluster → each star is `tiny`');
     expect(prompt).toContain('set `quantity` to the\nactual piece count, and price per piece');
     expect(prompt).toContain('| `medium` | **40% to < 80%** |');
     expect(prompt).toContain('| `large` | **≥ 80%** |');
@@ -540,7 +544,7 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).not.toContain('35–60%');
   });
 
-  it('classifies exact sizing boundaries with the v3.36 half-open intervals', () => {
+  it('classifies exact sizing boundaries with the v3.67 half-open intervals', () => {
     const classifyByUpperBounds = (
       value: number,
       sizes: string[],
@@ -549,23 +553,28 @@ describe('cake analysis prompt rules', () => {
 
     const classifyCanonical = (ratio: number) => classifyByUpperBounds(
       ratio,
-      ['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge'],
-      [0.10, 0.30, 0.50, 0.90, 1.20],
+      ['small', 'medium', 'large'],
+      [0.30, 0.90],
     );
     const classifyEdible2dComplex = (coverage: number) => classifyByUpperBounds(
       coverage,
-      ['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge'],
-      [0.10, 0.20, 0.35, 0.50, 0.75],
+      ['small', 'medium', 'large'],
+      [0.20, 0.50],
+    );
+    const classifyFlower = (ratio: number) => classifyByUpperBounds(
+      ratio,
+      ['small', 'medium', 'large'],
+      [0.30, 0.80],
     );
     const classifyToy = (ratio: number) => classifyByUpperBounds(
       ratio,
-      ['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge'],
-      [0.10, 0.50, 0.80, 1.10, 1.40],
+      ['small', 'medium', 'large'],
+      [0.50, 1.10],
     );
     const classifyCandle = (ratio: number) => classifyByUpperBounds(
       ratio,
-      ['tiny', 'small', 'medium', 'large'],
-      [0.15, 0.35, 0.60],
+      ['small', 'medium', 'large'],
+      [0.15, 0.60],
     );
     const classifyPanel = (coverage: number) => classifyByUpperBounds(
       coverage,
@@ -574,37 +583,35 @@ describe('cake analysis prompt rules', () => {
     );
 
     expect([
-      classifyCanonical(0.0999),
-      classifyCanonical(0.10),
+      classifyCanonical(0.2999),
       classifyCanonical(0.30),
-      classifyCanonical(0.40),
-      classifyCanonical(0.50),
+      classifyCanonical(0.8999),
       classifyCanonical(0.90),
-      classifyCanonical(1.20),
-    ]).toEqual(['tiny', 'xsmall', 'small', 'small', 'medium', 'large', 'xlarge']);
+    ]).toEqual(['small', 'medium', 'medium', 'large']);
     expect([
-      classifyEdible2dComplex(0.0999),
-      classifyEdible2dComplex(0.10),
+      classifyFlower(0.2999),
+      classifyFlower(0.30),
+      classifyFlower(0.7999),
+      classifyFlower(0.80),
+    ]).toEqual(['small', 'medium', 'medium', 'large']);
+    expect([
+      classifyEdible2dComplex(0.1999),
       classifyEdible2dComplex(0.20),
-      classifyEdible2dComplex(0.35),
+      classifyEdible2dComplex(0.4999),
       classifyEdible2dComplex(0.50),
-      classifyEdible2dComplex(0.75),
-    ]).toEqual(['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge']);
+    ]).toEqual(['small', 'medium', 'medium', 'large']);
     expect([
-      classifyToy(0.05),
-      classifyToy(0.40),
       classifyToy(0.50),
-      classifyToy(0.80),
+      classifyToy(0.4999),
+      classifyToy(1.0999),
       classifyToy(1.10),
-      classifyToy(1.40),
-      classifyToy(1.50),
-    ]).toEqual(['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge', 'xlarge']);
+    ]).toEqual(['medium', 'small', 'medium', 'large']);
     expect([
       classifyCandle(0.1499),
       classifyCandle(0.15),
       classifyCandle(0.35),
       classifyCandle(0.60),
-    ]).toEqual(['tiny', 'small', 'medium', 'large']);
+    ]).toEqual(['small', 'medium', 'medium', 'large']);
     expect([
       classifyPanel(0.3999),
       classifyPanel(0.40),

@@ -60,7 +60,7 @@ export const AI_CHAT_ICING_COLOR_TYPES = [
     'gradient_3',
     'abstract',
 ] as const;
-export const AI_CHAT_SIZES = ['small', 'medium', 'large', 'tiny', 'xsmall', 'xlarge', 'mixed'] as const;
+export const AI_CHAT_SIZES = ['small', 'medium', 'large'] as const;
 export const AI_CHAT_MESSAGE_TYPES = ['gumpaste_letters', 'icing_script', 'printout', 'cardstock'] as const;
 export const AI_CHAT_MESSAGE_POSITIONS = ['top', 'side', 'base_board'] as const;
 export const AI_CHAT_OPERATION_TYPES = ['add', 'update', 'remove'] as const;

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildSearchAnalysisResponseSchema,
+  getAnalysisGenerationSizeSchema,
   postProcessSearchAnalysisResult,
   SEARCH_ANALYSIS_COLOR_TYPES,
   SEARCH_ANALYSIS_ICING_BASES,
@@ -118,6 +119,11 @@ describe('search analysis contract', () => {
     expect(schema.properties.main_toppers.items.properties.type.enum).toContain('plastic_ball');
     expect(schema.properties.main_toppers.items.properties.material.enum).toContain('photopaper');
     expect(schema.properties.icing_design.required).toContain('gumpasteBaseBoard');
+    expect(schema.properties.main_toppers.items.properties.size.enum).toEqual(['small', 'medium', 'large']);
+    expect(buildSearchAnalysisResponseSchema(typeEnums, 'legacy_six_band').properties.main_toppers.items.properties.size.enum)
+      .toEqual(['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge']);
+    expect(getAnalysisGenerationSizeSchema('3.66')).toBe('legacy_six_band');
+    expect(getAnalysisGenerationSizeSchema('3.67')).toBe('three_band');
     expect(schema.properties.icing_design.required).toEqual(expect.arrayContaining([
       'drip',
       'border_top',
@@ -264,14 +270,14 @@ describe('search analysis contract', () => {
     }), typeEnums)).toThrow(/requires fondant/i);
   });
 
-  it('normalizes repeated tiny sugar pearls to one candy sprinkles support item', () => {
+  it('normalizes repeated tiny sugar pearls to one small candy sprinkles support item', () => {
     const generated = validAnalysis({
       support_elements: [{
         type: 'edible_3d_ordinary',
         material: 'edible_fondant',
         group_id: 'tiny_white_sugar_pearls',
         color: '#FFFFFF',
-        size: 'tiny',
+        size: 'small',
         quantity: 15,
         description: 'tiny white sugar pearl beads scattered on top and sides',
       }],
@@ -282,6 +288,7 @@ describe('search analysis contract', () => {
     expect(result.support_elements).toEqual([expect.objectContaining({
       type: 'sprinkles',
       material: 'candy',
+      size: 'small',
       quantity: 1,
     })]);
     expect((generated.support_elements as Array<Record<string, unknown>>)[0]).toMatchObject({
@@ -289,6 +296,35 @@ describe('search analysis contract', () => {
       material: 'edible_fondant',
       quantity: 15,
     });
+  });
+
+  it('collapses a v3.66 response before validating the strict three-band contract', () => {
+    const generated = validAnalysis({
+      main_toppers: [{
+        type: 'edible_3d_ordinary',
+        material: 'edible_fondant',
+        group_id: 'legacy_small_figure',
+        classification: 'hero',
+        size: 'small',
+        quantity: 1,
+        description: 'legacy small fondant figure',
+      }],
+      support_elements: [{
+        type: 'edible_2d_support',
+        material: 'edible_fondant',
+        group_id: 'legacy_xsmall_star',
+        color: '#FFD700',
+        size: 'xsmall',
+        quantity: 1,
+        description: 'legacy extra small star',
+      }],
+    });
+
+    const result = postProcessSearchAnalysisResult(generated, typeEnums, 'legacy_six_band');
+
+    expect(result.main_toppers[0].size).toBe('medium');
+    expect(result.support_elements[0].size).toBe('small');
+    expect((generated.main_toppers as Array<Record<string, unknown>>)[0].size).toBe('small');
   });
 
   it('does not invent a conditioned wafer-paper wave row from generic vertical-wave prose', () => {
@@ -429,7 +465,7 @@ describe('search analysis contract', () => {
         material: generatedType === 'icing_decorations' ? 'icing' : 'edible_fondant',
         group_id: 'tiny_red_accents',
         color: '#FF0000',
-        size: 'tiny',
+        size: 'small',
         quantity: 12,
         description,
       }],
@@ -553,7 +589,7 @@ describe('search analysis contract', () => {
         group_id: 'rainbow_sprinkles',
         classification: 'support',
         color: '#FF0000',
-        size: 'tiny',
+        size: 'small',
         quantity: 20,
         description: 'rainbow sprinkles scattered on top',
         subtype: 'ice_cream_cone',
@@ -578,7 +614,7 @@ describe('search analysis contract', () => {
         material: 'candy',
         group_id: 'red_sprinkles',
         colors: ['#FF0000'],
-        size: 'tiny',
+        size: 'small',
         quantity: 1,
         description: 'red sprinkles scattered on top',
       }],

@@ -207,6 +207,7 @@ const basePricingRows: PricingFixtureRule[] = [
     updated_at: '2026-01-01T00:00:00.000Z',
   },
   ...([
+    ['xsmall', 10],
     ['medium', 50],
     ['large', 100],
     ['xlarge', 150],
@@ -284,6 +285,22 @@ const basePricingRows: PricingFixtureRule[] = [
     size: 'medium',
     description: 'Medium support edible flowers',
     price: 100,
+    category: 'support_element',
+    quantity_rule: 'buy_3_get_1_free',
+    multiplier_rule: null,
+    special_conditions: null,
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    rule_id: 105,
+    item_key: 'edible_flowers_xsmall',
+    item_type: 'edible_flowers',
+    classification: 'support',
+    size: 'xsmall',
+    description: 'X-small support edible flowers',
+    price: 10,
     category: 'support_element',
     quantity_rule: 'buy_3_get_1_free',
     multiplier_rule: null,
@@ -842,13 +859,10 @@ describe('calculatePriceFromDatabase', () => {
   });
 
   it.each([
-    ['tiny', 50],
-    ['xsmall', 75],
-    ['small', 100],
+    ['small', 75],
     ['medium', 150],
-    ['large', 200],
-    ['xlarge', 250],
-  ] as const)('prices %s edible_2d_complex artwork from its Supabase size rule at ₱%i', async (size, expectedPrice) => {
+    ['large', 250],
+  ] as const)('prices canonical %s edible_2d_complex artwork from the former higher size band at ₱%i', async (size, expectedPrice) => {
     const { calculatePriceFromDatabase } = await import('./pricingService.database');
     const warnSpy = vi.spyOn(console, 'warn');
     const topper = {
@@ -902,9 +916,9 @@ describe('calculatePriceFromDatabase', () => {
       cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
     });
 
-    expect(itemPrices.get(topper.id)).toBe(300);
+    expect(itemPrices.get(topper.id)).toBe(225);
     expect(itemPrices.get(supportBundle.id)).toBe(100);
-    expect(addOnPricing.addOnPrice).toBe(400);
+    expect(addOnPricing.addOnPrice).toBe(325);
     expect(warnSpy.mock.calls.flat().join(' ')).not.toContain('edible_2d_complex');
   });
 
@@ -969,9 +983,9 @@ describe('calculatePriceFromDatabase', () => {
   it.each([
     ['tiny', 140, 1, 140],
     ['xsmall', 160, 2, 320],
-    ['small', 200, 1, 200],
+    ['small', 160, 1, 160],
     ['medium', 300, 2, 600],
-    ['large', 400, 1, 400],
+    ['large', 500, 1, 500],
     ['xlarge', 500, 2, 1000],
   ] as const)('prices %s edible crowns at ₱%i per piece — toy price plus ₱100', async (size, unitPrice, quantity, expectedPrice) => {
     const { calculatePriceFromDatabase } = await import('./pricingService.database');
@@ -1214,10 +1228,64 @@ describe('calculatePriceFromDatabase', () => {
     expect(globalResult.itemPrices.get(topper.id)).toBe(10);
   });
 
+  it('uses the former higher band through global fallback until six-band rules are migrated', async () => {
+    const { calculatePriceFromDatabase, clearPricingCache } = await import('./pricingService.database');
+    const merchantId = '33333333-3333-4333-8333-333333333333';
+    const row = (
+      rule_id: number,
+      item_key: string,
+      size: 'small' | 'xsmall',
+      price: number,
+      merchant_id: string | null,
+    ): PricingFixtureRule => ({
+      rule_id,
+      item_key,
+      item_type: 'three_band_badge',
+      classification: 'non-gumpaste',
+      size,
+      description: item_key,
+      price,
+      category: 'main_topper',
+      quantity_rule: 'fixed',
+      multiplier_rule: null,
+      special_conditions: { allowance_eligible: false },
+      merchant_id,
+      is_active: true,
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z',
+    });
+    pricingRows.push(
+      row(70, 'three_band_badge_xsmall', 'xsmall', 25, null),
+      row(71, 'three_band_badge_small', 'small', 5, merchantId),
+    );
+
+    const state = {
+      mainToppers: [{
+        id: 'three-band-badge',
+        type: 'three_band_badge',
+        description: 'Canonical small badge',
+        quantity: 1,
+        isEnabled: true,
+        size: 'small',
+      } as unknown as MainTopperUI],
+      supportElements: [],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
+    };
+
+    const globalFallback = await calculatePriceFromDatabase(state, merchantId);
+    expect(globalFallback.itemPrices.get('three-band-badge')).toBe(25);
+
+    pricingRows.push(row(72, 'three_band_badge_xsmall', 'xsmall', 30, merchantId));
+    clearPricingCache();
+    const merchantHigherBand = await calculatePriceFromDatabase(state, merchantId);
+    expect(merchantHigherBand.itemPrices.get('three-band-badge')).toBe(30);
+  });
+
   it.each([
     ['medium', 50, 3, 150],
-    ['large', 100, 3, 300],
-    ['xlarge', 150, 3, 450],
+    ['large', 150, 3, 450],
   ] as const)(
     'prices %s edible_2d_support per piece without an allowance',
     async (size, unitPrice, quantity, rawPrice) => {
