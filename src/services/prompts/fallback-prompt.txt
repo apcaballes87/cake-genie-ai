@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.69 Version - Flat 2D Composition Complexity Boundary**
+**v3.70 Version - Cardstock Material Evidence Gate**
 ═══════════════════════════════════════════════════════════════════════════════
 
 ## ROLE
@@ -238,8 +238,8 @@ The intentional normalizations already defined in this prompt remain in force:
      material `edible_fondant` and the appropriate edible or gumpaste type
    - non-edible printed paper -> material `photopaper` and a printout type
    - edible printed sheet -> material `waferpaper` and an edible-photo type
-   - solid non-printed glitter or metallic cardstock, plus acrylic or wooden
-     toppers under their named fulfillment normalization -> material
+   - visibly non-edible solid non-printed glitter or metallic cardstock, plus
+     acrylic or wooden toppers under their named fulfillment normalization -> material
      `cardstock` and type `cardstock`
    - rigid factory-molded object -> material `plastic` and a toy or
      plastic-ball type
@@ -352,7 +352,7 @@ table win.
 | Observed / normalized family | Canonical type | Canonical material | Default role | Sizing |
 |------------------------------|----------------|--------------------|--------------|--------|
 | Non-edible printed paper cutout | `printout` | `photopaper` | main topper | C2 |
-| Solid glitter/metallic cardstock, acrylic, or wood | `cardstock` | `cardstock` | main topper | C2 |
+| Verified non-edible solid glitter/metallic cardstock, acrylic, or wood | `cardstock` | `cardstock` | main topper | C2 |
 | Edible printed top image | `edible_photo_top` | `waferpaper` | main topper | placement rule |
 | Detailed multi-component flat edible artwork | `edible_2d_complex` | `edible_fondant` | main topper only | C2A |
 | Freestanding detailed edible figure | `edible_3d_complex` | `edible_fondant` | main or support by role | C1 |
@@ -738,7 +738,15 @@ candy, wax, or fabric.
 
 ### Protocol 2: THE "EDGE" CHECK (Cardstock vs Photopaper)
 
-- IF item has visible GLITTER, METALLIC finish, or foil → IT IS "cardstock" (only if single-color with NO graphics).
+Apply this check only after the construction/material pipeline positively
+establishes a separate non-edible rigid paper, acrylic, or wooden cutout.
+Flatness, a support stick, gold color, glitter, metallic, or foil appearance
+alone does not establish cardstock: fondant/gumpaste can use edible lustre dust,
+edible glitter, metallic paint, airbrush, or leaf. If material remains
+ambiguous, apply the 2-CUE MATERIAL RULE before choosing a type.
+
+- IF that positively established non-edible cutout is solid single-color with
+  visible GLITTER, METALLIC finish, or foil and NO graphics → IT IS `cardstock`.
 - IF an already-established separate flat paper piece shows CHARACTER IMAGES,
   GRAPHICS, or MULTI-COLOR printed designs → IT IS `printout`. The subject or
   colors alone do not establish that the item is flat paper.
@@ -1379,6 +1387,11 @@ Use `thin_fabric_ribbon_bows` for small or thin non-edible satin, organza, or sh
 
 #### Cardstock Glitter Toppers:
 
+Apply this section only after positive evidence establishes a separate
+non-edible rigid paper, acrylic, or wooden cutout. Do not infer cardstock from
+flatness, a support stick, gold color, glitter, metallic, or foil appearance
+alone; those finishes can also be edible fondant/gumpaste decoration.
+
 - SINGLE color toppers, with a message, usually "Happy Birthday *Name*". Sometimes its XXth.
 - Texture is Glittery, metallic, or foil finish
 - NO printed graphics, photos, or character images
@@ -1758,10 +1771,12 @@ panels use `<40%`, `40% to <80%`, and `≥80%` side coverage.
 ### 🔴 CRITICAL CLASSIFICATION WITHIN PRINTOUT vs CARDSTOCK vs TOY
 
 Apply this rule only after the global construction pipeline establishes that
-the item is a non-edible printed/cardstock piece or a rigid physical prop. It
-does not override positive evidence of piped icing, edible fondant/gumpaste,
-an edible printed sheet, candy, wax, or fabric. Apply Protocol 3 from Visual
-Forensics within this established construction family.
+the item is a non-edible printed/cardstock piece or a rigid physical prop. A
+flat, gold, glittery, metallic, or foil-looking item is not thereby non-edible:
+fondant/gumpaste can have those finishes. It does not override positive evidence
+of piped icing, edible fondant/gumpaste, an edible printed sheet, candy, wax,
+or fabric. Apply Protocol 3 from Visual Forensics within this established
+construction family.
 
 #### CROWNS & TIARAS — MATERIAL-SPECIFIC TYPES
 **ALWAYS classify a standalone 3D crown or tiara by its visible construction and material.**
@@ -1801,12 +1816,23 @@ ANY of these are true. Subject matter alone does not establish a printout:
 For ordinary paper/cardstock pieces, **ONLY classify as cardstock if ALL of
 these are true:**
 
+0. Positive evidence establishes a separate non-edible rigid paper, acrylic,
+   or wooden cutout, rather than fondant/gumpaste. A paper/card edge, rigid
+   uniform sheet visibly separate from icing, acrylic transparency or laser-cut
+   edge, or wood grain is such evidence. Glitter, metallic, foil, gold color,
+   flatness, or a support stick alone is not.
 1. Solid SINGLE color (no multi-color)
 2. Glitter, metallic, or foil finish
 3. NO printed graphics, photos, or character images
 4. NO multi-color text or gradients
 5. Plain letters, numbers, or shapes ONLY
 6. **NOT a Crown or Tiara (unless flat paper)**
+
+If the visible construction instead supports fondant/gumpaste, keep the item
+in its compatible edible branch even when it is flat, gold, glittery, metallic,
+or foil-looking: loose message letters are `gumpaste_letters`; readable
+name/logo panels are `edible_logo_2d`; simple focal shapes use
+`edible_2d_shapes`; detailed composed flat artwork uses `edible_2d_complex`.
 
 **Named normalization exception:** Acrylic toppers and wooden toppers are
 always structured as `type: "cardstock"` and `material: "cardstock"` for

@@ -35,23 +35,33 @@ describe('cake analysis prompt rules', () => {
     expect(migration).toContain('molded stars = `edible_3d_ordinary` or `edible_2d_support`');
   });
 
-  it('keeps the v3.69 migration guarded by the live v3.68 checksum and fallback parity', () => {
+  it('keeps the v3.69 migration guarded by the live v3.68 checksum', () => {
     const migration = readPrompt('supabase/migrations/20260903140000_deploy_prompt_v369_flat_2d_composition_boundary.sql');
-    const fallback = readPrompt('src/services/prompts/fallback-prompt.txt');
-    const fallbackMd5 = createHash('md5').update(fallback).digest('hex');
 
     expect(migration).toContain("source_prompt_version <> '3.68'");
     expect(migration).toContain("v368_md5 constant text := '5eca029210ecc50deec4f3a909785e77'");
-    expect(migration).toContain(`v369_md5 constant text := '${fallbackMd5}'`);
+    expect(migration).toContain("v369_md5 constant text := '0555b82678768fe6aab07a5810e87952'");
     expect(migration).toContain('Flat 2D Composition Complexity Boundary');
     expect(migration).toContain('A single simple cut motif');
+  });
+
+  it('keeps the v3.70 migration guarded by the live v3.69 checksum and fallback parity', () => {
+    const migration = readPrompt('supabase/migrations/20260903144025_deploy_prompt_v370_cardstock_material_evidence_gate.sql');
+    const fallback = readPrompt('src/services/prompts/fallback-prompt.txt');
+    const fallbackMd5 = createHash('md5').update(fallback).digest('hex');
+
+    expect(migration).toContain("source_prompt_version <> '3.69'");
+    expect(migration).toContain("v369_md5 constant text := '0555b82678768fe6aab07a5810e87952'");
+    expect(migration).toContain(`v370_md5 constant text := '${fallbackMd5}'`);
+    expect(migration).toContain('Cardstock Material Evidence Gate');
+    expect(migration).toContain('Flatness, a support stick, gold color, glitter, metallic, or foil appearance');
   });
 
   it('classifies every item through construction, material, type, and description consistency', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.69 Version - Flat 2D Composition Complexity Boundary**');
+    expect(prompt).toContain('**v3.70 Version - Cardstock Material Evidence Gate**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('3. Visible construction of each item');
     expect(prompt).toContain('5. Type compatible with that construction and material');
@@ -88,6 +98,9 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('A piped cloud motif would\ninstead remain in the compatible icing family');
     expect(prompt).not.toContain('Clouds are simple shapes →');
     expect(prompt).toContain('CRITICAL CLASSIFICATION WITHIN PRINTOUT vs CARDSTOCK vs TOY');
+    expect(prompt).toContain('separate non-edible rigid paper, acrylic, or wooden cutout');
+    expect(prompt).toContain('fondant/gumpaste can use edible lustre dust');
+    expect(prompt).toContain('A paper/card edge, rigid\n   uniform sheet visibly separate from icing');
     expect(prompt).toContain('Subject matter alone does not establish a printout');
     expect(prompt).not.toContain('This rule overrides all other considerations.');
     expect(prompt).toContain('"material": "wax|plastic|cardstock|photopaper|waferpaper|edible_fondant|icing|candy|non-edible|ceramic"');
@@ -101,6 +114,8 @@ describe('cake analysis prompt rules', () => {
     expect(SYSTEM_INSTRUCTION).toContain('On conflict, the image is authoritative');
     expect(SYSTEM_INSTRUCTION).toContain('CRITICAL CLASSIFICATION WITHIN THE NON-EDIBLE PRINTOUT vs CARDSTOCK FAMILY');
     expect(SYSTEM_INSTRUCTION).toContain('It does not override positive evidence of icing, fondant/gumpaste, an edible printed sheet, candy, wax, or fabric');
+    expect(SYSTEM_INSTRUCTION).toContain('Flatness, a support stick, gold color, glitter, metallic, or foil appearance alone never establishes cardstock');
+    expect(SYSTEM_INSTRUCTION).toContain('fondant/gumpaste can have edible lustre dust, edible glitter, metallic paint, airbrush, or leaf');
     expect(SYSTEM_INSTRUCTION).not.toContain('This is the HIGHEST PRIORITY rule and overrides all other considerations');
     expect(SYSTEM_INSTRUCTION).toContain('If you are unsure and there are no positive construction or material cues');
     expect(SYSTEM_INSTRUCTION).toContain('STRICT GENERATED CONTRACT');
@@ -532,7 +547,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.69 Version - Flat 2D Composition Complexity Boundary**');
+    expect(prompt).toContain('**v3.70 Version - Cardstock Material Evidence Gate**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -553,7 +568,7 @@ describe('cake analysis prompt rules', () => {
   it('uses toy-specific sizing for miniature molded toys', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.69 Version - Flat 2D Composition Complexity Boundary**');
+    expect(prompt).toContain('**v3.70 Version - Cardstock Material Evidence Gate**');
     expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy` AND `plastic_crown`)');
     expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
     expect(prompt).toContain('| `small` | under 0.50 |');
