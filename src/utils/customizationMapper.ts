@@ -17,10 +17,12 @@ import { CakeGenieMerchantProduct } from '@/lib/database.types';
 import { AvailabilityType } from '@/lib/utils/availability';
 import { normalizeAnalysisForDefaultFulfillment } from '@/lib/ai/fulfillmentNormalization';
 import { reconcileCakeThicknessForType } from '@/lib/ai/generatedAnalysisContract';
+import { normalizeAnalysisForThreeBandSizing } from '@/lib/ai/analysisSize';
 
 export function mapAnalysisToState(rawData: HybridAnalysisResult): CustomizationState {
     const state: CustomizationState = {};
-    const fulfillmentData = normalizeAnalysisForDefaultFulfillment(rawData);
+    const threeBandData = normalizeAnalysisForThreeBandSizing(rawData);
+    const fulfillmentData = normalizeAnalysisForDefaultFulfillment(threeBandData);
 
     // 1. Cake Info
     const getFlavorCount = (type: CakeType): number => {
@@ -30,8 +32,8 @@ export function mapAnalysisToState(rawData: HybridAnalysisResult): Customization
         return 1;
     };
 
-    const cakeType: CakeType = rawData.cakeType || '1 Tier';
-    const storedCakeThickness = rawData.cakeThickness || DEFAULT_THICKNESS_MAP[cakeType] || '3 in';
+    const cakeType: CakeType = threeBandData.cakeType || '1 Tier';
+    const storedCakeThickness = threeBandData.cakeThickness || DEFAULT_THICKNESS_MAP[cakeType] || '3 in';
     const cakeThickness = reconcileCakeThicknessForType(cakeType, storedCakeThickness)
         || storedCakeThickness;
     const flavorCount = getFlavorCount(cakeType);
@@ -63,7 +65,7 @@ export function mapAnalysisToState(rawData: HybridAnalysisResult): Customization
     });
 
     // 3. Support Elements
-    state.supportElements = (rawData.support_elements || []).map((s): SupportElementUI => {
+    state.supportElements = (fulfillmentData.support_elements || []).map((s): SupportElementUI => {
         const printoutSourceType = s.printout_source_type
             ?? (s.type === 'support_printout' && s.original_type && s.original_type !== 'support_printout'
                 ? s.original_type
@@ -86,8 +88,8 @@ export function mapAnalysisToState(rawData: HybridAnalysisResult): Customization
     });
 
     // 4. Cake Messages
-    console.log('🔍 [DEBUG MAPPER] rawData.cake_messages input:', JSON.stringify(rawData.cake_messages, null, 2));
-    state.cakeMessages = (rawData.cake_messages || []).map((msg): CakeMessageUI => ({
+    console.log('🔍 [DEBUG MAPPER] rawData.cake_messages input:', JSON.stringify(threeBandData.cake_messages, null, 2));
+    state.cakeMessages = (threeBandData.cake_messages || []).map((msg): CakeMessageUI => ({
         ...msg,
         x: msg.x,
         y: msg.y,
@@ -101,7 +103,7 @@ export function mapAnalysisToState(rawData: HybridAnalysisResult): Customization
     console.log('🔍 [DEBUG MAPPER] mapped cakeMessages output:', JSON.stringify(state.cakeMessages, null, 2));
 
     // 5. Icing Design
-    const analysisIcing = rawData.icing_design;
+    const analysisIcing = threeBandData.icing_design;
     if (analysisIcing) {
         state.icingDesign = {
             ...analysisIcing,
@@ -117,9 +119,9 @@ export function mapAnalysisToState(rawData: HybridAnalysisResult): Customization
     state.additionalInstructions = '';
 
     // 7. Analysis Result & ID
-    state.analysisResult = cakeThickness === rawData.cakeThickness
-        ? rawData
-        : { ...rawData, cakeThickness };
+    state.analysisResult = cakeThickness === threeBandData.cakeThickness
+        ? threeBandData
+        : { ...threeBandData, cakeThickness };
     // We don't set analysisId here typically, but we could if known. 
     // The consumer might generate one.
 

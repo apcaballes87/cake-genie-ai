@@ -5,9 +5,15 @@ import { getAI, getGoogleCloudAuthOptions } from '@/lib/ai/client';
 import { isRejectedGeneratedCakeAnalysis } from '@/lib/ai/generatedAnalysisContract';
 import { toActionableGoogleCloudStorageError } from '@/lib/ai/googleCloudErrors';
 import { getDynamicTypeEnums } from '@/lib/ai/utils';
-import { buildSearchAnalysisGenerationConfig, postProcessSearchAnalysisResult } from '@/lib/admin/searchAnalysisContract';
+import { ANALYSIS_SIZE_SCHEMA } from '@/lib/ai/analysisSize';
+import {
+  buildSearchAnalysisGenerationConfig,
+  getAnalysisGenerationSizeSchema,
+  postProcessSearchAnalysisResult,
+  type AnalysisGenerationSizeSchema,
+} from '@/lib/admin/searchAnalysisContract';
 import { createAdminServerSupabaseClient } from '@/lib/supabase/adminServer';
-import { getAnalysisPromptWithFallback } from '@/services/prompts/promptLoader';
+import { getActivePromptDetails } from '@/services/prompts/promptLoader';
 import { cacheAnalysisResult } from '@/services/supabaseService';
 
 const MODEL = 'gemini-3.5-flash-lite';
@@ -94,12 +100,41 @@ export function buildSearchAnalysisBatchGenerationConfig(requestConfig: Record<s
   };
 }
 
-export function buildSearchAnalysisBatchInputLine(item: QueueItem, activePrompt: string, requestConfig: Record<string, unknown>) {
+function encodeBatchCustomId(itemId: string, sizeSchema?: AnalysisGenerationSizeSchema) {
+  return sizeSchema ? `${itemId}|size_schema:${sizeSchema}` : itemId;
+}
+
+function decodeBatchCustomId(value: string | undefined) {
+  if (!value) return { itemId: undefined, sizeSchema: undefined };
+  const match = value.match(/^(.*)\|size_schema:(legacy_six_band|three_band)$/);
+  return match
+    ? { itemId: match[1], sizeSchema: match[2] as AnalysisGenerationSizeSchema }
+    : { itemId: value, sizeSchema: undefined };
+}
+
+function inferBatchSizeSchema(result: unknown): AnalysisGenerationSizeSchema {
+  if (!result || typeof result !== 'object') return 'three_band';
+  const analysis = result as { main_toppers?: unknown; support_elements?: unknown };
+  const elements = [analysis.main_toppers, analysis.support_elements]
+    .flatMap((items) => Array.isArray(items) ? items : [])
+    .filter((item): item is { size?: unknown } => Boolean(item) && typeof item === 'object');
+  return elements.some((item) => item.size === 'tiny' || item.size === 'xsmall' || item.size === 'xlarge')
+    ? 'legacy_six_band'
+    : 'three_band';
+}
+
+export function buildSearchAnalysisBatchInputLine(
+  item: QueueItem,
+  activePrompt: string,
+  requestConfig: Record<string, unknown>,
+  sizeSchema?: AnalysisGenerationSizeSchema,
+) {
   const { systemInstruction } = requestConfig;
+  const customId = encodeBatchCustomId(item.id, sizeSchema);
   return JSON.stringify({
-    customId: item.id,
-    custom_id: item.id,
-    id: item.id,
+    customId,
+    custom_id: customId,
+    id: customId,
     request: {
       contents: [{ role: 'user', parts: [{ fileData: { fileUri: item.normalized_image_url, mimeType: 'image/jpeg' } }, { text: activePrompt }] }],
       ...(typeof systemInstruction === 'string' ? { systemInstruction: { parts: [{ text: systemInstruction }] } } : {}),
@@ -112,8 +147,9 @@ export function correlateSearchAnalysisOutputs(items: QueueItem[], lines: JsonlR
   const byId = new Map(items.map((item) => [item.id, item]));
   const byUri = new Map(items.map((item) => [item.normalized_image_url, item]));
   return lines.map((output) => {
-    const id = output.customId || output.custom_id || output.id;
-    const item = id ? byId.get(id) : byUri.get(extractOutputRequestFileUri(output) ?? '');
+    const echoed = output.customId || output.custom_id || output.id;
+    const { itemId } = decodeBatchCustomId(echoed);
+    const item = itemId ? byId.get(itemId) : byUri.get(extractOutputRequestFileUri(output) ?? '');
     return {
       item,
       output,
@@ -188,9 +224,13 @@ export async function submitNextSearchAnalysisBatch(requestedLimit = MAX_BATCH_S
   const items = rows as QueueItem[];
   if (!items.length) throw new Error('No queued search-analysis items are waiting for batch processing.');
 
-  const activePrompt = await getAnalysisPromptWithFallback(admin as unknown as Parameters<typeof getAnalysisPromptWithFallback>[0]);
+  const activePromptDetails = await getActivePromptDetails(
+    admin as unknown as Parameters<typeof getActivePromptDetails>[0],
+  );
+  const activePrompt = activePromptDetails.promptText;
+  const sizeSchema = getAnalysisGenerationSizeSchema(activePromptDetails.version);
   const typeEnums = await getDynamicTypeEnums(admin as unknown);
-  const generationConfig = buildSearchAnalysisGenerationConfig(typeEnums);
+  const generationConfig = buildSearchAnalysisGenerationConfig(typeEnums, sizeSchema);
   const runId = crypto.randomUUID();
   const gcs = parseGcsPrefix();
   const inputPath = objectName(gcs.prefix, `${runId}/input.jsonl`);
@@ -219,7 +259,7 @@ export async function submitNextSearchAnalysisBatch(requestedLimit = MAX_BATCH_S
     if (updateError) throw updateError;
 
     await createBatchStorage(requestContext).bucket(gcs.bucket).file(inputPath).save(
-      items.map((item) => buildSearchAnalysisBatchInputLine(item, activePrompt, generationConfig)).join('\n'),
+      items.map((item) => buildSearchAnalysisBatchInputLine(item, activePrompt, generationConfig, sizeSchema)).join('\n'),
       { contentType: 'application/jsonl' },
     ).catch((error: unknown) => { throw toActionableGoogleCloudStorageError(error, 'create'); });
     const providerJob = await getAI(requestContext).batches.create({
@@ -411,11 +451,12 @@ export async function reconcileSearchAnalysisBatch(runId: string, requestContext
       continue;
     }
     const echoedId = output?.customId || output?.custom_id || output?.id;
+    const { itemId: echoedItemId, sizeSchema: echoedSizeSchema } = decodeBatchCustomId(echoedId);
     const echoedUri = extractOutputRequestFileUri(output);
     let item: QueueItem | undefined;
 
-    if (echoedId) {
-      item = itemsById.get(echoedId);
+    if (echoedItemId) {
+      item = itemsById.get(echoedItemId);
       if (!item) {
         console.warn(`[Batch Import] Echoed ID "${echoedId}" does not map to any item in run ${runId}. Skipping.`);
         continue;
@@ -439,10 +480,15 @@ export async function reconcileSearchAnalysisBatch(runId: string, requestContext
       continue;
     }
     try {
-      const result = postProcessSearchAnalysisResult(
-        parseSearchAnalysisBatchOutputText(text),
-        typeEnums,
-      );
+      const parsedResult = parseSearchAnalysisBatchOutputText(text);
+      const result = {
+        ...postProcessSearchAnalysisResult(
+          parsedResult,
+          typeEnums,
+          echoedSizeSchema ?? inferBatchSizeSchema(parsedResult),
+        ),
+        analysis_size_schema: ANALYSIS_SIZE_SCHEMA,
+      };
       if (isRejectedGeneratedCakeAnalysis(result)) {
         await admin.from('cakegenie_search_analysis_batch_items').update({
           status: 'rejected',

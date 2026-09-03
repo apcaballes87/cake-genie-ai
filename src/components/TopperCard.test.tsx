@@ -145,4 +145,14 @@ describe('TopperCard - Color Customization', () => {
     expect(updateItem).toHaveBeenNthCalledWith(2, { type: 'edible_3d_complex' });
     expect(updateItem).toHaveBeenNthCalledWith(3, { type: 'printout' });
   });
+
+  it('uses the canonical small default when converting a topper to an edible image', () => {
+    const updateItem = vi.fn();
+    const item = createMockTopper('printout', 'Printed character topper');
+    render(<TopperCard {...defaultProps} updateItem={updateItem} item={item} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edible Image' }));
+
+    expect(updateItem).toHaveBeenCalledWith({ type: 'edible_photo_top', size: 'small' });
+  });
 });

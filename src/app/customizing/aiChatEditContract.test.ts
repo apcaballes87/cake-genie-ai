@@ -4,6 +4,7 @@ import type {
     AiChatEditResponse,
 } from './aiChatEditContract';
 import {
+    AI_CHAT_SIZES,
     AI_CHAT_SUPPORT_ELEMENT_TYPES,
     applyAiChatEdit,
     validateAiChatEditResponse,
@@ -116,6 +117,26 @@ const designResponse = (patch: NonNullable<AiChatEditResponse['patch']>): AiChat
 });
 
 describe('validateAiChatEditResponse', () => {
+    it('permits only canonical three-band sizes for generated chat edits', () => {
+        expect(AI_CHAT_SIZES).toEqual(['small', 'medium', 'large']);
+
+        const result = validateAiChatEditResponse(designResponse({
+            topperOperations: [{
+                operation: 'add',
+                item: {
+                    type: 'edible_3d_ordinary',
+                    description: 'legacy-sized topper',
+                    size: 'xsmall',
+                    quantity: 1,
+                    groupId: 'legacy-sized-topper',
+                    classification: 'hero',
+                },
+            }],
+        }), makeSnapshot());
+
+        expect(result).toMatchObject({ success: false, kind: 'invalid' });
+    });
+
     it('only exposes edible flowers for new support-element edits', () => {
         expect(AI_CHAT_SUPPORT_ELEMENT_TYPES).toContain('edible_flowers');
         expect(AI_CHAT_SUPPORT_ELEMENT_TYPES).not.toContain('fresh_flowers');

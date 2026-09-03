@@ -29,6 +29,48 @@ describe('mapAnalysisToState', () => {
         expect(cachedAnalysis.cakeThickness).toBe('4 in');
     });
 
+    it('normalizes legacy cached sizes without changing the cache object', () => {
+        const cachedAnalysis = {
+            cakeType: '1 Tier',
+            cakeThickness: '4 in',
+            main_toppers: [{
+                type: 'edible_3d_ordinary',
+                material: 'edible_fondant',
+                size: 'small',
+                quantity: 1,
+                group_id: 'old_small_figure',
+                classification: 'hero',
+                description: 'legacy small fondant figure',
+            }],
+            support_elements: [{
+                type: 'edible_2d_support',
+                material: 'edible_fondant',
+                size: 'xsmall',
+                group_id: 'old_xsmall_star',
+                description: 'legacy extra small star',
+            }],
+            cake_messages: [],
+            icing_design: {
+                base: 'soft_icing',
+                color_type: 'single',
+                colors: { side: '#FFFFFF', top: '#FFFFFF' },
+                drip: false,
+                border_top: false,
+                border_base: false,
+                gumpasteBaseBoard: false,
+            },
+        } satisfies HybridAnalysisResult;
+
+        const state = mapAnalysisToState(cachedAnalysis);
+
+        expect(state.mainToppers?.[0].size).toBe('medium');
+        expect(state.supportElements?.[0].size).toBe('small');
+        expect(state.analysisResult?.analysis_size_schema).toBe('three_band_v1');
+        expect(cachedAnalysis.main_toppers[0].size).toBe('small');
+        expect(cachedAnalysis.support_elements[0].size).toBe('xsmall');
+        expect(cachedAnalysis.analysis_size_schema).toBeUndefined();
+    });
+
     it('records stable source material when toys are automatically converted to printouts', () => {
         const state = mapAnalysisToState({
             cakeType: '1 Tier',

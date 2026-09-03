@@ -183,7 +183,7 @@ export const TopperCard: React.FC<{
                                 {isOriginalPrintoutTopper && (
                                     <>
                                         <button onClick={() => updateItem({ type: 'printout' })} className={`px-1.5 py-0.5 text-[10px] font-semibold rounded ${item.type === 'printout' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Paper Printout</button>
-                                        <button onClick={() => updateItem({ type: 'edible_photo_top', size: 'tiny' })} className={`px-1.5 py-0.5 text-[10px] font-semibold rounded ${item.type === 'edible_photo_top' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Edible Image</button>
+                                        <button onClick={() => updateItem({ type: 'edible_photo_top', size: 'small' })} className={`px-1.5 py-0.5 text-[10px] font-semibold rounded ${item.type === 'edible_photo_top' ? 'bg-white shadow text-purple-700' : 'text-slate-600'}`}>Edible Image</button>
                                     </>
                                 )}
                                 {canBeSwitchedToPrintoutTopper && (

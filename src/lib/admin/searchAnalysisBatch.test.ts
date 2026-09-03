@@ -202,6 +202,19 @@ describe('search analysis batch helpers', () => {
     });
   });
 
+  it('tags new batch requests with the active prompt size schema', () => {
+    const line = JSON.parse(buildSearchAnalysisBatchInputLine(
+      item() as QueueItem,
+      'analyze exactly',
+      {},
+      'legacy_six_band',
+    ));
+
+    expect(line.customId).toBe('b|size_schema:legacy_six_band');
+    expect(line.custom_id).toBe('b|size_schema:legacy_six_band');
+    expect(line.id).toBe('b|size_schema:legacy_six_band');
+  });
+
   it('keeps batch model parameters inside generationConfig', () => {
     expect(buildSearchAnalysisBatchGenerationConfig({
       systemInstruction: 'not here',
@@ -227,6 +240,16 @@ describe('search analysis batch helpers', () => {
       ['second', { request: { contents: [{ parts: [{ fileData: { fileUri: 'https://cdn.example/second.jpg' } }] }] }, response: {} }],
       ['first', { request: { contents: [{ parts: [{ fileData: { fileUri: 'https://cdn.example/first.jpg' } }] }] }, error: { message: 'bad' } }],
     ]);
+  });
+
+  it('correlates a tagged batch output by its original item ID', () => {
+    const correlated = correlateSearchAnalysisOutputs([item() as QueueItem], [{
+      customId: 'b|size_schema:legacy_six_band',
+      response: {},
+    }]);
+
+    expect(correlated).toHaveLength(1);
+    expect(correlated[0].item.id).toBe('b');
   });
 
   it('parses strict JSON batch output', () => {
@@ -482,6 +505,8 @@ describe('search analysis batch run submission and reconciliation regression tes
     expect(mockCacheAnalysisResult).toHaveBeenCalledTimes(2);
     expect(mockCacheAnalysisResult).toHaveBeenCalledWith('ph1', expect.any(Object), 'uri-1', undefined, expect.any(Object));
     expect(mockCacheAnalysisResult).toHaveBeenCalledWith('ph2', expect.any(Object), 'uri-2', undefined, expect.any(Object));
+    expect(mockCacheAnalysisResult.mock.calls[0][1]).toMatchObject({ analysis_size_schema: 'three_band_v1' });
+    expect(mockCacheAnalysisResult.mock.calls[1][1]).toMatchObject({ analysis_size_schema: 'three_band_v1' });
   });
 
   it('reconcile matching skips output lines with missing echoed URI and ID, preventing cross-contamination', async () => {

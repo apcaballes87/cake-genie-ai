@@ -4,6 +4,12 @@ import type { PricingRule, MainTopperUI, SupportElementUI, CakeMessageUI, IcingD
 import { FEATURE_FLAGS } from '@/config/features';
 import { validateAnalysis } from '@/lib/utils/validateAnalysis';
 import { createLogger } from '@/lib/utils/logger';
+import {
+  getLegacySourceSizeForCanonicalSize,
+  isLegacyAnalysisSize,
+  normalizeCanonicalAnalysisSize,
+  normalizeLegacyAnalysisSize,
+} from '@/lib/ai/analysisSize';
 
 const logger = createLogger('PricingService');
 
@@ -308,6 +314,24 @@ export async function calculatePriceFromDatabase(
       effectiveType = 'edible_flowers';
     }
 
+    const familyRules = rulesByItemType.get(effectiveType) || [];
+    const hasActiveSixBandFamily = familyRules.some((rule) => (
+      rule.category === (category ?? null)
+      && (rule.size === 'tiny' || rule.size === 'xsmall' || rule.size === 'xlarge')
+    ));
+    const canonicalSize = normalizeCanonicalAnalysisSize(size);
+    const legacySize = isLegacyAnalysisSize(size) ? String(size).trim().toLowerCase() : undefined;
+    // In the compatibility deploy, canonical in-memory values are mapped back
+    // to their higher legacy source band only while active six-band rules exist.
+    // After the migration, exact canonical keys always win and this is a no-op.
+    const lookupSize = canonicalSize
+      ? (hasActiveSixBandFamily
+        ? getLegacySourceSizeForCanonicalSize(canonicalSize)
+        : canonicalSize)
+      : (legacySize && hasActiveSixBandFamily
+        ? legacySize
+        : normalizeLegacyAnalysisSize(size));
+
     const selectByMerchant = (candidates: LoadedPricingRule[]): LoadedPricingRule | undefined => {
       const deterministicCandidates = [...candidates].sort((a, b) => a.rule_id - b.rule_id);
 
@@ -358,32 +382,32 @@ export async function calculatePriceFromDatabase(
     if (subtype) {
       const subtypeKey = `${effectiveType}_${subtype}`;
       const subtypeRules = rules.get(subtypeKey);
-      const subtypeRule = findMatch(subtypeRules || [], size);
+      const subtypeRule = findMatch(subtypeRules || [], lookupSize);
       if (subtypeRule) return subtypeRule;
     }
 
     // 2. Try specific key: type_size (e.g., chocolates_small)
-    if (size) {
-      const specificKey = `${effectiveType}_${size}`;
+    if (lookupSize) {
+      const specificKey = `${effectiveType}_${lookupSize}`;
       const specificRules = rules.get(specificKey);
-      const specificRule = findMatch(specificRules || [], size);
+      const specificRule = findMatch(specificRules || [], lookupSize);
       if (specificRule) return specificRule;
     }
 
     // 3. Try generic key: type (e.g., chocolates)
     const genericRules = rules.get(effectiveType);
-    let rule = findMatch(genericRules || [], size);
+    let rule = findMatch(genericRules || [], lookupSize);
 
     // Some legacy rows use a descriptive item_key (for example candy_piece)
     // instead of the analyzer's canonical type. Fall back to the row's declared
     // item_type, while retaining exact size and category constraints.
     if (!rule) {
-      const normalizedSize = size?.trim().toLowerCase();
+      const normalizedSize = lookupSize?.trim().toLowerCase();
       const typeRules = (rulesByItemType.get(effectiveType) || []).filter(candidate => {
         if (!normalizedSize) return candidate.size == null;
         return candidate.size == null || candidate.size.trim().toLowerCase() === normalizedSize;
       });
-      rule = findMatch(typeRules, size);
+      rule = findMatch(typeRules, lookupSize);
     }
 
     // Icing decorations are part of the analyzed cake image but currently carry no

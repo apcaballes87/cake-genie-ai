@@ -21,10 +21,31 @@ import {
   type GeneratedAnalysisTypeEnums,
   type GeneratedCakeAnalysisResult,
 } from '@/lib/ai/generatedAnalysisContract';
+import { normalizeLegacyAnalysisPayload } from '@/lib/ai/analysisSize';
 
 export const SEARCH_ANALYSIS_REJECTION_REASONS = GENERATED_ANALYSIS_REJECTION_REASONS;
 export const SEARCH_ANALYSIS_ICING_BASES = GENERATED_ANALYSIS_ICING_BASES;
 export const SEARCH_ANALYSIS_COLOR_TYPES = GENERATED_ANALYSIS_COLOR_TYPES;
+
+export type AnalysisGenerationSizeSchema = 'legacy_six_band' | 'three_band';
+
+const LEGACY_GENERATION_SIZES = ['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge'] as const;
+
+/**
+ * v3.66 can safely run during the compatibility deploy. Its six-band response
+ * is immediately collapsed in memory; v3.67+ is constrained to three bands at
+ * the provider schema boundary.
+ */
+export function getAnalysisGenerationSizeSchema(promptVersion: string): AnalysisGenerationSizeSchema {
+  if (promptVersion === 'fallback') return 'three_band';
+  const match = promptVersion.match(/^(?:v)?(\d+)\.(\d+)$/i);
+  if (!match) return 'legacy_six_band';
+  const major = Number.parseInt(match[1], 10);
+  const minor = Number.parseInt(match[2], 10);
+  return major > 3 || (major === 3 && minor >= 67)
+    ? 'three_band'
+    : 'legacy_six_band';
+}
 
 const TINY_SUGAR_PEARL_OR_BEAD = /\b(?:sugar\s+)?(?:pearl|bead)s?\b|\bnonpareils?\b/i;
 const SCATTERED_OR_REPEATED = /\b(?:scattered?|sprinkled?|repeated|multiple|many|around|across)\b/i;
@@ -125,11 +146,12 @@ const DESCRIPTION_TYPE_RULES: DescriptionTypeRule[] = [
     quantity: 1,
     matches: (_primary, item, role) => {
       if (role !== 'support' || item.type !== 'edible_3d_ordinary') return false;
-      if (item.size !== 'tiny' && item.size !== 'xsmall') return false;
+      if (item.size !== 'small') return false;
       const text = `${String(item.group_id ?? '')} ${String(item.description ?? '')}`;
       const repeatedQuantity = typeof item.quantity === 'number' && item.quantity >= 2;
       return TINY_SUGAR_PEARL_OR_BEAD.test(text)
-        && (repeatedQuantity || SCATTERED_OR_REPEATED.test(text));
+        && (repeatedQuantity || SCATTERED_OR_REPEATED.test(text))
+        && !/\b(?:drag(?:e|é)es?|premium)\b/i.test(text);
     },
   },
   {
@@ -394,7 +416,10 @@ function removeUnverifiedConditionedWaferPaperWaves(result: unknown): unknown {
     : { ...result, support_elements: supportElements };
 }
 
-export function buildSearchAnalysisResponseSchema(typeEnums: GeneratedAnalysisTypeEnums) {
+export function buildSearchAnalysisResponseSchema(
+  typeEnums: GeneratedAnalysisTypeEnums,
+  sizeSchema: AnalysisGenerationSizeSchema = 'three_band',
+) {
   const mainTopperTypes = typeEnums.mainTopperTypes.filter(
     (type) => GENERATED_MAIN_TOPPER_TYPES.includes(type as never),
   );
@@ -407,6 +432,9 @@ export function buildSearchAnalysisResponseSchema(typeEnums: GeneratedAnalysisTy
   const subtypeProperty = subtypes.length
     ? { subtype: { type: Type.STRING, enum: subtypes } }
     : {};
+  const generationSizes = sizeSchema === 'legacy_six_band'
+    ? LEGACY_GENERATION_SIZES
+    : GENERATED_ANALYSIS_SIZES;
 
   return {
     type: Type.OBJECT,
@@ -442,7 +470,7 @@ export function buildSearchAnalysisResponseSchema(typeEnums: GeneratedAnalysisTy
             material: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_MATERIALS] },
             group_id: { type: Type.STRING },
             classification: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_CLASSIFICATIONS] },
-            size: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_SIZES] },
+            size: { type: Type.STRING, enum: [...generationSizes] },
             quantity: { type: Type.INTEGER },
             description: { type: Type.STRING },
             color: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_COLOR_HEXES] },
@@ -468,7 +496,7 @@ export function buildSearchAnalysisResponseSchema(typeEnums: GeneratedAnalysisTy
               type: Type.ARRAY,
               items: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_COLOR_HEXES] },
             },
-            size: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_SIZES] },
+            size: { type: Type.STRING, enum: [...generationSizes] },
             quantity: { type: Type.INTEGER },
             description: { type: Type.STRING },
             ...subtypeProperty,
@@ -566,11 +594,14 @@ export function buildSearchAnalysisResponseSchema(typeEnums: GeneratedAnalysisTy
   };
 }
 
-export function buildSearchAnalysisGenerationConfig(typeEnums: GeneratedAnalysisTypeEnums) {
+export function buildSearchAnalysisGenerationConfig(
+  typeEnums: GeneratedAnalysisTypeEnums,
+  sizeSchema: AnalysisGenerationSizeSchema = 'three_band',
+) {
   return {
     systemInstruction: SYSTEM_INSTRUCTION,
     responseMimeType: 'application/json',
-    responseSchema: buildSearchAnalysisResponseSchema(typeEnums),
+    responseSchema: buildSearchAnalysisResponseSchema(typeEnums, sizeSchema),
     thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
   };
 }
@@ -578,6 +609,7 @@ export function buildSearchAnalysisGenerationConfig(typeEnums: GeneratedAnalysis
 export function postProcessSearchAnalysisResult(
   result: unknown,
   typeEnums: GeneratedAnalysisTypeEnums,
+  sizeSchema: AnalysisGenerationSizeSchema = 'three_band',
 ): GeneratedCakeAnalysisResult {
   const reconciledResult = reconcileGeneratedCakeTypeThickness(result);
   if (reconciledResult !== result && typeof result === 'object' && result !== null) {
@@ -589,9 +621,12 @@ export function postProcessSearchAnalysisResult(
       reconciledThickness: reconciled.cakeThickness,
     });
   }
+  const sizeNormalizedResult = sizeSchema === 'legacy_six_band'
+    ? normalizeLegacyAnalysisPayload(reconciledResult as Record<string, unknown>)
+    : reconciledResult;
   return validateGeneratedCakeAnalysisResult(
     removeUnverifiedConditionedWaferPaperWaves(
-      reconcileDescriptionTypes(removeExplicitSceneOnlyItems(reconciledResult), typeEnums),
+      reconcileDescriptionTypes(removeExplicitSceneOnlyItems(sizeNormalizedResult), typeEnums),
     ),
     typeEnums,
   );

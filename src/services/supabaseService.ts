@@ -30,6 +30,7 @@ import {
   rankRelatedProducts,
 } from './relatedProductSearch';
 import { normalizeAnalysisForDefaultFulfillment } from '@/lib/ai/fulfillmentNormalization';
+import { normalizeAnalysisForThreeBandSizing } from '@/lib/ai/analysisSize';
 import type { BasePriceCatalog } from '@/lib/pricing/basePriceCatalog';
 
 // The default client (uses @supabase/ssr browser client)
@@ -305,7 +306,9 @@ export async function trackSearchTerm(term: string): Promise<void> {
  * Helper to map HybridAnalysisResult to the UI state structure expected by calculatePriceFromDatabase.
  */
 export function mapAnalysisToPricingState(analysis: HybridAnalysisResult) {
-  const fulfillmentAnalysis = normalizeAnalysisForDefaultFulfillment(analysis);
+  const fulfillmentAnalysis = normalizeAnalysisForDefaultFulfillment(
+    normalizeAnalysisForThreeBandSizing(analysis),
+  );
   const mainToppers: MainTopperUI[] = (fulfillmentAnalysis.main_toppers || []).map(t => ({
     ...t,
     id: uuidv4(),
