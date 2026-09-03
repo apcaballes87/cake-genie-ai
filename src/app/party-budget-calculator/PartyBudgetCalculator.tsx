@@ -153,6 +153,7 @@ export default function PartyBudgetCalculator() {
   const printRef = useRef<HTMLDivElement>(null);
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
+  const [partyName, setPartyName] = useState('');
   const [partyDate, setPartyDate] = useState('');
   const [guestCount, setGuestCount] = useState(30);
   const [childCount, setChildCount] = useState(20);
@@ -188,8 +189,8 @@ export default function PartyBudgetCalculator() {
   };
 
   const globalState = useMemo(
-    () => ({ partyDate, guestCount, childCount, kidsAttending, currency, overallBudget, contingency }),
-    [partyDate, guestCount, childCount, kidsAttending, currency, overallBudget, contingency]
+    () => ({ partyName, partyDate, guestCount, childCount, kidsAttending, currency, overallBudget, contingency }),
+    [partyName, partyDate, guestCount, childCount, kidsAttending, currency, overallBudget, contingency]
   );
 
   const getQty = (item: BudgetItem): number => {
@@ -301,6 +302,7 @@ export default function PartyBudgetCalculator() {
     if (savedMeta) {
       try {
          const parsed = JSON.parse(savedMeta);
+        setPartyName(parsed.partyName || '');
         setPartyDate(parsed.partyDate || '');
         setGuestCount(parsed.guestCount || 30);
          setChildCount(parsed.childCount || 0);
@@ -327,6 +329,7 @@ export default function PartyBudgetCalculator() {
 
   const applySnapshot = useCallback((snapshot: PartyBudgetSnapshot) => {
     const { meta, lineItems: savedLineItems } = snapshot;
+    setPartyName(meta.partyName || '');
     setPartyDate(meta.partyDate || '');
     setGuestCount(meta.guestCount || 30);
     setChildCount(meta.childCount ?? 0);
@@ -454,6 +457,7 @@ export default function PartyBudgetCalculator() {
       doc.setFont('helvetica', 'bold');
       doc.text('Party details', ML, y);
       const detailRows: Array<[string, string]> = [
+        ['Party name', partyName || '—'],
         ['Party date', partyDate || '—'],
         ['Total guests', String(guestCount)],
         ['Kids attending', kidsAttending ? String(childCount) : 'No'],
@@ -753,6 +757,13 @@ export default function PartyBudgetCalculator() {
            <div className="rounded-3xl border border-purple-100 bg-white p-6 shadow-sm md:p-8">
             <div className="mb-5">
               <h2 className="text-2xl font-black text-slate-900">Interactive Calculator</h2>
+              <input
+                type="text"
+                value={partyName}
+                onChange={(e) => setPartyName(e.target.value)}
+                placeholder="Genie's Birthday"
+                className="mt-2 w-full rounded-lg border border-purple-100 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+              />
             </div>
             <div className="grid grid-cols-1 gap-4 xs:grid-cols-2 lg:grid-cols-4">
               <div>

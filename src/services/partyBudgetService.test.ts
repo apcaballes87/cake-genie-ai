@@ -32,7 +32,7 @@ describe('partyBudgetService', () => {
     mocks.from.mockReturnValue({ upsert });
     const snapshot = {
       meta: {
-        partyDate: '2026-11-01', guestCount: 30, childCount: 20, kidsAttending: true,
+        partyName: 'Genie\'s Birthday', partyDate: '2026-11-01', guestCount: 30, childCount: 20, kidsAttending: true,
         currency: 'PHP', overallBudget: '50000', contingency: 8,
       },
       lineItems: {},

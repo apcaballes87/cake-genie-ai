@@ -15,6 +15,7 @@ export type PartyBudgetItem = {
 };
 
 export type PartyBudgetMeta = {
+  partyName: string;
   partyDate: string;
   guestCount: number;
   childCount: number;
