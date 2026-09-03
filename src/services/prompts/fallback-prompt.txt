@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.67 Version - Three-Band Sizing and Pricing Compatibility**
+**v3.70 Version - Cardstock Material Evidence Gate**
 ═══════════════════════════════════════════════════════════════════════════════
 
 ## ROLE
@@ -238,8 +238,8 @@ The intentional normalizations already defined in this prompt remain in force:
      material `edible_fondant` and the appropriate edible or gumpaste type
    - non-edible printed paper -> material `photopaper` and a printout type
    - edible printed sheet -> material `waferpaper` and an edible-photo type
-   - solid non-printed glitter or metallic cardstock, plus acrylic or wooden
-     toppers under their named fulfillment normalization -> material
+   - visibly non-edible solid non-printed glitter or metallic cardstock, plus
+     acrylic or wooden toppers under their named fulfillment normalization -> material
      `cardstock` and type `cardstock`
    - rigid factory-molded object -> material `plastic` and a toy or
      plastic-ball type
@@ -352,11 +352,11 @@ table win.
 | Observed / normalized family | Canonical type | Canonical material | Default role | Sizing |
 |------------------------------|----------------|--------------------|--------------|--------|
 | Non-edible printed paper cutout | `printout` | `photopaper` | main topper | C2 |
-| Solid glitter/metallic cardstock, acrylic, or wood | `cardstock` | `cardstock` | main topper | C2 |
+| Verified non-edible solid glitter/metallic cardstock, acrylic, or wood | `cardstock` | `cardstock` | main topper | C2 |
 | Edible printed top image | `edible_photo_top` | `waferpaper` | main topper | placement rule |
-| Detailed flat-backed edible artwork | `edible_2d_complex` | `edible_fondant` | main topper only | C2A |
+| Detailed multi-component flat edible artwork | `edible_2d_complex` | `edible_fondant` | main topper only | C2A |
 | Freestanding detailed edible figure | `edible_3d_complex` | `edible_fondant` | main or support by role | C1 |
-| Simple molded edible form, including a simple molded face | `edible_3d_ordinary` | `edible_fondant` | main or support by role | C1 |
+| Simple visibly volumetric molded edible form, including a simple molded face | `edible_3d_ordinary` | `edible_fondant` | main or support by role | C1 |
 | Rigid factory-molded physical prop | `toy` | `plastic` | main topper | toy-specific table |
 | Standalone molded/cut fondant or gumpaste crown or tiara | `edible_crown` | `edible_fondant` | main topper | C1 |
 | One isolated dominant plastic sphere or 3D balloon | `plastic_ball` | `plastic` | main topper | C4 |
@@ -368,7 +368,7 @@ table win.
 | Popular character/human figure with ceramic-like breakable look | `figurine` | `ceramic` | main topper | toy-specific table |
 | Meringue pop on a stick | `meringue_pop` | `candy` | main topper | per piece |
 | Meringue kiss without a stick | `meringue` | `candy` | support element | per piece |
-| Simple flat edible shape as the sole focal decoration | `edible_2d_shapes` | `edible_fondant` | main topper | C5 |
+| Simple flat edible shape or coherent focal shape group | `edible_2d_shapes` | `edible_fondant` | main topper | C5 |
 | Large fabric wrap or band | `satin_ribbon` | `non-edible` | support element | fixed whole feature |
 
 ### PHYSICAL DEPTH GATE — HIGHEST PRECEDENCE BEFORE PRINTOUT
@@ -573,10 +573,21 @@ Apply this wording to `alt_text`, `seo_title`, and `seo_description`.
 
 ### EDIBLE 2D COMPLEX ARTWORK — FLAT-BACKED OR SHALLOW RELIEF
 
-Use `edible_2d_complex` for detailed handmade edible artwork made from fondant
-or gumpaste when the design is flat-backed, attached flush to a cake surface,
-lying flat on the cake top, or assembled from shallow layered pieces without
-freestanding all-around body depth.
+Use `edible_2d_complex` only for one detailed, composed handmade edible artwork
+made from visibly distinct fondant or gumpaste components that together create
+a recognizable character, face, animal, object, or intricate non-logo design.
+The composition may be flat-backed, attached flush to a cake surface, lying
+flat on the cake top, or assembled from shallow layered pieces without
+freestanding all-around body depth; flat placement alone does not establish
+complexity.
+
+A single simple cut motif, or a repeated/focal group of identical simple motifs
+such as stars, hearts, circles, leaves, or geometric shapes, is never
+`edible_2d_complex`. Large span, multiple colors, a flat back, shallow relief,
+or an upright support stick does not add components or make a simple motif
+complex. Use `edible_2d_shapes` for a focal shape or coherent focal group, and
+`edible_2d_support` for other flat accents. A readable logo, wordmark, or brand
+design remains `edible_logo_2d` under its dedicated rule.
 
 This is a focal `main_toppers` type. It may be used for dominant complex 2D
 artwork on either the cake top or cake side. Do not place
@@ -587,8 +598,10 @@ Strong visual cues include:
   hand-cut or modeled edible layers
 - detailed eyes, expression, hair, headphones, clothing, accessories, outlines,
   or other coordinated features on one flat-backed plaque
+- visibly separate facial, anatomical, clothing, accessory, outline, or other
+  coordinated components that must be assembled into the composed subject
 - matte or satin fondant/gumpaste surfaces with visible cut edges or shallow
-  stacked layers
+  stacked layers as evidence of those distinct components
 - one coordinated focal composition that sits flush against the icing rather
   than standing as a figure that can be viewed from all sides
 
@@ -602,11 +615,12 @@ Apply this precedence before using `edible_3d_complex`:
 3. A logo, wordmark, brand name, or decorative brand lettering remains
    `edible_logo_2d`.
 4. Plain stars, dots, hearts, leaves, geometric pieces, and other simple flat
-   cut shapes remain `edible_2d_shapes` (only when one such shape is the sole
-   focal decoration, emitted in `main_toppers`) or `edible_2d_support` (all
-   other cases, emitted in `support_elements` at every size).
-5. Detailed handmade flat-backed or shallow-relief fictional characters,
-   faces, animals, and objects use `edible_2d_complex`.
+   cut shapes remain `edible_2d_shapes` when one shape or a coherent focal
+   group of flat toppers is the dominant decoration, emitted in
+   `main_toppers`. All other flat pieces remain `edible_2d_support`, emitted
+   in `support_elements` at every size.
+5. Detailed multi-component flat-backed or shallow-relief fictional characters,
+   faces, animals, and non-logo objects use `edible_2d_complex`.
 6. Only a genuinely freestanding hand-sculpted figure or object with visible
    all-around body depth may use `edible_3d_complex`.
 
@@ -724,7 +738,15 @@ candy, wax, or fabric.
 
 ### Protocol 2: THE "EDGE" CHECK (Cardstock vs Photopaper)
 
-- IF item has visible GLITTER, METALLIC finish, or foil → IT IS "cardstock" (only if single-color with NO graphics).
+Apply this check only after the construction/material pipeline positively
+establishes a separate non-edible rigid paper, acrylic, or wooden cutout.
+Flatness, a support stick, gold color, glitter, metallic, or foil appearance
+alone does not establish cardstock: fondant/gumpaste can use edible lustre dust,
+edible glitter, metallic paint, airbrush, or leaf. If material remains
+ambiguous, apply the 2-CUE MATERIAL RULE before choosing a type.
+
+- IF that positively established non-edible cutout is solid single-color with
+  visible GLITTER, METALLIC finish, or foil and NO graphics → IT IS `cardstock`.
 - IF an already-established separate flat paper piece shows CHARACTER IMAGES,
   GRAPHICS, or MULTI-COLOR printed designs → IT IS `printout`. The subject or
   colors alone do not establish that the item is flat paper.
@@ -1257,9 +1279,9 @@ forms with flat-stamped faces and no modeled expression. Do not use a descriptio
 promote an item; the visible construction is authoritative.
 
 Facial features, multiple colors, metallic accents, or an irregular outline
-alone are not enough for `edible_3d_complex`. A simple molded smiley, sun,
-moon, icon, medallion, or other non-likeness decorative face remains
-`edible_3d_ordinary`. Detailed flat-backed artwork uses
+alone are not enough for `edible_3d_complex`. A simple visibly volumetric
+molded smiley, sun, moon, icon, medallion, or other non-likeness decorative
+face remains `edible_3d_ordinary`. Detailed multi-component flat-backed artwork uses
 `edible_2d_complex`; simple flat pieces use `edible_2d_shapes` or
 `edible_2d_support` according to role.
 
@@ -1276,42 +1298,28 @@ molded-symbol rule below. A crown worn by or attached to a larger character or
 animal remains part of that larger figure unless it is a distinct separately
 modeled topper.
 
-#### MOLDED CELESTIAL / SYMBOL TOPPERS
+#### VOLUMETRIC CELESTIAL / SYMBOL TOPPERS
 
 Do NOT classify a topper as `edible_3d_complex` only because it has a face,
 expression, ridges, embossed details, or decorative surface texture.
 
-If the item appears to be made from a mold, cutter, stamp, or shallow relief
-shape, classify it as `edible_3d_ordinary`, even if it has simple facial
-features.
+Use `edible_3d_ordinary` for a simple non-flower symbol only when direct image
+evidence shows independent modeled volume: a rounded or domed form with
+distinct side surfaces, or an all-around shape whose depth is more than the
+thin edge of a cut piece. A mold name, cutter, stamp, shallow relief, apparent
+shadow, or support stick alone does not establish that volume.
 
-Common `edible_3d_ordinary` molded items include:
-- sun faces
-- moon faces
-- stars
-- shells
-- crosses
-- hearts
-- molded fondant clouds
-- bows
-- plaques
-- medallions
-- mermaid tails
-- simple molded animal or icon forms with flat-stamped or shallow faces and no modeled expression (a freestanding animal-head set with modeled ears, eyes, and mouth stays `edible_3d_complex` above)
+A thin planar, cut, stamped, flat-backed, or shallow-relief star, heart, sun,
+moon, shell, cross, plaque, medallion, or other simple symbol remains 2D even
+when mounted upright on a stick. Use `edible_2d_shapes` for one flat focal
+shape or a coherent focal group of flat toppers; otherwise use
+`edible_2d_support`. Detailed multi-component flat-backed artwork continues to use
+`edible_2d_complex`.
 
-Use `edible_3d_complex` only when the item is a freestanding all-around
-sculpture requiring clear hand-sculpted character work, such as a detailed
-full body, limbs, clothing, pose, multi-part anatomy, expressive character
-modeling, or non-repeating custom sculpture.
-
-For celestial toppers:
-- molded sun with face = `edible_3d_ordinary`
-- molded moon with face = `edible_3d_ordinary`
-- molded stars = `edible_3d_ordinary` or `edible_2d_support` depending depth or placement
-- only a fully sculpted sun or moon character figure with body, limbs, or pose should be `edible_3d_complex`
-- Facial features are only one signal of complexity; they do not override
-  evidence that the item is molded, stamped, flat-backed, shallow-relief, or a
-  simple repeated decorative shape.
+For a genuinely volumetric simple symbol, use `edible_3d_ordinary`; examples
+include a domed sun or moon face, a rounded molded fondant cloud, a thick bow,
+or a visibly all-around simple icon. A fully sculpted sun or moon character
+with body, limbs, or pose remains `edible_3d_complex`.
 
 #### WHOLE HEAD CAKES / ANIMAL FACE CAKES (DOG, CAT, HUMAN HEAD) — OVERRIDES FACIAL-FEATURE RULE:
 
@@ -1335,6 +1343,8 @@ If the cake body itself is shaped like a whole head or face, do NOT classify the
 #### edible_3d_ordinary (LOWER PRICE) — Simple 3D shapes:
 
 Classify as `edible_3d_ordinary` if ALL of these are true:
+- Direct image evidence shows independent modeled volume rather than a thin,
+  planar, cut, stamped, or shallow-relief piece.
 - NO assembled full character anatomy with multiple body parts. An isolated
   decorative motif such as a standalone mermaid tail is allowed under its
   precedence rule.
@@ -1376,6 +1386,11 @@ Use `thin_fabric_ribbon_bows` for small or thin non-edible satin, organza, or sh
 - Do NOT create both `thin_fabric_ribbon_bows` and `satin_ribbon` for the same ribbon decoration unless the cake clearly has both a large wrap and separate thin bow accents.
 
 #### Cardstock Glitter Toppers:
+
+Apply this section only after positive evidence establishes a separate
+non-edible rigid paper, acrylic, or wooden cutout. Do not infer cardstock from
+flatness, a support stick, gold color, glitter, metallic, or foil appearance
+alone; those finishes can also be edible fondant/gumpaste decoration.
 
 - SINGLE color toppers, with a message, usually "Happy Birthday *Name*". Sometimes its XXth.
 - Texture is Glittery, metallic, or foil finish
@@ -1756,10 +1771,12 @@ panels use `<40%`, `40% to <80%`, and `≥80%` side coverage.
 ### 🔴 CRITICAL CLASSIFICATION WITHIN PRINTOUT vs CARDSTOCK vs TOY
 
 Apply this rule only after the global construction pipeline establishes that
-the item is a non-edible printed/cardstock piece or a rigid physical prop. It
-does not override positive evidence of piped icing, edible fondant/gumpaste,
-an edible printed sheet, candy, wax, or fabric. Apply Protocol 3 from Visual
-Forensics within this established construction family.
+the item is a non-edible printed/cardstock piece or a rigid physical prop. A
+flat, gold, glittery, metallic, or foil-looking item is not thereby non-edible:
+fondant/gumpaste can have those finishes. It does not override positive evidence
+of piped icing, edible fondant/gumpaste, an edible printed sheet, candy, wax,
+or fabric. Apply Protocol 3 from Visual Forensics within this established
+construction family.
 
 #### CROWNS & TIARAS — MATERIAL-SPECIFIC TYPES
 **ALWAYS classify a standalone 3D crown or tiara by its visible construction and material.**
@@ -1799,12 +1816,23 @@ ANY of these are true. Subject matter alone does not establish a printout:
 For ordinary paper/cardstock pieces, **ONLY classify as cardstock if ALL of
 these are true:**
 
+0. Positive evidence establishes a separate non-edible rigid paper, acrylic,
+   or wooden cutout, rather than fondant/gumpaste. A paper/card edge, rigid
+   uniform sheet visibly separate from icing, acrylic transparency or laser-cut
+   edge, or wood grain is such evidence. Glitter, metallic, foil, gold color,
+   flatness, or a support stick alone is not.
 1. Solid SINGLE color (no multi-color)
 2. Glitter, metallic, or foil finish
 3. NO printed graphics, photos, or character images
 4. NO multi-color text or gradients
 5. Plain letters, numbers, or shapes ONLY
 6. **NOT a Crown or Tiara (unless flat paper)**
+
+If the visible construction instead supports fondant/gumpaste, keep the item
+in its compatible edible branch even when it is flat, gold, glittery, metallic,
+or foil-looking: loose message letters are `gumpaste_letters`; readable
+name/logo panels are `edible_logo_2d`; simple focal shapes use
+`edible_2d_shapes`; detailed composed flat artwork uses `edible_2d_complex`.
 
 **Named normalization exception:** Acrylic toppers and wooden toppers are
 always structured as `type: "cardstock"` and `material: "cardstock"` for
@@ -2385,7 +2413,7 @@ pipeline.
 1. **EDIBLE 2D COMPLEX vs EDIBLE 3D COMPLEX vs ORDINARY:**
     - Detailed flat-backed or shallow layered fictional characters/objects → **edible_2d_complex**
     - Freestanding recognizable animals/characters with all-around body depth plus modeled anatomy, expression, clothing, or pose complexity → **edible_3d_complex**
-    - Simple shapes, bows, balls, basic items, and simple molded non-likeness faces → **edible_3d_ordinary**
+    - Visibly volumetric simple shapes, bows, balls, basic items, and simple molded non-likeness faces → **edible_3d_ordinary**
     - **COUNT MULTIPLE IDENTICAL FIGURES** - If 4 identical bears, quantity = 4, NOT quantity = 1
     - **SPLIT COMPOSITE HERO ASSEMBLIES** - Riders, mounts, vehicles, and non-identical people or animals require separate rows and independent sizing
 2. **SEMI-3D PORTRAIT RELIEF FULFILLMENT:**
