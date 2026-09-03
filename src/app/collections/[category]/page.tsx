@@ -41,7 +41,7 @@ type Props = {
     searchParams?: Promise<{ page?: string | string[] }>
 }
 
-export const COLLECTION_PAGE_SIZE = 30;
+const COLLECTION_PAGE_SIZE = 30;
 
 type CategoryDesign = NonNullable<Awaited<ReturnType<typeof getDesignsByKeyword>>['data']>[number];
 
@@ -69,7 +69,7 @@ function humanizeSlug(slug: string): string {
         .join(' ');
 }
 
-export function parseCollectionPage(value: string | string[] | undefined): number {
+function parseCollectionPage(value: string | string[] | undefined): number {
     const rawValue = Array.isArray(value) ? value[0] : value;
     const parsed = Number.parseInt(rawValue || '1', 10);
     return Number.isFinite(parsed) && parsed >= 1 ? parsed : 1;

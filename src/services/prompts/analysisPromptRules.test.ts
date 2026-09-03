@@ -469,6 +469,42 @@ describe('cake analysis prompt rules', () => {
     expect(SYSTEM_INSTRUCTION).toContain('Do not classify handmade layered fondant/gumpaste character artwork as a printout merely because it depicts a character');
   });
 
+  it('groups one composed message or design before counting independently fulfillable pieces', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+    const fixture = JSON.parse(readPrompt('src/services/prompts/fixtures/roblox-blue-1-tier-cake-789e.json')) as {
+      expected_physical_composition: Record<string, unknown>;
+      expected_message_composition: Record<string, unknown>;
+      independent_piece_counterexamples: string[];
+    };
+
+    expect(prompt).toContain('### COMPOSITION UNIT BEFORE ITEMIZATION (HIGHEST PRECEDENCE)');
+    expect(prompt).toContain('It remains one\ncomposition even when its letters, layers, strokes, icons, or other components\nare visibly separate or unconnected.');
+    expect(prompt).toContain('A physical composition row has');
+    expect(prompt).toContain('based on the full composition span—not the span of each letter, icon, or');
+    expect(prompt).toContain('This composition decision overrides later per-piece support itemization rules.');
+    expect(fixture.expected_physical_composition).toEqual({
+      type: 'edible_logo_2d',
+      material: 'edible_fondant',
+      color: '#FF0000',
+      group_id: 'roblox_wordmark',
+      classification: 'hero',
+      size: 'large',
+      quantity: 1,
+    });
+    expect(fixture.expected_message_composition).toEqual({
+      text: 'happy birthday',
+      type: 'icing_script',
+      color: '#FF0000',
+      position: 'top',
+    });
+    expect(fixture.independent_piece_counterexamples).toEqual([
+      'separate flowers',
+      'separate stars',
+      'separate balloons',
+      'separate building blocks',
+    ]);
+  });
+
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
