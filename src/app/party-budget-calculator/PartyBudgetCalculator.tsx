@@ -643,7 +643,7 @@ export default function PartyBudgetCalculator() {
               className="w-full rounded-lg border border-purple-100 px-3 py-2 text-xs text-slate-600 placeholder-slate-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
             />
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:contents">
+          <div className="grid grid-cols-3 gap-2 sm:contents">
              <div className="contents">
                <div>
                  <label
@@ -682,15 +682,15 @@ export default function PartyBudgetCalculator() {
                className="w-full rounded-lg border border-purple-100 px-3 py-2 pl-7 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
              />
            </div>
+           <PartyBudgetImageUpload
+             userId={user?.id ?? null}
+             isAuthenticated={isAuthenticated}
+             itemId={item.id}
+             categoryId={categoryId}
+             images={itemImages}
+             onImagesChange={(updated) => setImagesMap((prev) => ({ ...prev, [item.id]: updated }))}
+           />
           </div>
-          <PartyBudgetImageUpload
-            userId={user?.id ?? null}
-            isAuthenticated={isAuthenticated}
-            itemId={item.id}
-            categoryId={categoryId}
-            images={itemImages}
-            onImagesChange={(updated) => setImagesMap((prev) => ({ ...prev, [item.id]: updated }))}
-          />
           <div className="flex items-center justify-end gap-2">
             <span className="text-sm font-bold text-slate-900">{formatCurrency(getLineTotal(item), currency)}</span>
             {isCustom && (
