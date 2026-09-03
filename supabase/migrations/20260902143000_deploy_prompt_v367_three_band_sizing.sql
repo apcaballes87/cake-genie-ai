@@ -113,14 +113,61 @@ begin
     family.item_type,
     family.key_prefix,
     mapping.canonical_size,
-    mapping.high_source_size
+    mapping.high_source_size,
+    mapping.fallback_source_size,
+    case
+      when exists (
+        select 1 from _three_band_sources as local_source
+        where local_source.merchant_id is not distinct from family.merchant_id
+          and local_source.category is not distinct from family.category
+          and local_source.item_type = family.item_type
+          and local_source.key_prefix = family.key_prefix
+          and local_source.source_size = mapping.high_source_size
+      ) then mapping.high_source_size
+      when family.merchant_id is not null and exists (
+        select 1 from _three_band_sources as global_source
+        where global_source.merchant_id is null
+          and global_source.category is not distinct from family.category
+          and global_source.item_type = family.item_type
+          and global_source.key_prefix = family.key_prefix
+          and global_source.source_size = mapping.high_source_size
+      ) then null
+      when exists (
+        select 1 from _three_band_sources as local_source
+        where local_source.merchant_id is not distinct from family.merchant_id
+          and local_source.category is not distinct from family.category
+          and local_source.item_type = family.item_type
+          and local_source.key_prefix = family.key_prefix
+          and local_source.source_size = mapping.fallback_source_size
+      ) then mapping.fallback_source_size
+      else null
+    end as source_size,
+    (
+      not exists (
+        select 1 from _three_band_sources as local_source
+        where local_source.merchant_id is not distinct from family.merchant_id
+          and local_source.category is not distinct from family.category
+          and local_source.item_type = family.item_type
+          and local_source.key_prefix = family.key_prefix
+          and local_source.source_size = mapping.high_source_size
+      )
+      and family.merchant_id is not null
+      and exists (
+        select 1 from _three_band_sources as global_source
+        where global_source.merchant_id is null
+          and global_source.category is not distinct from family.category
+          and global_source.item_type = family.item_type
+          and global_source.key_prefix = family.key_prefix
+          and global_source.source_size = mapping.high_source_size
+      )
+    ) as uses_global_higher_fallback
   from _three_band_families as family
   cross join (
     values
-      ('small'::text, 'tiny'::text, 'xsmall'::text),
-      ('medium'::text, 'small'::text, 'medium'::text),
-      ('large'::text, 'large'::text, 'xlarge'::text)
-  ) as mapping(canonical_size, low_source_size, high_source_size)
+      ('small'::text, 'tiny'::text, 'xsmall'::text, 'small'::text),
+      ('medium'::text, 'small'::text, 'medium'::text, 'medium'::text),
+      ('large'::text, 'large'::text, 'xlarge'::text, 'large'::text)
+  ) as mapping(canonical_size, low_source_size, high_source_size, fallback_source_size)
   where exists (
     select 1
     from _three_band_sources as source
@@ -128,36 +175,23 @@ begin
       and source.category is not distinct from family.category
       and source.item_type = family.item_type
       and source.key_prefix = family.key_prefix
-      and source.source_size in (mapping.low_source_size, mapping.high_source_size)
+      and source.source_size in (
+        mapping.low_source_size,
+        mapping.high_source_size,
+        mapping.fallback_source_size
+      )
   );
 
-  -- A merchant may omit the higher band only when the same global family has
-  -- it. In that case no merchant canonical rule is inserted, so normal global
-  -- fallback remains authoritative instead of freezing a copied global price.
+  -- By explicit release authorization, an incomplete legacy family may use its
+  -- nearest higher existing local band when its intended xsmall/xlarge source
+  -- is absent. A real global higher source still wins over that local fallback.
   if exists (
     select 1
     from _three_band_targets as target
-    where not exists (
-      select 1 from _three_band_sources as local_source
-      where local_source.merchant_id is not distinct from target.merchant_id
-        and local_source.category is not distinct from target.category
-        and local_source.item_type = target.item_type
-        and local_source.key_prefix = target.key_prefix
-        and local_source.source_size = target.high_source_size
-    )
-    and (
-      target.merchant_id is null
-      or not exists (
-        select 1 from _three_band_sources as global_source
-        where global_source.merchant_id is null
-          and global_source.category is not distinct from target.category
-          and global_source.item_type = target.item_type
-          and global_source.key_prefix = target.key_prefix
-          and global_source.source_size = target.high_source_size
-      )
-    )
+    where target.source_size is null
+      and not target.uses_global_higher_fallback
   ) then
-    raise exception 'Cannot deploy v3.67: a required canonical price band has no higher-band local or global source';
+    raise exception 'Cannot deploy v3.67: a required canonical price band has no authorized local or global source';
   end if;
 
   create temporary table _three_band_outputs on commit drop as
@@ -181,7 +215,8 @@ begin
    and source.category is not distinct from target.category
    and source.item_type = target.item_type
    and source.key_prefix = target.key_prefix
-   and source.source_size = target.high_source_size;
+   and source.source_size = target.source_size
+  where target.source_size is not null;
 
   update public.pricing_rules
   set is_active = false,
