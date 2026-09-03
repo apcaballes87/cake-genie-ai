@@ -1,0 +1,66 @@
+{
+  "slug": "pop-star-pink-2-tier-cake-2a2b",
+  "historical_cache_id": "acc3dc2d-abb5-410f-8ccc-3f7f8b15128b",
+  "p_hash": "2a2b333b1fc464f8",
+  "case_description": "Three colored stars are thin planar fondant/gumpaste shapes on sticks above a purple and pink two-tier cake. The matching side stars are flat appliques attached flush to the icing.",
+  "expected_main_toppers": [
+    {
+      "group_id": "purple_star_topper",
+      "type": "edible_2d_shapes",
+      "material": "edible_fondant",
+      "classification": "hero",
+      "size": "medium",
+      "quantity": 1
+    },
+    {
+      "group_id": "light_blue_star_topper",
+      "type": "edible_2d_shapes",
+      "material": "edible_fondant",
+      "classification": "hero",
+      "size": "large",
+      "quantity": 1
+    },
+    {
+      "group_id": "pink_star_topper",
+      "type": "edible_2d_shapes",
+      "material": "edible_fondant",
+      "classification": "hero",
+      "size": "medium",
+      "quantity": 1
+    }
+  ],
+  "expected_support_elements": [
+    {
+      "group_id": "side_stars",
+      "type": "edible_2d_support",
+      "material": "edible_fondant",
+      "size": "medium",
+      "quantity": 4
+    },
+    {
+      "group_id": "side_purple_stars",
+      "type": "edible_2d_support",
+      "material": "edible_fondant",
+      "size": "small",
+      "quantity": 3
+    },
+    {
+      "group_id": "side_white_stars",
+      "type": "edible_2d_support",
+      "material": "edible_fondant",
+      "size": "small",
+      "quantity": 2
+    }
+  ],
+  "unchanged_main_toppers": [
+    {
+      "group_id": "microphone_topper",
+      "type": "edible_3d_ordinary"
+    },
+    {
+      "group_id": "number_candle",
+      "type": "candle"
+    }
+  ],
+  "forbidden_type": "edible_3d_ordinary"
+}

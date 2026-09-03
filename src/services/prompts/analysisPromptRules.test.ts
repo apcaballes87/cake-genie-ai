@@ -13,24 +13,35 @@ function readPrompt(path: string) {
 }
 
 describe('cake analysis prompt rules', () => {
-  it('keeps the v3.67 migration guarded by the live v3.66 checksum and fallback parity', () => {
+  it('keeps the historical v3.67 migration guarded by the live v3.66 checksum', () => {
     const migration = readPrompt('supabase/migrations/20260902143000_deploy_prompt_v367_three_band_sizing.sql');
-    const fallback = readPrompt('src/services/prompts/fallback-prompt.txt');
-    const fallbackMd5 = createHash('md5').update(fallback).digest('hex');
 
     expect(migration).toContain("source_prompt_version <> '3.66'");
     expect(migration).toContain("v366_md5 constant text := '0a3708bf78fb23c9f0020c09c2e6e40b'");
-    expect(migration).toContain(`v367_md5 constant text := '${fallbackMd5}'`);
+    expect(migration).toContain("v367_md5 constant text := '4d49dc39935f23075a380111ef5d114f'");
     expect(migration).toContain("where is_active = true and btrim(size) in ('tiny', 'xsmall', 'xlarge')");
     expect(migration).toContain('fallback_source_size');
     expect(migration).toContain('uses_global_higher_fallback');
+  });
+
+  it('keeps the v3.68 migration guarded by the live v3.67 checksum and fallback parity', () => {
+    const migration = readPrompt('supabase/migrations/20260903130000_deploy_prompt_v368_flat_symbol_reconciliation.sql');
+    const fallback = readPrompt('src/services/prompts/fallback-prompt.txt');
+    const fallbackMd5 = createHash('md5').update(fallback).digest('hex');
+
+    expect(migration).toContain("source_prompt_version <> '3.67'");
+    expect(migration).toContain("v367_md5 constant text := '4d49dc39935f23075a380111ef5d114f'");
+    expect(migration).toContain(`v368_md5 constant text := '${fallbackMd5}'`);
+    expect(migration).toContain('VOLUMETRIC CELESTIAL / SYMBOL TOPPERS');
+    expect(migration).toContain('support stick alone does not establish that volume');
+    expect(migration).toContain('molded stars = `edible_3d_ordinary` or `edible_2d_support`');
   });
 
   it('classifies every item through construction, material, type, and description consistency', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.67 Version - Three-Band Sizing and Pricing Compatibility**');
+    expect(prompt).toContain('**v3.68 Version - Flat Symbol Construction and Role Reconciliation**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('3. Visible construction of each item');
     expect(prompt).toContain('5. Type compatible with that construction and material');
@@ -508,7 +519,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.67 Version - Three-Band Sizing and Pricing Compatibility**');
+    expect(prompt).toContain('**v3.68 Version - Flat Symbol Construction and Role Reconciliation**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -529,7 +540,7 @@ describe('cake analysis prompt rules', () => {
   it('uses toy-specific sizing for miniature molded toys', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.67 Version - Three-Band Sizing and Pricing Compatibility**');
+    expect(prompt).toContain('**v3.68 Version - Flat Symbol Construction and Role Reconciliation**');
     expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy` AND `plastic_crown`)');
     expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
     expect(prompt).toContain('| `small` | under 0.50 |');
@@ -668,9 +679,9 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('Do not downgrade a freestanding animal figure to ordinary or support');
     expect(prompt).toContain('recognizable character or\nanatomical complexity beyond a simple molded/stamped decorative face');
     expect(prompt).toContain('Facial features, multiple colors, metallic accents, or an irregular outline\nalone are not enough for `edible_3d_complex`.');
-    expect(prompt).toContain('A simple molded smiley, sun,\nmoon, icon, medallion, or other non-likeness decorative face remains\n`edible_3d_ordinary`.');
+    expect(prompt).toContain('A simple visibly volumetric\nmolded smiley, sun, moon, icon, medallion, or other non-likeness decorative\nface remains `edible_3d_ordinary`.');
     expect(prompt).toContain('Any face is a simple molded, stamped, or non-likeness decorative face rather');
-    expect(prompt.match(/#### MOLDED CELESTIAL \/ SYMBOL TOPPERS/g)).toHaveLength(1);
+    expect(prompt.match(/#### VOLUMETRIC CELESTIAL \/ SYMBOL TOPPERS/g)).toHaveLength(1);
     expect(prompt).not.toContain('- NO facial features');
     expect(prompt).not.toContain('has **ANY** of these');
   });
@@ -703,6 +714,33 @@ describe('cake analysis prompt rules', () => {
       'giraffe_figure',
       'elephant_figure',
     ]));
+  });
+
+  it('keeps the Pop Star flat-star case in the two-dimensional families', () => {
+    const fixture = JSON.parse(
+      readPrompt('src/services/prompts/fixtures/pop-star-pink-2-tier-cake-2a2b.json'),
+    ) as {
+      expected_main_toppers: Array<Record<string, unknown>>;
+      expected_support_elements: Array<Record<string, unknown>>;
+      forbidden_type: string;
+    };
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+
+    expect(fixture.expected_main_toppers).toEqual(expect.arrayContaining([
+      expect.objectContaining({ group_id: 'purple_star_topper', type: 'edible_2d_shapes' }),
+      expect.objectContaining({ group_id: 'light_blue_star_topper', type: 'edible_2d_shapes' }),
+      expect.objectContaining({ group_id: 'pink_star_topper', type: 'edible_2d_shapes' }),
+    ]));
+    expect(fixture.expected_support_elements).toEqual(expect.arrayContaining([
+      expect.objectContaining({ group_id: 'side_stars', type: 'edible_2d_support' }),
+      expect.objectContaining({ group_id: 'side_purple_stars', type: 'edible_2d_support' }),
+      expect.objectContaining({ group_id: 'side_white_stars', type: 'edible_2d_support' }),
+    ]));
+    expect(fixture.forbidden_type).toBe('edible_3d_ordinary');
+    expect(prompt).toContain('A mold name, cutter, stamp, shallow relief, apparent\nshadow, or support stick alone does not establish that volume.');
+    expect(prompt).toContain('A thin planar, cut, stamped, flat-backed, or shallow-relief star, heart, sun,');
+    expect(prompt).toContain('Use `edible_2d_shapes` for one flat focal\nshape or a coherent focal group of flat toppers; otherwise use\n`edible_2d_support`.');
+    expect(prompt).not.toContain('molded stars = `edible_3d_ordinary` or `edible_2d_support`');
   });
 
   it('scopes printed gloss, named normalizations, plastic balls, and connected signs', () => {
