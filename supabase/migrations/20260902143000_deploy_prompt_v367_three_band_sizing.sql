@@ -54,16 +54,16 @@ begin
     raise exception 'Cannot deploy v3.67: active prompt must be verified v3.66 (%), found version % md5 %', v366_md5, source_prompt_version, md5(source_prompt);
   end if;
 
-  -- Guard against silently changing a fixed or descriptive rule key. Every
-  -- six-band row must have an exact size suffix before it can be collapsed.
+  -- Fixed-size/descriptive rules stay untouched. Only rows in a legacy band
+  -- must have an exact suffix before they can be collapsed into a new key.
   if exists (
     select 1
     from public.pricing_rules
     where is_active = true
-      and btrim(size) in ('tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge')
+      and btrim(size) in ('tiny', 'xsmall', 'xlarge')
       and item_key !~* '_(tiny|xsmall|small|medium|large|xlarge)$'
   ) then
-    raise exception 'Cannot deploy v3.67: active sized pricing rule lacks an exact size-suffixed item_key';
+    raise exception 'Cannot deploy v3.67: active legacy-size pricing rule lacks an exact size-suffixed item_key';
   end if;
 
   create temporary table _three_band_families on commit drop as
