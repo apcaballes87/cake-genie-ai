@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import { Image, Loader2, X } from 'lucide-react';
 import { ImageZoomModal } from '@/components/ImageZoomModal';
-import { uploadBudgetItemImage } from '@/services/partyBudgetImagesService';
+import { uploadBudgetItemImage, deleteBudgetItemImage } from '@/services/partyBudgetImagesService';
 import { showError } from '@/lib/utils/toast';
 import type { PartyBudgetImage } from '@/lib/partyBudget';
 
