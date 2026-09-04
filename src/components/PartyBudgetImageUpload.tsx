@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Camera, Loader2, X } from 'lucide-react';
+import { Image, Loader2, X } from 'lucide-react';
 import { ImageZoomModal } from '@/components/ImageZoomModal';
 import { uploadBudgetItemImage, deleteBudgetItemImage } from '@/services/partyBudgetImagesService';
 import { showError } from '@/lib/utils/toast';
@@ -83,17 +83,15 @@ export default function PartyBudgetImageUpload({
           type="button"
           onClick={triggerUpload}
           disabled={isUploading || images.length >= MAX_IMAGES}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-1.5 text-xs font-semibold text-purple-700 transition-colors hover:bg-purple-100 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-purple-100 px-3 py-2 text-sm font-medium text-slate-900 transition-colors hover:bg-purple-50 disabled:cursor-not-allowed disabled:opacity-50"
           title={images.length >= MAX_IMAGES ? `Maximum ${MAX_IMAGES} images` : 'Add reference image'}
         >
           {isUploading ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <Camera className="h-3.5 w-3.5" />
+            <Image className="h-4 w-4" />
           )}
-          <span className="hidden sm:inline">
-            {isUploading ? 'Uploading...' : 'Image'}
-          </span>
+          {isUploading ? 'Uploading...' : 'UPLOAD'}
         </button>
         <input
           ref={fileInputRef}
