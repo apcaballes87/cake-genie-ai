@@ -1,5 +1,6 @@
 export const PARTY_BUDGET_ITEMS_STORAGE_KEY = 'party-budget-data';
 export const PARTY_BUDGET_META_STORAGE_KEY = 'party-budget-meta';
+export const PARTY_BUDGET_CATEGORIES_STORAGE_KEY = 'party-budget-categories';
 export const PENDING_PARTY_BUDGET_SAVE_KEY = 'party-budget-pending-save';
 
 export type PartyBudgetItem = {

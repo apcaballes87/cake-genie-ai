@@ -18,6 +18,7 @@ import {
   Gift,
   Package,
   Gamepad2,
+  Pencil,
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -29,6 +30,7 @@ import { getAllBudgetImages } from '@/services/partyBudgetImagesService';
 import {
   PARTY_BUDGET_ITEMS_STORAGE_KEY,
   PARTY_BUDGET_META_STORAGE_KEY,
+  PARTY_BUDGET_CATEGORIES_STORAGE_KEY,
   PENDING_PARTY_BUDGET_SAVE_KEY,
   isPartyBudgetSnapshot,
   type PartyBudgetItem as BudgetItem,
@@ -163,11 +165,14 @@ export default function PartyBudgetCalculator() {
   const [overallBudget, setOverallBudget] = useState('');
   const [contingency, setContingency] = useState(8);
   const [lineItems, setLineItems] = useState<Record<string, BudgetItem[]>>(initialLineItems);
+  const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
   const [hasHydrated, setHasHydrated] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
   const [imagesMap, setImagesMap] = useState<Record<string, PartyBudgetImage[]>>({});
+  const [renamingCategoryId, setRenamingCategoryId] = useState<string | null>(null);
+  const [renamingCategoryLabel, setRenamingCategoryLabel] = useState('');
   const cloudSyncUserRef = useRef<string | null>(null);
 
   const guestCountRef = useRef<HTMLInputElement>(null);
@@ -243,6 +248,44 @@ export default function PartyBudgetCalculator() {
     }));
   };
 
+  const handleAddCategory = () => {
+    const id = `custom-${Date.now()}`;
+    const label = 'New Category';
+    setCategories((prev) => [...prev, { id, label }]);
+    setLineItems((prev) => ({ ...prev, [id]: [] }));
+    setRenamingCategoryId(id);
+    setRenamingCategoryLabel(label);
+  };
+
+  const handleRenameCategory = (categoryId: string) => {
+    const trimmed = renamingCategoryLabel.trim();
+    if (trimmed && trimmed !== categories.find((c) => c.id === categoryId)?.label) {
+      setCategories((prev) => prev.map((c) => (c.id === categoryId ? { ...c, label: trimmed } : c)));
+    }
+    setRenamingCategoryId(null);
+    setRenamingCategoryLabel('');
+  };
+
+  const handleDeleteCategory = (categoryId: string) => {
+    const items = lineItems[categoryId] || [];
+    if (items.length > 0 && !window.confirm(`Delete "${categories.find((c) => c.id === categoryId)?.label}" and its ${items.length} item(s)?`)) {
+      return;
+    }
+    setCategories((prev) => prev.filter((c) => c.id !== categoryId));
+    setLineItems((prev) => {
+      const next = { ...prev };
+      delete next[categoryId];
+      return next;
+    });
+    setCollapsedCategories((prev) => {
+      const next = { ...prev };
+      delete next[categoryId];
+      return next;
+    });
+  };
+
+  const isCustomCategory = (categoryId: string) => !initialCategories.some((c) => c.id === categoryId);
+
   const handleReset = () => {
      setPartyDate('');
      setGuestCount(30);
@@ -252,8 +295,10 @@ export default function PartyBudgetCalculator() {
      setOverallBudget('');
      setContingency(8);
      setLineItems(initialLineItems);
+     setCategories(initialCategories);
      localStorage.removeItem(PARTY_BUDGET_ITEMS_STORAGE_KEY);
      localStorage.removeItem(PARTY_BUDGET_META_STORAGE_KEY);
+     localStorage.removeItem(PARTY_BUDGET_CATEGORIES_STORAGE_KEY);
       localStorage.removeItem(PENDING_PARTY_BUDGET_SAVE_KEY);
       setImagesMap({});
     };
@@ -275,7 +320,7 @@ export default function PartyBudgetCalculator() {
   const remaining = budget - total;
 
   const categoryTotals: Record<string, number> = {};
-  initialCategories.forEach((cat) => {
+  categories.forEach((cat) => {
     const items = lineItems[cat.id] || [];
     let catTotal = 0;
     items.forEach((item) => {
@@ -317,6 +362,19 @@ export default function PartyBudgetCalculator() {
         // ignore parse errors
       }
     }
+    const savedCategories = localStorage.getItem(PARTY_BUDGET_CATEGORIES_STORAGE_KEY);
+    if (savedCategories) {
+      try {
+        const parsed = JSON.parse(savedCategories) as Category[];
+        if (Array.isArray(parsed) && parsed.every((c) => c.id && c.label)) {
+          const savedIds = new Set(parsed.map((c) => c.id));
+          const customOnly = initialCategories.filter((c) => !savedIds.has(c.id));
+          setCategories([...parsed, ...customOnly]);
+        }
+      } catch {
+        // ignore parse errors
+      }
+    }
     setHasHydrated(true);
   }, []);
 
@@ -324,6 +382,11 @@ export default function PartyBudgetCalculator() {
     if (!hasHydrated) return;
     localStorage.setItem(PARTY_BUDGET_ITEMS_STORAGE_KEY, JSON.stringify(lineItems));
   }, [hasHydrated, lineItems]);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    localStorage.setItem(PARTY_BUDGET_CATEGORIES_STORAGE_KEY, JSON.stringify(categories));
+  }, [hasHydrated, categories]);
 
   useEffect(() => {
     if (!hasHydrated) return;
@@ -517,7 +580,7 @@ export default function PartyBudgetCalculator() {
         y = headY + rowH;
       };
 
-      initialCategories.forEach((cat) => {
+      categories.forEach((cat) => {
         const items = visibleItems(lineItems[cat.id] || []);
         if (items.length === 0) return;
         ensureSpace(items.length * 20 + 24);
@@ -726,6 +789,8 @@ export default function PartyBudgetCalculator() {
     const visibleCategoryItems = visibleItems(items);
     const Icon = categoryIcons[category.id] || Package;
     const isCollapsed = !!collapsedCategories[category.id];
+    const isCustom = isCustomCategory(category.id);
+    const isRenaming = renamingCategoryId === category.id;
     return (
       <div
         key={category.id}
@@ -733,22 +798,55 @@ export default function PartyBudgetCalculator() {
         ref={(el) => { categoryRefs.current[category.id] = el; }}
         className="rounded-2xl border border-purple-100 bg-white p-5 shadow-sm"
       >
-        <button
-          type="button"
-          onClick={() => toggleCategory(category.id)}
-          aria-expanded={!isCollapsed}
-          aria-controls={`category-items-${category.id}`}
-          className="mb-1 flex w-full items-center justify-between gap-3 rounded-lg text-left"
-        >
-          <div className="flex items-center gap-2.5">
+        <div className="mb-1 flex w-full items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => toggleCategory(category.id)}
+            aria-expanded={!isCollapsed}
+            aria-controls={`category-items-${category.id}`}
+            className="flex flex-1 items-center gap-2.5 text-left"
+          >
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
               <Icon className="h-4.5 w-4.5" />
             </span>
-            <div>
-              <h3 className="text-base font-bold text-slate-900">{category.label}</h3>
+            <div className="min-w-0 flex-1">
+              {isRenaming ? (
+                <input
+                  autoFocus
+                  value={renamingCategoryLabel}
+                  onChange={(e) => setRenamingCategoryLabel(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleRenameCategory(category.id);
+                    if (e.key === 'Escape') { setRenamingCategoryId(null); setRenamingCategoryLabel(''); }
+                  }}
+                  onBlur={() => handleRenameCategory(category.id)}
+                  className="w-full rounded-lg border border-purple-300 px-2 py-1 text-base font-bold text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              ) : (
+                <h3 className="text-base font-bold text-slate-900 truncate">{category.label}</h3>
+              )}
             </div>
-          </div>
+          </button>
           <div className="flex shrink-0 items-center gap-2">
+            {isCustom && !isRenaming && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => { setRenamingCategoryId(category.id); setRenamingCategoryLabel(category.label); }}
+                  aria-label="Rename category"
+                  className="rounded-lg border border-slate-200 p-1 text-slate-400 hover:border-purple-300 hover:text-purple-600"
+                >
+                  <Pencil className="h-3 w-3" />
+                </button>
+                <button
+                  onClick={() => handleDeleteCategory(category.id)}
+                  aria-label="Delete category"
+                  className="rounded-lg border border-red-200 p-1 text-red-400 hover:border-red-300 hover:text-red-600"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </div>
+            )}
             <span className="text-right">
               <span className="block text-base font-bold text-purple-700">
                 {formatCurrency(categoryTotals[category.id] || 0, currency)}
@@ -763,7 +861,7 @@ export default function PartyBudgetCalculator() {
               className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`}
             />
           </div>
-        </button>
+        </div>
         {!isCollapsed && (
           <div id={`category-items-${category.id}`}>
             <div className="divide-y divide-dashed divide-slate-200">
@@ -872,7 +970,16 @@ export default function PartyBudgetCalculator() {
             </p>
           </div>
 
-          <div className="mt-5 space-y-5">{initialCategories.map((category) => renderCategory(category))}</div>
+          <div className="mt-5 space-y-5">
+            {categories.map((category) => renderCategory(category))}
+            <button
+              onClick={handleAddCategory}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-purple-200 p-4 text-sm font-semibold text-purple-600 hover:border-purple-400 hover:bg-purple-50 hover:text-purple-700 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Add Category
+            </button>
+          </div>
         </div>
 
         <aside className="self-start lg:sticky lg:top-24">
@@ -911,7 +1018,7 @@ export default function PartyBudgetCalculator() {
             )}
 
             <div className="mt-5 space-y-2.5 border-t border-purple-100 pt-4">
-              {initialCategories.map((cat, i) => {
+              {categories.map((cat, i) => {
                 const catTotal = categoryTotals[cat.id] || 0;
                 const pct = subtotal > 0 ? (catTotal / subtotal) * 100 : 0;
                 return (
