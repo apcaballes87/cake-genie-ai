@@ -3,7 +3,6 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import {
   Download,
-  FileText,
   Save,
   Loader2,
   Plus,
@@ -935,26 +934,26 @@ export default function PartyBudgetCalculator() {
 
             <div className="mt-6 space-y-2.5">
               <button
-                type="button"
-                onClick={handleSaveDetails}
-                disabled={isSaving || isAuthLoading}
-                className="genie-btn-primary inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-bold shadow-md disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                {isSaving ? 'Saving...' : 'Save Details'}
-              </button>
-              <button
                 onClick={handleExportPDF}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-purple-200 bg-purple-50 px-6 py-3 text-sm font-bold text-purple-700 shadow-sm transition-colors hover:bg-purple-100"
+                className="genie-btn-primary inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-bold shadow-md"
               >
                 <Download className="h-4 w-4" />
                 Export PDF
               </button>
               <button
-                onClick={handleReset}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-purple-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-purple-50"
+                type="button"
+                onClick={handleSaveDetails}
+                disabled={isSaving || isAuthLoading}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-purple-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 shadow-sm transition-colors hover:bg-purple-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <FileText className="h-4 w-4" /> Reset planner
+                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {isSaving ? 'Saving...' : 'Save Details'}
+              </button>
+              <button
+                onClick={handleReset}
+                className="w-full text-center text-sm font-medium text-slate-500 hover:text-slate-700"
+              >
+                Reset planner
               </button>
             </div>
           </div>
@@ -988,12 +987,6 @@ export default function PartyBudgetCalculator() {
               </button>
             </div>
           </div>
-          <button
-            onClick={handleReset}
-            className="mt-2 w-full text-center text-[10px] max-md:text-[9px] font-medium text-slate-500"
-          >
-            Reset planner
-          </button>
         </div>
       </div>
     </section>
