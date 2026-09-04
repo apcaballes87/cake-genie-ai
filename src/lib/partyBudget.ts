@@ -26,9 +26,15 @@ export type PartyBudgetMeta = {
   contingency: number;
 };
 
+export type PartyBudgetCategory = {
+  id: string;
+  label: string;
+};
+
 export type PartyBudgetSnapshot = {
   meta: PartyBudgetMeta;
   lineItems: Record<string, PartyBudgetItem[]>;
+  categories?: PartyBudgetCategory[];
 };
 
 export type SavedPartyBudget = {

@@ -394,7 +394,7 @@ export default function PartyBudgetCalculator() {
   }, [globalState, hasHydrated]);
 
   const applySnapshot = useCallback((snapshot: PartyBudgetSnapshot) => {
-    const { meta, lineItems: savedLineItems } = snapshot;
+    const { meta, lineItems: savedLineItems, categories: savedCategories } = snapshot;
     setPartyName(meta.partyName || '');
     setPartyDate(meta.partyDate || '');
     setGuestCount(meta.guestCount || 30);
@@ -404,6 +404,11 @@ export default function PartyBudgetCalculator() {
     setOverallBudget(meta.overallBudget || '');
     setContingency(meta.contingency ?? 8);
     setLineItems({ ...initialLineItems, ...savedLineItems });
+    if (Array.isArray(savedCategories) && savedCategories.length > 0) {
+      const savedIds = new Set(savedCategories.map((c) => c.id));
+      const builtIn = initialCategories.filter((c) => !savedIds.has(c.id));
+      setCategories([...savedCategories, ...builtIn]);
+    }
   }, []);
 
   const persistPartyBudget = useCallback(async (clearPendingSave: boolean) => {
@@ -413,7 +418,7 @@ export default function PartyBudgetCalculator() {
     try {
       await savePartyBudget(
         user.id,
-        { meta: globalState, lineItems },
+        { meta: globalState, lineItems, categories },
         {
           partyDate,
           guestCount,
@@ -432,7 +437,7 @@ export default function PartyBudgetCalculator() {
     } finally {
       setIsSaving(false);
     }
-  }, [budget, currency, globalState, guestCount, isAuthenticated, lineItems, partyDate, total, user]);
+  }, [budget, categories, currency, globalState, guestCount, isAuthenticated, lineItems, partyDate, total, user]);
 
   useEffect(() => {
     if (!hasHydrated || isAuthLoading || !isAuthenticated || !user || user.is_anonymous) return;
