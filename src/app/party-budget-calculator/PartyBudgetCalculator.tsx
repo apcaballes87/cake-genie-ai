@@ -606,31 +606,47 @@ export default function PartyBudgetCalculator() {
     const itemImages = imagesMap[item.id] || [];
     return (
       <div key={item.id} className="py-3">
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_76px_minmax(120px,0.9fr)_minmax(80px,auto)_110px] sm:items-center sm:gap-3">
-          <div>
-            {isCustom ? (
-              <>
-                <input
-                  type="text"
-                  value={item.label}
-                  onChange={(e) => updateItem(categoryId, item.id, { label: e.target.value })}
-                  placeholder="Custom item name"
-                      className="w-full rounded-lg border border-purple-100 px-3 py-1.5 text-sm text-slate-900 placeholder-slate-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
-                />
-                <input
-                  type="text"
-                  value={item.description}
-                  onChange={(e) => updateItem(categoryId, item.id, { description: e.target.value })}
-                  placeholder="Description (Business Name, notes, etc.)"
-                  className="mt-1 w-full rounded-lg border border-purple-100 px-3 py-1 text-xs text-slate-600 placeholder-slate-400 focus:border-purple-500 focus:outline-none"
-                />
-              </>
-            ) : (
-              <>
-                <p className="text-sm font-medium text-slate-900">{item.label}</p>
-                <p className="text-xs text-slate-500">{item.description}</p>
-              </>
-            )}
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_76px_minmax(80px,auto)_minmax(120px,0.9fr)_110px] sm:items-center sm:gap-3">
+          <div className="flex items-start justify-between gap-2 sm:block">
+            <div className="min-w-0 flex-1 sm:flex-none">
+              {isCustom ? (
+                <>
+                  <input
+                    type="text"
+                    value={item.label}
+                    onChange={(e) => updateItem(categoryId, item.id, { label: e.target.value })}
+                    placeholder="Custom item name"
+                        className="w-full rounded-lg border border-purple-100 px-3 py-1.5 text-sm text-slate-900 placeholder-slate-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                  />
+                  <input
+                    type="text"
+                    value={item.description}
+                    onChange={(e) => updateItem(categoryId, item.id, { description: e.target.value })}
+                    placeholder="Description (Business Name, notes, etc.)"
+                    className="mt-1 w-full rounded-lg border border-purple-100 px-3 py-1 text-xs text-slate-600 placeholder-slate-400 focus:border-purple-500 focus:outline-none"
+                  />
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-medium text-slate-900">{item.label}</p>
+                  <p className="text-xs text-slate-500">{item.description}</p>
+                </>
+              )}
+            </div>
+            {/* Mobile: price next to title */}
+            <div className="relative shrink-0 sm:hidden">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
+                {symbolMap[currency] || ''}
+              </span>
+              <input
+                type="number"
+                min="0"
+                value={item.cost}
+                onChange={(e) => handleCostChange(categoryId, item.id, e.target.value)}
+                aria-label={`${item.label || 'Item'} unit cost`}
+                className="w-28 rounded-lg border border-purple-100 px-3 py-2 pl-7 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+              />
+            </div>
           </div>
           <div>
             <input
@@ -642,7 +658,7 @@ export default function PartyBudgetCalculator() {
               className="w-full rounded-lg border border-purple-100 px-3 py-2 text-xs text-slate-600 placeholder-slate-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
             />
           </div>
-          <div className="grid grid-cols-3 gap-2 sm:contents">
+          <div className="grid grid-cols-2 gap-2 sm:contents">
              <div className="contents">
                <div>
                  <label
@@ -668,27 +684,30 @@ export default function PartyBudgetCalculator() {
                  </label>
             </div>
           </div>
-             <div className="relative">
-             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
-               {symbolMap[currency] || ''}
-             </span>
-             <input
-               type="number"
-               min="0"
-               value={item.cost}
-               onChange={(e) => handleCostChange(categoryId, item.id, e.target.value)}
-               aria-label={`${item.label || 'Item'} unit cost`}
-               className="w-full rounded-lg border border-purple-100 px-3 py-2 pl-7 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
-             />
-           </div>
            <PartyBudgetImageUpload
-             userId={user?.id ?? null}
-             isAuthenticated={isAuthenticated}
-             itemId={item.id}
-             categoryId={categoryId}
-             images={itemImages}
-             onImagesChange={(updated) => setImagesMap((prev) => ({ ...prev, [item.id]: updated }))}
-           />
+              userId={user?.id ?? null}
+              isAuthenticated={isAuthenticated}
+              itemId={item.id}
+              categoryId={categoryId}
+              images={itemImages}
+              onImagesChange={(updated) => setImagesMap((prev) => ({ ...prev, [item.id]: updated }))}
+            />
+          </div>
+          {/* Desktop: price in its own column */}
+          <div className="hidden sm:block">
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
+                {symbolMap[currency] || ''}
+              </span>
+              <input
+                type="number"
+                min="0"
+                value={item.cost}
+                onChange={(e) => handleCostChange(categoryId, item.id, e.target.value)}
+                aria-label={`${item.label || 'Item'} unit cost`}
+                className="w-full rounded-lg border border-purple-100 px-3 py-2 pl-7 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+              />
+            </div>
           </div>
           <div className="flex items-center justify-end gap-2">
             <span className="text-sm font-bold text-slate-900">{formatCurrency(getLineTotal(item), currency)}</span>
