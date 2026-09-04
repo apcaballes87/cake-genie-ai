@@ -252,6 +252,8 @@ export interface CartItemDetails {
   ai_chat_history?: AiChatHistoryEntry[];
   chat_history?: string[];
   commerceSnapshot?: CommerceOrderSnapshot;
+  /** Which pricing catalog was used for this item's base price. */
+  base_price_catalog?: 'genie' | 'cakes_and_memories';
 }
 
 export interface CommercePolicyUrls {

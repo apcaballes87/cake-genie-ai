@@ -1,5 +1,5 @@
 import { Color, CakeType, CakeThickness, CakeSize, CakeFlavor, IcingDesign } from '@/types';
-export { DELIVERY_FEES_BY_CITY, getDeliveryFeeByCity } from '@/lib/commerce/deliveryRates';
+export { DELIVERY_FEES_BY_CITY, DELIVERY_FEES_BY_CITY_CAKES_AND_MEMORIES, getDeliveryFeeByCity, getDeliveryFeeByCityForCatalog } from '@/lib/commerce/deliveryRates';
 
 export const COLORS: Color[] = [
   { name: 'Dark Red', hex: '#8B0000' },

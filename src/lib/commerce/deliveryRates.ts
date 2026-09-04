@@ -1,3 +1,5 @@
+import type { BasePriceCatalog } from '@/lib/pricing/basePriceCatalog';
+
 export const DELIVERY_RATE_SERVICE_CITIES = [
   'Cebu City',
   'Mandaue City',
@@ -24,26 +26,45 @@ export const DELIVERY_FEES_BY_CITY: Record<string, number> = {
   'Talisay City': 150,
 };
 
+export const DELIVERY_FEES_BY_CITY_CAKES_AND_MEMORIES: Record<string, number> = {
+  'Cebu City': 200,
+  Cebu: 200,
+  Mandaue: 250,
+  'Mandaue City': 250,
+  'Lapu-Lapu': 400,
+  'Lapu-Lapu City': 400,
+  'Lapu-lapu': 400,
+  'Lapu-lapu City': 400,
+  Cordova: 500,
+  Consolacion: 500,
+  Liloan: 600,
+  Talisay: 300,
+  'Talisay City': 300,
+};
+
 export type DeliveryRateCard = {
   city: (typeof DELIVERY_RATE_SERVICE_CITIES)[number];
   rate: number;
 };
 
-export const getDeliveryFeeByCity = (city: string | null | undefined): number => {
+function resolveDeliveryFeeFromMap(
+  city: string | null | undefined,
+  rateMap: Record<string, number>,
+): number {
   if (!city) return 0;
 
-  if (DELIVERY_FEES_BY_CITY[city] !== undefined) {
-    return DELIVERY_FEES_BY_CITY[city];
+  if (rateMap[city] !== undefined) {
+    return rateMap[city];
   }
 
   const normalizedCity = city.toLowerCase().trim();
-  for (const [key, fee] of Object.entries(DELIVERY_FEES_BY_CITY)) {
+  for (const [key, fee] of Object.entries(rateMap)) {
     if (key.toLowerCase() === normalizedCity) {
       return fee;
     }
   }
 
-  for (const [key, fee] of Object.entries(DELIVERY_FEES_BY_CITY)) {
+  for (const [key, fee] of Object.entries(rateMap)) {
     const keyLower = key.toLowerCase();
     if (normalizedCity.includes(keyLower) || keyLower.includes(normalizedCity)) {
       return fee;
@@ -51,6 +72,20 @@ export const getDeliveryFeeByCity = (city: string | null | undefined): number =>
   }
 
   return 0;
+}
+
+export const getDeliveryFeeByCityForCatalog = (
+  city: string | null | undefined,
+  catalog: BasePriceCatalog = 'genie',
+): number => {
+  const rateMap = catalog === 'cakes_and_memories'
+    ? DELIVERY_FEES_BY_CITY_CAKES_AND_MEMORIES
+    : DELIVERY_FEES_BY_CITY;
+  return resolveDeliveryFeeFromMap(city, rateMap);
+};
+
+export const getDeliveryFeeByCity = (city: string | null | undefined): number => {
+  return getDeliveryFeeByCityForCatalog(city, 'genie');
 };
 
 export function getDeliveryRateCards(): DeliveryRateCard[] {

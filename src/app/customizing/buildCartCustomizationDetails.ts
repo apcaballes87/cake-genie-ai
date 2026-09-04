@@ -1,5 +1,6 @@
 import type { AiChatHistoryEntry, CakeInfoUI, CakeMessageUI, IcingDesignUI, MainTopperUI, SupportElementUI, CommerceOrderSnapshot } from '@/types';
 import type { CustomizationDetails } from '@/lib/database.types';
+import type { BasePriceCatalog } from '@/lib/pricing/basePriceCatalog';
 import { getLegacyChatHistory } from '@/lib/commerce/aiChatHistory';
 import { buildTierFlavorAssignments } from '@/lib/tierFlavorMapping';
 
@@ -12,6 +13,7 @@ interface BuildCartCustomizationDetailsInput {
   additionalInstructions: string;
   aiChatHistory: AiChatHistoryEntry[];
   commerceSnapshot: CommerceOrderSnapshot;
+  basePriceCatalog?: BasePriceCatalog;
 }
 
 export function buildCartCustomizationDetails(
@@ -56,5 +58,6 @@ export function buildCartCustomizationDetails(
     ai_chat_history: input.aiChatHistory,
     chat_history: getLegacyChatHistory(input.aiChatHistory),
     commerce_snapshot: input.commerceSnapshot,
+    ...(input.basePriceCatalog ? { base_price_catalog: input.basePriceCatalog } : {}),
   };
 }

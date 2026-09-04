@@ -295,7 +295,7 @@ export default function SharedDesignClient({ design: initialDesign }: SharedDesi
                 quantity: 1,
                 original_image_url: design.original_image_url || design.customized_image_url, // Fallback if missing
                 customized_image_url: design.customized_image_url,
-                customization_details: details,
+                customization_details: { ...details, base_price_catalog: 'genie' as const },
             }, async () => ({
                 originalImageUrl: design.original_image_url || design.customized_image_url,
                 finalImageUrl: design.customized_image_url || design.original_image_url,

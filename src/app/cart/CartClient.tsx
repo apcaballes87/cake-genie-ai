@@ -11,7 +11,7 @@ import { MapPin, Users, User, ChevronDown, CalendarDays, CreditCard } from 'luci
 import { CartItem, CartItemDetails } from '@/types';
 import { CakeGenieAddress } from '@/lib/database.types';
 import { CartSkeleton } from '@/components/LoadingSkeletons';
-import { getDeliveryFeeByCity } from '@/constants';
+import { getDeliveryFeeByCityForCatalog } from '@/constants';
 import { createOrderFromCart, createSplitOrderFromCart, getAvailableDeliveryDates, getBlockedDatesInRange, AvailableDate, BlockedDateInfo, createGuestUser, createOrderContribution } from '@/services/supabaseService';
 import { upgradeAnonymousToEmailAccount } from '@/services/accountActivation';
 import { createXenditPayment } from '@/services/xenditService';
@@ -927,6 +927,12 @@ function CartClient() {
         }
     }, [selectedAddress, guestAddress, isMapsLoaded]);
 
+    // Determine which pricing catalog the cart items belong to (affects delivery rates)
+    const deliveryCatalog = useMemo(() => {
+        const firstCompleteItem = allItems.find((item) => item.status === 'complete');
+        return firstCompleteItem?.details?.base_price_catalog || 'genie';
+    }, [allItems]);
+
     // Calculate dynamic delivery fee based on city
     const deliveryFee = useMemo(() => {
         // Free delivery if discount code has free delivery enabled
@@ -935,28 +941,30 @@ function CartClient() {
         // No delivery fee for pickup orders
         if (fulfillmentType === 'pickup') return 0;
 
+        const lookup = (city: string) => getDeliveryFeeByCityForCatalog(city, deliveryCatalog);
+
         // 1. Check pending address data (live updates while typing/selecting)
         if (isAddingAddress && pendingAddressData?.city) {
-            return getDeliveryFeeByCity(pendingAddressData.city);
+            return lookup(pendingAddressData.city);
         }
 
         // 2. Check guest address (saved guest info)
         if (guestAddress?.city) {
-            return getDeliveryFeeByCity(guestAddress.city);
+            return lookup(guestAddress.city);
         }
 
         // 3. Check selected saved address (registered user)
         if (selectedAddress?.city) {
-            return getDeliveryFeeByCity(selectedAddress.city);
+            return lookup(selectedAddress.city);
         }
 
         // 4. Fallback to derived city from reverse geocoding (legacy addresses)
         if (derivedCity) {
-            return getDeliveryFeeByCity(derivedCity);
+            return lookup(derivedCity);
         }
 
         return 0;
-    }, [fulfillmentType, selectedAddress, guestAddress, derivedCity, pendingAddressData, isAddingAddress, appliedDiscount]);
+    }, [fulfillmentType, selectedAddress, guestAddress, derivedCity, pendingAddressData, isAddingAddress, appliedDiscount, deliveryCatalog]);
 
     const discountAmount = appliedDiscount?.discountAmount || 0;
     const total = subtotal + deliveryFee - discountAmount;

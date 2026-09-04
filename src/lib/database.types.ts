@@ -50,6 +50,8 @@ export interface CustomizationDetails {
   ai_chat_history?: AiChatHistoryEntry[];
   chat_history?: string[];
   commerce_snapshot?: CommerceOrderSnapshot;
+  /** Which pricing catalog was used for this item's base price. */
+  base_price_catalog?: 'genie' | 'cakes_and_memories';
 }
 
 /**

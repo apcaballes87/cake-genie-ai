@@ -1515,6 +1515,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                         }),
                         policyUrls: getCommercePolicyUrls(),
                     }),
+                    basePriceCatalog,
                 })
             };
 
