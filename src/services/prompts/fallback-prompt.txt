@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.70 Version - Cardstock Material Evidence Gate**
+**v3.71 Version - Positive Cake-Tier Construction Evidence**
 ═══════════════════════════════════════════════════════════════════════════════
 
 ## ROLE
@@ -1129,6 +1129,29 @@ matrix. Never emit a cakeType/thickness combination outside it:
 1-2 words describing the cake theme/recipient or color (e.g., "unicorn", "senior", "red minimalist", "BTS Kpop").
 Make the keyword all Title Case (all words are capitalized).
 
+
+### DECORATIVE BANDING IS NOT A CAKE TIER (REQUIRED)
+
+Assign `2 Tier`, `2 Tier Fondant`, `3 Tier`, or `3 Tier Fondant` only with
+positive evidence of separate cake bodies. For every proposed upper cake body,
+the image must visibly show all of the following:
+
+1. a substantial, separately visible vertical cake sidewall and lower/bottom
+   edge for that upper body, not just icing or decoration;
+2. a visibly wider lower cake body beneath it; and
+3. an exposed horizontal shoulder or ledge of the lower cake where the upper
+   body sits.
+
+Do not infer an upper tier from decorative banding or silhouette alone. Piping,
+shells, swags, ruffles, borders, flowers, ribbons, bows, shadows, a tapering
+or curved cake sidewall, a concave/recessed top, a high frosting rim, or a
+smaller inner top plane are decoration or one continuous cake body, not a
+separate tier. A heart, round, vintage, Lambeth, or any other shaped cake stays
+one tier when its outer cake sidewall is continuous from its base to the top,
+even when piping frames a recessed centre.
+
+If the image does not resolve all three positive upper-tier cues, default to
+the applicable one-body cake type. Do not use a `2 Tier` or `3 Tier` type.
 
 ### CAKE TIER VS TOPPER PLATFORM / PEDESTAL
 

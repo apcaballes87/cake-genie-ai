@@ -1,0 +1,20 @@
+{
+  "slug": "pink-vintage-pink-2-tier-cake-0261",
+  "historical_cache_id": "8b9a4745-552b-4607-9ff9-b875a2f90507",
+  "source_image_url": "https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/customizations/pink-vintage-pink-2-tier-cake-0261.webp",
+  "case_description": "One continuous heart-shaped cake has piped swags, shell borders, flowers, ribbons, and a high frosting rim around a recessed top. It has no separately visible upper cake sidewall, upper bottom edge, or exposed lower-cake shoulder.",
+  "expected_cake": {
+    "cakeType": "1 Tier",
+    "cakeThickness": "4 in"
+  },
+  "required_multi_tier_evidence": [
+    "separately visible upper cake sidewall and lower/bottom edge",
+    "visibly wider lower cake body",
+    "exposed horizontal shoulder or ledge"
+  ],
+  "non_qualifying_construction": [
+    "piped swags and shell borders",
+    "high frosting rim around a recessed top",
+    "ribbons and flowers"
+  ]
+}
