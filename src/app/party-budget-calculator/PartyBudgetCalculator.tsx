@@ -24,7 +24,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { showError, showSuccess } from '@/lib/utils/toast';
 import PartyBudgetSignupModal from '@/components/PartyBudgetSignupModal';
 import { getPartyBudget, savePartyBudget } from '@/services/partyBudgetService';
-import PartyBudgetImageUpload from '@/components/PartyBudgetImageUpload';
+import PartyBudgetImageUpload, { PartyBudgetImageThumbnails } from '@/components/PartyBudgetImageUpload';
 import { getAllBudgetImages } from '@/services/partyBudgetImagesService';
 import {
   PARTY_BUDGET_ITEMS_STORAGE_KEY,
@@ -703,6 +703,11 @@ export default function PartyBudgetCalculator() {
             )}
           </div>
         </div>
+        <PartyBudgetImageThumbnails
+          userId={user?.id ?? null}
+          images={itemImages}
+          onImagesChange={(updated) => setImagesMap((prev) => ({ ...prev, [item.id]: updated }))}
+        />
       </div>
     );
   };
