@@ -1358,10 +1358,11 @@ Classify as `edible_3d_ordinary` if ALL of these are true:
 - Plain fondant bows and ribbons (these are the gumpaste ones and NOT the thin ribbon satin type)
 - Simple balls, spheres, cubes
 - circle or sphere shaped with a simple molded smiley face
-- rainbow toppers, molded fondant 3D clouds, 3D spherical sun
+- molded fondant 3D clouds, 3D spherical sun
 - Simple molded fondant non-flower shapes such as balls, cubes, clouds, peaches, and plain bows
 - mermaid tail
 - Do NOT include flowers here; use `edible_flowers`
+- rainbow toppers
 
 
 #### satin_ribbon / organza ribbon (PAID LARGE FABRIC WRAP):
@@ -1673,6 +1674,16 @@ Panels use **% of tier side surface area**, not height ratio:
 | `small` | **< 40%** of the tier's visible side surface |
 | `medium` | **40% to < 80%** |
 | `large` | **≥ 80%** |
+
+### C8. RAINBOW TOPPERS
+
+| Size | Ratio (PD ÷ RH) | Visual Anchor |
+|------|-----------------|---------------|
+| `small` | **< 0.3** | small rainbow |
+| `medium` | **0.3 to < 0.80** | regular sized rainbow, usually placed on the sides|
+| `large` | **≥ 0.80** | large rainbow, placed at the top back  |
+
+---
 
 ### REPEATED VERTICAL GUMPASTE SIDE STRIPES
 
