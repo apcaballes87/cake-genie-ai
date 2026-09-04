@@ -55,8 +55,18 @@ describe('cake analysis prompt rules', () => {
     expect(migration).toContain('Flatness, a support stick, gold color, glitter, metallic, or foil appearance');
   });
 
-  it('keeps v3.71 tier-evidence release guarded by v3.70 and fallback parity', () => {
+  it('keeps the historical v3.71 tier-evidence migration guarded by v3.70', () => {
     const migration = readPrompt('supabase/migrations/20260904123000_deploy_prompt_v371_decorative_banding_tier_evidence.sql');
+
+    expect(migration).toContain("source_prompt_version <> '3.70'");
+    expect(migration).toContain("v370_md5 constant text := 'e5d69eeaac907ff5bec3079f5808c60d'");
+    expect(migration).toContain("v371_md5 constant text := 'd8fc11d901ff4866fa1bab5cbde7b6d3'");
+    expect(migration).toContain('Positive Cake-Tier Construction Evidence');
+    expect(migration).toContain('DECORATIVE BANDING IS NOT A CAKE TIER (REQUIRED)');
+  });
+
+  it('keeps v3.72 composite-tier release guarded by the active v3.71 checksum and fallback parity', () => {
+    const migration = readPrompt('supabase/migrations/20260904141000_deploy_prompt_v372_composite_tier_evidence.sql');
     const fallback = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fixture = JSON.parse(readPrompt('src/services/prompts/fixtures/pink-vintage-heart-tier-evidence.json')) as {
       expected_cake: Record<string, unknown>;
@@ -65,10 +75,11 @@ describe('cake analysis prompt rules', () => {
     };
     const fallbackMd5 = createHash('md5').update(fallback).digest('hex');
 
-    expect(migration).toContain("source_prompt_version <> '3.70'");
-    expect(migration).toContain("v370_md5 constant text := 'e5d69eeaac907ff5bec3079f5808c60d'");
-    expect(migration).toContain(`v371_md5 constant text := '${fallbackMd5}'`);
-    expect(migration).toContain('Positive Cake-Tier Construction Evidence');
+    expect(migration).toContain("source_prompt_version <> '3.71'");
+    expect(migration).toContain("v371_md5 constant text := 'c7bb91f19c8cc4b2f6943086da76fce3'");
+    expect(migration).toContain(`v372_md5 constant text := '${fallbackMd5}'`);
+    expect(migration).toContain('Intentional Composite References and Positive Cake-Tier Evidence');
+    expect(migration).toContain('Intentional composite-reference exception to `multiple_cakes`');
     expect(migration).toContain('DECORATIVE BANDING IS NOT A CAKE TIER (REQUIRED)');
     expect(fixture.expected_cake).toEqual({ cakeType: '1 Tier', cakeThickness: '4 in' });
     expect(fixture.required_multi_tier_evidence).toEqual([
@@ -87,7 +98,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.71 Version - Positive Cake-Tier Construction Evidence**');
+    expect(prompt).toContain('**v3.72 Version - Intentional Composite References and Positive Cake-Tier Evidence**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('3. Visible construction of each item');
     expect(prompt).toContain('5. Type compatible with that construction and material');
@@ -595,7 +606,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.71 Version - Positive Cake-Tier Construction Evidence**');
+    expect(prompt).toContain('**v3.72 Version - Intentional Composite References and Positive Cake-Tier Evidence**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -616,7 +627,7 @@ describe('cake analysis prompt rules', () => {
   it('uses toy-specific sizing for miniature molded toys', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.71 Version - Positive Cake-Tier Construction Evidence**');
+    expect(prompt).toContain('**v3.72 Version - Intentional Composite References and Positive Cake-Tier Evidence**');
     expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy` AND `plastic_crown`)');
     expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
     expect(prompt).toContain('| `small` | under 0.50 |');
