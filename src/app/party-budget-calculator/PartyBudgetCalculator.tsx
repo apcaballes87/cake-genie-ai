@@ -606,7 +606,7 @@ export default function PartyBudgetCalculator() {
     const itemImages = imagesMap[item.id] || [];
     return (
       <div key={item.id} className="py-3">
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_76px_minmax(120px,0.9fr)_minmax(80px,auto)_110px] sm:items-center sm:gap-3">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_76px_minmax(120px,0.9fr)_minmax(80px,auto)_minmax(140px,auto)] sm:items-center sm:gap-3">
           <div className="flex items-start justify-between gap-2 sm:block">
             <div className="min-w-0 flex-1 sm:flex-none">
               {isCustom ? (
@@ -695,8 +695,8 @@ export default function PartyBudgetCalculator() {
             />
           </div>
           {/* Desktop: total + delete */}
-          <div className="flex items-center justify-end gap-2">
-            <span className="hidden text-sm font-bold text-slate-900 sm:inline">{formatCurrency(getLineTotal(item), currency)}</span>
+          <div className="flex items-center justify-end gap-1.5">
+            <span className="hidden w-24 text-right text-sm font-bold text-slate-900 sm:inline">{formatCurrency(getLineTotal(item), currency)}</span>
             {isCustom && (
               <button
                 onClick={() => handleRemoveItem(categoryId, item.id)}
