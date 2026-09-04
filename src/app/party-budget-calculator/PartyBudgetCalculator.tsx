@@ -606,7 +606,7 @@ export default function PartyBudgetCalculator() {
     const itemImages = imagesMap[item.id] || [];
     return (
       <div key={item.id} className="py-3">
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_76px_minmax(80px,auto)_minmax(120px,0.9fr)_110px] sm:items-center sm:gap-3">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_76px_minmax(120px,0.9fr)_minmax(80px,auto)_110px] sm:items-center sm:gap-3">
           <div className="flex items-start justify-between gap-2 sm:block">
             <div className="min-w-0 flex-1 sm:flex-none">
               {isCustom ? (
@@ -633,20 +633,8 @@ export default function PartyBudgetCalculator() {
                 </>
               )}
             </div>
-            {/* Mobile: price next to title */}
-            <div className="relative shrink-0 sm:hidden">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
-                {symbolMap[currency] || ''}
-              </span>
-              <input
-                type="number"
-                min="0"
-                value={item.cost}
-                onChange={(e) => handleCostChange(categoryId, item.id, e.target.value)}
-                aria-label={`${item.label || 'Item'} unit cost`}
-                className="w-28 rounded-lg border border-purple-100 px-3 py-2 pl-7 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
-              />
-            </div>
+            {/* Mobile: total next to title */}
+            <span className="shrink-0 text-sm font-bold text-slate-900 sm:hidden">{formatCurrency(getLineTotal(item), currency)}</span>
           </div>
           <div>
             <input
@@ -658,7 +646,7 @@ export default function PartyBudgetCalculator() {
               className="w-full rounded-lg border border-purple-100 px-3 py-2 text-xs text-slate-600 placeholder-slate-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
             />
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:contents">
+          <div className="grid grid-cols-3 gap-2 sm:contents">
              <div className="contents">
                <div>
                  <label
@@ -684,6 +672,19 @@ export default function PartyBudgetCalculator() {
                  </label>
             </div>
           </div>
+             <div className="relative">
+             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
+               {symbolMap[currency] || ''}
+             </span>
+             <input
+               type="number"
+               min="0"
+               value={item.cost}
+               onChange={(e) => handleCostChange(categoryId, item.id, e.target.value)}
+               aria-label={`${item.label || 'Item'} unit cost`}
+               className="w-full rounded-lg border border-purple-100 px-3 py-2 pl-7 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+             />
+           </div>
            <PartyBudgetImageUpload
               userId={user?.id ?? null}
               isAuthenticated={isAuthenticated}
@@ -693,24 +694,9 @@ export default function PartyBudgetCalculator() {
               onImagesChange={(updated) => setImagesMap((prev) => ({ ...prev, [item.id]: updated }))}
             />
           </div>
-          {/* Desktop: price in its own column */}
-          <div className="hidden sm:block">
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
-                {symbolMap[currency] || ''}
-              </span>
-              <input
-                type="number"
-                min="0"
-                value={item.cost}
-                onChange={(e) => handleCostChange(categoryId, item.id, e.target.value)}
-                aria-label={`${item.label || 'Item'} unit cost`}
-                className="w-full rounded-lg border border-purple-100 px-3 py-2 pl-7 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
-              />
-            </div>
-          </div>
+          {/* Desktop: total + delete */}
           <div className="flex items-center justify-end gap-2">
-            <span className="text-sm font-bold text-slate-900">{formatCurrency(getLineTotal(item), currency)}</span>
+            <span className="hidden text-sm font-bold text-slate-900 sm:inline">{formatCurrency(getLineTotal(item), currency)}</span>
             {isCustom && (
               <button
                 onClick={() => handleRemoveItem(categoryId, item.id)}
