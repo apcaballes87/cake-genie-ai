@@ -41,6 +41,10 @@ describe('imageStudio helpers', () => {
     expect(prompt).toContain('translate that text into English');
     expect(prompt).toContain('foreign (non-English) language');
     expect(prompt).toContain('English text on the source cake should be preserved as-is');
+    expect(prompt).toContain('STITCHED / FAKE MULTI-TIER EDGE CASE');
+    expect(prompt).toContain('two or more different cake photos stitched or composited together');
+    expect(prompt).toContain('smooth the transitions between tiers');
+    expect(prompt).toContain('blend or repaint the seam area');
   });
 
   it('builds a system instruction that prioritizes a real product photo result', () => {
@@ -57,6 +61,8 @@ describe('imageStudio helpers', () => {
     expect(systemInstruction).toContain('A source that contains a whole cake alongside cupcakes is one indivisible composite product set');
     expect(systemInstruction).toContain('4-inch Bento + 5 Cupcakes set must remain one 4-inch bento cake plus exactly five cupcakes');
     expect(systemInstruction).toContain('For composite cake sets, change only the background and natural studio lighting/contact shadows');
+    expect(systemInstruction).toContain('two or more different cake images stitched together');
+    expect(systemInstruction).toContain('smooth the tier transitions, blend the seam');
   });
 
   it('creates a deterministic storage path', () => {
