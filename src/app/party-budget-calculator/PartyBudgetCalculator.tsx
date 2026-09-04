@@ -695,8 +695,8 @@ export default function PartyBudgetCalculator() {
             />
           </div>
           {/* Desktop: total + delete */}
-          <div className="flex items-start justify-end gap-1.5 pt-2">
-            <span className="hidden w-24 text-right text-sm font-bold text-slate-900 sm:inline">{formatCurrency(getLineTotal(item), currency)}</span>
+          <div className="flex items-start gap-1.5 pt-2">
+            <span className="hidden w-24 text-left text-sm font-bold text-slate-900 sm:inline">{formatCurrency(getLineTotal(item), currency)}</span>
             {isCustom && (
               <button
                 onClick={() => handleRemoveItem(categoryId, item.id)}
