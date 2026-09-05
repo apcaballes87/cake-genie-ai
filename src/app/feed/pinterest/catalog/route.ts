@@ -43,6 +43,7 @@ async function fetchAllPinterestCatalogDesigns(
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
       .select('slug, keywords, seo_title, seo_description, alt_text, studio_edited_image_url, price, tags')
+      .eq('seo_status', 'published')
       .not('studio_edited_image_url', 'is', null)
       .not('slug', 'is', null)
       .not('price', 'is', null)

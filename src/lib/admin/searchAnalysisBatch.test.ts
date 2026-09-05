@@ -100,7 +100,7 @@ const validAnalysis = (overrides: Record<string, unknown> = {}) => ({
 });
 
 describe('search analysis batch helpers', () => {
-  it('requires SEO copy and accepted-analysis fields in the shared response schema', () => {
+  it('requires only accepted-analysis fields in the shared response schema', () => {
     const schema = buildSearchAnalysisResponseSchema({
       mainTopperTypes: ['printout', 'edible_photo_top'],
       supportElementTypes: ['dragees', 'sprinkles'],
@@ -114,9 +114,6 @@ describe('search analysis batch helpers', () => {
       'cake_messages',
       'icing_design',
       'keyword',
-      'alt_text',
-      'seo_title',
-      'seo_description',
       'rejection',
     ]));
   });
@@ -189,9 +186,9 @@ describe('search analysis batch helpers', () => {
       responseMimeType: 'application/json',
     }));
     expect(line).toEqual({
-      customId: 'b',
-      custom_id: 'b',
-      id: 'b',
+      customId: 'b|seo_schema:analysis_only',
+      custom_id: 'b|seo_schema:analysis_only',
+      id: 'b|seo_schema:analysis_only',
       request: {
         contents: [{ role: 'user', parts: [{ fileData: { fileUri: 'https://cdn.example/cake.jpg', mimeType: 'image/jpeg' } }, { text: 'analyze exactly' }] }],
         systemInstruction: { parts: [{ text: 'be exact' }] },
@@ -210,9 +207,9 @@ describe('search analysis batch helpers', () => {
       'legacy_six_band',
     ));
 
-    expect(line.customId).toBe('b|size_schema:legacy_six_band');
-    expect(line.custom_id).toBe('b|size_schema:legacy_six_band');
-    expect(line.id).toBe('b|size_schema:legacy_six_band');
+    expect(line.customId).toBe('b|size_schema:legacy_six_band|seo_schema:analysis_only');
+    expect(line.custom_id).toBe('b|size_schema:legacy_six_band|seo_schema:analysis_only');
+    expect(line.id).toBe('b|size_schema:legacy_six_band|seo_schema:analysis_only');
   });
 
   it('keeps batch model parameters inside generationConfig', () => {

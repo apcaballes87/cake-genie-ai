@@ -26,7 +26,7 @@ export const REVIEW_SELECT = `
   merchant:cakegenie_merchants(business_name),
   user:cakegenie_users(first_name, last_name),
   order_item:cakegenie_order_items!order_item_id(cake_type, cake_size, customized_image_url, customization_details),
-  cakegenie_analysis_cache!product_id(slug)
+  cakegenie_analysis_cache!product_id(slug, seo_status)
 `;
 
 /**
@@ -59,7 +59,7 @@ export const REVIEW_SELECT_WITH_KEYWORDS = `
   merchant:cakegenie_merchants(business_name),
   user:cakegenie_users(first_name, last_name),
   order_item:cakegenie_order_items!order_item_id(cake_type, cake_size, customized_image_url, customization_details),
-  cakegenie_analysis_cache!product_id(slug, keywords)
+  cakegenie_analysis_cache!product_id(slug, keywords, seo_status)
 `;
 
 export const REVIEW_SELECT_WITH_ORDER_NUMBER = `
@@ -111,13 +111,14 @@ function pickFirst<T>(value: MaybeArray<T>): T | null {
 }
 
 export function normalizePublicReviewRecord(review: RawReviewRecord): CakeGenieReview {
+  const design = pickFirst(review.cakegenie_analysis_cache);
   return {
     ...review,
     user: pickFirst(review.user),
     merchant: pickFirst(review.merchant),
     order_item: pickFirst(review.order_item),
     cakegenie_orders: pickFirst(review.cakegenie_orders),
-    cakegenie_analysis_cache: pickFirst(review.cakegenie_analysis_cache),
+    cakegenie_analysis_cache: design?.seo_status === 'published' ? design : null,
   };
 }
 

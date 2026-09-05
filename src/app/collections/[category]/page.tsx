@@ -244,7 +244,7 @@ const getCachedCollectionDescription = cache(async (category: string, title: str
             const canonicalCategory = collection?.slug || category;
             const { data: designs } = await getDesignsByKeyword(canonicalCategory, 4);
             if (designs && designs.length > 0) {
-                const ai = getAI();
+                const ai = await getAI();
                 description = await generateDynamicCollectionDescription(title, designs, ai);
             }
         } catch (e) {

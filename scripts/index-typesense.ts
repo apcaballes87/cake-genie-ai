@@ -32,6 +32,7 @@ async function main() {
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
       .select('p_hash,slug,keywords,alt_text,seo_description,original_image_url,studio_edited_image_url,price,usage_count,availability,icing_colors,tags,analysis_json,created_at')
+      .eq('seo_status', 'published')
       .not('slug', 'is', null)
       .not('original_image_url', 'is', null)
       .range(offset, offset + PAGE_SIZE - 1);

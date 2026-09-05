@@ -412,7 +412,7 @@ export interface CakeGenieReview {
     customization_details?: Record<string, unknown> | null;
   } | null;
   cakegenie_orders?: { order_number: string } | null;
-  cakegenie_analysis_cache?: { slug: string | null } | null;
+  cakegenie_analysis_cache?: { slug: string | null; seo_status?: string | null } | null;
 }
 
 /**

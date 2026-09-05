@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 import { normalizeIndexNowUrls, submitIndexNow } from '@/lib/indexNow';
 
 type IndexNowRequestBody = {
@@ -19,7 +20,26 @@ export async function POST(req: Request) {
             );
         }
 
-        const results = await submitIndexNow(urlList);
+        const productSlugs = urlList.flatMap((url) => {
+            const match = new URL(url).pathname.match(/^\/customizing\/([^/]+)\/?$/);
+            return match ? [decodeURIComponent(match[1])] : [];
+        });
+        let publishedSlugs = new Set<string>();
+        if (productSlugs.length) {
+            const supabase = await createClient();
+            const { data, error } = await supabase.from('cakegenie_analysis_cache')
+                .select('slug').eq('seo_status', 'published').in('slug', productSlugs);
+            if (error) throw error;
+            publishedSlugs = new Set((data || []).map(row => row.slug));
+        }
+        const eligibleUrls = urlList.filter(url => {
+            const match = new URL(url).pathname.match(/^\/customizing\/([^/]+)\/?$/);
+            return !match || publishedSlugs.has(decodeURIComponent(match[1]));
+        });
+        if (!eligibleUrls.length) {
+            return NextResponse.json({ error: 'No published URLs are eligible.' }, { status: 400 });
+        }
+        const results = await submitIndexNow(eligibleUrls);
         const success = results.some((result) => result.ok);
 
         if (!success) {

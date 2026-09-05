@@ -272,6 +272,7 @@ async function fetchCustomizedCakePage(offset: number): Promise<RawCustomizedCak
   const { data, error } = await supabase
     .from('cakegenie_analysis_cache')
     .select('slug, created_at, seo_title, alt_text, keywords, original_image_url, studio_edited_image_url, image_variants, image_width, image_height')
+    .eq('seo_status', 'published')
     .not('slug', 'is', null)
     .lte('created_at', cutoffDate)
     .order('created_at', { ascending: false })

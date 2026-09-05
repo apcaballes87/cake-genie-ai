@@ -112,9 +112,10 @@ describe('RecentSearchPage', () => {
     vi.mocked(createClient).mockResolvedValue({
       from: () => ({
         select: () => ({
-          eq: () => ({
-            single: () => Promise.resolve({ data: design }),
-          }),
+          eq: function (this: any, field: string) {
+            if (field === 'seo_status') return this;
+            return { single: () => Promise.resolve({ data: design }) };
+          },
         }),
       }),
     } as never);
@@ -143,7 +144,8 @@ describe('RecentSearchPage', () => {
         return {
           select: vi.fn(() => {
             return {
-              eq: vi.fn((field: string, value: string) => {
+              eq: vi.fn(function (this: any, field: string, value: string) {
+                if (field === 'seo_status') return this;
                 if (field === 'slug' && value === 'heart-cake-7fbf4f1f6f180000') {
                   return { single: () => Promise.resolve({ data: legacyDesign }) };
                 }
@@ -161,7 +163,10 @@ describe('RecentSearchPage', () => {
         };
       }
       return {
-        select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null }) }) })
+        select: () => ({ eq: function (this: any, field: string) {
+            if (field === 'seo_status') return this;
+            return { single: () => Promise.resolve({ data: null }) };
+          } })
       };
     });
 
@@ -196,7 +201,8 @@ describe('RecentSearchPage', () => {
         return {
           select: vi.fn(() => {
             return {
-              eq: vi.fn((field: string, value: string) => {
+              eq: vi.fn(function (this: any, field: string, value: string) {
+                if (field === 'seo_status') return this;
                 if (field === 'slug' && value === 'heart-cake-7fbf4f1f6f180000') {
                   return { single: () => Promise.resolve({ data: legacyDesign }) };
                 }
@@ -214,7 +220,10 @@ describe('RecentSearchPage', () => {
         };
       }
       return {
-        select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null }) }) })
+        select: () => ({ eq: function (this: any, field: string) {
+            if (field === 'seo_status') return this;
+            return { single: () => Promise.resolve({ data: null }) };
+          } })
       };
     });
 
@@ -310,9 +319,10 @@ describe('RecentSearchPage', () => {
     vi.mocked(createClient).mockResolvedValueOnce({
       from: () => ({
         select: () => ({
-          eq: () => ({
-            single: () => Promise.resolve({ data: design }),
-          }),
+          eq: function (this: any, field: string) {
+            if (field === 'seo_status') return this;
+            return { single: () => Promise.resolve({ data: design }) };
+          },
         }),
       }),
     } as never);
@@ -354,9 +364,10 @@ describe('RecentSearchPage', () => {
     vi.mocked(createClient).mockResolvedValueOnce({
       from: () => ({
         select: () => ({
-          eq: () => ({
-            single: () => Promise.resolve({ data: design }),
-          }),
+          eq: function (this: any, field: string) {
+            if (field === 'seo_status') return this;
+            return { single: () => Promise.resolve({ data: design }) };
+          },
         }),
       }),
     } as never);
@@ -532,9 +543,10 @@ describe('RecentSearchPage', () => {
     vi.mocked(createClient).mockResolvedValueOnce({
       from: () => ({
         select: () => ({
-          eq: () => ({
-            single: () => Promise.resolve({ data: toyDesign }),
-          }),
+          eq: function (this: any, field: string) {
+            if (field === 'seo_status') return this;
+            return { single: () => Promise.resolve({ data: toyDesign }) };
+          },
         }),
       }),
     } as never);
@@ -575,9 +587,10 @@ describe('RecentSearchPage', () => {
     vi.mocked(createClient).mockResolvedValueOnce({
       from: () => ({
         select: () => ({
-          eq: () => ({
-            single: () => Promise.resolve({ data: twoTierDesign }),
-          }),
+          eq: function (this: any, field: string) {
+            if (field === 'seo_status') return this;
+            return { single: () => Promise.resolve({ data: twoTierDesign }) };
+          },
         }),
       }),
     } as never);
@@ -615,9 +628,10 @@ describe('RecentSearchPage', () => {
     vi.mocked(createClient).mockResolvedValueOnce({
       from: () => ({
         select: () => ({
-          eq: () => ({
-            single: () => Promise.resolve({ data: threeTierDesign }),
-          }),
+          eq: function (this: any, field: string) {
+            if (field === 'seo_status') return this;
+            return { single: () => Promise.resolve({ data: threeTierDesign }) };
+          },
         }),
       }),
     } as never);
@@ -649,9 +663,10 @@ describe('RecentSearchPage', () => {
       vi.mocked(createClient).mockResolvedValueOnce({
         from: () => ({
           select: () => ({
-            eq: () => ({
-              single: () => Promise.resolve({ data: design }),
-            }),
+            eq: function (this: any, field: string) {
+            if (field === 'seo_status') return this;
+            return { single: () => Promise.resolve({ data: design }) };
+          },
           }),
         }),
       } as never);
@@ -710,9 +725,10 @@ describe('RecentSearchPage', () => {
       vi.mocked(createClient).mockResolvedValueOnce({
         from: () => ({
           select: () => ({
-            eq: () => ({
-              single: () => Promise.resolve({ data: design }),
-            }),
+            eq: function (this: any, field: string) {
+            if (field === 'seo_status') return this;
+            return { single: () => Promise.resolve({ data: design }) };
+          },
           }),
         }),
       } as never);
@@ -761,9 +777,10 @@ describe('RecentSearchPage', () => {
       vi.mocked(createClient).mockResolvedValueOnce({
         from: () => ({
           select: () => ({
-            eq: () => ({
-              single: () => Promise.resolve({ data: design }),
-            }),
+            eq: function (this: any, field: string) {
+            if (field === 'seo_status') return this;
+            return { single: () => Promise.resolve({ data: design }) };
+          },
           }),
         }),
       } as never);

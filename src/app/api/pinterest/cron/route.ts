@@ -100,6 +100,7 @@ export async function GET(request: Request) {
     const query = supabase
       .from('cakegenie_analysis_cache')
       .select('*')
+      .eq('seo_status', 'published')
       .order('created_at', { ascending: false })
       .limit(remainingPins);
 

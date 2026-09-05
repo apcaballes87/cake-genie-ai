@@ -1,3 +1,4 @@
+import { resolveAnalysisGenerationSeoSchema } from '@/lib/ai/generatedAnalysisContract';
 import { Storage } from '@google-cloud/storage';
 import readline from 'node:readline';
 
@@ -130,7 +131,7 @@ export function buildSearchAnalysisBatchInputLine(
   sizeSchema?: AnalysisGenerationSizeSchema,
 ) {
   const { systemInstruction } = requestConfig;
-  const customId = encodeBatchCustomId(item.id, sizeSchema);
+  const customId = `${encodeBatchCustomId(item.id, sizeSchema)}|seo_schema:${resolveAnalysisGenerationSeoSchema(activePrompt)}`;
   return JSON.stringify({
     customId,
     custom_id: customId,
@@ -230,7 +231,8 @@ export async function submitNextSearchAnalysisBatch(requestedLimit = MAX_BATCH_S
   const activePrompt = activePromptDetails.promptText;
   const sizeSchema = getAnalysisGenerationSizeSchema(activePromptDetails.version);
   const typeEnums = await getDynamicTypeEnums(admin as unknown);
-  const generationConfig = buildSearchAnalysisGenerationConfig(typeEnums, sizeSchema);
+  const seoSchema = resolveAnalysisGenerationSeoSchema(activePrompt);
+  const generationConfig = buildSearchAnalysisGenerationConfig(typeEnums, sizeSchema, seoSchema);
   const runId = crypto.randomUUID();
   const gcs = parseGcsPrefix();
   const inputPath = objectName(gcs.prefix, `${runId}/input.jsonl`);
@@ -262,7 +264,7 @@ export async function submitNextSearchAnalysisBatch(requestedLimit = MAX_BATCH_S
       items.map((item) => buildSearchAnalysisBatchInputLine(item, activePrompt, generationConfig, sizeSchema)).join('\n'),
       { contentType: 'application/jsonl' },
     ).catch((error: unknown) => { throw toActionableGoogleCloudStorageError(error, 'create'); });
-    const providerJob = await getAI(requestContext).batches.create({
+    const providerJob = await (await getAI(requestContext)).batches.create({
       model: MODEL,
       src: { gcsUri: [inputUri], format: 'jsonl' },
       config: { displayName: `cakegenie-search-analysis-${runId}`, dest: { gcsUri: outputUri, format: 'jsonl' } },
@@ -384,9 +386,9 @@ export async function reconcileSearchAnalysisBatch(runId: string, requestContext
   const storage = createBatchStorage(requestContext);
   let outputFile = null as Awaited<ReturnType<typeof findSearchAnalysisOutputFile>>;
   if (run.status === 'submitted') {
-    let providerJob: Awaited<ReturnType<ReturnType<typeof getAI>['batches']['get']>> | undefined;
+    let providerJob: Awaited<ReturnType<Awaited<ReturnType<typeof getAI>>['batches']['get']>> | undefined;
     try {
-      providerJob = await getAI(requestContext).batches.get({ name: run.gemini_job_name });
+      providerJob = await (await getAI(requestContext)).batches.get({ name: run.gemini_job_name });
     } catch (providerError) {
       outputFile = await findSearchAnalysisOutputFile(storage, run.output_file_uri);
       if (outputFile) {
@@ -451,7 +453,8 @@ export async function reconcileSearchAnalysisBatch(runId: string, requestContext
       continue;
     }
     const echoedId = output?.customId || output?.custom_id || output?.id;
-    const { itemId: echoedItemId, sizeSchema: echoedSizeSchema } = decodeBatchCustomId(echoedId);
+    const { itemId: echoedItemId, sizeSchema: echoedSizeSchema } = decodeBatchCustomId(echoedId?.replace(/\|seo_schema:(analysis_only|legacy_inline_seo)$/, ''));
+    const echoedSeoSchema = echoedId?.endsWith('|seo_schema:analysis_only') ? 'analysis_only' : 'legacy_inline_seo';
     const echoedUri = extractOutputRequestFileUri(output);
     let item: QueueItem | undefined;
 
@@ -486,6 +489,7 @@ export async function reconcileSearchAnalysisBatch(runId: string, requestContext
           parsedResult,
           typeEnums,
           echoedSizeSchema ?? inferBatchSizeSchema(parsedResult),
+          echoedSeoSchema,
         ),
         analysis_size_schema: ANALYSIS_SIZE_SCHEMA,
       };
