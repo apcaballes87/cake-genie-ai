@@ -101,6 +101,7 @@ export async function POST(request: Request) {
     const { data: products, error: productsError } = await supabase
       .from('cakegenie_analysis_cache')
       .select('*')
+      .eq('seo_status', 'published')
       .in('p_hash', hashesToPin);
 
     if (productsError || !products) {

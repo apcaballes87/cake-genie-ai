@@ -190,7 +190,7 @@ describe('cacheAnalysisResult', () => {
     expect(rawAnalysis.main_toppers[0]).toMatchObject({ type: 'plastic_ball' });
   });
 
-  it('stores the same finalized description in analysis_json and seo_description', async () => {
+  it('stores analysis and pricing immediately but defers public SEO fields', async () => {
     getDesignAvailabilityMock.mockReturnValue('same-day');
     const { cacheAnalysisResult } = await import('./supabaseService');
 
@@ -219,9 +219,10 @@ describe('cacheAnalysisResult', () => {
 
     expect(upsertMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        seo_description: expect.stringContaining('A sky blue soft-icing cake with basketball details.'),
-        analysis_json: expect.objectContaining({
-          seo_description: expect.any(String),
+        analysis_json: expect.not.objectContaining({
+          seo_description: expect.anything(),
+          seo_title: expect.anything(),
+          alt_text: expect.anything(),
         }),
         availability: 'same-day',
       }),
@@ -231,10 +232,10 @@ describe('cacheAnalysisResult', () => {
     );
 
     const [[payload]] = upsertMock.mock.calls;
-    expect(payload.seo_description).toContain(
-      'This design is available for same-day orders with 3 to 4 hours of preparation.',
-    );
-    expect(payload.analysis_json.seo_description).toBe(payload.seo_description);
+    expect(payload).not.toHaveProperty('seo_description');
+    expect(payload).not.toHaveProperty('seo_title');
+    expect(payload).not.toHaveProperty('alt_text');
+    expect(payload.analysis_json).not.toHaveProperty('seo_description');
   });
 
   it('stores fingerprint pipeline metadata with the canonical p_hash', async () => {

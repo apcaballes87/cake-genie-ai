@@ -194,6 +194,7 @@ const getDesign = cache(async (slug: string) => {
                 supabase
                     .from('cakegenie_analysis_cache')
                     .select('slug')
+                    .eq('seo_status', 'published')
                     .eq('slug', candidate)
                     .single()
             )
@@ -201,12 +202,14 @@ const getDesign = cache(async (slug: string) => {
         supabase
             .from('cakegenie_analysis_cache')
             .select('*')
+            .eq('seo_status', 'published')
             .eq('slug', slug)
             .single(),
         shouldCheckUpgrade
             ? supabase
                 .from('cakegenie_analysis_cache')
                 .select('*')
+                .eq('seo_status', 'published')
                 .eq('slug', upgradedSlug)
                 .single()
             : Promise.resolve({ data: null }),
@@ -235,6 +238,7 @@ const getDesign = cache(async (slug: string) => {
                 const { data: candidates } = await supabase
                     .from('cakegenie_analysis_cache')
                     .select('slug')
+                    .eq('seo_status', 'published')
                     .eq('p_hash', legacyHash)
                     .neq('slug', slug)
                     .limit(5);

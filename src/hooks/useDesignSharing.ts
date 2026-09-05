@@ -1,5 +1,6 @@
 // hooks/useDesignSharing.ts
 import { useState, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import { ShareResult } from '@/services/shareService';
 import { createClient } from '@/lib/supabase/client';
 import type { CakeInfoUI } from '@/types';
@@ -54,44 +55,27 @@ export const useDesignSharing = ({ slug, originalImageUrl, cakeInfo }: UseDesign
     }, [cakeType, cakeSize, cakeHeight]);
 
     const handleShare = useCallback(async () => {
-        // 1. Try slug from props (persistedSlug, URL params, or seoMetadata)
-        if (slug) {
-            setShareData(buildShareData(slug));
-            setIsShareModalOpen(true);
-            return;
-        }
-
-        // 2. Fallback: query cakegenie_analysis_cache by original_image_url
-        if (originalImageUrl) {
-            setIsSavingDesign(true);
-            setIsShareModalOpen(true);
-            try {
-                const supabase = createClient();
-                const { data } = await supabase
-                    .from('cakegenie_analysis_cache')
-                    .select('slug')
-                    .eq('original_image_url', originalImageUrl)
-                    .single();
-
-                if (data?.slug) {
-                    setShareData(buildShareData(data.slug));
-                    return;
-                }
-            } catch {
-                // Silently handle error fetching slug from cache
-            } finally {
-                setIsSavingDesign(false);
-            }
-        }
-
-        // 3. Last resort: share the current page URL as-is
-        if (typeof window !== 'undefined') {
-            const currentPath = window.location.pathname;
-            const pathSlug = currentPath.replace('/customizing/', '').replace('/customizing', '');
-            if (pathSlug) {
-                setShareData(buildShareData(pathSlug));
+        // A local slug can predate publication. Verify readiness before exposing a public URL.
+        if (!slug && !originalImageUrl) return;
+        setIsSavingDesign(true);
+        try {
+            const supabase = createClient();
+            let query = supabase
+                .from('cakegenie_analysis_cache')
+                .select('slug')
+                .eq('seo_status', 'published');
+            query = slug ? query.eq('slug', slug) : query.eq('original_image_url', originalImageUrl!);
+            const { data } = await query.maybeSingle();
+            if (data?.slug) {
+                setShareData(buildShareData(data.slug));
                 setIsShareModalOpen(true);
+            } else {
+                toast('This design is not ready to share yet.');
             }
+        } catch {
+            toast.error('Unable to create a share link. Please try again.');
+        } finally {
+            setIsSavingDesign(false);
         }
     }, [slug, originalImageUrl, buildShareData]);
 

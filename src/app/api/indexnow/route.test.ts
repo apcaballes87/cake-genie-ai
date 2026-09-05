@@ -5,6 +5,9 @@ vi.mock('@/lib/indexNow', () => ({
     submitIndexNow: vi.fn(),
 }));
 
+vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }));
+import { createClient } from '@/lib/supabase/server';
+
 import { POST } from './route';
 import { normalizeIndexNowUrls, submitIndexNow } from '@/lib/indexNow';
 
@@ -32,6 +35,7 @@ describe('/api/indexnow', () => {
 
     it('returns success when at least one endpoint succeeds', async () => {
         vi.mocked(normalizeIndexNowUrls).mockReturnValue(['https://genie.ph/customizing/cake-1']);
+        vi.mocked(createClient).mockResolvedValue({ from: () => ({ select: () => ({ eq: () => ({ in: async () => ({ data: [{ slug: 'cake-1' }], error: null }) }) }) }) } as any);
         vi.mocked(submitIndexNow).mockResolvedValue([
             { endpoint: 'https://www.bing.com/indexnow', ok: true, status: 200, statusText: 'OK' },
         ]);
@@ -52,4 +56,14 @@ describe('/api/indexnow', () => {
             ],
         });
     });
+    it('does not submit a pending product URL', async () => {
+        vi.mocked(normalizeIndexNowUrls).mockReturnValue(['https://genie.ph/customizing/pending']);
+        vi.mocked(createClient).mockResolvedValue({ from: () => ({ select: () => ({ eq: () => ({ in: async () => ({ data: [], error: null }) }) }) }) } as any);
+        const response = await POST(new Request('http://localhost/api/indexnow', {
+            method: 'POST', body: JSON.stringify({ url: 'https://genie.ph/customizing/pending' }),
+        }));
+        expect(response.status).toBe(400);
+        expect(submitIndexNow).not.toHaveBeenCalled();
+    });
+
 });

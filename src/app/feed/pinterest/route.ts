@@ -94,6 +94,7 @@ export async function GET(request: NextRequest) {
         const data = await runFeedQuery<PinterestFeedDesign>(supabase
           .from('cakegenie_analysis_cache')
           .select(PINTEREST_FEED_DESIGN_FIELDS)
+          .eq('seo_status', 'published')
           .not('studio_edited_image_url', 'is', null)
           .not('slug', 'is', null)
           .not('price', 'is', null)
@@ -124,6 +125,7 @@ export async function GET(request: NextRequest) {
           const data = await runFeedQuery<PinterestFeedDesign>(supabase
             .from('cakegenie_analysis_cache')
             .select(PINTEREST_FEED_DESIGN_FIELDS)
+            .eq('seo_status', 'published')
             .in('slug', memberSlugs)
             .not('studio_edited_image_url', 'is', null)
             .not('price', 'is', null)
@@ -139,6 +141,7 @@ export async function GET(request: NextRequest) {
     const data = await runFeedQuery<PinterestFeedDesign>(supabase
       .from('cakegenie_analysis_cache')
       .select(PINTEREST_FEED_DESIGN_FIELDS)
+      .eq('seo_status', 'published')
       .not('studio_edited_image_url', 'is', null)
       .not('slug', 'is', null)
       .not('price', 'is', null)

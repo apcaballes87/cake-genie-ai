@@ -60,12 +60,14 @@ export async function getCollectionSearchMetadata(
       client
         .from('cakegenie_analysis_cache')
         .select('id', { count: 'exact', head: true })
+        .eq('seo_status', 'published')
         .not('original_image_url', 'is', null)
         .not('slug', 'is', null)
         .eq('icing_colors', plan.icingColor),
       client
         .from('cakegenie_analysis_cache')
         .select('slug,keywords,p_hash,original_image_url,studio_edited_image_url')
+        .eq('seo_status', 'published')
         .not('original_image_url', 'is', null)
         .not('slug', 'is', null)
         .eq('icing_colors', plan.icingColor)
@@ -114,6 +116,7 @@ export async function getCollectionSearchMetadata(
     const { data: imageRows, error: imageError } = await client
       .from('cakegenie_analysis_cache')
       .select('p_hash,studio_edited_image_url')
+      .eq('seo_status', 'published')
       .in('p_hash', pHashes);
 
     if (imageError) throw imageError;

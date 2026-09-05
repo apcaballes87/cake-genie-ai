@@ -41,6 +41,7 @@ describe('findSimilarAnalysisByHash', () => {
     rpcMock.mockResolvedValue({
       data: [
         {
+          seo_status: 'published',
           id: 'cache-row-1',
           p_hash: 'abc123def4567890',
           analysis_json: { cakeType: 'Bento', keyword: 'lavender' },
@@ -78,6 +79,7 @@ describe('findSimilarAnalysisByHash', () => {
     rpcMock.mockResolvedValue({
       data: [
         {
+          seo_status: 'published',
           id: 'cache-row-2',
           p_hash: 'deadbeef1234abcd',
           analysis_json: { cakeType: 'Bento', keyword: 'server' },
@@ -128,6 +130,7 @@ describe('findSimilarAnalysisByHash', () => {
   it('looks up saved hashes by exact p_hash without a legacy pipeline fallback', async () => {
     maybeSingleMock.mockResolvedValue({
       data: {
+        seo_status: 'published',
         id: 'cache-row-exact',
         p_hash: 'abc123def4567890',
         analysis_json: { cakeType: 'Bento', keyword: 'exact' },
@@ -152,4 +155,17 @@ describe('findSimilarAnalysisByHash', () => {
     expect(mockClient.from).toHaveBeenCalledWith('cakegenie_analysis_cache');
     expect(eqMock).toHaveBeenCalledWith('p_hash', 'abc123def4567890');
   });
+  it('keeps pending cache analysis usable without exposing a product slug', async () => {
+    rpcMock.mockResolvedValue({ data: [{
+      id: 'pending-row', p_hash: 'abc123def4567890', seo_status: 'pending',
+      analysis_json: { cakeType: 'Bento', keyword: 'pink' }, slug: 'pending-cake',
+      price: 999, keywords: 'pink', original_image_url: 'https://example.com/cake.webp',
+    }], error: null });
+    const { findSimilarAnalysisByHash } = await import('./supabaseService');
+    const result = await findSimilarAnalysisByHash({ pHash: 'abc123def4567890', pipeline: 'v1' });
+    expect(result?.analysisResult.cakeType).toBe('Bento');
+    expect(result?.id).toBe('pending-row');
+    expect(result?.seoMetadata.slug).toBeNull();
+  });
+
 });

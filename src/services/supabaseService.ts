@@ -4,7 +4,6 @@ import { CART_RETENTION_DAYS } from '@/lib/cartAuthTransfer';
 import { CakeType, BasePriceInfo, CakeThickness, ReportPayload, CartItemDetails, HybridAnalysisResult, AiPrompt, PricingRule, PricingFeedback, AvailabilitySettings, CartItem, CacheSEOMetadata, BuyerAttributionRecord } from '@/types';
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/supabase/env';
-import { notifyIndexNow } from './indexNowService';
 import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import { CakeGenieCartItem, CakeGenieAddress, CakeGenieOrder, CakeGenieOrderItem, OrderContribution, CakeGenieSavedItem, CustomizationDetails, CakeGenieMerchant, CakeGenieMerchantProduct, MerchantStaff, MerchantPayout, MerchantDashboardStats, MerchantStaffRole, CakeGenieReview } from '@/lib/database.types';
@@ -19,8 +18,6 @@ import { normalizeCakeType } from '@/lib/utils/cakeType';
 import { MainTopperUI, SupportElementUI, CakeMessageUI, IcingDesignUI, CakeInfoUI } from '@/types';
 import { generateCakeAnalysisSlug } from '@/lib/utils/urlHelpers';
 import { generateTagsForAnalysis } from '@/utils/tagUtils';
-import { buildCakeTitle, extractTitleInputFromAnalysis } from '@/lib/seo/cakeTitle';
-import { enrichStoredSeoDescription } from '@/lib/seo/analysisCopy';
 import { getSeoImageUploadHeaders } from '@/lib/seo/storageImageHeaders';
 import { withTimeout } from '@/lib/utils/timeout';
 import { buildCollectionSearchPlan } from '@/lib/collections/searchPlan';
@@ -434,7 +431,9 @@ export interface CacheHitResult {
 }
 
 export interface CacheWriteResult {
+  /** Empty until the server has published the design. */
   slug: string;
+  seo_status: string;
   seo_title: string;
   price: number;
   original_image_url: string | null;
@@ -548,6 +547,7 @@ async function resolveExistingWriteHash(
 }
 
 interface AnalysisCacheLookupRow {
+  seo_status?: string | null;
   id?: string | null;
   p_hash: string;
   analysis_json: HybridAnalysisResult | null;
@@ -610,14 +610,14 @@ function shouldTriggerStudioEditForRow(
 }
 
 async function resolveCacheHitId(result: AnalysisCacheLookupRow): Promise<string | null> {
-  if (typeof result.id === 'string' && result.id.trim()) {
+  if (typeof result.id === 'string' && result.id.trim() && result.seo_status !== undefined) {
     return result.id;
   }
 
   try {
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
-      .select('id')
+      .select('id, seo_status')
       .eq('p_hash', result.p_hash)
       .maybeSingle();
 
@@ -625,6 +625,7 @@ async function resolveCacheHitId(result: AnalysisCacheLookupRow): Promise<string
       throw error;
     }
 
+    result.seo_status = data?.seo_status ?? null;
     return typeof data?.id === 'string' ? data.id : null;
   } catch (error) {
     console.warn('⚠️ Failed to resolve cache row id for analysis hit:', error);
@@ -639,11 +640,12 @@ function mapCacheHitResult(result: AnalysisCacheLookupRow, id: string | null): C
 
   const analysisResult: HybridAnalysisResult = result.analysis_json;
   const seoMetadata: CacheSEOMetadata = {
+    seo_status: result.seo_status ?? null,
     seo_title: result.seo_title || null,
     seo_description: result.seo_description || null,
     keywords: result.keywords || null,
     alt_text: result.alt_text || null,
-    slug: result.slug || null,
+    slug: result.seo_status === 'published' ? result.slug || null : null,
     original_image_url: result.original_image_url || null,
     price: result.price ? Number(result.price) : null,
     availability: result.availability || null,
@@ -722,6 +724,7 @@ export async function findAnalysisByExactHash(pHash: string, imageUrl?: string):
         id,
         p_hash,
         analysis_json,
+        seo_status,
         seo_title,
         seo_description,
         keywords,
@@ -1031,13 +1034,6 @@ export async function cacheAnalysisResult(
       pHash: resolvedPHash
     });
 
-    // Generate fallback SEO fields if AI didn't provide them
-    const altText = analysisResult.alt_text || `${keywords || 'Custom'} cake design`;
-    // Legacy AI/keyword title — retained ONLY as a token source for tag extraction
-    // (preserves historical tag behaviour). The customer-facing seo_title is built
-    // deterministically below via buildCakeTitle (R10), NOT from this value.
-    const tagSourceTitle = analysisResult.seo_title || `${keywords || 'Custom'} Cake | Genie.ph`;
-    const generatedSeoDescription = analysisResult.seo_description || `Get instant pricing for this ${keywords || 'custom'} cake design. Customize and order at Genie.ph. Starting at ₱${totalPrice.toLocaleString()}.`;
     const fingerprintedAt = new Date().toISOString();
 
     let finalImageUrl = imageUrl;
@@ -1113,26 +1109,14 @@ export async function cacheAnalysisResult(
       mainToppers,
       supportElements,
     });
-    // Generate tags (uses the legacy title string only as a token source)
-    const tags = generateTagsForAnalysis(analysisResult, keywords, tagSourceTitle, altText);
-    const seoDescription = enrichStoredSeoDescription({
-      analysisResult,
-      availability,
-      keywords,
-      rawDescription: generatedSeoDescription,
-      tags,
-    });
-    const finalizedAnalysisResult = {
-      ...analysisResult,
-      seo_description: seoDescription,
-      tags,
-    };
-
-    // Build the customer-facing SEO title deterministically from structured
-    // attributes (R10). Never derived from the AI seo_title or cake_messages (PII).
-    const seoTitle = buildCakeTitle(
-      extractTitleInputFromAnalysis(analysisResult, keywords, tags),
-    );
+    // Analysis is useful immediately; public copy is created by the delayed SEO worker.
+    // Strip legacy inline output too, so in-flight older analyses cannot bypass publication.
+    const finalizedAnalysisResult = { ...analysisResult };
+    delete finalizedAnalysisResult.alt_text;
+    delete finalizedAnalysisResult.seo_title;
+    delete finalizedAnalysisResult.seo_description;
+    const tags = generateTagsForAnalysis(finalizedAnalysisResult, keywords, null, null);
+    finalizedAnalysisResult.tags = tags;
 
     // Determine whether to write the original_image_url
     let shouldWriteImageUrl = false;
@@ -1161,9 +1145,6 @@ export async function cacheAnalysisResult(
       price: totalPrice,
       keywords: keywords,
       slug: slug,
-      alt_text: altText,
-      seo_title: seoTitle,
-      seo_description: seoDescription,
       availability: availability,
       tags: tags,
       ...imageDimensions,
@@ -1179,30 +1160,33 @@ export async function cacheAnalysisResult(
         onConflict: 'p_hash',
         ignoreDuplicates: false // We set to false because we want to update with the new persistent image URL if it was already cached without one
       })
-      .select('id')
+      .select('id, seo_status, slug, seo_title')
       .limit(1);
 
-    let returnedId = upsertRows?.[0]?.id || undefined;
+    let persistedRow = upsertRows?.[0];
+    let returnedId = persistedRow?.id || undefined;
     if (!returnedId) {
       try {
         if (resolvedPHash) {
           const { data: existingData } = await client
             .from('cakegenie_analysis_cache')
-            .select('id')
+            .select('id, seo_status, slug, seo_title')
             .eq('p_hash', resolvedPHash)
             .single();
           if (existingData?.id) {
             returnedId = existingData.id;
+            persistedRow = existingData;
           }
         }
         if (!returnedId && slug) {
           const { data: existingData } = await client
             .from('cakegenie_analysis_cache')
-            .select('id')
+            .select('id, seo_status, slug, seo_title')
             .eq('slug', slug)
             .single();
           if (existingData?.id) {
             returnedId = existingData.id;
+            persistedRow = existingData;
             console.log(`🧭 Resolving slug collision: mapping to existing cache row ID ${returnedId} with same slug "${slug}".`);
           }
         }
@@ -1223,11 +1207,6 @@ export async function cacheAnalysisResult(
     } else {
       console.log('✅ Analysis result cached successfully with pHash:', resolvedPHash, 'slug:', slug);
 
-      // Notify IndexNow participating search engines
-      if (slug) {
-        notifyIndexNow(`https://genie.ph/customizing/${slug}`);
-      }
-
       // Trigger background Image Studio edit (Fire and forget) for interactive
       // flows only. Bulk admin imports can create a second hidden AI pipeline
       // that collides with analysis traffic and causes quota contention.
@@ -1241,8 +1220,9 @@ export async function cacheAnalysisResult(
     }
 
     return {
-      slug,
-      seo_title: seoTitle,
+      slug: persistedRow?.seo_status === 'published' ? persistedRow.slug || slug : '',
+      seo_status: persistedRow?.seo_status || 'pending',
+      seo_title: persistedRow?.seo_status === 'published' ? persistedRow.seo_title || '' : '',
       price: totalPrice,
       original_image_url: finalImageUrl ?? null,
       storedPHash: resolvedPHash,
@@ -1289,6 +1269,7 @@ export async function getRecommendedProducts(
     let query = client
       .from('cakegenie_analysis_cache')
       .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability, image_width, image_height, studio_edited_image_url, image_variants, image_variants_indexed_source')
+      .eq('seo_status', 'published')
       .not('original_image_url', 'is', null)
       .not('price', 'is', null)
       .neq('original_image_url', '');
@@ -1348,6 +1329,7 @@ export async function getPopularDesigns(
     let query = client
       .from('cakegenie_analysis_cache')
       .select('p_hash, slug, keywords, original_image_url, price, alt_text, availability, image_width, image_height, studio_edited_image_url, image_variants')
+      .eq('seo_status', 'published')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
       .not('price', 'is', null)
@@ -1431,6 +1413,7 @@ export async function getAllRecentDesigns(limit: number = 24, offset: number = 0
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
       .select('slug, keywords, original_image_url, price, alt_text, created_at, p_hash, availability, analysis_json, image_width, image_height, studio_edited_image_url, image_variants')
+      .eq('seo_status', 'published')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
       .not('price', 'is', null)
@@ -1661,6 +1644,7 @@ export async function getDesignsByKeyword(keywordOrSlug: string, limit: number =
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
       .select('slug, keywords, original_image_url, price, alt_text, usage_count, p_hash, availability, analysis_json, image_width, image_height, studio_edited_image_url, image_variants, icing_colors')
+      .eq('seo_status', 'published')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
       .eq('icing_colors', searchPlan.icingColor)
@@ -1701,6 +1685,7 @@ export async function getDesignCountByKeyword(keywordOrSlug: string): Promise<nu
     const { count, error } = await supabase
       .from('cakegenie_analysis_cache')
       .select('id', { count: 'exact', head: true })
+      .eq('seo_status', 'published')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
       .eq('icing_colors', searchPlan.icingColor);
@@ -1795,6 +1780,7 @@ export async function getRelatedProductsByKeywords(
         let query = client
           .from('cakegenie_analysis_cache')
           .select(selectFields)
+          .eq('seo_status', 'published')
           .not('original_image_url', 'is', null)
           .not('price', 'is', null)
           .neq('original_image_url', '');
@@ -1874,6 +1860,7 @@ export async function getRelatedProductsByKeywords(
         const { data: studioRows, error: studioError } = await client
           .from('cakegenie_analysis_cache')
           .select('p_hash, original_image_url, studio_edited_image_url')
+          .eq('seo_status', 'published')
           .in('p_hash', pHashes);
 
         if (!studioError && studioRows) {
@@ -1933,6 +1920,7 @@ async function hydrateSearchProductRows(client: SupabaseClient, rows: any[]): Pr
   const { data: studioRows, error: studioError } = await client
     .from('cakegenie_analysis_cache')
     .select('p_hash, original_image_url, studio_edited_image_url')
+    .eq('seo_status', 'published')
     .in('p_hash', pHashes);
   if (studioError || !studioRows) return rows.map(applyImageFallback);
 
@@ -2113,6 +2101,7 @@ export async function getAnalysisBySlug(slug: string): Promise<SupabaseServiceRe
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
       .select('p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, seo_title, seo_description, created_at, studio_edited_image_url, image_variants, icing_colors')
+      .eq('seo_status', 'published')
       .eq('slug', slug)
       .single();
 

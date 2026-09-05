@@ -90,6 +90,7 @@ async function fetchAllFeedDesigns(supabase: SupabaseClient): Promise<FeedDesign
         const { data, error } = await supabase
             .from('cakegenie_analysis_cache')
             .select('slug, keywords, seo_title, seo_description, alt_text, original_image_url, studio_edited_image_url, price, analysis_json, tags, created_at')
+            .eq('seo_status', 'published')
             .or('studio_edited_image_url.not.is.null,original_image_url.not.is.null')
             .not('slug', 'is', null)
             .order('created_at', { ascending: false })

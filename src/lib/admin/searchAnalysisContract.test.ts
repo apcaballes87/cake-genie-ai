@@ -69,9 +69,6 @@ function validAnalysis(overrides: Record<string, unknown> = {}) {
       gumpasteBaseBoard: false,
     },
     keyword: 'Birthday',
-    alt_text: 'White birthday cake with simple decorations.',
-    seo_title: 'White Birthday Cake with Simple Decorations in Cebu',
-    seo_description: 'A white birthday cake with simple decorations.',
     rejection: { isRejected: false, reason: '', message: '' },
     ...overrides,
   };
@@ -329,9 +326,10 @@ describe('search analysis contract', () => {
 
   it('does not invent a conditioned wafer-paper wave row from generic vertical-wave prose', () => {
     const result = postProcessSearchAnalysisResult(validAnalysis({
+      seo_title: 'White Cake',
       alt_text: 'White minimalist birthday cake with vertical textured waves, white flowers, and a gold candle.',
       seo_description: 'A white cake has distinctive vertical wave textured sides around the full cake perimeter.',
-    }), typeEnums);
+    }), typeEnums, 'three_band', 'legacy_inline_seo');
 
     expect(result.support_elements).toEqual([]);
   });
@@ -367,9 +365,10 @@ describe('search analysis contract', () => {
 
   it('does not convert explicitly piped, buttercream, palette-knife, spatula, or combed side waves', () => {
     const result = postProcessSearchAnalysisResult(validAnalysis({
+      seo_title: 'White Cake',
       alt_text: 'White cake with piped vertical buttercream waves around the sides.',
       seo_description: 'The palette-knife frosting creates a continuous textured wave side finish.',
-    }), typeEnums);
+    }), typeEnums, 'three_band', 'legacy_inline_seo');
 
     expect(result.support_elements).toEqual([]);
   });
@@ -685,9 +684,6 @@ describe('search analysis contract', () => {
       cakeType: '',
       cakeThickness: '',
       keyword: '',
-      alt_text: '',
-      seo_title: '',
-      seo_description: '',
       rejection: {
         isRejected: true,
         reason: 'not_a_cake',
@@ -736,5 +732,21 @@ describe('search analysis contract', () => {
         gumpasteBaseBoard: true,
       },
     }), typeEnums)).toThrow(/gumpasteBaseBoardColor/i);
+  });
+});
+
+
+describe('separate SEO generation contract', () => {
+  it('omits SEO from new schema and rejects inline SEO fields', () => {
+    const schema = buildSearchAnalysisResponseSchema(typeEnums);
+    expect(schema.properties).not.toHaveProperty('alt_text');
+    expect(schema.required).not.toContain('seo_description');
+    expect(postProcessSearchAnalysisResult(validAnalysis(), typeEnums).keyword).toBe('Birthday');
+    expect(() => postProcessSearchAnalysisResult(validAnalysis({ alt_text: 'Unexpected' }), typeEnums)).toThrow('unsupported field');
+  });
+  it('explicitly accepts historical inline SEO with the legacy contract', () => {
+    const legacy = validAnalysis({ alt_text: 'White cake', seo_title: 'White Cake', seo_description: 'White cake with icing.' });
+    expect(buildSearchAnalysisResponseSchema(typeEnums, 'three_band', 'legacy_inline_seo').required).toContain('seo_description');
+    expect(postProcessSearchAnalysisResult(legacy, typeEnums, 'three_band', 'legacy_inline_seo').alt_text).toBe('White cake');
   });
 });

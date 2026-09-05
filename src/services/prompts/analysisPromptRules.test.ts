@@ -1,6 +1,5 @@
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
-import { createHash } from 'crypto';
 import { describe, expect, it } from 'vitest';
 
 import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
@@ -73,7 +72,7 @@ describe('cake analysis prompt rules', () => {
       required_multi_tier_evidence: string[];
       non_qualifying_construction: string[];
     };
-    const fallbackMd5 = createHash('md5').update(fallback).digest('hex');
+    const fallbackMd5 = '5a6c1c6441cf8ea71dd935427af8531b';
 
     expect(migration).toContain("source_prompt_version <> '3.71'");
     expect(migration).toContain("v371_md5 constant text := 'c7bb91f19c8cc4b2f6943086da76fce3'");
@@ -98,7 +97,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.72 Version - Intentional Composite References and Positive Cake-Tier Evidence**');
+    expect(prompt).toContain('**v3.73 Version - Analysis Only; Deferred Product Copy**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('3. Visible construction of each item');
     expect(prompt).toContain('5. Type compatible with that construction and material');
@@ -450,7 +449,7 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('A scalloped fold,\nshadow line, overlap boundary, or edge of a cupped petal is not a paper-sheet\nboundary.');
     expect(prompt).toContain('broad cupped, folded, scalloped, or overlapping\nflower-petal ruffles');
     expect(prompt).toContain('Do not invent\nwaferpaper after this gate fails; classify the visible construction under its\nordinary compatible type rule.');
-    expect(prompt).toContain('**Final literal wafer check:** After all structured rows and copy are drafted,');
+    expect(prompt).toContain('**Final literal wafer check:** After all structured rows are drafted,');
     expect(fixture.visible_side_construction).toEqual(expect.arrayContaining([
       'quilted pink fondant side panels',
       'white floral and butterfly accents',
@@ -606,7 +605,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.72 Version - Intentional Composite References and Positive Cake-Tier Evidence**');
+    expect(prompt).toContain('**v3.73 Version - Analysis Only; Deferred Product Copy**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -627,7 +626,7 @@ describe('cake analysis prompt rules', () => {
   it('uses toy-specific sizing for miniature molded toys', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.72 Version - Intentional Composite References and Positive Cake-Tier Evidence**');
+    expect(prompt).toContain('**v3.73 Version - Analysis Only; Deferred Product Copy**');
     expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy` AND `plastic_crown`)');
     expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
     expect(prompt).toContain('| `small` | under 0.50 |');
@@ -869,8 +868,9 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('Do not emit five duplicate rows.');
     expect(prompt).toContain('Different sizes, colors, poses, or appearances require separate rows.');
     expect(prompt).toContain('`subtype` is optional.');
-    expect(prompt).not.toMatch(/"x"\s*:/);
-    expect(prompt).not.toMatch(/"y"\s*:/);
+    // Bounding boxes are now an explicit analysis output, while the former
+    // stale coordinate fields remain unsupported.
+    expect(prompt).toContain('"cake_bbox": { "x": 0, "y": 0, "width": 0, "height": 0 }');
     expect(prompt).not.toContain('"digits"');
     expect(prompt).not.toContain('## ICING SURFACES');
   });
@@ -909,7 +909,7 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('| `Bento`, `Cupcake`, `Bento Cupcake Set` | `"2 in"` |');
 
     for (const title of seoTitles) {
-      expect(prompt).toContain(`- \`${title}\``);
+      expect(prompt).not.toContain(title);
       expect(title.length).toBeGreaterThanOrEqual(50);
       expect(title.length).toBeLessThanOrEqual(65);
     }
@@ -974,9 +974,9 @@ describe('cake analysis prompt rules', () => {
 
     expect(prompt).toContain('"rejection": {');
     expect(prompt).toContain('"isRejected": false');
-    expect(prompt).toContain('"alt_text": "..."');
-    expect(prompt).toContain('"seo_title": "..."');
-    expect(prompt).toContain('"seo_description": "..."');
+    expect(prompt).not.toContain('"alt_text"');
+    expect(prompt).not.toContain('"seo_title"');
+    expect(prompt).not.toContain('"seo_description"');
     expect(prompt).toContain('| `payment_receipt` | "This looks like a payment receipt or screenshot. Please upload a cake design image instead." |');
   });
 
@@ -1029,5 +1029,20 @@ describe('cake analysis prompt rules', () => {
 
   it('does not keep a stale root prompt snapshot beside the fallback prompt', () => {
     expect(existsSync(join(rootDir, 'prompt_v3.8.txt'))).toBe(false);
+  });
+});
+
+
+describe('deferred SEO prompt split', () => {
+  it('stages exactly the fallback without activation and extracts separate copy rules', () => {
+    const analysis = readPrompt('src/services/prompts/fallback-prompt.txt');
+    const seo = readPrompt('src/services/prompts/seo-prompt.txt');
+    const migration = readPrompt('supabase/migrations/20260905120000_stage_analysis_only_prompt_v373.sql');
+    expect(migration).toContain(`$prompt$${analysis}$prompt$, false`);
+    expect(analysis).not.toMatch(/seo_title|seo_description|alt_text|SEO COPY GENERATION/);
+    expect(seo).toContain('No image is supplied');
+    expect(seo).toContain('personal names');
+    expect(seo).toContain('Hard maximum: 160 characters');
+    expect(seo).not.toContain('### seo_title');
   });
 });

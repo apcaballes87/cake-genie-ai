@@ -23,6 +23,7 @@ export default async function SitemapHtmlPage() {
     const { data: recentSearches } = await supabase
         .from('cakegenie_analysis_cache')
         .select('slug, keywords')
+        .eq('seo_status', 'published')
         .not('slug', 'is', null)
         .order('created_at', { ascending: false })
         .limit(500);

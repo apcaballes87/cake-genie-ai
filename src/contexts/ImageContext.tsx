@@ -12,7 +12,6 @@ import { HybridAnalysisResult, CacheSEOMetadata } from '@/types'
 import { findSimilarAnalysisByHash, cacheAnalysisResult, prepareStudioEditCacheRow } from '@/services/supabaseService'
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils'
 import { COMMON_ASSETS } from '@/constants'
-import { generateCakeAnalysisSlug } from '@/lib/utils/urlHelpers'
 import {
     generateServerImageFingerprint,
     toFingerprintLookup,
@@ -763,20 +762,8 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
 
                 onSuccess(fastResult); // User can now see features and price immediately!
 
-                // Generate slug immediately so share button works right away,
-                // but preserve the exact slug for known products/designs.
-                if (knownSeoMetadata?.slug) {
-                    setCurrentSlugState(knownSeoMetadata.slug);
-                } else {
-                    const icingColor = fastResult.icing_design?.colors?.top || fastResult.icing_design?.colors?.side || null;
-                    const generatedSlug = generateCakeAnalysisSlug({
-                        keyword: fastResult.keyword,
-                        icingColor,
-                        cakeType: fastResult.cakeType,
-                        pHash,
-                    });
-                    setCurrentSlugState(generatedSlug);
-                }
+                // New analyses stay in the uploader session until SEO publication.
+                setCurrentSlugState(knownSeoMetadata?.slug || null);
 
                 const earlyStudioSetup = earlyStudioSetupPromise
                     ? await earlyStudioSetupPromise

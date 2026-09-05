@@ -72,7 +72,7 @@ async function getCachedTypeEnums(supabase: ReturnType<typeof createClient>): Pr
 }
 
 async function getCachedPromptCacheName(
-    aiClient: ReturnType<typeof getAI>,
+    aiClient: Awaited<ReturnType<typeof getAI>>,
     promptDetails: PromptDetails,
 ) {
     const now = Date.now();

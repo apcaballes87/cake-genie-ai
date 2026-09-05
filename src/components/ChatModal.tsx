@@ -113,6 +113,7 @@ async function fetchProductBySlug(slug: string, supabase: ReturnType<typeof crea
         const { data, error } = await supabase
             .from('cakegenie_analysis_cache')
             .select('seo_title, original_image_url, price')
+            .eq('seo_status', 'published')
             .eq('slug', slug)
             .single();
 

@@ -12,6 +12,10 @@
         {
             "path": "/api/collections/refresh/cron",
             "schedule": "0 3 * * 1"
+        },
+        {
+            "path": "/api/seo/cron",
+            "schedule": "0 * * * *"
         }
     ],
     "functions": {
