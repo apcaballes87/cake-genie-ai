@@ -100,7 +100,7 @@ The result must look like a real professionally-made edible photo cake from a ba
             },
         ];
 
-        const aiClient = getAI(req);
+        const aiClient = await getAI(req);
         const modelAttempts = [MODEL_NAME, FALLBACK_MODEL_NAME];
 
         for (const [attemptIndex, modelName] of modelAttempts.entries()) {

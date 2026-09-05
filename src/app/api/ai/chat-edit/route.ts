@@ -444,7 +444,7 @@ export async function POST(req: NextRequest) {
             text: `CUSTOMER REQUEST:\n${prompt}\n\nCURRENT CUSTOMIZATION (stable IDs are authoritative):\n${stringifyCustomizationForModel(currentCustomization)}`,
         });
 
-        const aiClient = getAI(req);
+        const aiClient = await getAI(req);
         const response = await aiClient.models.generateContent({
             model: 'gemini-3.1-flash-lite',
             contents: [{ role: 'user', parts }],

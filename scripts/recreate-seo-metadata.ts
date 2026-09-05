@@ -130,7 +130,7 @@ async function main() {
     let ai: any;
     try {
         const { getAI } = require('../src/lib/ai/client');
-        ai = getAI();
+        ai = await getAI();
         console.log(`✅ AI Client successfully initialized via Vertex AI.`);
     } catch (e: any) {
         console.error(`❌ Failed to initialize AI client:`, e.message);

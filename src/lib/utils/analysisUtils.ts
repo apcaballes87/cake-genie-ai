@@ -6,22 +6,29 @@ import type { HybridAnalysisResult } from '@/types';
  * @returns true if bbox data exists, false otherwise
  */
 export function hasBoundingBoxData(analysisResult: HybridAnalysisResult): boolean {
+    // Check for cake-level bounding box (Gemini-style, no confidence field)
+    const hasCakeBbox = Boolean(
+        analysisResult.cake_bbox
+        && analysisResult.cake_bbox.width > 0
+        && analysisResult.cake_bbox.height > 0,
+    );
+
     // Check if any main toppers have bbox data
     const hasToppersWithBbox = analysisResult.main_toppers?.some(topper =>
-        topper.bbox && topper.bbox.confidence > 0
+        topper.bbox && topper.bbox.width > 0 && topper.bbox.height > 0,
     );
 
     // Check if any support elements have bbox data
     const hasSupportWithBbox = analysisResult.support_elements?.some(element =>
-        element.bbox && element.bbox.confidence > 0
+        element.bbox && element.bbox.width > 0 && element.bbox.height > 0,
     );
 
     // Check if any messages have bbox data
     const hasMessagesWithBbox = analysisResult.cake_messages?.some(message =>
-        message.bbox && message.bbox.confidence > 0
+        message.bbox && message.bbox.width > 0 && message.bbox.height > 0,
     );
 
-    return !!(hasToppersWithBbox || hasSupportWithBbox || hasMessagesWithBbox);
+    return !!(hasCakeBbox || hasToppersWithBbox || hasSupportWithBbox || hasMessagesWithBbox);
 }
 
 /**

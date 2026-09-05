@@ -427,7 +427,7 @@ async function loadRuntimeDeps(): Promise<RuntimeDeps> {
 async function main() {
   runtimeDeps = await loadRuntimeDeps();
   const startedAt = Date.now();
-  const aiClient = runtimeDeps.getAI();
+  const aiClient = await runtimeDeps.getAI();
   const [promptDetails, typeEnums] = await Promise.all([
     runtimeDeps.getActivePromptDetails(supabase),
     runtimeDeps.getDynamicTypeEnums(supabase),

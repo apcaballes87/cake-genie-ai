@@ -406,7 +406,7 @@ export async function runImageStudioJob({
       inlineOriginalImage ?? await fetchImageAsInlineData(cacheRow!.original_image_url!);
     const prompt = buildImageStudioPrompt();
     const systemInstruction = buildImageStudioSystemInstruction();
-    const aiClient = getAI(requestContext);
+    const aiClient = await getAI(requestContext);
 
     let aiResponse: AiGenerateContentResponse | undefined;
     const maxAiRetries = 3;

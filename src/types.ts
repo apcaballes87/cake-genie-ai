@@ -2,6 +2,7 @@
 
 import type { TierFlavorAssignment } from '@/lib/tierFlavorMapping';
 import type { AnalysisSizeSchema, CanonicalAnalysisSize, LegacyAnalysisSize } from '@/lib/ai/analysisSize';
+import type { GeneratedBoundingBox } from '@/lib/ai/generatedAnalysisContract';
 
 export type { GeneratedCakeAnalysisResult } from '@/lib/ai/generatedAnalysisContract';
 
@@ -32,7 +33,7 @@ export interface BoundingBox {
   y: number;         // Top-left Y (app coordinates: center origin)
   width: number;     // Width in pixels
   height: number;    // Height in pixels
-  confidence: number; // Detection confidence (0.0-1.0)
+  confidence?: number; // Detection confidence (0.0-1.0) — present for Roboflow, absent for Gemini
 }
 
 export interface MainTopper {
@@ -153,6 +154,7 @@ export interface HybridAnalysisResult {
   icing_borders?: IcingBorder[];
   base_board?: BaseBoard[];
   keyword?: string;
+  cake_bbox?: GeneratedBoundingBox;
   // SEO fields for searchable recent searches
   alt_text?: string;
   seo_title?: string;
@@ -162,6 +164,7 @@ export interface HybridAnalysisResult {
 }
 
 export interface CacheSEOMetadata {
+  seo_status?: string | null;
   seo_title: string | null;
   seo_description: string | null;
   keywords: string | null;

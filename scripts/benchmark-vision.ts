@@ -18,7 +18,7 @@ try {
     process.exit(1);
 }
 
-const ai = getAI();
+const ai = await getAI();
 
 async function fileToBase64(filePath: string): Promise<{ mimeType: string; data: string }> {
     const fileBuffer = fs.readFileSync(filePath);

@@ -32,10 +32,10 @@ const getReferencePoint = (bbox?: BoundingBox) => {
         !Number.isFinite(bbox.y) ||
         !Number.isFinite(bbox.width) ||
         !Number.isFinite(bbox.height) ||
-        !Number.isFinite(bbox.confidence) ||
+        !Number.isFinite(bbox.confidence ?? 0) ||
         bbox.width <= 0 ||
         bbox.height <= 0 ||
-        bbox.confidence <= 0) {
+        (bbox.confidence !== undefined && bbox.confidence <= 0)) {
         return null;
     }
 

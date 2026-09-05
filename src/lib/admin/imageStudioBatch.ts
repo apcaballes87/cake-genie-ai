@@ -180,7 +180,7 @@ export async function submitNextImageStudioBatch(
     throw new Error('No eligible cache rows are waiting for batch processing.');
   }
 
-  const adminClient = getAI(requestContext);
+  const adminClient = await getAI(requestContext);
   const gcs = parseGcsPrefix();
   const storage = createBatchStorage(requestContext);
   const runId = crypto.randomUUID();
@@ -355,7 +355,7 @@ export async function reconcileImageStudioBatch(runId: string, requestContext?: 
   const admin = createAdminServerSupabaseClient();
   const { data: run, error } = await admin.from('cakegenie_image_studio_batch_jobs').select('*').eq('id', runId).single();
   if (error) throw error;
-  const aiClient = getAI(requestContext);
+  const aiClient = await getAI(requestContext);
   let providerJob: Awaited<ReturnType<typeof aiClient.batches.get>> | null = null;
   if (run.status !== 'JOB_STATE_SUCCEEDED' && run.status !== 'importing') {
     try {

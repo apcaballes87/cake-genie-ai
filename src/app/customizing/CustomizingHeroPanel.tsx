@@ -1,8 +1,9 @@
 'use client';
 
-import { memo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { memo, useRef, useState, useEffect, type ReactNode, type RefObject } from 'react';
 import Link from 'next/link';
 import LazyImage from '@/components/LazyImage';
+import { BoundingBoxOverlay } from '@/components/BoundingBoxOverlay';
 import { ImageZoomModal } from '@/components/ImageZoomModal';
 import { Heart, ShieldCheck, Wand2 } from 'lucide-react';
 import { ErrorIcon, ImageIcon, ResetIcon, Loader2, ReportIcon } from '../../components/icons';
@@ -11,6 +12,7 @@ import { getCustomerFacingAnalysisError } from './analysisErrorDisplay';
 import { useDynamicLoadingPhrase } from '@/hooks/useDynamicLoadingPhrase';
 import { buildSrcSet } from '@/lib/imageVariants/manifest';
 import type { VariantManifest } from '@/lib/imageVariants/types';
+import type { HybridAnalysisResult } from '@/types';
 
 
 type ImageTab = 'original' | 'customized';
@@ -60,6 +62,7 @@ interface CustomizingHeroPanelProps {
      */
     initialHeroAspectRatio?: string | null;
     heroImageVariants?: VariantManifest | null;
+    analysisResult?: HybridAnalysisResult | null;
     reviewSummary?: {
         total: number;
         averageRating: number;
@@ -186,8 +189,11 @@ export const CustomizingHeroPanel = memo(({
     reviewSummary,
     initialHeroAspectRatio = null,
     heroImageVariants = null,
+    analysisResult = null,
 }: CustomizingHeroPanelProps) => {
     const [originalImageDimensions, setOriginalImageDimensions] = useState<{ width: number, height: number } | null>(null);
+    const [containerSize, setContainerSize] = useState<{ width: number, height: number } | null>(null);
+    const heroFrameRef = useRef<HTMLDivElement | null>(null);
     const [isHeroImageZoomOpen, setIsHeroImageZoomOpen] = useState(false);
     const { phrase: dynamicAnalysisPhrase, isVisible: isAnalysisPhraseVisible } = useDynamicLoadingPhrase(isAnalyzing);
     const mobileHeroScrollRef = useRef<HTMLDivElement | null>(null);
@@ -307,6 +313,22 @@ export const CustomizingHeroPanel = memo(({
         }
         centerMobileHeroScrollPosition();
     };
+
+    // Track the hero frame container size for bounding box overlay scaling
+    useEffect(() => {
+        const el = heroFrameRef.current;
+        if (!el) return;
+        const observer = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                const { width, height } = entry.contentRect;
+                if (width > 0 && height > 0) {
+                    setContainerSize({ width, height });
+                }
+            }
+        });
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, []);
 
     const handleToggleSaveDesign = (event: React.MouseEvent<HTMLButtonElement>) => {
         event.stopPropagation();
@@ -490,6 +512,7 @@ export const CustomizingHeroPanel = memo(({
 
                 <div className="grow">
                     <div
+                        ref={heroFrameRef}
                         data-testid="customizer-hero-frame"
                         className={enableMobileHeroPan
                             ? 'relative w-full aspect-[5/4] md:min-h-0 rounded-3xl overflow-hidden touch-none md:touch-auto overscroll-auto md:[aspect-ratio:var(--hero-md-ratio)]'
@@ -782,6 +805,18 @@ export const CustomizingHeroPanel = memo(({
                                 </div>
                             </>
                         ) : null}
+
+                        {/* Bounding box overlay from Gemini analysis */}
+                        {analysisResult && originalImageDimensions && containerSize && activeTab === 'original' && (
+                            <BoundingBoxOverlay
+                                analysisResult={analysisResult}
+                                containerWidth={containerSize.width}
+                                containerHeight={containerSize.height}
+                                imageWidth={originalImageDimensions.width}
+                                imageHeight={originalImageDimensions.height}
+                                useTopLeftOrigin
+                            />
+                        )}
                     </div>
                 </div>
             </div>

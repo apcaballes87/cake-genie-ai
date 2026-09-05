@@ -41,7 +41,7 @@ type GeneratedCopy = {
 const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
-const ai = googleApiKey ? new GoogleGenAI({ apiKey: googleApiKey }) : getAI();
+const ai = googleApiKey ? new GoogleGenAI({ apiKey: googleApiKey }) : await getAI();
 
 const responseSchema = {
   type: Type.OBJECT,

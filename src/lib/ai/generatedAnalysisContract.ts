@@ -156,6 +156,13 @@ export type GeneratedCakeThickness = typeof GENERATED_ANALYSIS_CAKE_THICKNESSES[
 export type GeneratedAnalysisMaterial = typeof GENERATED_ANALYSIS_MATERIALS[number];
 export type GeneratedAnalysisRejectionReason = keyof typeof GENERATED_ANALYSIS_REJECTION_MESSAGES;
 
+export interface GeneratedBoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface GeneratedMainTopper {
   type: Exclude<MainTopperTypeEnum, LegacyGeneratedMainTopperType>;
   material: GeneratedAnalysisMaterial;
@@ -167,6 +174,7 @@ export interface GeneratedMainTopper {
   color?: string;
   colors?: string[];
   subtype?: string;
+  bbox?: GeneratedBoundingBox;
 }
 
 export interface GeneratedSupportElement {
@@ -179,6 +187,7 @@ export interface GeneratedSupportElement {
   quantity: number;
   description: string;
   subtype?: string;
+  bbox?: GeneratedBoundingBox;
 }
 
 export interface GeneratedCakeMessage {
@@ -186,6 +195,7 @@ export interface GeneratedCakeMessage {
   type: CakeMessageTypeEnum;
   color: string;
   position: typeof GENERATED_ANALYSIS_MESSAGE_POSITIONS[number];
+  bbox?: GeneratedBoundingBox;
 }
 
 export interface GeneratedIcingDesign {
@@ -213,9 +223,10 @@ export interface GeneratedAcceptedCakeAnalysisResult extends GeneratedCakeAnalys
   cakeType: GeneratedCakeType;
   cakeThickness: GeneratedCakeThickness;
   keyword: string;
-  alt_text: string;
-  seo_title: string;
-  seo_description: string;
+  alt_text?: string;
+  seo_title?: string;
+  seo_description?: string;
+  cake_bbox?: GeneratedBoundingBox;
   rejection: {
     isRejected: false;
     reason: '';
@@ -250,9 +261,9 @@ export interface GeneratedRejectedCakeAnalysisResult extends GeneratedCakeAnalys
     gumpasteBaseBoard: false;
   };
   keyword: '';
-  alt_text: '';
-  seo_title: '';
-  seo_description: '';
+  alt_text?: '';
+  seo_title?: '';
+  seo_description?: '';
   rejection: GeneratedRejectedAnalysisRejection;
 }
 
@@ -346,10 +357,11 @@ const TOP_LEVEL_KEYS = [
   'cake_messages',
   'icing_design',
   'keyword',
-  'alt_text',
-  'seo_title',
-  'seo_description',
   'rejection',
+] as const;
+const TOP_LEVEL_ALLOWED_KEYS = [
+  ...TOP_LEVEL_KEYS,
+  'cake_bbox',
 ] as const;
 const MAIN_TOPPER_KEYS = [
   'type',
@@ -362,6 +374,7 @@ const MAIN_TOPPER_KEYS = [
   'color',
   'colors',
   'subtype',
+  'bbox',
 ] as const;
 const SUPPORT_ELEMENT_KEYS = [
   'type',
@@ -373,8 +386,9 @@ const SUPPORT_ELEMENT_KEYS = [
   'quantity',
   'description',
   'subtype',
+  'bbox',
 ] as const;
-const CAKE_MESSAGE_KEYS = ['text', 'type', 'color', 'position'] as const;
+const CAKE_MESSAGE_KEYS = ['text', 'type', 'color', 'position', 'bbox'] as const;
 const ICING_DESIGN_KEYS = [
   'base',
   'color_type',
@@ -411,6 +425,16 @@ function requireExactKeys(
   if (extra.length) fail(path, `contains unsupported field(s): ${extra.join(', ')}`);
   const missing = required.filter((key) => !(key in value));
   if (missing.length) fail(path, `is missing required field(s): ${missing.join(', ')}`);
+}
+
+function validateOptionalBbox(value: unknown, path: string): void {
+  if (value === undefined || value === null) return;
+  if (!isRecord(value)) fail(path, 'bbox must be an object');
+  const { x, y, width, height } = value;
+  if (typeof x !== 'number' || x < 0) fail(`${path}.x`, 'must be a non-negative number');
+  if (typeof y !== 'number' || y < 0) fail(`${path}.y`, 'must be a non-negative number');
+  if (typeof width !== 'number' || width <= 0) fail(`${path}.width`, 'must be a positive number');
+  if (typeof height !== 'number' || height <= 0) fail(`${path}.height`, 'must be a positive number');
 }
 
 function requireString(value: unknown, path: string, allowBlank = false): string {
@@ -502,6 +526,7 @@ function validateMainTopper(
   if (item.color !== undefined) requirePaletteHex(item.color, `${path}.color`);
   optionalPaletteHexArray(item.colors, `${path}.colors`);
   validateOptionalSubtype(item, type, subtypeMap, path);
+  validateOptionalBbox(item.bbox, `${path}.bbox`);
 }
 
 function validateSupportElement(
@@ -527,16 +552,18 @@ function validateSupportElement(
   requirePositiveInteger(item.quantity, `${path}.quantity`);
   requireString(item.description, `${path}.description`);
   validateOptionalSubtype(item, type, subtypeMap, path);
+  validateOptionalBbox(item.bbox, `${path}.bbox`);
 }
 
 function validateCakeMessage(value: unknown, index: number) {
   const path = `cake_messages[${index}]`;
   const item = requireRecord(value, path);
-  requireExactKeys(item, CAKE_MESSAGE_KEYS, CAKE_MESSAGE_KEYS, path);
+  requireExactKeys(item, CAKE_MESSAGE_KEYS, ['text', 'type', 'color', 'position'], path);
   requireString(item.text, `${path}.text`);
   requireEnum(item.type, GENERATED_ANALYSIS_MESSAGE_TYPES, `${path}.type`);
   requirePaletteHex(item.color, `${path}.color`);
   requireEnum(item.position, GENERATED_ANALYSIS_MESSAGE_POSITIONS, `${path}.position`);
+  validateOptionalBbox(item.bbox, `${path}.bbox`);
 }
 
 function validateIcingDesign(value: unknown) {
@@ -604,14 +631,26 @@ export class GeneratedAnalysisContractError extends Error {
   }
 }
 
+export type AnalysisGenerationSeoSchema = 'analysis_only' | 'legacy_inline_seo';
+
+export function resolveAnalysisGenerationSeoSchema(promptText: string): AnalysisGenerationSeoSchema {
+  return promptText.includes('## STEP 5: SEO COPY GENERATION') ? 'legacy_inline_seo' : 'analysis_only';
+}
+
 export function validateGeneratedCakeAnalysisResult(
   value: unknown,
   typeEnums: GeneratedAnalysisTypeEnums,
+  seoSchema: AnalysisGenerationSeoSchema = 'analysis_only',
 ): GeneratedCakeAnalysisResult {
   const result = requireRecord(value, 'analysis');
-  requireExactKeys(result, TOP_LEVEL_KEYS, TOP_LEVEL_KEYS, 'analysis');
+  const allowedKeys = seoSchema === 'legacy_inline_seo'
+    ? [...TOP_LEVEL_ALLOWED_KEYS, 'alt_text', 'seo_title', 'seo_description'] : [...TOP_LEVEL_ALLOWED_KEYS];
+  const requiredKeys = seoSchema === 'legacy_inline_seo'
+    ? [...TOP_LEVEL_KEYS, 'alt_text', 'seo_title', 'seo_description'] : [...TOP_LEVEL_KEYS];
+  requireExactKeys(result, allowedKeys, requiredKeys, 'analysis');
   const rejection = validateRejection(result.rejection);
   validateIcingDesign(result.icing_design);
+  validateOptionalBbox(result.cake_bbox, 'analysis.cake_bbox');
 
   const mainToppers = requireArray(result.main_toppers, 'main_toppers');
   const supportElements = requireArray(result.support_elements, 'support_elements');
@@ -634,9 +673,9 @@ export function validateGeneratedCakeAnalysisResult(
   const cakeType = requireString(result.cakeType, 'cakeType', rejection.isRejected);
   const cakeThickness = requireString(result.cakeThickness, 'cakeThickness', rejection.isRejected);
   const keyword = requireString(result.keyword, 'keyword', rejection.isRejected);
-  const altText = requireString(result.alt_text, 'alt_text', rejection.isRejected);
-  const seoTitle = requireString(result.seo_title, 'seo_title', rejection.isRejected);
-  const seoDescription = requireString(result.seo_description, 'seo_description', rejection.isRejected);
+  const altText = seoSchema === 'legacy_inline_seo' ? requireString(result.alt_text, 'alt_text', rejection.isRejected) : '';
+  const seoTitle = seoSchema === 'legacy_inline_seo' ? requireString(result.seo_title, 'seo_title', rejection.isRejected) : '';
+  const seoDescription = seoSchema === 'legacy_inline_seo' ? requireString(result.seo_description, 'seo_description', rejection.isRejected) : '';
 
   if (rejection.isRejected) {
     const icing = result.icing_design as Record<string, unknown>;

@@ -200,7 +200,7 @@ export async function POST(req: NextRequest) {
         // Add the main edit prompt
         parts.push({ text: prompt });
 
-        const aiClient = getAI(req);
+        const aiClient = await getAI(req);
         const attempts: EditImageAttempt[] = [
             {
                 modelName,

@@ -46,7 +46,7 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
 });
 
 // Use API Key if available, otherwise fall back to Vertex AI client
-const ai = googleApiKey ? new GoogleGenAI({ apiKey: googleApiKey }) : getAI();
+const ai = googleApiKey ? new GoogleGenAI({ apiKey: googleApiKey }) : await getAI();
 
 const responseSchema = {
   type: Type.OBJECT,

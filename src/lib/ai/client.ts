@@ -1,8 +1,10 @@
 import { GoogleGenAI } from "@google/genai";
+import { GoogleAuth, Impersonated } from 'google-auth-library';
 import fs from 'fs';
 
 let ai: InstanceType<typeof GoogleGenAI> | null = null;
-type AIClientMode = 'vertex' | 'apiKey-fallback' | 'service-account-key';
+let impersonatedAuthClient: InstanceType<typeof Impersonated> | null = null;
+type AIClientMode = 'vertex' | 'vertex-impersonate' | 'apiKey-fallback' | 'service-account-key';
 type AIRequestContext = {
     headers?: {
         get(name: string): string | null | undefined;
@@ -68,6 +70,7 @@ function getAIClientConfigState(requestContext?: AIRequestContext): AIClientConf
     const credentialsJson = process.env.GOOGLE_CREDENTIALS_JSON;
     const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
     const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+    const impersonateSa = process.env.VERTEX_AI_IMPERSONATE_SA;
     const hasLegacyServiceAccount = Boolean(clientEmail && privateKey);
     const isDevelopment = process.env.NODE_ENV !== 'production';
     const runtimeOidcToken = getRuntimeOidcToken(requestContext);
@@ -89,16 +92,23 @@ function getAIClientConfigState(requestContext?: AIRequestContext): AIClientConf
         Boolean(oidcTokenPath && typeof fs.existsSync === 'function' && fs.existsSync(oidcTokenPath));
     const shouldFallbackFromIncompleteWif =
         Boolean(apiKey) && needsOidcTokenFile && !hasOidcTokenSource;
+
+    // Local dev impersonation: use ADC + impersonate a service account
+    const useImpersonation = isDevelopment && Boolean(impersonateSa) && !hasLegacyServiceAccount;
+
     const useApiKeyFallback =
         Boolean(apiKey) &&
         !hasLegacyServiceAccount &&
+        !useImpersonation &&
         ((isDevelopment && !parsedCredentials) || shouldFallbackFromIncompleteWif);
 
-    const mode: AIClientMode = useApiKeyFallback
-        ? 'apiKey-fallback'
-        : hasLegacyServiceAccount
-            ? 'service-account-key'
-            : 'vertex';
+    const mode: AIClientMode = useImpersonation
+        ? 'vertex-impersonate'
+        : useApiKeyFallback
+            ? 'apiKey-fallback'
+            : hasLegacyServiceAccount
+                ? 'service-account-key'
+                : 'vertex';
 
     return {
         project,
@@ -115,7 +125,7 @@ function getAIClientConfigState(requestContext?: AIRequestContext): AIClientConf
     };
 }
 
-export const getAI = (requestContext?: AIRequestContext) => {
+export const getAI = async (requestContext?: AIRequestContext) => {
     const state = getAIClientConfigState(requestContext);
     // Refresh the short-lived OIDC token on every call so warm serverless instances
     // do not keep using an expired token file after the first initialization.
@@ -139,6 +149,32 @@ export const getAI = (requestContext?: AIRequestContext) => {
                 );
             } else {
                 console.warn('Using GOOGLE_AI_API_KEY fallback for local development. Production should use Vertex AI with Workload Identity Federation.');
+            }
+        } else if (state.mode === 'vertex-impersonate') {
+            // Local dev: use ADC + impersonate a service account
+            const impersonateSa = process.env.VERTEX_AI_IMPERSONATE_SA!;
+            try {
+                if (!impersonatedAuthClient) {
+                    const { GoogleAuth, Impersonated } = await import('google-auth-library');
+                    const auth = new GoogleAuth({
+                        scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+                    });
+                    const sourceClient = await auth.getClient();
+                    impersonatedAuthClient = new Impersonated({
+                        sourceClient,
+                        targetPrincipal: impersonateSa,
+                        targetScopes: ['https://www.googleapis.com/auth/cloud-platform'],
+                    }) as InstanceType<typeof Impersonated>;
+                }
+                options.googleAuthOptions = { authClient: impersonatedAuthClient };
+                console.warn(
+                    `Using ADC + impersonation for local dev. Impersonating: ${impersonateSa}`
+                );
+            } catch (impersonateError) {
+                console.error('Failed to set up impersonated credentials:', impersonateError);
+                throw new Error(
+                    'Failed to initialize impersonated credentials. Ensure ADC is configured via `gcloud auth application-default login` and the impersonated SA exists.'
+                );
             }
         } else if (state.parsedCredentials) {
             // Check for JSON credentials in environment variable (Best for Vercel)

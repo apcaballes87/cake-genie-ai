@@ -29,7 +29,7 @@ async function classifyImageWithModel(
     mimeType: string,
     model: string
 ) {
-    const aiClient = getAI(req);
+    const aiClient = await getAI(req);
     const response = await aiClient.models.generateContent({
         model,
         contents: [{

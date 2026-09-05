@@ -45,28 +45,12 @@ export async function getAnalysisPromptWithFallback(supabase: SupabasePromptClie
   return loadFallbackAnalysisPrompt();
 }
 
-export async function getActivePromptDetails(supabase: SupabasePromptClient): Promise<{ promptText: string; version: string }> {
-  try {
-    const { data, error } = await supabase
-      .from('ai_prompts')
-      .select('prompt_text, version')
-      .eq('is_active', true)
-      .limit(1)
-      .single();
-
-    if (!error && data?.prompt_text) {
-      return {
-        promptText: data.prompt_text,
-        version: String(data.version || 'unknown')
-      };
-    }
-  } catch (err) {
-    console.warn('Failed to fetch active prompt details from Supabase:', err);
-  }
-
+export async function getActivePromptDetails(_supabase: SupabasePromptClient): Promise<{ promptText: string; version: string }> {
+  // DEV OVERRIDE: Use local prompt file instead of Supabase for bbox feature development.
+  // TODO: Remove this override and restore Supabase query before merging to production.
   return {
     promptText: loadFallbackAnalysisPrompt(),
-    version: 'fallback'
+    version: 'local-dev-bbox'
   };
 }
 
@@ -117,4 +101,13 @@ export async function getAllPromptVersions(
   }
 
   return (data ?? []) as PromptVersionRow[];
+}
+
+export const SEO_PROMPT_VERSION = 'seo-v1.0';
+
+export function getSeoPromptDetails(): { promptText: string; version: string } {
+  return {
+    promptText: readFileSync(join(process.cwd(), 'src/services/prompts/seo-prompt.txt'), 'utf8'),
+    version: SEO_PROMPT_VERSION,
+  };
 }

@@ -4205,6 +4205,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                             onClearAll={onClearAll}
                             reviewSummary={reviewSummary}
                             heroImageVariants={heroImageVariants}
+                            analysisResult={analysisResult}
                             initialHeroAspectRatio={
                                 recentSearchDesign?.image_width && recentSearchDesign?.image_height
                                     ? `${recentSearchDesign.image_width} / ${recentSearchDesign.image_height}`
