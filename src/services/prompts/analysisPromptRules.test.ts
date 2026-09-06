@@ -1038,7 +1038,7 @@ describe('deferred SEO prompt split', () => {
     const analysis = readPrompt('src/services/prompts/fallback-prompt.txt');
     const seo = readPrompt('src/services/prompts/seo-prompt.txt');
     const migration = readPrompt('supabase/migrations/20260905120000_stage_analysis_only_prompt_v373.sql');
-    expect(migration).toContain(`$prompt$${analysis}$prompt$, false`);
+    expect(migration).toContain(`$prompt$${analysis.trimEnd()}\n$prompt$, false, 'Analysis only; product copy moved to separate seo-v1.0 prompt', now()`);
     expect(analysis).not.toMatch(/seo_title|seo_description|alt_text|SEO COPY GENERATION/);
     expect(seo).toContain('No image is supplied');
     expect(seo).toContain('personal names');

@@ -110,7 +110,7 @@ describe('search analysis contract', () => {
     expect(schema.properties).not.toHaveProperty('is_tall_proportion');
     expect(schema.properties.main_toppers.items.properties).not.toHaveProperty('digits');
     expect(schema.properties.main_toppers.items.properties).not.toHaveProperty('x');
-    expect(schema.properties.support_elements.items.properties).not.toHaveProperty('bbox');
+    expect(schema.properties.support_elements.items.properties).toHaveProperty('bbox');
     expect(schema.properties).not.toHaveProperty('icing_surfaces');
     expect(schema.properties.main_toppers.items.properties.subtype.enum).toContain('ferrero');
     expect(schema.properties.main_toppers.items.properties.type.enum).toContain('plastic_ball');

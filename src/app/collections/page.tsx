@@ -14,7 +14,7 @@ type CollectionsPageProps = {
 
 type CollectionCategory = NonNullable<Awaited<ReturnType<typeof getDesignCategories>>['data']>[number]
 
-export function parseCollectionsPage(value: string | string[] | undefined): number {
+function parseCollectionsPage(value: string | string[] | undefined): number {
     const rawValue = Array.isArray(value) ? value[0] : value
     const parsed = Number.parseInt(rawValue || '1', 10)
     return Number.isFinite(parsed) && parsed >= 1 ? parsed : 1
@@ -33,7 +33,7 @@ export async function generateMetadata({ searchParams }: CollectionsPageProps) {
     })
 }
 
-export function FeaturedCollectionLinks() {
+function FeaturedCollectionLinks() {
     return (
         <section className="mb-10 rounded-2xl border border-purple-100 bg-purple-50/60 p-5" aria-labelledby="featured-collections-heading">
             <h2 id="featured-collections-heading" className="text-lg font-bold text-slate-800">

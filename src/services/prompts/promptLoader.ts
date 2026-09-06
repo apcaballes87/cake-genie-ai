@@ -118,3 +118,12 @@ export async function getAllPromptVersions(
 
   return (data ?? []) as PromptVersionRow[];
 }
+
+export const SEO_PROMPT_VERSION = 'seo-v1.0';
+
+export function getSeoPromptDetails(): { promptText: string; version: string } {
+  return {
+    promptText: readFileSync(join(process.cwd(), 'src/services/prompts/seo-prompt.txt'), 'utf8'),
+    version: SEO_PROMPT_VERSION,
+  };
+}

@@ -50,7 +50,7 @@ const TEST_IMAGES = [
   }
 ];
 
-export const SimilarityDebugger: React.FC = () => {
+const SimilarityDebugger: React.FC = () => {
   const supabase = getSupabaseClient();
 
   // State

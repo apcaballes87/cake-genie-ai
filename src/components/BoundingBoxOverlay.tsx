@@ -119,7 +119,9 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
                 const width = box.bbox.width * scaleX;
                 const height = box.bbox.height * scaleY;
 
-                const confidence = Math.round(box.bbox.confidence * 100);
+                const confidence = box.bbox.confidence == null
+                    ? null
+                    : Math.round(box.bbox.confidence * 100);
 
                 return (
                     <div
@@ -145,9 +147,11 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
                             }}
                         >
                             {box.label}
-                            <span className="ml-2 opacity-80 text-[10px]">
-                                {confidence}%
-                            </span>
+                            {confidence != null && (
+                                <span className="ml-2 opacity-80 text-[10px]">
+                                    {confidence}%
+                                </span>
+                            )}
                         </div>
                     </div>
                 );

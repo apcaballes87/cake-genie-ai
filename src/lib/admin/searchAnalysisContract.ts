@@ -1,3 +1,4 @@
+import type { AnalysisGenerationSeoSchema } from '@/lib/ai/generatedAnalysisContract';
 import { ThinkingLevel, Type } from '@google/genai';
 
 import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
@@ -416,9 +417,21 @@ function removeUnverifiedConditionedWaferPaperWaves(result: unknown): unknown {
     : { ...result, support_elements: supportElements };
 }
 
+const BBOX_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    x: { type: Type.INTEGER, description: 'Left edge in raw pixels from the original image top-left corner.' },
+    y: { type: Type.INTEGER, description: 'Top edge in raw pixels from the original image top-left corner.' },
+    width: { type: Type.INTEGER, description: 'Width of the bounding box in pixels.' },
+    height: { type: Type.INTEGER, description: 'Height of the bounding box in pixels.' },
+  },
+  required: ['x', 'y', 'width', 'height'],
+};
+
 export function buildSearchAnalysisResponseSchema(
   typeEnums: GeneratedAnalysisTypeEnums,
   sizeSchema: AnalysisGenerationSizeSchema = 'three_band',
+  seoSchema: AnalysisGenerationSeoSchema = 'analysis_only',
 ) {
   const mainTopperTypes = typeEnums.mainTopperTypes.filter(
     (type) => GENERATED_MAIN_TOPPER_TYPES.includes(type as never),
@@ -478,6 +491,7 @@ export function buildSearchAnalysisResponseSchema(
               type: Type.ARRAY,
               items: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_COLOR_HEXES] },
             },
+            bbox: BBOX_SCHEMA,
             ...subtypeProperty,
           },
           required: ['type', 'material', 'group_id', 'classification', 'size', 'quantity', 'description'],
@@ -499,6 +513,7 @@ export function buildSearchAnalysisResponseSchema(
             size: { type: Type.STRING, enum: [...generationSizes] },
             quantity: { type: Type.INTEGER },
             description: { type: Type.STRING },
+            bbox: BBOX_SCHEMA,
             ...subtypeProperty,
           },
           required: ['type', 'material', 'group_id', 'color', 'size', 'quantity', 'description'],
@@ -513,6 +528,7 @@ export function buildSearchAnalysisResponseSchema(
             type: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_MESSAGE_TYPES] },
             color: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_COLOR_HEXES] },
             position: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_MESSAGE_POSITIONS] },
+            bbox: BBOX_SCHEMA,
           },
           required: ['text', 'type', 'color', 'position'],
         },
@@ -556,6 +572,7 @@ export function buildSearchAnalysisResponseSchema(
         ],
       },
       keyword: { type: Type.STRING },
+      ...(seoSchema === 'legacy_inline_seo' ? {
       alt_text: {
         type: Type.STRING,
         description: 'One factual visual sentence, ideally 80-140 characters and never more than 160. Character and franchise names are allowed when visually relevant.',
@@ -564,6 +581,11 @@ export function buildSearchAnalysisResponseSchema(
       seo_description: {
         type: Type.STRING,
         description: 'Natural customer-facing cake description in 5 to 7 sentences. Do not include availability or lead-time claims.',
+      },
+      } : {}),
+      cake_bbox: {
+        ...BBOX_SCHEMA,
+        description: 'Bounding box around the entire cake body (all tiers). Required for accepted images. Pixel coordinates relative to original image, top-left origin.',
       },
       rejection: {
         type: Type.OBJECT,
@@ -586,9 +608,7 @@ export function buildSearchAnalysisResponseSchema(
       'cake_messages',
       'icing_design',
       'keyword',
-      'alt_text',
-      'seo_title',
-      'seo_description',
+      ...(seoSchema === 'legacy_inline_seo' ? ['alt_text', 'seo_title', 'seo_description'] : []),
       'rejection',
     ],
   };
@@ -597,11 +617,12 @@ export function buildSearchAnalysisResponseSchema(
 export function buildSearchAnalysisGenerationConfig(
   typeEnums: GeneratedAnalysisTypeEnums,
   sizeSchema: AnalysisGenerationSizeSchema = 'three_band',
+  seoSchema: AnalysisGenerationSeoSchema = 'analysis_only',
 ) {
   return {
     systemInstruction: SYSTEM_INSTRUCTION,
     responseMimeType: 'application/json',
-    responseSchema: buildSearchAnalysisResponseSchema(typeEnums, sizeSchema),
+    responseSchema: buildSearchAnalysisResponseSchema(typeEnums, sizeSchema, seoSchema),
     thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
   };
 }
@@ -610,6 +631,7 @@ export function postProcessSearchAnalysisResult(
   result: unknown,
   typeEnums: GeneratedAnalysisTypeEnums,
   sizeSchema: AnalysisGenerationSizeSchema = 'three_band',
+  seoSchema: AnalysisGenerationSeoSchema = 'analysis_only',
 ): GeneratedCakeAnalysisResult {
   const reconciledResult = reconcileGeneratedCakeTypeThickness(result);
   if (reconciledResult !== result && typeof result === 'object' && result !== null) {
@@ -629,5 +651,6 @@ export function postProcessSearchAnalysisResult(
       reconcileDescriptionTypes(removeExplicitSceneOnlyItems(sizeNormalizedResult), typeEnums),
     ),
     typeEnums,
+    seoSchema,
   );
 }

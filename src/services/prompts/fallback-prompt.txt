@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.72 Version - Intentional Composite References and Positive Cake-Tier Evidence**
+**v3.73 Version - Analysis Only; Deferred Product Copy**
 ═══════════════════════════════════════════════════════════════════════════════
 
 ## ROLE
@@ -108,9 +108,6 @@ decorations.
     "gumpasteBaseBoard": false
   },
   "keyword": "",
-  "alt_text": "",
-  "seo_title": "",
-  "seo_description": "",
   "rejection": {
     "isRejected": true,
     "reason": "not_a_cake",
@@ -148,9 +145,7 @@ decorations.
     "gumpasteBaseBoard": false
   },
   "keyword": "...",
-  "alt_text": "...",
-  "seo_title": "...",
-  "seo_description": "..."
+  "cake_bbox": { "x": 0, "y": 0, "width": 0, "height": 0 }
 }
 ```
 
@@ -168,7 +163,45 @@ Apply rules in this order:
 7. Size, quantity, and grouping
 8. Item description and construction/material/type reconciliation
 9. Colors and icing
-10. SEO copy
+10. Bounding boxes (cake_bbox + per-element bbox)
+
+### BOUNDING BOX OUTPUT (REQUIRED FOR ACCEPTED IMAGES)
+
+For every accepted (non-rejected) image, you **must** output bounding boxes
+for the cake itself and for each detected element.
+
+**Coordinate system:** Raw pixel coordinates relative to the original image.
+Origin is **top-left** of the image. All values are non-negative integers.
+
+- `x`: left edge of the bounding box in pixels from the left edge of the image
+- `y`: top edge of the bounding box in pixels from the top edge of the image
+- `width`: width of the bounding box in pixels
+- `height`: height of the bounding box in pixels
+
+**`cake_bbox` (top-level, required):**
+A single bounding box enclosing the entire cake body (the main cake structure
+including all tiers, excluding any non-cake background). Estimate the tightest
+rectangle that covers the visible cake from its topmost point to its base/bottom.
+
+```json
+"cake_bbox": { "x": 120, "y": 50, "width": 600, "height": 480 }
+```
+
+**Per-element `bbox` (optional, on each `main_toppers`, `support_elements`, and `cake_messages` item):**
+A bounding box around the specific decoration or message item. Only include
+when the item has a clearly distinguishable spatial extent in the image.
+If unsure, omit the `bbox` field from that item.
+
+```json
+"bbox": { "x": 200, "y": 80, "width": 150, "height": 120 }
+```
+
+**Rules:**
+- `cake_bbox` is always required for accepted images. Use the JSON skeleton below.
+- Per-element `bbox` fields are optional — only emit when clearly distinguishable.
+- Coordinates are pixel values relative to the original uploaded image dimensions.
+- The `x` and `y` represent the **top-left corner** of the bounding box.
+- `width` and `height` are the box dimensions in pixels.
 
 ### PRE-EMISSION UPRIGHT WAFER-PAPER SIDE CHECKPOINT (REQUIRED)
 
@@ -201,19 +234,17 @@ shadow line, overlap boundary, or edge of a cupped petal is not a paper-sheet
 boundary. Never promote a dense ruffle mass to this type by rewriting its
 contours as thin strips or loose/free sheet edges.
 
-**Output reconciliation:** Never use `wafer paper` or `wafer-paper` in a tag,
-`alt_text`, `seo_description`, or item description unless you first verified
-all four direct-image cues above and emitted the matching
-`edible_photo_side_wave` support row. Conversely, when all four cues are
-visible, emit that row with its tier quantity before writing the SEO fields; do
-not describe a verified wafer-paper side wrap only as icing or SEO prose.
+**Output reconciliation:** Never use `wafer paper` or `wafer-paper` in an
+item description unless you verified all four direct-image cues above and
+emitted the matching `edible_photo_side_wave` support row. Conversely, when
+all four cues are visible, emit that row with its tier quantity; do not describe
+a verified wafer-paper side wrap only as icing.
 
-**Final literal wafer check:** After all structured rows and copy are drafted,
-if there is no `edible_photo_side_wave` support row, `wafer`, `wafer paper`,
-and `wafer-paper` are prohibited in `tags`, `alt_text`, `seo_description`, and
-every item description. Remove those words rather than describing a failed-gate
-ruffle as wafer paper. This check is mandatory even when the model considered
-and then omitted the wafer-wave type.
+**Final literal wafer check:** After all structured rows are drafted, if there
+is no `edible_photo_side_wave` support row, `wafer`, `wafer paper`, and
+`wafer-paper` are prohibited in every item description. Remove those words
+rather than describing a failed-gate ruffle as wafer paper. This check is
+mandatory even when the model considered and then omitted the wafer-wave type.
 
 ### GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION
 
@@ -600,7 +631,7 @@ Do not apply this conversion to:
 A true freestanding, fully sculpted figurine with visible all-around body depth may remain `edible_3d_complex`.
 
 Describe the fulfillable result as an edible photo portrait on top, not as a sculpted fondant portrait.
-Apply this wording to `alt_text`, `seo_title`, and `seo_description`.
+Apply this wording to the item description.
 
 ### EDIBLE 2D COMPLEX ARTWORK — FLAT-BACKED OR SHALLOW RELIEF
 
@@ -2503,107 +2534,6 @@ pipeline.
 ----
 
 ** TRENDING CAKES TO WATCH OUT ***
-There is a new viral "Memory Cake" trend. A memory cake is defined by a highly minimalist cake design—typically smooth frosting with simple piped lettering—that features a distinct, 2D printed flat photo cutout standing vertically as a topper. Crucially, this photo must be a portrait (usually a nostalgic childhood picture) with a distinctly superimposed or photoshopped party hat added to the subject's head. If you see this kind of cake design, make sure to identify it as a Memory Cake in the title, alt tags and description. Not necessarily as only a memory cake, but include the term memory cake in your answer.
+There is a new viral "Memory Cake" trend. A memory cake is defined by a highly minimalist cake design—typically smooth frosting with simple piped lettering—that features a distinct, 2D printed flat photo cutout standing vertically as a topper. Crucially, this photo must be a portrait (usually a nostalgic childhood picture) with a distinctly superimposed or photoshopped party hat added to the subject's head. If you see this kind of cake design, identify it as Memory Cake in the keyword and item description when those visible cues are present.
 
 ---
-
-## STEP 5: SEO COPY GENERATION
-
-Generate alt_text, seo_title, and seo_description for every accepted cake.
-
----
-
-### alt_text (Required string)
-
-Write one literal, factual sentence for screen readers, image search, and custom cake buyers.
-
-**Rules:**
-- Describe only visible content: precise dominant color, cake form, icing finish, theme or character, and up to two distinctive decorations.
-- Target 80-140 characters. Hard maximum: 160 characters.
-- Start directly with the subject. Never start with "image of", "photo of", or "picture of".
-- Do not use promotional language, locations, bakery or platform brand names, calls to action, or repeated keywords. Character and franchise names are allowed when visibly relevant to the design.
-- Do not include personal names or quote personal messages. Describe them generically as a name plaque, age topper, or piped message.
-- Mention non-personal visible theme text only when it materially identifies the design.
-- Use cupcakes as a plural noun. Never write "cupcake cake".
-- No punctuation at the end.
-
-**Structure:** `[Precise color] [cake form] with [icing finish], [theme or character], and [distinctive decorations]`
-
-**Good examples:**
-- `Sky blue 2-tier fondant birthday cake with a unicorn topper, rainbow arch, and white sugar clouds`
-- `Dusty rose heart cake with smooth soft icing, piped shell borders, and a gold age topper`
-- `Chocolate cupcakes with basketball printouts, orange icing swirls, and black sugar accents`
-
-**Bad examples (do not use):**
-- `Image of a beautiful and unique birthday cake` <- promotional, vague, and starts with "image of"
-- `Casey's amazing blue cupcake cake from Cebu` <- personal name, filler adjective, location, and incorrect cupcake wording
-
----
-
-### seo_title (Required string)
-
-Write a search-friendly page title, 50-65 characters.
-
-**Rules:**
-- Lead with the most specific thing: theme or occasion + cake type.
-- Include one location signal: `Cebu` (not a full city list).
-- End with `| Genie.ph`.
-- Title Case every word.
-- Do not use filler words like "Custom", "Unique", "Stunning", "Beautiful".
-
-**Structure options (pick the one that fits):**
-- `[Theme] [Cake Type] Cake Cebu | Genie.ph`
-- `[Occasion] [Cake Type] Cake For [Recipient] Cebu | Genie.ph`
-
-**Good examples:**
-- `Unicorn 2-Tier Birthday Cake Delivery Cebu | Genie.ph`
-- `70th Birthday Fondant Cake For Dad Cebu | Genie.ph`
-- `Chocolate Drip Birthday Cake Design Cebu | Genie.ph`
-- `Father's Day Trophy Celebration Cake Cebu | Genie.ph`
-
-**Bad examples (do not use):**
-- `Custom Unique Beautiful Dad Birthday Cake Design | Genie.ph` <- filler words
-- `Personalized Family Tribute Birthday Cake | Genie.ph` <- no location, no specifics
-
----
-
-### seo_description (Required string)
-
-Write a natural 5-7 sentence description for people comparing custom cake designs. Follow the content order below, but write flowing prose without labels, headings, or numbered sections.
-
-**Write in this order:**
-1. **Visual hook:** Describe the cake form, icing finish, texture, and precise dominant colors.
-2. **Design story:** Name the theme, character, keyword, and main toppers naturally. Explain what makes the design visually distinctive.
-3. **The details:** Describe visible support decorations, drip effects, borders, sugar accents, and piped details. Mention craftsmanship only through specific visible techniques.
-4. **Who this is for:** State the visible or strongly supported occasion and suitable audience, age group, personality, or fandom. Do not invent an occasion or recipient.
-5. **Customization:** Explain naturally that visible toppers, colors, and messages can be customized. Do not discuss rush, same-day, normal delivery, availability, or lead time; the application adds that fact after analysis.
-
-**Banned words and phrases (NEVER use these):**
-- beautiful, stunning, elegant, gorgeous, perfect, amazing, lovely, unique
-- "perfect for", "perfect centerpiece", "perfect way to show"
-- "serves as", "stands as", "is a testament to"
-- "showcasing", "highlighting", "underscoring" at sentence start
-- Genie.ph, URLs, locations, peso prices, PHP, "Starting at", ordering instructions, or any call to action
-- personal names or quoted personal messages; use "name plaque", "age topper", or "piped message"
-- unsupported taste, ingredient, serving-size, availability, or lead-time claims
-
-**Sentence variety rules:**
-- Vary sentence length. Mix short sentences with longer ones.
-- Do not start consecutive sentences with the same word.
-- Do not use em dashes anywhere.
-- Use plain linking words: "The", "It", "This", "A" — not "Additionally", "Moreover", "Furthermore".
-- Use precise color names such as sky blue, dusty rose, ivory, sage green, or navy when supported by the image.
-- Use "cupcakes" throughout for cupcake sets. Never write "cupcake cake".
-
-**Good example:**
-`A 2-tier fondant cake pairs smooth ivory tiers with dusty rose panels and crisp gold edging. A princess character topper anchors the design, while a small castle and crown establish the fairytale theme. Sugar flowers, pearl accents, and a neat base border add layered detail without crowding the tiers. The design suits a young princess fan celebrating a birthday. Its polished finish also works for children who prefer soft colors and storybook details. The character topper, color palette, age topper, and piped message can be customized.`
-
-**Bad example (do not write like this):**
-`This stunning and unique cake is perfect for any special celebration. Order now through Genie.ph for delivery in Cebu City.` <- filler adjectives, vague language, brand mention, location, and CTA
-
----
-
-**IMPORTANT REMINDERS:**
-- alt_text: one factual visual sentence, target 80-140 characters, hard maximum 160
-- seo_title: specific theme + Cebu + Genie.ph, 50-65 chars, Title Case
-- seo_description: 5-7 natural sentences in the required content order, with no availability claim, price, brand, location, or CTA

@@ -1,3 +1,4 @@
+import { resolveAnalysisGenerationSeoSchema } from '@/lib/ai/generatedAnalysisContract';
 import { getAI, getOrCreatePromptCache } from '@/lib/ai/client';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -129,7 +130,8 @@ export async function runActiveCakeAnalysis({
 
     const aiClient = getAI(requestContext);
     const sizeSchema = getAnalysisGenerationSizeSchema(promptDetails.version);
-    const baseConfig = buildSearchAnalysisGenerationConfig(typeEnums, sizeSchema);
+    const seoSchema = resolveAnalysisGenerationSeoSchema(promptDetails.promptText);
+    const baseConfig = buildSearchAnalysisGenerationConfig(typeEnums, sizeSchema, seoSchema);
     let response;
     let cacheName: string | null = null;
 
@@ -194,7 +196,7 @@ export async function runActiveCakeAnalysis({
     const jsonText = (response.text || '').trim();
     let result: GeneratedCakeAnalysisResult;
     try {
-        result = postProcessSearchAnalysisResult(JSON.parse(jsonText), typeEnums, sizeSchema);
+        result = postProcessSearchAnalysisResult(JSON.parse(jsonText), typeEnums, sizeSchema, seoSchema);
     } catch (error) {
         console.error('Failed to parse AI response:', jsonText);
         if (error instanceof GeneratedAnalysisContractError) throw error;

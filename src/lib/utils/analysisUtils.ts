@@ -8,17 +8,17 @@ import type { HybridAnalysisResult } from '@/types';
 export function hasBoundingBoxData(analysisResult: HybridAnalysisResult): boolean {
     // Check if any main toppers have bbox data
     const hasToppersWithBbox = analysisResult.main_toppers?.some(topper =>
-        topper.bbox && topper.bbox.confidence > 0
+        topper.bbox && (topper.bbox.confidence ?? 0) > 0
     );
 
     // Check if any support elements have bbox data
     const hasSupportWithBbox = analysisResult.support_elements?.some(element =>
-        element.bbox && element.bbox.confidence > 0
+        element.bbox && (element.bbox.confidence ?? 0) > 0
     );
 
     // Check if any messages have bbox data
     const hasMessagesWithBbox = analysisResult.cake_messages?.some(message =>
-        message.bbox && message.bbox.confidence > 0
+        message.bbox && (message.bbox.confidence ?? 0) > 0
     );
 
     return !!(hasToppersWithBbox || hasSupportWithBbox || hasMessagesWithBbox);

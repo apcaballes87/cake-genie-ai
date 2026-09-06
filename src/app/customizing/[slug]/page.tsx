@@ -415,7 +415,7 @@ export async function generateMetadata(
 }
 
 // JSON-LD Schema for SEO - Enhanced for Google Image Thumbnails
-export function DesignSchema({
+function DesignSchema({
     design,
     prices,
     pageDescription,
