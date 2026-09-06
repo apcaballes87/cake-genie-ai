@@ -140,6 +140,13 @@ const reviewStars: ReactNode[] = Array.from({ length: 5 }, (_, index) => (
 
 const MOBILE_HERO_FRAME_RATIO = 5 / 4;
 
+type OverlayImageBounds = {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+};
+
 const parseAspectRatioValue = (value: string | null | undefined): number | null => {
     if (!value) return null;
     const [rawWidth, rawHeight] = value.split('/').map((part) => Number(part.trim()));
@@ -192,7 +199,7 @@ export const CustomizingHeroPanel = memo(({
     analysisResult = null,
 }: CustomizingHeroPanelProps) => {
     const [originalImageDimensions, setOriginalImageDimensions] = useState<{ width: number, height: number } | null>(null);
-    const [containerSize, setContainerSize] = useState<{ width: number, height: number } | null>(null);
+    const [overlayImageBounds, setOverlayImageBounds] = useState<OverlayImageBounds | null>(null);
     const heroFrameRef = useRef<HTMLDivElement | null>(null);
     const [isHeroImageZoomOpen, setIsHeroImageZoomOpen] = useState(false);
     const [showAnalysis, setShowAnalysis] = useState(true);
@@ -315,33 +322,75 @@ export const CustomizingHeroPanel = memo(({
         centerMobileHeroScrollPosition();
     };
 
-    // Track the hero frame container size for bounding box overlay scaling
+    // Track the actual rendered image, rather than the hero frame. The two
+    // diverge for object-cover crops and a scrolled tall image on mobile.
     useEffect(() => {
-        const el = heroFrameRef.current;
-        if (!el) return;
-        const updateContainerSize = (width: number, height: number) => {
-            if (width > 0 && height > 0) {
-                setContainerSize({ width, height });
+        const frame = heroFrameRef.current;
+        if (!frame || !originalImageDimensions) return;
+
+        const updateImageBounds = () => {
+            const images = Array.from(frame.querySelectorAll<HTMLImageElement>('[data-hero-analysis-image]'));
+            const image = images.find((candidate) => {
+                const rect = candidate.getBoundingClientRect();
+                return candidate.naturalWidth > 0 && candidate.naturalHeight > 0 && rect.width > 0 && rect.height > 0;
+            });
+
+            if (!image) {
+                setOverlayImageBounds((current) => current === null ? current : null);
+                return;
             }
+
+            const frameRect = frame.getBoundingClientRect();
+            const imageRect = image.getBoundingClientRect();
+            let width = imageRect.width;
+            let height = imageRect.height;
+            let left = imageRect.left - frameRect.left;
+            let top = imageRect.top - frameRect.top;
+
+            if (window.getComputedStyle(image).objectFit === 'cover') {
+                const scale = Math.max(imageRect.width / image.naturalWidth, imageRect.height / image.naturalHeight);
+                width = image.naturalWidth * scale;
+                height = image.naturalHeight * scale;
+                left += (imageRect.width - width) / 2;
+                top += (imageRect.height - height) / 2;
+            }
+
+            const next = { left, top, width, height };
+            setOverlayImageBounds((current) => (
+                current
+                && Math.abs(current.left - next.left) < 0.01
+                && Math.abs(current.top - next.top) < 0.01
+                && Math.abs(current.width - next.width) < 0.01
+                && Math.abs(current.height - next.height) < 0.01
+            ) ? current : next);
         };
 
-        // ResizeObserver is available in supported browsers, but use a one-time
-        // measurement in environments where it is unavailable (including tests).
+        updateImageBounds();
+        const scrollArea = mobileHeroScrollRef.current;
+        scrollArea?.addEventListener('scroll', updateImageBounds, { passive: true });
+        window.addEventListener('resize', updateImageBounds);
+
         if (typeof ResizeObserver === 'undefined') {
-            const { width, height } = el.getBoundingClientRect();
-            updateContainerSize(width, height);
-            return;
+            return () => {
+                scrollArea?.removeEventListener('scroll', updateImageBounds);
+                window.removeEventListener('resize', updateImageBounds);
+            };
         }
 
         const observer = new ResizeObserver((entries) => {
-            for (const entry of entries) {
-                const { width, height } = entry.contentRect;
-                updateContainerSize(width, height);
-            }
+            if (entries.length) updateImageBounds();
         });
-        observer.observe(el);
-        return () => observer.disconnect();
-    }, []);
+        observer.observe(frame);
+        for (const image of frame.querySelectorAll<HTMLImageElement>('[data-hero-analysis-image]')) {
+            observer.observe(image);
+        }
+
+        return () => {
+            observer.disconnect();
+            scrollArea?.removeEventListener('scroll', updateImageBounds);
+            window.removeEventListener('resize', updateImageBounds);
+        };
+    }, [activeTab, enableMobileHeroPan, heroDisplaySrc, originalImageDimensions]);
 
     const handleToggleSaveDesign = (event: React.MouseEvent<HTMLButtonElement>) => {
         event.stopPropagation();
@@ -375,6 +424,7 @@ export const CustomizingHeroPanel = memo(({
                             {/* eslint-disable-next-line @next/next/no-img-element -- Mobile hero uses a native scrolling image so the frame stays static and the image can be panned inside it. */}
                             <img
                                 src={src}
+                                data-hero-analysis-image
                                 {...responsiveAttrs}
                                 alt={alt}
                                 title={title}
@@ -429,6 +479,7 @@ export const CustomizingHeroPanel = memo(({
         <figure className="absolute inset-0 w-full h-full">
             <LazyImage
                 src={src}
+                data-hero-analysis-image
                 alt={alt}
                 title={title}
                 fill
@@ -481,6 +532,7 @@ export const CustomizingHeroPanel = memo(({
                 {/* eslint-disable-next-line @next/next/no-img-element -- Desktop hero should size naturally to the source image aspect ratio. */}
                 <img
                     src={src}
+                    data-hero-analysis-image
                     {...responsiveAttrs}
                     alt={alt}
                     title={title}
@@ -702,6 +754,7 @@ export const CustomizingHeroPanel = memo(({
                                         <LazyImage
                                             key={`${activeTab}-${heroDisplaySrc}`}
                                             src={heroDisplaySrc}
+                                            data-hero-analysis-image
                                             alt={heroImageAlt}
                                             title={heroImageTitle}
                                             fill
@@ -831,13 +884,15 @@ export const CustomizingHeroPanel = memo(({
                         ) : null}
 
                         {/* Bounding box overlay from Gemini analysis */}
-                        {showAnalysis && analysisResult && originalImageDimensions && containerSize && activeTab === 'original' && (
+                        {showAnalysis && analysisResult && originalImageDimensions && overlayImageBounds && activeTab === 'original' && (
                             <BoundingBoxOverlay
                                 analysisResult={analysisResult}
-                                containerWidth={containerSize.width}
-                                containerHeight={containerSize.height}
+                                containerWidth={overlayImageBounds.width}
+                                containerHeight={overlayImageBounds.height}
                                 imageWidth={originalImageDimensions.width}
                                 imageHeight={originalImageDimensions.height}
+                                offsetX={overlayImageBounds.left}
+                                offsetY={overlayImageBounds.top}
                                 useTopLeftOrigin
                             />
                         )}

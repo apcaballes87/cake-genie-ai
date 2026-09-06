@@ -6,10 +6,14 @@ type AnyBoundingBox = BoundingBox | { x: number; y: number; width: number; heigh
 
 interface BoundingBoxOverlayProps {
     analysisResult: HybridAnalysisResult;
+    /** Rendered image dimensions, before any crop is clipped by the hero frame. */
     containerWidth: number;
     containerHeight: number;
     imageWidth: number;
     imageHeight: number;
+    /** Rendered image origin relative to the hero frame. May be negative when cropped or scrolled. */
+    offsetX?: number;
+    offsetY?: number;
     /** When true, bbox coordinates are raw pixel values with top-left origin (Gemini). When false, center-origin app coordinates (legacy). */
     useTopLeftOrigin?: boolean;
 }
@@ -82,9 +86,10 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
     containerHeight,
     imageWidth,
     imageHeight,
+    offsetX = 0,
+    offsetY = 0,
     useTopLeftOrigin = false,
 }) => {
-    const scale = containerWidth / imageWidth;
     const boxes: Array<{
         left: number;
         top: number;
@@ -96,11 +101,16 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
         dashed?: boolean;
         confidence?: number;
     }> = [];
+    const applyImageOffset = (display: { left: number; top: number; width: number; height: number }) => ({
+        ...display,
+        left: display.left + offsetX,
+        top: display.top + offsetY,
+    });
 
     // Cake body bounding box (always top-left origin from Gemini)
     if (analysisResult.cake_bbox) {
         const cb = analysisResult.cake_bbox;
-        const display = rawPixelToDisplay(cb.x, cb.y, cb.width, cb.height, imageWidth, imageHeight, containerWidth, containerHeight);
+        const display = applyImageOffset(rawPixelToDisplay(cb.x, cb.y, cb.width, cb.height, imageWidth, imageHeight, containerWidth, containerHeight));
         boxes.push({
             ...display,
             label: 'Cake',
@@ -120,11 +130,11 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
         if (!bbox) return;
         if (useTopLeftOrigin) {
             // Gemini raw pixel coordinates (top-left origin)
-            const display = rawPixelToDisplay(bbox.x, bbox.y, bbox.width, bbox.height, imageWidth, imageHeight, containerWidth, containerHeight);
+            const display = applyImageOffset(rawPixelToDisplay(bbox.x, bbox.y, bbox.width, bbox.height, imageWidth, imageHeight, containerWidth, containerHeight));
             boxes.push({ ...display, label, color, type });
         } else {
             // Legacy center-origin app coordinates
-            const display = appCoordinatesToDisplay(bbox.x, bbox.y, bbox.width, bbox.height, imageWidth, imageHeight, containerWidth, containerHeight);
+            const display = applyImageOffset(appCoordinatesToDisplay(bbox.x, bbox.y, bbox.width, bbox.height, imageWidth, imageHeight, containerWidth, containerHeight));
             boxes.push({
                 ...display,
                 label,
