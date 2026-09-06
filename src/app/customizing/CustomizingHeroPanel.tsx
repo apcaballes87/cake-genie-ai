@@ -5,7 +5,7 @@ import Link from 'next/link';
 import LazyImage from '@/components/LazyImage';
 import { BoundingBoxOverlay } from '@/components/BoundingBoxOverlay';
 import { ImageZoomModal } from '@/components/ImageZoomModal';
-import { Heart, ShieldCheck, Wand2 } from 'lucide-react';
+import { Heart, ShieldCheck, Wand2, ScanEye, EyeOff } from 'lucide-react';
 import { ErrorIcon, ImageIcon, ResetIcon, Loader2, ReportIcon } from '../../components/icons';
 import MagicGlitter from '@/components/MagicGlitter';
 import { getCustomerFacingAnalysisError } from './analysisErrorDisplay';
@@ -195,6 +195,7 @@ export const CustomizingHeroPanel = memo(({
     const [containerSize, setContainerSize] = useState<{ width: number, height: number } | null>(null);
     const heroFrameRef = useRef<HTMLDivElement | null>(null);
     const [isHeroImageZoomOpen, setIsHeroImageZoomOpen] = useState(false);
+    const [showAnalysis, setShowAnalysis] = useState(true);
     const { phrase: dynamicAnalysisPhrase, isVisible: isAnalysisPhraseVisible } = useDynamicLoadingPhrase(isAnalyzing);
     const mobileHeroScrollRef = useRef<HTMLDivElement | null>(null);
     const baseOriginalImageUrl = originalImagePreview || preferredOriginalImageUrl || null;
@@ -215,7 +216,7 @@ export const CustomizingHeroPanel = memo(({
     const preferredBaseHeroUrl = incomingStudioImageUrl || baseOriginalImageUrl;
     const heroDisplaySrc = activeTab === 'customized'
         ? (editedImage || originalHeroModalSrc || '')
-        : (preferredBaseHeroUrl || preloadedHeroImage || fallbackImageUrl || '');
+        : (originalImagePreview || preferredBaseHeroUrl || preloadedHeroImage || fallbackImageUrl || '');
     // Once the base img IS the studio image, the separate overlay becomes
     // redundant; keep the overlay only when we cannot promote it (e.g. when
     // baseOriginalImageUrl is empty — pre-upload product preview).
@@ -318,12 +319,24 @@ export const CustomizingHeroPanel = memo(({
     useEffect(() => {
         const el = heroFrameRef.current;
         if (!el) return;
+        const updateContainerSize = (width: number, height: number) => {
+            if (width > 0 && height > 0) {
+                setContainerSize({ width, height });
+            }
+        };
+
+        // ResizeObserver is available in supported browsers, but use a one-time
+        // measurement in environments where it is unavailable (including tests).
+        if (typeof ResizeObserver === 'undefined') {
+            const { width, height } = el.getBoundingClientRect();
+            updateContainerSize(width, height);
+            return;
+        }
+
         const observer = new ResizeObserver((entries) => {
             for (const entry of entries) {
                 const { width, height } = entry.contentRect;
-                if (width > 0 && height > 0) {
-                    setContainerSize({ width, height });
-                }
+                updateContainerSize(width, height);
             }
         });
         observer.observe(el);
@@ -726,7 +739,18 @@ export const CustomizingHeroPanel = memo(({
                         {hasOriginalDisplayImage ? (
                             <>
                                 {showSaveDesignButton ? (
-                                <div className="absolute bottom-4 left-4 max-md:bottom-3 max-md:left-3 z-10">
+                                <div className="absolute bottom-4 left-4 max-md:bottom-3 max-md:left-3 z-10 flex flex-col gap-2">
+                                        {analysisResult && activeTab === 'original' && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowAnalysis(prev => !prev)}
+                                                className="backdrop-blur-sm rounded-full text-[10px] font-semibold transition-all shadow-md px-[10px] py-[4px] flex items-center !gap-[8px] genie-btn-secondary"
+                                                aria-label={showAnalysis ? 'Hide analysis overlay' : 'Show analysis overlay'}
+                                            >
+                                                {showAnalysis ? <ScanEye className="w-[12px] h-[12px]" /> : <EyeOff className="w-[12px] h-[12px]" />}
+                                                {showAnalysis ? 'Analysis' : 'Analysis'}
+                                            </button>
+                                        )}
                                         <button
                                             onClick={handleToggleSaveDesign}
                                             className={`backdrop-blur-sm rounded-full text-[10px] font-semibold transition-all shadow-md px-[10px] py-[4px] flex items-center !gap-[8px] ${isCurrentDesignSaved ? 'bg-pink-500 text-white hover:bg-pink-600' : 'genie-btn-secondary'}`}
@@ -807,7 +831,7 @@ export const CustomizingHeroPanel = memo(({
                         ) : null}
 
                         {/* Bounding box overlay from Gemini analysis */}
-                        {analysisResult && originalImageDimensions && containerSize && activeTab === 'original' && (
+                        {showAnalysis && analysisResult && originalImageDimensions && containerSize && activeTab === 'original' && (
                             <BoundingBoxOverlay
                                 analysisResult={analysisResult}
                                 containerWidth={containerSize.width}

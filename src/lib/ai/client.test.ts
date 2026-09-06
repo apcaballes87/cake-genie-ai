@@ -3,6 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const writeFileSync = vi.fn();
 const existsSync = vi.fn();
 const GoogleGenAI = vi.fn();
+const getAdcClient = vi.fn();
+const GoogleAuth = vi.fn();
+const Impersonated = vi.fn();
 
 vi.mock('fs', () => ({
     default: {
@@ -13,6 +16,11 @@ vi.mock('fs', () => ({
 
 vi.mock('@google/genai', () => ({
     GoogleGenAI,
+}));
+
+vi.mock('google-auth-library', () => ({
+    GoogleAuth,
+    Impersonated,
 }));
 
 describe('getAI', () => {
@@ -45,7 +53,7 @@ describe('getAI', () => {
 
         const { getAI } = await import('./client');
 
-        expect(getAI()).toBe(clientInstance);
+        expect(await getAI()).toBe(clientInstance);
         expect(writeFileSync).toHaveBeenCalledWith('/tmp/vercel-oidc-token.txt', 'vercel-oidc-token');
         expect(GoogleGenAI).toHaveBeenCalledWith({
             vertexai: true,
@@ -83,7 +91,7 @@ describe('getAI', () => {
             },
         };
 
-        expect(getAI(requestContext)).toBe(clientInstance);
+        expect(await getAI(requestContext)).toBe(clientInstance);
         expect(writeFileSync).toHaveBeenCalledWith('/tmp/vercel-oidc-token.txt', 'runtime-oidc-token');
         expect(getAIClientDiagnostics(requestContext)).toEqual(
             expect.objectContaining({
@@ -94,6 +102,52 @@ describe('getAI', () => {
                 willUseApiKeyFallback: false,
             })
         );
+    });
+
+    it('uses ADC to impersonate the configured service account during local development', async () => {
+        const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const clientInstance = { models: {} };
+        const sourceClient = { getAccessToken: vi.fn() };
+        const impersonatedClient = { getAccessToken: vi.fn() };
+
+        GoogleGenAI.mockImplementation(function GoogleGenAIMock() {
+            return clientInstance as never;
+        });
+        GoogleAuth.mockImplementation(function GoogleAuthMock() {
+            return { getClient: getAdcClient } as never;
+        });
+        getAdcClient.mockResolvedValue(sourceClient);
+        Impersonated.mockImplementation(function ImpersonatedMock() {
+            return impersonatedClient as never;
+        });
+
+        vi.stubEnv('NODE_ENV', 'development');
+        vi.stubEnv('VERTEX_AI_PROJECT', 'genieph-local');
+        vi.stubEnv('VERTEX_AI_IMPERSONATE_SA', 'local-dev-vertex@example.iam.gserviceaccount.com');
+
+        const { getAI, getAIClientDiagnostics } = await import('./client');
+
+        expect(await getAI()).toBe(clientInstance);
+        expect(GoogleAuth).toHaveBeenCalledWith({
+            scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+        });
+        expect(Impersonated).toHaveBeenCalledWith({
+            sourceClient,
+            targetPrincipal: 'local-dev-vertex@example.iam.gserviceaccount.com',
+            targetScopes: ['https://www.googleapis.com/auth/cloud-platform'],
+        });
+        expect(GoogleGenAI).toHaveBeenCalledWith({
+            vertexai: true,
+            project: 'genieph-local',
+            location: 'global',
+            googleAuthOptions: { authClient: impersonatedClient },
+        });
+        expect(getAIClientDiagnostics()).toEqual(expect.objectContaining({
+            mode: 'vertex-impersonate',
+            willUseApiKeyFallback: false,
+        }));
+
+        consoleWarn.mockRestore();
     });
 
     it('provides WIF credentials for Google Cloud Storage with the runtime OIDC header', async () => {
@@ -141,7 +195,7 @@ describe('getAI', () => {
 
         const { getAI } = await import('./client');
 
-        getAI();
+        await getAI();
 
         expect(GoogleGenAI).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -163,7 +217,7 @@ describe('getAI', () => {
 
         const { getAI } = await import('./client');
 
-        expect(getAI()).toBe(clientInstance);
+        expect(await getAI()).toBe(clientInstance);
         expect(GoogleGenAI).toHaveBeenCalledWith({ apiKey: 'local-api-key' });
         expect(writeFileSync).not.toHaveBeenCalled();
         expect(consoleWarn).toHaveBeenCalledWith(
@@ -195,7 +249,7 @@ describe('getAI', () => {
 
         const { getAI } = await import('./client');
 
-        expect(getAI()).toBe(clientInstance);
+        expect(await getAI()).toBe(clientInstance);
         expect(GoogleGenAI).toHaveBeenCalledWith({ apiKey: 'local-api-key' });
         expect(consoleWarn).toHaveBeenCalledWith(
             'Falling back to GOOGLE_AI_API_KEY because the WIF subject token file is unavailable at /tmp/vercel-oidc-token.txt.'
@@ -225,11 +279,11 @@ describe('getAI', () => {
 
         const { getAI } = await import('./client');
 
-        expect(getAI()).toBe(clientInstance);
+        expect(await getAI()).toBe(clientInstance);
 
         vi.stubEnv('VERCEL_OIDC_TOKEN', 'second-token');
 
-        expect(getAI()).toBe(clientInstance);
+        expect(await getAI()).toBe(clientInstance);
         expect(GoogleGenAI).toHaveBeenCalledTimes(1);
         expect(writeFileSync).toHaveBeenNthCalledWith(1, '/tmp/vercel-oidc-token.txt', 'first-token');
         expect(writeFileSync).toHaveBeenNthCalledWith(2, '/tmp/vercel-oidc-token.txt', 'second-token');
@@ -246,7 +300,7 @@ describe('getAI', () => {
 
         const { getAI } = await import('./client');
 
-        expect(getAI()).toBe(clientInstance);
+        expect(await getAI()).toBe(clientInstance);
         expect(consoleError).toHaveBeenCalledWith(
             'Failed to parse GOOGLE_CREDENTIALS_JSON:',
             expect.any(SyntaxError)
@@ -268,7 +322,7 @@ describe('getAI', () => {
 
         const { getAI, getAIClientDiagnostics } = await import('./client');
 
-        getAI();
+        await getAI();
 
         expect(getAIClientDiagnostics()).toEqual(
             expect.objectContaining({

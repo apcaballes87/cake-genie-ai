@@ -315,7 +315,7 @@ describe('CustomizingHeroPanel', () => {
         expect(frame).toHaveStyle({ aspectRatio: '6 / 5' });
     });
 
-    it('swaps to the preferred original image after it loads', () => {
+    it('keeps the raw uploaded image on the original tab when a studio image becomes available', () => {
         const props = buildProps();
         props.activeTab = 'original';
         props.originalImagePreview = 'https://example.com/original-cake.jpg';
@@ -333,14 +333,23 @@ describe('CustomizingHeroPanel', () => {
         );
 
         const heroImages = screen.getAllByRole('img', { name: 'Hero cake' });
-        expect(heroImages.some((image) => image.getAttribute('src') === 'https://example.com/studio-cake.webp')).toBe(true);
+        expect(heroImages.some((image) => image.getAttribute('src') === 'https://example.com/original-cake.jpg')).toBe(true);
+        expect(heroImages.some((image) => image.getAttribute('src') === 'https://example.com/studio-cake.webp')).toBe(false);
+    });
 
-        const studioImage = heroImages.find((image) => image.getAttribute('src') === 'https://example.com/studio-cake.webp');
-        expect(studioImage).toBeTruthy();
+    it('shows and hides analysis controls only for an analyzed original image', () => {
+        const props = buildProps();
+        props.activeTab = 'original';
+        props.originalImagePreview = 'https://example.com/original-cake.jpg';
+        props.showSaveDesignButton = true;
+        props.analysisResult = { cake_bbox: { x: 10, y: 10, width: 80, height: 80 } } as React.ComponentProps<typeof CustomizingHeroPanel>['analysisResult'];
 
-        fireEvent.load(studioImage as HTMLImageElement);
+        render(<CustomizingHeroPanel {...props} />);
 
-        const postLoadImages = screen.getAllByRole('img', { name: 'Hero cake' });
-        expect(postLoadImages.some((image) => image.getAttribute('src') === 'https://example.com/studio-cake.webp')).toBe(true);
+        fireEvent.click(screen.getByRole('button', { name: 'Hide analysis overlay' }));
+        expect(screen.getByRole('button', { name: 'Show analysis overlay' })).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Show analysis overlay' }));
+        expect(screen.getByRole('button', { name: 'Hide analysis overlay' })).toBeInTheDocument();
     });
 });
