@@ -505,6 +505,9 @@ export default function SearchAnalysisAdminPage() {
                 if (!pHash) {
                     throw new Error(fingerprint.error || 'Failed to generate server image hash.');
                 }
+                if (!fingerprint.pdqHash || fingerprint.pdqQuality === null || fingerprint.pdqQuality < 50 || !fingerprint.pdqPipeline) {
+                    throw new Error(fingerprint.error || 'PDQ fingerprint is unavailable or below the quality threshold.');
+                }
 
                 if (seenPHashesRef.current.has(pHash)) {
                     addLog(`[${i + 1}/${currentQueueLength}] Duplicate pHash in current run — skipped.`);
@@ -538,6 +541,9 @@ export default function SearchAnalysisAdminPage() {
                             body: JSON.stringify({
                                 pHash,
                                 fingerprintPipeline: fingerprint.pipeline,
+                                pdqHash: fingerprint.pdqHash,
+                                pdqQuality: fingerprint.pdqQuality,
+                                pdqPipeline: fingerprint.pdqPipeline,
                                 sourceImageUrl: targetImageUrl,
                                 imageData: imageData.data,
                                 mimeType: imageData.mimeType,
@@ -580,6 +586,9 @@ export default function SearchAnalysisAdminPage() {
                     const cachedResult = await cacheAnalysisResult(pHash, analysisResult, targetImageUrl, blob, {
                         triggerStudioEdit: false,
                         fingerprintPipeline: fingerprint.pipeline,
+                        pdqHash: fingerprint.pdqHash,
+                        pdqQuality: fingerprint.pdqQuality,
+                        pdqPipeline: fingerprint.pdqPipeline,
                     });
                     if (cachedResult) {
                         setStudioQueueReadyItems((prev) => [

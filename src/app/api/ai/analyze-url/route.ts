@@ -4,7 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { runActiveCakeAnalysis } from '@/lib/ai/analyzeCakeImage';
 import { isRejectedGeneratedCakeAnalysis } from '@/lib/ai/generatedAnalysisContract';
 import { cacheAnalysisResult } from '@/services/supabaseService';
-import { computeImageFingerprint } from '@/lib/server/imageFingerprint';
+import { computeImageFingerprint, computeLegacyImageFingerprint } from '@/lib/server/imageFingerprint';
 import { convertToWebPBuffer } from '@/lib/utils/imageHash';
 
 export const runtime = 'nodejs';
@@ -142,18 +142,42 @@ export async function POST(req: NextRequest) {
         }
 
         const webpBuffer = await convertToWebPBuffer(imageBuffer);
-        const fingerprint = await computeImageFingerprint(imageBuffer);
+        let fingerprint;
+        try {
+            fingerprint = await computeImageFingerprint(imageBuffer);
+        } catch (fingerprintError) {
+            // URL analysis remains useful when the optional similarity backend is
+            // unavailable; it simply cannot read or create a similarity cache row.
+            const legacy = await computeLegacyImageFingerprint(imageBuffer);
+            console.warn('PDQ fingerprint unavailable for URL analysis; continuing without cache matching:', fingerprintError);
+            fingerprint = {
+                ...legacy,
+                pdqHash: null,
+                pdqQuality: null,
+                pdqPipeline: null,
+            };
+        }
         const pHash = fingerprint.pHash;
 
-        const existingCache = await supabase
-            .rpc('find_similar_analysis_by_fingerprint', {
-                new_hash: pHash,
-                new_pipeline: fingerprint.pipeline,
-            });
+        const hasTrustedFingerprint = Boolean(
+            fingerprint.pdqHash
+            && fingerprint.pdqQuality !== null
+            && fingerprint.pdqQuality >= 50
+            && fingerprint.pdqPipeline
+        );
+        const existingCache = hasTrustedFingerprint
+            ? await supabase.rpc('find_similar_analysis_by_pdq', {
+                new_hash: fingerprint.pdqHash,
+                new_quality: fingerprint.pdqQuality,
+                new_pipeline: fingerprint.pdqPipeline,
+                max_distance: 35,
+                min_quality: 50,
+            })
+            : { error: null, data: [] };
 
         if (!existingCache.error && existingCache.data && existingCache.data.length > 0) {
             const cached = existingCache.data[0];
-            console.log('✅ Cache HIT for pHash:', pHash);
+            console.log('✅ Cache HIT for PDQ:', fingerprint.pdqHash);
 
             const slug = cached.slug || `url-${pHash.substring(0, 8)}`;
             const filePath = `url-analysis/${slug}.webp`;
@@ -180,7 +204,7 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        console.log('🔄 Cache MISS for pHash:', pHash);
+        console.log('🔄 Cache MISS for PDQ:', fingerprint.pdqHash || 'unavailable');
 
         const base64Image = webpBuffer.toString('base64');
         const { result } = await runActiveCakeAnalysis({
@@ -223,17 +247,22 @@ export async function POST(req: NextRequest) {
         try {
             const webpBlob = new Blob([Uint8Array.from(webpBuffer)], { type: 'image/webp' });
 
-            const cachedResult = await cacheAnalysisResult(
-                pHash,
-                result,
-                publicUrl,
-                webpBlob,
-                {
-                    client: supabase,
-                    fingerprintPipeline: fingerprint.pipeline,
-                    triggerStudioEdit: false,
-                }
-            );
+            const cachedResult = hasTrustedFingerprint
+                ? await cacheAnalysisResult(
+                    pHash,
+                    result,
+                    publicUrl,
+                    webpBlob,
+                    {
+                        client: supabase,
+                        fingerprintPipeline: fingerprint.pipeline,
+                        pdqHash: fingerprint.pdqHash,
+                        pdqQuality: fingerprint.pdqQuality,
+                        pdqPipeline: fingerprint.pdqPipeline,
+                        triggerStudioEdit: false,
+                    }
+                )
+                : null;
 
             if (!cachedResult) {
                 throw new Error('Shared cache writer returned null');

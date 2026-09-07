@@ -157,6 +157,9 @@ export default function BulkAnalysisAdminPage() {
                 if (!pHash) {
                     throw new Error(fingerprint.error || 'Failed to generate server image hash.');
                 }
+                if (!fingerprint.pdqHash || fingerprint.pdqQuality === null || fingerprint.pdqQuality < 50 || !fingerprint.pdqPipeline) {
+                    throw new Error(fingerprint.error || 'PDQ fingerprint is unavailable or below the quality threshold.');
+                }
 
                 // 3. Call AI endpoint
                 const aiResponse = await fetch('/api/ai/analyze', {
@@ -185,6 +188,9 @@ export default function BulkAnalysisAdminPage() {
                 await cacheAnalysisResult(pHash, analysisResult, linkImage, blob, {
                     triggerStudioEdit: false,
                     fingerprintPipeline: fingerprint.pipeline,
+                    pdqHash: fingerprint.pdqHash,
+                    pdqQuality: fingerprint.pdqQuality,
+                    pdqPipeline: fingerprint.pdqPipeline,
                 });
 
                 // 5. Update row 

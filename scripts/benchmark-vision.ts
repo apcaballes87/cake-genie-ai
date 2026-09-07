@@ -60,12 +60,13 @@ async function runBenchmark() {
     const imgData = await fileToBase64(imagePath);
     const fileBuffer = fs.readFileSync(imagePath);
 
-    // 1. Local Image Perceptual Hashing (ahash)
-    console.log("\n1. Running Local Perceptual Hashing (ahash)...");
+    // 1. Server-side PDQ plus opaque legacy cache identity
+    console.log("\n1. Running Server-side PDQ Fingerprinting...");
     const hashStart = performance.now();
     const fingerprint = await computeImageFingerprint(fileBuffer);
     const hashDuration = performance.now() - hashStart;
-    console.log(`   - pHash generated: ${fingerprint.pHash}`);
+    console.log(`   - PDQ generated: ${fingerprint.pdqHash} (quality ${fingerprint.pdqQuality})`);
+    console.log(`   - Legacy pHash compatibility value: ${fingerprint.pHash}`);
     console.log(`   - Duration: ${hashDuration.toFixed(2)} ms`);
 
     // 2. Multimodal Embedding (Vertex AI multimodalembedding@001 REST call)

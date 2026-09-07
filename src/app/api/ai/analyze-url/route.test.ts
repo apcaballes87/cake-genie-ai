@@ -32,6 +32,13 @@ vi.mock('@/lib/server/imageFingerprint', () => ({
   computeImageFingerprint: vi.fn(async () => ({
     pHash: 'abcdef1234567890',
     pipeline: 'server-v1',
+    pdqHash: 'ab'.repeat(32),
+    pdqQuality: 90,
+    pdqPipeline: 'pdq-test',
+  })),
+  computeLegacyImageFingerprint: vi.fn(async () => ({
+    pHash: 'abcdef1234567890',
+    pipeline: 'server-v1',
   })),
 }));
 

@@ -1,12 +1,16 @@
 export interface ClientImageFingerprint {
   pHash: string | null;
   pipeline: string | null;
+  pdqHash: string | null;
+  pdqQuality: number | null;
+  pdqPipeline: string | null;
   error: string | null;
 }
 
 export interface ImageFingerprintLookup {
-  pHash: string | null;
-  pipeline: string | null;
+  pdqHash: string | null;
+  pdqQuality: number | null;
+  pdqPipeline: string | null;
 }
 
 function getFingerprintErrorMessage(error: unknown) {
@@ -40,8 +44,13 @@ export async function generateServerImageFingerprint(
 
       const result = await response.json();
       return {
-        pHash: typeof result?.pHash === 'string' ? result.pHash : null,
-        pipeline: typeof result?.pipeline === 'string' ? result.pipeline : null,
+        pHash: typeof result?.legacyPHash === 'string' ? result.legacyPHash : null,
+        pipeline: typeof result?.legacyPipeline === 'string' ? result.legacyPipeline : null,
+        pdqHash: typeof result?.pdqHash === 'string' && /^[0-9a-f]{64}$/i.test(result.pdqHash)
+          ? result.pdqHash.toLowerCase()
+          : null,
+        pdqQuality: typeof result?.pdqQuality === 'number' ? result.pdqQuality : null,
+        pdqPipeline: typeof result?.pdqPipeline === 'string' ? result.pdqPipeline : null,
         error: null,
       };
     } catch (error) {
@@ -54,14 +63,15 @@ export async function generateServerImageFingerprint(
     }
   }
 
-  return { pHash: null, pipeline: null, error: lastError };
+  return { pHash: null, pipeline: null, pdqHash: null, pdqQuality: null, pdqPipeline: null, error: lastError };
 }
 
 export function toFingerprintLookup(
   fingerprint: ClientImageFingerprint
 ): ImageFingerprintLookup {
   return {
-    pHash: fingerprint.pHash,
-    pipeline: fingerprint.pipeline,
+    pdqHash: fingerprint.pdqHash,
+    pdqQuality: fingerprint.pdqQuality,
+    pdqPipeline: fingerprint.pdqPipeline,
   };
 }

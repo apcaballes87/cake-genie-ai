@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { CloseIcon, MessageCircle, Loader2, SendIcon, ImageIcon } from './icons';
 import { createClient } from '@/lib/supabase/client';
 import { fileToBase64, analyzeCakeFeaturesOnly, enrichAnalysisWithRoboflow, validateCakeImage } from '@/services/geminiService';
-import { findAnalysisByExactHash, findSimilarAnalysisByHash, cacheAnalysisResult } from '@/services/supabaseService';
+import { findSimilarAnalysisByHash, cacheAnalysisResult } from '@/services/supabaseService';
 import { HybridAnalysisResult } from '@/types';
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils';
@@ -190,30 +190,11 @@ async function saveSystemMessage(conversationId: string, content: string): Promi
     }
 }
 
-async function generateStableFallbackHash(base64Data: string): Promise<string | null> {
-    try {
-        const binary = atob(base64Data);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) {
-            bytes[i] = binary.charCodeAt(i);
-        }
-
-        const digest = await crypto.subtle.digest('SHA-256', bytes);
-        return Array.from(new Uint8Array(digest))
-            .slice(0, 8)
-            .map((byte) => byte.toString(16).padStart(2, '0'))
-            .join('');
-    } catch (error) {
-        console.warn('⚠️ Chat: failed to generate fallback image hash', error);
-        return null;
-    }
-}
-
 async function analyzeImageWithCache(
     imageData: { data: string; mimeType: string },
     imageUrl?: string,
     preparedFile?: File,
-): Promise<{ analysis: HybridAnalysisResult | null; slug: string | null; title: string | null; price: number | null; imageUrl: string | null; cacheKey: string | null; pipeline?: string | null }> {
+): Promise<{ analysis: HybridAnalysisResult | null; slug: string | null; title: string | null; price: number | null; imageUrl: string | null; cacheKey: string | null; pipeline?: string | null; quality?: number | null }> {
     const file = preparedFile || new File([
         dataURItoBlob(`data:${imageData.mimeType};base64,${imageData.data}`),
     ], 'chat-image.webp', { type: imageData.mimeType });
@@ -222,22 +203,19 @@ async function analyzeImageWithCache(
         ? imageData
         : await fileToBase64(new File([compressedFile], 'chat-image.webp', { type: 'image/webp' }));
     const fingerprint = await generateServerImageFingerprint(compressedFile);
-    const cacheKey = fingerprint.pHash
-        ?? await generateStableFallbackHash(imageData.data);
+    const cacheKey = fingerprint.pdqHash;
     console.log(
         `🖼️ Chat hash result: ${
-            fingerprint.pHash
-                ? `${fingerprint.pHash} (server)`
-                : cacheKey
-                    ? `${cacheKey} (stable fallback)`
-                    : 'FAILED (null)'
+            fingerprint.pdqHash
+                ? `${fingerprint.pdqHash} (server PDQ)`
+                : 'FAILED (PDQ unavailable)'
         }`
     );
 
-    if (fingerprint.pHash) {
+    if (fingerprint.pdqHash && fingerprint.pdqQuality !== null && fingerprint.pdqQuality >= 50 && fingerprint.pdqPipeline) {
         const cacheHit = await findSimilarAnalysisByHash(toFingerprintLookup(fingerprint), imageUrl);
         if (cacheHit) {
-            console.log('⚡ Chat: pHash Cache Hit! Using cached analysis.');
+            console.log('⚡ Chat: PDQ Cache Hit! Using cached analysis.');
             return {
                 analysis: cacheHit.analysisResult,
                 slug: cacheHit.seoMetadata.slug,
@@ -245,7 +223,8 @@ async function analyzeImageWithCache(
                 price: cacheHit.seoMetadata.price,
                 imageUrl: cacheHit.seoMetadata.original_image_url,
                 cacheKey,
-                pipeline: fingerprint.pipeline,
+                pipeline: fingerprint.pdqPipeline,
+                quality: fingerprint.pdqQuality,
             };
         }
     } else {
@@ -254,7 +233,7 @@ async function analyzeImageWithCache(
 
     console.log('🔄 Chat: Cache miss, running AI analysis...');
     const fastResult = await analyzeCakeFeaturesOnly(compressedData.data, compressedData.mimeType);
-    if (!fastResult) return { analysis: null, slug: null, title: null, price: null, imageUrl: null, cacheKey, pipeline: fingerprint.pipeline };
+    if (!fastResult) return { analysis: null, slug: null, title: null, price: null, imageUrl: null, cacheKey, pipeline: fingerprint.pdqPipeline, quality: fingerprint.pdqQuality };
     let finalResult = fastResult;
     const hasBbox = hasBoundingBoxData(fastResult);
     if (!hasBbox) {
@@ -264,9 +243,12 @@ async function analyzeImageWithCache(
             console.warn('Chat: enrichment failed, using fast result');
         }
     }
-    if (fingerprint.pHash && finalResult) {
+    if (fingerprint.pHash && fingerprint.pdqHash && fingerprint.pdqQuality !== null && fingerprint.pdqQuality >= 50 && fingerprint.pdqPipeline && finalResult) {
         const cached = await cacheAnalysisResult(fingerprint.pHash, finalResult, imageUrl, compressedFile, {
             fingerprintPipeline: fingerprint.pipeline,
+            pdqHash: fingerprint.pdqHash,
+            pdqQuality: fingerprint.pdqQuality,
+            pdqPipeline: fingerprint.pdqPipeline,
         });
         if (cached) {
             return {
@@ -276,12 +258,13 @@ async function analyzeImageWithCache(
                 price: cached.price,
                 imageUrl: cached.original_image_url,
                 cacheKey,
-                pipeline: fingerprint.pipeline,
+                pipeline: fingerprint.pdqPipeline,
+                quality: fingerprint.pdqQuality,
             };
         }
     }
 
-    return { analysis: finalResult, slug: null, title: null, price: null, imageUrl: null, cacheKey, pipeline: fingerprint.pipeline };
+    return { analysis: finalResult, slug: null, title: null, price: null, imageUrl: null, cacheKey, pipeline: fingerprint.pdqPipeline, quality: fingerprint.pdqQuality };
 }
 
 const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmail, userName }) => {
@@ -497,7 +480,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
         return urlData.publicUrl;
     };
 
-    const queueImageLinkFollowUp = (analysisId: number, cacheKey: string, pipeline?: string | null) => {
+    const queueImageLinkFollowUp = (analysisId: number, cacheKey: string, pipeline?: string | null, quality?: number | null) => {
         pendingImageHashRef.current = cacheKey;
 
         const followUpTimeout = window.setTimeout(async () => {
@@ -506,8 +489,8 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
             }
 
             const recheck = pipeline
-                ? await findSimilarAnalysisByHash({ pHash: cacheKey, pipeline })
-                : await findAnalysisByExactHash(cacheKey);
+                ? await findSimilarAnalysisByHash({ pdqHash: cacheKey, pdqQuality: quality ?? 0, pdqPipeline: pipeline })
+                : null;
 
             if (analysisId !== activeImageAnalysisIdRef.current || pendingImageHashRef.current !== cacheKey) {
                 return;
@@ -670,7 +653,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                     }
 
                     if (analysisResult.analysis && !analysisResult.slug && analysisResult.cacheKey) {
-                        queueImageLinkFollowUp(analysisId, analysisResult.cacheKey, analysisResult.pipeline);
+                        queueImageLinkFollowUp(analysisId, analysisResult.cacheKey, analysisResult.pipeline, analysisResult.quality);
                     }
                 } catch (analysisErr) {
                     console.error('Error analyzing image:', analysisErr);

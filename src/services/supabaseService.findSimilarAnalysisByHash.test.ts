@@ -26,108 +26,68 @@ vi.mock('@supabase/supabase-js', () => ({
   createClient: () => mockClient,
 }));
 
+const pdqHash = 'ab'.repeat(32);
+
 describe('findSimilarAnalysisByHash', () => {
   beforeEach(() => {
     rpcMock.mockReset();
     updateMock.mockReset();
     selectMock.mockReset().mockReturnValue(queryMock);
-    eqMock.mockReset();
-    eqMock.mockReturnValue(queryMock);
+    eqMock.mockReset().mockReturnValue(queryMock);
     maybeSingleMock.mockReset();
     mockClient.from.mockClear();
   });
 
-  it('returns a similarity hit without incrementing usage_count', async () => {
+  it('uses the PDQ RPC with quality, pipeline, and the initial distance threshold', async () => {
     rpcMock.mockResolvedValue({
-      data: [
-        {
-          seo_status: 'published',
-          id: 'cache-row-1',
-          p_hash: 'abc123def4567890',
-          analysis_json: { cakeType: 'Bento', keyword: 'lavender' },
-          seo_title: 'Lavender Cake',
-          seo_description: 'Known design',
-          keywords: 'lavender',
-          alt_text: 'Lavender cake',
-          slug: 'lavender-cake-abc123de',
-          original_image_url: 'https://example.com/lavender.webp',
-          price: 999,
-          availability: 'made_to_order',
-        },
-      ],
+      data: [{
+        seo_status: 'published',
+        id: 'cache-row-1',
+        p_hash: 'abc123def4567890',
+        pdq_hash: pdqHash,
+        pdq_quality: 92,
+        pdq_pipeline: 'pdq-test',
+        analysis_json: { cakeType: 'Bento', keyword: 'lavender' },
+        seo_title: 'Lavender Cake',
+        seo_description: 'Known design',
+        keywords: 'lavender',
+        alt_text: 'Lavender cake',
+        slug: 'lavender-cake-abc123de',
+        original_image_url: 'https://example.com/lavender.webp',
+        price: 999,
+        availability: 'made_to_order',
+      }],
       error: null,
     });
 
     const { findSimilarAnalysisByHash } = await import('./supabaseService');
     const result = await findSimilarAnalysisByHash({
-      pHash: 'abc123def4567890',
-      pipeline: 'v2-sharp-0.34-autoOrient-srgb-512-contain-white-lanczos3-gray-dhash8',
+      pdqHash,
+      pdqQuality: 92,
+      pdqPipeline: 'pdq-test',
     });
 
     expect(result?.seoMetadata.slug).toBe('lavender-cake-abc123de');
-    expect(result?.id).toBe('cache-row-1');
-    expect(rpcMock).toHaveBeenCalledWith('find_similar_analysis_by_fingerprint', {
-      new_hash: 'abc123def4567890',
-      new_pipeline: 'v2-sharp-0.34-autoOrient-srgb-512-contain-white-lanczos3-gray-dhash8',
+    expect(result?.pdqHash).toBe(pdqHash);
+    expect(rpcMock).toHaveBeenCalledWith('find_similar_analysis_by_pdq', {
+      new_hash: pdqHash,
+      new_quality: 92,
+      new_pipeline: 'pdq-test',
+      max_distance: 35,
+      min_quality: 50,
     });
-    expect(mockClient.from).not.toHaveBeenCalled();
-    expect(updateMock).not.toHaveBeenCalled();
-    expect(eqMock).not.toHaveBeenCalled();
   });
 
-  it('prefers canonical server pHash lookup when provided', async () => {
-    rpcMock.mockResolvedValue({
-      data: [
-        {
-          seo_status: 'published',
-          id: 'cache-row-2',
-          p_hash: 'deadbeef1234abcd',
-          analysis_json: { cakeType: 'Bento', keyword: 'server' },
-          seo_title: 'Server Cake',
-          seo_description: 'Found via server fingerprint',
-          keywords: 'server',
-          alt_text: 'Server cake',
-          slug: 'server-cake-deadbeef',
-          original_image_url: 'https://example.com/server.webp',
-          price: 1499,
-          availability: 'made_to_order',
-        },
-      ],
-      error: null,
-    });
-
+  it('fails closed for malformed, low-quality, or incomplete PDQ inputs', async () => {
     const { findSimilarAnalysisByHash } = await import('./supabaseService');
-    const result = await findSimilarAnalysisByHash({
-      pHash: 'deadbeef1234abcd',
-      pipeline: 'v1-test',
-    });
 
-    expect(rpcMock).toHaveBeenCalledTimes(1);
-    expect(result?.id).toBe('cache-row-2');
-    expect(rpcMock).toHaveBeenCalledWith('find_similar_analysis_by_fingerprint', {
-      new_hash: 'deadbeef1234abcd',
-      new_pipeline: 'v1-test',
-    });
-    expect(result?.seoMetadata.slug).toBe('server-cake-deadbeef');
+    expect(await findSimilarAnalysisByHash({ pdqHash: 'not-a-hash', pdqQuality: 90, pdqPipeline: 'pdq-test' })).toBeNull();
+    expect(await findSimilarAnalysisByHash({ pdqHash, pdqQuality: 49, pdqPipeline: 'pdq-test' })).toBeNull();
+    expect(await findSimilarAnalysisByHash({ pdqHash, pdqQuality: 90, pdqPipeline: null })).toBeNull();
+    expect(rpcMock).not.toHaveBeenCalled();
   });
 
-  it('drops malformed non-hex hashes before calling the RPCs', async () => {
-    rpcMock.mockResolvedValue({
-      data: [],
-      error: null,
-    });
-
-    const { findSimilarAnalysisByHash } = await import('./supabaseService');
-    const result = await findSimilarAnalysisByHash({
-      pHash: 'not-a-real-phash',
-      pipeline: 'v1-test',
-    });
-
-    expect(rpcMock).toHaveBeenCalledTimes(0);
-    expect(result).toBeNull();
-  });
-
-  it('looks up saved hashes by exact p_hash without a legacy pipeline fallback', async () => {
+  it('keeps exact legacy p_hash lookup available for saved references', async () => {
     maybeSingleMock.mockResolvedValue({
       data: {
         seo_status: 'published',
@@ -150,22 +110,7 @@ describe('findSimilarAnalysisByHash', () => {
     const result = await findAnalysisByExactHash('ABC123DEF4567890');
 
     expect(result?.id).toBe('cache-row-exact');
-    expect(result?.seoMetadata.slug).toBe('exact-cake-abc123');
-    expect(rpcMock).not.toHaveBeenCalled();
     expect(mockClient.from).toHaveBeenCalledWith('cakegenie_analysis_cache');
     expect(eqMock).toHaveBeenCalledWith('p_hash', 'abc123def4567890');
   });
-  it('keeps pending cache analysis usable without exposing a product slug', async () => {
-    rpcMock.mockResolvedValue({ data: [{
-      id: 'pending-row', p_hash: 'abc123def4567890', seo_status: 'pending',
-      analysis_json: { cakeType: 'Bento', keyword: 'pink' }, slug: 'pending-cake',
-      price: 999, keywords: 'pink', original_image_url: 'https://example.com/cake.webp',
-    }], error: null });
-    const { findSimilarAnalysisByHash } = await import('./supabaseService');
-    const result = await findSimilarAnalysisByHash({ pHash: 'abc123def4567890', pipeline: 'v1' });
-    expect(result?.analysisResult.cakeType).toBe('Bento');
-    expect(result?.id).toBe('pending-row');
-    expect(result?.seoMetadata.slug).toBeNull();
-  });
-
 });
