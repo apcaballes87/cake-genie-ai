@@ -593,7 +593,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             let fingerprint: ClientImageFingerprint | null = null;
             let pHash: string | null = null;
 
-            // Generate canonical server fingerprint using the Sharp dHash pipeline.
+            // Generate the compatibility pHash and authoritative server-side PDQ fingerprint.
             const [fingerprintResult, validationClassification] = await Promise.all([
                 generateServerImageFingerprint(finalImageBlobToCache ?? file),
                 validateCakeImage(compressedImageData.data, compressedImageData.mimeType, 'default'),
@@ -602,9 +602,9 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             fingerprint = fingerprintResult;
             pHash = fingerprint.pHash;
             console.log(
-                `🔍 Server pHash result: ${pHash
-                    ? pHash
-                    : `FAILED (${fingerprint.error || 'unknown error'}) — new cache writes will be skipped`}`
+                `🔍 Server fingerprint result: ${fingerprint.pdqHash
+                    ? `${fingerprint.pdqHash} (PDQ quality ${fingerprint.pdqQuality})`
+                    : `FAILED (${fingerprint.error || 'unknown error'}) — cache matching and writes will be skipped`}`
             );
 
             const validationMessage = VALIDATION_REJECTION_MESSAGES[validationClassification];
@@ -618,20 +618,29 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 throw new Error(`AI_REJECTION: ${validationMessage}`);
             }
 
-            const shouldUseSimilarCacheLookup = !knownSeoMetadata && pHash !== null && !isPhotoReferenceCandidate;
+            const hasTrustedFingerprint = Boolean(
+                pHash
+                && fingerprint.pdqHash
+                && fingerprint.pdqQuality !== null
+                && fingerprint.pdqQuality >= 50
+                && fingerprint.pdqPipeline
+            );
+            const shouldUseSimilarCacheLookup = !knownSeoMetadata && hasTrustedFingerprint && !isPhotoReferenceCandidate;
 
             if (shouldUseSimilarCacheLookup) {
                 const cacheHitRaw = await findSimilarAnalysisByHash(toFingerprintLookup(fingerprint), options?.imageUrl);
                 if (cacheHitRaw) {
                     showProgressToast('We found your cake photo! 🎉', 3000);
                     cacheHit = cacheHitRaw;
-                    console.log(`✅ pHash Cache HIT! Found matching analysis for hash: ${pHash}`);
+                    console.log(`✅ PDQ Cache HIT! Found matching analysis for hash: ${fingerprint.pdqHash}`);
                 } else {
                     showProgressToast('Analyzing your design with AI…', 15000);
-                    console.log('⚫️ Cache MISS. No matching pHash found in database.');
+                    console.log('⚫️ Cache MISS. No matching PDQ fingerprint found in database.');
                 }
             } else {
-                showProgressToast('Analyzing your design with AI…', 15000);
+                if (!cacheHit) {
+                    showProgressToast('Analyzing your design with AI…', 15000);
+                }
             }
 
             // --- PROCESS CACHE HIT (IF ANY) ---
@@ -711,10 +720,13 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             // parallel path. Photo-reference candidates are excluded so a raw portrait or
             // artwork cannot enter normal Studio before the edible-photo decision is made.
             const earlyStudioSetupPromise =
-                isParallelStudioCandidate && pHash && fingerprint
+                isParallelStudioCandidate && hasTrustedFingerprint && pHash && fingerprint
                     ? (async () => {
                         const preparedStudioRow = await prepareStudioEditCacheRow(pHash, {
                             fingerprintPipeline: fingerprint.pipeline,
+                            pdqHash: fingerprint.pdqHash,
+                            pdqQuality: fingerprint.pdqQuality,
+                            pdqPipeline: fingerprint.pdqPipeline,
                             originalImageUrl: uploadedImageUrl || null,
                         });
 
@@ -769,9 +781,12 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     ? await earlyStudioSetupPromise
                     : null;
                 const preparedStudioRow = earlyStudioSetup?.preparedStudioRow
-                    ?? (pHash && fingerprint
+                    ?? (hasTrustedFingerprint && pHash && fingerprint
                         ? await prepareStudioEditCacheRow(pHash, {
                             fingerprintPipeline: fingerprint.pipeline,
+                            pdqHash: fingerprint.pdqHash,
+                            pdqQuality: fingerprint.pdqQuality,
+                            pdqPipeline: fingerprint.pdqPipeline,
                             originalImageUrl: uploadedImageUrl || null,
                         })
                         : null);
@@ -782,7 +797,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 }
 
                 let studioTriggerHandled = earlyStudioSetup?.studioTriggerHandled ?? false;
-                if (pHash && !earlyStudioSetup) {
+                if (hasTrustedFingerprint && pHash && !earlyStudioSetup) {
                     if (preparedStudioRow?.studioTriggerHandled || preparedStudioRow?.shouldTriggerStudioEdit === false) {
                         studioTriggerHandled = true;
                     } else {
@@ -794,9 +809,12 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 }
 
                 const fastCacheWritePromise: ReturnType<typeof cacheAnalysisResult> | null =
-                    pHash && fingerprint
+                    hasTrustedFingerprint && pHash && fingerprint
                         ? cacheAnalysisResult(pHash, fastResult, uploadedImageUrl, finalImageBlobToCache, {
                             fingerprintPipeline: fingerprint.pipeline,
+                            pdqHash: fingerprint.pdqHash,
+                            pdqQuality: fingerprint.pdqQuality,
+                            pdqPipeline: fingerprint.pdqPipeline,
                             triggerStudioEdit: !studioTriggerHandled,
                         })
                         : null;
@@ -835,7 +853,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                             options.onCoordinatesEnriched(enrichedResult);
                         }
 
-                        if (pHash && fingerprint) {
+                        if (hasTrustedFingerprint && pHash && fingerprint) {
                             const initialCacheWrite = fastCacheWritePromise
                                 ? await fastCacheWritePromise.catch(() => null)
                                 : null;
@@ -848,12 +866,18 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                                     undefined,
                                     {
                                         fingerprintPipeline: fingerprint.pipeline,
+                                        pdqHash: fingerprint.pdqHash,
+                                        pdqQuality: fingerprint.pdqQuality,
+                                        pdqPipeline: fingerprint.pdqPipeline,
                                         triggerStudioEdit: false,
                                         persistSourceAsset: false,
                                     }
                                 )
                                 : await cacheAnalysisResult(pHash, enrichedResult, uploadedImageUrl, finalImageBlobToCache, {
                                     fingerprintPipeline: fingerprint.pipeline,
+                                    pdqHash: fingerprint.pdqHash,
+                                    pdqQuality: fingerprint.pdqQuality,
+                                    pdqPipeline: fingerprint.pdqPipeline,
                                 });
 
                             if (cacheWrite) {
@@ -870,7 +894,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     }).catch(async enrichmentError => {
                         console.warn('⚠️ Roboflow enrichment failed; keeping fast analysis cache profile:', enrichmentError);
 
-                        if (pHash && fingerprint) {
+                        if (hasTrustedFingerprint && pHash && fingerprint) {
                             const initialCacheWrite = fastCacheWritePromise
                                 ? await fastCacheWritePromise.catch(() => null)
                                 : null;
@@ -878,6 +902,9 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                             if (!initialCacheWrite) {
                                 const cacheWrite = await cacheAnalysisResult(pHash, fastResult, uploadedImageUrl, finalImageBlobToCache, {
                                     fingerprintPipeline: fingerprint.pipeline,
+                                    pdqHash: fingerprint.pdqHash,
+                                    pdqQuality: fingerprint.pdqQuality,
+                                    pdqPipeline: fingerprint.pdqPipeline,
                                 });
                                 if (cacheWrite) {
                                     setCurrentCacheId(cacheWrite.id ?? null);

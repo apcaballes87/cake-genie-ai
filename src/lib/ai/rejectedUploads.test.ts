@@ -24,6 +24,9 @@ vi.mock('@/lib/server/imageFingerprint', () => ({
   computeImageFingerprint: vi.fn(async () => ({
     pHash: 'abc123def4567890',
     pipeline: 'test-fingerprint-pipeline',
+    pdqHash: 'ab'.repeat(32),
+    pdqQuality: 91,
+    pdqPipeline: 'pdq-test-pipeline',
   })),
 }));
 
@@ -74,6 +77,10 @@ describe('logRejectedUpload', () => {
       image_size_bytes: 16,
       p_hash: 'abc123def4567890',
       fingerprint_pipeline: 'test-fingerprint-pipeline',
+      pdq_hash: 'ab'.repeat(32),
+      pdq_quality: 91,
+      pdq_pipeline: 'pdq-test-pipeline',
+      pdq_status: 'ready',
       storage_bucket: REJECTED_UPLOADS_BUCKET,
       prompt_version: '3.11',
       user_agent: 'vitest',

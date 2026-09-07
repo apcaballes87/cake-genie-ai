@@ -84,6 +84,7 @@ export const useImageManagement = () => {
             let cachedAnalysis: HybridAnalysisResult | null = null;
             let pHash = '';
             let cacheHit = null;
+            let hasTrustedFingerprint = false;
 
             // --- STEP 1: CHECK pHash CACHE (SINGLE SERVER FINGERPRINT PATH) ---
             let fingerprint: ClientImageFingerprint | null = null;
@@ -92,6 +93,12 @@ export const useImageManagement = () => {
                     finalImageBlobToCache ?? file
                 );
                 pHash = fingerprint.pHash || '';
+                hasTrustedFingerprint = Boolean(
+                    fingerprint.pdqHash
+                    && fingerprint.pdqQuality !== null
+                    && fingerprint.pdqQuality >= 50
+                    && fingerprint.pdqPipeline
+                );
 
                 console.log(
                     `🖼️ Server pHash result: ${pHash
@@ -99,7 +106,7 @@ export const useImageManagement = () => {
                         : `FAILED (${fingerprint.error || 'unknown error'}) — new cache writes will be skipped`}`
                 );
 
-                cacheHit = pHash
+                cacheHit = hasTrustedFingerprint
                     ? await findSimilarAnalysisByHash(toFingerprintLookup(fingerprint), uploadedImageUrl)
                     : null;
 
@@ -146,9 +153,12 @@ export const useImageManagement = () => {
                             const blobToPass = cacheHit && cacheHit.seoMetadata.original_image_url ? undefined : bgBlob;
 
                             // Update cache with bbox data only when the authoritative server pHash is available.
-                            if (pHash && fingerprint) {
+                            if (pHash && hasTrustedFingerprint && fingerprint) {
                                 void cacheAnalysisResult(pHash, enrichedResult, undefined, blobToPass, {
                                     fingerprintPipeline: fingerprint.pipeline,
+                                    pdqHash: fingerprint.pdqHash,
+                                    pdqQuality: fingerprint.pdqQuality,
+                                    pdqPipeline: fingerprint.pdqPipeline,
                                 });
                             }
 
@@ -212,16 +222,22 @@ export const useImageManagement = () => {
                     }
 
                     // Cache the fully enriched result (only if pHash is valid)
-                    if (pHash && fingerprint) {
+                    if (pHash && hasTrustedFingerprint && fingerprint) {
                         void cacheAnalysisResult(pHash, enrichedResult, uploadedImageUrl, finalImageBlobToCache, {
                             fingerprintPipeline: fingerprint.pipeline,
+                            pdqHash: fingerprint.pdqHash,
+                            pdqQuality: fingerprint.pdqQuality,
+                            pdqPipeline: fingerprint.pdqPipeline,
                         });
                     }
                 }).catch(enrichmentError => {
                     // Still cache the fast result even if enrichment fails
-                    if (pHash && fingerprint) {
+                    if (pHash && hasTrustedFingerprint && fingerprint) {
                         void cacheAnalysisResult(pHash, fastResult, uploadedImageUrl, finalImageBlobToCache, {
                             fingerprintPipeline: fingerprint.pipeline,
+                            pdqHash: fingerprint.pdqHash,
+                            pdqQuality: fingerprint.pdqQuality,
+                            pdqPipeline: fingerprint.pdqPipeline,
                         });
                     }
                 });

@@ -32,6 +32,9 @@ export type QueueItem = {
   id: string;
   p_hash: string;
   fingerprint_pipeline: string | null;
+  pdq_hash?: string | null;
+  pdq_quality?: number | null;
+  pdq_pipeline?: string | null;
   source_image_url: string | null;
   normalized_image_url: string;
   storage_path: string;
@@ -169,6 +172,9 @@ export function buildSearchAnalysisPersistenceOptions(item: QueueItem, admin: Re
     client: admin,
     triggerStudioEdit: false,
     fingerprintPipeline: item.fingerprint_pipeline,
+    pdqHash: item.pdq_hash,
+    pdqQuality: item.pdq_quality,
+    pdqPipeline: item.pdq_pipeline,
     persistSourceAsset: 'if_missing' as const,
   };
 }
@@ -176,6 +182,9 @@ export function buildSearchAnalysisPersistenceOptions(item: QueueItem, admin: Re
 export async function queueSearchAnalysisItem(input: {
   pHash: string;
   fingerprintPipeline?: string | null;
+  pdqHash?: string | null;
+  pdqQuality?: number | null;
+  pdqPipeline?: string | null;
   sourceImageUrl?: string | null;
   imageData: string;
   mimeType: string;
@@ -200,6 +209,9 @@ export async function queueSearchAnalysisItem(input: {
   const { data, error } = await admin.from('cakegenie_search_analysis_batch_items').upsert({
     p_hash: input.pHash,
     fingerprint_pipeline: input.fingerprintPipeline ?? null,
+    pdq_hash: input.pdqHash ?? null,
+    pdq_quality: input.pdqQuality ?? null,
+    pdq_pipeline: input.pdqPipeline ?? null,
     source_image_url: input.sourceImageUrl ?? null,
     normalized_image_url: publicUrl.publicUrl,
     storage_path: storagePath,

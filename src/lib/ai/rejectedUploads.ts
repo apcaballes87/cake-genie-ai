@@ -58,13 +58,24 @@ export async function logRejectedUpload(input: RejectionLogInput): Promise<void>
 
     let pHash: string | null = null;
     let fingerprintPipeline: string | null = FINGERPRINT_PIPELINE;
+    let pdqHash: string | null = null;
+    let pdqQuality: number | null = null;
+    let pdqPipeline: string | null = null;
+    let pdqStatus: string = 'pending';
+    let pdqError: string | null = null;
 
     try {
       const fingerprint = await computeImageFingerprint(imageBuffer);
       pHash = fingerprint.pHash;
       fingerprintPipeline = fingerprint.pipeline;
+      pdqHash = fingerprint.pdqHash;
+      pdqQuality = fingerprint.pdqQuality;
+      pdqPipeline = fingerprint.pdqPipeline;
+      pdqStatus = pdqHash ? 'ready' : 'low_quality';
     } catch (fingerprintError) {
       fingerprintPipeline = null;
+      pdqStatus = 'failed';
+      pdqError = fingerprintError instanceof Error ? fingerprintError.message : 'PDQ fingerprint failed.';
       console.warn('[RejectedUploadLog] Fingerprint failed:', fingerprintError);
     }
 
@@ -91,6 +102,12 @@ export async function logRejectedUpload(input: RejectionLogInput): Promise<void>
       image_sha256: imageSha256,
       p_hash: pHash,
       fingerprint_pipeline: fingerprintPipeline,
+      pdq_hash: pdqHash,
+      pdq_quality: pdqQuality,
+      pdq_pipeline: pdqPipeline,
+      pdq_status: pdqStatus,
+      pdq_error: pdqError,
+      pdq_computed_at: pdqHash ? createdAt.toISOString() : null,
       storage_bucket: uploadError ? null : REJECTED_UPLOADS_BUCKET,
       storage_path: uploadError ? null : storagePath,
       prompt_version: input.promptVersion == null ? null : String(input.promptVersion),

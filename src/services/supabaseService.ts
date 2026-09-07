@@ -426,6 +426,9 @@ export async function backfillCacheFields(pHash: string, analysisResult: HybridA
 export interface CacheHitResult {
   id: string | null;
   pHash: string;
+  pdqHash?: string | null;
+  pdqQuality?: number | null;
+  pdqPipeline?: string | null;
   analysisResult: HybridAnalysisResult;
   seoMetadata: CacheSEOMetadata;
 }
@@ -438,15 +441,18 @@ export interface CacheWriteResult {
   price: number;
   original_image_url: string | null;
   storedPHash: string;
+  storedPDQHash?: string | null;
   id?: string;
 }
 
 export interface FingerprintHashLookup {
-  pHash?: string | null;
-  pipeline?: string | null;
+  pdqHash?: string | null;
+  pdqQuality?: number | null;
+  pdqPipeline?: string | null;
 }
 
 const HEX_PHASH_PATTERN = /^[0-9a-f]{16}$/i;
+const HEX_PDQ_PATTERN = /^[0-9a-f]{64}$/i;
 
 function normalizeHexPHash(candidate: string | null | undefined): string | null {
   if (typeof candidate !== 'string') {
@@ -457,19 +463,13 @@ function normalizeHexPHash(candidate: string | null | undefined): string | null 
   return HEX_PHASH_PATTERN.test(normalized) ? normalized : null;
 }
 
-function uniqueHashCandidates(candidates: Array<string | null | undefined>) {
-  const validCandidates = candidates
-    .map((candidate) => normalizeHexPHash(candidate))
-    .filter((candidate): candidate is string => candidate !== null);
-
-  return [...new Set(validCandidates)];
-}
-
 function normalizeHashLookup(input: FingerprintHashLookup) {
-  const canonicalHash = normalizeHexPHash(input.pHash);
   return {
-    canonicalHash,
-    pipeline: input.pipeline || null,
+    pdqHash: typeof input.pdqHash === 'string' && HEX_PDQ_PATTERN.test(input.pdqHash.trim())
+      ? input.pdqHash.trim().toLowerCase()
+      : null,
+    pdqQuality: Number.isInteger(input.pdqQuality) ? input.pdqQuality : null,
+    pdqPipeline: input.pdqPipeline?.trim() || null,
   };
 }
 
@@ -489,7 +489,7 @@ function getHexHashHammingDistance(left: string, right: string): number | null {
   return distance;
 }
 
-const WRITE_TIME_DUPLICATE_DISTANCE_THRESHOLD = 1;
+export const WRITE_TIME_DUPLICATE_DISTANCE_THRESHOLD = 1;
 const STUDIO_PLACEHOLDER_ANALYSIS_MARKER = '__studio_edit_placeholder';
 const STUDIO_PROCESSING_STALE_MS = 15 * 60 * 1000;
 
@@ -534,8 +534,7 @@ async function resolveExistingWriteHash(
 
     const distance = getHexHashHammingDistance(incomingHash, matchedHash);
 
-    // Only collapse writes when the canonical match is effectively the same
-    // fingerprint under our two-bit tolerance rule.
+    // Preserve the verified legacy write-time dedupe contract.
     if (distance !== null && distance <= WRITE_TIME_DUPLICATE_DISTANCE_THRESHOLD) {
       return matchedHash;
     }
@@ -559,6 +558,9 @@ interface AnalysisCacheLookupRow {
   original_image_url?: string | null;
   price?: number | string | null;
   availability?: CacheSEOMetadata['availability'] | null;
+  pdq_hash?: string | null;
+  pdq_quality?: number | null;
+  pdq_pipeline?: string | null;
 }
 
 function isStudioPlaceholderAnalysis(analysis: unknown): boolean {
@@ -651,30 +653,47 @@ function mapCacheHitResult(result: AnalysisCacheLookupRow, id: string | null): C
     availability: result.availability || null,
   };
 
-  return { id, pHash: result.p_hash, analysisResult, seoMetadata };
+  return {
+    id,
+    pHash: result.p_hash,
+    pdqHash: result.pdq_hash ?? null,
+    pdqQuality: result.pdq_quality ?? null,
+    pdqPipeline: result.pdq_pipeline ?? null,
+    analysisResult,
+    seoMetadata,
+  };
 }
 
-export async function findSimilarAnalysisByHash(pHash: FingerprintHashLookup, imageUrl?: string): Promise<CacheHitResult | null> {
+export async function findSimilarAnalysisByHash(fingerprint: FingerprintHashLookup, imageUrl?: string): Promise<CacheHitResult | null> {
   try {
-    const lookup = normalizeHashLookup(pHash);
+    const lookup = normalizeHashLookup(fingerprint);
 
-    if (pHash.pHash && !lookup.canonicalHash) {
-      console.warn('⚠️ Dropping invalid non-hex fingerprint before cache lookup.', { pHash: pHash.pHash });
+    if (fingerprint.pdqHash && !lookup.pdqHash) {
+      console.warn('⚠️ Dropping invalid non-hex PDQ fingerprint before cache lookup.', { pdqHash: fingerprint.pdqHash });
     }
 
-    if (!lookup.canonicalHash || !lookup.pipeline) {
-      console.log('⚫️ Cache MISS. No valid canonical pHash + pipeline available.');
+    if (
+      !lookup.pdqHash
+      || lookup.pdqQuality == null
+      || lookup.pdqQuality < 50
+      || !lookup.pdqPipeline
+    ) {
+      console.log('⚫️ Cache MISS. No valid PDQ hash, quality, and pipeline available.');
       return null;
     }
 
-    console.log('🔍 Calling pipeline-matched fingerprint lookup RPC:', {
-      canonicalHash: lookup.canonicalHash,
-      pipeline: lookup.pipeline,
+    console.log('🔍 Calling PDQ similarity lookup RPC:', {
+      pdqHash: lookup.pdqHash,
+      pdqQuality: lookup.pdqQuality,
+      pdqPipeline: lookup.pdqPipeline,
     });
 
-    const { data, error } = await supabase.rpc('find_similar_analysis_by_fingerprint', {
-      new_hash: lookup.canonicalHash,
-      new_pipeline: lookup.pipeline,
+    const { data, error } = await supabase.rpc('find_similar_analysis_by_pdq', {
+      new_hash: lookup.pdqHash,
+      new_quality: lookup.pdqQuality,
+      new_pipeline: lookup.pdqPipeline,
+      max_distance: 35,
+      min_quality: 50,
     });
 
     if (error) {
@@ -693,7 +712,7 @@ export async function findSimilarAnalysisByHash(pHash: FingerprintHashLookup, im
       return null;
     }
 
-    console.log('✅ Cache HIT! Found matching analysis via pipeline fingerprint lookup:', lookup.canonicalHash);
+    console.log('✅ Cache HIT! Found matching analysis via PDQ lookup:', lookup.pdqHash);
 
     const needsBackfill = result.price === null || result.keywords === null || (result.original_image_url === null && imageUrl);
 
@@ -709,7 +728,11 @@ export async function findSimilarAnalysisByHash(pHash: FingerprintHashLookup, im
   }
 }
 
-export async function findAnalysisByExactHash(pHash: string, imageUrl?: string): Promise<CacheHitResult | null> {
+export async function findAnalysisByExactHash(
+  pHash: string,
+  imageUrl?: string,
+  fingerprintPipeline?: string | null,
+): Promise<CacheHitResult | null> {
   try {
     const canonicalHash = normalizeHexPHash(pHash);
 
@@ -718,7 +741,7 @@ export async function findAnalysisByExactHash(pHash: string, imageUrl?: string):
       return null;
     }
 
-    const { data, error } = await supabase
+    let exactQuery = supabase
       .from('cakegenie_analysis_cache')
       .select(`
         id,
@@ -734,8 +757,13 @@ export async function findAnalysisByExactHash(pHash: string, imageUrl?: string):
         price,
         availability
       `)
-      .eq('p_hash', canonicalHash)
-      .maybeSingle();
+      .eq('p_hash', canonicalHash);
+
+    if (fingerprintPipeline) {
+      exactQuery = exactQuery.eq('fingerprint_pipeline', fingerprintPipeline);
+    }
+
+    const { data, error } = await exactQuery.maybeSingle();
 
     if (error || !data) {
       if (error) {
@@ -827,6 +855,10 @@ export async function prepareStudioEditCacheRow(
   options?: {
     client?: SupabaseClient;
     fingerprintPipeline?: string | null;
+    pdqHash?: string | null;
+    pdqQuality?: number | null;
+    pdqPipeline?: string | null;
+    pdqStatus?: string | null;
     originalImageUrl?: string | null;
   }
 ): Promise<StudioEditPrepareResult | null> {
@@ -839,6 +871,12 @@ export async function prepareStudioEditCacheRow(
 
     const client = options?.client || (typeof window === 'undefined' ? publicSupabaseClient : supabase);
     const fingerprintPipeline = options?.fingerprintPipeline || null;
+    const pdqLookup = normalizeHashLookup({
+      pdqHash: options?.pdqHash,
+      pdqQuality: options?.pdqQuality,
+      pdqPipeline: options?.pdqPipeline,
+    });
+    const pdqStatus = options?.pdqStatus || (pdqLookup.pdqHash ? 'ready' : 'pending');
     const resolvedPHash = await resolveExistingWriteHash(canonicalHash, fingerprintPipeline, client);
     const now = new Date().toISOString();
     const placeholderPayload: Record<string, unknown> = {
@@ -851,6 +889,12 @@ export async function prepareStudioEditCacheRow(
       fingerprint_status: 'ready',
       fingerprint_error: null,
       fingerprinted_at: now,
+      pdq_hash: pdqLookup.pdqHash,
+      pdq_quality: pdqLookup.pdqQuality,
+      pdq_pipeline: pdqLookup.pdqPipeline,
+      pdq_status: pdqStatus,
+      pdq_error: null,
+      pdq_computed_at: pdqLookup.pdqHash ? now : null,
       studio_edit_status: 'processing',
       studio_edit_error: null,
       studio_edit_started_at: now,
@@ -905,6 +949,12 @@ export async function prepareStudioEditCacheRow(
       fingerprint_status: 'ready',
       fingerprint_error: null,
       fingerprinted_at: now,
+      pdq_hash: pdqLookup.pdqHash,
+      pdq_quality: pdqLookup.pdqQuality,
+      pdq_pipeline: pdqLookup.pdqPipeline,
+      pdq_status: pdqStatus,
+      pdq_error: null,
+      pdq_computed_at: pdqLookup.pdqHash ? now : null,
       studio_edit_status: 'processing',
       studio_edit_error: null,
       studio_edit_started_at: now,
@@ -1003,6 +1053,11 @@ export async function cacheAnalysisResult(
     client?: SupabaseClient;
     triggerStudioEdit?: boolean;
     fingerprintPipeline?: string | null;
+    pdqHash?: string | null;
+    pdqQuality?: number | null;
+    pdqPipeline?: string | null;
+    pdqStatus?: string | null;
+    pdqError?: string | null;
     persistSourceAsset?: boolean | 'if_missing';
   }
 ): Promise<CacheWriteResult | null> {
@@ -1010,6 +1065,12 @@ export async function cacheAnalysisResult(
     console.log('💾 Attempting to cache analysis result with pHash:', pHash);
     const client = options?.client || (typeof window === 'undefined' ? publicSupabaseClient : supabase);
     const fingerprintPipeline = options?.fingerprintPipeline || null;
+    const pdqLookup = normalizeHashLookup({
+      pdqHash: options?.pdqHash,
+      pdqQuality: options?.pdqQuality,
+      pdqPipeline: options?.pdqPipeline,
+    });
+    const pdqStatus = options?.pdqStatus || (pdqLookup.pdqHash ? 'ready' : 'pending');
     const persistSourceAsset = options?.persistSourceAsset ?? true;
     const resolvedPHash = await resolveExistingWriteHash(pHash, fingerprintPipeline, client);
 
@@ -1141,6 +1202,12 @@ export async function cacheAnalysisResult(
       fingerprint_status: 'ready',
       fingerprint_error: null,
       fingerprinted_at: fingerprintedAt,
+      pdq_hash: pdqLookup.pdqHash,
+      pdq_quality: pdqLookup.pdqQuality,
+      pdq_pipeline: pdqLookup.pdqPipeline,
+      pdq_status: pdqStatus,
+      pdq_error: options?.pdqError ?? null,
+      pdq_computed_at: pdqLookup.pdqHash ? fingerprintedAt : null,
       analysis_json: finalizedAnalysisResult,
       price: totalPrice,
       keywords: keywords,
@@ -1226,6 +1293,7 @@ export async function cacheAnalysisResult(
       price: totalPrice,
       original_image_url: finalImageUrl ?? null,
       storedPHash: resolvedPHash,
+      storedPDQHash: pdqLookup.pdqHash,
       id: returnedId,
     };
   } catch (err) {

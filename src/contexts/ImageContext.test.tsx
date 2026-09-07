@@ -138,11 +138,15 @@ describe('ImageContext', () => {
     generateServerImageFingerprintMock.mockResolvedValue({
       pHash: 'abc123def4567890',
       pipeline: 'v2-test-pipeline',
+      pdqHash: 'ab'.repeat(32),
+      pdqQuality: 92,
+      pdqPipeline: 'pdq-test-pipeline',
       error: null,
     });
     toFingerprintLookupMock.mockReturnValue({
-      pHash: 'abc123def4567890',
-      pipeline: 'v2-test-pipeline',
+      pdqHash: 'ab'.repeat(32),
+      pdqQuality: 92,
+      pdqPipeline: 'pdq-test-pipeline',
     });
     analyzeCakeFeaturesOnlyMock.mockResolvedValue({
       cakeType: 'Bento',
@@ -196,6 +200,9 @@ describe('ImageContext', () => {
 
     expect(prepareStudioEditCacheRowMock).toHaveBeenCalledWith('abc123def4567890', {
       fingerprintPipeline: 'v2-test-pipeline',
+      pdqHash: 'ab'.repeat(32),
+      pdqQuality: 92,
+      pdqPipeline: 'pdq-test-pipeline',
       originalImageUrl: null,
     });
     expect(triggerStudioEditFromUploadMock).toHaveBeenCalledWith(
@@ -226,6 +233,9 @@ describe('ImageContext', () => {
 
     expect(prepareStudioEditCacheRowMock).toHaveBeenCalledWith('abc123def4567890', {
       fingerprintPipeline: 'v2-test-pipeline',
+      pdqHash: 'ab'.repeat(32),
+      pdqQuality: 92,
+      pdqPipeline: 'pdq-test-pipeline',
       originalImageUrl: null,
     });
     expect(triggerStudioEditFromUploadMock).toHaveBeenCalledWith(
@@ -376,8 +386,9 @@ describe('ImageContext', () => {
 
     expect(result.current.currentPHash).toBe('abc123def4567890');
     expect(findSimilarAnalysisByHashMock).toHaveBeenCalledWith({
-      pHash: 'abc123def4567890',
-      pipeline: 'v2-test-pipeline',
+      pdqHash: 'ab'.repeat(32),
+      pdqQuality: 92,
+      pdqPipeline: 'pdq-test-pipeline',
     }, undefined);
     expect(onSuccess).toHaveBeenCalledWith(expect.objectContaining({
       keyword: 'purple cake',

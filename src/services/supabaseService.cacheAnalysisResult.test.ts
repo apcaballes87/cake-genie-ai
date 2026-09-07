@@ -213,6 +213,9 @@ describe('cacheAnalysisResult', () => {
       undefined,
       {
         fingerprintPipeline: 'v2-test-pipeline',
+        pdqHash: 'ab'.repeat(32),
+        pdqQuality: 93,
+        pdqPipeline: 'pdq-test-pipeline',
         triggerStudioEdit: false,
       },
     );
@@ -259,6 +262,9 @@ describe('cacheAnalysisResult', () => {
       undefined,
       {
         fingerprintPipeline: 'v2-test-pipeline',
+        pdqHash: 'ab'.repeat(32),
+        pdqQuality: 93,
+        pdqPipeline: 'pdq-test-pipeline',
         triggerStudioEdit: false,
       }
     );
@@ -269,6 +275,10 @@ describe('cacheAnalysisResult', () => {
         p_hash: 'deadc0de1234beef',
         fingerprint_pipeline: 'v2-test-pipeline',
         fingerprint_status: 'ready',
+        pdq_hash: 'ab'.repeat(32),
+        pdq_quality: 93,
+        pdq_pipeline: 'pdq-test-pipeline',
+        pdq_status: 'ready',
       }),
       expect.objectContaining({
         onConflict: 'p_hash',
@@ -585,108 +595,6 @@ describe('cacheAnalysisResult', () => {
     );
   });
 
-  it('does not write ORB indexing state or trigger ORB indexing when a source image blob is available', async () => {
-    const { cacheAnalysisResult } = await import('./supabaseService');
-    const originalWindow = globalThis.window;
-
-    Object.defineProperty(globalThis, 'window', {
-      value: undefined,
-      configurable: true,
-    });
-
-    try {
-      await cacheAnalysisResult(
-        'abcddcba12344321',
-        {
-          cakeType: 'Bento',
-          cakeThickness: '4 in',
-          keyword: 'indexed-design',
-          icing_design: {
-            base: 'soft_icing',
-            colors: { side: 'white', top: 'pink' },
-          },
-          main_toppers: [],
-          support_elements: [],
-          cake_messages: [],
-        } as unknown as HybridAnalysisResult,
-        'https://example.com/indexed-design.webp',
-        new Blob(['orb-image-bytes'], { type: 'image/webp' }),
-        {
-          fingerprintPipeline: 'v2-test-pipeline',
-          triggerStudioEdit: false,
-        }
-      );
-    } finally {
-      Object.defineProperty(globalThis, 'window', {
-        value: originalWindow,
-        configurable: true,
-      });
-    }
-
-    await Promise.resolve();
-
-    const [payload] = upsertMock.mock.calls[0] ?? [];
-    expect(payload).toBeTruthy();
-    expect(payload).not.toHaveProperty('orb_index_status');
-    expect(payload).not.toHaveProperty('orb_index_error');
-    expect(payload).not.toHaveProperty('orb_index_attempted_at');
-    expect(payload).not.toHaveProperty('orb_indexed_at');
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it('resolves cache writes without waiting on any ORB indexing request', async () => {
-    const { cacheAnalysisResult } = await import('./supabaseService');
-    const originalWindow = globalThis.window;
-    fetchMock.mockReset().mockRejectedValue(new Error('ORB should not be called'));
-
-    Object.defineProperty(globalThis, 'window', {
-      value: undefined,
-      configurable: true,
-    });
-
-    try {
-      const result = await Promise.race([
-        cacheAnalysisResult(
-          'fedcba9876543210',
-          {
-            cakeType: 'Bento',
-            cakeThickness: '4 in',
-            keyword: 'non-blocking-index',
-            icing_design: {
-              base: 'soft_icing',
-              colors: { side: 'white', top: 'blue' },
-            },
-            main_toppers: [],
-            support_elements: [],
-            cake_messages: [],
-          } as unknown as HybridAnalysisResult,
-          'https://example.com/non-blocking-index.webp',
-          new Blob(['orb-image-bytes'], { type: 'image/webp' }),
-          {
-            fingerprintPipeline: 'v2-test-pipeline',
-            triggerStudioEdit: false,
-          }
-        ),
-        new Promise<'timed_out'>((resolve) => setTimeout(() => resolve('timed_out'), 25)),
-      ]);
-
-      expect(result).not.toBe('timed_out');
-      expect(result).toEqual(
-        expect.objectContaining({
-          storedPHash: 'fedcba9876543210',
-        })
-      );
-    } finally {
-      await Promise.resolve();
-      Object.defineProperty(globalThis, 'window', {
-        value: originalWindow,
-        configurable: true,
-      });
-    }
-
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
   it('can refresh analysis fields without resetting stored source asset coverage', async () => {
     const { cacheAnalysisResult } = await import('./supabaseService');
 
@@ -717,8 +625,6 @@ describe('cacheAnalysisResult', () => {
 
     expect(payload).toBeTruthy();
     expect(payload).not.toHaveProperty('original_image_url');
-    expect(payload).not.toHaveProperty('orb_index_status');
-    expect(payload).not.toHaveProperty('orb_index_error');
     expect(storageUploadMock).not.toHaveBeenCalled();
   });
 
@@ -752,7 +658,6 @@ describe('cacheAnalysisResult', () => {
     const [payload] = upsertMock.mock.calls[0] ?? [];
     expect(payload).toBeTruthy();
     expect(payload.original_image_url).toBe('https://example.com/source.webp');
-    expect(payload).not.toHaveProperty('orb_index_status');
   });
 
   it("does not write original_image_url if persistSourceAsset is 'if_missing' and the record already has an image", async () => {
@@ -785,6 +690,5 @@ describe('cacheAnalysisResult', () => {
     const [payload] = upsertMock.mock.calls[0] ?? [];
     expect(payload).toBeTruthy();
     expect(payload).not.toHaveProperty('original_image_url');
-    expect(payload).not.toHaveProperty('orb_index_status');
   });
 });

@@ -1,25 +1,17 @@
-import sharp from 'sharp';
+// @vitest-environment node
+
+import { readFile } from 'node:fs/promises';
 import type { NextRequest } from 'next/server';
 import { describe, expect, it } from 'vitest';
-import { FINGERPRINT_PIPELINE, MAX_FINGERPRINT_INPUT_BYTES } from '@/lib/server/imageFingerprint';
+import {
+  FINGERPRINT_PIPELINE,
+  MAX_FINGERPRINT_INPUT_BYTES,
+  PDQ_PIPELINE,
+} from '@/lib/server/imageFingerprint';
 import { POST } from './route';
 
 async function createImageBuffer() {
-  return sharp({
-    create: {
-      width: 32,
-      height: 32,
-      channels: 3,
-      background: { r: 255, g: 255, b: 255 },
-    },
-  })
-    .composite([
-      {
-        input: Buffer.from('<svg width="32" height="32"><rect x="4" y="4" width="20" height="18" fill="#000"/></svg>'),
-      },
-    ])
-    .png()
-    .toBuffer();
+  return readFile('cinnamoroll-test.webp');
 }
 
 function createJsonRequest(imageData: string, mimeType: string): NextRequest {
@@ -31,14 +23,17 @@ function createJsonRequest(imageData: string, mimeType: string): NextRequest {
 }
 
 describe('/api/image/fingerprint', () => {
-  it('returns a server pHash and pipeline for a valid image', async () => {
+  it('returns an opaque legacy pHash plus local server-only PDQ fields for a valid image', async () => {
     const imageData = (await createImageBuffer()).toString('base64');
     const response = await POST(createJsonRequest(imageData, 'image/png'));
     const json = await response.json();
 
     expect(response.status).toBe(200);
-    expect(json.pHash).toMatch(/^[0-9a-f]{16}$/);
-    expect(json.pipeline).toBe(FINGERPRINT_PIPELINE);
+    expect(json.legacyPHash).toMatch(/^[0-9a-f]{16}$/);
+    expect(json.legacyPipeline).toBe(FINGERPRINT_PIPELINE);
+    expect(json.pdqHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(json.pdqQuality).toEqual(expect.any(Number));
+    expect(json.pdqPipeline).toBe(PDQ_PIPELINE);
   });
 
   it('rejects non-image uploads', async () => {
