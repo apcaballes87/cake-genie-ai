@@ -1,12 +1,17 @@
 /**
- * Canonical sizing for analyses produced after the three-band pricing release.
+ * Sizing-schema markers for fresh and historical analyses.
  *
- * Unmarked persisted analyses predate this release, so their `small` and
- * `medium` values retain their former six-band meanings at the input boundary.
- * Never normalize an unmarked object in place: cached JSON and cart/order
- * payloads are historical records.
+ * Unmarked persisted analyses predate the three-band pricing release, so their
+ * `small` and `medium` values retain their former six-band meanings at the
+ * input boundary. Never normalize an unmarked object in place: cached JSON and
+ * cart/order payloads are historical records.
  */
-export const ANALYSIS_SIZE_SCHEMA = 'three_band_v1' as const;
+/** Historical fresh-analysis sizing semantics: local bbox area ratios. */
+export const ANALYSIS_SIZE_SCHEMA = 'bbox_area_v1' as const;
+/** Fresh-analysis sizing semantics: representative element line / cake diameter line. */
+export const LINE_RATIO_ANALYSIS_SIZE_SCHEMA = 'line_ratio_v1' as const;
+/** Historical fresh analyses whose three-band labels came from AI. */
+export const AI_THREE_BAND_SIZE_SCHEMA = 'three_band_v1' as const;
 
 export const CANONICAL_ANALYSIS_SIZES = ['small', 'medium', 'large'] as const;
 export type CanonicalAnalysisSize = typeof CANONICAL_ANALYSIS_SIZES[number];
@@ -14,7 +19,10 @@ export type CanonicalAnalysisSize = typeof CANONICAL_ANALYSIS_SIZES[number];
 export const LEGACY_ANALYSIS_SIZES = ['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge'] as const;
 export type LegacyAnalysisSize = typeof LEGACY_ANALYSIS_SIZES[number];
 
-export type AnalysisSizeSchema = typeof ANALYSIS_SIZE_SCHEMA;
+export type AnalysisSizeSchema =
+  | typeof ANALYSIS_SIZE_SCHEMA
+  | typeof LINE_RATIO_ANALYSIS_SIZE_SCHEMA
+  | typeof AI_THREE_BAND_SIZE_SCHEMA;
 
 const LEGACY_TO_CANONICAL_SIZE: Record<LegacyAnalysisSize, CanonicalAnalysisSize> = {
   tiny: 'small',
@@ -84,11 +92,15 @@ export function normalizeLegacyAnalysisPayload<T extends SizeSchemaAnalysis>(ana
  * analysis into a detached, canonical in-memory copy.
  */
 export function normalizeAnalysisForThreeBandSizing<T extends SizeSchemaAnalysis>(analysis: T): T {
-  if (analysis.analysis_size_schema === ANALYSIS_SIZE_SCHEMA) return analysis;
+  if (
+    analysis.analysis_size_schema === ANALYSIS_SIZE_SCHEMA
+    || analysis.analysis_size_schema === LINE_RATIO_ANALYSIS_SIZE_SCHEMA
+    || analysis.analysis_size_schema === AI_THREE_BAND_SIZE_SCHEMA
+  ) return analysis;
 
   return {
     ...normalizeLegacyAnalysisPayload(analysis),
-    analysis_size_schema: ANALYSIS_SIZE_SCHEMA,
+    analysis_size_schema: AI_THREE_BAND_SIZE_SCHEMA,
   } as T;
 }
 

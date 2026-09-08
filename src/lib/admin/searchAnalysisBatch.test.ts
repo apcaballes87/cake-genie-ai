@@ -217,10 +217,16 @@ describe('search analysis batch helpers', () => {
       systemInstruction: 'not here',
       responseMimeType: 'application/json',
       responseSchema: { type: 'OBJECT' },
+      temperature: 0,
+      topP: 1,
+      topK: 1,
       thinkingConfig: { thinkingLevel: 'LOW' },
     })).toEqual({
       responseMimeType: 'application/json',
       responseSchema: { type: 'OBJECT' },
+      temperature: 0,
+      topP: 1,
+      topK: 1,
       thinkingConfig: { thinkingLevel: 'LOW' },
     });
   });
@@ -504,6 +510,90 @@ describe('search analysis batch run submission and reconciliation regression tes
     expect(mockCacheAnalysisResult).toHaveBeenCalledWith('ph2', expect.any(Object), 'uri-2', undefined, expect.any(Object));
     expect(mockCacheAnalysisResult.mock.calls[0][1]).toMatchObject({ analysis_size_schema: 'three_band_v1' });
     expect(mockCacheAnalysisResult.mock.calls[1][1]).toMatchObject({ analysis_size_schema: 'three_band_v1' });
+  });
+
+  it('imports local line-ratio sizes and ignores the model size in batch output', async () => {
+    const runId = 'test-reconcile-local-sizing';
+    mockSupabase.from = vi.fn((table: string) => {
+      const chain = createFluentChain();
+
+      if (table === 'cakegenie_search_analysis_batch_runs') {
+        chain.single.mockResolvedValue({
+          data: { id: runId, status: 'importing', output_file_uri: 'gs://test-bucket/output' },
+          error: null,
+        });
+        chain.update.mockReturnValue(createFluentChain({
+          eq: () => createFluentChain({
+            select: () => createFluentChain({
+              single: () => Promise.resolve({ data: {}, error: null }),
+            }),
+          }),
+        }));
+      }
+
+      if (table === 'cakegenie_search_analysis_batch_items') {
+        chain.order = vi.fn(() => Promise.resolve({
+          data: [item({
+            id: 'local-item',
+            normalized_image_url: 'uri-local',
+            p_hash: 'ph-local',
+            status: 'submitted',
+            submission_ordinal: 0,
+          })],
+          error: null,
+        }) as any);
+        chain.update.mockReturnValue(createFluentChain({
+          eq: () => createFluentChain({
+            neq: () => Promise.resolve({ error: null }),
+          }),
+        }));
+      }
+
+      return chain as any;
+    });
+
+    const localAnalysis = validAnalysis({
+      alt_text: undefined,
+      seo_title: undefined,
+      seo_description: undefined,
+      cakeType: '1 Tier',
+      cakeThickness: '6 in',
+      main_toppers: [{
+        type: 'toy',
+        material: 'plastic',
+        group_id: 'toy-1',
+        classification: 'hero',
+        size: 'large',
+        quantity: 1,
+        description: 'small toy',
+        size_line: { start: { x: 10, y: 20 }, end: { x: 10, y: 50 } },
+      }],
+      cake_measurements: {
+        diameter: { start: { x: 0, y: 0 }, end: { x: 100, y: 0 } },
+        height: { start: { x: 0, y: 0 }, end: { x: 0, y: 40 } },
+      },
+    });
+    const jsonlContent = JSON.stringify({
+      customId: 'local-item|size_schema:local_line_ratio|seo_schema:analysis_only',
+      request: { contents: [{ parts: [{ fileData: { fileUri: 'uri-local' } }] }] },
+      response: { candidates: [{ content: { parts: [{ text: JSON.stringify(localAnalysis) }] } }] },
+    });
+
+    mockBucket.getFiles.mockResolvedValue([[{ name: 'predictions.jsonl', createReadStream: () => Readable.from([jsonlContent]) }]]);
+    mockCacheAnalysisResult.mockResolvedValue({ id: 'local-cache-row-id' });
+
+    await reconcileSearchAnalysisBatch(runId);
+
+    expect(mockCacheAnalysisResult).toHaveBeenCalledTimes(1);
+    expect(mockCacheAnalysisResult.mock.calls[0][1]).toMatchObject({
+      analysis_size_schema: 'line_ratio_v1',
+      cakeType: '1 Tier',
+      cakeThickness: '3 in',
+      main_toppers: [{
+        size: 'small',
+        size_line: { start: { x: 10, y: 20 }, end: { x: 10, y: 50 } },
+      }],
+    });
   });
 
   it('reconcile matching skips output lines with missing echoed URI and ID, preventing cross-contamination', async () => {

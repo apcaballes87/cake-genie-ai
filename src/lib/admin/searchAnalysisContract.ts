@@ -23,12 +23,20 @@ import {
   type GeneratedCakeAnalysisResult,
 } from '@/lib/ai/generatedAnalysisContract';
 import { normalizeLegacyAnalysisPayload } from '@/lib/ai/analysisSize';
+import {
+  applyLocalBboxAreaSizing,
+  applyLocalLineRatioSizing,
+} from '@/lib/ai/localAnalysisSizing';
 
 export const SEARCH_ANALYSIS_REJECTION_REASONS = GENERATED_ANALYSIS_REJECTION_REASONS;
 export const SEARCH_ANALYSIS_ICING_BASES = GENERATED_ANALYSIS_ICING_BASES;
 export const SEARCH_ANALYSIS_COLOR_TYPES = GENERATED_ANALYSIS_COLOR_TYPES;
 
-export type AnalysisGenerationSizeSchema = 'legacy_six_band' | 'three_band';
+export type AnalysisGenerationSizeSchema =
+  | 'legacy_six_band'
+  | 'three_band'
+  | 'local_bbox_area'
+  | 'local_line_ratio';
 
 const LEGACY_GENERATION_SIZES = ['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge'] as const;
 
@@ -39,10 +47,14 @@ const LEGACY_GENERATION_SIZES = ['tiny', 'xsmall', 'small', 'medium', 'large', '
  */
 export function getAnalysisGenerationSizeSchema(promptVersion: string): AnalysisGenerationSizeSchema {
   if (promptVersion === 'fallback') return 'three_band';
+  if (promptVersion === 'local-dev-bbox') return 'local_bbox_area';
+  if (promptVersion === 'local-dev-line') return 'local_line_ratio';
   const match = promptVersion.match(/^(?:v)?(\d+)\.(\d+)$/i);
   if (!match) return 'legacy_six_band';
   const major = Number.parseInt(match[1], 10);
   const minor = Number.parseInt(match[2], 10);
+  // v3.74+ is reserved for the guarded production line-ratio prompt release.
+  if (major > 3 || (major === 3 && minor >= 74)) return 'local_line_ratio';
   return major > 3 || (major === 3 && minor >= 67)
     ? 'three_band'
     : 'legacy_six_band';
@@ -420,12 +432,56 @@ function removeUnverifiedConditionedWaferPaperWaves(result: unknown): unknown {
 const BBOX_SCHEMA = {
   type: Type.OBJECT,
   properties: {
-    x: { type: Type.INTEGER, description: 'Left edge in raw pixels from the original image top-left corner.' },
-    y: { type: Type.INTEGER, description: 'Top edge in raw pixels from the original image top-left corner.' },
-    width: { type: Type.INTEGER, description: 'Width of the bounding box in pixels.' },
-    height: { type: Type.INTEGER, description: 'Height of the bounding box in pixels.' },
+    x: { type: Type.INTEGER, description: 'Left edge on the normalized 0–1000 horizontal axis, from the original image top-left corner.' },
+    y: { type: Type.INTEGER, description: 'Top edge on the normalized 0–1000 vertical axis, from the original image top-left corner.' },
+    width: { type: Type.INTEGER, description: 'Width on the normalized 0–1000 horizontal axis.' },
+    height: { type: Type.INTEGER, description: 'Height on the normalized 0–1000 vertical axis.' },
   },
   required: ['x', 'y', 'width', 'height'],
+};
+
+const ELEMENT_BBOX_SCHEMA = {
+  ...BBOX_SCHEMA,
+  description: 'Bounding box for one item. When quantity is greater than 1, box one visible representative unit only; never enclose the complete group.',
+};
+
+const COORDINATE_POINT_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    x: { type: Type.INTEGER, description: 'Normalized 0–1000 horizontal coordinate from the image top-left.' },
+    y: { type: Type.INTEGER, description: 'Normalized 0–1000 vertical coordinate from the image top-left.' },
+  },
+  required: ['x', 'y'],
+};
+
+const MEASUREMENT_LINE_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    start: COORDINATE_POINT_SCHEMA,
+    end: COORDINATE_POINT_SCHEMA,
+  },
+  required: ['start', 'end'],
+};
+
+const CAKE_MEASUREMENTS_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    diameter: {
+      ...MEASUREMENT_LINE_SCHEMA,
+      description: 'Line across the TOP TIER circular or elliptical cross-section, from its opposing left edge to its opposing right edge. Prefer the visible top ellipse; if it is hidden, use the opposing left/right edges of the top-tier cake wall at one level. Perspective may make it slanted; keep both endpoint coordinates explicit.',
+    },
+    height: {
+      ...MEASUREMENT_LINE_SCHEMA,
+      description: 'Line across the TOP TIER wall from the near/front top rim on the lower/closer arc of the top ellipse, where the top surface transitions into the front-facing side wall, to the near/front bottom rim of that top tier. Do not use the highest pixel, rear/back arc, exposed top surface, board, or plate. Perspective may make it slanted.',
+    },
+  },
+  required: ['diameter', 'height'],
+  description: 'Explicit normalized line endpoints for the top tier used as the local sizing reference. Do not include lower tiers, toppers, decorations, plate, board, or background.',
+};
+
+const ELEMENT_SIZE_LINE_SCHEMA = {
+  ...MEASUREMENT_LINE_SCHEMA,
+  description: 'One representative normalized line for the item primary dimension used for local sizing. Measure height for 3D figures, toys, crowns, figurines, and candles; the larger visible span along the dominant physical axis for flat toppers; bloom diameter for flowers and spheres; and the longest relevant visible span along one dominant edge or axis for flat artwork, logos, panels, and other flat items. Put endpoints on opposite boundaries of that same dimension and keep the segment within the representative item. Use vertical or horizontal by default; allow a slant only when the item or its true primary axis is visibly rotated or perspective-skewed. Never use a corner-to-corner diagonal or a slant merely to increase length. For repeated rows, measure one typical visible unit only.',
 };
 
 export function buildSearchAnalysisResponseSchema(
@@ -448,6 +504,20 @@ export function buildSearchAnalysisResponseSchema(
   const generationSizes = sizeSchema === 'legacy_six_band'
     ? LEGACY_GENERATION_SIZES
     : GENERATED_ANALYSIS_SIZES;
+  const isLocalLineRatio = sizeSchema === 'local_line_ratio';
+  const isLocalBboxArea = sizeSchema === 'local_bbox_area';
+  const generatedSizeProperty = isLocalLineRatio || isLocalBboxArea
+    ? {}
+    : { size: { type: Type.STRING, enum: [...generationSizes] } };
+  const generatedSizeRequired = isLocalLineRatio || isLocalBboxArea ? [] : ['size'];
+  // The line is required by local post-processing for ratio-sized items, but
+  // fixed-size overrides intentionally do not need one. The type-specific
+  // requirement is enforced after generation rather than in this shared
+  // provider schema.
+  const localGeometryRequired = isLocalBboxArea ? ['bbox'] : [];
+  const generatedElementGeometryProperty = isLocalLineRatio
+    ? { size_line: ELEMENT_SIZE_LINE_SCHEMA }
+    : { bbox: ELEMENT_BBOX_SCHEMA };
 
   return {
     type: Type.OBJECT,
@@ -483,7 +553,6 @@ export function buildSearchAnalysisResponseSchema(
             material: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_MATERIALS] },
             group_id: { type: Type.STRING },
             classification: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_CLASSIFICATIONS] },
-            size: { type: Type.STRING, enum: [...generationSizes] },
             quantity: { type: Type.INTEGER },
             description: { type: Type.STRING },
             color: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_COLOR_HEXES] },
@@ -491,10 +560,11 @@ export function buildSearchAnalysisResponseSchema(
               type: Type.ARRAY,
               items: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_COLOR_HEXES] },
             },
-            bbox: BBOX_SCHEMA,
+            ...generatedElementGeometryProperty,
+            ...generatedSizeProperty,
             ...subtypeProperty,
           },
-          required: ['type', 'material', 'group_id', 'classification', 'size', 'quantity', 'description'],
+          required: ['type', 'material', 'group_id', 'classification', ...generatedSizeRequired, 'quantity', 'description', ...localGeometryRequired],
         },
       },
       support_elements: {
@@ -510,13 +580,13 @@ export function buildSearchAnalysisResponseSchema(
               type: Type.ARRAY,
               items: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_COLOR_HEXES] },
             },
-            size: { type: Type.STRING, enum: [...generationSizes] },
             quantity: { type: Type.INTEGER },
             description: { type: Type.STRING },
-            bbox: BBOX_SCHEMA,
+            ...generatedElementGeometryProperty,
+            ...generatedSizeProperty,
             ...subtypeProperty,
           },
-          required: ['type', 'material', 'group_id', 'color', 'size', 'quantity', 'description'],
+          required: ['type', 'material', 'group_id', 'color', ...generatedSizeRequired, 'quantity', 'description', ...localGeometryRequired],
         },
       },
       cake_messages: {
@@ -528,7 +598,7 @@ export function buildSearchAnalysisResponseSchema(
             type: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_MESSAGE_TYPES] },
             color: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_COLOR_HEXES] },
             position: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_MESSAGE_POSITIONS] },
-            bbox: BBOX_SCHEMA,
+            bbox: ELEMENT_BBOX_SCHEMA,
           },
           required: ['text', 'type', 'color', 'position'],
         },
@@ -583,10 +653,7 @@ export function buildSearchAnalysisResponseSchema(
         description: 'Natural customer-facing cake description in 5 to 7 sentences. Do not include availability or lead-time claims.',
       },
       } : {}),
-      cake_bbox: {
-        ...BBOX_SCHEMA,
-        description: 'Bounding box around the entire cake body (all tiers). Required for accepted images. Pixel coordinates relative to original image, top-left origin.',
-      },
+      cake_measurements: CAKE_MEASUREMENTS_SCHEMA,
       rejection: {
         type: Type.OBJECT,
         properties: {
@@ -623,6 +690,9 @@ export function buildSearchAnalysisGenerationConfig(
     systemInstruction: SYSTEM_INSTRUCTION,
     responseMimeType: 'application/json',
     responseSchema: buildSearchAnalysisResponseSchema(typeEnums, sizeSchema, seoSchema),
+    temperature: 0,
+    topP: 1,
+    topK: 1,
     thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
   };
 }
@@ -646,10 +716,16 @@ export function postProcessSearchAnalysisResult(
   const sizeNormalizedResult = sizeSchema === 'legacy_six_band'
     ? normalizeLegacyAnalysisPayload(reconciledResult as Record<string, unknown>)
     : reconciledResult;
+  const reconciledOutput = removeUnverifiedConditionedWaferPaperWaves(
+    reconcileDescriptionTypes(removeExplicitSceneOnlyItems(sizeNormalizedResult), typeEnums),
+  );
+  const locallySizedResult = sizeSchema === 'local_bbox_area'
+    ? applyLocalBboxAreaSizing(reconciledOutput as Record<string, unknown>)
+    : sizeSchema === 'local_line_ratio'
+      ? applyLocalLineRatioSizing(reconciledOutput as Record<string, unknown>)
+      : reconciledOutput;
   return validateGeneratedCakeAnalysisResult(
-    removeUnverifiedConditionedWaferPaperWaves(
-      reconcileDescriptionTypes(removeExplicitSceneOnlyItems(sizeNormalizedResult), typeEnums),
-    ),
+    locallySizedResult,
     typeEnums,
     seoSchema,
   );

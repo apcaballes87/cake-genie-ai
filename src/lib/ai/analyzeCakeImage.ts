@@ -14,7 +14,11 @@ import {
     GeneratedAnalysisContractError,
     type GeneratedCakeAnalysisResult,
 } from '@/lib/ai/generatedAnalysisContract';
-import { ANALYSIS_SIZE_SCHEMA } from '@/lib/ai/analysisSize';
+import {
+    AI_THREE_BAND_SIZE_SCHEMA,
+    ANALYSIS_SIZE_SCHEMA,
+    LINE_RATIO_ANALYSIS_SIZE_SCHEMA,
+} from '@/lib/ai/analysisSize';
 
 export const ANALYSIS_MODEL = 'gemini-3.5-flash-lite';
 export const AI_REQUEST_TIMEOUT_MS = 120_000;
@@ -42,7 +46,12 @@ type RunCakeAnalysisInput = {
 };
 
 type RunCakeAnalysisResult = {
-    result: GeneratedCakeAnalysisResult & { analysis_size_schema: typeof ANALYSIS_SIZE_SCHEMA };
+    result: GeneratedCakeAnalysisResult & {
+        analysis_size_schema:
+            typeof ANALYSIS_SIZE_SCHEMA
+            | typeof LINE_RATIO_ANALYSIS_SIZE_SCHEMA
+            | typeof AI_THREE_BAND_SIZE_SCHEMA;
+    };
     promptVersion: string;
 };
 
@@ -223,7 +232,14 @@ export async function runActiveCakeAnalysis({
     }
 
     return {
-        result: { ...result, analysis_size_schema: ANALYSIS_SIZE_SCHEMA },
+        result: {
+            ...result,
+            analysis_size_schema: sizeSchema === 'local_line_ratio'
+                ? LINE_RATIO_ANALYSIS_SIZE_SCHEMA
+                : sizeSchema === 'local_bbox_area'
+                    ? ANALYSIS_SIZE_SCHEMA
+                    : AI_THREE_BAND_SIZE_SCHEMA,
+        },
         promptVersion: promptDetails.version,
     };
 }
