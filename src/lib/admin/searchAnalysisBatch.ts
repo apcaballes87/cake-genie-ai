@@ -6,7 +6,11 @@ import { getAI, getGoogleCloudAuthOptions } from '@/lib/ai/client';
 import { isRejectedGeneratedCakeAnalysis } from '@/lib/ai/generatedAnalysisContract';
 import { toActionableGoogleCloudStorageError } from '@/lib/ai/googleCloudErrors';
 import { getDynamicTypeEnums } from '@/lib/ai/utils';
-import { ANALYSIS_SIZE_SCHEMA } from '@/lib/ai/analysisSize';
+import {
+  AI_THREE_BAND_SIZE_SCHEMA,
+  ANALYSIS_SIZE_SCHEMA,
+  LINE_RATIO_ANALYSIS_SIZE_SCHEMA,
+} from '@/lib/ai/analysisSize';
 import {
   buildSearchAnalysisGenerationConfig,
   getAnalysisGenerationSizeSchema,
@@ -96,10 +100,13 @@ export function selectEligibleSearchAnalysisItems(items: QueueItem[], limit = MA
 }
 
 export function buildSearchAnalysisBatchGenerationConfig(requestConfig: Record<string, unknown>) {
-  const { responseMimeType, responseSchema, thinkingConfig } = requestConfig;
+  const { responseMimeType, responseSchema, temperature, topP, topK, thinkingConfig } = requestConfig;
   return {
     ...(responseMimeType ? { responseMimeType } : {}),
     ...(responseSchema ? { responseSchema } : {}),
+    ...(temperature !== undefined ? { temperature } : {}),
+    ...(topP !== undefined ? { topP } : {}),
+    ...(topK !== undefined ? { topK } : {}),
     ...(thinkingConfig ? { thinkingConfig } : {}),
   };
 }
@@ -110,7 +117,7 @@ function encodeBatchCustomId(itemId: string, sizeSchema?: AnalysisGenerationSize
 
 function decodeBatchCustomId(value: string | undefined) {
   if (!value) return { itemId: undefined, sizeSchema: undefined };
-  const match = value.match(/^(.*)\|size_schema:(legacy_six_band|three_band)$/);
+  const match = value.match(/^(.*)\|size_schema:(legacy_six_band|three_band|local_bbox_area|local_line_ratio)$/);
   return match
     ? { itemId: match[1], sizeSchema: match[2] as AnalysisGenerationSizeSchema }
     : { itemId: value, sizeSchema: undefined };
@@ -122,6 +129,7 @@ function inferBatchSizeSchema(result: unknown): AnalysisGenerationSizeSchema {
   const elements = [analysis.main_toppers, analysis.support_elements]
     .flatMap((items) => Array.isArray(items) ? items : [])
     .filter((item): item is { size?: unknown } => Boolean(item) && typeof item === 'object');
+  if (elements.some((item) => 'size_line' in item)) return 'local_line_ratio';
   return elements.some((item) => item.size === 'tiny' || item.size === 'xsmall' || item.size === 'xlarge')
     ? 'legacy_six_band'
     : 'three_band';
@@ -496,14 +504,19 @@ export async function reconcileSearchAnalysisBatch(runId: string, requestContext
     }
     try {
       const parsedResult = parseSearchAnalysisBatchOutputText(text);
+      const resolvedSizeSchema = echoedSizeSchema ?? inferBatchSizeSchema(parsedResult);
       const result = {
         ...postProcessSearchAnalysisResult(
           parsedResult,
           typeEnums,
-          echoedSizeSchema ?? inferBatchSizeSchema(parsedResult),
+          resolvedSizeSchema,
           echoedSeoSchema,
         ),
-        analysis_size_schema: ANALYSIS_SIZE_SCHEMA,
+        analysis_size_schema: resolvedSizeSchema === 'local_line_ratio'
+          ? LINE_RATIO_ANALYSIS_SIZE_SCHEMA
+          : resolvedSizeSchema === 'local_bbox_area'
+            ? ANALYSIS_SIZE_SCHEMA
+            : AI_THREE_BAND_SIZE_SCHEMA,
       };
       if (isRejectedGeneratedCakeAnalysis(result)) {
         await admin.from('cakegenie_search_analysis_batch_items').update({

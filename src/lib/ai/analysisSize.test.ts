@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  AI_THREE_BAND_SIZE_SCHEMA,
   ANALYSIS_SIZE_SCHEMA,
+  LINE_RATIO_ANALYSIS_SIZE_SCHEMA,
   getLegacySourceSizeForCanonicalSize,
   normalizeAnalysisForThreeBandSizing,
   normalizeLegacyAnalysisSize,
@@ -55,7 +57,7 @@ describe('three-band analysis sizing', () => {
     const normalized = normalizeAnalysisForThreeBandSizing(cached);
 
     expect(normalized).not.toBe(cached);
-    expect(normalized.analysis_size_schema).toBe(ANALYSIS_SIZE_SCHEMA);
+    expect(normalized.analysis_size_schema).toBe(AI_THREE_BAND_SIZE_SCHEMA);
     expect(normalized.main_toppers[0].size).toBe('medium');
     expect(normalized.support_elements[0].size).toBe('medium');
     expect(cached.analysis_size_schema).toBeUndefined();
@@ -74,6 +76,19 @@ describe('three-band analysis sizing', () => {
     expect(normalized).toBe(fresh);
     expect(normalized.main_toppers[0].size).toBe('small');
     expect(normalized.support_elements[0].size).toBe('small');
+  });
+
+  it('preserves the line-ratio marker and its locally assigned meanings', () => {
+    const fresh = {
+      ...baseAnalysis('small'),
+      analysis_size_schema: LINE_RATIO_ANALYSIS_SIZE_SCHEMA,
+    } satisfies HybridAnalysisResult;
+
+    const normalized = normalizeAnalysisForThreeBandSizing(fresh);
+
+    expect(normalized).toBe(fresh);
+    expect(normalized.analysis_size_schema).toBe('line_ratio_v1');
+    expect(normalized.main_toppers[0].size).toBe('small');
   });
 
   it('uses the former higher legacy band only for the compatibility pricing path', () => {

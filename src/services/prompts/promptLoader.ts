@@ -46,11 +46,11 @@ export async function getAnalysisPromptWithFallback(supabase: SupabasePromptClie
 }
 
 export async function getActivePromptDetails(_supabase: SupabasePromptClient): Promise<{ promptText: string; version: string }> {
-  // DEV OVERRIDE: Use local prompt file instead of Supabase for bbox feature development.
+  // DEV OVERRIDE: Use local prompt file instead of Supabase for line-sizing development.
   // TODO: Remove this override and restore Supabase query before merging to production.
   return {
     promptText: loadFallbackAnalysisPrompt(),
-    version: 'local-dev-bbox'
+    version: 'local-dev-line'
   };
 }
 

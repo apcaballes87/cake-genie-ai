@@ -2,7 +2,11 @@
 
 import type { TierFlavorAssignment } from '@/lib/tierFlavorMapping';
 import type { AnalysisSizeSchema, CanonicalAnalysisSize, LegacyAnalysisSize } from '@/lib/ai/analysisSize';
-import type { GeneratedBoundingBox } from '@/lib/ai/generatedAnalysisContract';
+import type {
+  GeneratedBoundingBox,
+  GeneratedCakeMeasurements,
+  GeneratedMeasurementLine,
+} from '@/lib/ai/generatedAnalysisContract';
 
 export type { GeneratedCakeAnalysisResult } from '@/lib/ai/generatedAnalysisContract';
 
@@ -56,6 +60,7 @@ export interface MainTopper {
   x?: number;
   y?: number;
   bbox?: BoundingBox;  // Object detection bounding box
+  size_line?: GeneratedMeasurementLine; // Fresh local sizing geometry
 }
 
 export interface SupportElement {
@@ -77,6 +82,7 @@ export interface SupportElement {
   x?: number;
   y?: number;
   bbox?: BoundingBox;  // Object detection bounding box
+  size_line?: GeneratedMeasurementLine; // Fresh local sizing geometry
 }
 
 export interface CakeMessage {
@@ -154,6 +160,8 @@ export interface HybridAnalysisResult {
   icing_borders?: IcingBorder[];
   base_board?: BaseBoard[];
   keyword?: string;
+  cake_measurements?: GeneratedCakeMeasurements;
+  /** Legacy persisted geometry retained for backwards-compatible hydration. */
   cake_bbox?: GeneratedBoundingBox;
   // SEO fields for searchable recent searches
   alt_text?: string;

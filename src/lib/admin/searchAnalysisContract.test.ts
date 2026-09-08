@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildSearchAnalysisGenerationConfig,
   buildSearchAnalysisResponseSchema,
   getAnalysisGenerationSizeSchema,
   postProcessSearchAnalysisResult,
@@ -75,6 +76,15 @@ function validAnalysis(overrides: Record<string, unknown> = {}) {
 }
 
 describe('search analysis contract', () => {
+  it('pins greedy low-variance decoding for single-image and batch analysis', () => {
+    expect(buildSearchAnalysisGenerationConfig(typeEnums)).toMatchObject({
+      temperature: 0,
+      topP: 1,
+      topK: 1,
+      thinkingConfig: { thinkingLevel: 'LOW' },
+    });
+  });
+
   it('includes the canonical rejection reasons and enums used by the prompt', () => {
     const schema = buildSearchAnalysisResponseSchema(typeEnums);
 
@@ -110,7 +120,16 @@ describe('search analysis contract', () => {
     expect(schema.properties).not.toHaveProperty('is_tall_proportion');
     expect(schema.properties.main_toppers.items.properties).not.toHaveProperty('digits');
     expect(schema.properties.main_toppers.items.properties).not.toHaveProperty('x');
-    expect(schema.properties.support_elements.items.properties).not.toHaveProperty('bbox');
+    expect(schema.properties.support_elements.items.properties.bbox.properties.x.description).toContain('normalized 0–1000');
+    expect(schema.properties.main_toppers.items.properties.bbox.description).toContain('one visible representative unit');
+    expect(schema.properties.cake_measurements.description).toContain('Explicit normalized line endpoints');
+    expect(schema.properties.cake_measurements.properties.diameter.description).toContain('circular or elliptical cross-section');
+    expect(schema.properties.cake_measurements.properties.diameter.description).toContain('opposing left edge');
+    expect(schema.properties.cake_measurements.properties.diameter.description).toContain('visible top ellipse');
+    expect(schema.properties.cake_measurements.properties.height.description).toContain('near/front bottom rim');
+    expect(schema.properties.cake_measurements.properties.height.description).toContain('near/front top rim');
+    expect(schema.properties.cake_measurements.properties.height.description).toContain('lower/closer arc');
+    expect(schema.properties.cake_measurements.properties.height.description).toContain('front-facing side wall');
     expect(schema.properties).not.toHaveProperty('icing_surfaces');
     expect(schema.properties.main_toppers.items.properties.subtype.enum).toContain('ferrero');
     expect(schema.properties.main_toppers.items.properties.type.enum).toContain('plastic_ball');
@@ -121,6 +140,9 @@ describe('search analysis contract', () => {
       .toEqual(['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge']);
     expect(getAnalysisGenerationSizeSchema('3.66')).toBe('legacy_six_band');
     expect(getAnalysisGenerationSizeSchema('3.67')).toBe('three_band');
+    expect(getAnalysisGenerationSizeSchema('local-dev-bbox')).toBe('local_bbox_area');
+    expect(getAnalysisGenerationSizeSchema('local-dev-line')).toBe('local_line_ratio');
+    expect(getAnalysisGenerationSizeSchema('3.74')).toBe('local_line_ratio');
     expect(schema.properties.icing_design.required).toEqual(expect.arrayContaining([
       'drip',
       'border_top',
@@ -139,6 +161,131 @@ describe('search analysis contract', () => {
     expect(schema.properties.cakeThickness).not.toHaveProperty('enum');
   });
 
+  it('computes local bbox-area sizes before final validation and ignores AI sizes', () => {
+    const localSchema = buildSearchAnalysisResponseSchema(typeEnums, 'local_bbox_area');
+    expect(localSchema.properties.main_toppers.items.properties).not.toHaveProperty('size');
+    expect(localSchema.properties.support_elements.items.properties).not.toHaveProperty('size');
+    expect(localSchema.properties.main_toppers.items.required).not.toContain('size');
+    expect(localSchema.properties.main_toppers.items.required).toContain('bbox');
+    expect(localSchema.properties.support_elements.items.required).toContain('bbox');
+
+    const result = postProcessSearchAnalysisResult(validAnalysis({
+      cake_measurements: {
+        diameter: { start: { x: 0, y: 0 }, end: { x: 100, y: 0 } },
+        height: { start: { x: 0, y: 0 }, end: { x: 0, y: 40 } },
+      },
+      main_toppers: [{
+        type: 'edible_3d_complex',
+        material: 'edible_fondant',
+        group_id: 'figure',
+        classification: 'hero',
+        size: 'large',
+        quantity: 1,
+        description: 'small figure',
+        bbox: { x: 10, y: 20, width: 30, height: 60 },
+      }],
+      support_elements: [{
+        type: 'sprinkles',
+        material: 'candy',
+        group_id: 'sprinkles',
+        color: '#FFD700',
+        size: 'large',
+        quantity: 1,
+        description: 'sprinkles',
+        bbox: { x: 100, y: 100, width: 900, height: 900 },
+      }],
+    }), typeEnums, 'local_bbox_area');
+
+    expect(result.main_toppers[0].size).toBe('medium');
+    expect(result.support_elements[0].size).toBe('small');
+    expect(result.cakeThickness).toBe('3 in');
+    expect(result.main_toppers[0].bbox).toEqual({ x: 10, y: 20, width: 30, height: 60 });
+    expect((result as unknown as { cake_measurements: unknown }).cake_measurements).toEqual({
+      diameter: { start: { x: 0, y: 0 }, end: { x: 100, y: 0 } },
+      height: { start: { x: 0, y: 0 }, end: { x: 0, y: 40 } },
+    });
+  });
+
+  it('fails local sizing when an accepted priced element has no bbox', () => {
+    expect(() => postProcessSearchAnalysisResult(validAnalysis({
+      cake_measurements: {
+        diameter: { start: { x: 0, y: 0 }, end: { x: 100, y: 0 } },
+        height: { start: { x: 0, y: 0 }, end: { x: 0, y: 100 } },
+      },
+      main_toppers: [{
+        type: 'toy',
+        material: 'plastic',
+        group_id: 'toy',
+        classification: 'hero',
+        size: 'large',
+        quantity: 1,
+        description: 'toy',
+      }],
+    }), typeEnums, 'local_bbox_area')).toThrow(/bbox is required/i);
+  });
+
+  it('computes local line-ratio sizes before final validation and omits priced bboxes', () => {
+    const localSchema = buildSearchAnalysisResponseSchema(typeEnums, 'local_line_ratio');
+    expect(localSchema.properties.main_toppers.items.properties).not.toHaveProperty('bbox');
+    expect(localSchema.properties.main_toppers.items.properties).toHaveProperty('size_line');
+    expect(localSchema.properties.main_toppers.items.required).not.toContain('size_line');
+    expect(localSchema.properties.support_elements.items.required).not.toContain('size_line');
+
+    const result = postProcessSearchAnalysisResult(validAnalysis({
+      cakeType: '1 Tier',
+      cake_measurements: {
+        diameter: { start: { x: 0, y: 0 }, end: { x: 100, y: 0 } },
+        height: { start: { x: 0, y: 0 }, end: { x: 0, y: 50 } },
+      },
+      main_toppers: [{
+        type: 'edible_3d_complex',
+        material: 'edible_fondant',
+        group_id: 'figure',
+        classification: 'hero',
+        size: 'large',
+        quantity: 1,
+        description: 'figure',
+        size_line: { start: { x: 20, y: 20 }, end: { x: 20, y: 50 } },
+        bbox: { x: 10, y: 20, width: 30, height: 60 },
+      }],
+      support_elements: [{
+        type: 'sprinkles',
+        material: 'candy',
+        group_id: 'sprinkles',
+        color: '#FFD700',
+        size: 'large',
+        quantity: 1,
+        description: 'sprinkles',
+      }],
+    }), typeEnums, 'local_line_ratio');
+
+    expect(result.main_toppers[0].size).toBe('medium');
+    expect(result.main_toppers[0].size_line).toEqual({
+      start: { x: 20, y: 20 },
+      end: { x: 20, y: 50 },
+    });
+    expect(result.main_toppers[0]).not.toHaveProperty('bbox');
+    expect(result.support_elements[0].size).toBe('small');
+    expect(result.cakeThickness).toBe('3 in');
+  });
+
+  it('fails line-mode sizing when an unfixed priced element has no size_line', () => {
+    expect(() => postProcessSearchAnalysisResult(validAnalysis({
+      cake_measurements: {
+        diameter: { start: { x: 0, y: 0 }, end: { x: 100, y: 0 } },
+        height: { start: { x: 0, y: 0 }, end: { x: 0, y: 100 } },
+      },
+      main_toppers: [{
+        type: 'toy',
+        material: 'plastic',
+        group_id: 'toy',
+        classification: 'hero',
+        quantity: 1,
+        description: 'toy',
+      }],
+    }), typeEnums, 'local_line_ratio')).toThrow(/size_line is required/i);
+  });
+
   it('keeps the model-provided thickness without fabricating coordinates', () => {
     const result = postProcessSearchAnalysisResult(validAnalysis({
       cakeThickness: '6 in',
@@ -146,6 +293,32 @@ describe('search analysis contract', () => {
 
     expect(result.cakeThickness).toBe('6 in');
     expect(result).not.toHaveProperty('is_tall_proportion');
+  });
+
+  it('accepts perspective-slanted cake measurement endpoints', () => {
+    const result = postProcessSearchAnalysisResult(validAnalysis({
+      cake_measurements: {
+        diameter: {
+          start: { x: 140, y: 610 },
+          end: { x: 860, y: 628 },
+        },
+        height: {
+          start: { x: 505, y: 320 },
+          end: { x: 530, y: 880 },
+        },
+      },
+    }), typeEnums);
+
+    expect((result as unknown as { cake_measurements: unknown }).cake_measurements).toEqual({
+      diameter: {
+        start: { x: 140, y: 610 },
+        end: { x: 860, y: 628 },
+      },
+      height: {
+        start: { x: 505, y: 320 },
+        end: { x: 530, y: 880 },
+      },
+    });
   });
 
   it('rejects forbidden legacy generated fields instead of silently deleting them', () => {

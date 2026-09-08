@@ -93,11 +93,29 @@ describe('cake analysis prompt rules', () => {
     ]));
   });
 
+  it('keeps v3.74 tall-single-cake tier correction guarded by active v3.73', () => {
+    const migration = readPrompt('supabase/migrations/20260907150000_stage_prompt_v374_tall_single_cake_tier_guard.sql');
+    const activation = readPrompt('supabase/migrations/20260907151000_activate_prompt_v374_tall_single_cake_tier_guard.sql');
+
+    expect(migration).toContain("source_prompt_version <> '3.73'");
+    expect(migration).toContain("v373_md5 constant text := '723880c54943a81680941dd32edbb5d2'");
+    expect(migration).toContain("v374_md5 constant text := 'a9129171141ce260312f10ff52b353fa'");
+    expect(migration).toContain('Tall Single-Cake Tier Guard');
+    expect(migration).toContain('TALL SINGLE-CAKE RULE');
+    expect(migration).toContain('same-footprint stacked bodies');
+    expect(migration).toContain('If a physically distinct substantial cake body is not clearly resolved');
+    expect(migration).toContain("'3.74',\n    next_prompt");
+    expect(migration).toContain('is_active, description');
+    expect(activation).toContain("active_prompt_version <> '3.73'");
+    expect(activation).toContain("where version = '3.74'");
+    expect(activation).toContain('set is_active = false');
+  });
+
   it('classifies every item through construction, material, type, and description consistency', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.73 Version - Analysis Only; Deferred Product Copy**');
+    expect(prompt).toContain('**v3.74 Version - Analysis Only; Deferred Product Copy**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('3. Visible construction of each item');
     expect(prompt).toContain('5. Type compatible with that construction and material');
@@ -155,7 +173,17 @@ describe('cake analysis prompt rules', () => {
     expect(SYSTEM_INSTRUCTION).not.toContain('This is the HIGHEST PRIORITY rule and overrides all other considerations');
     expect(SYSTEM_INSTRUCTION).toContain('If you are unsure and there are no positive construction or material cues');
     expect(SYSTEM_INSTRUCTION).toContain('STRICT GENERATED CONTRACT');
-    expect(SYSTEM_INSTRUCTION).toContain('Do not generate x/y coordinates, bounding boxes, icing_surfaces, candle digits, is_tall_proportion');
+    expect(SYSTEM_INSTRUCTION).toContain('Do not generate legacy x/y coordinates, icing_surfaces, candle digits, is_tall_proportion');
+    expect(SYSTEM_INSTRUCTION).toContain('schema-approved per-element `size_line` fields');
+    expect(SYSTEM_INSTRUCTION).toContain('Representative-size-line precedence');
+    expect(SYSTEM_INSTRUCTION).toContain('quantity >= 2');
+    expect(SYSTEM_INSTRUCTION).toContain('if one representative unit cannot be measured reliably, omit the repeated row');
+    expect(SYSTEM_INSTRUCTION).toContain('Use a vertical or horizontal line by default');
+    expect(SYSTEM_INSTRUCTION).toContain('Never use a corner-to-corner diagonal');
+    expect(SYSTEM_INSTRUCTION).toContain('slant merely to make the line longer');
+    expect(SYSTEM_INSTRUCTION).toContain('accepted-image `cake_measurements`');
+    expect(SYSTEM_INSTRUCTION).toContain('the application also computes the final `cakeThickness` locally');
+    expect(SYSTEM_INSTRUCTION).toContain('without moving or rewriting either stored measurement line endpoint');
     expect(SYSTEM_INSTRUCTION).toContain('Accepted results require blank reason and message');
     expect(SYSTEM_INSTRUCTION).toContain('When gumpasteBaseBoard is true, include colors.gumpasteBaseBoardColor');
     expect(SYSTEM_INSTRUCTION).toContain('Use the active analysis prompt as the only source for sizing boundaries');
@@ -164,6 +192,9 @@ describe('cake analysis prompt rules', () => {
     expect(SYSTEM_INSTRUCTION).toContain('such as an intricate rose, tulip, stargazer, sunflower, or peony');
     expect(SYSTEM_INSTRUCTION).toContain('Conditioned Wafer-Paper Side Waves');
     expect(SYSTEM_INSTRUCTION).toContain('all four cues: individually distinguishable thin paper sheets/strips');
+    expect(SYSTEM_INSTRUCTION).toContain('Physical Cake-Body Tier Test');
+    expect(SYSTEM_INSTRUCTION).toContain('same-footprint stacked bodies require clearly visible');
+    expect(SYSTEM_INSTRUCTION).toContain('default to `1 Tier` rather than a multi-tier type');
     expect(SYSTEM_INSTRUCTION).toContain('Count a sheet cue only when its narrow sheet face and free outer edge');
     expect(SYSTEM_INSTRUCTION).toContain('Scalloped folds, shadows, overlap boundaries, and edges of cupped/overlapping petals');
     expect(SYSTEM_INSTRUCTION).toContain('After a failed wafer gate, do not invent waferpaper; classify the visible construction');
@@ -229,11 +260,12 @@ describe('cake analysis prompt rules', () => {
     };
 
     expect(prompt).toContain('### DECORATIVE BANDING IS NOT A CAKE TIER (REQUIRED)');
-    expect(prompt).toContain('substantial, separately visible vertical cake sidewall and lower/bottom');
-    expect(prompt).toContain('exposed horizontal shoulder or ledge of the lower cake');
-    expect(prompt).toContain('Piping,\nshells, swags, ruffles, borders, flowers, ribbons, bows, shadows');
-    expect(prompt).toContain('a concave/recessed top, a high frosting rim, or a\nsmaller inner top plane');
-    expect(prompt).toContain('If the image does not resolve all three positive upper-tier cues, default to\nthe applicable one-body cake type.');
+    expect(prompt).toContain('**Physical cake-body test (authoritative):** Count tiers by physically distinct,');
+    expect(prompt).toContain('**CRITICAL — TALL SINGLE-CAKE RULE:**');
+    expect(prompt).toContain('same-footprint stacked bodies may be counted only when');
+    expect(prompt).toContain('A meaningful change in diameter/footprint that exposes a shoulder, ledge, or step');
+    expect(prompt).toContain('If the outer cake silhouette/sidewall remains\nsubstantially continuous');
+    expect(prompt).toContain('If a physically distinct substantial cake body is not clearly resolved');
     expect(fixture.expected_cake).toEqual({ cakeType: '1 Tier', cakeThickness: '4 in' });
     expect(fixture.required_multi_tier_evidence).toHaveLength(3);
     expect(fixture.non_qualifying_construction).toEqual(expect.arrayContaining([
@@ -252,6 +284,10 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('| About 1.20:1 | 6 in diameter x 5 in tall | `"5 in"` |');
     expect(prompt).toContain('| About 1.00:1 | 6 in diameter x 6 in tall | `"6 in"` |');
     expect(prompt).toContain('Keep cupcakes on their explicit cupcake rule of `"2 in"`.');
+    expect(prompt).toContain('the application computes the final `cakeThickness` locally');
+    expect(prompt).toContain('raw ratio is greater than 2.0');
+    expect(prompt).toContain('endpoints remain unchanged');
+    expect(prompt).toContain('final accepted output still requires one canonical `cakeThickness`');
   });
 
   it('keeps non-design branding exclusions in the fallback prompt source', () => {
@@ -333,7 +369,7 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).not.toContain('If the doodle is intricate, keep `type: "icing_doodle"`');
   });
 
-  it('classifies isolated edible mermaid tails as ordinary and groups them by size', () => {
+  it('classifies isolated edible mermaid tails as ordinary and groups representative size lines', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
     expect(prompt).toContain('MERMAID TAIL CLASSIFICATION AND PRICING PRECEDENCE');
@@ -343,9 +379,10 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('multiple colors, metallic accents, scales, ridges, fins');
     expect(prompt).toContain('Use `edible_3d_complex` only for a complete freestanding sculpted mermaid');
     expect(prompt).toContain('Printed, paper, acrylic, plastic, or toy mermaid tails must still follow the');
-    expect(prompt).toContain('Count every physical mermaid tail.');
-    expect(prompt).toContain('Never combine visibly');
-    expect(prompt).toContain('Create separate groups for each visible size band');
+    expect(prompt).toContain('Count every physical mermaid tail and give each one its own representative');
+    expect(prompt).toContain('Never combine visibly different tails into one item or assign one');
+    expect(prompt).toContain('shared size_line to the whole set.');
+    expect(prompt).toContain('Group only tails with the same type, material, color,');
     expect(prompt).toContain('An isolated');
     expect(prompt).toContain('decorative motif such as a standalone mermaid tail is allowed under its');
     expect(prompt).not.toContain('- NO distinct body parts');
@@ -494,7 +531,7 @@ describe('cake analysis prompt rules', () => {
     });
   });
 
-  it('promotes intricate sculpted flowers to at least medium heroes', () => {
+  it('promotes intricate sculpted flowers to hero classification', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fixture = JSON.parse(readPrompt('src/services/prompts/fixtures/christening-cake-pink-2-tier-fondant-cake-9698.json')) as {
       intricate_flower_examples: string[];
@@ -504,8 +541,8 @@ describe('cake analysis prompt rules', () => {
 
     expect(prompt).toContain('### INTRICATE FLOWER MINIMUM-SIZE PRECEDENCE');
     expect(prompt).toContain('such as an intricate rose, tulip, stargazer, sunflower, or\npeony');
-    expect(prompt).toContain('has a minimum size of `medium`');
-    expect(prompt).toContain('overrides a\nsmaller raw C3 diameter estimate');
+    expect(prompt).toContain('has a minimum fulfillment role of `main_toppers`');
+    expect(prompt).toContain('the application computes its final size locally');
     expect(prompt).toContain('Do not promote tiny\nbuds, simple blossoms, flat flower cutouts, generic filler flowers, or actual\npiped buttercream rosettes.');
 
     expect(fixture.intricate_flower_examples).toEqual(['rose', 'tulip', 'stargazer', 'sunflower', 'peony']);
@@ -605,75 +642,56 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.73 Version - Analysis Only; Deferred Product Copy**');
+    expect(prompt).toContain('**v3.74 Version - Analysis Only; Deferred Product Copy**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
     expect(prompt).toContain('Output non-identical major subjects as separate `main_toppers` rows.');
     expect(prompt).toContain('row `quantity: 1`, its own descriptive `group_id`');
-    expect(prompt).toContain('Only truly identical repeated pieces with the same type, material, size,');
-    expect(prompt).toContain('Size each separate major subject independently with the correct sizing table.');
+    expect(prompt).toContain('Only truly identical repeated pieces with the same type, material,');
+    expect(prompt).toContain('Give each separate major subject its own representative size_line.');
+    expect(prompt).toContain('application sizes each subject independently');
     expect(prompt).toContain('wheels, mirrors, handlebars, seats, or a delivery box');
     expect(prompt).toContain('two people plus one scooter = 3 separate `main_toppers` rows');
     expect(prompt).toContain('three people inside or on one sculpted car plus the car = 4 separate');
     expect(prompt).toContain('MULTIPLE IDENTICAL FIGURE COUNTING');
     expect(prompt).toContain('Composite hero assemblies: count major subjects before grouping; separate and independently size non-identical subjects');
     expect(prompt).toContain('SPLIT COMPOSITE HERO ASSEMBLIES');
-    expect(prompt).toContain('For any rider, mount, or vehicle composition, apply COMPOSITE HERO ASSEMBLY');
+    expect(prompt).toContain('Each complete person, fictional character, or animal counts as one');
     expect(prompt).not.toContain('count it as 2 quantity toppers or 2 separate toppers');
   });
 
-  it('uses toy-specific sizing for miniature molded toys', () => {
+  it('keeps toy classification while delegating size to local line-ratio sizing', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.73 Version - Analysis Only; Deferred Product Copy**');
-    expect(prompt).toContain('TOY-SPECIFIC SIZING PRECEDENCE (OVERRIDES C1 FOR `toy` AND `plastic_crown`)');
-    expect(prompt).toContain('overrides the generic C1\n3D-figure bands and the Ratio Quick Glance table');
-    expect(prompt).toContain('| `small` | under 0.50 |');
-    expect(prompt).toContain('| `medium` | 0.50 to under 1.10 |');
-    expect(prompt).toContain('| `large` | 1.10 or greater |');
-    expect(prompt).toContain('Miniature molded army men, miniature soldiers, and similarly scaled mini action');
-    expect(prompt).toContain('figures below 0.50 of the reference-tier height are `small`');
-    expect(prompt).toContain('For toys, compensate for perspective by estimating the toy\'s true visible');
-    expect(prompt).toContain('This replaces the global perspective `+1`\nrule for toys.');
-    expect(prompt).toContain('Do not apply any additional category bump after using the\ntoy-specific table.');
-    expect(prompt).toContain('Count every physical toy.');
-    expect(prompt).toContain('Size each toy independently.');
-    expect(prompt).toContain('Never measure the footprint, height, or visual\nimpact of the whole toy scene or cluster.');
-    expect(prompt).toContain('material, size, color, pose, and appearance may share one `group_id`');
-    expect(prompt).toContain('### C1. EDIBLE 3D FIGURES — edible_3d_complex, edible_3d_ordinary, edible_crown');
-    expect(prompt).not.toContain('### C1. 3D FIGURES — edible_3d_complex, edible_3d_ordinary, toy');
-    expect(prompt).toContain('→ Toy, `plastic_crown`, or `figurine`? Measure HEIGHT and use TOY-SPECIFIC SIZING PRECEDENCE');
-    expect(prompt).toContain('→ Edible 3D figure or `edible_crown`? Measure HEIGHT and use C1');
-    expect(prompt).toContain('For `toy`, `plastic_crown`, or `figurine`, use TOY-SPECIFIC SIZING PRECEDENCE; otherwise look up the correct per-type table (C1-C7)');
+    expect(prompt).toContain('**v3.74 Version - Analysis Only; Deferred Product Copy**');
+    expect(prompt).toContain('| Rigid factory-molded physical prop | `toy` | `plastic`');
+    expect(prompt).toContain('toys, plastic crowns, and figurines\nuse `<0.50`, `0.50 to <1.10`, `≥1.10`');
+    expect(prompt).toContain('The application, not the model, assigns every `small`, `medium`, or `large`');
+    expect(prompt).not.toContain('TOY-SPECIFIC SIZING PRECEDENCE');
+    expect(prompt).not.toContain('PD ÷ RH');
   });
 
-  it('uses one canonical three-band sizing contract and matching quick reference', () => {
+  it('exposes only the current local line-ratio sizing contract', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
-    const canonicalThreeBands = [
-      '| `small` | **< 0.30**',
-      '| `medium` | **0.30 to < 0.90**',
-      '| `large` | **≥ 0.90**',
-    ];
 
     expect(prompt).toContain('CANONICAL ITEM FAMILY MATRIX — AUTHORITATIVE');
-    for (const band of canonicalThreeBands) {
-      expect(prompt).toContain(band);
-    }
-    expect(prompt).toContain('Ratio Quick Glance (exact mirror of the authoritative tables)');
-    expect(prompt).toContain('All sizing output uses only `small`, `medium`, or `large`.');
-    expect(prompt).toContain('Flat toppers use the same canonical three ratio bands as C1');
-    expect(prompt).toContain('### C4. SPHERES & BALLS — plastic_ball, plastic_ball_regular, edible round elements');
-    expect(prompt).toContain('A **small gap**? → `small`.');
-    expect(prompt).toContain('| C1 edible 3D | <0.30 | 0.30 to <0.90 | ≥0.90 |');
-    expect(prompt).toContain('| C5 edible 2D support | <0.30 | 0.30 to <0.90 | ≥0.90 |');
-    expect(prompt).toContain('`edible_2d_support` remains in `support_elements` at every size.');
-    expect(prompt).toContain('5 tiny stars in a cluster → each star is `small`, quantity = 5.');
-    expect(prompt).not.toContain('5 tiny stars in a cluster → each star is `tiny`');
-    expect(prompt).toContain('set `quantity` to the\nactual piece count, and price per piece');
-    expect(prompt).toContain('| `medium` | **40% to < 80%** |');
-    expect(prompt).toContain('| `large` | **≥ 80%** |');
-    expect(prompt).toContain('panels use `<40%`, `40% to <80%`, and `≥80%` side coverage');
+    expect(prompt).toContain('LOCAL LINE-RATIO SIZING — APPLICATION OWNERSHIP');
+    expect(prompt).toContain('element_line_length = Euclidean length of size_line');
+    expect(prompt).toContain('ratio = element_line_length ÷ cake_diameter_length');
+    expect(prompt).toContain('along the item\'s dominant physical axis');
+    expect(prompt).toContain('A slant is allowed only when the item');
+    expect(prompt).not.toContain('Lines may be slanted.');
+    expect(prompt).toContain('Exact boundaries round up to the larger size.');
+    expect(prompt).not.toContain('HISTORICAL SIZING FRAMEWORK REFERENCE');
+    expect(prompt).not.toContain('## STEP A: DETERMINE THE REFERENCE HEIGHT (RH)');
+    expect(prompt).not.toContain('## STEP B: MEASURE THE ELEMENT\'S PRIMARY DIMENSION (PD)');
+    expect(prompt).not.toContain('## STEP C: LOOK UP SIZE PER ELEMENT TYPE');
+    expect(prompt).not.toContain('Ratio Quick Glance');
+    expect(prompt).not.toContain('PD ÷ RH');
+    expect(prompt).not.toContain('C1-C7');
+    expect(prompt).not.toContain('"size":');
+    expect(prompt).toContain('photo-side coverage use `<0.40`, `0.40 to <0.80`, `≥0.80`');
     expect(prompt).not.toContain('reclassify as main topper');
     expect(prompt).not.toMatch(/Panels:\s+<35%/);
     expect(prompt).not.toContain('35–60%');
@@ -866,11 +884,35 @@ describe('cake analysis prompt rules', () => {
 
     expect(prompt).toContain('output\none `edible_flowers` row with `quantity: 5`');
     expect(prompt).toContain('Do not emit five duplicate rows.');
-    expect(prompt).toContain('Different sizes, colors, poses, or appearances require separate rows.');
+    expect(prompt).toContain('Different colors, poses, or appearances require separate rows.');
+    expect(prompt).toContain('Do not include `small`, `medium`, or `large` size descriptors in a `group_id`.');
     expect(prompt).toContain('`subtype` is optional.');
     // Bounding boxes are now an explicit analysis output, while the former
     // stale coordinate fields remain unsupported.
-    expect(prompt).toContain('"cake_bbox": { "x": 0, "y": 0, "width": 0, "height": 0 }');
+    expect(prompt).toContain('"cake_measurements": {');
+    expect(prompt).toContain('Do not emit `cake_bbox` for new analyses.');
+    expect(prompt).toContain('REPRESENTATIVE-SIZE-LINE PRECEDENCE (AUTHORITATIVE)');
+    expect(prompt).toContain('The row\'s `quantity` and `group_id`');
+    expect(prompt).toContain('the line always represents one typical unit.');
+    expect(prompt).toContain('**Element-line orientation:**');
+    expect(prompt).toContain('Use vertical or horizontal lines by default.');
+    expect(prompt).toContain('Never use a corner-to-corner diagonal');
+    expect(prompt).toContain('For a quantity-1 composition or coverage item, the line may measure the full');
+    expect(prompt).toContain('`7 lollipops`, `5 balls`, or');
+    expect(prompt).toContain('top ellipse is visible');
+    expect(prompt).toContain('TOP TIER circular/elliptical cross-section');
+    expect(prompt).toContain('blue-line kind of');
+    expect(prompt).toContain('the black-line fallback');
+    expect(prompt).toContain('arbitrary diagonal across the front wall');
+    expect(prompt).toContain('near/front top');
+    expect(prompt).toContain('lower/closer arc of that ellipse');
+    expect(prompt).toContain('red-line/green-circled');
+    expect(prompt).toContain('kind of');
+    expect(prompt).toContain('highest visible cake pixel');
+    expect(prompt).toContain('rear/back arc of the top ellipse');
+    expect(prompt).toContain('near/front bottom rim');
+    expect(prompt).toMatch(/Perspective may\s+make the height line slanted/);
+    expect(prompt).toContain('90-degree line');
     expect(prompt).not.toContain('"digits"');
     expect(prompt).not.toContain('## ICING SURFACES');
   });
@@ -1034,11 +1076,16 @@ describe('cake analysis prompt rules', () => {
 
 
 describe('deferred SEO prompt split', () => {
-  it('stages exactly the fallback without activation and extracts separate copy rules', () => {
+  it('keeps the historical staged prompt separate from the local fallback and extracts copy rules', () => {
     const analysis = readPrompt('src/services/prompts/fallback-prompt.txt');
     const seo = readPrompt('src/services/prompts/seo-prompt.txt');
     const migration = readPrompt('supabase/migrations/20260905120000_stage_analysis_only_prompt_v373.sql');
-    expect(migration).toContain(`$prompt$${analysis}$prompt$, false`);
+    // v3.73 remains a historical staged prompt. Local development now uses
+    // the application-owned line-ratio sizing fallback until a separately
+    // approved v3.74 migration is prepared and activated.
+    expect(migration).toContain("select '3.73'");
+    expect(analysis).toContain('LOCAL LINE-RATIO SIZING — APPLICATION OWNERSHIP');
+    expect(analysis).toContain('Do NOT estimate or emit `size`');
     expect(analysis).not.toMatch(/seo_title|seo_description|alt_text|SEO COPY GENERATION/);
     expect(seo).toContain('No image is supplied');
     expect(seo).toContain('personal names');

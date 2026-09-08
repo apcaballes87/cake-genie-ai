@@ -157,10 +157,27 @@ export type GeneratedAnalysisMaterial = typeof GENERATED_ANALYSIS_MATERIALS[numb
 export type GeneratedAnalysisRejectionReason = keyof typeof GENERATED_ANALYSIS_REJECTION_MESSAGES;
 
 export interface GeneratedBoundingBox {
+  /** Normalized 0–1000 coordinate space with a top-left origin. */
   x: number;
   y: number;
   width: number;
   height: number;
+}
+
+export interface GeneratedCoordinatePoint {
+  /** Normalized 0–1000 coordinate space with a top-left origin. */
+  x: number;
+  y: number;
+}
+
+export interface GeneratedMeasurementLine {
+  start: GeneratedCoordinatePoint;
+  end: GeneratedCoordinatePoint;
+}
+
+export interface GeneratedCakeMeasurements {
+  diameter: GeneratedMeasurementLine;
+  height: GeneratedMeasurementLine;
 }
 
 export interface GeneratedMainTopper {
@@ -175,6 +192,8 @@ export interface GeneratedMainTopper {
   colors?: string[];
   subtype?: string;
   bbox?: GeneratedBoundingBox;
+  /** Fresh line-mode sizing geometry for one representative primary dimension. */
+  size_line?: GeneratedMeasurementLine;
 }
 
 export interface GeneratedSupportElement {
@@ -188,6 +207,8 @@ export interface GeneratedSupportElement {
   description: string;
   subtype?: string;
   bbox?: GeneratedBoundingBox;
+  /** Fresh line-mode sizing geometry for one representative primary dimension. */
+  size_line?: GeneratedMeasurementLine;
 }
 
 export interface GeneratedCakeMessage {
@@ -226,6 +247,8 @@ export interface GeneratedAcceptedCakeAnalysisResult extends GeneratedCakeAnalys
   alt_text?: string;
   seo_title?: string;
   seo_description?: string;
+  cake_measurements?: GeneratedCakeMeasurements;
+  /** Legacy persisted geometry retained for backwards-compatible hydration. */
   cake_bbox?: GeneratedBoundingBox;
   rejection: {
     isRejected: false;
@@ -361,6 +384,7 @@ const TOP_LEVEL_KEYS = [
 ] as const;
 const TOP_LEVEL_ALLOWED_KEYS = [
   ...TOP_LEVEL_KEYS,
+  'cake_measurements',
   'cake_bbox',
 ] as const;
 const MAIN_TOPPER_KEYS = [
@@ -375,6 +399,7 @@ const MAIN_TOPPER_KEYS = [
   'colors',
   'subtype',
   'bbox',
+  'size_line',
 ] as const;
 const SUPPORT_ELEMENT_KEYS = [
   'type',
@@ -387,6 +412,7 @@ const SUPPORT_ELEMENT_KEYS = [
   'description',
   'subtype',
   'bbox',
+  'size_line',
 ] as const;
 const CAKE_MESSAGE_KEYS = ['text', 'type', 'color', 'position', 'bbox'] as const;
 const ICING_DESIGN_KEYS = [
@@ -427,14 +453,53 @@ function requireExactKeys(
   if (missing.length) fail(path, `is missing required field(s): ${missing.join(', ')}`);
 }
 
+function requireNormalizedInteger(value: unknown, path: string, allowZero: boolean): number {
+  const minimum = allowZero ? 0 : 1;
+  if (!Number.isInteger(value) || Number(value) < minimum || Number(value) > 1000) {
+    fail(path, `must be an integer from ${minimum} through 1000`);
+  }
+  return Number(value);
+}
+
 function validateOptionalBbox(value: unknown, path: string): void {
   if (value === undefined || value === null) return;
   if (!isRecord(value)) fail(path, 'bbox must be an object');
-  const { x, y, width, height } = value;
-  if (typeof x !== 'number' || x < 0) fail(`${path}.x`, 'must be a non-negative number');
-  if (typeof y !== 'number' || y < 0) fail(`${path}.y`, 'must be a non-negative number');
-  if (typeof width !== 'number' || width <= 0) fail(`${path}.width`, 'must be a positive number');
-  if (typeof height !== 'number' || height <= 0) fail(`${path}.height`, 'must be a positive number');
+  const x = requireNormalizedInteger(value.x, `${path}.x`, true);
+  const y = requireNormalizedInteger(value.y, `${path}.y`, true);
+  const width = requireNormalizedInteger(value.width, `${path}.width`, false);
+  const height = requireNormalizedInteger(value.height, `${path}.height`, false);
+  if (x + width > 1000) fail(path, 'must remain within the normalized 0–1000 horizontal axis');
+  if (y + height > 1000) fail(path, 'must remain within the normalized 0–1000 vertical axis');
+}
+
+function validateOptionalSizeLine(value: unknown, path: string): void {
+  if (value === undefined || value === null) return;
+  const line = requireRecord(value, path);
+  requireExactKeys(line, ['start', 'end'], ['start', 'end'], path);
+  validateCoordinatePoint(line.start, `${path}.start`);
+  validateCoordinatePoint(line.end, `${path}.end`);
+}
+
+function validateCoordinatePoint(value: unknown, path: string): void {
+  const point = requireRecord(value, path);
+  requireExactKeys(point, ['x', 'y'], ['x', 'y'], path);
+  requireNormalizedInteger(point.x, `${path}.x`, true);
+  requireNormalizedInteger(point.y, `${path}.y`, true);
+}
+
+function validateOptionalCakeMeasurements(value: unknown, path: string): void {
+  if (value === undefined || value === null) return;
+  const measurements = requireRecord(value, path);
+  requireExactKeys(measurements, ['diameter', 'height'], ['diameter', 'height'], path);
+
+  for (const axis of ['diameter', 'height'] as const) {
+    const linePath = `${path}.${axis}`;
+    const line = requireRecord(measurements[axis], linePath);
+    requireExactKeys(line, ['start', 'end'], ['start', 'end'], linePath);
+    validateCoordinatePoint(line.start, `${linePath}.start`);
+    validateCoordinatePoint(line.end, `${linePath}.end`);
+
+  }
 }
 
 function requireString(value: unknown, path: string, allowBlank = false): string {
@@ -527,6 +592,7 @@ function validateMainTopper(
   optionalPaletteHexArray(item.colors, `${path}.colors`);
   validateOptionalSubtype(item, type, subtypeMap, path);
   validateOptionalBbox(item.bbox, `${path}.bbox`);
+  validateOptionalSizeLine(item.size_line, `${path}.size_line`);
 }
 
 function validateSupportElement(
@@ -553,6 +619,7 @@ function validateSupportElement(
   requireString(item.description, `${path}.description`);
   validateOptionalSubtype(item, type, subtypeMap, path);
   validateOptionalBbox(item.bbox, `${path}.bbox`);
+  validateOptionalSizeLine(item.size_line, `${path}.size_line`);
 }
 
 function validateCakeMessage(value: unknown, index: number) {
@@ -650,6 +717,7 @@ export function validateGeneratedCakeAnalysisResult(
   requireExactKeys(result, allowedKeys, requiredKeys, 'analysis');
   const rejection = validateRejection(result.rejection);
   validateIcingDesign(result.icing_design);
+  validateOptionalCakeMeasurements(result.cake_measurements, 'analysis.cake_measurements');
   validateOptionalBbox(result.cake_bbox, 'analysis.cake_bbox');
 
   const mainToppers = requireArray(result.main_toppers, 'main_toppers');
