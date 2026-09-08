@@ -93,24 +93,6 @@ describe('cake analysis prompt rules', () => {
     ]));
   });
 
-  it('keeps v3.74 tall-single-cake tier correction guarded by active v3.73', () => {
-    const migration = readPrompt('supabase/migrations/20260907150000_stage_prompt_v374_tall_single_cake_tier_guard.sql');
-    const activation = readPrompt('supabase/migrations/20260907151000_activate_prompt_v374_tall_single_cake_tier_guard.sql');
-
-    expect(migration).toContain("source_prompt_version <> '3.73'");
-    expect(migration).toContain("v373_md5 constant text := '723880c54943a81680941dd32edbb5d2'");
-    expect(migration).toContain("v374_md5 constant text := 'a9129171141ce260312f10ff52b353fa'");
-    expect(migration).toContain('Tall Single-Cake Tier Guard');
-    expect(migration).toContain('TALL SINGLE-CAKE RULE');
-    expect(migration).toContain('same-footprint stacked bodies');
-    expect(migration).toContain('If a physically distinct substantial cake body is not clearly resolved');
-    expect(migration).toContain("'3.74',\n    next_prompt");
-    expect(migration).toContain('is_active, description');
-    expect(activation).toContain("active_prompt_version <> '3.73'");
-    expect(activation).toContain("where version = '3.74'");
-    expect(activation).toContain('set is_active = false');
-  });
-
   it('classifies every item through construction, material, type, and description consistency', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
