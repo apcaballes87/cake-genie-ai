@@ -1,0 +1,122 @@
+-- Stage the piped-icing flower contract from the live v3.79 prompt.
+-- Kept separate from the superseded v3.78 attempt so prompt history remains
+-- immutable. This migration does not activate the prompt or update cached rows.
+
+begin;
+
+do $migration$
+declare
+  active_prompt_count integer;
+  active_prompt_version text;
+  source_prompt text;
+  next_prompt text;
+  target_prompt_count integer;
+  v379_md5 constant text := '46c8c1a10be208eeb3d7fa1166140922';
+  flower_anchor constant text := '### FLOWER TYPE PRECEDENCE';
+  piped_flower_rule constant text := $piped_rule$### PIPED ICING FLOWERS — GROUPED COVERAGE PRICING (AUTHORITATIVE)
+
+Piped flowers are icing only: directly piped buttercream/frosting petals,
+rosettes, shells, ruffles, star-tip blossoms, or swirls that visibly merge into
+the iced cake surface. Their ridged or petalled frosting texture is not
+separate fondant or gumpaste construction, even when the flower resembles a
+rose, peony, or blossom.
+
+Emit the complete treatment as one row with \`material: "icing"\` and
+\`quantity: 1\`—never one row per bloom:
+
+- Top-surface flowers: one \`main_toppers\` row with \`type:
+  "piped_flowers_top"\`, \`classification: "hero"\`, and \`coverage\` measured
+  against the directly visible top surface.
+- Sidewall flowers: one \`support_elements\` row with \`type:
+  "piped_flowers_side"\` and \`coverage\` measured against the directly visible
+  iced cake-side area. If an independent treatment appears on both top and
+  side, emit one row of each type.
+
+Set \`coverage\` exactly as follows: \`small\` is under 30%, \`medium\` is 30% to
+under 60%, and \`large\` is 60% through 100%. These bands are pricing groups:
+small = ₱50, medium = ₱100, large = ₱150, for either top or side. Do not emit a
+\`size_line\` for either piped-flower type and do not count individual piped
+blooms.
+
+This rule overrides the ordinary flower rule for piped icing only. Separate
+molded, cut, sculpted, or thick matte fondant/gumpaste petals remain
+\`edible_flowers\` with \`material: "edible_fondant"\`; wafer, fresh, artificial,
+printed, and non-cake flowers remain governed by their own construction and
+cake-membership rules.$piped_rule$;
+begin
+  select count(*), min(version::text)
+  into active_prompt_count, active_prompt_version
+  from public.ai_prompts
+  where is_active = true;
+
+  select count(*) into target_prompt_count
+  from public.ai_prompts
+  where version = '3.80';
+
+  if target_prompt_count > 0 then
+    if target_prompt_count = 1 and exists (
+      select 1 from public.ai_prompts
+      where version = '3.80'
+        and position('PIPED ICING FLOWERS — GROUPED COVERAGE PRICING' in prompt_text) > 0
+        and position('"piped_flowers_top"' in prompt_text) > 0
+        and position('"piped_flowers_side"' in prompt_text) > 0
+    ) then
+      return;
+    end if;
+    raise exception 'Cannot stage v3.80: an unexpected v3.80 prompt already exists';
+  end if;
+
+  if active_prompt_count <> 1 or active_prompt_version <> '3.79' then
+    raise exception 'Cannot stage v3.80: expected exactly one active v3.79 prompt, found count=% version=%', active_prompt_count, coalesce(active_prompt_version, '<none>');
+  end if;
+
+  select prompt_text into source_prompt
+  from public.ai_prompts
+  where is_active = true
+  for update;
+
+  if md5(source_prompt) <> v379_md5 then
+    raise exception 'Cannot stage v3.80: active v3.79 prompt checksum is unexpected';
+  end if;
+
+  if position(flower_anchor in source_prompt) = 0 then
+    raise exception 'Cannot stage v3.80: expected flower precedence anchor is absent';
+  end if;
+
+  next_prompt := replace(source_prompt, flower_anchor, piped_flower_rule || E'\n\n' || flower_anchor);
+
+  insert into public.ai_prompts (version, prompt_text, is_active, description)
+  values ('3.80', next_prompt, false, 'v3.80 — Group direct piped icing flowers by top or side coverage, separate from fondant/gumpaste flowers.');
+
+  insert into public.pricing_rules (
+    item_key, item_type, classification, size, coverage, description, price,
+    is_active, quantity_rule, multiplier_rule, special_conditions, category,
+    sub_item_type, merchant_id
+  )
+  select * from (values
+    ('piped_flowers_top_small', 'piped_flowers_top', 'hero', 'small', 'small', 'Grouped piped icing flowers covering under 30% of the cake top', 50.00::numeric, true, 'fixed', null::text, null::jsonb, 'main_topper', null::text, null::uuid),
+    ('piped_flowers_top_medium', 'piped_flowers_top', 'hero', 'medium', 'medium', 'Grouped piped icing flowers covering 30% to under 60% of the cake top', 100.00::numeric, true, 'fixed', null::text, null::jsonb, 'main_topper', null::text, null::uuid),
+    ('piped_flowers_top_large', 'piped_flowers_top', 'hero', 'large', 'large', 'Grouped piped icing flowers covering 60% or more of the cake top', 150.00::numeric, true, 'fixed', null::text, null::jsonb, 'main_topper', null::text, null::uuid),
+    ('piped_flowers_side_small', 'piped_flowers_side', 'support', 'small', 'small', 'Grouped piped icing flowers covering under 30% of the cake side', 50.00::numeric, true, 'fixed', null::text, null::jsonb, 'support_element', null::text, null::uuid),
+    ('piped_flowers_side_medium', 'piped_flowers_side', 'support', 'medium', 'medium', 'Grouped piped icing flowers covering 30% to under 60% of the cake side', 100.00::numeric, true, 'fixed', null::text, null::jsonb, 'support_element', null::text, null::uuid),
+    ('piped_flowers_side_large', 'piped_flowers_side', 'support', 'large', 'large', 'Grouped piped icing flowers covering 60% or more of the cake side', 150.00::numeric, true, 'fixed', null::text, null::jsonb, 'support_element', null::text, null::uuid)
+  ) as candidate(item_key, item_type, classification, size, coverage, description, price, is_active, quantity_rule, multiplier_rule, special_conditions, category, sub_item_type, merchant_id)
+  where not exists (
+    select 1 from public.pricing_rules existing
+    where existing.is_active = true
+      and existing.merchant_id is not distinct from candidate.merchant_id
+      and existing.item_key = candidate.item_key
+      and existing.category = candidate.category
+      and existing.size = candidate.size
+  );
+
+  if (select count(*) from public.pricing_rules
+      where is_active = true and merchant_id is null
+        and item_key in ('piped_flowers_top_small', 'piped_flowers_top_medium', 'piped_flowers_top_large', 'piped_flowers_side_small', 'piped_flowers_side_medium', 'piped_flowers_side_large')
+        and quantity_rule = 'fixed' and price in (50.00, 100.00, 150.00)) <> 6 then
+    raise exception 'Cannot stage v3.80: expected six active global piped-flower pricing rules';
+  end if;
+end;
+$migration$;
+
+commit;
