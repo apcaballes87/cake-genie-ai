@@ -307,6 +307,27 @@ describe('local line-ratio sizing', () => {
     expect(sized.cakeThickness).toBe('6 in');
   });
 
+  it('derives grouped piped-flower pricing bands from coverage without a size line', () => {
+    const sized = applyLocalLineRatioSizing({
+      cake_measurements: measurements,
+      main_toppers: [{
+        type: 'piped_flowers_top',
+        coverage: 'large',
+        quantity: 1,
+        description: 'piped buttercream roses covering the cake top',
+      }],
+      support_elements: [{
+        type: 'piped_flowers_side',
+        coverage: 'medium',
+        quantity: 1,
+        description: 'piped buttercream blossoms on the cake side',
+      }],
+    });
+
+    expect(sized.main_toppers?.[0]).toMatchObject({ coverage: 'large', size: 'large' });
+    expect(sized.support_elements?.[0]).toMatchObject({ coverage: 'medium', size: 'medium' });
+  });
+
   it('fails closed for missing, invalid, or zero-length size lines', () => {
     expect(() => applyLocalLineRatioSizing({
       cake_measurements: measurements,
@@ -337,5 +358,22 @@ describe('local line-ratio sizing', () => {
       }],
       support_elements: [],
     })).toThrow(/positive length/i);
+
+    expect(() => applyLocalLineRatioSizing({
+      cake_measurements: measurements,
+      main_toppers: [{ type: 'piped_flowers_top', quantity: 1 }],
+      support_elements: [],
+    })).toThrow(/coverage must be small, medium, or large/i);
+
+    expect(() => applyLocalLineRatioSizing({
+      cake_measurements: measurements,
+      main_toppers: [{
+        type: 'piped_flowers_top',
+        coverage: 'large',
+        size_line: { start: { x: 0, y: 0 }, end: { x: 100, y: 0 } },
+        quantity: 1,
+      }],
+      support_elements: [],
+    })).toThrow(/size_line is not allowed/i);
   });
 });

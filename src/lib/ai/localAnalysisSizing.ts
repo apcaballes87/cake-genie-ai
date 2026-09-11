@@ -17,6 +17,7 @@ type SizeBand = {
 
 type LocalSizingItem = {
   type?: unknown;
+  coverage?: unknown;
   bbox?: unknown;
   size_line?: unknown;
   size?: unknown;
@@ -72,6 +73,7 @@ const COVERAGE_TYPES = new Set([
 ]);
 const COMPLEX_ARTWORK_TYPES = new Set(['edible_2d_complex']);
 const LOGO_TYPES = new Set(['edible_logo_2d']);
+const PIPED_FLOWER_TYPES = new Set(['piped_flowers_top', 'piped_flowers_side']);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -291,6 +293,11 @@ function fixedLocalSize(type: string): ValidSize | undefined {
   return undefined;
 }
 
+function requirePipedFlowerCoverage(value: unknown, path: string): ValidSize {
+  if (value === 'small' || value === 'medium' || value === 'large') return value;
+  throw new LocalAnalysisSizingError(`${path} must be small, medium, or large for a piped flower treatment`);
+}
+
 function classifyLocalRatioSize(
   type: string,
   ratio: number,
@@ -373,8 +380,14 @@ function sizeLineItems(
     }
 
     const description = typeof item.description === 'string' ? item.description : '';
+    const pipedFlowerCoverage = PIPED_FLOWER_TYPES.has(item.type)
+      ? requirePipedFlowerCoverage(item.coverage, `${path}[${index}].coverage`)
+      : undefined;
+    if (pipedFlowerCoverage && item.size_line !== undefined) {
+      throw new LocalAnalysisSizingError(`${path}[${index}].size_line is not allowed for a coverage-priced piped flower treatment`);
+    }
     const fixedSize = fixedLocalSize(item.type);
-    let size = fixedSize;
+    let size = pipedFlowerCoverage ?? fixedSize;
     if (!size) {
       const ratio = calculateLocalLineRatio(
         requireMeasurementLine(item.size_line, `${path}[${index}].size_line`),

@@ -859,6 +859,68 @@ describe('calculatePriceFromDatabase', () => {
   });
 
   it.each([
+    ['small', 50],
+    ['medium', 100],
+    ['large', 150],
+  ] as const)('prices grouped %s piped flowers at ₱%i for both top and side', async (size, expectedPrice) => {
+    const { calculatePriceFromDatabase } = await import('./pricingService.database');
+    pricingRows.push(
+      {
+        rule_id: 900 + expectedPrice,
+        item_key: `piped_flowers_top_${size}`,
+        item_type: 'piped_flowers_top',
+        classification: 'hero',
+        size,
+        description: 'Grouped piped flowers on top',
+        price: expectedPrice,
+        category: 'main_topper',
+        quantity_rule: 'fixed',
+        multiplier_rule: null,
+        special_conditions: null,
+        is_active: true,
+        created_at: '2026-09-11T00:00:00.000Z',
+        updated_at: '2026-09-11T00:00:00.000Z',
+      },
+      {
+        rule_id: 1000 + expectedPrice,
+        item_key: `piped_flowers_side_${size}`,
+        item_type: 'piped_flowers_side',
+        classification: 'support',
+        size,
+        description: 'Grouped piped flowers on side',
+        price: expectedPrice,
+        category: 'support_element',
+        quantity_rule: 'fixed',
+        multiplier_rule: null,
+        special_conditions: null,
+        is_active: true,
+        created_at: '2026-09-11T00:00:00.000Z',
+        updated_at: '2026-09-11T00:00:00.000Z',
+      },
+    );
+
+    const { addOnPricing, itemPrices } = await calculatePriceFromDatabase({
+      mainToppers: [{
+        id: `piped-top-${size}`, type: 'piped_flowers_top', material: 'icing',
+        description: 'piped buttercream flower treatment on top', quantity: 12,
+        isEnabled: true, size, coverage: size, group_id: 'top_piped_flowers', classification: 'hero',
+      } as MainTopperUI],
+      supportElements: [{
+        id: `piped-side-${size}`, type: 'piped_flowers_side', material: 'icing', color: '#FF69B4',
+        description: 'piped buttercream flower treatment on side', quantity: 12,
+        isEnabled: true, size, coverage: size, group_id: 'side_piped_flowers',
+      } as SupportElementUI],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
+    });
+
+    expect(itemPrices.get(`piped-top-${size}`)).toBe(expectedPrice);
+    expect(itemPrices.get(`piped-side-${size}`)).toBe(expectedPrice);
+    expect(addOnPricing.addOnPrice).toBe(expectedPrice * 2);
+  });
+
+  it.each([
     ['small', 75],
     ['medium', 150],
     ['large', 250],
