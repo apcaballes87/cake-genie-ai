@@ -230,6 +230,10 @@ export const calculatePrice = (
                 nonGumpasteTotal += price;
                 break;
             }
+            case 'piped_flowers_top':
+                price = topper.size === 'large' ? 150 : topper.size === 'medium' ? 100 : 50;
+                nonGumpasteTotal += price;
+                break;
             default:
                 price = 0;
         }
@@ -353,6 +357,11 @@ export const calculatePrice = (
                 nonGumpasteTotal += price;
                 break;
             }
+
+            case 'piped_flowers_side':
+                price = element.size === 'large' ? 150 : element.size === 'medium' ? 100 : 50;
+                nonGumpasteTotal += price;
+                break;
 
             case 'macarons':
                 price = 40 * (element.quantity || 1);

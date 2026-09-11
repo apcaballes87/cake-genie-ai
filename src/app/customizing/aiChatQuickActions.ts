@@ -18,7 +18,11 @@ const MAIN_EDIBLE_TOPPER_TYPES = new Set<MainTopperType>([
     'edible_2d_shapes',
 ]);
 
-const PRINTOUT_EXCLUDED_TYPES = new Set<MainTopperType | SupportElementType>(['edible_flowers']);
+const PRINTOUT_EXCLUDED_TYPES = new Set<MainTopperType | SupportElementType>([
+    'edible_flowers',
+    'piped_flowers_top',
+    'piped_flowers_side',
+]);
 const SUPPORT_EDIBLE_TOPPER_TYPES = new Set<SupportElementType>([
     'edible_3d_support',
     'edible_2d_support',

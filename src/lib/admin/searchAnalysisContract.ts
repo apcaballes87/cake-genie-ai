@@ -7,6 +7,7 @@ import {
   GENERATED_ANALYSIS_CAKE_TYPES,
   GENERATED_ANALYSIS_CLASSIFICATIONS,
   GENERATED_ANALYSIS_COLOR_HEXES,
+  GENERATED_PIPED_FLOWER_COVERAGES,
   GENERATED_ANALYSIS_COLOR_TYPES,
   GENERATED_ANALYSIS_ICING_BASES,
   GENERATED_ANALYSIS_MATERIALS,
@@ -560,6 +561,11 @@ export function buildSearchAnalysisResponseSchema(
               type: Type.ARRAY,
               items: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_COLOR_HEXES] },
             },
+            coverage: {
+              type: Type.STRING,
+              enum: [...GENERATED_PIPED_FLOWER_COVERAGES],
+              description: 'Required only for piped_flowers_top. Exact top-surface piped-flower coverage price band: small under 30%, medium 30% to under 60%, large 60% or more.',
+            },
             ...generatedElementGeometryProperty,
             ...generatedSizeProperty,
             ...subtypeProperty,
@@ -579,6 +585,11 @@ export function buildSearchAnalysisResponseSchema(
             colors: {
               type: Type.ARRAY,
               items: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_COLOR_HEXES] },
+            },
+            coverage: {
+              type: Type.STRING,
+              enum: [...GENERATED_PIPED_FLOWER_COVERAGES],
+              description: 'Required only for piped_flowers_side. Exact visible cake-side piped-flower coverage price band: small under 30%, medium 30% to under 60%, large 60% or more.',
             },
             quantity: { type: Type.INTEGER },
             description: { type: Type.STRING },

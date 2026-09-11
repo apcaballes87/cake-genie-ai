@@ -54,6 +54,7 @@ export const GENERATED_ANALYSIS_ICING_BASES = ['soft_icing', 'fondant'] as const
 export const GENERATED_ANALYSIS_COLOR_TYPES = ['single', 'gradient', 'multicolor'] as const;
 export const GENERATED_ANALYSIS_CLASSIFICATIONS = ['hero', 'support'] as const;
 export const GENERATED_ANALYSIS_MESSAGE_POSITIONS = ['top', 'side', 'base_board'] as const;
+export const GENERATED_PIPED_FLOWER_COVERAGES = ['small', 'medium', 'large'] as const;
 
 export const GENERATED_ANALYSIS_REJECTION_MESSAGES = {
   not_a_cake: "This image doesn't appear to be a cake. Please upload a cake image.",
@@ -190,6 +191,7 @@ export interface GeneratedMainTopper {
   description: string;
   color?: string;
   colors?: string[];
+  coverage?: typeof GENERATED_PIPED_FLOWER_COVERAGES[number];
   subtype?: string;
   bbox?: GeneratedBoundingBox;
   /** Fresh line-mode sizing geometry for one representative primary dimension. */
@@ -202,6 +204,7 @@ export interface GeneratedSupportElement {
   group_id: string;
   color: string;
   colors?: string[];
+  coverage?: typeof GENERATED_PIPED_FLOWER_COVERAGES[number];
   size: ValidSize;
   quantity: number;
   description: string;
@@ -397,6 +400,7 @@ const MAIN_TOPPER_KEYS = [
   'description',
   'color',
   'colors',
+  'coverage',
   'subtype',
   'bbox',
   'size_line',
@@ -407,6 +411,7 @@ const SUPPORT_ELEMENT_KEYS = [
   'group_id',
   'color',
   'colors',
+  'coverage',
   'size',
   'quantity',
   'description',
@@ -590,6 +595,7 @@ function validateMainTopper(
   requireString(item.description, `${path}.description`);
   if (item.color !== undefined) requirePaletteHex(item.color, `${path}.color`);
   optionalPaletteHexArray(item.colors, `${path}.colors`);
+  validatePipedFlowerCoverage(item, type, path);
   validateOptionalSubtype(item, type, subtypeMap, path);
   validateOptionalBbox(item.bbox, `${path}.bbox`);
   validateOptionalSizeLine(item.size_line, `${path}.size_line`);
@@ -614,12 +620,22 @@ function validateSupportElement(
   requireString(item.group_id, `${path}.group_id`);
   requirePaletteHex(item.color, `${path}.color`);
   optionalPaletteHexArray(item.colors, `${path}.colors`);
+  validatePipedFlowerCoverage(item, type, path);
   requireEnum(item.size, GENERATED_ANALYSIS_SIZES, `${path}.size`);
   requirePositiveInteger(item.quantity, `${path}.quantity`);
   requireString(item.description, `${path}.description`);
   validateOptionalSubtype(item, type, subtypeMap, path);
   validateOptionalBbox(item.bbox, `${path}.bbox`);
   validateOptionalSizeLine(item.size_line, `${path}.size_line`);
+}
+
+function validatePipedFlowerCoverage(item: Record<string, unknown>, type: string, path: string) {
+  const isPipedFlower = type === 'piped_flowers_top' || type === 'piped_flowers_side';
+  if (!isPipedFlower && item.coverage === undefined) return;
+  if (!isPipedFlower) {
+    fail(`${path}.coverage`, 'is supported only for piped flower treatments');
+  }
+  requireEnum(item.coverage, GENERATED_PIPED_FLOWER_COVERAGES, `${path}.coverage`);
 }
 
 function validateCakeMessage(value: unknown, index: number) {
