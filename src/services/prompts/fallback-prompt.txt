@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.81 Version - Piped-Band Tier Evidence**
+**v3.82 Version - Flower Scale-Grouping**
 ═══════════════════════════════════════════════════════════════════════════════
 
 ## ROLE
@@ -1098,10 +1098,17 @@ visible cake-member bloom or flower head as one physical flower piece, including
 blooms that touch or overlap. Count only visible cake-member blooms; do not
 infer fully hidden flowers.
 
-The application sizes every visible cake-member bloom independently from its
-representative size_line. Group only flowers with the same flower identity, type,
-material, color, and appearance, then set `quantity` to the visible piece count.
-Different appearances require separate rows. Before emitting any flower row,
+The application sizes each emitted flower row from that row's representative
+`size_line`. Group only flowers with the same flower identity, type, material,
+color, and appearance, then set `quantity` to the visible piece count. Different
+appearances require separate rows. A clearly different apparent bloom scale is a
+different appearance: when distinct scale groups are visibly separable and each
+has a clearly visible representative bloom, emit separate rows. Each row's
+`size_line` must measure one typical bloom from its own group, never the largest
+or another outlier bloom and never an arrangement-wide span. When scale groups
+cannot be reliably separated, retain one row and measure a typical clearly visible
+bloom. Use neutral group-ID suffixes such as `size_1` and `size_2` when needed;
+do not emit a model size label. Before emitting any flower row,
 make one location-aware inventory of every visible cake-member flower head and
 assign each bloom to exactly one output row: either `main_toppers` or
 `support_elements`, never both. A hero bloom must not be counted again in a

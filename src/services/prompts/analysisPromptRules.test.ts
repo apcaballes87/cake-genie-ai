@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { describe, expect, it } from 'vitest';
@@ -101,7 +102,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.81 Version - Piped-Band Tier Evidence**');
+    expect(prompt).toContain('**v3.82 Version - Flower Scale-Grouping**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('3. Visible construction of each item');
     expect(prompt).toContain('5. Type compatible with that construction and material');
@@ -373,6 +374,50 @@ describe('cake analysis prompt rules', () => {
       'arrangement',
       'bunch',
       'group',
+    ]);
+  });
+
+  it('splits visibly separable flower scales without arrangement-wide measurements', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+    const stage = readPrompt('supabase/migrations/20260912110000_stage_prompt_v382_flower_scale_grouping.sql');
+    const activation = readPrompt('supabase/migrations/20260912111000_activate_prompt_v382_flower_scale_grouping.sql');
+    const fixture = JSON.parse(readPrompt('src/services/prompts/fixtures/purple-orchid-ivory-1-tier-fondant-cake-0645.json')) as {
+      slug: string;
+      historical_cache_id: string;
+      p_hash: string;
+      historical_cache_price: number;
+      historical_invalid_rows: Record<string, { quantity: number; description: string; size_line: unknown }>;
+      fresh_output_invariants: string[];
+      forbidden_historical_group_ids: string[];
+    };
+
+    expect(prompt).toContain('A clearly different apparent bloom scale is a\ndifferent appearance');
+    expect(prompt).toContain('never the largest\nor another outlier bloom and never an arrangement-wide span');
+    expect(prompt).toContain('retain one row and measure a typical clearly visible\nbloom');
+    expect(prompt).toContain('Use neutral group-ID suffixes such as `size_1` and `size_2`');
+    expect(prompt).not.toContain('approximately 20%');
+    expect(createHash('md5').update(prompt).digest('hex')).toBe('b7ef36a5e817946699cf875f3e2e96f4');
+    expect(SYSTEM_INSTRUCTION).toContain('**Flower Scale-Group Sizing:**');
+    expect(SYSTEM_INSTRUCTION).toContain('never the largest/outlier bloom or an arrangement-wide span');
+    expect(stage).toContain("v381_md5 constant text := 'fa06f26eb0eac43e4dfe7aa314c56a3c'");
+    expect(stage).toContain("v382_md5 constant text := 'b7ef36a5e817946699cf875f3e2e96f4'");
+    expect(stage).toContain("'3.82',");
+    expect(stage).not.toContain('pricing_rules');
+    expect(activation).toContain("active_prompt_version <> '3.81'");
+    expect(activation).toContain("where version = '3.82' and md5(prompt_text) = v382_md5");
+
+    expect(fixture.slug).toBe('purple-orchid-ivory-1-tier-fondant-cake-0645');
+    expect(fixture.historical_cache_id).toBe('9f599dfd-a1c4-42fd-8182-3bd069578560');
+    expect(fixture.p_hash).toBe('064506a664020618');
+    expect(fixture.historical_cache_price).toBe(4299);
+    expect(fixture.historical_invalid_rows.top.quantity).toBe(10);
+    expect(fixture.historical_invalid_rows.base.quantity).toBe(6);
+    expect(fixture.historical_invalid_rows.top.description).toMatch(/cluster/i);
+    expect(fixture.historical_invalid_rows.base.size_line).toBeDefined();
+    expect(fixture.fresh_output_invariants).toContain('visibly separable orchid scale groups use separate edible_flowers rows');
+    expect(fixture.forbidden_historical_group_ids).toEqual([
+      'top_orchid_flowers',
+      'base_orchid_flowers',
     ]);
   });
 
@@ -662,7 +707,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.81 Version - Piped-Band Tier Evidence**');
+    expect(prompt).toContain('**v3.82 Version - Flower Scale-Grouping**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -684,7 +729,7 @@ describe('cake analysis prompt rules', () => {
   it('keeps toy classification while delegating size to local line-ratio sizing', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.81 Version - Piped-Band Tier Evidence**');
+    expect(prompt).toContain('**v3.82 Version - Flower Scale-Grouping**');
     expect(prompt).toContain('| Rigid factory-molded physical prop | `toy` | `plastic`');
     expect(prompt).toContain('measure visible height for 3D figures, toys, crowns, figurines, and candles;');
     expect(prompt).toContain('The application, not the model, assigns size for `main_toppers` and');
@@ -1095,7 +1140,7 @@ describe('cake analysis prompt rules', () => {
           eq: () => ({
             limit: () => ({
               single: async () => ({
-                data: { prompt_text: 'active v3.81 prompt', version: '3.81' },
+                data: { prompt_text: 'active v3.82 prompt', version: '3.82' },
                 error: null,
               }),
             }),
@@ -1105,8 +1150,8 @@ describe('cake analysis prompt rules', () => {
     };
 
     await expect(getActivePromptDetails(supabase)).resolves.toEqual({
-      promptText: 'active v3.81 prompt',
-      version: '3.81',
+      promptText: 'active v3.82 prompt',
+      version: '3.82',
     });
   });
 
@@ -1126,7 +1171,7 @@ describe('cake analysis prompt rules', () => {
     const details = await getActivePromptDetails(supabase);
 
     expect(details.promptText).toContain('GENIE.PH MASTER CAKE ANALYSIS PROMPT');
-    expect(details.version).toBe('3.81');
+    expect(details.version).toBe('3.82');
   });
 
   it('does not keep a stale root prompt snapshot beside the fallback prompt', () => {

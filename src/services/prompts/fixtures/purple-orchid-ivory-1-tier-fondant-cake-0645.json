@@ -1,0 +1,40 @@
+{
+  "slug": "purple-orchid-ivory-1-tier-fondant-cake-0645",
+  "historical_cache_id": "9f599dfd-a1c4-42fd-8182-3bd069578560",
+  "p_hash": "064506a664020618",
+  "image_url": "https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/customizations/purple-orchid-ivory-1-tier-fondant-cake-0645.webp",
+  "purpose": "Regression fixture for distinct orchid bloom scales that were incorrectly measured as top and base arrangement spans.",
+  "historical_cache_price": 4299,
+  "historical_invalid_rows": {
+    "top": {
+      "group_id": "top_orchid_flowers",
+      "quantity": 10,
+      "size": "large",
+      "description": "Cluster of sculpted fondant orchid flowers arranged on top of the cake",
+      "size_line": {
+        "start": { "x": 208, "y": 99 },
+        "end": { "x": 526, "y": 372 }
+      }
+    },
+    "base": {
+      "group_id": "base_orchid_flowers",
+      "quantity": 6,
+      "size": "large",
+      "description": "Sculpted fondant orchid flowers arranged on the base board",
+      "size_line": {
+        "start": { "x": 591, "y": 551 },
+        "end": { "x": 855, "y": 829 }
+      }
+    }
+  },
+  "fresh_output_invariants": [
+    "each flower size_line measures one typical visible bloom, not an arrangement span",
+    "visibly separable orchid scale groups use separate edible_flowers rows",
+    "each visible flower head belongs to exactly one main_toppers or support_elements row",
+    "flower rows use individual-flower wording and never cluster, bouquet, spray, arrangement, bunch, or group as the counted noun"
+  ],
+  "forbidden_historical_group_ids": [
+    "top_orchid_flowers",
+    "base_orchid_flowers"
+  ]
+}
