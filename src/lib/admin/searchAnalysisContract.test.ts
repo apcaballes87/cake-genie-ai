@@ -21,6 +21,7 @@ const typeEnums = {
     'edible_3d_complex',
     'edible_3d_ordinary',
     'edible_flowers',
+    'piped_flowers_top',
     'candle',
     'toy',
     'plastic_crown',
@@ -38,6 +39,7 @@ const typeEnums = {
     'fresh_flowers',
     'artificial_flowers',
     'edible_flowers',
+    'piped_flowers_side',
     'edible_photo_side_wave',
     'icing_decorations',
     'meringue',
@@ -104,6 +106,7 @@ describe('search analysis contract', () => {
       'cardstock',
     ]);
     expect(schema.properties.support_elements.items.properties.type.enum).toContain('edible_flowers');
+    expect(schema.properties.support_elements.items.properties.type.enum).toContain('piped_flowers_side');
     expect(schema.properties.support_elements.items.properties.type.enum).toContain('edible_photo_side_wave');
     expect(schema.properties.support_elements.items.properties.type.enum).not.toContain('fresh_flowers');
     expect(schema.properties.support_elements.items.properties.type.enum).not.toContain('artificial_flowers');
@@ -113,6 +116,8 @@ describe('search analysis contract', () => {
     expect(schema.properties.main_toppers.items.properties.type.enum).not.toContain('edible_photo_print');
     expect(schema.properties.main_toppers.items.properties.type.enum).toContain('edible_2d_complex');
     expect(schema.properties.main_toppers.items.properties.type.enum).toContain('edible_crown');
+    expect(schema.properties.main_toppers.items.properties.type.enum).toContain('piped_flowers_top');
+    expect(schema.properties.main_toppers.items.properties.coverage.enum).toEqual(['small', 'medium', 'large']);
     expect(schema.properties.support_elements.items.properties.type.enum).not.toContain('edible_2d_complex');
     expect(schema.properties.support_elements.items.properties.type.enum).toContain('icing_doodle_intricate_side');
     expect(schema.properties.support_elements.items.properties.type.enum).toContain('plastic_ball_regular');
@@ -123,13 +128,39 @@ describe('search analysis contract', () => {
     expect(schema.properties.support_elements.items.properties.bbox.properties.x.description).toContain('normalized 0–1000');
     expect(schema.properties.main_toppers.items.properties.bbox.description).toContain('one visible representative unit');
     expect(schema.properties.cake_measurements.description).toContain('Explicit normalized line endpoints');
-    expect(schema.properties.cake_measurements.properties.diameter.description).toContain('circular or elliptical cross-section');
-    expect(schema.properties.cake_measurements.properties.diameter.description).toContain('opposing left edge');
+    expect(schema.properties.cake_measurements.properties.diameter.description).toContain('Visible left-to-right width line');
+    expect(schema.properties.cake_measurements.properties.diameter.description).toContain('opposing visible edges');
     expect(schema.properties.cake_measurements.properties.diameter.description).toContain('visible top ellipse');
+    expect(schema.properties.cake_measurements.properties.diameter.description).toContain('Square Fondant');
+    expect(schema.properties.cake_measurements.properties.diameter.description).toContain('widest uninterrupted visible cake-body span');
+    expect(schema.properties.cake_measurements.properties.diameter.description).toContain('same cupcake for height');
+    expect(schema.properties.cake_measurements.properties.diameter.description).toContain('measure the bento cake body');
     expect(schema.properties.cake_measurements.properties.height.description).toContain('near/front bottom rim');
     expect(schema.properties.cake_measurements.properties.height.description).toContain('near/front top rim');
     expect(schema.properties.cake_measurements.properties.height.description).toContain('lower/closer arc');
-    expect(schema.properties.cake_measurements.properties.height.description).toContain('front-facing side wall');
+    expect(schema.properties.cake_measurements.properties.height.description).toContain('same TOP TIER, reference body, or representative cupcake');
+    expect(schema.properties.cake_measurements.properties.height.description).toContain('directly visible front or side wall span');
+    expect(schema.properties.cake_measurements.properties.diameter.description).toContain('visible boundary');
+    expect(schema.properties.cake_measurements.properties.diameter.description).toContain('without perspective correction');
+    expect(schema.properties.cake_measurements.properties.height.description).toContain('without perspective correction');
+    expect(schema.properties.main_toppers.items.properties.bbox.properties.x.description).toContain('complete image frame');
+    expect(schema.properties.main_toppers.items.properties.bbox.properties.x.description).toContain('without perspective correction');
+    const lineMode = buildSearchAnalysisResponseSchema(typeEnums, 'local_line_ratio');
+    expect(Object.keys(lineMode.properties.cake_measurements.properties.diameter.properties)).toEqual(
+      expect.arrayContaining(['start', 'end']),
+    );
+    expect(lineMode.properties.cake_measurements.properties.diameter.properties).not.toHaveProperty('confidence');
+    expect(lineMode.properties.cake_measurements.properties.diameter.properties).not.toHaveProperty('visibility');
+    expect(lineMode.properties.cake_measurements.properties.diameter.properties).not.toHaveProperty('dimension');
+    expect(lineMode.properties.cake_measurements.properties).not.toHaveProperty('tiers');
+    expect(lineMode.properties.cake_measurements.properties).not.toHaveProperty('overall_height');
+    expect(lineMode.properties.main_toppers.items.properties.size_line.properties).not.toHaveProperty('confidence');
+    expect(lineMode.properties.main_toppers.items.properties.size_line.properties).not.toHaveProperty('visibility');
+    expect(lineMode.properties.main_toppers.items.properties.size_line.properties).not.toHaveProperty('dimension');
+    expect(lineMode.properties.support_elements.items.properties.size_line.description)
+      .toContain('one typical visible shell, bead, dollop, rosette, or swirl');
+    expect(lineMode.properties.support_elements.items.properties.size_line.description)
+      .toContain('never the full perimeter or border run');
     expect(schema.properties).not.toHaveProperty('icing_surfaces');
     expect(schema.properties.main_toppers.items.properties.subtype.enum).toContain('ferrero');
     expect(schema.properties.main_toppers.items.properties.type.enum).toContain('plastic_ball');
@@ -267,6 +298,47 @@ describe('search analysis contract', () => {
     expect(result.main_toppers[0]).not.toHaveProperty('bbox');
     expect(result.support_elements[0].size).toBe('small');
     expect(result.cakeThickness).toBe('3 in');
+  });
+
+  it('requires coverage-priced piped flower rows and preserves their grouped prices', () => {
+    const result = postProcessSearchAnalysisResult(validAnalysis({
+      cake_measurements: {
+        diameter: { start: { x: 0, y: 0 }, end: { x: 100, y: 0 } },
+        height: { start: { x: 0, y: 0 }, end: { x: 0, y: 50 } },
+      },
+      main_toppers: [{
+        type: 'piped_flowers_top',
+        material: 'icing',
+        group_id: 'top_piped_roses',
+        classification: 'hero',
+        coverage: 'large',
+        quantity: 1,
+        description: 'piped buttercream rose treatment across the top',
+      }],
+      support_elements: [{
+        type: 'piped_flowers_side',
+        material: 'icing',
+        group_id: 'side_piped_blossoms',
+        color: '#FF69B4',
+        coverage: 'medium',
+        quantity: 1,
+        description: 'piped buttercream blossoms on the side',
+      }],
+    }), typeEnums, 'local_line_ratio');
+
+    expect(result.main_toppers[0]).toMatchObject({ coverage: 'large', size: 'large', quantity: 1 });
+    expect(result.support_elements[0]).toMatchObject({ coverage: 'medium', size: 'medium', quantity: 1 });
+
+    expect(() => postProcessSearchAnalysisResult(validAnalysis({
+      cake_measurements: {
+        diameter: { start: { x: 0, y: 0 }, end: { x: 100, y: 0 } },
+        height: { start: { x: 0, y: 0 }, end: { x: 0, y: 50 } },
+      },
+      main_toppers: [{
+        type: 'piped_flowers_top', material: 'icing', group_id: 'missing_coverage',
+        classification: 'hero', quantity: 1, description: 'piped buttercream flowers',
+      }],
+    }), typeEnums, 'local_line_ratio')).toThrow(/coverage/i);
   });
 
   it('fails line-mode sizing when an unfixed priced element has no size_line', () => {
@@ -864,6 +936,19 @@ describe('search analysis contract', () => {
       },
     });
     expect(postProcessSearchAnalysisResult(rejected, typeEnums).rejection.isRejected).toBe(true);
+
+    expect(() => postProcessSearchAnalysisResult({
+      ...rejected,
+      cake_measurements: {
+        diameter: { start: { x: 100, y: 100 }, end: { x: 500, y: 100 } },
+        height: { start: { x: 300, y: 100 }, end: { x: 300, y: 400 } },
+      },
+    }, typeEnums)).toThrow(/must omit cake_measurements and cake_bbox/i);
+
+    expect(() => postProcessSearchAnalysisResult({
+      ...rejected,
+      cake_bbox: { x: 100, y: 100, width: 400, height: 300 },
+    }, typeEnums)).toThrow(/must omit cake_measurements and cake_bbox/i);
 
     expect(() => postProcessSearchAnalysisResult({
       ...rejected,

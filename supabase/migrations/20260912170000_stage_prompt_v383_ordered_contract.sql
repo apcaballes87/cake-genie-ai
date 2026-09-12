@@ -1,4 +1,15 @@
-# GENIE.PH MASTER CAKE ANALYSIS PROMPT
+-- Stage v3.83 only. Compatible deployment must be verified before a
+-- separately authorized activation. No pricing or cache writes.
+begin;
+do $migration$
+declare
+  active_prompt_count integer;
+  active_prompt_version text;
+  source_prompt text;
+  target_prompt_count integer;
+  v382_md5 constant text := 'b7ef36a5e817946699cf875f3e2e96f4';
+  v383_md5 constant text := '61adef1d3077f76e2bea670cff9a120f';
+  target_prompt constant text := $v383_prompt$# GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
 **v3.83 Version - Ordered Classification and Closed Support Contract**
 
@@ -2626,3 +2637,35 @@ pipeline.
 There is a new viral "Memory Cake" trend. A memory cake is defined by a highly minimalist cake design—typically smooth frosting with simple piped lettering—that features a distinct, 2D printed flat photo cutout standing vertically as a topper. Crucially, this photo must be a portrait (usually a nostalgic childhood picture) with a distinctly superimposed or photoshopped party hat added to the subject's head. If you see this kind of cake design, identify it as Memory Cake in the keyword and item description when those visible cues are present.
 
 ---
+$v383_prompt$;
+begin
+  lock table public.ai_prompts in share row exclusive mode;
+  if md5(target_prompt) <> v383_md5 then
+    raise exception 'Cannot stage v3.83: embedded prompt checksum is unexpected';
+  end if;
+  select count(*), min(version::text)
+    into active_prompt_count, active_prompt_version
+    from public.ai_prompts where is_active = true;
+  if active_prompt_count <> 1 or active_prompt_version <> '3.82' then
+    raise exception 'Cannot stage v3.83: expected sole active v3.82, count=% version=%', active_prompt_count, active_prompt_version;
+  end if;
+  select prompt_text into source_prompt from public.ai_prompts where is_active = true;
+  if md5(source_prompt) <> v382_md5 then
+    raise exception 'Cannot stage v3.83: active v3.82 checksum is unexpected';
+  end if;
+  select count(*) into target_prompt_count from public.ai_prompts where version = '3.83';
+  if target_prompt_count > 0 then
+    if target_prompt_count = 1 and exists (
+      select 1 from public.ai_prompts where version = '3.83'
+        and is_active = false and md5(prompt_text) = v383_md5
+    ) then
+      return;
+    end if;
+    raise exception 'Cannot stage v3.83: unexpected target version already exists';
+  end if;
+  insert into public.ai_prompts (version, prompt_text, is_active, description)
+  values ('3.83', target_prompt, false,
+    'Ordered classification, closed support enum, conditional coverage, shape-aware geometry, and portrait/rainbow boundaries. Cupcake itemization deferred.');
+end;
+$migration$;
+commit;
