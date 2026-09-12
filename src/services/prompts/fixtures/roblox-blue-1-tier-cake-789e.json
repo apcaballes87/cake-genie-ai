@@ -12,7 +12,6 @@
     "color": "#FF0000",
     "group_id": "roblox_wordmark",
     "classification": "hero",
-    "size": "large",
     "quantity": 1
   },
   "expected_message_composition": {

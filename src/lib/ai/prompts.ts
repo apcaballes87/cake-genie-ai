@@ -71,6 +71,13 @@ only possible evidence; same-footprint stacked bodies require clearly visible
 separate substantial sidewalls and bottom edges. If a physically distinct cake
 body is not clearly resolved, default to \`1 Tier\` rather than a multi-tier type.
 
+**Piped-band non-structural override:** Piped shells, swags, garlands, ruffles,
+pearl borders, and buttercream bands are decoration, never a cake-body shoulder,
+ledge, step, bottom edge, or footprint change. A structural transition must be
+visible in the iced cake body beyond the outermost piping. Same-footprint stacked
+cakes still require a directly visible separate substantial upper sidewall and
+cake-to-cake bottom edge; never substitute a piped protrusion or its shadow.
+
 **STRICT GENERATED CONTRACT:**
 - Emit exactly the fields in the response schema. Do not generate legacy x/y coordinates, icing_surfaces, candle digits, is_tall_proportion, or any other unsupported field. The schema-approved per-element \`size_line\` fields and accepted-image \`cake_measurements\` are generated in the response when the analysis prompt requests them.
 - For \`cake_measurements\`, preserve every explicit start/end coordinate from the image. Perspective may make either line slanted; never replace the measured endpoints with a forced horizontal or vertical approximation.

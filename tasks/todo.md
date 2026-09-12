@@ -1,5 +1,18 @@
 # Tasks
 
+## Publish v3.81 piped-band tier evidence and restore live prompt loading (2026-09-12)
+
+### Plan
+
+- [x] Reconcile the local prompt tests to the live v3.80 baseline and activate the guarded v3.81 database row.
+- [x] Remove the production-path `local-dev-line` prompt-loader override and restore active-row lookup with version-aware fallback behavior.
+- [ ] Run focused tests, lint, diff, fallback/live MD5 parity, and a production-capable build.
+- [ ] Commit only the scoped release files, push `main`, and confirm deployment before a fresh non-cached analysis.
+
+### Review
+
+- In progress.
+
 ## Enforce blocked delivery dates in cart and checkout (2026-09-02)
 
 ### Plan

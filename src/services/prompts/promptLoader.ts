@@ -29,6 +29,10 @@ export function loadFallbackAnalysisPrompt() {
   return readFileSync(join(process.cwd(), FALLBACK_PROMPT_PATH), 'utf8');
 }
 
+function resolvePromptVersion(promptText: string, fallbackVersion = 'fallback') {
+  return promptText.match(/\*\*v(\d+\.\d+) Version\b/i)?.[1] ?? fallbackVersion;
+}
+
 export async function getAnalysisPromptWithFallback(supabase: SupabasePromptClient) {
   const { data, error } = await supabase
     .from('ai_prompts')
@@ -45,12 +49,26 @@ export async function getAnalysisPromptWithFallback(supabase: SupabasePromptClie
   return loadFallbackAnalysisPrompt();
 }
 
-export async function getActivePromptDetails(_supabase: SupabasePromptClient): Promise<{ promptText: string; version: string }> {
-  // DEV OVERRIDE: Use local prompt file instead of Supabase for line-sizing development.
-  // TODO: Remove this override and restore Supabase query before merging to production.
+export async function getActivePromptDetails(supabase: SupabasePromptClient): Promise<{ promptText: string; version: string }> {
+  const { data, error } = await supabase
+    .from('ai_prompts')
+    .select('prompt_text, version')
+    .eq('is_active', true)
+    .limit(1)
+    .single();
+
+  if (!error && data?.prompt_text) {
+    return {
+      promptText: data.prompt_text,
+      version: String(data.version ?? resolvePromptVersion(data.prompt_text)),
+    };
+  }
+
+  console.warn('Failed to fetch active AI prompt details from Supabase; using fallback prompt file.');
+  const promptText = loadFallbackAnalysisPrompt();
   return {
-    promptText: loadFallbackAnalysisPrompt(),
-    version: 'local-dev-line'
+    promptText,
+    version: resolvePromptVersion(promptText),
   };
 }
 

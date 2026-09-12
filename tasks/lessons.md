@@ -1,5 +1,7 @@
 # Lessons
 
+- Never leave a development-only prompt-loader override on a path used by fresh or batch analysis. Prompt activation is only effective when `getActivePromptDetails` reads the active Supabase row; keep a version-aware local fallback solely for database-query failure.
+
 - After changing Vercel environment variables, verify the deployed function's raw provider resource and redeploy before diagnosing Google IAM. The dashboard can show corrected values while the live deployment still uses its previous environment snapshot.
 
 - When a cake-analysis description/type mismatch can be corrected at the existing strict post-processing seam, prefer a narrow primary-object reconciliation table over redesigning the whole taxonomy. Split secondary garnish phrases first, preserve composite descriptions, and leave ambiguous rows unchanged.

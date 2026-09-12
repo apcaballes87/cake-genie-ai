@@ -1,0 +1,20 @@
+{
+  "case": "vintage birthday pink round cake with piped 24 and middle swags",
+  "expected_cake": {
+    "cakeType": "1 Tier"
+  },
+  "positive_single_body_evidence": [
+    "one continuous pink outer cake wall",
+    "a recessed round top with a piped 24",
+    "piped swags, shells, ruffles, flowers, and pearl borders"
+  ],
+  "non_qualifying_construction": [
+    "cream piped swags around the middle of the cake wall",
+    "the outermost protrusion or shadow of piping",
+    "a decorative horizontal icing band"
+  ],
+  "required_same_footprint_multi_tier_evidence": [
+    "a separate substantial upper cake sidewall",
+    "a distinct cake-to-cake bottom edge"
+  ]
+}
