@@ -732,6 +732,9 @@ export function validateGeneratedCakeAnalysisResult(
     ? [...TOP_LEVEL_KEYS, 'alt_text', 'seo_title', 'seo_description'] : [...TOP_LEVEL_KEYS];
   requireExactKeys(result, allowedKeys, requiredKeys, 'analysis');
   const rejection = validateRejection(result.rejection);
+  if (rejection.isRejected && ('cake_measurements' in result || 'cake_bbox' in result)) {
+    fail('analysis', 'rejected analyses must omit cake_measurements and cake_bbox');
+  }
   validateIcingDesign(result.icing_design);
   validateOptionalCakeMeasurements(result.cake_measurements, 'analysis.cake_measurements');
   validateOptionalBbox(result.cake_bbox, 'analysis.cake_bbox');

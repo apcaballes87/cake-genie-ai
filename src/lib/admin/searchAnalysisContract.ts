@@ -433,10 +433,10 @@ function removeUnverifiedConditionedWaferPaperWaves(result: unknown): unknown {
 const BBOX_SCHEMA = {
   type: Type.OBJECT,
   properties: {
-    x: { type: Type.INTEGER, description: 'Left edge on the normalized 0–1000 horizontal axis, from the original image top-left corner.' },
-    y: { type: Type.INTEGER, description: 'Top edge on the normalized 0–1000 vertical axis, from the original image top-left corner.' },
-    width: { type: Type.INTEGER, description: 'Width on the normalized 0–1000 horizontal axis.' },
-    height: { type: Type.INTEGER, description: 'Height on the normalized 0–1000 vertical axis.' },
+    x: { type: Type.INTEGER, description: 'Left edge on the normalized 0–1000 horizontal axis of the complete image frame supplied to the analyzer after preprocessing, before UI cropping, panning, or display scaling. Locate it in apparent image space without perspective correction, then round and clamp to 0–1000.' },
+    y: { type: Type.INTEGER, description: 'Top edge on the normalized 0–1000 vertical axis of the complete image frame supplied to the analyzer after preprocessing, before UI cropping, panning, or display scaling. Locate it in apparent image space without perspective correction, then round and clamp to 0–1000.' },
+    width: { type: Type.INTEGER, description: 'Width on the normalized 0–1000 horizontal axis of the complete analyzer image frame.' },
+    height: { type: Type.INTEGER, description: 'Height on the normalized 0–1000 vertical axis of the complete analyzer image frame.' },
   },
   required: ['x', 'y', 'width', 'height'],
 };
@@ -449,8 +449,8 @@ const ELEMENT_BBOX_SCHEMA = {
 const COORDINATE_POINT_SCHEMA = {
   type: Type.OBJECT,
   properties: {
-    x: { type: Type.INTEGER, description: 'Normalized 0–1000 horizontal coordinate from the image top-left.' },
-    y: { type: Type.INTEGER, description: 'Normalized 0–1000 vertical coordinate from the image top-left.' },
+    x: { type: Type.INTEGER, description: 'Normalized 0–1000 horizontal coordinate from the top-left of the complete image frame supplied to the analyzer after preprocessing, before UI cropping, panning, or display scaling. Locate in apparent image space without perspective correction, then round and clamp.' },
+    y: { type: Type.INTEGER, description: 'Normalized 0–1000 vertical coordinate from the top-left of the complete image frame supplied to the analyzer after preprocessing, before UI cropping, panning, or display scaling. Locate in apparent image space without perspective correction, then round and clamp.' },
   },
   required: ['x', 'y'],
 };
@@ -469,20 +469,20 @@ const CAKE_MEASUREMENTS_SCHEMA = {
   properties: {
     diameter: {
       ...MEASUREMENT_LINE_SCHEMA,
-      description: 'Line across the TOP TIER circular or elliptical cross-section, from its opposing left edge to its opposing right edge. Prefer the visible top ellipse; if it is hidden, use the opposing left/right edges of the top-tier cake wall at one level. Perspective may make it slanted; keep both endpoint coordinates explicit.',
+      description: 'Visible left-to-right width line for the TOP TIER or reference body. For a round, heart, or elliptical body, use opposing visible edges of one cross-section; prefer the visible top ellipse, with opposing cake-wall edges at one level as fallback. For Square, Rectangle, Square Fondant, Rectangle Fondant, or Slab Cake, use opposing visible left/right body edges across one representative top-surface or sidewall cross-section. For a number-shaped cake normalized to Rectangle, use the widest uninterrupted visible cake-body span at one level and do not bridge an internal numeral void. For Cupcake, use one representative visible cupcake, and use that same cupcake for height. For Bento Cupcake Set and Bento accompanied by omitted cupcakes, measure the bento cake body. Use apparent image-space geometry without perspective correction. If an edge is occluded, choose another valid visible cross-section or stop at the visible boundary; never infer hidden continuation or cross a holder, decoration, board, plate, or background. Perspective may make it slanted; keep both endpoint coordinates explicit and order it left-to-right.',
     },
     height: {
       ...MEASUREMENT_LINE_SCHEMA,
-      description: 'Line across the TOP TIER wall from the near/front top rim on the lower/closer arc of the top ellipse, where the top surface transitions into the front-facing side wall, to the near/front bottom rim of that top tier. Do not use the highest pixel, rear/back arc, exposed top surface, board, or plate. Perspective may make it slanted.',
+      description: 'Visible top-to-bottom wall line for the same TOP TIER, reference body, or representative cupcake used for cake_measurements.diameter. For a round or elliptical body, start at the near/front top rim on the lower/closer arc of the top ellipse, where the top surface becomes the front wall, and end at the near/front bottom rim. For a non-round body, use one directly visible front or side wall span. For Cupcake, exclude frosting and the paper holder where it extends beyond the cake body. Do not use the highest pixel, rear/back edge, exposed top surface, decoration, board, or plate. Use apparent image-space geometry without perspective correction; order predominantly vertical endpoints top-to-bottom. If a boundary is occluded, use the nearest visible point and never infer hidden cake.',
     },
   },
   required: ['diameter', 'height'],
-  description: 'Explicit normalized line endpoints for the top tier used as the local sizing reference. Do not include lower tiers, toppers, decorations, plate, board, or background.',
+  description: 'Explicit normalized line endpoints for the top tier, reference body, or representative cupcake used as the local sizing reference. Do not include lower tiers, toppers, decorations, holders, plate, board, or background.',
 };
 
 const ELEMENT_SIZE_LINE_SCHEMA = {
   ...MEASUREMENT_LINE_SCHEMA,
-  description: 'One representative normalized line for the item primary dimension used for local sizing. Measure height for 3D figures, toys, crowns, figurines, and candles; the larger visible span along the dominant physical axis for flat toppers; bloom diameter for flowers and spheres; and the longest relevant visible span along one dominant edge or axis for flat artwork, logos, panels, and other flat items. Put endpoints on opposite boundaries of that same dimension and keep the segment within the representative item. Use vertical or horizontal by default; allow a slant only when the item or its true primary axis is visibly rotated or perspective-skewed. Never use a corner-to-corner diagonal or a slant merely to increase length. For repeated rows, measure one typical visible unit only.',
+  description: 'One representative normalized line for the item primary dimension used for local sizing. Measure height for 3D figures, toys, crowns, figurines, and candles; the larger visible span along the dominant physical axis for flat toppers; bloom width for flowers; sphere width for balls; and the longest relevant visible span along one dominant edge or axis for flat artwork, logos, panels, and other flat items. For a repeated icing border row, measure one typical visible shell, bead, dollop, rosette, or swirl, never the full perimeter or border run. Put endpoints on opposite directly visible boundaries of that same dimension and keep the segment within the representative item. Use apparent image-space geometry without perspective correction. Use vertical or horizontal by default; order horizontal lines left-to-right, vertical lines top-to-bottom, and other diagonals by smaller x first. Allow a slant only when the item or its true primary axis is visibly rotated or perspective-skewed. Never use a corner-to-corner diagonal, infer hidden continuation, cross empty space, or slant merely to increase length. For repeated rows, measure one typical visible unit only.',
 };
 
 export function buildSearchAnalysisResponseSchema(
