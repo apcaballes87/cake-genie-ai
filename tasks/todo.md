@@ -6,12 +6,15 @@
 
 - [x] Reconcile the local prompt tests to the live v3.80 baseline and activate the guarded v3.81 database row.
 - [x] Remove the production-path `local-dev-line` prompt-loader override and restore active-row lookup with version-aware fallback behavior.
-- [ ] Run focused tests, lint, diff, fallback/live MD5 parity, and a production-capable build.
-- [ ] Commit only the scoped release files, push `main`, and confirm deployment before a fresh non-cached analysis.
+- [x] Run focused tests, lint, diff, fallback/live MD5 parity, and a production-capable build attempt.
+- [x] Commit only the scoped release files, push `main`, confirm deployment, and run a fresh non-cached analysis.
 
 ### Review
 
-- In progress.
+- v3.81 is the sole active Supabase prompt (prompt ID 89), with live/fallback MD5 `fa06f26eb0eac43e4dfe7aa314c56a3c`.
+- Restored `getActivePromptDetails` to fetch the active database prompt and preserve its version; the local fallback is used only when that lookup fails.
+- Verification passed: 54 focused Vitest tests, scoped ESLint with 0 errors (one existing unused-variable warning), and `git diff --check`. The isolated Webpack build compiled but could not collect page data because Supabase environment variables are intentionally absent there; Vercel deployed source commit `61057b21` successfully.
+- A fresh direct production analysis of the reported cake returned HTTP 200 with `cakeType: "1 Tier"` and no rejection. No historical cache row was changed or backfilled.
 
 ## Enforce blocked delivery dates in cart and checkout (2026-09-02)
 
