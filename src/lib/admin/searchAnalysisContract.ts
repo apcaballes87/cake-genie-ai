@@ -15,6 +15,7 @@ import {
   GENERATED_ANALYSIS_MESSAGE_TYPES,
   GENERATED_ANALYSIS_REJECTION_REASONS,
   GENERATED_ANALYSIS_SIZES,
+  GeneratedAnalysisContractError,
   GENERATED_MAIN_TOPPER_TYPES,
   GENERATED_SUPPORT_ELEMENT_TYPES,
   mergeGeneratedAnalysisSubtypeMap,
@@ -36,6 +37,7 @@ export const SEARCH_ANALYSIS_COLOR_TYPES = GENERATED_ANALYSIS_COLOR_TYPES;
 export type AnalysisGenerationSizeSchema =
   | 'legacy_six_band'
   | 'three_band'
+  | 'ai_diameter_anchor'
   | 'local_bbox_area'
   | 'local_line_ratio';
 
@@ -48,13 +50,17 @@ const LEGACY_GENERATION_SIZES = ['tiny', 'xsmall', 'small', 'medium', 'large', '
  */
 export function getAnalysisGenerationSizeSchema(promptVersion: string): AnalysisGenerationSizeSchema {
   if (promptVersion === 'fallback') return 'three_band';
+  if (promptVersion === 'local-dev-diameter-anchor') return 'ai_diameter_anchor';
   if (promptVersion === 'local-dev-bbox') return 'local_bbox_area';
   if (promptVersion === 'local-dev-line') return 'local_line_ratio';
   const match = promptVersion.match(/^(?:v)?(\d+)\.(\d+)$/i);
   if (!match) return 'legacy_six_band';
   const major = Number.parseInt(match[1], 10);
   const minor = Number.parseInt(match[2], 10);
-  // v3.74+ is reserved for the guarded production line-ratio prompt release.
+  // v3.84+ uses direct three-band output with the visible top-tier diameter
+  // as the model's only sizing anchor; no coordinate geometry is requested.
+  if (major > 3 || (major === 3 && minor >= 84)) return 'ai_diameter_anchor';
+  // v3.74-v3.83 use the guarded production line-ratio prompt release.
   if (major > 3 || (major === 3 && minor >= 74)) return 'local_line_ratio';
   return major > 3 || (major === 3 && minor >= 67)
     ? 'three_band'
@@ -507,10 +513,12 @@ export function buildSearchAnalysisResponseSchema(
     : GENERATED_ANALYSIS_SIZES;
   const isLocalLineRatio = sizeSchema === 'local_line_ratio';
   const isLocalBboxArea = sizeSchema === 'local_bbox_area';
-  const generatedSizeProperty = isLocalLineRatio || isLocalBboxArea
+  const isDirectDiameterAnchor = sizeSchema === 'ai_diameter_anchor';
+  const usesLocalGeometry = isLocalLineRatio || isLocalBboxArea;
+  const generatedSizeProperty = usesLocalGeometry
     ? {}
     : { size: { type: Type.STRING, enum: [...generationSizes] } };
-  const generatedSizeRequired = isLocalLineRatio || isLocalBboxArea ? [] : ['size'];
+  const generatedSizeRequired = usesLocalGeometry ? [] : ['size'];
   // The line is required by local post-processing for ratio-sized items, but
   // fixed-size overrides intentionally do not need one. The type-specific
   // requirement is enforced after generation rather than in this shared
@@ -518,7 +526,11 @@ export function buildSearchAnalysisResponseSchema(
   const localGeometryRequired = isLocalBboxArea ? ['bbox'] : [];
   const generatedElementGeometryProperty = isLocalLineRatio
     ? { size_line: ELEMENT_SIZE_LINE_SCHEMA }
-    : { bbox: ELEMENT_BBOX_SCHEMA };
+    : isLocalBboxArea
+      ? { bbox: ELEMENT_BBOX_SCHEMA }
+      : isDirectDiameterAnchor
+        ? {}
+        : { bbox: ELEMENT_BBOX_SCHEMA };
 
   return {
     type: Type.OBJECT,
@@ -664,7 +676,7 @@ export function buildSearchAnalysisResponseSchema(
         description: 'Natural customer-facing cake description in 5 to 7 sentences. Do not include availability or lead-time claims.',
       },
       } : {}),
-      cake_measurements: CAKE_MEASUREMENTS_SCHEMA,
+      ...(!isDirectDiameterAnchor ? { cake_measurements: CAKE_MEASUREMENTS_SCHEMA } : {}),
       rejection: {
         type: Type.OBJECT,
         properties: {
@@ -735,6 +747,25 @@ export function postProcessSearchAnalysisResult(
     : sizeSchema === 'local_line_ratio'
       ? applyLocalLineRatioSizing(reconciledOutput as Record<string, unknown>)
       : reconciledOutput;
+  if (sizeSchema === 'ai_diameter_anchor') {
+    const directResult = locallySizedResult as Record<string, unknown>;
+    if (directResult.cake_measurements !== undefined) {
+      throw new GeneratedAnalysisContractError(
+        'direct diameter-anchor sizing must not include cake_measurements',
+      );
+    }
+    for (const path of ['main_toppers', 'support_elements'] as const) {
+      const items = directResult[path];
+      if (!Array.isArray(items)) continue;
+      for (const [index, item] of items.entries()) {
+        if (isRecord(item) && (item.size_line !== undefined || item.bbox !== undefined)) {
+          throw new GeneratedAnalysisContractError(
+            `direct diameter-anchor sizing must not include ${path}[${index}] geometry`,
+          );
+        }
+      }
+    }
+  }
   return validateGeneratedCakeAnalysisResult(
     locallySizedResult,
     typeEnums,

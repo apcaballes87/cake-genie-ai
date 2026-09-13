@@ -174,6 +174,8 @@ describe('search analysis contract', () => {
     expect(getAnalysisGenerationSizeSchema('local-dev-bbox')).toBe('local_bbox_area');
     expect(getAnalysisGenerationSizeSchema('local-dev-line')).toBe('local_line_ratio');
     expect(getAnalysisGenerationSizeSchema('3.74')).toBe('local_line_ratio');
+    expect(getAnalysisGenerationSizeSchema('3.83')).toBe('local_line_ratio');
+    expect(getAnalysisGenerationSizeSchema('3.84')).toBe('ai_diameter_anchor');
     expect(schema.properties.icing_design.required).toEqual(expect.arrayContaining([
       'drip',
       'border_top',
@@ -235,6 +237,39 @@ describe('search analysis contract', () => {
       diameter: { start: { x: 0, y: 0 }, end: { x: 100, y: 0 } },
       height: { start: { x: 0, y: 0 }, end: { x: 0, y: 40 } },
     });
+  });
+
+  it('uses direct three-band model output without coordinate geometry in diameter-anchor mode', () => {
+    const schema = buildSearchAnalysisResponseSchema(typeEnums, 'ai_diameter_anchor');
+    expect(schema.properties).not.toHaveProperty('cake_measurements');
+    expect(schema.properties.main_toppers.items.properties).toHaveProperty('size');
+    expect(schema.properties.main_toppers.items.properties).not.toHaveProperty('size_line');
+    expect(schema.properties.main_toppers.items.properties).not.toHaveProperty('bbox');
+    expect(schema.properties.support_elements.items.properties).toHaveProperty('size');
+    expect(schema.properties.support_elements.items.properties).not.toHaveProperty('size_line');
+    expect(schema.properties.support_elements.items.properties).not.toHaveProperty('bbox');
+
+    const result = postProcessSearchAnalysisResult(validAnalysis({
+      main_toppers: [{
+        type: 'edible_3d_complex',
+        material: 'edible_fondant',
+        group_id: 'figure',
+        classification: 'hero',
+        size: 'medium',
+        quantity: 1,
+        description: 'fondant figure',
+      }],
+    }), typeEnums, 'ai_diameter_anchor');
+
+    expect(result.main_toppers[0].size).toBe('medium');
+    expect(result).not.toHaveProperty('cake_measurements');
+
+    expect(() => postProcessSearchAnalysisResult(validAnalysis({
+      cake_measurements: {
+        diameter: { start: { x: 0, y: 0 }, end: { x: 100, y: 0 } },
+        height: { start: { x: 0, y: 0 }, end: { x: 0, y: 50 } },
+      },
+    }), typeEnums, 'ai_diameter_anchor')).toThrow(/must not include cake_measurements/i);
   });
 
   it('fails local sizing when an accepted priced element has no bbox', () => {
