@@ -28,6 +28,34 @@ const validAnalysis = {
     rejection: { isRejected: false, reason: '', message: '' },
 };
 
+const validAnalysisOnly = {
+    cakeType: validAnalysis.cakeType,
+    cakeThickness: validAnalysis.cakeThickness,
+    main_toppers: validAnalysis.main_toppers,
+    support_elements: validAnalysis.support_elements,
+    cake_messages: validAnalysis.cake_messages,
+    icing_design: validAnalysis.icing_design,
+    keyword: validAnalysis.keyword,
+    rejection: validAnalysis.rejection,
+};
+
+const validLineRatioAnalysis = {
+    ...validAnalysisOnly,
+    cake_measurements: {
+        diameter: { start: { x: 100, y: 500 }, end: { x: 900, y: 500 } },
+        height: { start: { x: 500, y: 500 }, end: { x: 500, y: 800 } },
+    },
+    support_elements: [{
+        type: 'edible_flowers',
+        material: 'edible_fondant',
+        group_id: 'side_flower',
+        color: '#FF69B4',
+        quantity: 1,
+        size_line: { start: { x: 400, y: 300 }, end: { x: 480, y: 300 } },
+        description: 'one pink fondant flower on the cake side',
+    }],
+};
+
 vi.mock('@/lib/ai/client', () => ({
     getAI: vi.fn(() => ({
         models: {
@@ -57,7 +85,7 @@ describe('POST /api/ai/analyze', () => {
         mockGetActivePromptDetails.mockReset();
         mockGetDynamicTypeEnums.mockReset();
         mockGetActivePromptDetails.mockResolvedValue({
-            promptText: 'Analyze this cake',
+            promptText: '## STEP 5: SEO COPY GENERATION\nAnalyze this cake',
             version: '1.0',
         });
         mockGetDynamicTypeEnums.mockResolvedValue({
@@ -197,6 +225,45 @@ describe('POST /api/ai/analyze', () => {
             material: 'candy',
             quantity: 1,
         })]);
+    });
+
+    it('retries once with a correction instruction when a variable-priced support element omits its size line', async () => {
+        mockGetOrCreatePromptCache.mockResolvedValue('mock-cache-name');
+        mockGetActivePromptDetails.mockResolvedValue({
+            promptText: 'Analyze this cake',
+            version: '3.83',
+        });
+        mockGenerateContent
+            .mockResolvedValueOnce({
+                text: JSON.stringify({
+                    ...validLineRatioAnalysis,
+                    support_elements: [{
+                        ...validLineRatioAnalysis.support_elements[0],
+                        size_line: undefined,
+                    }],
+                }),
+            })
+            .mockResolvedValueOnce({ text: JSON.stringify(validLineRatioAnalysis) });
+
+        const { POST } = await import('./route');
+        const request = new NextRequest('http://localhost/api/ai/analyze', {
+            method: 'POST',
+            body: JSON.stringify({ imageData: 'base64-data', mimeType: 'image/png' }),
+        });
+
+        const response = await POST(request);
+        const payload = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(payload.support_elements[0]).toEqual(expect.objectContaining({
+            type: 'edible_flowers',
+            size: 'small',
+        }));
+        expect(mockGenerateContent).toHaveBeenCalledTimes(2);
+        expect(mockGenerateContent.mock.calls[1][0].contents[0].parts).toEqual(expect.arrayContaining([
+            expect.objectContaining({ text: expect.stringContaining('omitted a required representative `size_line`') }),
+        ]));
+        expect(mockGenerateContent.mock.calls[1][0].config.cachedContent).toBe('mock-cache-name');
     });
 
     it('reuses cached prompt details and enum config across hot requests', async () => {

@@ -22,6 +22,7 @@ import {
 
 export const ANALYSIS_MODEL = 'gemini-3.5-flash-lite';
 export const AI_REQUEST_TIMEOUT_MS = 120_000;
+const ANALYSIS_CONTRACT_CORRECTION_TIMEOUT_MS = 25_000;
 
 const ANALYSIS_CONFIG_CACHE_TTL_MS = 5 * 60_000;
 const PROMPT_CACHE_NAME_TTL_MS = 30 * 60_000;
@@ -116,6 +117,21 @@ function clearCachedPromptCacheName(version: string) {
     }
 }
 
+function getContractCorrectionInstruction(error: unknown): string | null {
+    if (!(error instanceof GeneratedAnalysisContractError)) return null;
+
+    const message = error.message;
+    const missingElementLine = /(?:main_toppers|support_elements)\[\d+\]\.size_line is required/i.test(message);
+    if (!missingElementLine) return null;
+
+    return [
+        'Your previous JSON response omitted a required representative `size_line` for a priced cake element.',
+        'Regenerate the complete analysis JSON for the same image.',
+        'Every non-fixed, non-piped-flower `main_toppers` or `support_elements` row must include one normalized `size_line` with integer start and end coordinates from 0 through 1000.',
+        'Only fixed-local types and `piped_flowers_top` or `piped_flowers_side` may omit `size_line`.',
+    ].join(' ');
+}
+
 export async function runActiveCakeAnalysis({
     imageData,
     mimeType,
@@ -141,7 +157,6 @@ export async function runActiveCakeAnalysis({
     const sizeSchema = getAnalysisGenerationSizeSchema(promptDetails.version);
     const seoSchema = resolveAnalysisGenerationSeoSchema(promptDetails.promptText);
     const baseConfig = buildSearchAnalysisGenerationConfig(typeEnums, sizeSchema, seoSchema);
-    let response;
     let cacheName: string | null = null;
 
     try {
@@ -150,66 +165,80 @@ export async function runActiveCakeAnalysis({
         console.warn('[AI Cache] Failed to create or retrieve context cache:', cacheError);
     }
 
-    if (cacheName) {
-        const cachedConfig = { ...baseConfig };
-        delete (cachedConfig as { systemInstruction?: unknown }).systemInstruction;
-
-        try {
-            response = await aiClient.models.generateContent({
-                model: ANALYSIS_MODEL,
-                contents: [{
-                    role: 'user',
-                    parts: [{ inlineData: { mimeType, data: imageData } }],
-                }],
-                config: {
-                    ...cachedConfig,
-                    cachedContent: cacheName,
-                    abortSignal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
-                },
-            });
-        } catch (cachedGenerationError) {
-            clearCachedPromptCacheName(promptDetails.version);
-            console.warn('[AI Cache] Cached analysis generation failed. Retrying without cached content:', cachedGenerationError);
-            response = await aiClient.models.generateContent({
-                model: ANALYSIS_MODEL,
-                contents: [{
-                    role: 'user',
-                    parts: [
-                        { inlineData: { mimeType, data: imageData } },
-                        { text: promptDetails.promptText },
-                    ],
-                }],
-                config: {
-                    ...baseConfig,
-                    abortSignal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
-                },
-            });
-        }
-    } else {
-        response = await aiClient.models.generateContent({
+    const generateAnalysis = async (
+        correctionInstruction?: string,
+        timeoutMs = AI_REQUEST_TIMEOUT_MS,
+    ) => {
+        const generateWithoutCache = () => aiClient.models.generateContent({
             model: ANALYSIS_MODEL,
             contents: [{
                 role: 'user',
                 parts: [
                     { inlineData: { mimeType, data: imageData } },
                     { text: promptDetails.promptText },
+                    ...(correctionInstruction ? [{ text: correctionInstruction }] : []),
                 ],
             }],
             config: {
                 ...baseConfig,
-                abortSignal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
+                abortSignal: AbortSignal.timeout(timeoutMs),
             },
         });
-    }
 
-    const jsonText = (response.text || '').trim();
+        if (!cacheName) return generateWithoutCache();
+
+        const cachedConfig = { ...baseConfig };
+        delete (cachedConfig as { systemInstruction?: unknown }).systemInstruction;
+        try {
+            return await aiClient.models.generateContent({
+                model: ANALYSIS_MODEL,
+                contents: [{
+                    role: 'user',
+                    parts: [
+                        { inlineData: { mimeType, data: imageData } },
+                        ...(correctionInstruction ? [{ text: correctionInstruction }] : []),
+                    ],
+                }],
+                config: {
+                    ...cachedConfig,
+                    cachedContent: cacheName,
+                    abortSignal: AbortSignal.timeout(timeoutMs),
+                },
+            });
+        } catch (cachedGenerationError) {
+            clearCachedPromptCacheName(promptDetails.version);
+            cacheName = null;
+            console.warn('[AI Cache] Cached analysis generation failed. Retrying without cached content:', cachedGenerationError);
+            return generateWithoutCache();
+        }
+    };
+
+    const parseAndValidate = (response: Awaited<ReturnType<typeof generateAnalysis>>) => {
+        const jsonText = (response.text || '').trim();
+        try {
+            return postProcessSearchAnalysisResult(JSON.parse(jsonText), typeEnums, sizeSchema, seoSchema);
+        } catch (error) {
+            console.error('Failed to parse AI response:', jsonText);
+            if (error instanceof GeneratedAnalysisContractError) throw error;
+            throw new Error('Invalid response format from AI');
+        }
+    };
+
     let result: GeneratedCakeAnalysisResult;
     try {
-        result = postProcessSearchAnalysisResult(JSON.parse(jsonText), typeEnums, sizeSchema, seoSchema);
+        result = parseAndValidate(await generateAnalysis());
     } catch (error) {
-        console.error('Failed to parse AI response:', jsonText);
-        if (error instanceof GeneratedAnalysisContractError) throw error;
-        throw new Error('Invalid response format from AI');
+        const correctionInstruction = getContractCorrectionInstruction(error);
+        if (!correctionInstruction) throw error;
+
+        console.warn('[AI Contract] Retrying once after recoverable missing element geometry.', {
+            promptVersion: promptDetails.version,
+            issue: error instanceof Error ? error.message : String(error),
+        });
+        result = parseAndValidate(await generateAnalysis(
+            correctionInstruction,
+            ANALYSIS_CONTRACT_CORRECTION_TIMEOUT_MS,
+        ));
     }
 
     const rejection = result.rejection as {
