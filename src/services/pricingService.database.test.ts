@@ -59,6 +59,22 @@ const basePricingRows: PricingFixtureRule[] = [
     updated_at: '2026-01-01T00:00:00.000Z',
   },
   {
+    rule_id: 500,
+    item_key: 'edible_flowers_filler',
+    item_type: 'edible_flowers_filler',
+    classification: 'support',
+    size: null,
+    description: 'Small filler and baby’s-breath edible flowers',
+    price: 5,
+    category: 'support_element',
+    quantity_rule: 'per_piece',
+    multiplier_rule: null,
+    special_conditions: { allowance_eligible: false },
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+  },
+  {
     rule_id: 4,
     item_key: 'satin_ribbon',
     item_type: 'satin_ribbon',
@@ -694,6 +710,32 @@ describe('calculatePriceFromDatabase', () => {
     expect(itemPrices.get('flowers-1')).toBe(30);
     expect(addOnPricing.addOnPrice).toBe(30);
     expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining(legacyFlowerType));
+  });
+
+  it('prices size-free filler and baby’s-breath flowers at ₱5 per visible piece', async () => {
+    const { calculatePriceFromDatabase } = await import('./pricingService.database');
+
+    const fillerFlowers = {
+      id: 'filler-flowers-1',
+      type: 'edible_flowers_filler',
+      material: 'edible_fondant',
+      description: 'Small white baby’s-breath flowers cascading down the side',
+      group_id: 'white_babys_breath',
+      color: '#FFFFFF',
+      quantity: 7,
+      isEnabled: true,
+    } as SupportElementUI;
+
+    const result = await calculatePriceFromDatabase({
+      mainToppers: [],
+      supportElements: [fillerFlowers],
+      cakeMessages: [],
+      icingDesign: {} as IcingDesignUI,
+      cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
+    });
+
+    expect(result.itemPrices.get('filler-flowers-1')).toBe(35);
+    expect(result.addOnPricing.addOnPrice).toBe(35);
   });
 
   it('prices every removable decoration in the floral fruit rectangle cake analysis', async () => {

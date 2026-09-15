@@ -71,6 +71,7 @@ export const SUPPORT_ELEMENT_TYPES = [
     'isomalt',
     'dragees',
     'edible_flowers',
+    'edible_flowers_filler',
     'piped_flowers_side',
     'edible_photo_side',
     'edible_photo_side_wave',
@@ -101,6 +102,14 @@ export const SUPPORT_ELEMENT_TYPES = [
     'printout',
 ] as const;
 export type SupportElementTypeEnum = typeof SUPPORT_ELEMENT_TYPES[number];
+
+/** Support types whose price and fulfillment never vary by a size band. */
+export const SIZELESS_SUPPORT_ELEMENT_TYPES = ['edible_flowers_filler'] as const;
+export type SizelessSupportElementType = typeof SIZELESS_SUPPORT_ELEMENT_TYPES[number];
+
+export function isSizelessSupportElementType(type: string): type is SizelessSupportElementType {
+    return SIZELESS_SUPPORT_ELEMENT_TYPES.includes(type as SizelessSupportElementType);
+}
 
 /**
  * Subtypes per item type

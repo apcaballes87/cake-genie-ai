@@ -137,10 +137,44 @@ describe('validateAiChatEditResponse', () => {
         expect(result).toMatchObject({ success: false, kind: 'invalid' });
     });
 
-    it('only exposes edible flowers for new support-element edits', () => {
+    it('only exposes canonical edible flower types for new support-element edits', () => {
         expect(AI_CHAT_SUPPORT_ELEMENT_TYPES).toContain('edible_flowers');
+        expect(AI_CHAT_SUPPORT_ELEMENT_TYPES).toContain('edible_flowers_filler');
         expect(AI_CHAT_SUPPORT_ELEMENT_TYPES).not.toContain('fresh_flowers');
         expect(AI_CHAT_SUPPORT_ELEMENT_TYPES).not.toContain('artificial_flowers');
+    });
+
+    it('accepts size-free filler flowers and rejects a supplied size band', () => {
+        const current = makeSnapshot();
+        const valid = validateAiChatEditResponse(designResponse({
+            supportOperations: [{
+                operation: 'add',
+                item: {
+                    type: 'edible_flowers_filler',
+                    material: 'edible_fondant',
+                    description: 'small white baby’s-breath flowers',
+                    groupId: 'white_babys_breath',
+                    color: '#FFFFFF',
+                    quantity: 7,
+                },
+            }],
+        }), current);
+        const invalid = validateAiChatEditResponse(designResponse({
+            supportOperations: [{
+                operation: 'add',
+                item: {
+                    type: 'edible_flowers_filler',
+                    material: 'edible_fondant',
+                    description: 'small white filler flowers',
+                    groupId: 'white_filler',
+                    size: 'small',
+                },
+            }],
+        }), current);
+
+        expect(valid.success).toBe(true);
+        expect(invalid).toMatchObject({ success: false, kind: 'invalid' });
+        if (!invalid.success) expect(invalid.errors.join(' ')).toContain('must be omitted');
     });
 
     it('accepts the constrained wire contract with a stable existing target ID', () => {

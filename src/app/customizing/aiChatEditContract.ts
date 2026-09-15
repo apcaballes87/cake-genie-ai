@@ -7,6 +7,7 @@ import {
     getEquivalentCakeSizeForIcingBase,
     getEquivalentCakeTypeForIcingBase,
 } from '@/constants';
+import { isSizelessSupportElementType } from '@/constants/pricingEnums';
 import type {
     CakeFlavor,
     CakeInfoUI,
@@ -107,6 +108,7 @@ export const AI_CHAT_SUPPORT_ELEMENT_TYPES = [
     'isomalt',
     'dragees',
     'edible_flowers',
+    'edible_flowers_filler',
     'piped_flowers_side',
     'edible_photo_side',
     'edible_photo_side_wave',
@@ -153,7 +155,8 @@ export interface AiChatTopperInput {
 export interface AiChatSupportInput {
     type: SupportElementType;
     description: string;
-    size: Size;
+    /** Omitted for support types whose pricing is intentionally size-free. */
+    size?: Size;
     groupId: string;
     material?: string;
     color?: string;
@@ -417,7 +420,10 @@ const validateSupportInput = (
     if (!partial || 'description' in input) {
         if (!isNonEmptyString(input.description)) errors.push(`${path}.description must be a non-empty string.`);
     }
-    if (!partial || 'size' in input) {
+    const supportType = typeof input.type === 'string' ? input.type : undefined;
+    if (supportType && isSizelessSupportElementType(supportType)) {
+        if ('size' in input) errors.push(`${path}.size must be omitted for ${supportType}.`);
+    } else if (!partial || 'size' in input) {
         if (!isMember(input.size, AI_CHAT_SIZES)) errors.push(`${path}.size is invalid.`);
     }
     if (!partial || 'groupId' in input) {
@@ -805,8 +811,14 @@ const applySupportOperations = (
         if (operation.operation === 'add') {
             const id = createId();
             const { groupId, ...item } = operation.item;
+            const sizeFreeItem = isSizelessSupportElementType(item.type)
+                ? (() => {
+                    const { size: _size, ...withoutSize } = item;
+                    return withoutSize;
+                })()
+                : item;
             const added: SupportElementUI = {
-                ...item,
+                ...sizeFreeItem,
                 group_id: groupId,
                 id,
                 isEnabled: true,
@@ -844,6 +856,10 @@ const applySupportOperations = (
                     : undefined;
             if (sourceType) mappedChanges.printout_source_type = sourceType;
         }
+        const nextType = mappedChanges.type ?? currentItem.type;
+        if (isSizelessSupportElementType(nextType)) {
+            delete mappedChanges.size;
+        }
         const changedEntries = Object.entries(mappedChanges).filter(([key, value]) => {
             const currentValue = currentItem[key as keyof SupportElementUI];
             return Array.isArray(value)
@@ -851,7 +867,12 @@ const applySupportOperations = (
                 : value !== currentValue;
         });
         if (changedEntries.length === 0) return;
-        next = next.map((item, itemIndex) => itemIndex === index ? { ...item, ...mappedChanges } : item);
+        next = next.map((item, itemIndex) => {
+            if (itemIndex !== index) return item;
+            if (!isSizelessSupportElementType(nextType)) return { ...item, ...mappedChanges };
+            const { size: _size, ...withoutSize } = item;
+            return { ...withoutSize, ...mappedChanges } as SupportElementUI;
+        });
         changedEntries.forEach(([key]) => pushChangedPath(changedPaths, `supportElements.${operation.id}.${key}`));
     });
     return next;

@@ -1,0 +1,16 @@
+{
+  "examples": [
+    "small white filler flowers mixed into the floral arrangements",
+    "individual white baby's-breath flowers arranged in a cascading side spray",
+    "edible white filler flowers arranged on the side",
+    "edible white and pink filler flowers arranged on top"
+  ],
+  "expected_support_element": {
+    "type": "edible_flowers_filler",
+    "material": "edible_fondant",
+    "group_id": "matching_visible_appearance_and_color"
+  },
+  "forbidden_fields": ["size", "size_line", "bbox", "coverage"],
+  "unit_price_php": 5,
+  "counterexample": "A distinct ordinary or intricate bloom remains edible_flowers even when small."
+}

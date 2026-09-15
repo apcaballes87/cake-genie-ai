@@ -3,6 +3,29 @@ import type { AiChatHistoryEntry, CakeInfoUI, CakeMessageUI, IcingDesignUI, Main
 import { buildCartCustomizationDetails } from './buildCartCustomizationDetails';
 
 describe('buildCartCustomizationDetails', () => {
+  it('preserves size-free filler flowers without serializing a coverage band', () => {
+    const result = buildCartCustomizationDetails({
+      cakeInfo: { type: '1 Tier', thickness: '4 in', size: '6" Round', flavors: ['Chocolate Cake'] },
+      mainToppers: [],
+      supportElements: [{
+        id: 'support-filler-1', isEnabled: true, price: 35,
+        type: 'edible_flowers_filler', original_type: 'edible_flowers_filler',
+        material: 'edible_fondant', description: 'Small white filler flowers',
+        group_id: 'white_filler', color: '#FFFFFF', quantity: 7,
+      }],
+      cakeMessages: [],
+      icingDesign: null,
+      additionalInstructions: '',
+      aiChatHistory: [],
+      commerceSnapshot: {} as Parameters<typeof buildCartCustomizationDetails>[0]['commerceSnapshot'],
+    });
+
+    expect(result.supportElements).toEqual([{
+      description: 'Small white filler flowers',
+      type: 'edible_flowers_filler',
+    }]);
+  });
+
   it('includes structured AI chat history and the legacy prompt mirror in the cart payload', () => {
     const cakeInfo: CakeInfoUI = {
       type: '1 Tier',

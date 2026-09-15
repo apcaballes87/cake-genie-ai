@@ -25,7 +25,7 @@ export const originalTypeLabelMap: Record<MainTopperType, string> = {
 export const supportTypeDisplayMap: Record<SupportElementType, string> = {
     'edible_3d_support': 'Gumpaste (3D)', 'edible_2d_support': 'Gumpaste (2D)', 'chocolates': 'Chocolates',
     'sprinkles': 'Sprinkles', 'premium_sprinkles': 'Premium Sprinkles', 'dragees': 'Dragees (Pearls)', 'support_printout': 'Printout', 'edible_photo_side': 'Printout (Edible)', 'edible_photo_side_wave': 'Conditioned Wafer Paper Waves', 'edible_photo_print': 'Printout (Edible)',
-    'isomalt': 'Isomalt (Sugar Glass)', 'edible_flowers': 'Edible Flowers', 'piped_flowers_side': 'Piped Flowers (Side)', 'icing_doodle': 'Piped Doodles', 'icing_doodle_intricate_side': 'Intricate Side Doodles', 'icing_palette_knife': 'Palette Knife Finish',
+    'isomalt': 'Isomalt (Sugar Glass)', 'edible_flowers': 'Edible Flowers', 'edible_flowers_filler': 'Filler Flowers', 'piped_flowers_side': 'Piped Flowers (Side)', 'icing_doodle': 'Piped Doodles', 'icing_doodle_intricate_side': 'Intricate Side Doodles', 'icing_palette_knife': 'Palette Knife Finish',
     'icing_brush_stroke': 'Brush Stroke Finish', 'icing_splatter': 'Splatter Finish', 'icing_minimalist_spread': 'Minimalist Spread',
     'plastic_ball': 'Plastic Ball', 'plastic_ball_regular': 'Plastic Ball', 'plastic_ball_disco': 'Disco Ball',
     'macarons': 'Macarons', 'meringue': 'Meringue', 'gumpaste_bundle': 'Gumpaste Bundle', 'candy': 'Candy',
@@ -34,7 +34,7 @@ export const supportTypeDisplayMap: Record<SupportElementType, string> = {
     'thin_fabric_ribbon_bows': 'Thin Fabric Ribbon Bows', 'satin_ribbon': 'Satin/Organza Ribbon', 'edible_lollipops': 'Edible Lollipops', 'printout': 'Printout',
 };
 export const COLORABLE_ITEM_TYPES: Array<MainTopperType | SupportElementType> = [
-    'edible_3d_complex', 'edible_2d_complex', 'edible_3d_ordinary', 'edible_logo_2d', 'edible_3d_support', 'edible_2d_support', 'edible_flowers', 'piped_flowers_top', 'piped_flowers_side', 'icing_doodle', 'icing_doodle_intricate', 'icing_doodle_intricate_top', 'icing_doodle_intricate_side',
+    'edible_3d_complex', 'edible_2d_complex', 'edible_3d_ordinary', 'edible_logo_2d', 'edible_3d_support', 'edible_2d_support', 'edible_flowers', 'edible_flowers_filler', 'piped_flowers_top', 'piped_flowers_side', 'icing_doodle', 'icing_doodle_intricate', 'icing_doodle_intricate_top', 'icing_doodle_intricate_side',
     'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread', 'meringue_pop',
     'isomalt', 'macarons', 'meringue', 'icing_decorations', 'gumpaste_panel', 'gumpaste_creations',
     'marshmallows',

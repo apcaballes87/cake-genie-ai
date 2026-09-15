@@ -20,6 +20,7 @@ const MAIN_EDIBLE_TOPPER_TYPES = new Set<MainTopperType>([
 
 const PRINTOUT_EXCLUDED_TYPES = new Set<MainTopperType | SupportElementType>([
     'edible_flowers',
+    'edible_flowers_filler',
     'piped_flowers_top',
     'piped_flowers_side',
 ]);

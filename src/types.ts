@@ -17,7 +17,7 @@ export type CakeSize = string; // e.g., '6" Round', '6"/8" Round'
 export type CakeFlavor = 'Chocolate Cake' | 'Ube Cake' | 'Vanilla Cake' | 'Mocha Cake';
 
 export type MainTopperType = 'edible_3d_complex' | 'edible_3d_ordinary' | 'edible_2d_complex' | 'printout' | 'toy' | 'plastic_crown' | 'edible_crown' | 'figurine' | 'cardstock' | 'edible_photo_top' | 'edible_photo_print' | 'edible_logo_2d' | 'candle' | 'edible_2d_shapes' | 'edible_flowers' | 'piped_flowers_top' | 'icing_doodle' | 'icing_doodle_intricate' | 'icing_doodle_intricate_top' | 'icing_palette_knife' | 'icing_palette_knife_intricate' | 'icing_brush_stroke' | 'icing_splatter' | 'icing_minimalist_spread' | 'icing_decorations' | 'meringue_pop' | 'plastic_ball';
-export type SupportElementType = 'edible_3d_support' | 'edible_2d_support' | 'chocolates' | 'sprinkles' | 'premium_sprinkles' | 'support_printout' | 'isomalt' | 'dragees' | 'edible_flowers' | 'piped_flowers_side' | 'edible_photo_side' | 'edible_photo_side_wave' | 'edible_photo_print' | 'icing_doodle' | 'icing_doodle_intricate_side' | 'icing_palette_knife' | 'icing_brush_stroke' | 'icing_splatter' | 'icing_minimalist_spread' | 'plastic_ball_regular' | 'plastic_ball_disco' | 'plastic_ball' | 'macarons' | 'meringue' | 'gumpaste_bundle' | 'candy' | 'gumpaste_panel' | 'icing_decorations' | 'gumpaste_creations' | 'marshmallows' | 'edible_3d_ordinary' | 'edible_lego_bricks' | 'fresh_flowers' | 'artificial_flowers' | 'thin_fabric_ribbon_bows' | 'satin_ribbon' | 'edible_lollipops' | 'printout';
+export type SupportElementType = 'edible_3d_support' | 'edible_2d_support' | 'chocolates' | 'sprinkles' | 'premium_sprinkles' | 'support_printout' | 'isomalt' | 'dragees' | 'edible_flowers' | 'edible_flowers_filler' | 'piped_flowers_side' | 'edible_photo_side' | 'edible_photo_side_wave' | 'edible_photo_print' | 'icing_doodle' | 'icing_doodle_intricate_side' | 'icing_palette_knife' | 'icing_brush_stroke' | 'icing_splatter' | 'icing_minimalist_spread' | 'plastic_ball_regular' | 'plastic_ball_disco' | 'plastic_ball' | 'macarons' | 'meringue' | 'gumpaste_bundle' | 'candy' | 'gumpaste_panel' | 'icing_decorations' | 'gumpaste_creations' | 'marshmallows' | 'edible_3d_ordinary' | 'edible_lego_bricks' | 'fresh_flowers' | 'artificial_flowers' | 'thin_fabric_ribbon_bows' | 'satin_ribbon' | 'edible_lollipops' | 'printout';
 export type CakeMessageType = 'gumpaste_letters' | 'icing_script' | 'printout' | 'cardstock';
 export type PipedFlowerCoverage = 'small' | 'medium' | 'large';
 
@@ -72,7 +72,8 @@ export interface SupportElement {
   type: SupportElementType;
   material?: string;
   description: string;
-  size: Size;
+  /** Omitted only by the size-free edible flower filler support type. */
+  size?: Size;
   group_id: string;
   color?: string;
   colors?: (string | null)[];

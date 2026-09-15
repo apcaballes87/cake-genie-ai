@@ -154,6 +154,7 @@ const supportMaterialLabelMap: Record<SupportElementType, string> = {
     isomalt: 'Isomalt (Sugar Glass)',
     dragees: 'Dragees (Pearls)',
     edible_flowers: 'Edible Flowers',
+    edible_flowers_filler: 'Filler Flowers',
     piped_flowers_side: 'Piped Flowers (Side)',
     edible_photo_side: 'Printout (Edible)',
     edible_photo_side_wave: 'Conditioned Wafer Paper Waves',
