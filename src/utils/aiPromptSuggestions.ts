@@ -4,7 +4,7 @@ import { hexToColorNameProse } from '@/utils/colorUtils';
 
 const HEX_COLOR_REGEX = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i;
 const COLORABLE_ITEM_TYPES = new Set([
-    'edible_3d_complex', 'edible_2d_complex', 'edible_3d_ordinary', 'edible_3d_support', 'edible_2d_support', 'edible_flowers', 'icing_doodle',
+    'edible_3d_complex', 'edible_2d_complex', 'edible_3d_ordinary', 'edible_3d_support', 'edible_2d_support', 'edible_flowers', 'edible_flowers_filler', 'icing_doodle',
     'icing_doodle_intricate', 'icing_doodle_intricate_top', 'icing_doodle_intricate_side',
     'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter', 'icing_minimalist_spread', 'meringue_pop',
 ]);

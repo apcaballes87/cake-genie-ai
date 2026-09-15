@@ -39,6 +39,7 @@ const typeEnums = {
     'fresh_flowers',
     'artificial_flowers',
     'edible_flowers',
+    'edible_flowers_filler',
     'piped_flowers_side',
     'edible_photo_side_wave',
     'icing_decorations',
@@ -106,6 +107,7 @@ describe('search analysis contract', () => {
       'cardstock',
     ]);
     expect(schema.properties.support_elements.items.properties.type.enum).toContain('edible_flowers');
+    expect(schema.properties.support_elements.items.properties.type.enum).toContain('edible_flowers_filler');
     expect(schema.properties.support_elements.items.properties.type.enum).toContain('piped_flowers_side');
     expect(schema.properties.support_elements.items.properties.type.enum).toContain('edible_photo_side_wave');
     expect(schema.properties.support_elements.items.properties.type.enum).not.toContain('fresh_flowers');
@@ -270,6 +272,45 @@ describe('search analysis contract', () => {
         height: { start: { x: 0, y: 0 }, end: { x: 0, y: 50 } },
       },
     }), typeEnums, 'ai_diameter_anchor')).toThrow(/must not include cake_measurements/i);
+
+    const fillerResult = postProcessSearchAnalysisResult(validAnalysis({
+      support_elements: [{
+        type: 'edible_flowers_filler',
+        material: 'edible_fondant',
+        group_id: 'white_babys_breath',
+        color: '#FFFFFF',
+        quantity: 7,
+        description: 'small white baby’s-breath flowers in a cascading side spray',
+      }],
+    }), typeEnums, 'ai_diameter_anchor');
+    expect(fillerResult.support_elements[0]).toMatchObject({
+      type: 'edible_flowers_filler',
+      quantity: 7,
+    });
+    expect(fillerResult.support_elements[0]).not.toHaveProperty('size');
+
+    expect(() => postProcessSearchAnalysisResult(validAnalysis({
+      support_elements: [{
+        type: 'edible_flowers',
+        material: 'edible_fondant',
+        group_id: 'ordinary_bloom',
+        color: '#FFFFFF',
+        quantity: 1,
+        description: 'ordinary edible flower',
+      }],
+    }), typeEnums, 'ai_diameter_anchor')).toThrow(/support_elements\[0\]\.size/i);
+
+    expect(() => postProcessSearchAnalysisResult(validAnalysis({
+      support_elements: [{
+        type: 'edible_flowers_filler',
+        material: 'edible_fondant',
+        group_id: 'white_babys_breath',
+        color: '#FFFFFF',
+        size: 'small',
+        quantity: 1,
+        description: 'small white baby’s-breath flower',
+      }],
+    }), typeEnums, 'ai_diameter_anchor')).toThrow(/must be omitted for edible_flowers_filler/i);
   });
 
   it('fails local sizing when an accepted priced element has no bbox', () => {

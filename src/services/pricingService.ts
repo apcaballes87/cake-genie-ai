@@ -254,11 +254,11 @@ export const calculatePrice = (
         let price = 0;
         switch (element.type) {
             case 'edible_3d_support':
-                price = getSupportGumpastePrice(element.size);
+                price = getSupportGumpastePrice(element.size as Size);
                 supportTotal += price;
                 break;
             case 'edible_2d_support':
-                price = getEdible2DSupportPrice(element.size); // Use new function
+                price = getEdible2DSupportPrice(element.size as Size); // Use new function
                 supportTotal += price;
                 break;
 
@@ -351,12 +351,17 @@ export const calculatePrice = (
                 break;
 
             case 'edible_flowers': {
-                const flowerUnitPriceSE = getEdibleFlowerPrice(element.size);
+                const flowerUnitPriceSE = getEdibleFlowerPrice(element.size as Size);
                 const flowerQtySE = element.quantity || 1;
                 price = applyEdibleFlowerDiscount(flowerUnitPriceSE, flowerQtySE);
                 nonGumpasteTotal += price;
                 break;
             }
+
+            case 'edible_flowers_filler':
+                price = 5 * (element.quantity || 1);
+                nonGumpasteTotal += price;
+                break;
 
             case 'piped_flowers_side':
                 price = element.size === 'large' ? 150 : element.size === 'medium' ? 100 : 50;

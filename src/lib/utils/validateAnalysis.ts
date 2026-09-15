@@ -11,6 +11,7 @@ import {
     isValidMainTopperType,
     isValidSupportElementType,
     isValidPersistedSize,
+    isSizelessSupportElementType,
     getValidSubtypesForType,
 } from '@/constants/pricingEnums';
 import { createLogger } from './logger';
@@ -112,9 +113,19 @@ export function validateAnalysis(input: ValidationInput): ValidationResult {
             });
         }
 
+        if (isSizelessSupportElementType(element.type)
+            && (element.size !== undefined || element.coverage !== undefined)) {
+            errors.push({
+                field: `${fieldPrefix}.size`,
+                value: element.size ?? element.coverage,
+                message: `${element.type} must not carry a size or coverage band`,
+            });
+        }
+
         // Check size (treat coverage as size for backward compatibility)
         const effectiveSize = element.size || (element as any).coverage;
-        if (effectiveSize && !isValidPersistedSize(effectiveSize) && effectiveSize !== 'mixed') {
+        if (!isSizelessSupportElementType(element.type)
+            && effectiveSize && !isValidPersistedSize(effectiveSize) && effectiveSize !== 'mixed') {
             warnings.push({
                 field: `${fieldPrefix}.size`,
                 value: effectiveSize,

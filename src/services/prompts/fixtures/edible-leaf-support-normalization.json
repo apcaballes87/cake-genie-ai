@@ -1,0 +1,23 @@
+{
+  "case": "Discrete fondant/gumpaste eucalyptus foliage accompanying focal flowers",
+  "observed": {
+    "description": "gumpaste eucalyptus leaves and foliage",
+    "material": "edible_fondant",
+    "quantity": 8
+  },
+  "expected_support_element": {
+    "type": "edible_2d_support",
+    "material": "edible_fondant",
+    "size": "small",
+    "group_id": "foliage_leaves",
+    "quantity": 8
+  },
+  "forbidden_types": [
+    "edible_flowers",
+    "gumpaste_bundle",
+    "edible_2d_shapes",
+    "edible_2d_complex",
+    "edible_3d_ordinary"
+  ],
+  "non_qualifying_construction": "An integrated piped, palette-knife, brushed, or painted icing stroke is an icing technique, not a separate edible leaf piece."
+}
