@@ -1,9 +1,9 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.87 Version - Filler Flower Support Normalization**
+**v3.88 Version - Sized Filler Flower Support Normalization**
 
 ### CHANGELOG
-- Added a size-free, per-piece filler-flower type for small filler and baby's-breath flowers.
+- Added a direct-diameter-sized, per-piece filler-flower type for small filler and baby's-breath flowers; every size band has the same per-piece price.
 - Normalize every discrete edible fondant/gumpaste leaf or foliage piece to a small `edible_2d_support` support row.
 - Replaced coordinate-line sizing with direct small/medium/large estimation anchored to the visible top-tier cake diameter.
 - Centralized rule precedence in OUTPUT ORDER; moved cake membership ahead of item rules.
@@ -52,12 +52,13 @@ into floral arrangements, individual white baby's-breath flowers in a
 cascading side spray, edible white filler flowers on a side, and edible white
 and pink filler flowers on a top.
 
-`edible_flowers_filler` is size-free: omit `size`, `size_line`, `bbox`, and
-`coverage` regardless of the apparent physical scale or placement. It is never
-a main topper or `edible_flowers`; its price is per visible flower, not by a
-size band. This rule overrides ordinary-flower, intricate-flower, role, direct
-diameter, and grouping rules. Do not use it for a distinct ordinary or
-intricate bloom merely because that bloom is small.
+`edible_flowers_filler` must emit exactly one direct-diameter `size`: `small`,
+`medium`, or `large`. Omit `size_line`, `bbox`, and `coverage` regardless of
+the apparent physical scale or placement. It is never a main topper or
+`edible_flowers`; its price remains ₱5 per visible flower in every size band.
+This rule overrides ordinary-flower, intricate-flower, role, direct diameter,
+and grouping rules. Do not use it for a distinct ordinary or intricate bloom
+merely because that bloom is small.
 
 - ✅ Valid JSON only
 - ✅ Use the exact field names shown in the JSON skeleton below
@@ -783,7 +784,7 @@ direct diameter-anchor sizing contract win.
 | Each ball in a multi-ball plastic balloon cluster, bouquet, arch, or garland | `plastic_ball_regular` | `plastic` | support element | representative `direct diameter-relative size` |
 | Any discrete edible fondant/gumpaste leaf or foliage piece | `edible_2d_support` | `edible_fondant` | support element only | fixed `small` |
 | Flat edible shape used as an accent | `edible_2d_support` | `edible_fondant` | support element | representative `direct diameter-relative size` |
-| Small generic filler flower or any baby's-breath flower | `edible_flowers_filler` | `edible_fondant` | support element only | size-free |
+| Small generic filler flower or any baby's-breath flower | `edible_flowers_filler` | `edible_fondant` | support element only | direct diameter-relative size; ₱5 per visible flower in every band |
 | Fondant/gumpaste flower | `edible_flowers` | `edible_fondant` | intricate/focal: main; otherwise support | representative `direct diameter-relative size` |
 | Gumpaste side panel | `gumpaste_panel` | `edible_fondant` | support element | representative `direct diameter-relative size` |
 | Wax object with visible wick | `candle` | `wax` | main topper | representative `direct diameter-relative size` |
@@ -1326,7 +1327,7 @@ for this rule: apply `EDIBLE LEAF AND FOLIAGE NORMALIZATION` instead.
 Before applying this ordinary-flower rule, classify every small generic filler
 flower and every baby's-breath flower as `edible_flowers_filler` in
 `support_elements`, with material `edible_fondant`, its visible per-flower
-quantity, and no `size`, `size_line`, `bbox`, or `coverage`.
+quantity, one direct-diameter `size`, and no `size_line`, `bbox`, or `coverage`.
 
 Do NOT classify fondant/gumpaste flowers as `edible_3d_ordinary`, even when
 they are simple, molded, small, gold-painted, or low-detail.
@@ -1945,7 +1946,7 @@ normalized type/material.
 
 - Gumpaste accent items (flowers, stars, balls, basic shapes)
 - Ordinary/filler edible flowers (edible_flowers); focal or individually intricate flowers are hero/main toppers
-- Small generic filler flowers and all baby's-breath flowers (`edible_flowers_filler`, per visible flower, no size)
+- Small generic filler flowers and all baby's-breath flowers (`edible_flowers_filler`, per visible flower, direct-diameter size)
 - Background details (trees, clouds, grasses)
 - Gumpaste paneling, side wraps
 - Candies, lollipops, chocolates, isomalt, sprinkles, beads and pearls
@@ -2001,7 +2002,7 @@ item rows in v3.83. See OUTPUT ORDER steps 4 and 8.
 | `icing_minimalist_spread` | icing | Deliberately spread or swiped icing texture; quantity 1 per treated region. Promote only under the icing-technique role rule. |
 | `gumpaste_bundle` | edible_fondant | Cluster of gumpaste items: stones, rocks, or seaweeds (Readable message letters not included). Count as a whole one group. Discrete edible leaves and foliage use `edible_2d_support` instead. |
 | `edible_flowers` | edible_fondant | Count individual non-piped flowers, including fresh-looking and artificial flowers fulfilled as edible. Use main toppers only for visibly focal or individually intricate blooms; use support elements for ordinary accents or filler. Directly piped icing flowers follow the grouped coverage rule. |
-| `edible_flowers_filler` | edible_fondant | Every small generic filler flower and every baby's-breath flower. Support only; count each directly visible flower, group matching color/appearance, and omit `size`, `size_line`, `bbox`, and `coverage`. Never use for a distinct ordinary or intricate bloom solely because it is small. |
+| `edible_flowers_filler` | edible_fondant | Every small generic filler flower and every baby's-breath flower. Support only; count each directly visible flower, group matching color/appearance, emit `size` as `small`, `medium`, or `large`, and omit `size_line`, `bbox`, and `coverage`. Its per-visible-flower price is ₱5 in every size band. Never use for a distinct ordinary or intricate bloom solely because it is small. |
 | `isomalt` | candy | Glass sugar toppers; count distinct pieces. |
 | `chocolates` | candy | subtype: "ferrero", "oreo", "kisses", "m&ms" |
 | `marshmallows` | candy | Marshmallow decorations |
@@ -2442,9 +2443,9 @@ pipeline.
 ✅ Hero vs support via Complexity Test (NOT just count)
 ✅ Visual Forensic Library protocols applied
 ✅ 2-cue material rule
-✅ Application-owned direct diameter-anchor sizing; the model does not emit element sizes
+✅ Direct diameter-anchor sizing; emit one `small`, `medium`, or `large` size for every topper and support row
 ✅ Every discrete edible leaf/foliage piece = `edible_2d_support`, support, `small`
-✅ Every small generic filler or baby's-breath flower = `edible_flowers_filler`, support, per piece, no size
+✅ Every small generic filler or baby's-breath flower = `edible_flowers_filler`, support, per piece, direct-diameter size; ₱5 in every band
 ✅ **Every printout has positive flat-paper evidence; physical body depth prohibits printout**
 ✅ **PRINTOUT vs CARDSTOCK vs TOY: 3D-animated graphics on flat surface = PRINTOUT**
 ✅ **Detailed flat-backed semi-3D human/pet portrait relief on top = edible_photo_top**

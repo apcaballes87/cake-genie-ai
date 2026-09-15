@@ -7,7 +7,6 @@ import type {
 import {
   CAKE_MESSAGE_TYPES,
   MAIN_TOPPER_TYPES,
-  isSizelessSupportElementType,
   SUBTYPES_BY_TYPE,
   SUPPORT_ELEMENT_TYPES,
   VALID_SIZES,
@@ -623,13 +622,7 @@ function validateSupportElement(
   requirePaletteHex(item.color, `${path}.color`);
   optionalPaletteHexArray(item.colors, `${path}.colors`);
   validatePipedFlowerCoverage(item, type, path);
-  if (isSizelessSupportElementType(type)) {
-    if (item.size !== undefined) {
-      fail(`${path}.size`, `must be omitted for ${type}`);
-    }
-  } else {
-    requireEnum(item.size, GENERATED_ANALYSIS_SIZES, `${path}.size`);
-  }
+  requireEnum(item.size, GENERATED_ANALYSIS_SIZES, `${path}.size`);
   requirePositiveInteger(item.quantity, `${path}.quantity`);
   requireString(item.description, `${path}.description`);
   validateOptionalSubtype(item, type, subtypeMap, path);

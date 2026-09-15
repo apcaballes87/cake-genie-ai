@@ -8,9 +8,10 @@
   "expected_support_element": {
     "type": "edible_flowers_filler",
     "material": "edible_fondant",
+    "size": "small",
     "group_id": "matching_visible_appearance_and_color"
   },
-  "forbidden_fields": ["size", "size_line", "bbox", "coverage"],
+  "forbidden_fields": ["size_line", "bbox", "coverage"],
   "unit_price_php": 5,
   "counterexample": "A distinct ordinary or intricate bloom remains edible_flowers even when small."
 }

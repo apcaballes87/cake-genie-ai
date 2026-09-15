@@ -518,9 +518,9 @@ export function buildSearchAnalysisResponseSchema(
   const generatedSizeProperty = usesLocalGeometry
     ? {}
     : { size: { type: Type.STRING, enum: [...generationSizes] } };
-  // `edible_flowers_filler` is intentionally size-free. The strict validator
-  // restores the size requirement for every other type after generation.
-  const generatedSizeRequired = usesLocalGeometry || isDirectDiameterAnchor ? [] : ['size'];
+  // Local geometry assigns size after generation. Direct-diameter and three-band
+  // modes require every generated item to carry a canonical size.
+  const generatedSizeRequired = usesLocalGeometry ? [] : ['size'];
   // The line is required by local post-processing for ratio-sized items, but
   // fixed-size overrides intentionally do not need one. The type-specific
   // requirement is enforced after generation rather than in this shared

@@ -1,5 +1,21 @@
 # Tasks
 
+## Require filler-flower sizes and release prompt v3.88 (2026-09-15)
+
+### Plan
+
+- [x] Confirm the supplied 500 is a generated-response validation failure, not an image rejection, and verify the active v3.86 prompt and generic ₱5 filler rule.
+- [x] Create an isolated detached worktree at `origin/main`; preserve the dirty primary worktree and immutable v3.87 migration.
+- [x] Require `small`/`medium`/`large` for every fresh direct-diameter topper and support row, including `edible_flowers_filler`, while retaining the unsized legacy pricing fallback.
+- [x] Prepare immutable inactive v3.88 staging and guarded activation migrations, including ₱5 per-piece filler rules for all three sizes.
+- [ ] Run focused contract, prompt, customizer, and pricing tests; prove fallback/staged prompt MD5 parity and diff hygiene.
+- [ ] Commit and publish compatible code, confirm production deployment, stage v3.88, then activate it transactionally.
+- [ ] Run a non-persisted production analysis of the supplied image and verify the accepted size-bearing output, selected price rule, sole active prompt, and unchanged cache count.
+
+### Review
+
+- In progress.
+
 ## Publish v3.81 piped-band tier evidence and restore live prompt loading (2026-09-12)
 
 ### Plan

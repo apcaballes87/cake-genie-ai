@@ -72,7 +72,7 @@ export interface SupportElement {
   type: SupportElementType;
   material?: string;
   description: string;
-  /** Omitted only by the size-free edible flower filler support type. */
+  /** Optional only while hydrating historical support records that predate required sizing. */
   size?: Size;
   group_id: string;
   color?: string;

@@ -328,8 +328,8 @@ describe('local line-ratio sizing', () => {
     expect(sized.support_elements?.[0]).toMatchObject({ coverage: 'medium', size: 'medium' });
   });
 
-  it('preserves size-free filler and baby’s-breath support rows without local geometry', () => {
-    const sized = applyLocalLineRatioSizing({
+  it('fails closed when a filler row reaches a local-sizing path without geometry', () => {
+    expect(() => applyLocalLineRatioSizing({
       cake_measurements: measurements,
       main_toppers: [],
       support_elements: [{
@@ -337,23 +337,7 @@ describe('local line-ratio sizing', () => {
         quantity: 7,
         description: 'small white baby’s-breath flowers in a cascading side spray',
       }],
-    });
-
-    expect(sized.support_elements?.[0]).toEqual({
-      type: 'edible_flowers_filler',
-      quantity: 7,
-      description: 'small white baby’s-breath flowers in a cascading side spray',
-    });
-    expect(() => applyLocalLineRatioSizing({
-      cake_measurements: measurements,
-      main_toppers: [],
-      support_elements: [{
-        type: 'edible_flowers_filler',
-        size: 'small',
-        quantity: 1,
-        description: 'small white filler flower',
-      }],
-    })).toThrow(/must not include sizing geometry or size/i);
+    })).toThrow(/size_line is required/i);
   });
 
   it('fails closed for missing, invalid, or zero-length size lines', () => {

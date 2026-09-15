@@ -40,7 +40,7 @@ export function buildCartCustomizationDetails(
       .map((element) => ({
         description: element.description,
         type: element.type,
-        ...(element.type === 'edible_flowers_filler' ? {} : { coverage: element.size }),
+        coverage: element.size,
       })),
     cakeMessages: input.cakeMessages
       .filter((message) => message.isEnabled)

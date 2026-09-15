@@ -169,6 +169,8 @@ describe('search analysis contract', () => {
     expect(schema.properties.main_toppers.items.properties.material.enum).toContain('photopaper');
     expect(schema.properties.icing_design.required).toContain('gumpasteBaseBoard');
     expect(schema.properties.main_toppers.items.properties.size.enum).toEqual(['small', 'medium', 'large']);
+    expect(schema.properties.main_toppers.items.required).toContain('size');
+    expect(schema.properties.support_elements.items.required).toContain('size');
     expect(buildSearchAnalysisResponseSchema(typeEnums, 'legacy_six_band').properties.main_toppers.items.properties.size.enum)
       .toEqual(['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge']);
     expect(getAnalysisGenerationSizeSchema('3.66')).toBe('legacy_six_band');
@@ -273,7 +275,7 @@ describe('search analysis contract', () => {
       },
     }), typeEnums, 'ai_diameter_anchor')).toThrow(/must not include cake_measurements/i);
 
-    const fillerResult = postProcessSearchAnalysisResult(validAnalysis({
+    expect(() => postProcessSearchAnalysisResult(validAnalysis({
       support_elements: [{
         type: 'edible_flowers_filler',
         material: 'edible_fondant',
@@ -282,12 +284,24 @@ describe('search analysis contract', () => {
         quantity: 7,
         description: 'small white baby’s-breath flowers in a cascading side spray',
       }],
+    }), typeEnums, 'ai_diameter_anchor')).toThrow(/support_elements\[0\]\.size/i);
+
+    const fillerResult = postProcessSearchAnalysisResult(validAnalysis({
+      support_elements: [{
+        type: 'edible_flowers_filler',
+        material: 'edible_fondant',
+        group_id: 'white_babys_breath',
+        color: '#FFFFFF',
+        size: 'small',
+        quantity: 7,
+        description: 'small white baby’s-breath flowers in a cascading side spray',
+      }],
     }), typeEnums, 'ai_diameter_anchor');
     expect(fillerResult.support_elements[0]).toMatchObject({
       type: 'edible_flowers_filler',
       quantity: 7,
+      size: 'small',
     });
-    expect(fillerResult.support_elements[0]).not.toHaveProperty('size');
 
     expect(() => postProcessSearchAnalysisResult(validAnalysis({
       support_elements: [{
@@ -300,7 +314,7 @@ describe('search analysis contract', () => {
       }],
     }), typeEnums, 'ai_diameter_anchor')).toThrow(/support_elements\[0\]\.size/i);
 
-    expect(() => postProcessSearchAnalysisResult(validAnalysis({
+    expect(postProcessSearchAnalysisResult(validAnalysis({
       support_elements: [{
         type: 'edible_flowers_filler',
         material: 'edible_fondant',
@@ -310,7 +324,7 @@ describe('search analysis contract', () => {
         quantity: 1,
         description: 'small white baby’s-breath flower',
       }],
-    }), typeEnums, 'ai_diameter_anchor')).toThrow(/must be omitted for edible_flowers_filler/i);
+    }), typeEnums, 'ai_diameter_anchor').support_elements[0]).toMatchObject({ size: 'small' });
   });
 
   it('fails local sizing when an accepted priced element has no bbox', () => {

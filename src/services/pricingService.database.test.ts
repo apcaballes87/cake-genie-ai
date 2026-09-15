@@ -74,6 +74,22 @@ const basePricingRows: PricingFixtureRule[] = [
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
   },
+  ...(['small', 'medium', 'large'] as const).map((size, index): PricingFixtureRule => ({
+    rule_id: 501 + index,
+    item_key: `edible_flowers_filler_${size}`,
+    item_type: 'edible_flowers_filler',
+    classification: 'support',
+    size,
+    description: `${size} filler and baby’s-breath edible flowers`,
+    price: 5,
+    category: 'support_element',
+    quantity_rule: 'per_piece',
+    multiplier_rule: null,
+    special_conditions: { allowance_eligible: false },
+    is_active: true,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+  })),
   {
     rule_id: 4,
     item_key: 'satin_ribbon',
@@ -712,29 +728,56 @@ describe('calculatePriceFromDatabase', () => {
     expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining(legacyFlowerType));
   });
 
-  it('prices size-free filler and baby’s-breath flowers at ₱5 per visible piece', async () => {
+  it.each(['small', 'medium', 'large'] as const)(
+    'prices %s filler and baby’s-breath flowers at ₱5 per visible piece through its specific rule',
+    async (size) => {
+      const { calculatePriceFromDatabase } = await import('./pricingService.database');
+
+      const fillerFlowers = {
+        id: `filler-flowers-${size}`,
+        type: 'edible_flowers_filler',
+        material: 'edible_fondant',
+        description: 'Small white baby’s-breath flowers cascading down the side',
+        group_id: 'white_babys_breath',
+        color: '#FFFFFF',
+        size,
+        quantity: 7,
+        isEnabled: true,
+      } as SupportElementUI;
+
+      const result = await calculatePriceFromDatabase({
+        mainToppers: [],
+        supportElements: [fillerFlowers],
+        cakeMessages: [],
+        icingDesign: {} as IcingDesignUI,
+        cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
+      });
+
+      expect(result.itemPrices.get(`filler-flowers-${size}`)).toBe(35);
+      expect(result.addOnPricing.addOnPrice).toBe(35);
+    },
+  );
+
+  it('keeps the generic ₱5 filler rule for legacy rows without a size', async () => {
     const { calculatePriceFromDatabase } = await import('./pricingService.database');
-
-    const fillerFlowers = {
-      id: 'filler-flowers-1',
-      type: 'edible_flowers_filler',
-      material: 'edible_fondant',
-      description: 'Small white baby’s-breath flowers cascading down the side',
-      group_id: 'white_babys_breath',
-      color: '#FFFFFF',
-      quantity: 7,
-      isEnabled: true,
-    } as SupportElementUI;
-
     const result = await calculatePriceFromDatabase({
       mainToppers: [],
-      supportElements: [fillerFlowers],
+      supportElements: [{
+        id: 'legacy-filler-flowers',
+        type: 'edible_flowers_filler',
+        material: 'edible_fondant',
+        description: 'Legacy white baby’s-breath flowers',
+        group_id: 'legacy_white_babys_breath',
+        color: '#FFFFFF',
+        quantity: 7,
+        isEnabled: true,
+      } as SupportElementUI],
       cakeMessages: [],
       icingDesign: {} as IcingDesignUI,
       cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
     });
 
-    expect(result.itemPrices.get('filler-flowers-1')).toBe(35);
+    expect(result.itemPrices.get('legacy-filler-flowers')).toBe(35);
     expect(result.addOnPricing.addOnPrice).toBe(35);
   });
 

@@ -144,7 +144,7 @@ describe('validateAiChatEditResponse', () => {
         expect(AI_CHAT_SUPPORT_ELEMENT_TYPES).not.toContain('artificial_flowers');
     });
 
-    it('accepts size-free filler flowers and rejects a supplied size band', () => {
+    it('requires a size band for fresh filler-flower edits', () => {
         const current = makeSnapshot();
         const valid = validateAiChatEditResponse(designResponse({
             supportOperations: [{
@@ -155,6 +155,7 @@ describe('validateAiChatEditResponse', () => {
                     description: 'small white baby’s-breath flowers',
                     groupId: 'white_babys_breath',
                     color: '#FFFFFF',
+                    size: 'small',
                     quantity: 7,
                 },
             }],
@@ -167,14 +168,13 @@ describe('validateAiChatEditResponse', () => {
                     material: 'edible_fondant',
                     description: 'small white filler flowers',
                     groupId: 'white_filler',
-                    size: 'small',
                 },
             }],
         }), current);
 
         expect(valid.success).toBe(true);
         expect(invalid).toMatchObject({ success: false, kind: 'invalid' });
-        if (!invalid.success) expect(invalid.errors.join(' ')).toContain('must be omitted');
+        if (!invalid.success) expect(invalid.errors.join(' ')).toContain('size is invalid');
     });
 
     it('accepts the constrained wire contract with a stable existing target ID', () => {

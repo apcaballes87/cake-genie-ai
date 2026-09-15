@@ -3,7 +3,7 @@ import type { AiChatHistoryEntry, CakeInfoUI, CakeMessageUI, IcingDesignUI, Main
 import { buildCartCustomizationDetails } from './buildCartCustomizationDetails';
 
 describe('buildCartCustomizationDetails', () => {
-  it('preserves size-free filler flowers without serializing a coverage band', () => {
+  it('serializes the required filler-flower size band as coverage for the legacy cart payload', () => {
     const result = buildCartCustomizationDetails({
       cakeInfo: { type: '1 Tier', thickness: '4 in', size: '6" Round', flavors: ['Chocolate Cake'] },
       mainToppers: [],
@@ -11,7 +11,7 @@ describe('buildCartCustomizationDetails', () => {
         id: 'support-filler-1', isEnabled: true, price: 35,
         type: 'edible_flowers_filler', original_type: 'edible_flowers_filler',
         material: 'edible_fondant', description: 'Small white filler flowers',
-        group_id: 'white_filler', color: '#FFFFFF', quantity: 7,
+        group_id: 'white_filler', color: '#FFFFFF', size: 'small', quantity: 7,
       }],
       cakeMessages: [],
       icingDesign: null,
@@ -23,6 +23,7 @@ describe('buildCartCustomizationDetails', () => {
     expect(result.supportElements).toEqual([{
       description: 'Small white filler flowers',
       type: 'edible_flowers_filler',
+      coverage: 'small',
     }]);
   });
 

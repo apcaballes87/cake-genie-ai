@@ -103,14 +103,6 @@ export const SUPPORT_ELEMENT_TYPES = [
 ] as const;
 export type SupportElementTypeEnum = typeof SUPPORT_ELEMENT_TYPES[number];
 
-/** Support types whose price and fulfillment never vary by a size band. */
-export const SIZELESS_SUPPORT_ELEMENT_TYPES = ['edible_flowers_filler'] as const;
-export type SizelessSupportElementType = typeof SIZELESS_SUPPORT_ELEMENT_TYPES[number];
-
-export function isSizelessSupportElementType(type: string): type is SizelessSupportElementType {
-    return SIZELESS_SUPPORT_ELEMENT_TYPES.includes(type as SizelessSupportElementType);
-}
-
 /**
  * Subtypes per item type
  * Used for subtype-specific pricing (e.g., chocolates_ferrero costs more)

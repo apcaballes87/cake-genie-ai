@@ -1,4 +1,4 @@
-import { isSizelessSupportElementType, type ValidSize } from '@/constants/pricingEnums';
+import type { ValidSize } from '@/constants/pricingEnums';
 import {
   GENERATED_ANALYSIS_THICKNESSES_BY_CAKE_TYPE,
   GeneratedAnalysisContractError,
@@ -350,12 +350,6 @@ function sizeItems(
     if (typeof item.type !== 'string' || item.type.length === 0) {
       throw new LocalAnalysisSizingError(`${path}[${index}].type is required for local sizing`);
     }
-    if (path === 'support_elements' && isSizelessSupportElementType(item.type)) {
-      if (item.bbox !== undefined || item.size_line !== undefined || item.size !== undefined) {
-        throw new LocalAnalysisSizingError(`${path}[${index}] ${item.type} must not include sizing geometry or size`);
-      }
-      return { ...rawItem };
-    }
     if (!isRecord(item.bbox)) {
       throw new LocalAnalysisSizingError(`${path}[${index}].bbox is required for local sizing`);
     }
@@ -384,13 +378,6 @@ function sizeLineItems(
     if (typeof item.type !== 'string' || item.type.length === 0) {
       throw new LocalAnalysisSizingError(`${path}[${index}].type is required for local sizing`);
     }
-    if (path === 'support_elements' && isSizelessSupportElementType(item.type)) {
-      if (item.size_line !== undefined || item.bbox !== undefined || item.size !== undefined) {
-        throw new LocalAnalysisSizingError(`${path}[${index}] ${item.type} must not include sizing geometry or size`);
-      }
-      return { ...rawItem };
-    }
-
     const description = typeof item.description === 'string' ? item.description : '';
     const pipedFlowerCoverage = PIPED_FLOWER_TYPES.has(item.type)
       ? requirePipedFlowerCoverage(item.coverage, `${path}[${index}].coverage`)
