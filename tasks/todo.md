@@ -1,5 +1,21 @@
 # Tasks
 
+## White-only wafer-wave gate v3.89 (2026-09-16)
+
+### Plan
+
+- [x] Lock the supplied floral-tulip cache record as historical evidence and preserve its JSON and ₱1,799 price.
+- [x] Isolate the release at current `origin/main` and trace the primary analysis, shared post-processing, fallback prompt, and pricing seams.
+- [x] Add a fail-closed, same-image conditional verifier with five literal white-wafer construction cues; ordinary analyses make no second vision call.
+- [x] Add prompt v3.89 wording and focused false-positive/true-positive/verifier-failure regressions.
+- [x] Reconcile stale prompt assertions, add guarded stage/activation migrations, and prove fallback/migration MD5 parity.
+- [x] Run focused tests, diff hygiene, and a production build attempt.
+- [ ] Publish the scoped source, activate the staged prompt, run two non-persisted live analyses, and recheck the historical cache row.
+
+### Review
+
+- Local verification: 160 focused Vitest tests passed and fallback/staged-prompt MD5 is `7522fb1ba49ee59513d3cefddba8444c`; `git diff --check` passed. The production build attempt remains blocked by the isolated-worktree Turbopack `node_modules` symlink and, under Webpack, font DNS plus an `ENOSPC` cache error. Live staging, activation, fresh non-persistent analyses, and cache recheck remain in progress.
+
 ## Require filler-flower sizes and release prompt v3.88 (2026-09-15)
 
 ### Plan

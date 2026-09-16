@@ -5,6 +5,7 @@ import {
     buildSearchAnalysisGenerationConfig,
     getAnalysisGenerationSizeSchema,
     postProcessSearchAnalysisResult,
+    type WhiteWaferPaperSideWaveVerification,
 } from '@/lib/admin/searchAnalysisContract';
 import { getActivePromptDetails, getPromptDetailsByVersion } from '@/services/prompts/promptLoader';
 import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
@@ -19,10 +20,12 @@ import {
     ANALYSIS_SIZE_SCHEMA,
     LINE_RATIO_ANALYSIS_SIZE_SCHEMA,
 } from '@/lib/ai/analysisSize';
+import { Type } from '@google/genai';
 
 export const ANALYSIS_MODEL = 'gemini-3.5-flash-lite';
 export const AI_REQUEST_TIMEOUT_MS = 120_000;
 const ANALYSIS_CONTRACT_CORRECTION_TIMEOUT_MS = 25_000;
+const WAFER_WAVE_VERIFICATION_TIMEOUT_MS = 25_000;
 
 const ANALYSIS_CONFIG_CACHE_TTL_MS = 5 * 60_000;
 const PROMPT_CACHE_NAME_TTL_MS = 30 * 60_000;
@@ -132,6 +135,104 @@ function getContractCorrectionInstruction(error: unknown): string | null {
     ].join(' ');
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function hasWaferPaperSideWaveCandidate(result: unknown): boolean {
+    return isRecord(result)
+        && Array.isArray(result.support_elements)
+        && result.support_elements.some((element) => (
+            isRecord(element) && element.type === 'edible_photo_side_wave'
+        ));
+}
+
+function parseWhiteWaferPaperSideWaveVerification(
+    value: unknown,
+): WhiteWaferPaperSideWaveVerification | undefined {
+    if (!isRecord(value)) return undefined;
+
+    const fields = [
+        'hasDistinctThinPaperStrips',
+        'hasUprightSeparateAttachment',
+        'hasLooseFreeWavyEdges',
+        'hasPredominantlyFullHeightWrap',
+        'hasWhiteUnprintedSheets',
+    ] as const;
+    if (fields.some((field) => typeof value[field] !== 'boolean')) return undefined;
+
+    return {
+        hasDistinctThinPaperStrips: value.hasDistinctThinPaperStrips as boolean,
+        hasUprightSeparateAttachment: value.hasUprightSeparateAttachment as boolean,
+        hasLooseFreeWavyEdges: value.hasLooseFreeWavyEdges as boolean,
+        hasPredominantlyFullHeightWrap: value.hasPredominantlyFullHeightWrap as boolean,
+        hasWhiteUnprintedSheets: value.hasWhiteUnprintedSheets as boolean,
+    };
+}
+
+async function verifyWhiteWaferPaperSideWave(
+    aiClient: ReturnType<typeof getAI>,
+    imageData: string,
+    mimeType: string,
+): Promise<WhiteWaferPaperSideWaveVerification | undefined> {
+    try {
+        const response = await aiClient.models.generateContent({
+            model: ANALYSIS_MODEL,
+            contents: [{
+                role: 'user',
+                parts: [
+                    { inlineData: { mimeType, data: imageData } },
+                    {
+                        text: `Inspect only the cake side in this image. This is a strict,
+fail-closed verification for a paid conditioned wafer-paper wave wrap. Return
+JSON booleans only. Set a field true only when the image itself directly proves
+it; do not rely on another model's description, labels, or likely materials.
+
+A passing wrap must show: (1) individually distinguishable, thin paper strips;
+(2) those strips upright and separately attached to the iced side; (3) each
+strip has a loose/free wavy, ruffled, or pleated outer edge; (4) the strips form
+a repeated predominantly full-height wrap around a visible tier; and (5) the
+strips are visibly white and unprinted. For this purpose, ivory, cream, beige,
+tan, any colored treatment, any printed/patterned treatment, piped frosting,
+continuous texture, shadows, scalloped folds, flower petals, or an unclear
+image are false. Any uncertainty is false.`,
+                    },
+                ],
+            }],
+            config: {
+                responseMimeType: 'application/json',
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        hasDistinctThinPaperStrips: { type: Type.BOOLEAN },
+                        hasUprightSeparateAttachment: { type: Type.BOOLEAN },
+                        hasLooseFreeWavyEdges: { type: Type.BOOLEAN },
+                        hasPredominantlyFullHeightWrap: { type: Type.BOOLEAN },
+                        hasWhiteUnprintedSheets: { type: Type.BOOLEAN },
+                    },
+                    required: [
+                        'hasDistinctThinPaperStrips',
+                        'hasUprightSeparateAttachment',
+                        'hasLooseFreeWavyEdges',
+                        'hasPredominantlyFullHeightWrap',
+                        'hasWhiteUnprintedSheets',
+                    ],
+                },
+                temperature: 0,
+                topP: 1,
+                topK: 1,
+                abortSignal: AbortSignal.timeout(WAFER_WAVE_VERIFICATION_TIMEOUT_MS),
+            },
+        });
+        return parseWhiteWaferPaperSideWaveVerification(JSON.parse((response.text || '').trim()));
+    } catch (error) {
+        console.warn('[AI Wafer Gate] Verification failed closed.', {
+            error: error instanceof Error ? error.message : String(error),
+        });
+        return undefined;
+    }
+}
+
 export async function runActiveCakeAnalysis({
     imageData,
     mimeType,
@@ -213,10 +314,20 @@ export async function runActiveCakeAnalysis({
         }
     };
 
-    const parseAndValidate = (response: Awaited<ReturnType<typeof generateAnalysis>>) => {
+    const parseAndValidate = async (response: Awaited<ReturnType<typeof generateAnalysis>>) => {
         const jsonText = (response.text || '').trim();
         try {
-            return postProcessSearchAnalysisResult(JSON.parse(jsonText), typeEnums, sizeSchema, seoSchema);
+            const generated = JSON.parse(jsonText);
+            const waferPaperSideWaveVerification = hasWaferPaperSideWaveCandidate(generated)
+                ? await verifyWhiteWaferPaperSideWave(aiClient, imageData, mimeType)
+                : undefined;
+            return postProcessSearchAnalysisResult(
+                generated,
+                typeEnums,
+                sizeSchema,
+                seoSchema,
+                waferPaperSideWaveVerification,
+            );
         } catch (error) {
             console.error('Failed to parse AI response:', jsonText);
             if (error instanceof GeneratedAnalysisContractError) throw error;
@@ -226,7 +337,7 @@ export async function runActiveCakeAnalysis({
 
     let result: GeneratedCakeAnalysisResult;
     try {
-        result = parseAndValidate(await generateAnalysis());
+        result = await parseAndValidate(await generateAnalysis());
     } catch (error) {
         const correctionInstruction = getContractCorrectionInstruction(error);
         if (!correctionInstruction) throw error;
@@ -235,7 +346,7 @@ export async function runActiveCakeAnalysis({
             promptVersion: promptDetails.version,
             issue: error instanceof Error ? error.message : String(error),
         });
-        result = parseAndValidate(await generateAnalysis(
+        result = await parseAndValidate(await generateAnalysis(
             correctionInstruction,
             ANALYSIS_CONTRACT_CORRECTION_TIMEOUT_MS,
         ));

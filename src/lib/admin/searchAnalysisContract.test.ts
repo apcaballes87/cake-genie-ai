@@ -56,6 +56,14 @@ const typeEnums = {
   },
 };
 
+const verifiedWhiteWaferPaperWave = {
+  hasDistinctThinPaperStrips: true,
+  hasUprightSeparateAttachment: true,
+  hasLooseFreeWavyEdges: true,
+  hasPredominantlyFullHeightWrap: true,
+  hasWhiteUnprintedSheets: true,
+};
+
 function validAnalysis(overrides: Record<string, unknown> = {}) {
   return {
     cakeType: '1 Tier',
@@ -735,7 +743,7 @@ describe('search analysis contract', () => {
         quantity: 3,
         description: 'repeated full-height perimeter wrap of distinct separate thin upright wafer paper strips with loose free wavy edges',
       }],
-    }), typeEnums);
+    }), typeEnums, 'three_band', 'analysis_only', verifiedWhiteWaferPaperWave);
 
     expect(result.support_elements).toEqual([expect.objectContaining({
       type: 'edible_photo_side_wave',
@@ -755,7 +763,7 @@ describe('search analysis contract', () => {
         quantity: 1,
         description: 'repeated vertical white wafer-paper side wrap with loose wavy edges',
       }],
-    }), typeEnums);
+    }), typeEnums, 'three_band', 'analysis_only', verifiedWhiteWaferPaperWave);
 
     expect(result.support_elements).toEqual([expect.objectContaining({
       type: 'edible_photo_side_wave',
@@ -763,6 +771,25 @@ describe('search analysis contract', () => {
       quantity: 1,
       description: 'repeated vertical white wafer-paper side wrap with loose wavy edges',
     })]);
+  });
+
+  it('drops a stock wafer description when the independent white-only verifier fails', () => {
+    const result = postProcessSearchAnalysisResult(validAnalysis({
+      support_elements: [{
+        type: 'edible_photo_side_wave',
+        material: 'waferpaper',
+        group_id: 'wafer_paper_side_wrap',
+        color: '#F5F5DC',
+        size: 'large',
+        quantity: 1,
+        description: 'repeated perimeter wrap of separate thin upright wafer-paper strips with loose wavy edges',
+      }],
+    }), typeEnums, 'three_band', 'analysis_only', {
+      ...verifiedWhiteWaferPaperWave,
+      hasWhiteUnprintedSheets: false,
+    });
+
+    expect(result.support_elements).toEqual([]);
   });
 
   it('keeps a single substantial fondant pearl as an ordinary 3D support item', () => {

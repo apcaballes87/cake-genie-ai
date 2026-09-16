@@ -88,3 +88,7 @@
 # Lesson: Separate live prompt state from a proposed migration version
 
 - When discussing an un-applied AI prompt release, state the current live version first and describe the higher version only as proposed/local. Never let a proposed migration version read as if it were active in production.
+
+# Lesson: Keep all production prompt layers aligned for priced visual gates
+
+- When a cake-analysis request sends both the active database prompt and a hardcoded system instruction, update the same fail-closed visual cues in both layers. A stricter versioned prompt can otherwise be undermined by stale companion wording.

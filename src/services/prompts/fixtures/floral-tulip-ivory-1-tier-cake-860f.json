@@ -1,0 +1,13 @@
+{
+  "source_slug": "floral-tulip-cake-ivory-1-tier-cake-860f",
+  "purpose": "Regression fixture for the white-only conditioned wafer-paper side-wave gate.",
+  "observed_side_construction": [
+    "ivory-beige vertically fluted side finish",
+    "no directly traceable individual white paper strips with separate attachments",
+    "no directly resolved free wavy edge belonging to a strip"
+  ],
+  "forbidden_support_type": "edible_photo_side_wave",
+  "forbidden_material": "waferpaper",
+  "expected_icing_base": "soft_icing",
+  "expected_remaining_support_type": "thin_fabric_ribbon_bows"
+}

@@ -39,7 +39,7 @@ describe('v3.88 sized filler flower support normalization', () => {
     expect(fixture.counterexample).toContain('distinct ordinary or intricate bloom');
   });
 
-  it('stages v3.88 from the verified live v3.86 prompt, preserving v3.87 and the generic legacy rule', () => {
+  it('preserves historical v3.88 staging while v3.89 owns the active fallback', () => {
     const prompt = readProjectFile('src/services/prompts/fallback-prompt.txt');
     const stageMigration = readProjectFile(
       'supabase/migrations/20260915110000_stage_prompt_v388_sized_filler_flower_support.sql',
@@ -50,8 +50,11 @@ describe('v3.88 sized filler flower support normalization', () => {
     const v387Migration = readProjectFile(
       'supabase/migrations/20260914100000_stage_prompt_v387_filler_flower_support.sql',
     );
+    const v389StageMigration = readProjectFile(
+      'supabase/migrations/20260916090000_stage_prompt_v389_white_only_wafer_wave_gate.sql',
+    );
 
-    expect(createHash('md5').update(prompt).digest('hex')).toBe('c4afb9b84576b1c37501e9a56fd379f6');
+    expect(createHash('md5').update(prompt).digest('hex')).toBe('7522fb1ba49ee59513d3cefddba8444c');
     expect(stageMigration).toContain("v386_md5 constant text := '64542a47d0e7f19b51db22a6209ed0e4'");
     expect(stageMigration).toContain("v388_md5 constant text := 'c4afb9b84576b1c37501e9a56fd379f6'");
     expect(stageMigration).toContain("source_version <> '3.86'");
@@ -66,5 +69,7 @@ describe('v3.88 sized filler flower support normalization', () => {
     expect(activateMigration).toContain('update public.ai_prompts\n  set is_active = false');
     expect(v387Migration).toContain("'3.87'");
     expect(v387Migration).toContain("v387_md5 constant text := '22c733920762d8f558495342083442bd'");
+    expect(v389StageMigration).toContain("v388_md5 constant text := 'c4afb9b84576b1c37501e9a56fd379f6'");
+    expect(v389StageMigration).toContain("v389_md5 constant text := '7522fb1ba49ee59513d3cefddba8444c'");
   });
 });

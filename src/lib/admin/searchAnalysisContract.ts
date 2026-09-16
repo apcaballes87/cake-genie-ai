@@ -41,6 +41,18 @@ export type AnalysisGenerationSizeSchema =
   | 'local_bbox_area'
   | 'local_line_ratio';
 
+/**
+ * Independent visual verdict for the exceptional, priced wafer-wave type.
+ * It is intentionally not part of generated analysis JSON or cached output.
+ */
+export type WhiteWaferPaperSideWaveVerification = {
+  hasDistinctThinPaperStrips: boolean;
+  hasUprightSeparateAttachment: boolean;
+  hasLooseFreeWavyEdges: boolean;
+  hasPredominantlyFullHeightWrap: boolean;
+  hasWhiteUnprintedSheets: boolean;
+};
+
 const LEGACY_GENERATION_SIZES = ['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge'] as const;
 
 /**
@@ -412,15 +424,30 @@ function hasDirectWaferPaperWaveEvidence(description: string): boolean {
     && FULL_HEIGHT_WAFER_WRAP.test(description);
 }
 
+function hasVerifiedWhiteWaferPaperWave(
+  verification: WhiteWaferPaperSideWaveVerification | undefined,
+): boolean {
+  return verification?.hasDistinctThinPaperStrips === true
+    && verification.hasUprightSeparateAttachment === true
+    && verification.hasLooseFreeWavyEdges === true
+    && verification.hasPredominantlyFullHeightWrap === true
+    && verification.hasWhiteUnprintedSheets === true;
+}
+
 /**
  * This priced type is valid only for separately visible full-height wafer-paper
  * sheets. Text-only repair cannot establish those visual facts, so never add a
  * wave row from generated SEO/alt wording. Instead, fail closed by removing a
  * model-emitted wave row unless its own description confirms wafer material,
  * vertical placement, loose wavy edges, and a repeated/full-height side wrap.
- * This operates only on fresh generation results.
+ * A separate image-only verifier must also establish all construction cues and
+ * literal white/unprinted sheets. This operates only on fresh generation
+ * results and fails closed when the verifier is unavailable.
  */
-function removeUnverifiedConditionedWaferPaperWaves(result: unknown): unknown {
+function removeUnverifiedConditionedWaferPaperWaves(
+  result: unknown,
+  verification: WhiteWaferPaperSideWaveVerification | undefined,
+): unknown {
   if (!isRecord(result) || !Array.isArray(result.support_elements)) return result;
 
   if (isRecord(result.rejection) && result.rejection.isRejected === true) return result;
@@ -428,7 +455,11 @@ function removeUnverifiedConditionedWaferPaperWaves(result: unknown): unknown {
   const supportElements = result.support_elements.filter((element) => (
     !isRecord(element)
     || element.type !== 'edible_photo_side_wave'
-    || (typeof element.description === 'string' && hasDirectWaferPaperWaveEvidence(element.description))
+    || (
+      hasVerifiedWhiteWaferPaperWave(verification)
+      && typeof element.description === 'string'
+      && hasDirectWaferPaperWaveEvidence(element.description)
+    )
   ));
 
   return supportElements.length === result.support_elements.length
@@ -727,6 +758,7 @@ export function postProcessSearchAnalysisResult(
   typeEnums: GeneratedAnalysisTypeEnums,
   sizeSchema: AnalysisGenerationSizeSchema = 'three_band',
   seoSchema: AnalysisGenerationSeoSchema = 'analysis_only',
+  waferPaperSideWaveVerification?: WhiteWaferPaperSideWaveVerification,
 ): GeneratedCakeAnalysisResult {
   const reconciledResult = reconcileGeneratedCakeTypeThickness(result);
   if (reconciledResult !== result && typeof result === 'object' && result !== null) {
@@ -743,6 +775,7 @@ export function postProcessSearchAnalysisResult(
     : reconciledResult;
   const reconciledOutput = removeUnverifiedConditionedWaferPaperWaves(
     reconcileDescriptionTypes(removeExplicitSceneOnlyItems(sizeNormalizedResult), typeEnums),
+    waferPaperSideWaveVerification,
   );
   const locallySizedResult = sizeSchema === 'local_bbox_area'
     ? applyLocalBboxAreaSizing(reconciledOutput as Record<string, unknown>)

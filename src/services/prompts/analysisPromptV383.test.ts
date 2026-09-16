@@ -13,7 +13,7 @@ const section = (start: string, end: string) => {
   return prompt.slice(from, to);
 };
 
-describe('v3.83 prompt contracts', () => {
+describe('active direct-size prompt contracts', () => {
   it('orders the gates once and physically puts membership before item classification', () => {
     const order = section('## OUTPUT ORDER', '## CATEGORY 1:');
     expect([...order.matchAll(/^(\d+)\. /gm)].map((m) => Number(m[1])))
@@ -41,7 +41,7 @@ describe('v3.83 prompt contracts', () => {
     expect(prompt.match(/provisional/g)).toHaveLength(1);
     expect(prompt.match(/ignored/g)).toHaveLength(1);
     const thickness = section('### cakeThickness Ratio Guide', '### keyword');
-    expect(thickness).toContain('required **`cake_measurements.diameter`**');
+    expect(thickness).toContain('required **`sizing geometry.diameter`**');
     expect(thickness).toContain('always output for an accepted image');
     expect(thickness).toContain("`'5 in'` for soft icing, `'6 in'` for Fondant");
     expect(thickness).toContain("fixed-height types keep their fixed value");
@@ -94,16 +94,15 @@ describe('v3.83 prompt contracts', () => {
   it('omits accepted-image geometry from the rejection shape', () => {
     const rejection = section('## STEP 1:', '## STEP 2:');
     expect(rejection).toContain('output only the top-level keys shown in the rejection skeleton');
-    expect(rejection).toContain('Do not include `cake_measurements`, `cake_bbox`');
-    expect(rejection).not.toContain('"cake_measurements"');
+    expect(rejection).toContain('Do not include `sizing geometry`, `cake_bbox`');
+    expect(rejection).not.toContain('"sizing geometry"');
     expect(SYSTEM_INSTRUCTION).toContain('must omit `cake_measurements`, `cake_bbox`');
   });
 
-  it('defines shape-aware cake lines and one-motif border sizing', () => {
-    expect(prompt).toContain('The field name `diameter` is used for every accepted cake shape');
-    expect(prompt).toContain('widest uninterrupted visible cake-body span at one level');
-    expect(prompt).toContain('must use that same cupcake');
-    expect(prompt).toMatch(/measure the\s+bento cake body/);
+  it('defines direct top-tier sizing and one-motif border sizing', () => {
+    expect(prompt).toContain('visible left-to-right diameter of the TOP TIER');
+    expect(prompt).toContain('for a cupcake use that cupcake body');
+    expect(prompt).toContain('for Bento or Bento Cupcake Set use the bento cake body');
     expect(prompt).toContain('one typical visible shell, bead,\n   dollop, rosette, or swirl');
     expect(prompt).toContain('not the full perimeter or\n   the full border run');
     expect(SYSTEM_INSTRUCTION).toContain('same TOP TIER, reference body, or representative cupcake');
@@ -120,20 +119,20 @@ describe('v3.83 prompt contracts', () => {
     expect(portrait).toContain('retains the flat-backed/shallow-relief edible-artwork conditions');
   });
 
-  it('preserves live piped-flower and flower scale grouping with compatible geometry exceptions', () => {
+  it('preserves live piped-flower and flower scale grouping with direct-size exceptions', () => {
     expect(prompt).toContain('a clearly visible representative bloom');
     expect(prompt).toContain('assign each bloom to exactly one output row');
     expect(prompt).toContain('Piped-band non-structural override');
-    expect(prompt).toContain('`coverage` band for `piped_flowers_top` and `piped_flowers_side`');
-    expect(prompt).not.toContain('size label, a coverage band');
+    expect(prompt).toContain('`coverage` determines the pricing band under the grouped piped-flower rule.');
+    expect(prompt).toContain('direct-diameter `size`: `small`,');
     expect(prompt).not.toContain('piped buttercream rosettes -> `icing_decorations`');
   });
 
-  it('stages exactly the fallback from verified v3.82 without activating or writing prices/cache', () => {
+  it('keeps the historical v3.83 staged prompt immutable without activating or writing prices/cache', () => {
     const migration = readFileSync('supabase/migrations/20260912170000_stage_prompt_v383_ordered_contract.sql', 'utf8');
     const embedded = migration.match(/target_prompt constant text := \$v383_prompt\$([\s\S]*?)\$v383_prompt\$;/)![1];
-    expect(embedded).toBe(prompt);
-    expect(migration).toContain(`v383_md5 constant text := '${createHash('md5').update(prompt).digest('hex')}'`);
+    expect(createHash('md5').update(embedded).digest('hex')).toBe('61adef1d3077f76e2bea670cff9a120f');
+    expect(migration).toContain("v383_md5 constant text := '61adef1d3077f76e2bea670cff9a120f'");
     expect(migration).toContain("v382_md5 constant text := 'b7ef36a5e817946699cf875f3e2e96f4'");
     expect(migration).toContain("active_prompt_version <> '3.82'");
     expect(migration).toContain("values ('3.83', target_prompt, false,");
