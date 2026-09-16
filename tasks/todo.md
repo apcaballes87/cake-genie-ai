@@ -10,11 +10,13 @@
 - [x] Add prompt v3.89 wording and focused false-positive/true-positive/verifier-failure regressions.
 - [x] Reconcile stale prompt assertions, add guarded stage/activation migrations, and prove fallback/migration MD5 parity.
 - [x] Run focused tests, diff hygiene, and a production build attempt.
-- [ ] Publish the scoped source, activate the staged prompt, run two non-persisted live analyses, and recheck the historical cache row.
+- [x] Publish the scoped source, deploy the verifier, stage/activate v3.89 transactionally, run the ivory-case non-persistent live analysis, and recheck the historical cache row.
+- [ ] Obtain one successful non-persistent production result for the supplied white reference; two attempts stopped before post-processing on the unrelated required `gumpasteBaseBoardColor` field.
 
 ### Review
 
-- Local verification: 160 focused Vitest tests passed and fallback/staged-prompt MD5 is `7522fb1ba49ee59513d3cefddba8444c`; `git diff --check` passed. The production build attempt remains blocked by the isolated-worktree Turbopack `node_modules` symlink and, under Webpack, font DNS plus an `ENOSPC` cache error. Live staging, activation, fresh non-persistent analyses, and cache recheck remain in progress.
+- Source commit `dcdda845` is published to `origin/main`; Vercel marked that exact deployment Ready for `genie.ph`. Prompt ID 97 / v3.89 is the sole active row with MD5 `7522fb1ba49ee59513d3cefddba8444c`; v3.88 is preserved inactive. The production ivory tulip result excludes `edible_photo_side_wave`; its original cache row remains byte-identical at ₱1,799 / add-on ₱0. Pricing rule 232 is unchanged at ₱500 per piece.
+- The supplied white reference could not produce an accepted production result: two direct, non-persistent attempts failed before the wafer post-processor because the primary output set `gumpasteBaseBoard: true` without the required color. This unrelated response-contract issue is intentionally out of scope for v3.89. Local verification: 160 focused Vitest tests passed and fallback/staged-prompt MD5 is `7522fb1ba49ee59513d3cefddba8444c`; `git diff --check` passed. The isolated local production build attempt remains blocked by the Turbopack external-`node_modules` symlink and, under Webpack, font DNS plus an `ENOSPC` cache error.
 
 ## Require filler-flower sizes and release prompt v3.88 (2026-09-15)
 
