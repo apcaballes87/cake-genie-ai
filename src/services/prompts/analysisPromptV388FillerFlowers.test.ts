@@ -39,7 +39,7 @@ describe('v3.88 sized filler flower support normalization', () => {
     expect(fixture.counterexample).toContain('distinct ordinary or intricate bloom');
   });
 
-  it('preserves historical v3.88 staging while v3.89 owns the active fallback', () => {
+  it('preserves historical v3.88 staging while v3.90 owns the active fallback', () => {
     const prompt = readProjectFile('src/services/prompts/fallback-prompt.txt');
     const stageMigration = readProjectFile(
       'supabase/migrations/20260915110000_stage_prompt_v388_sized_filler_flower_support.sql',
@@ -50,11 +50,11 @@ describe('v3.88 sized filler flower support normalization', () => {
     const v387Migration = readProjectFile(
       'supabase/migrations/20260914100000_stage_prompt_v387_filler_flower_support.sql',
     );
-    const v389StageMigration = readProjectFile(
-      'supabase/migrations/20260916090000_stage_prompt_v389_white_only_wafer_wave_gate.sql',
+    const v390StageMigration = readProjectFile(
+      'supabase/migrations/20260916100000_stage_prompt_v390_piped_botanical_soft_icing_gate.sql',
     );
 
-    expect(createHash('md5').update(prompt).digest('hex')).toBe('7522fb1ba49ee59513d3cefddba8444c');
+    expect(createHash('md5').update(prompt).digest('hex')).toBe('ac7f65da35135d3d4e42e90b7c82e655');
     expect(stageMigration).toContain("v386_md5 constant text := '64542a47d0e7f19b51db22a6209ed0e4'");
     expect(stageMigration).toContain("v388_md5 constant text := 'c4afb9b84576b1c37501e9a56fd379f6'");
     expect(stageMigration).toContain("source_version <> '3.86'");
@@ -69,7 +69,7 @@ describe('v3.88 sized filler flower support normalization', () => {
     expect(activateMigration).toContain('update public.ai_prompts\n  set is_active = false');
     expect(v387Migration).toContain("'3.87'");
     expect(v387Migration).toContain("v387_md5 constant text := '22c733920762d8f558495342083442bd'");
-    expect(v389StageMigration).toContain("v388_md5 constant text := 'c4afb9b84576b1c37501e9a56fd379f6'");
-    expect(v389StageMigration).toContain("v389_md5 constant text := '7522fb1ba49ee59513d3cefddba8444c'");
+    expect(v390StageMigration).toContain("v389_md5 constant text := '7522fb1ba49ee59513d3cefddba8444c'");
+    expect(v390StageMigration).toContain("v390_md5 constant text := 'ac7f65da35135d3d4e42e90b7c82e655'");
   });
 });

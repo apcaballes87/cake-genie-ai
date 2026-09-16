@@ -1,0 +1,37 @@
+{
+  "slug": "pink-vintage-cake-light-pink-1-tier-fondant-cake-73f0",
+  "historical_cache_id": "2d956d5e-4538-49e7-a03b-f6e06b5b0a24",
+  "p_hash": "73f0b0c119313905",
+  "historical_cache_price": 2999,
+  "purpose": "Regression fixture for a soft-icing vintage cake whose piped roses and foliage were misclassified as separate fondant botanicals and whose cake body was misclassified as fondant.",
+  "observed_construction": [
+    "smooth pink buttercream body with cream sheen",
+    "attached piped swags, shell borders, ruffles, and rosettes",
+    "piped green foliage strokes with extrusion ridges and continuous joins into the iced treatment",
+    "no directly visible continuous fondant-sheet seam, overlap, or wrapped body finish",
+    "ordinary visible cake board without a continuous fondant/gumpaste covering"
+  ],
+  "expected_fresh_output": {
+    "cakeType": "1 Tier",
+    "icing_base": "soft_icing",
+    "gumpasteBaseBoard": false,
+    "top_piped_botanical": {
+      "type": "piped_flowers_top",
+      "material": "icing",
+      "quantity": 1,
+      "coverage": "medium"
+    },
+    "side_piped_botanical": {
+      "type": "piped_flowers_side",
+      "material": "icing",
+      "quantity": 1,
+      "coverage": "small"
+    }
+  },
+  "forbidden_fresh_rows": [
+    "edible_flowers",
+    "edible_flowers_filler",
+    "edible_2d_support"
+  ],
+  "historical_cache_policy": "Do not modify or backfill this historical cache row. Its stored price is historical evidence only."
+}
