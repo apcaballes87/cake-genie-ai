@@ -19,13 +19,13 @@
       "type": "piped_flowers_top",
       "material": "icing",
       "quantity": 1,
-      "coverage": "medium"
+      "coverage": "large"
     },
     "side_piped_botanical": {
       "type": "piped_flowers_side",
       "material": "icing",
       "quantity": 1,
-      "coverage": "small"
+      "coverage": "large"
     }
   },
   "forbidden_fresh_rows": [

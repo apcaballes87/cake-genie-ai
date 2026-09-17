@@ -479,8 +479,8 @@ describe('cake analysis prompt rules', () => {
       cakeType: '1 Tier',
       icing_base: 'soft_icing',
       gumpasteBaseBoard: false,
-      top_piped_botanical: { type: 'piped_flowers_top', material: 'icing', quantity: 1, coverage: 'medium' },
-      side_piped_botanical: { type: 'piped_flowers_side', material: 'icing', quantity: 1, coverage: 'small' },
+      top_piped_botanical: { type: 'piped_flowers_top', material: 'icing', quantity: 1, coverage: 'large' },
+      side_piped_botanical: { type: 'piped_flowers_side', material: 'icing', quantity: 1, coverage: 'large' },
     });
     expect(fixture.forbidden_fresh_rows).toEqual([
       'edible_flowers',
