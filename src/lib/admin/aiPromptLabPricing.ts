@@ -1,9 +1,6 @@
 import type { HybridAnalysisResult } from '@/types';
 import { getCakeBasePriceOptions, mapAnalysisToPricingState } from '@/services/supabaseService';
-import {
-  calculatePriceFromDatabase,
-  type PricingTraceEntry,
-} from '@/services/pricingService.database';
+import { calculatePriceFromDatabase } from '@/services/pricingService.database';
 import { roundDownToNearest99 } from '@/lib/utils/pricing';
 
 export type AiPromptLabBasePriceOption = {
@@ -21,7 +18,8 @@ export type AiPromptLabPricingResult = {
   itemPrices: Record<string, number>;
   /** Prices keyed by stable analysis array position, for read-only lab cards. */
   analysisItemPrices: Record<string, number>;
-  pricingTrace: PricingTraceEntry[];
+  /** The production calculator on main does not expose rule tracing. */
+  pricingTrace: Record<string, unknown>[];
   basePriceOptions: AiPromptLabBasePriceOption[];
 };
 
@@ -52,7 +50,7 @@ export async function runAiPromptLabPricing(
     const result = await calculatePriceFromDatabase({
       ...pricingState,
       cakeInfo: { ...pricingState.cakeInfo, size: option.size },
-    }, undefined, { trace: true });
+    });
 
     return {
       size: option.size,
@@ -64,7 +62,6 @@ export async function runAiPromptLabPricing(
       ),
       breakdown: result.addOnPricing.breakdown,
       itemPrices: result.itemPrices,
-      pricingTrace: result.pricingTrace ?? [],
     };
   }));
 
@@ -87,7 +84,7 @@ export async function runAiPromptLabPricing(
         selected.itemPrices.get(item.id) ?? 0,
       ]),
     ]),
-    pricingTrace: selected.pricingTrace,
+    pricingTrace: [],
     basePriceOptions: optionResults.map((option) => ({
       size: option.size,
       basePrice: option.basePrice,
