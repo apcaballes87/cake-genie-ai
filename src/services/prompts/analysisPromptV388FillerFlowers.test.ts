@@ -54,7 +54,7 @@ describe('v3.88 sized filler flower support normalization', () => {
       'supabase/migrations/20260917100000_stage_prompt_v391_one_color_non_character_3d_gate.sql',
     );
 
-    expect(createHash('md5').update(prompt).digest('hex')).toBe('fede0545b650c86737631e714bd918ee');
+    expect(createHash('md5').update(prompt).digest('hex')).toBe('388e050b2c43655b289bcbe9aa7fc125');
     expect(stageMigration).toContain("v386_md5 constant text := '64542a47d0e7f19b51db22a6209ed0e4'");
     expect(stageMigration).toContain("v388_md5 constant text := 'c4afb9b84576b1c37501e9a56fd379f6'");
     expect(stageMigration).toContain("source_version <> '3.86'");

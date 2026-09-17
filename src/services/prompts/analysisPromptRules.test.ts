@@ -403,7 +403,7 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('retain one row and measure a typical clearly visible\nbloom');
     expect(prompt).toContain('Use neutral group-ID suffixes such as `size_1` and `size_2`');
     expect(prompt).not.toContain('approximately 20%');
-    expect(createHash('md5').update(prompt).digest('hex')).toBe('fede0545b650c86737631e714bd918ee');
+    expect(createHash('md5').update(prompt).digest('hex')).toBe('388e050b2c43655b289bcbe9aa7fc125');
     expect(SYSTEM_INSTRUCTION).toContain('**Flower Scale-Group Sizing:**');
     expect(SYSTEM_INSTRUCTION).toContain('never the largest/outlier bloom or an arrangement-wide span');
     expect(stage).toContain("v381_md5 constant text := 'fa06f26eb0eac43e4dfe7aa314c56a3c'");
@@ -428,23 +428,24 @@ describe('cake analysis prompt rules', () => {
     ]);
   });
 
-  it('stages and guards v3.91 as byte-identical one-color non-character fallback', () => {
+  it('preserves v3.91 staging guards while the fallback matches the verified live v3.91 text', () => {
     const fallback = readPrompt('src/services/prompts/fallback-prompt.txt');
     const stage = readPrompt('supabase/migrations/20260917100000_stage_prompt_v391_one_color_non_character_3d_gate.sql');
     const activation = readPrompt('supabase/migrations/20260917101000_activate_prompt_v391_one_color_non_character_3d_gate.sql');
     const v390Md5 = 'ac7f65da35135d3d4e42e90b7c82e655';
-    const v391Md5 = 'fede0545b650c86737631e714bd918ee';
+    const liveV391Md5 = '388e050b2c43655b289bcbe9aa7fc125';
+    const stagedV391Md5 = 'fede0545b650c86737631e714bd918ee';
 
-    expect(createHash('md5').update(fallback).digest('hex')).toBe(v391Md5);
+    expect(createHash('md5').update(fallback).digest('hex')).toBe(liveV391Md5);
     expect(stage).toContain(`v390_md5 constant text := '${v390Md5}'`);
-    expect(stage).toContain(`v391_md5 constant text := '${v391Md5}'`);
+    expect(stage).toContain(`v391_md5 constant text := '${stagedV391Md5}'`);
     expect(stage).toContain("source_version <> '3.90'");
     expect(stage).toContain("'3.91',");
     expect(stage).toContain('target version already exists');
     expect(stage).not.toContain('cakegenie_analysis_cache');
     expect(stage).not.toContain('pricing_rules');
     expect(activation).toContain(`v390_md5 constant text := '${v390Md5}'`);
-    expect(activation).toContain(`v391_md5 constant text := '${v391Md5}'`);
+    expect(activation).toContain(`v391_md5 constant text := '${stagedV391Md5}'`);
     expect(activation).toContain("version = '3.90'");
     expect(activation).toContain("version = '3.91'");
     expect(activation).toContain('active-prompt invariant failed');

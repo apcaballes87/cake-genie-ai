@@ -51,6 +51,8 @@ separate flower before choosing `edible_flowers`; separate leaves use
 If there are no piped flowers, a non-floral piped foliage border remains
 `icing_decorations` rather than a piped-flower row.
 
+Important: it is not a piped flower if it doesnt look like a flower or it just looks like a rosette or another piped icing technique, use `icing_decorations` instead.
+
 This construction gate is before and overrides ordinary-flower,
 filler-flower, and edible-leaf normalization. It does not change a separate
 fondant/gumpaste botanical piece into icing merely because it is next to piped

@@ -68,7 +68,7 @@ describe('v3.91 one-color object and flat-flower gates', () => {
     expect(fixture.qualifying_counterexample).toContain('visible petal side surfaces');
   });
 
-  it('keeps the staged v3.91 prompt byte-identical to the fallback', () => {
+  it('keeps the fallback byte-identical to the verified live v3.91 prompt while preserving the immutable staging migration', () => {
     const prompt = readProjectFile('src/services/prompts/fallback-prompt.txt');
     const stageMigration = readProjectFile(
       'supabase/migrations/20260917100000_stage_prompt_v391_one_color_non_character_3d_gate.sql',
@@ -77,7 +77,8 @@ describe('v3.91 one-color object and flat-flower gates', () => {
       'supabase/migrations/20260917101000_activate_prompt_v391_one_color_non_character_3d_gate.sql',
     );
 
-    expect(createHash('md5').update(prompt).digest('hex')).toBe('fede0545b650c86737631e714bd918ee');
+    expect(createHash('md5').update(prompt).digest('hex')).toBe('388e050b2c43655b289bcbe9aa7fc125');
+    expect(prompt).toContain('it is not a piped flower if it doesnt look like a flower or it just looks like a rosette');
     expect(stageMigration).toContain("v390_md5 constant text := 'ac7f65da35135d3d4e42e90b7c82e655'");
     expect(stageMigration).toContain("v391_md5 constant text := 'fede0545b650c86737631e714bd918ee'");
     expect(stageMigration).toContain("source_version <> '3.90'");
