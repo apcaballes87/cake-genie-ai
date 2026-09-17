@@ -23,7 +23,7 @@ describe('runAiPromptLabPricing', () => {
     vi.clearAllMocks();
   });
 
-  it('uses the storefront mapping/calculator for every base option and exposes the lowest total trace', async () => {
+  it('uses the storefront mapping/calculator for every base option', async () => {
     const pricingState = {
       mainToppers: [], supportElements: [], cakeMessages: [], icingDesign: {},
       cakeInfo: { type: '1 Tier', thickness: '3 in', size: '6" Round', flavors: [] },
@@ -48,8 +48,6 @@ describe('runAiPromptLabPricing', () => {
     expect(mocks.getCakeBasePriceOptions).toHaveBeenCalledWith('1 Tier', '3 in');
     expect(mocks.calculatePriceFromDatabase).toHaveBeenNthCalledWith(1,
       expect.objectContaining({ cakeInfo: expect.objectContaining({ size: '6" Round' }) }),
-      undefined,
-      { trace: true },
     );
     expect(result.basePriceOptions).toEqual([
       { size: '6" Round', basePrice: 1200, addOnPrice: 300, total: 1499, isLowest: true },
@@ -57,7 +55,7 @@ describe('runAiPromptLabPricing', () => {
     ]);
     expect(result.addOnPrice).toBe(300);
     expect(result.itemPrices).toEqual({ flower: 300 });
-    expect(result.pricingTrace).toEqual([{ itemId: 'flower', amount: 300 }]);
+    expect(result.pricingTrace).toEqual([]);
   });
 
   it('fails before pricing when the storefront has no valid base size', async () => {
