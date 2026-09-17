@@ -1,7 +1,6 @@
 import sharp from 'sharp';
 import { Type } from '@google/genai';
 
-import { isSizelessSupportElementType } from '@/constants/pricingEnums';
 import { classifyLocalBboxAreaSize } from '@/lib/ai/localAnalysisSizing';
 
 export const GRID_SIZING_VERSION = 'grid_sizing_v2' as const;
@@ -445,7 +444,6 @@ export function applyGridSizingToAnalysis<T extends Record<string, unknown>>(
       if (typeof rawItem.type !== 'string') {
         throw new GridSizingError(`${role}:${rawItem.group_id} must have a valid storefront type`);
       }
-      if (role === 'support_elements' && isSizelessSupportElementType(rawItem.type)) return rawItem;
       return { ...rawItem, size: measuredItem?.category };
     });
   }

@@ -1,14 +1,6 @@
 import { createHash } from 'node:crypto';
 
-import {
-  CAKE_ANALYSIS_LAB_MODELS,
-  CakeAnalysisResponseError,
-  AI_REQUEST_TIMEOUT_MS,
-  runActiveCakeAnalysis,
-  type CakeAnalysisModel,
-  type CakeAnalysisThinkingLevel,
-  type RunCakeAnalysisInput,
-} from '@/lib/ai/analyzeCakeImage';
+import { AI_REQUEST_TIMEOUT_MS } from '@/lib/ai/analyzeCakeImage';
 import {
   buildSearchAnalysisGenerationConfig,
   getAnalysisGenerationSizeSchema,
@@ -18,11 +10,7 @@ import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
 import { getAI } from '@/lib/ai/client';
 import { getDynamicTypeEnums } from '@/lib/ai/utils';
 import { createAdminServerSupabaseClient } from '@/lib/supabase/adminServer';
-import {
-  checksumAnalysisPrompt,
-  getAiPromptLabPrompts,
-  type LabPromptRecord,
-} from '@/services/prompts/promptLoader';
+import { loadFallbackAnalysisPrompt } from '@/services/prompts/promptLoader';
 import { isRejectedGeneratedCakeAnalysis } from '@/lib/ai/generatedAnalysisContract';
 import { AI_THREE_BAND_SIZE_SCHEMA } from '@/lib/ai/analysisSize';
 import { runAiPromptLabPricing } from '@/lib/admin/aiPromptLabPricing';
@@ -58,6 +46,28 @@ export const AI_PROMPT_LAB_THINKING_LEVEL = 'LOW' as const;
 export const AI_PROMPT_LAB_DECODE = { temperature: 0, topP: 1, topK: 1 } as const;
 export const AI_PROMPT_LAB_MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 export const AI_PROMPT_LAB_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
+export const CAKE_ANALYSIS_LAB_MODELS = [
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite',
+  'gemini-2.5-flash',
+] as const;
+type CakeAnalysisModel = (typeof CAKE_ANALYSIS_LAB_MODELS)[number];
+type CakeAnalysisThinkingLevel = 'MINIMAL' | 'LOW' | 'MEDIUM' | 'HIGH';
+
+export type LabPromptRecord = {
+  id: string;
+  version: string;
+  isActive: boolean;
+  text: string;
+  checksum: string;
+};
+
+class CakeAnalysisResponseError extends Error {
+  constructor(message: string, public readonly rawResponse: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = 'CakeAnalysisResponseError';
+  }
+}
 
 /** Only Flash text/vision models already exercised by this Vertex project. */
 export const AI_PROMPT_LAB_THINKING_LEVELS: Record<CakeAnalysisModel, readonly CakeAnalysisThinkingLevel[]> = {
@@ -72,6 +82,45 @@ const THINKING_LEVELS: Record<CakeAnalysisThinkingLevel, ThinkingLevel> = {
   MEDIUM: ThinkingLevel.MEDIUM,
   HIGH: ThinkingLevel.HIGH,
 };
+
+function checksumAnalysisPrompt(promptText: string) {
+  return createHash('sha256').update(promptText, 'utf8').digest('hex');
+}
+
+/** Read-only prompt selection kept local so the lab remains compatible with the production loader. */
+async function getAiPromptLabPrompts(admin: ReturnType<typeof createAdminServerSupabaseClient>): Promise<LabPromptRecord[]> {
+  try {
+    const { data, error } = await admin
+      .from('ai_prompts')
+      .select('prompt_id, version, is_active, created_at, prompt_text')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (error) throw error;
+    const rows = (data ?? []) as Array<{
+      prompt_id: string | number;
+      version: string | number | null;
+      is_active: boolean | null;
+      prompt_text: string | null;
+    }>;
+    const selected = [
+      rows.find((row) => row.is_active && row.prompt_text),
+      rows.find((row) => !row.is_active && row.prompt_text),
+    ].filter((row): row is (typeof rows)[number] => Boolean(row));
+    if (selected.length) {
+      return selected.map((row) => ({
+        id: String(row.prompt_id),
+        version: String(row.version ?? 'unknown'),
+        isActive: Boolean(row.is_active),
+        text: row.prompt_text!,
+        checksum: checksumAnalysisPrompt(row.prompt_text!),
+      }));
+    }
+  } catch (error) {
+    console.warn('Failed to fetch AI Prompt Lab prompt records:', error);
+  }
+  const text = loadFallbackAnalysisPrompt();
+  return [{ id: 'fallback', version: 'fallback', isActive: true, text, checksum: checksumAnalysisPrompt(text) }];
+}
 
 export class AiPromptLabError extends Error {
   constructor(message: string, public readonly status = 400) {
@@ -221,9 +270,7 @@ export function isAiPromptLabProductionEquivalent(
 
 export async function getAiPromptLabConfiguration(): Promise<{ prompts: LabPromptRecord[]; settings: Record<string, unknown> }> {
   const admin = createAdminServerSupabaseClient();
-  const prompts = await getAiPromptLabPrompts(
-    admin as unknown as Parameters<typeof getAiPromptLabPrompts>[0],
-  );
+  const prompts = await getAiPromptLabPrompts(admin);
   return {
     prompts,
     settings: {
@@ -715,6 +762,54 @@ async function runTwoStepAiPromptLabAnalysis(
   }
 }
 
+async function runOnePassAiPromptLabAnalysis(
+  input: ReturnType<typeof validateAiPromptLabRequest>,
+  sourcePrompt: LabPromptRecord,
+  requestContext: Request | undefined,
+) {
+  let rawResponse = '';
+  const admin = createAdminServerSupabaseClient();
+  const [aiClient, typeEnums] = await Promise.all([
+    getAI(requestContext),
+    getDynamicTypeEnums(admin),
+  ]);
+  const sizeSchema = input.useDiameterAnchorSizing
+    ? 'ai_diameter_anchor'
+    : getAnalysisGenerationSizeSchema(sourcePrompt.version);
+  try {
+    const response = await aiClient.models.generateContent({
+      model: input.model,
+      contents: [{
+        role: 'user',
+        parts: [
+          { inlineData: { mimeType: input.mimeType, data: input.imageData } },
+          { text: input.promptText },
+        ],
+      }],
+      config: {
+        ...buildSearchAnalysisGenerationConfig(typeEnums, sizeSchema),
+        ...AI_PROMPT_LAB_DECODE,
+        thinkingConfig: { thinkingLevel: THINKING_LEVELS[input.thinkingLevel] },
+        abortSignal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
+      },
+    });
+    rawResponse = (response.text || '').trim();
+    const result = postProcessSearchAnalysisResult(JSON.parse(rawResponse), typeEnums, sizeSchema);
+    return {
+      result: { ...result, analysis_size_schema: AI_THREE_BAND_SIZE_SCHEMA },
+      rawResponse,
+      effectiveSettings: { ...AI_PROMPT_LAB_DECODE, model: input.model, thinkingLevel: input.thinkingLevel, usedPromptCache: false },
+      sizeSchema,
+    };
+  } catch (error) {
+    throw new CakeAnalysisResponseError(
+      error instanceof Error ? error.message : 'Invalid response format from AI.',
+      rawResponse,
+      { cause: error },
+    );
+  }
+}
+
 /** Executes an isolated analysis request. It never creates Gemini prompt cache entries or persistence records. */
 export async function runAiPromptLabAnalysis(body: unknown, requestContext?: Request) {
   const input = validateAiPromptLabRequest(body);
@@ -742,26 +837,8 @@ export async function runAiPromptLabAnalysis(body: unknown, requestContext?: Req
   const sourceChecksumMatches = input.checksum === null || input.checksum === sourcePrompt.checksum;
   const submittedChecksum = checksumAnalysisPrompt(input.promptText);
   const productionEquivalent = isAiPromptLabProductionEquivalent(input, sourcePrompt);
-  const runInput: RunCakeAnalysisInput = {
-    imageData: input.imageData,
-    mimeType: input.mimeType,
-    requestContext,
-    // The lab must never retain user images, including rejected uploads.
-    persistRejectedUpload: false,
-    sourceRoute: 'api/admin/ai-prompt-lab',
-    ...(productionEquivalent ? {} : {
-      promptVersion: sourcePrompt.version,
-      promptText: input.promptText,
-      model: input.model,
-      thinkingLevel: input.thinkingLevel,
-      ...AI_PROMPT_LAB_DECODE,
-      sizeSchema: input.useDiameterAnchorSizing ? 'ai_diameter_anchor' : undefined,
-    }),
-    usePromptCache: false,
-  };
-
   try {
-    const execution = await runActiveCakeAnalysis(runInput);
+    const execution = await runOnePassAiPromptLabAnalysis(input, sourcePrompt, requestContext);
     let pricing: Awaited<ReturnType<typeof runAiPromptLabPricing>> | null = null;
     const pricingErrors: string[] = [];
     if (!isRejectedGeneratedCakeAnalysis(execution.result)) {
