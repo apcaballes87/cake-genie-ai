@@ -102,7 +102,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    expect(prompt).toContain('**v3.90 Version - Piped Botanical Construction and Soft-Icing Evidence**');
+    expect(prompt).toContain('**v3.91 Version - One-Color Object and Flat-Flower Gates**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('1. **Observe construction first.**');
     expect(prompt).toContain('3. **Select a type compatible with that material and construction.**');
@@ -110,8 +110,9 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('Apply the 2-CUE MATERIAL RULE only when material remains ambiguous and no');
     expect(prompt).toContain('Named decisive cues such as a visible wick,');
     expect(prompt).toContain('unsupported semi-3D human/pet portrait relief -> `edible_photo_top`');
-    expect(prompt).toContain('every flower-shaped decoration, including fresh-looking, natural, silk,');
-    expect(prompt).toContain('Directly piped icing flowers use');
+    expect(prompt).toContain('every visibly three-dimensional flower-shaped decoration, including');
+    expect(prompt).toContain('A flat flower motif\n  instead follows `FLAT EDIBLE FLOWER DEPTH GATE`.');
+    expect(prompt).toContain('Directly piped icing flowers\n  use');
     expect(prompt).toContain('override wins over visible fabric cues');
     expect(prompt).toContain('physical metal, rhinestone, or plastic crowns/tiaras -> `plastic_crown`');
     expect(prompt).toContain('standalone molded, rolled, cut, or hand-sculpted fondant/gumpaste crowns/tiaras ->');
@@ -337,14 +338,16 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('| `thin_fabric_ribbon_bows` | non-edible | Small/thin satin, organza, or sheer fabric bow accents, dangling ribbon tails, and narrow streamers.');
   });
 
-  it('classifies fresh-looking flowers as edible flowers in the fallback prompt source', () => {
+  it('classifies fresh-looking modeled flowers as edible flowers and flat motifs as 2D shapes', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
     expect(prompt).toContain('Genie.ph fulfills every cake-member flower as edible because non-edible flowers');
     expect(prompt).toContain('IF a flower appears fresh, natural, realistic, silk, cloth, fabric-textured,');
     expect(prompt).toContain('FLOWER TYPE PRECEDENCE');
     expect(prompt).toContain('Do NOT classify fondant/gumpaste flowers as `edible_3d_ordinary`');
-    expect(prompt).toContain('small gold fondant flowers on a mahjong cake -> `edible_flowers`');
+    expect(prompt).toContain('small gold modeled fondant flowers with visible petal sidewalls on a mahjong cake -> `edible_flowers`');
+    expect(prompt).toContain('### FLAT EDIBLE FLOWER DEPTH GATE (BINDING)');
+    expect(prompt).toContain('flat fondant daisy cutouts -> `edible_2d_shapes` when focal, otherwise `edible_2d_support`');
     expect(prompt).toContain('Never output the type `artificial_flowers`; it exists only for legacy rows.');
     expect(prompt).not.toContain('IT IS "fresh_flowers"');
     expect(prompt).not.toContain('| `fresh_flowers` |');
@@ -400,7 +403,7 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('retain one row and measure a typical clearly visible\nbloom');
     expect(prompt).toContain('Use neutral group-ID suffixes such as `size_1` and `size_2`');
     expect(prompt).not.toContain('approximately 20%');
-    expect(createHash('md5').update(prompt).digest('hex')).toBe('ac7f65da35135d3d4e42e90b7c82e655');
+    expect(createHash('md5').update(prompt).digest('hex')).toBe('fede0545b650c86737631e714bd918ee');
     expect(SYSTEM_INSTRUCTION).toContain('**Flower Scale-Group Sizing:**');
     expect(SYSTEM_INSTRUCTION).toContain('never the largest/outlier bloom or an arrangement-wide span');
     expect(stage).toContain("v381_md5 constant text := 'fa06f26eb0eac43e4dfe7aa314c56a3c'");
@@ -425,25 +428,25 @@ describe('cake analysis prompt rules', () => {
     ]);
   });
 
-  it('stages and guards v3.90 as byte-identical piped-botanical and soft-icing fallback', () => {
+  it('stages and guards v3.91 as byte-identical one-color non-character fallback', () => {
     const fallback = readPrompt('src/services/prompts/fallback-prompt.txt');
-    const stage = readPrompt('supabase/migrations/20260916100000_stage_prompt_v390_piped_botanical_soft_icing_gate.sql');
-    const activation = readPrompt('supabase/migrations/20260916101000_activate_prompt_v390_piped_botanical_soft_icing_gate.sql');
-    const v389Md5 = '7522fb1ba49ee59513d3cefddba8444c';
+    const stage = readPrompt('supabase/migrations/20260917100000_stage_prompt_v391_one_color_non_character_3d_gate.sql');
+    const activation = readPrompt('supabase/migrations/20260917101000_activate_prompt_v391_one_color_non_character_3d_gate.sql');
     const v390Md5 = 'ac7f65da35135d3d4e42e90b7c82e655';
+    const v391Md5 = 'fede0545b650c86737631e714bd918ee';
 
-    expect(createHash('md5').update(fallback).digest('hex')).toBe(v390Md5);
-    expect(stage).toContain(`v389_md5 constant text := '${v389Md5}'`);
+    expect(createHash('md5').update(fallback).digest('hex')).toBe(v391Md5);
     expect(stage).toContain(`v390_md5 constant text := '${v390Md5}'`);
-    expect(stage).toContain("source_version <> '3.89'");
-    expect(stage).toContain("'3.90',");
+    expect(stage).toContain(`v391_md5 constant text := '${v391Md5}'`);
+    expect(stage).toContain("source_version <> '3.90'");
+    expect(stage).toContain("'3.91',");
     expect(stage).toContain('target version already exists');
     expect(stage).not.toContain('cakegenie_analysis_cache');
     expect(stage).not.toContain('pricing_rules');
-    expect(activation).toContain(`v389_md5 constant text := '${v389Md5}'`);
     expect(activation).toContain(`v390_md5 constant text := '${v390Md5}'`);
-    expect(activation).toContain("version = '3.89'");
+    expect(activation).toContain(`v391_md5 constant text := '${v391Md5}'`);
     expect(activation).toContain("version = '3.90'");
+    expect(activation).toContain("version = '3.91'");
     expect(activation).toContain('active-prompt invariant failed');
   });
 
@@ -802,7 +805,7 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.90 Version - Piped Botanical Construction and Soft-Icing Evidence**');
+    expect(prompt).toContain('**v3.91 Version - One-Color Object and Flat-Flower Gates**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -824,7 +827,7 @@ describe('cake analysis prompt rules', () => {
   it('keeps toy classification while using direct diameter-relative sizing', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('**v3.90 Version - Piped Botanical Construction and Soft-Icing Evidence**');
+    expect(prompt).toContain('**v3.91 Version - One-Color Object and Flat-Flower Gates**');
     expect(prompt).toContain('| Rigid factory-molded physical prop | `toy` | `plastic`');
     expect(prompt).toContain('Use height for 3D toppers, figures, crowns, toys, and candles;');
     expect(prompt).toContain('Small is clearly under about one-third of the cake diameter');
@@ -1240,7 +1243,7 @@ describe('cake analysis prompt rules', () => {
     const details = await getActivePromptDetails(supabase);
 
     expect(details.promptText).toContain('GENIE.PH MASTER CAKE ANALYSIS PROMPT');
-    expect(details.version).toBe('3.90');
+    expect(details.version).toBe('3.91');
   });
 
   it('does not keep a stale root prompt snapshot beside the fallback prompt', () => {

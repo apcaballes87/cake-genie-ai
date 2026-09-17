@@ -1,0 +1,18 @@
+{
+  "purpose": "Regression fixture for a one-color standalone fondant bridal dress that was incorrectly inferred to be a complex bride figurine.",
+  "observed_construction": [
+    "one visibly white molded fondant dress",
+    "ruffles and flowing fabric folds only",
+    "no visible head, torso, arms, legs, face, or complete human figure anatomy"
+  ],
+  "expected_main_topper": {
+    "type": "edible_3d_ordinary",
+    "material": "edible_fondant",
+    "quantity": 1,
+    "group_id": "standalone_white_fondant_dress",
+    "classification": "hero"
+  },
+  "forbidden_type": "edible_3d_complex",
+  "non_qualifying_inference": "A bridal/wedding theme, nearby text, a topper name, or a flowing dress description does not establish a bride figurine.",
+  "qualifying_counterexample": "A complete freestanding human figure with visible all-around depth and modeled head, torso, limbs, face, or pose remains eligible for edible_3d_complex regardless of color."
+}

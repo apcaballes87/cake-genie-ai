@@ -1,0 +1,22 @@
+{
+  "purpose": "Regression fixture for flat white fondant daisy motifs incorrectly emitted as edible 3D flowers.",
+  "observed_construction": [
+    "six flat white fondant daisy cutouts with yellow centers",
+    "planar petals without visible petal sidewalls or modeled bloom bodies",
+    "focal matching flower motifs arranged on the top surface"
+  ],
+  "expected_main_topper": {
+    "type": "edible_2d_shapes",
+    "material": "edible_fondant",
+    "quantity": 6,
+    "group_id": "top_white_daisy_flowers",
+    "classification": "hero"
+  },
+  "forbidden_type": "edible_flowers",
+  "non_qualifying_cues": [
+    "yellow centers",
+    "flower identity",
+    "slight cast shadows"
+  ],
+  "qualifying_counterexample": "A non-piped flower with visibly modeled, cupped, layered, or sculpted petals and visible petal side surfaces is edible_flowers."
+}

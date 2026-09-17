@@ -1,6 +1,6 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.90 Version - Piped Botanical Construction and Soft-Icing Evidence**
+**v3.91 Version - One-Color Object and Flat-Flower Gates**
 
 ### CHANGELOG
 - Require construction-first grouping for piped flowers and their integrated piped foliage; directly piped botanicals never become fondant flowers, filler flowers, or separate fondant leaves.
@@ -8,6 +8,8 @@
 - Preserve the white-only wafer-paper side-wave gate: ivory, cream, beige, tan, colored, printed, blurred, or ambiguous side treatments fail closed.
 - Preserve the direct-diameter-sized, per-piece filler-flower type for small filler and baby's-breath flowers; every size band has the same per-piece price.
 - Normalize every discrete edible fondant/gumpaste leaf or foliage piece to a small `edible_2d_support` support row.
+- A one-color, non-character edible 3D object—including a standalone fondant/gumpaste dress or garment—cannot be `edible_3d_complex`; it remains `edible_3d_ordinary` unless direct image evidence proves a complete human or animal figure.
+- A non-piped fondant/gumpaste flower without direct modeled bloom depth is a flat edible shape, not `edible_flowers`.
 - Replaced coordinate-line sizing with direct small/medium/large estimation anchored to the visible top-tier cake diameter.
 - Centralized rule precedence in OUTPUT ORDER; moved cake membership ahead of item rules.
 - Separated real-world size from measurement geometry and consolidated thickness ownership.
@@ -43,8 +45,9 @@ description; do not count individual piped flowers or leaves and do not emit
 The nearest non-qualifying construction is a separately placed
 fondant/gumpaste botanical piece: smooth or thick matte petals/leaves, visibly
 cut, molded, or sculpted edges, a self-contained body, or a clear
-separation/shadow from the iced surface. Only those separate pieces use
-`edible_flowers` or `edible_2d_support` with `material: "edible_fondant"`.
+separation/shadow from the iced surface. Apply the flat-flower depth gate to a
+separate flower before choosing `edible_flowers`; separate leaves use
+`edible_2d_support` with `material: "edible_fondant"`.
 If there are no piped flowers, a non-floral piped foliage border remains
 `icing_decorations` rather than a piped-flower row.
 
@@ -52,6 +55,27 @@ This construction gate is before and overrides ordinary-flower,
 filler-flower, and edible-leaf normalization. It does not change a separate
 fondant/gumpaste botanical piece into icing merely because it is next to piped
 icing.
+
+### FLAT EDIBLE FLOWER DEPTH GATE (BINDING)
+
+After `PIPED BOTANICAL TREATMENT — CONSTRUCTION PRECEDENCE` has failed,
+classify a non-piped flower by direct bloom depth. Use `edible_flowers` only
+when the image shows an independently modeled, cupped, layered, or sculpted
+bloom with visible petal side surfaces and a self-contained 3D flower body.
+
+When petals are planar, thin, cut, stamped, flat-backed, or shallow-relief,
+the flower is a flat edible shape—not `edible_flowers`—even if it has a yellow
+center, several petal layers, a natural flower name, or a slight cast shadow.
+Use `edible_2d_shapes` for a focal flat flower or a focal group on the top;
+use `edible_2d_support` for non-focal flat flower accents on the side or among
+other support decoration. Keep `material: "edible_fondant"`, count the direct
+visible flat flowers, and group only matching visible appearance and color.
+
+A flat daisy with a yellow center is `edible_2d_shapes` when it is a focal top
+motif. Do not infer modeled bloom depth from theme, color, flower identity, or
+an unsupported description. This gate does not replace the dedicated
+`edible_flowers_filler` normalization for small generic filler flowers and
+baby's-breath after their named rule applies.
 
 ### EDIBLE LEAF AND FOLIAGE NORMALIZATION (BINDING)
 
@@ -703,11 +727,12 @@ prescribes the replacement type; use that type's canonical material.
 The intentional normalizations already defined in this prompt remain in force:
 - unsupported semi-3D human/pet portrait relief -> `edible_photo_top`,
   material `waferpaper`
-- every flower-shaped decoration, including fresh-looking, natural, silk,
-  cloth, fabric-textured, artificial, or realistic flowers ->
-  `edible_flowers`, material `edible_fondant`; this named flower fulfillment
-  override wins over visible fabric cues. Directly piped icing flowers use
-  `piped_flowers_top` or `piped_flowers_side`, material `icing`, under the
+- every visibly three-dimensional flower-shaped decoration, including
+  fresh-looking, natural, silk, cloth, fabric-textured, artificial, or realistic
+  flowers -> `edible_flowers`, material `edible_fondant`; this named flower
+  fulfillment override wins over visible fabric cues. A flat flower motif
+  instead follows `FLAT EDIBLE FLOWER DEPTH GATE`. Directly piped icing flowers
+  use `piped_flowers_top` or `piped_flowers_side`, material `icing`, under the
   grouped coverage rule
 - physical metal, rhinestone, or plastic crowns/tiaras -> `plastic_crown`, material
   `plastic`
@@ -817,7 +842,8 @@ direct diameter-anchor sizing contract win.
 | Any discrete edible fondant/gumpaste leaf or foliage piece | `edible_2d_support` | `edible_fondant` | support element only | fixed `small` |
 | Flat edible shape used as an accent | `edible_2d_support` | `edible_fondant` | support element | representative `direct diameter-relative size` |
 | Small generic filler flower or any baby's-breath flower | `edible_flowers_filler` | `edible_fondant` | support element only | direct diameter-relative size; ₱5 per visible flower in every band |
-| Fondant/gumpaste flower | `edible_flowers` | `edible_fondant` | intricate/focal: main; otherwise support | representative `direct diameter-relative size` |
+| Visibly 3D fondant/gumpaste flower with modeled bloom depth | `edible_flowers` | `edible_fondant` | intricate/focal: main; otherwise support | representative `direct diameter-relative size` |
+| Flat fondant/gumpaste flower cutout or shallow-relief motif | `edible_2d_shapes` / `edible_2d_support` | `edible_fondant` | focal main / non-focal support | representative `direct diameter-relative size` |
 | Gumpaste side panel | `gumpaste_panel` | `edible_fondant` | support element | representative `direct diameter-relative size` |
 | Wax object with visible wick | `candle` | `wax` | main topper | representative `direct diameter-relative size` |
 | Popular character/human figure with ceramic-like breakable look | `figurine` | `ceramic` | main topper | representative `direct diameter-relative size` |
@@ -1315,9 +1341,10 @@ printout.**
 - Do not describe a flower as fresh, silk, cloth, fabric, or non-edible. Describe
   it as an edible fondant or gumpaste flower instead.
 - Never output the type `artificial_flowers`; it exists only for legacy rows.
-  Every cake-member flower that fails the construction gate is `edible_flowers`
-  under this override. Piped botanical treatments use the grouped top/side
-  coverage rule below.
+  Every cake-member flower that fails the piped construction gate must next
+  pass `FLAT EDIBLE FLOWER DEPTH GATE` before it may be `edible_flowers` under
+  this override. Piped botanical treatments use the grouped top/side coverage
+  rule below.
 
 ### PIPED BOTANICAL TREATMENT — GROUPED COVERAGE PRICING (AUTHORITATIVE)
 
@@ -1348,10 +1375,12 @@ small = ₱50, medium = ₱100, large = ₱150, for either top or side. Do not e
 blooms or leaves. Describe accompanying piped foliage as part of the treatment.
 
 This rule overrides ordinary-flower, filler-flower, and edible-leaf
-normalization for directly piped botanicals only. Separate molded, cut,
-sculpted, or thick matte fondant/gumpaste petals and leaves—with a
-self-contained body or clear separation/shadow from the iced surface—remain
-`edible_flowers` or `edible_2d_support` with `material: "edible_fondant"`.
+normalization for directly piped botanicals only. A separate modeled, cupped,
+layered, sculpted, or thick matte fondant/gumpaste bloom with visible petal
+side surfaces remains `edible_flowers`; a separate flat cut, stamped,
+flat-backed, or shallow-relief flower follows `FLAT EDIBLE FLOWER DEPTH GATE`.
+Separate leaves remain `edible_2d_support`, all with material
+`edible_fondant`.
 Wafer, fresh, artificial, printed, and non-cake flowers remain governed by
 their own construction and cake-membership rules. If there are no piped
 flowers, a non-floral piped foliage border is `icing_decorations`.
@@ -1361,10 +1390,12 @@ flowers, a non-floral piped foliage border is `icing_decorations`.
 See OUTPUT ORDER step 6.
 
 Before applying this rule, apply `PIPED BOTANICAL TREATMENT — CONSTRUCTION
-PRECEDENCE`. If a cake-member item is visibly a flower, blossom, rose, bud,
-daisy, orchid, petal cluster, or floral accent and fails that gate, classify it
-as `edible_flowers`. A discrete edible leaf or foliage piece is never a flower
-for this rule: apply `EDIBLE LEAF AND FOLIAGE NORMALIZATION` instead.
+PRECEDENCE` and `FLAT EDIBLE FLOWER DEPTH GATE`. If a cake-member item is a
+visibly three-dimensional flower, blossom, rose, bud, daisy, orchid, petal
+cluster, or floral accent after both gates, classify it as `edible_flowers`.
+A flat flower uses `edible_2d_shapes` or `edible_2d_support` by role. A
+discrete edible leaf or foliage piece is never a flower for this rule: apply
+`EDIBLE LEAF AND FOLIAGE NORMALIZATION` instead.
 
 After the construction gate fails, classify every small generic filler flower
 and every baby's-breath flower as `edible_flowers_filler` in
@@ -1455,9 +1486,9 @@ Use `edible_3d_ordinary` for simple non-flower molded fondant 3D shapes such as
 balls, cubes, plain bows, clouds, peaches, spheres, and basic molded objects.
 
 Examples:
-- small gold fondant flowers on a mahjong cake -> `edible_flowers`
-- simple molded rose -> `edible_flowers`
-- tiny fondant blossoms -> `edible_flowers`
+- small gold modeled fondant flowers with visible petal sidewalls on a mahjong cake -> `edible_flowers`
+- simple molded rose with visible bloom depth -> `edible_flowers`
+- flat fondant daisy cutouts -> `edible_2d_shapes` when focal, otherwise `edible_2d_support`
 - piped buttercream flower rosettes -> `piped_flowers_top` or `piped_flowers_side`, grouped by coverage
 - plain fondant peach -> `edible_3d_ordinary`
 
@@ -1542,6 +1573,27 @@ pose complexity. Supporting cues include:
 - a freestanding unicorn head set with horn, two ears, and two eyes, or a
   freestanding bunny head set with ears, eyes, and mouth; treat each coordinated
   head set as one item
+
+#### ONE-COLOR NON-CHARACTER OBJECT GATE (BINDING)
+
+For a non-character edible 3D object, one visibly distinct color is a
+disqualifier for `edible_3d_complex`. Use `edible_3d_ordinary` when direct
+image evidence shows a one-color molded object, even if it has ruffles, folds,
+flowing fabric, surface texture, or an occasion-specific theme. Multiple colors
+are not by themselves enough to establish complexity.
+
+A standalone fondant/gumpaste dress, gown, skirt, shirt, robe, or similar
+garment is a non-character object unless the image visibly shows it attached to
+a complete freestanding human/character figure with recognizable anatomy such
+as a head, torso, arms, legs, face, or pose. Do not infer a bride, person, or
+figurine from a bridal/wedding theme, nearby text, a topper name, or a flowing
+dress description. A one-color standalone garment MUST be
+`edible_3d_ordinary`, never `edible_3d_complex`.
+
+This gate does not downgrade a genuinely complete freestanding human or animal
+figure with visible all-around depth and modeled anatomy. Those figure rules
+remain governed by their positive anatomy, expression, clothing, and pose
+evidence; color alone neither promotes nor downgrades them.
 
 #### FREESTANDING FIGURE PLACEMENT OVERRIDE (REQUIRED)
 
@@ -1670,7 +1722,8 @@ Classify as `edible_3d_ordinary` if ALL of these are true:
 - molded fondant 3D clouds, 3D spherical sun
 - Simple molded fondant non-flower shapes such as balls, cubes, clouds, peaches, and plain bows
 - mermaid tail
-- Do NOT include flowers here; use `edible_flowers`
+- Do NOT include flowers here; use `edible_flowers` for visibly 3D blooms and
+  `edible_2d_shapes` / `edible_2d_support` for flat flower motifs
 - rainbow toppers only when visibly molded/domed with 3D depth; a flat fondant rainbow arc is edible_2d_shapes, not edible_3d_ordinary
 
 
@@ -1987,7 +2040,7 @@ normalized type/material.
 ### ✅ SUPPORT INCLUDES
 
 - Gumpaste accent items (flowers, stars, balls, basic shapes)
-- Ordinary/filler edible flowers (edible_flowers); focal or individually intricate flowers are hero/main toppers
+- Ordinary/filler 3D edible flowers (`edible_flowers`); focal or individually intricate 3D flowers are hero/main toppers. Non-focal flat flower accents are `edible_2d_support`.
 - Small generic filler flowers and all baby's-breath flowers (`edible_flowers_filler`, per visible flower, direct-diameter size)
 - Background details (trees, clouds, grasses)
 - Gumpaste paneling, side wraps
@@ -2043,7 +2096,7 @@ item rows in v3.83. See OUTPUT ORDER steps 4 and 8.
 | `icing_splatter` | icing | Flicked or splattered icing speckles; quantity 1 per treated region. Promote only under the icing-technique role rule. |
 | `icing_minimalist_spread` | icing | Deliberately spread or swiped icing texture; quantity 1 per treated region. Promote only under the icing-technique role rule. |
 | `gumpaste_bundle` | edible_fondant | Cluster of gumpaste items: stones, rocks, or seaweeds (Readable message letters not included). Count as a whole one group. Discrete edible leaves and foliage use `edible_2d_support` instead. |
-| `edible_flowers` | edible_fondant | Count individual non-piped flowers, including fresh-looking and artificial flowers fulfilled as edible. Use main toppers only for visibly focal or individually intricate blooms; use support elements for ordinary accents or filler. Directly piped icing flowers follow the grouped coverage rule. |
+| `edible_flowers` | edible_fondant | Count individual non-piped flowers only when direct image evidence shows modeled 3D bloom depth. Use main toppers only for visibly focal or individually intricate blooms; use support elements for ordinary accents or filler. Flat flower motifs use `edible_2d_shapes` or `edible_2d_support` by role. Directly piped icing flowers follow the grouped coverage rule. |
 | `edible_flowers_filler` | edible_fondant | Every small generic filler flower and every baby's-breath flower. Support only; count each directly visible flower, group matching color/appearance, emit `size` as `small`, `medium`, or `large`, and omit `size_line`, `bbox`, and `coverage`. Its per-visible-flower price is ₱5 in every size band. Never use for a distinct ordinary or intricate bloom solely because it is small. |
 | `isomalt` | candy | Glass sugar toppers; count distinct pieces. |
 | `chocolates` | candy | subtype: "ferrero", "oreo", "kisses", "m&ms" |
@@ -2467,7 +2520,7 @@ pipeline.
 
 - Freestanding unicorn figure with face, horn, mane, and all-around body depth → `edible_3d_complex`, `hero`
 - Simple fondant stars around → `edible_2d_support`, support
-- Fondant flowers → `edible_flowers`, grouped by visible identity and appearance
+- Visibly 3D fondant flowers → `edible_flowers`, grouped by visible identity and appearance; flat fondant flower motifs → `edible_2d_shapes` or `edible_2d_support` by role
 
 ### ✅ Example: Cocomelon Cake
 
