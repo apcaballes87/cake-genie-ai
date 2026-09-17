@@ -70,7 +70,7 @@ describe('grid sizing', () => {
       group_id: 'main_group', type: 'edible_3d_ordinary', quantity: 6, description: 'Fondant pickleball', size: 'medium',
     }]);
     expect(result.analysis.support_elements).toEqual([{
-      group_id: 'size_free_group', type: 'edible_flowers_filler', quantity: 3, description: 'Filler flowers',
+      group_id: 'size_free_group', type: 'edible_flowers_filler', quantity: 3, description: 'Filler flowers', size: 'small',
     }]);
     expect(result.gridSizing.items[0].category).toBe('medium');
   });
