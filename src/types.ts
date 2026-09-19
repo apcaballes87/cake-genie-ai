@@ -4,7 +4,9 @@ import type { TierFlavorAssignment } from '@/lib/tierFlavorMapping';
 import type { AnalysisSizeSchema, CanonicalAnalysisSize, LegacyAnalysisSize } from '@/lib/ai/analysisSize';
 import type {
   GeneratedBoundingBox,
+  GeneratedBox2D,
   GeneratedCakeMeasurements,
+  GeneratedIntegratedGeometry,
   GeneratedMeasurementLine,
 } from '@/lib/ai/generatedAnalysisContract';
 
@@ -64,6 +66,9 @@ export interface MainTopper {
   y?: number;
   bbox?: BoundingBox;  // Object detection bounding box
   size_line?: GeneratedMeasurementLine; // Fresh local sizing geometry
+  /** Fresh integrated_bbox_v1 representative-unit geometry in [y, x] order. */
+  box_2d?: GeneratedBox2D;
+  bbox_confidence?: number;
 }
 
 export interface SupportElement {
@@ -89,6 +94,9 @@ export interface SupportElement {
   y?: number;
   bbox?: BoundingBox;  // Object detection bounding box
   size_line?: GeneratedMeasurementLine; // Fresh local sizing geometry
+  /** Fresh integrated_bbox_v1 representative-unit geometry in [y, x] order. */
+  box_2d?: GeneratedBox2D;
+  bbox_confidence?: number;
 }
 
 export interface CakeMessage {
@@ -101,6 +109,8 @@ export interface CakeMessage {
   x?: number;
   y?: number;
   bbox?: BoundingBox;  // Object detection bounding box
+  box_2d?: GeneratedBox2D;
+  bbox_confidence?: number;
 }
 
 export interface IcingColorDetails {
@@ -169,6 +179,8 @@ export interface HybridAnalysisResult {
   cake_measurements?: GeneratedCakeMeasurements;
   /** Legacy persisted geometry retained for backwards-compatible hydration. */
   cake_bbox?: GeneratedBoundingBox;
+  /** Fresh integrated_bbox_v1 cake measurement lines. */
+  geometry?: GeneratedIntegratedGeometry;
   // SEO fields for searchable recent searches
   alt_text?: string;
   seo_title?: string;

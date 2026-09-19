@@ -9,6 +9,7 @@ import { getDynamicTypeEnums } from '@/lib/ai/utils';
 import {
   AI_THREE_BAND_SIZE_SCHEMA,
   ANALYSIS_SIZE_SCHEMA,
+  INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA,
   LINE_RATIO_ANALYSIS_SIZE_SCHEMA,
 } from '@/lib/ai/analysisSize';
 import {
@@ -117,7 +118,7 @@ function encodeBatchCustomId(itemId: string, sizeSchema?: AnalysisGenerationSize
 
 function decodeBatchCustomId(value: string | undefined) {
   if (!value) return { itemId: undefined, sizeSchema: undefined };
-  const match = value.match(/^(.*)\|size_schema:(legacy_six_band|three_band|local_bbox_area|local_line_ratio)$/);
+  const match = value.match(/^(.*)\|size_schema:(legacy_six_band|three_band|local_bbox_area|local_line_ratio|integrated_bbox_v1)$/);
   return match
     ? { itemId: match[1], sizeSchema: match[2] as AnalysisGenerationSizeSchema }
     : { itemId: value, sizeSchema: undefined };
@@ -125,6 +126,7 @@ function decodeBatchCustomId(value: string | undefined) {
 
 function inferBatchSizeSchema(result: unknown): AnalysisGenerationSizeSchema {
   if (!result || typeof result !== 'object') return 'three_band';
+  if ('analysis' in result && 'geometry' in result) return 'integrated_bbox_v1';
   const analysis = result as { main_toppers?: unknown; support_elements?: unknown };
   const elements = [analysis.main_toppers, analysis.support_elements]
     .flatMap((items) => Array.isArray(items) ? items : [])
@@ -516,6 +518,8 @@ export async function reconcileSearchAnalysisBatch(runId: string, requestContext
           ? LINE_RATIO_ANALYSIS_SIZE_SCHEMA
           : resolvedSizeSchema === 'local_bbox_area'
             ? ANALYSIS_SIZE_SCHEMA
+            : resolvedSizeSchema === 'integrated_bbox_v1'
+              ? INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA
             : AI_THREE_BAND_SIZE_SCHEMA,
       };
       if (isRejectedGeneratedCakeAnalysis(result)) {

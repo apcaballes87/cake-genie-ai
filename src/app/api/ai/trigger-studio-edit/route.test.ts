@@ -49,7 +49,7 @@ describe('/api/ai/trigger-studio-edit', () => {
         expect(runImageStudioJob).not.toHaveBeenCalled();
     });
 
-    it('runs the legacy cache-row studio job when only pHash is provided', async () => {
+    it('does not run a cache-row studio job while upload image editing is disabled', async () => {
         const response = await POST(
             new Request('http://localhost/api/ai/trigger-studio-edit', {
                 method: 'POST',
@@ -61,18 +61,12 @@ describe('/api/ai/trigger-studio-edit', () => {
         );
 
         expect(response.status).toBe(200);
-        expect(afterMock).toHaveBeenCalledTimes(1);
-        expect(runImageStudioJob).toHaveBeenCalledWith(
-            expect.objectContaining({
-                pHash: 'abc123',
-                inlineOriginalImage: null,
-                requireExistingRow: true,
-                waitForCacheRow: false,
-            })
-        );
+        await expect(response.json()).resolves.toMatchObject({ success: true, skipped: true });
+        expect(afterMock).not.toHaveBeenCalled();
+        expect(runImageStudioJob).not.toHaveBeenCalled();
     });
 
-    it('starts the direct-from-upload studio job and waits for the cache row later', async () => {
+    it('does not run a direct-from-upload studio job while image editing is disabled', async () => {
         const response = await POST(
             new Request('http://localhost/api/ai/trigger-studio-edit', {
                 method: 'POST',
@@ -88,17 +82,8 @@ describe('/api/ai/trigger-studio-edit', () => {
         );
 
         expect(response.status).toBe(200);
-        expect(afterMock).toHaveBeenCalledTimes(1);
-        expect(runImageStudioJob).toHaveBeenCalledWith(
-            expect.objectContaining({
-                pHash: 'def456',
-                inlineOriginalImage: {
-                    data: 'base64-image-data',
-                    mimeType: 'image/webp',
-                },
-                requireExistingRow: false,
-                waitForCacheRow: true,
-            })
-        );
+        await expect(response.json()).resolves.toMatchObject({ success: true, skipped: true });
+        expect(afterMock).not.toHaveBeenCalled();
+        expect(runImageStudioJob).not.toHaveBeenCalled();
     });
 });

@@ -1,6 +1,7 @@
 import { resolveAnalysisGenerationSeoSchema } from '@/lib/ai/generatedAnalysisContract';
 import { getAI, getOrCreatePromptCache } from '@/lib/ai/client';
 import { createClient } from '@/lib/supabase/client';
+import { createAdminServerSupabaseClient } from '@/lib/supabase/adminServer';
 import {
     buildSearchAnalysisGenerationConfig,
     getAnalysisGenerationSizeSchema,
@@ -8,7 +9,6 @@ import {
     type WhiteWaferPaperSideWaveVerification,
 } from '@/lib/admin/searchAnalysisContract';
 import { getActivePromptDetails, getPromptDetailsByVersion } from '@/services/prompts/promptLoader';
-import { SYSTEM_INSTRUCTION } from '@/lib/ai/prompts';
 import { logRejectedUpload } from '@/lib/ai/rejectedUploads';
 import { getDynamicTypeEnums } from '@/lib/ai/utils';
 import {
@@ -18,14 +18,43 @@ import {
 import {
     AI_THREE_BAND_SIZE_SCHEMA,
     ANALYSIS_SIZE_SCHEMA,
+    INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA,
     LINE_RATIO_ANALYSIS_SIZE_SCHEMA,
 } from '@/lib/ai/analysisSize';
 import { Type } from '@google/genai';
+import type { AnalysisGenerationSizeSchema } from '@/lib/admin/searchAnalysisContract';
+import { ThinkingLevel } from '@google/genai';
+import { logCakeAnalysisDebug } from '@/lib/ai/analysisDebug';
 
 export const ANALYSIS_MODEL = 'gemini-3.5-flash-lite';
+export const CAKE_ANALYSIS_LAB_MODELS = [
+    'gemini-3.5-flash-lite',
+    'gemini-3.1-flash-lite',
+    'gemini-2.5-flash',
+] as const;
+export type CakeAnalysisModel = (typeof CAKE_ANALYSIS_LAB_MODELS)[number];
+export type CakeAnalysisThinkingLevel = 'MINIMAL' | 'LOW' | 'MEDIUM' | 'HIGH';
 export const AI_REQUEST_TIMEOUT_MS = 120_000;
 const ANALYSIS_CONTRACT_CORRECTION_TIMEOUT_MS = 25_000;
 const WAFER_WAVE_VERIFICATION_TIMEOUT_MS = 25_000;
+
+const THINKING_LEVELS: Record<CakeAnalysisThinkingLevel, ThinkingLevel> = {
+    MINIMAL: ThinkingLevel.MINIMAL,
+    LOW: ThinkingLevel.LOW,
+    MEDIUM: ThinkingLevel.MEDIUM,
+    HIGH: ThinkingLevel.HIGH,
+};
+
+/** Includes provider text for internal diagnostic consumers without changing public route errors. */
+export class CakeAnalysisResponseError extends Error {
+    rawResponse: string;
+
+    constructor(message: string, rawResponse: string, cause?: unknown) {
+        super(message, cause === undefined ? undefined : { cause });
+        this.name = 'CakeAnalysisResponseError';
+        this.rawResponse = rawResponse;
+    }
+}
 
 const ANALYSIS_CONFIG_CACHE_TTL_MS = 5 * 60_000;
 const PROMPT_CACHE_NAME_TTL_MS = 30 * 60_000;
@@ -39,7 +68,7 @@ type AIRequestContext = {
     };
 } | null | undefined;
 
-type RunCakeAnalysisInput = {
+export type RunCakeAnalysisInput = {
     imageData: string;
     mimeType: string;
     requestContext?: AIRequestContext;
@@ -47,16 +76,36 @@ type RunCakeAnalysisInput = {
     sourceRoute?: string;
     persistRejectedUpload?: boolean;
     promptVersion?: string;
+    /** Lab-only in-memory override. Never eligible for a Gemini prompt cache. */
+    promptText?: string;
+    model?: CakeAnalysisModel;
+    thinkingLevel?: CakeAnalysisThinkingLevel;
+    temperature?: number;
+    topP?: number;
+    topK?: number;
+    sizeSchema?: AnalysisGenerationSizeSchema;
+    usePromptCache?: boolean;
 };
 
-type RunCakeAnalysisResult = {
+export type RunCakeAnalysisResult = {
     result: GeneratedCakeAnalysisResult & {
         analysis_size_schema:
             typeof ANALYSIS_SIZE_SCHEMA
             | typeof LINE_RATIO_ANALYSIS_SIZE_SCHEMA
-            | typeof AI_THREE_BAND_SIZE_SCHEMA;
+            | typeof AI_THREE_BAND_SIZE_SCHEMA
+            | typeof INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA;
     };
     promptVersion: string;
+    rawResponse: string;
+    sizeSchema: AnalysisGenerationSizeSchema;
+    effectiveSettings: {
+        model: CakeAnalysisModel;
+        thinkingLevel: CakeAnalysisThinkingLevel;
+        temperature: number;
+        topP: number;
+        topK: number;
+        usedPromptCache: boolean;
+    };
 };
 
 let cachedPromptDetails: { value: PromptDetails; expiresAt: number } | null = null;
@@ -88,6 +137,7 @@ async function getCachedTypeEnums(supabase: ReturnType<typeof createClient>): Pr
 async function getCachedPromptCacheName(
     aiClient: Awaited<ReturnType<typeof getAI>>,
     promptDetails: PromptDetails,
+    systemInstruction: string,
 ) {
     const now = Date.now();
     if (
@@ -102,7 +152,7 @@ async function getCachedPromptCacheName(
         aiClient,
         promptDetails.promptText,
         promptDetails.version,
-        SYSTEM_INSTRUCTION,
+        systemInstruction,
     );
 
     cachedPromptCacheByVersion = {
@@ -241,12 +291,29 @@ export async function runActiveCakeAnalysis({
     sourceRoute = 'api/ai/analyze',
     persistRejectedUpload = true,
     promptVersion,
+    promptText,
+    model = ANALYSIS_MODEL as CakeAnalysisModel,
+    thinkingLevel = 'LOW',
+    temperature,
+    topP,
+    topK,
+    sizeSchema: requestedSizeSchema,
+    usePromptCache = true,
 }: RunCakeAnalysisInput): Promise<RunCakeAnalysisResult> {
     const supabase = createClient();
+    // Explicit versions are supplied only by trusted server-side flows (admin
+    // comparisons, selected reruns, or the local development selector). They
+    // may be staged/inactive and therefore unavailable through the public RLS
+    // reader used for ordinary active-prompt inference.
+    const promptReader = promptText === undefined && promptVersion
+        ? createAdminServerSupabaseClient()
+        : supabase;
     const [promptDetails, typeEnums] = await Promise.all([
-        promptVersion
-            ? getPromptDetailsByVersion(supabase as unknown as Parameters<typeof getPromptDetailsByVersion>[0], promptVersion)
-            : getCachedPromptDetails(supabase),
+        promptText === undefined && promptVersion
+            ? getPromptDetailsByVersion(promptReader as unknown as Parameters<typeof getPromptDetailsByVersion>[0], promptVersion)
+            : promptText === undefined
+                ? getCachedPromptDetails(supabase)
+                : Promise.resolve({ promptText, version: promptVersion ?? 'lab-custom' }),
         getCachedTypeEnums(supabase),
     ]);
 
@@ -254,16 +321,40 @@ export async function runActiveCakeAnalysis({
         throw new Error(`AI prompt version ${promptVersion} was not found.`);
     }
 
-    const aiClient = getAI(requestContext);
-    const sizeSchema = getAnalysisGenerationSizeSchema(promptDetails.version);
+    const aiClient = await getAI(requestContext);
+    const sizeSchema = requestedSizeSchema ?? getAnalysisGenerationSizeSchema(promptDetails.version);
     const seoSchema = resolveAnalysisGenerationSeoSchema(promptDetails.promptText);
-    const baseConfig = buildSearchAnalysisGenerationConfig(typeEnums, sizeSchema, seoSchema);
+    logCakeAnalysisDebug('Gemini request starting', {
+        promptVersion: promptDetails.version,
+        sizeSchema,
+        seoSchema,
+        model,
+        thinkingLevel,
+        mimeType,
+        imageByteLength: imageData.length,
+        sourceRoute,
+        sourceContext: sourceContext ?? null,
+    });
+    const baseConfig = {
+        ...buildSearchAnalysisGenerationConfig(typeEnums, sizeSchema, seoSchema),
+        ...(temperature === undefined ? {} : { temperature }),
+        ...(topP === undefined ? {} : { topP }),
+        ...(topK === undefined ? {} : { topK }),
+        // LOW is the only currently supported lab level. Keep the production default.
+        thinkingConfig: { thinkingLevel: THINKING_LEVELS[thinkingLevel] },
+    };
     let cacheName: string | null = null;
 
-    try {
-        cacheName = await getCachedPromptCacheName(aiClient, promptDetails);
-    } catch (cacheError) {
-        console.warn('[AI Cache] Failed to create or retrieve context cache:', cacheError);
+    if (usePromptCache && promptText === undefined) {
+        try {
+            cacheName = await getCachedPromptCacheName(
+                aiClient,
+                promptDetails,
+                baseConfig.systemInstruction,
+            );
+        } catch (cacheError) {
+            console.warn('[AI Cache] Failed to create or retrieve context cache:', cacheError);
+        }
     }
 
     const generateAnalysis = async (
@@ -271,7 +362,7 @@ export async function runActiveCakeAnalysis({
         timeoutMs = AI_REQUEST_TIMEOUT_MS,
     ) => {
         const generateWithoutCache = () => aiClient.models.generateContent({
-            model: ANALYSIS_MODEL,
+            model,
             contents: [{
                 role: 'user',
                 parts: [
@@ -292,7 +383,7 @@ export async function runActiveCakeAnalysis({
         delete (cachedConfig as { systemInstruction?: unknown }).systemInstruction;
         try {
             return await aiClient.models.generateContent({
-                model: ANALYSIS_MODEL,
+                model,
                 contents: [{
                     role: 'user',
                     parts: [
@@ -314,8 +405,10 @@ export async function runActiveCakeAnalysis({
         }
     };
 
+    let rawResponse = '';
     const parseAndValidate = async (response: Awaited<ReturnType<typeof generateAnalysis>>) => {
         const jsonText = (response.text || '').trim();
+        rawResponse = jsonText;
         try {
             const generated = JSON.parse(jsonText);
             const waferPaperSideWaveVerification = hasWaferPaperSideWaveCandidate(generated)
@@ -331,10 +424,9 @@ export async function runActiveCakeAnalysis({
         } catch (error) {
             console.error('Failed to parse AI response:', jsonText);
             if (error instanceof GeneratedAnalysisContractError) throw error;
-            throw new Error('Invalid response format from AI');
+            throw new CakeAnalysisResponseError('Invalid response format from AI', jsonText, error);
         }
     };
-
     let result: GeneratedCakeAnalysisResult;
     try {
         result = await parseAndValidate(await generateAnalysis());
@@ -358,12 +450,20 @@ export async function runActiveCakeAnalysis({
         message?: string;
     } | undefined;
 
+    logCakeAnalysisDebug('Validated analysis and application-owned sizing complete', {
+        promptVersion: promptDetails.version,
+        sizeSchema,
+        rejected: rejection?.isRejected === true,
+        analysis: result,
+        geometry: result.geometry ?? null,
+    });
+
     if (rejection?.isRejected && persistRejectedUpload) {
         await logRejectedUpload({
             imageData,
             mimeType,
             rejection,
-            modelName: ANALYSIS_MODEL,
+            modelName: model,
             promptVersion: promptDetails.version,
             sourceRoute,
             sourceContext: sourceContext ?? null,
@@ -378,8 +478,20 @@ export async function runActiveCakeAnalysis({
                 ? LINE_RATIO_ANALYSIS_SIZE_SCHEMA
                 : sizeSchema === 'local_bbox_area'
                     ? ANALYSIS_SIZE_SCHEMA
+                    : sizeSchema === 'integrated_bbox_v1'
+                        ? INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA
                     : AI_THREE_BAND_SIZE_SCHEMA,
         },
         promptVersion: promptDetails.version,
+        rawResponse,
+        sizeSchema,
+        effectiveSettings: {
+            model,
+            thinkingLevel,
+            temperature: baseConfig.temperature,
+            topP: baseConfig.topP,
+            topK: baseConfig.topK,
+            usedPromptCache: Boolean(cacheName),
+        },
     };
 }

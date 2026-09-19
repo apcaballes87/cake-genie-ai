@@ -41,7 +41,11 @@ type PricingState = {
 
 type RuntimeDeps = {
   SYSTEM_INSTRUCTION: string;
-  buildSearchAnalysisGenerationConfig: (typeEnums: unknown) => Record<string, unknown>;
+  buildSearchAnalysisGenerationConfig: (
+    typeEnums: unknown,
+    sizeSchema?: unknown,
+    seoSchema?: unknown,
+  ) => Record<string, unknown>;
   calculatePriceFromDatabase: (
     uiState: PricingState,
     merchantId?: string,
@@ -59,13 +63,20 @@ type RuntimeDeps = {
   };
   getActivePromptDetails: (supabase: unknown) => Promise<{ promptText: string; version: string }>;
   getDynamicTypeEnums: (supabase: unknown) => Promise<unknown>;
+  getAnalysisGenerationSizeSchema: (version: string) => unknown;
+  resolveAnalysisGenerationSeoSchema: (promptText: string) => unknown;
   getOrCreatePromptCache: (
     aiClient: any,
     promptText: string,
     version: string,
     systemInstruction: string,
   ) => Promise<string | null>;
-  postProcessSearchAnalysisResult: <T extends object>(result: T) => T;
+  postProcessSearchAnalysisResult: (
+    result: unknown,
+    typeEnums: unknown,
+    sizeSchema?: unknown,
+    seoSchema?: unknown,
+  ) => JsonRecord;
   roundDownToNearest99: (price: number, minPrice?: number) => number;
 };
 
@@ -272,6 +283,9 @@ async function analyzeImageUrl(
   cacheName: string | null,
   baseConfig: Record<string, unknown>,
   aiClient: any,
+  typeEnums: unknown,
+  sizeSchema: unknown,
+  seoSchema: unknown,
 ) {
   const imageResponse = await fetch(imageUrl, {
     headers: { Accept: 'image/*' },
@@ -342,7 +356,7 @@ async function analyzeImageUrl(
 
   const rawText = (response.text || '').trim();
   const parsed = parseOutputText(rawText);
-  const result = runtimeDeps.postProcessSearchAnalysisResult(parsed);
+  const result = runtimeDeps.postProcessSearchAnalysisResult(parsed, typeEnums, sizeSchema, seoSchema);
   const rejection = result.rejection as { isRejected?: boolean; reason?: string; message?: string } | undefined;
   if (rejection?.isRejected) {
     throw new Error(`Analysis rejected: ${rejection.reason || rejection.message || 'unknown reason'}`);
@@ -356,6 +370,9 @@ async function processRow(
   cacheName: string | null,
   baseConfig: Record<string, unknown>,
   aiClient: any,
+  typeEnums: unknown,
+  sizeSchema: unknown,
+  seoSchema: unknown,
 ) {
   if (!row.original_image_url) {
     throw new Error('Missing original_image_url.');
@@ -367,6 +384,9 @@ async function processRow(
     cacheName,
     baseConfig,
     aiClient,
+    typeEnums,
+    sizeSchema,
+    seoSchema,
   );
   const price = await calculateCachePrice(analysis);
 
@@ -395,6 +415,7 @@ async function loadRuntimeDeps(): Promise<RuntimeDeps> {
     aiPromptsModule,
     aiUtilsModule,
     contractModule,
+    generatedAnalysisContractModule,
     promptLoaderModule,
     pricingModule,
     pricingUtilsModule,
@@ -404,6 +425,7 @@ async function loadRuntimeDeps(): Promise<RuntimeDeps> {
     import('@/lib/ai/prompts'),
     import('@/lib/ai/utils'),
     import('@/lib/admin/searchAnalysisContract'),
+    import('@/lib/ai/generatedAnalysisContract'),
     import('@/services/prompts/promptLoader'),
     import('@/services/pricingService.database'),
     import('@/lib/utils/pricing'),
@@ -418,8 +440,10 @@ async function loadRuntimeDeps(): Promise<RuntimeDeps> {
     getAI: aiClientModule.getAI,
     getActivePromptDetails: promptLoaderModule.getActivePromptDetails,
     getDynamicTypeEnums: aiUtilsModule.getDynamicTypeEnums,
+    getAnalysisGenerationSizeSchema: contractModule.getAnalysisGenerationSizeSchema,
     getOrCreatePromptCache: aiClientModule.getOrCreatePromptCache,
     postProcessSearchAnalysisResult: contractModule.postProcessSearchAnalysisResult,
+    resolveAnalysisGenerationSeoSchema: generatedAnalysisContractModule.resolveAnalysisGenerationSeoSchema,
     roundDownToNearest99: pricingUtilsModule.roundDownToNearest99,
   };
 }
@@ -432,12 +456,14 @@ async function main() {
     runtimeDeps.getActivePromptDetails(supabase),
     runtimeDeps.getDynamicTypeEnums(supabase),
   ]);
-  const baseConfig = runtimeDeps.buildSearchAnalysisGenerationConfig(typeEnums);
+  const sizeSchema = runtimeDeps.getAnalysisGenerationSizeSchema(promptDetails.version);
+  const seoSchema = runtimeDeps.resolveAnalysisGenerationSeoSchema(promptDetails.promptText);
+  const baseConfig = runtimeDeps.buildSearchAnalysisGenerationConfig(typeEnums, sizeSchema, seoSchema);
   const cacheName = await runtimeDeps.getOrCreatePromptCache(
     aiClient,
     promptDetails.promptText,
     promptDetails.version,
-    runtimeDeps.SYSTEM_INSTRUCTION,
+    String(baseConfig.systemInstruction ?? runtimeDeps.SYSTEM_INSTRUCTION),
   );
 
   console.log(`Starting cache re-analysis${dryRun ? ' (dry run)' : ''} with prompt version ${promptDetails.version}.`);
@@ -479,6 +505,9 @@ async function main() {
             cacheName,
             baseConfig,
             aiClient,
+            typeEnums,
+            sizeSchema,
+            seoSchema,
           );
           updated += 1;
           console.log(`${label} ${dryRun ? 'analyzed' : 'updated'} price=${result.price}`);

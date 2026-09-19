@@ -4,7 +4,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ImageProvider, useImageManagement } from './ImageContext';
-import type { HybridAnalysisResult } from '@/services/geminiService';
+import type { HybridAnalysisResult } from '@/types';
 
 const {
   dismissToastMock,
@@ -106,6 +106,7 @@ vi.mock('@/lib/utils/serverFingerprint.client', () => ({
 
 vi.mock('@/config/features', () => ({
   FEATURE_FLAGS: {
+    ENABLE_UPLOAD_AI_IMAGE_EDITING: false,
     USE_ROBOFLOW_COORDINATES: false,
   },
 }));
@@ -177,7 +178,38 @@ describe('ImageContext', () => {
     });
   });
 
-  it('starts Studio setup while cake analysis is still pending for a valid cake', async () => {
+  it('starts compression before the original base64 read finishes', async () => {
+    const onSuccess = vi.fn();
+    const onError = vi.fn();
+    const { result } = renderHook(() => useImageManagement(), { wrapper });
+    const file = new File(['image-bytes'], 'cake.png', { type: 'image/png' });
+    let resolveOriginal: (value: { data: string; mimeType: string }) => void = () => undefined;
+
+    fileToBase64Mock
+      .mockImplementationOnce(() => new Promise(resolve => {
+        resolveOriginal = resolve;
+      }))
+      .mockResolvedValue({ data: 'compressed-base64', mimeType: 'image/webp' });
+
+    let uploadPromise: Promise<void>;
+    await act(async () => {
+      uploadPromise = result.current.handleImageUpload(file, onSuccess, onError);
+      await Promise.resolve();
+    });
+
+    expect(compressImageMock).toHaveBeenCalledWith(file, {
+      maxSizeMB: 0.5,
+      maxWidthOrHeight: 1024,
+      fileType: 'image/webp',
+    });
+
+    resolveOriginal({ data: 'uploaded-base64', mimeType: 'image/png' });
+    await act(async () => {
+      await uploadPromise;
+    });
+  });
+
+  it('does not start Studio setup while upload image editing is paused', async () => {
     const onSuccess = vi.fn();
     const onError = vi.fn();
     const { result } = renderHook(() => useImageManagement(), { wrapper });
@@ -198,20 +230,8 @@ describe('ImageContext', () => {
       await Promise.resolve();
     });
 
-    expect(prepareStudioEditCacheRowMock).toHaveBeenCalledWith('abc123def4567890', {
-      fingerprintPipeline: 'v2-test-pipeline',
-      pdqHash: 'ab'.repeat(32),
-      pdqQuality: 92,
-      pdqPipeline: 'pdq-test-pipeline',
-      originalImageUrl: null,
-    });
-    expect(triggerStudioEditFromUploadMock).toHaveBeenCalledWith(
-      'abc123def4567890',
-      expect.objectContaining({
-        data: 'uploaded-base64',
-        mimeType: 'image/png',
-      })
-    );
+    expect(prepareStudioEditCacheRowMock).not.toHaveBeenCalled();
+    expect(triggerStudioEditFromUploadMock).not.toHaveBeenCalled();
     expect(onSuccess).not.toHaveBeenCalled();
 
     resolveAnalysis({
@@ -231,20 +251,8 @@ describe('ImageContext', () => {
       await uploadPromise;
     });
 
-    expect(prepareStudioEditCacheRowMock).toHaveBeenCalledWith('abc123def4567890', {
-      fingerprintPipeline: 'v2-test-pipeline',
-      pdqHash: 'ab'.repeat(32),
-      pdqQuality: 92,
-      pdqPipeline: 'pdq-test-pipeline',
-      originalImageUrl: null,
-    });
-    expect(triggerStudioEditFromUploadMock).toHaveBeenCalledWith(
-      'abc123def4567890',
-      expect.objectContaining({
-        data: 'uploaded-base64',
-        mimeType: 'image/png',
-      })
-    );
+    expect(prepareStudioEditCacheRowMock).not.toHaveBeenCalled();
+    expect(triggerStudioEditFromUploadMock).not.toHaveBeenCalled();
     expect(onSuccess).toHaveBeenCalledWith(expect.objectContaining({
       keyword: 'purple cake',
     }));
@@ -292,17 +300,10 @@ describe('ImageContext', () => {
     expect(triggerStudioEditFromUploadMock).not.toHaveBeenCalled();
   });
 
-  it('does not schedule a delayed cache-write studio trigger when prepare already handled Studio', async () => {
+  it('does not schedule any Studio trigger while upload image editing is paused', async () => {
     const onSuccess = vi.fn();
     const onError = vi.fn();
     const { result } = renderHook(() => useImageManagement(), { wrapper });
-
-    prepareStudioEditCacheRowMock.mockResolvedValue({
-      id: 'already-handled-cache-row',
-      storedPHash: 'abc123def4567890',
-      shouldTriggerStudioEdit: false,
-      studioTriggerHandled: true,
-    });
 
     await act(async () => {
       await result.current.handleImageUpload(
@@ -313,6 +314,7 @@ describe('ImageContext', () => {
     });
 
     expect(triggerStudioEditFromUploadMock).not.toHaveBeenCalled();
+    expect(prepareStudioEditCacheRowMock).not.toHaveBeenCalled();
     expect(cacheAnalysisResultMock).toHaveBeenCalledWith(
       'abc123def4567890',
       expect.objectContaining({ keyword: 'purple cake' }),
@@ -329,12 +331,10 @@ describe('ImageContext', () => {
     expect(onError).not.toHaveBeenCalled();
   });
 
-  it('allows the cache-write studio trigger only when the early upload trigger fails', async () => {
+  it('keeps the cache write independent from the paused Studio trigger', async () => {
     const onSuccess = vi.fn();
     const onError = vi.fn();
     const { result } = renderHook(() => useImageManagement(), { wrapper });
-
-    triggerStudioEditFromUploadMock.mockResolvedValue(false);
 
     await act(async () => {
       await result.current.handleImageUpload(
@@ -344,13 +344,8 @@ describe('ImageContext', () => {
       );
     });
 
-    expect(triggerStudioEditFromUploadMock).toHaveBeenCalledWith(
-      'abc123def4567890',
-      expect.objectContaining({
-        data: 'uploaded-base64',
-        mimeType: 'image/png',
-      })
-    );
+    expect(triggerStudioEditFromUploadMock).not.toHaveBeenCalled();
+    expect(prepareStudioEditCacheRowMock).not.toHaveBeenCalled();
     expect(cacheAnalysisResultMock).toHaveBeenCalledWith(
       'abc123def4567890',
       expect.objectContaining({ keyword: 'purple cake' }),
@@ -358,7 +353,7 @@ describe('ImageContext', () => {
       expect.any(Blob),
       expect.objectContaining({
         fingerprintPipeline: 'v2-test-pipeline',
-        triggerStudioEdit: true,
+        triggerStudioEdit: false,
       })
     );
     expect(onSuccess).toHaveBeenCalledWith(expect.objectContaining({

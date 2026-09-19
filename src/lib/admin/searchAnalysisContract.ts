@@ -29,6 +29,10 @@ import {
   applyLocalBboxAreaSizing,
   applyLocalLineRatioSizing,
 } from '@/lib/ai/localAnalysisSizing';
+import {
+  applyIntegratedBboxSizing,
+  validateIntegratedBboxResponse,
+} from '@/lib/ai/integratedBboxAnalysis';
 
 export const SEARCH_ANALYSIS_REJECTION_REASONS = GENERATED_ANALYSIS_REJECTION_REASONS;
 export const SEARCH_ANALYSIS_ICING_BASES = GENERATED_ANALYSIS_ICING_BASES;
@@ -39,7 +43,8 @@ export type AnalysisGenerationSizeSchema =
   | 'three_band'
   | 'ai_diameter_anchor'
   | 'local_bbox_area'
-  | 'local_line_ratio';
+  | 'local_line_ratio'
+  | 'integrated_bbox_v1';
 
 /**
  * Independent visual verdict for the exceptional, priced wafer-wave type.
@@ -69,6 +74,9 @@ export function getAnalysisGenerationSizeSchema(promptVersion: string): Analysis
   if (!match) return 'legacy_six_band';
   const major = Number.parseInt(match[1], 10);
   const minor = Number.parseInt(match[2], 10);
+  // v3.92+ owns sizing in application code from a single Gemini response with
+  // row-attached [y, x] bounding boxes and cake measurement lines.
+  if (major > 3 || (major === 3 && minor >= 92)) return 'integrated_bbox_v1';
   // v3.84+ uses direct three-band output with the visible top-tier diameter
   // as the model's only sizing anchor; no coordinate geometry is requested.
   if (major > 3 || (major === 3 && minor >= 84)) return 'ai_diameter_anchor';
@@ -522,6 +530,42 @@ const ELEMENT_SIZE_LINE_SCHEMA = {
   description: 'One representative normalized line for the item primary dimension used for local sizing. Measure height for 3D figures, toys, crowns, figurines, and candles; the larger visible span along the dominant physical axis for flat toppers; bloom width for flowers; sphere width for balls; and the longest relevant visible span along one dominant edge or axis for flat artwork, logos, panels, and other flat items. For a repeated icing border row, measure one typical visible shell, bead, dollop, rosette, or swirl, never the full perimeter or border run. Put endpoints on opposite directly visible boundaries of that same dimension and keep the segment within the representative item. Use apparent image-space geometry without perspective correction. Use vertical or horizontal by default; order horizontal lines left-to-right, vertical lines top-to-bottom, and other diagonals by smaller x first. Allow a slant only when the item or its true primary axis is visibly rotated or perspective-skewed. Never use a corner-to-corner diagonal, infer hidden continuation, cross empty space, or slant merely to increase length. For repeated rows, measure one typical visible unit only.',
 };
 
+const INTEGRATED_BBOX_SCHEMA = {
+  type: Type.ARRAY,
+  items: { type: Type.NUMBER },
+  minItems: 4,
+  maxItems: 4,
+  description: 'Tight normalized [ymin, xmin, ymax, xmax] box for this exact row. Use one representative visible unit for a repeated group.',
+};
+
+const INTEGRATED_POINT_SCHEMA = {
+  type: Type.ARRAY,
+  items: { type: Type.NUMBER },
+  minItems: 2,
+  maxItems: 2,
+  description: 'Normalized [y, x] point in the original image.',
+};
+
+const INTEGRATED_LINE_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    start: INTEGRATED_POINT_SCHEMA,
+    end: INTEGRATED_POINT_SCHEMA,
+  },
+  required: ['start', 'end'],
+};
+
+/**
+ * Older system instructions still document direct and line-ratio modes for
+ * historical prompts. Append this only for v3.92+ so the selected generation
+ * contract wins without changing a live pre-v3.92 analysis.
+ */
+const INTEGRATED_BBOX_SYSTEM_OVERRIDE = `
+
+## V3.92 INTEGRATED BOUNDING-BOX PRECEDENCE (AUTHORITATIVE)
+
+For the integrated_bbox_v1 response schema, this instruction overrides every earlier direct-diameter, model-owned size, cake_measurements, size_line, bbox, fixed-size, size-free filler, and coverage-to-size instruction. Return the required { analysis, geometry } envelope in one response. Never emit a model-owned size, ratio, area, legacy bbox, size_line, or cake_measurements field. Every accepted analysis row in main_toppers, support_elements, and cake_messages needs a tight normalized [ymin, xmin, ymax, xmax] box_2d and bbox_confidence; accepted images need the two geometry lines. Preserve coverage and subtype as analysis metadata only. Rejected images have empty arrays and geometry_version only, with no measurement lines.`;
+
 export function buildSearchAnalysisResponseSchema(
   typeEnums: GeneratedAnalysisTypeEnums,
   sizeSchema: AnalysisGenerationSizeSchema = 'three_band',
@@ -545,7 +589,8 @@ export function buildSearchAnalysisResponseSchema(
   const isLocalLineRatio = sizeSchema === 'local_line_ratio';
   const isLocalBboxArea = sizeSchema === 'local_bbox_area';
   const isDirectDiameterAnchor = sizeSchema === 'ai_diameter_anchor';
-  const usesLocalGeometry = isLocalLineRatio || isLocalBboxArea;
+  const isIntegratedBbox = sizeSchema === 'integrated_bbox_v1';
+  const usesLocalGeometry = isLocalLineRatio || isLocalBboxArea || isIntegratedBbox;
   const generatedSizeProperty = usesLocalGeometry
     ? {}
     : { size: { type: Type.STRING, enum: [...generationSizes] } };
@@ -556,11 +601,20 @@ export function buildSearchAnalysisResponseSchema(
   // fixed-size overrides intentionally do not need one. The type-specific
   // requirement is enforced after generation rather than in this shared
   // provider schema.
-  const localGeometryRequired = isLocalBboxArea ? ['bbox'] : [];
+  const localGeometryRequired = isIntegratedBbox
+    ? ['box_2d', 'bbox_confidence']
+    : isLocalBboxArea
+      ? ['bbox']
+      : [];
   const generatedElementGeometryProperty = isLocalLineRatio
     ? { size_line: ELEMENT_SIZE_LINE_SCHEMA }
     : isLocalBboxArea
       ? { bbox: ELEMENT_BBOX_SCHEMA }
+      : isIntegratedBbox
+        ? {
+          box_2d: INTEGRATED_BBOX_SCHEMA,
+          bbox_confidence: { type: Type.NUMBER, description: 'Confidence from 0 through 1 for this tight visible box.' },
+        }
       : isDirectDiameterAnchor
         ? {}
         : { bbox: ELEMENT_BBOX_SCHEMA };
@@ -609,7 +663,9 @@ export function buildSearchAnalysisResponseSchema(
             coverage: {
               type: Type.STRING,
               enum: [...GENERATED_PIPED_FLOWER_COVERAGES],
-              description: 'Required only for piped_flowers_top. Exact top-surface piped-flower coverage price band: small under 30%, medium 30% to under 60%, large 60% or more.',
+              description: isIntegratedBbox
+                ? 'Required only for piped_flowers_top as existing treatment metadata. It does not determine size in integrated_bbox_v1.'
+                : 'Required only for piped_flowers_top. Exact top-surface piped-flower coverage price band: small under 30%, medium 30% to under 60%, large 60% or more.',
             },
             ...generatedElementGeometryProperty,
             ...generatedSizeProperty,
@@ -634,7 +690,9 @@ export function buildSearchAnalysisResponseSchema(
             coverage: {
               type: Type.STRING,
               enum: [...GENERATED_PIPED_FLOWER_COVERAGES],
-              description: 'Required only for piped_flowers_side. Exact visible cake-side piped-flower coverage price band: small under 30%, medium 30% to under 60%, large 60% or more.',
+              description: isIntegratedBbox
+                ? 'Required only for piped_flowers_side as existing treatment metadata. It does not determine size in integrated_bbox_v1.'
+                : 'Required only for piped_flowers_side. Exact visible cake-side piped-flower coverage price band: small under 30%, medium 30% to under 60%, large 60% or more.',
             },
             quantity: { type: Type.INTEGER },
             description: { type: Type.STRING },
@@ -654,9 +712,17 @@ export function buildSearchAnalysisResponseSchema(
             type: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_MESSAGE_TYPES] },
             color: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_COLOR_HEXES] },
             position: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_MESSAGE_POSITIONS] },
-            bbox: ELEMENT_BBOX_SCHEMA,
+            ...(isIntegratedBbox
+              ? {
+                box_2d: INTEGRATED_BBOX_SCHEMA,
+                bbox_confidence: { type: Type.NUMBER, description: 'Confidence from 0 through 1 for this tight visible box.' },
+              }
+              : { bbox: ELEMENT_BBOX_SCHEMA }),
           },
-          required: ['text', 'type', 'color', 'position'],
+          required: [
+            'text', 'type', 'color', 'position',
+            ...(isIntegratedBbox ? ['box_2d', 'bbox_confidence'] : []),
+          ],
         },
       },
       icing_design: {
@@ -709,7 +775,7 @@ export function buildSearchAnalysisResponseSchema(
         description: 'Natural customer-facing cake description in 5 to 7 sentences. Do not include availability or lead-time claims.',
       },
       } : {}),
-      ...(!isDirectDiameterAnchor ? { cake_measurements: CAKE_MEASUREMENTS_SCHEMA } : {}),
+      ...(!isDirectDiameterAnchor && !isIntegratedBbox ? { cake_measurements: CAKE_MEASUREMENTS_SCHEMA } : {}),
       rejection: {
         type: Type.OBJECT,
         properties: {
@@ -742,10 +808,33 @@ export function buildSearchAnalysisGenerationConfig(
   sizeSchema: AnalysisGenerationSizeSchema = 'three_band',
   seoSchema: AnalysisGenerationSeoSchema = 'analysis_only',
 ) {
+  const analysisSchema = buildSearchAnalysisResponseSchema(typeEnums, sizeSchema, seoSchema);
   return {
-    systemInstruction: SYSTEM_INSTRUCTION,
+    systemInstruction: sizeSchema === 'integrated_bbox_v1'
+      ? `${SYSTEM_INSTRUCTION}${INTEGRATED_BBOX_SYSTEM_OVERRIDE}`
+      : SYSTEM_INSTRUCTION,
     responseMimeType: 'application/json',
-    responseSchema: buildSearchAnalysisResponseSchema(typeEnums, sizeSchema, seoSchema),
+    responseSchema: sizeSchema === 'integrated_bbox_v1'
+      ? {
+        type: Type.OBJECT,
+        properties: {
+          analysis: analysisSchema,
+          geometry: {
+            type: Type.OBJECT,
+            properties: {
+              geometry_version: { type: Type.STRING, enum: ['integrated_bbox_v1'] },
+              cake_diameter_line: INTEGRATED_LINE_SCHEMA,
+              cake_height_line: INTEGRATED_LINE_SCHEMA,
+            },
+            // Measurement lines are intentionally optional here so the canonical
+            // rejected response can omit them. Runtime validation requires them
+            // for every accepted image.
+            required: ['geometry_version'],
+          },
+        },
+        required: ['analysis', 'geometry'],
+      }
+      : analysisSchema,
     temperature: 0,
     topP: 1,
     topK: 1,
@@ -760,6 +849,23 @@ export function postProcessSearchAnalysisResult(
   seoSchema: AnalysisGenerationSeoSchema = 'analysis_only',
   waferPaperSideWaveVerification?: WhiteWaferPaperSideWaveVerification,
 ): GeneratedCakeAnalysisResult {
+  if (sizeSchema === 'integrated_bbox_v1') {
+    const integrated = validateIntegratedBboxResponse(result);
+    const reconciledResult = reconcileGeneratedCakeTypeThickness(integrated.analysis);
+    const reconciledOutput = removeUnverifiedConditionedWaferPaperWaves(
+      reconcileDescriptionTypes(removeExplicitSceneOnlyItems(reconciledResult), typeEnums),
+    );
+    const locallySized = applyIntegratedBboxSizing({
+      analysis: reconciledOutput as Record<string, unknown>,
+      geometry: integrated.geometry,
+    });
+    return validateGeneratedCakeAnalysisResult(
+      locallySized,
+      typeEnums,
+      seoSchema,
+      { integratedBbox: true },
+    );
+  }
   const reconciledResult = reconcileGeneratedCakeTypeThickness(result);
   if (reconciledResult !== result && typeof result === 'object' && result !== null) {
     const generated = result as Record<string, unknown>;

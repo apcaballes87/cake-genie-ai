@@ -10,6 +10,7 @@ import {
 import { FEATURE_FLAGS, isRoboflowConfigured } from '@/config/features';
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
 import { getEditImageCompressionOptions } from '@/utils/editImageTuning';
+import { logCakeAnalysisDebug } from '@/lib/ai/analysisDebug';
 
 // Cache the prompt for 10 minutes (Still used? Maybe optional if moved to server entirely)
 // Keeping simple cache struct for now if deemed necessary for other things, but prompt fetching is now server-side
@@ -43,22 +44,33 @@ function resolveRejectionMessage(rejection: { reason?: string; message?: string 
 
 const PROMPT_CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
 
-// Helper to encode array buffer to base64
-const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
-    let binary = '';
-    const bytes = new Uint8Array(buffer);
-    for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
-    }
-    return window.btoa(binary);
-}
-
 // Exported utility to read file as base64
 export const fileToBase64 = async (file: File): Promise<{ mimeType: string; data: string }> => {
     try {
-        const arrayBuffer = await file.arrayBuffer();
-        const base64Data = arrayBufferToBase64(arrayBuffer);
-        return { mimeType: file.type, data: base64Data };
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+
+            reader.onload = () => {
+                if (typeof reader.result === 'string') {
+                    resolve(reader.result);
+                } else {
+                    reject(new Error('Image reader returned an invalid result.'));
+                }
+            };
+            reader.onerror = () => reject(reader.error ?? new Error('Failed to read image file.'));
+            reader.readAsDataURL(file);
+        });
+
+        const separatorIndex = dataUrl.indexOf(',');
+        if (separatorIndex < 0) {
+            throw new Error('Image data URL is missing its payload.');
+        }
+
+        const dataUrlMimeType = dataUrl.slice(5, separatorIndex).split(';', 1)[0];
+        return {
+            mimeType: file.type || dataUrlMimeType,
+            data: dataUrl.slice(separatorIndex + 1),
+        };
     } catch (error) {
         console.error("Error reading file:", error);
         throw new Error("Failed to read the image file.");
@@ -110,6 +122,10 @@ export async function analyzeCakeFeaturesOnly(
     mimeType: string
 ): Promise<HybridAnalysisResult> {
     try {
+        logCakeAnalysisDebug('Landing page sent /api/ai/analyze', {
+            mimeType,
+            imageByteLength: base64ImageData.length,
+        });
         const response = await fetch('/api/ai/analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -122,6 +138,12 @@ export async function analyzeCakeFeaturesOnly(
         }
 
         const result = await response.json();
+        logCakeAnalysisDebug('Landing page received analyzed result', {
+            analysisSizeSchema: result.analysis_size_schema ?? null,
+            rejection: result.rejection ?? null,
+            analysis: result,
+            geometry: result.geometry ?? null,
+        });
 
         // Check for AI rejection (except selfie, which we handle downstream in the context)
         if (result.rejection && result.rejection.isRejected && result.rejection.reason !== 'selfie') {

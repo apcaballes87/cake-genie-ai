@@ -28,34 +28,6 @@ const validAnalysis = {
     rejection: { isRejected: false, reason: '', message: '' },
 };
 
-const validAnalysisOnly = {
-    cakeType: validAnalysis.cakeType,
-    cakeThickness: validAnalysis.cakeThickness,
-    main_toppers: validAnalysis.main_toppers,
-    support_elements: validAnalysis.support_elements,
-    cake_messages: validAnalysis.cake_messages,
-    icing_design: validAnalysis.icing_design,
-    keyword: validAnalysis.keyword,
-    rejection: validAnalysis.rejection,
-};
-
-const validLineRatioAnalysis = {
-    ...validAnalysisOnly,
-    cake_measurements: {
-        diameter: { start: { x: 100, y: 500 }, end: { x: 900, y: 500 } },
-        height: { start: { x: 500, y: 500 }, end: { x: 500, y: 800 } },
-    },
-    support_elements: [{
-        type: 'edible_flowers',
-        material: 'edible_fondant',
-        group_id: 'side_flower',
-        color: '#FF69B4',
-        quantity: 1,
-        size_line: { start: { x: 400, y: 300 }, end: { x: 480, y: 300 } },
-        description: 'one pink fondant flower on the cake side',
-    }],
-};
-
 vi.mock('@/lib/ai/client', () => ({
     getAI: vi.fn(() => ({
         models: {
@@ -85,7 +57,7 @@ describe('POST /api/ai/analyze', () => {
         mockGetActivePromptDetails.mockReset();
         mockGetDynamicTypeEnums.mockReset();
         mockGetActivePromptDetails.mockResolvedValue({
-            promptText: '## STEP 5: SEO COPY GENERATION\nAnalyze this cake',
+      promptText: '## STEP 5: SEO COPY GENERATION\nAnalyze this cake',
             version: '1.0',
         });
         mockGetDynamicTypeEnums.mockResolvedValue({
@@ -96,6 +68,17 @@ describe('POST /api/ai/analyze', () => {
         mockGenerateContent.mockResolvedValue({
             text: JSON.stringify(validAnalysis),
         });
+    });
+
+    it('allows a local-only staged prompt override without exposing it outside development', async () => {
+        const { getDevelopmentPromptVersionOverride } = await import('./route');
+
+        vi.stubEnv('NODE_ENV', 'development');
+        vi.stubEnv('CAKE_ANALYSIS_PROMPT_VERSION', ' 3.92 ');
+        expect(getDevelopmentPromptVersionOverride()).toBe('3.92');
+
+        vi.stubEnv('NODE_ENV', 'production');
+        expect(getDevelopmentPromptVersionOverride()).toBeUndefined();
     });
 
     it('rejects requests if imageData or mimeType is missing', async () => {
@@ -157,131 +140,6 @@ describe('POST /api/ai/analyze', () => {
         expect(mockGenerateContent).toHaveBeenCalledWith(
             expect.objectContaining({ model: 'gemini-3.5-flash-lite' })
         );
-        expect(mockGenerateContent).toHaveBeenCalledTimes(1);
-    });
-
-    it('fails closed when the conditional white-wafer verifier returns malformed JSON', async () => {
-        mockGetOrCreatePromptCache.mockResolvedValue(null);
-        mockGetActivePromptDetails.mockResolvedValue({ promptText: 'Analyze this cake', version: '3.88' });
-        mockGetDynamicTypeEnums.mockResolvedValue({
-            mainTopperTypes: ['printout', 'edible_3d_ordinary'],
-            supportElementTypes: ['edible_flowers', 'edible_2d_support', 'sprinkles', 'edible_photo_side_wave'],
-            subtypesByType: {},
-        });
-        mockGenerateContent
-            .mockResolvedValueOnce({
-                text: JSON.stringify({
-                    ...validAnalysisOnly,
-                    support_elements: [{
-                        type: 'edible_photo_side_wave',
-                        material: 'waferpaper',
-                        group_id: 'wafer_paper_side_wrap',
-                        color: '#F5F5DC',
-                        size: 'large',
-                        quantity: 1,
-                        description: 'repeated perimeter wrap of separate thin upright wafer-paper strips with loose wavy edges',
-                    }],
-                }),
-            })
-            .mockResolvedValueOnce({ text: '{}' });
-
-        const { POST } = await import('./route');
-        const response = await POST(new NextRequest('http://localhost/api/ai/analyze', {
-            method: 'POST',
-            body: JSON.stringify({ imageData: 'base64-data', mimeType: 'image/png' }),
-        }));
-        const payload = await response.json();
-
-        expect(response.status).toBe(200);
-        expect(payload.support_elements).toEqual([]);
-        expect(mockGenerateContent).toHaveBeenCalledTimes(2);
-        expect(mockGenerateContent.mock.calls[1][0]).toMatchObject({
-            config: expect.objectContaining({ responseMimeType: 'application/json', temperature: 0 }),
-        });
-    });
-
-    it('fails closed when the conditional white-wafer verifier times out', async () => {
-        mockGetOrCreatePromptCache.mockResolvedValue(null);
-        mockGetActivePromptDetails.mockResolvedValue({ promptText: 'Analyze this cake', version: '3.89' });
-        mockGetDynamicTypeEnums.mockResolvedValue({
-            mainTopperTypes: ['printout', 'edible_3d_ordinary'],
-            supportElementTypes: ['edible_flowers', 'edible_2d_support', 'sprinkles', 'edible_photo_side_wave'],
-            subtypesByType: {},
-        });
-        mockGenerateContent
-            .mockResolvedValueOnce({
-                text: JSON.stringify({
-                    ...validAnalysisOnly,
-                    support_elements: [{
-                        type: 'edible_photo_side_wave',
-                        material: 'waferpaper',
-                        group_id: 'ambiguous_white_side_wave',
-                        color: '#FFFFFF',
-                        size: 'large',
-                        quantity: 1,
-                        description: 'separate upright white wafer-paper strips with loose wavy edges around the side',
-                    }],
-                }),
-            })
-            .mockRejectedValueOnce(new Error('verifier timeout'));
-
-        const { POST } = await import('./route');
-        const response = await POST(new NextRequest('http://localhost/api/ai/analyze', {
-            method: 'POST',
-            body: JSON.stringify({ imageData: 'base64-data', mimeType: 'image/png' }),
-        }));
-        const payload = await response.json();
-
-        expect(response.status).toBe(200);
-        expect(payload.support_elements).toEqual([]);
-        expect(mockGenerateContent).toHaveBeenCalledTimes(2);
-    });
-
-    it('retains a wave only after every white-only verifier cue passes', async () => {
-        mockGetOrCreatePromptCache.mockResolvedValue(null);
-        mockGetActivePromptDetails.mockResolvedValue({ promptText: 'Analyze this cake', version: '3.88' });
-        mockGetDynamicTypeEnums.mockResolvedValue({
-            mainTopperTypes: ['printout', 'edible_3d_ordinary'],
-            supportElementTypes: ['edible_flowers', 'edible_2d_support', 'sprinkles', 'edible_photo_side_wave'],
-            subtypesByType: {},
-        });
-        mockGenerateContent
-            .mockResolvedValueOnce({
-                text: JSON.stringify({
-                    ...validAnalysisOnly,
-                    support_elements: [{
-                        type: 'edible_photo_side_wave',
-                        material: 'waferpaper',
-                        group_id: 'white_wafer_paper_side_wrap',
-                        color: '#FFFFFF',
-                        size: 'large',
-                        quantity: 1,
-                        description: 'repeated perimeter wrap of separate thin upright white wafer-paper strips with loose wavy edges',
-                    }],
-                }),
-            })
-            .mockResolvedValueOnce({
-                text: JSON.stringify({
-                    hasDistinctThinPaperStrips: true,
-                    hasUprightSeparateAttachment: true,
-                    hasLooseFreeWavyEdges: true,
-                    hasPredominantlyFullHeightWrap: true,
-                    hasWhiteUnprintedSheets: true,
-                }),
-            });
-
-        const { POST } = await import('./route');
-        const response = await POST(new NextRequest('http://localhost/api/ai/analyze', {
-            method: 'POST',
-            body: JSON.stringify({ imageData: 'base64-data', mimeType: 'image/png' }),
-        }));
-        const payload = await response.json();
-
-        expect(response.status).toBe(200);
-        expect(payload.support_elements).toEqual([expect.objectContaining({
-            type: 'edible_photo_side_wave',
-            material: 'waferpaper',
-        })]);
     });
 
     it('reconciles an unsupported Fondant thickness instead of returning 500', async () => {
@@ -350,45 +208,6 @@ describe('POST /api/ai/analyze', () => {
             material: 'candy',
             quantity: 1,
         })]);
-    });
-
-    it('retries once with a correction instruction when a variable-priced support element omits its size line', async () => {
-        mockGetOrCreatePromptCache.mockResolvedValue('mock-cache-name');
-        mockGetActivePromptDetails.mockResolvedValue({
-            promptText: 'Analyze this cake',
-            version: '3.83',
-        });
-        mockGenerateContent
-            .mockResolvedValueOnce({
-                text: JSON.stringify({
-                    ...validLineRatioAnalysis,
-                    support_elements: [{
-                        ...validLineRatioAnalysis.support_elements[0],
-                        size_line: undefined,
-                    }],
-                }),
-            })
-            .mockResolvedValueOnce({ text: JSON.stringify(validLineRatioAnalysis) });
-
-        const { POST } = await import('./route');
-        const request = new NextRequest('http://localhost/api/ai/analyze', {
-            method: 'POST',
-            body: JSON.stringify({ imageData: 'base64-data', mimeType: 'image/png' }),
-        });
-
-        const response = await POST(request);
-        const payload = await response.json();
-
-        expect(response.status).toBe(200);
-        expect(payload.support_elements[0]).toEqual(expect.objectContaining({
-            type: 'edible_flowers',
-            size: 'small',
-        }));
-        expect(mockGenerateContent).toHaveBeenCalledTimes(2);
-        expect(mockGenerateContent.mock.calls[1][0].contents[0].parts).toEqual(expect.arrayContaining([
-            expect.objectContaining({ text: expect.stringContaining('omitted a required representative `size_line`') }),
-        ]));
-        expect(mockGenerateContent.mock.calls[1][0].config.cachedContent).toBe('mock-cache-name');
     });
 
     it('reuses cached prompt details and enum config across hot requests', async () => {

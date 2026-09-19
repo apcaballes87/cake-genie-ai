@@ -9,7 +9,11 @@ import { createClient } from '@/lib/supabase/client'
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization'
 import { showSuccess, showError, showLoading, showStatus } from '@/lib/utils/toast'
 import { HybridAnalysisResult, CacheSEOMetadata } from '@/types'
-import { findSimilarAnalysisByHash, cacheAnalysisResult, prepareStudioEditCacheRow } from '@/services/supabaseService'
+import {
+    findSimilarAnalysisByHash,
+    cacheAnalysisResult,
+    prepareStudioEditCacheRow,
+} from '@/services/supabaseService'
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils'
 import { COMMON_ASSETS } from '@/constants'
 import {
@@ -18,6 +22,7 @@ import {
     type ClientImageFingerprint,
 } from '@/lib/utils/serverFingerprint.client'
 import { FEATURE_FLAGS } from '@/config/features'
+import { logCakeAnalysisDebug } from '@/lib/ai/analysisDebug'
 
 const fetchImageAsBase64 = async (url: string): Promise<{ data: string; mimeType: string }> => {
     const response = await fetch(url);
@@ -374,6 +379,17 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         setIsAnalysisCached(false);
         setIsComposingSelfie(false);
         try {
+            // Start compression immediately instead of waiting for the original file
+            // to be converted to base64. The original data is still read in parallel
+            // for source-image persistence, but the upload path can now begin image
+            // optimization without a serial main-thread bottleneck.
+            const initialCompressionPromise = options?.precomputedAnalysis
+                ? Promise.resolve(file)
+                : compressImage(file, {
+                    maxSizeMB: 0.5,
+                    maxWidthOrHeight: 1024,
+                    fileType: 'image/webp',
+                });
             const imageData = await fileToBase64(file);
             const imageSrc = `data:${imageData.mimeType};base64,${imageData.data}`;
             setOriginalImageData(imageData);
@@ -382,7 +398,6 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             setIsLoading(false); // File processing done
 
             const knownSeoMetadata = options?.knownSeoMetadata ?? null;
-
             if (knownSeoMetadata) {
                 setSeoMetadata(knownSeoMetadata);
 
@@ -407,17 +422,10 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             let compressedImageData = imageData; // Default to original
             let finalImageBlobToCache: Blob | undefined;
 
-            // Compress first — we need compressed data for both validation and pHash
+            // The compression work was started above while the original source was
+            // being read. Keep only one direct File -> compressed File conversion.
             try {
-                const imageBlob = dataURItoBlob(imageSrc);
-                const fileToUpload = new File([imageBlob], file.name, { type: file.type });
-                finalImageBlobToCache = fileToUpload; // Default
-
-                const compressedFile = await compressImage(fileToUpload, {
-                    maxSizeMB: 0.5,
-                    maxWidthOrHeight: 1024,
-                    fileType: 'image/webp',
-                });
+                const compressedFile = await initialCompressionPromise;
                 finalImageBlobToCache = compressedFile;
 
                 // Convert compressed file to base64 for AI
@@ -646,6 +654,13 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             // --- PROCESS CACHE HIT (IF ANY) ---
             if (cacheHit) {
                 const cachedAnalysis = cacheHit.analysisResult;
+                logCakeAnalysisDebug('Landing page cache hit', {
+                    cacheId: cacheHit.id ?? null,
+                    pHash: cacheHit.pHash ?? null,
+                    analysisSizeSchema: cachedAnalysis.analysis_size_schema ?? null,
+                    analysis: cachedAnalysis,
+                    geometry: cachedAnalysis.geometry ?? null,
+                });
                 setCurrentCacheId(cacheHit.id ?? null);
                 setCurrentPHash(cacheHit.pHash || null);
                 setSeoMetadata(cacheHit.seoMetadata ?? null);
@@ -720,7 +735,8 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             // parallel path. Photo-reference candidates are excluded so a raw portrait or
             // artwork cannot enter normal Studio before the edible-photo decision is made.
             const earlyStudioSetupPromise =
-                isParallelStudioCandidate && hasTrustedFingerprint && pHash && fingerprint
+                FEATURE_FLAGS.ENABLE_UPLOAD_AI_IMAGE_EDITING
+                    && isParallelStudioCandidate && hasTrustedFingerprint && pHash && fingerprint
                     ? (async () => {
                         const preparedStudioRow = await prepareStudioEditCacheRow(pHash, {
                             fingerprintPipeline: fingerprint.pipeline,
@@ -757,6 +773,12 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     compressedImageData.mimeType
                 );
 
+                logCakeAnalysisDebug('Landing page applying analysis result', {
+                    analysisSizeSchema: fastResult.analysis_size_schema ?? null,
+                    analysis: fastResult,
+                    geometry: fastResult.geometry ?? null,
+                });
+
                 if (fastResult.rejection && fastResult.rejection.isRejected && fastResult.rejection.reason === 'selfie') {
                     await composeEdiblePhotoCake('selfie');
                     return;
@@ -781,7 +803,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     ? await earlyStudioSetupPromise
                     : null;
                 const preparedStudioRow = earlyStudioSetup?.preparedStudioRow
-                    ?? (hasTrustedFingerprint && pHash && fingerprint
+                    ?? (FEATURE_FLAGS.ENABLE_UPLOAD_AI_IMAGE_EDITING && hasTrustedFingerprint && pHash && fingerprint
                         ? await prepareStudioEditCacheRow(pHash, {
                             fingerprintPipeline: fingerprint.pipeline,
                             pdqHash: fingerprint.pdqHash,
@@ -796,8 +818,9 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     setCurrentPHash(preparedStudioRow.storedPHash);
                 }
 
-                let studioTriggerHandled = earlyStudioSetup?.studioTriggerHandled ?? false;
-                if (hasTrustedFingerprint && pHash && !earlyStudioSetup) {
+                let studioTriggerHandled = !FEATURE_FLAGS.ENABLE_UPLOAD_AI_IMAGE_EDITING
+                    || earlyStudioSetup?.studioTriggerHandled === true;
+                if (FEATURE_FLAGS.ENABLE_UPLOAD_AI_IMAGE_EDITING && hasTrustedFingerprint && pHash && !earlyStudioSetup) {
                     if (preparedStudioRow?.studioTriggerHandled || preparedStudioRow?.shouldTriggerStudioEdit === false) {
                         studioTriggerHandled = true;
                     } else {
@@ -815,7 +838,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                             pdqHash: fingerprint.pdqHash,
                             pdqQuality: fingerprint.pdqQuality,
                             pdqPipeline: fingerprint.pdqPipeline,
-                            triggerStudioEdit: !studioTriggerHandled,
+                            triggerStudioEdit: FEATURE_FLAGS.ENABLE_UPLOAD_AI_IMAGE_EDITING && !studioTriggerHandled,
                         })
                         : null;
 
@@ -842,7 +865,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 // Skipped entirely when the feature flag is off — Phase 1's cache write already
                 // contains the final analysis, so re-running enrichAnalysisWithRoboflow (a no-op
                 // in disabled mode) and writing the same payload a second time was pure waste.
-                if (FEATURE_FLAGS.USE_ROBOFLOW_COORDINATES) {
+                if (FEATURE_FLAGS.USE_ROBOFLOW_COORDINATES && !hasBoundingBoxData(fastResult)) {
                     enrichAnalysisWithRoboflow(
                         compressedImageData.data,
                         compressedImageData.mimeType,
