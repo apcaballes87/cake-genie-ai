@@ -166,6 +166,21 @@ export interface GeneratedBoundingBox {
   height: number;
 }
 
+/** Normalized [ymin, xmin, ymax, xmax] geometry from integrated_bbox_v1. */
+export type GeneratedBox2D = [number, number, number, number];
+
+export interface GeneratedIntegratedGeometry {
+  geometry_version: 'integrated_bbox_v1';
+  cake_diameter_line?: {
+    start: [number, number];
+    end: [number, number];
+  };
+  cake_height_line?: {
+    start: [number, number];
+    end: [number, number];
+  };
+}
+
 export interface GeneratedCoordinatePoint {
   /** Normalized 0–1000 coordinate space with a top-left origin. */
   x: number;
@@ -197,6 +212,8 @@ export interface GeneratedMainTopper {
   bbox?: GeneratedBoundingBox;
   /** Fresh line-mode sizing geometry for one representative primary dimension. */
   size_line?: GeneratedMeasurementLine;
+  box_2d?: GeneratedBox2D;
+  bbox_confidence?: number;
 }
 
 export interface GeneratedSupportElement {
@@ -214,6 +231,8 @@ export interface GeneratedSupportElement {
   bbox?: GeneratedBoundingBox;
   /** Fresh line-mode sizing geometry for one representative primary dimension. */
   size_line?: GeneratedMeasurementLine;
+  box_2d?: GeneratedBox2D;
+  bbox_confidence?: number;
 }
 
 export interface GeneratedCakeMessage {
@@ -222,6 +241,8 @@ export interface GeneratedCakeMessage {
   color: string;
   position: typeof GENERATED_ANALYSIS_MESSAGE_POSITIONS[number];
   bbox?: GeneratedBoundingBox;
+  box_2d?: GeneratedBox2D;
+  bbox_confidence?: number;
 }
 
 export interface GeneratedIcingDesign {
@@ -255,6 +276,8 @@ export interface GeneratedAcceptedCakeAnalysisResult extends GeneratedCakeAnalys
   cake_measurements?: GeneratedCakeMeasurements;
   /** Legacy persisted geometry retained for backwards-compatible hydration. */
   cake_bbox?: GeneratedBoundingBox;
+  /** Present only on fresh application-sized integrated bounding-box analyses. */
+  geometry?: GeneratedIntegratedGeometry;
   rejection: {
     isRejected: false;
     reason: '';
@@ -292,6 +315,7 @@ export interface GeneratedRejectedCakeAnalysisResult extends GeneratedCakeAnalys
   alt_text?: '';
   seo_title?: '';
   seo_description?: '';
+  geometry?: GeneratedIntegratedGeometry;
   rejection: GeneratedRejectedAnalysisRejection;
 }
 
@@ -422,6 +446,7 @@ const SUPPORT_ELEMENT_KEYS = [
   'size_line',
 ] as const;
 const CAKE_MESSAGE_KEYS = ['text', 'type', 'color', 'position', 'bbox'] as const;
+const INTEGRATED_BBOX_ROW_KEYS = ['box_2d', 'bbox_confidence'] as const;
 const ICING_DESIGN_KEYS = [
   'base',
   'color_type',
@@ -477,6 +502,27 @@ function validateOptionalBbox(value: unknown, path: string): void {
   const height = requireNormalizedInteger(value.height, `${path}.height`, false);
   if (x + width > 1000) fail(path, 'must remain within the normalized 0–1000 horizontal axis');
   if (y + height > 1000) fail(path, 'must remain within the normalized 0–1000 vertical axis');
+}
+
+function validateBox2d(value: unknown, path: string): void {
+  if (!Array.isArray(value) || value.length !== 4) fail(path, 'must be [ymin, xmin, ymax, xmax]');
+  const [ymin, xmin, ymax, xmax] = value.map((entry, index) =>
+    requireFiniteNormalizedCoordinate(entry, `${path}[${index}]`),
+  );
+  if (ymin >= ymax || xmin >= xmax) fail(path, 'must have positive ordered extents');
+}
+
+function requireFiniteNormalizedCoordinate(value: unknown, path: string): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1000) {
+    fail(path, 'must be a finite number from 0 through 1000');
+  }
+  return value;
+}
+
+function validateBboxConfidence(value: unknown, path: string): void {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1) {
+    fail(path, 'must be a finite number from 0 through 1');
+  }
 }
 
 function validateOptionalSizeLine(value: unknown, path: string): void {
@@ -579,13 +625,17 @@ function validateMainTopper(
   index: number,
   typeEnums: GeneratedAnalysisTypeEnums,
   subtypeMap: Record<string, string[]>,
+  options: GeneratedAnalysisValidationOptions,
 ) {
   const path = `main_toppers[${index}]`;
   const item = requireRecord(value, path);
   requireExactKeys(
     item,
-    MAIN_TOPPER_KEYS,
-    ['type', 'material', 'group_id', 'classification', 'size', 'quantity', 'description'],
+    options.integratedBbox ? [...MAIN_TOPPER_KEYS, ...INTEGRATED_BBOX_ROW_KEYS] : MAIN_TOPPER_KEYS,
+    [
+      'type', 'material', 'group_id', 'classification', 'size', 'quantity', 'description',
+      ...(options.integratedBbox ? INTEGRATED_BBOX_ROW_KEYS : []),
+    ],
     path,
   );
   const type = requireEnum(item.type, typeEnums.mainTopperTypes, `${path}.type`);
@@ -601,6 +651,10 @@ function validateMainTopper(
   validateOptionalSubtype(item, type, subtypeMap, path);
   validateOptionalBbox(item.bbox, `${path}.bbox`);
   validateOptionalSizeLine(item.size_line, `${path}.size_line`);
+  if (options.integratedBbox) {
+    validateBox2d(item.box_2d, `${path}.box_2d`);
+    validateBboxConfidence(item.bbox_confidence, `${path}.bbox_confidence`);
+  }
 }
 
 function validateSupportElement(
@@ -608,13 +662,17 @@ function validateSupportElement(
   index: number,
   typeEnums: GeneratedAnalysisTypeEnums,
   subtypeMap: Record<string, string[]>,
+  options: GeneratedAnalysisValidationOptions,
 ) {
   const path = `support_elements[${index}]`;
   const item = requireRecord(value, path);
   requireExactKeys(
     item,
-    SUPPORT_ELEMENT_KEYS,
-    ['type', 'material', 'group_id', 'color', 'quantity', 'description'],
+    options.integratedBbox ? [...SUPPORT_ELEMENT_KEYS, ...INTEGRATED_BBOX_ROW_KEYS] : SUPPORT_ELEMENT_KEYS,
+    [
+      'type', 'material', 'group_id', 'color', 'quantity', 'description',
+      ...(options.integratedBbox ? ['size', ...INTEGRATED_BBOX_ROW_KEYS] : []),
+    ],
     path,
   );
   const type = requireEnum(item.type, typeEnums.supportElementTypes, `${path}.type`);
@@ -623,7 +681,7 @@ function validateSupportElement(
   requirePaletteHex(item.color, `${path}.color`);
   optionalPaletteHexArray(item.colors, `${path}.colors`);
   validatePipedFlowerCoverage(item, type, path);
-  if (isSizelessSupportElementType(type)) {
+  if (isSizelessSupportElementType(type) && !options.integratedBbox) {
     if (item.size !== undefined) {
       fail(`${path}.size`, `must be omitted for ${type}`);
     }
@@ -635,6 +693,10 @@ function validateSupportElement(
   validateOptionalSubtype(item, type, subtypeMap, path);
   validateOptionalBbox(item.bbox, `${path}.bbox`);
   validateOptionalSizeLine(item.size_line, `${path}.size_line`);
+  if (options.integratedBbox) {
+    validateBox2d(item.box_2d, `${path}.box_2d`);
+    validateBboxConfidence(item.bbox_confidence, `${path}.bbox_confidence`);
+  }
 }
 
 function validatePipedFlowerCoverage(item: Record<string, unknown>, type: string, path: string) {
@@ -646,15 +708,27 @@ function validatePipedFlowerCoverage(item: Record<string, unknown>, type: string
   requireEnum(item.coverage, GENERATED_PIPED_FLOWER_COVERAGES, `${path}.coverage`);
 }
 
-function validateCakeMessage(value: unknown, index: number) {
+function validateCakeMessage(value: unknown, index: number, options: GeneratedAnalysisValidationOptions) {
   const path = `cake_messages[${index}]`;
   const item = requireRecord(value, path);
-  requireExactKeys(item, CAKE_MESSAGE_KEYS, ['text', 'type', 'color', 'position'], path);
+  requireExactKeys(
+    item,
+    options.integratedBbox ? [...CAKE_MESSAGE_KEYS, ...INTEGRATED_BBOX_ROW_KEYS] : CAKE_MESSAGE_KEYS,
+    [
+      'text', 'type', 'color', 'position',
+      ...(options.integratedBbox ? INTEGRATED_BBOX_ROW_KEYS : []),
+    ],
+    path,
+  );
   requireString(item.text, `${path}.text`);
   requireEnum(item.type, GENERATED_ANALYSIS_MESSAGE_TYPES, `${path}.type`);
   requirePaletteHex(item.color, `${path}.color`);
   requireEnum(item.position, GENERATED_ANALYSIS_MESSAGE_POSITIONS, `${path}.position`);
   validateOptionalBbox(item.bbox, `${path}.bbox`);
+  if (options.integratedBbox) {
+    validateBox2d(item.box_2d, `${path}.box_2d`);
+    validateBboxConfidence(item.bbox_confidence, `${path}.bbox_confidence`);
+  }
 }
 
 function validateIcingDesign(value: unknown) {
@@ -724,6 +798,11 @@ export class GeneratedAnalysisContractError extends Error {
 
 export type AnalysisGenerationSeoSchema = 'analysis_only' | 'legacy_inline_seo';
 
+export type GeneratedAnalysisValidationOptions = {
+  /** Enables the application-owned integrated_bbox_v1 persisted fields. */
+  integratedBbox?: boolean;
+};
+
 export function resolveAnalysisGenerationSeoSchema(promptText: string): AnalysisGenerationSeoSchema {
   return promptText.includes('## STEP 5: SEO COPY GENERATION') ? 'legacy_inline_seo' : 'analysis_only';
 }
@@ -732,12 +811,15 @@ export function validateGeneratedCakeAnalysisResult(
   value: unknown,
   typeEnums: GeneratedAnalysisTypeEnums,
   seoSchema: AnalysisGenerationSeoSchema = 'analysis_only',
+  options: GeneratedAnalysisValidationOptions = {},
 ): GeneratedCakeAnalysisResult {
   const result = requireRecord(value, 'analysis');
   const allowedKeys = seoSchema === 'legacy_inline_seo'
-    ? [...TOP_LEVEL_ALLOWED_KEYS, 'alt_text', 'seo_title', 'seo_description'] : [...TOP_LEVEL_ALLOWED_KEYS];
+    ? [...TOP_LEVEL_ALLOWED_KEYS, ...(options.integratedBbox ? ['geometry'] : []), 'alt_text', 'seo_title', 'seo_description']
+    : [...TOP_LEVEL_ALLOWED_KEYS, ...(options.integratedBbox ? ['geometry'] : [])];
   const requiredKeys = seoSchema === 'legacy_inline_seo'
-    ? [...TOP_LEVEL_KEYS, 'alt_text', 'seo_title', 'seo_description'] : [...TOP_LEVEL_KEYS];
+    ? [...TOP_LEVEL_KEYS, ...(options.integratedBbox ? ['geometry'] : []), 'alt_text', 'seo_title', 'seo_description']
+    : [...TOP_LEVEL_KEYS, ...(options.integratedBbox ? ['geometry'] : [])];
   requireExactKeys(result, allowedKeys, requiredKeys, 'analysis');
   const rejection = validateRejection(result.rejection);
   if (rejection.isRejected && ('cake_measurements' in result || 'cake_bbox' in result)) {
@@ -761,9 +843,9 @@ export function validateGeneratedCakeAnalysisResult(
     subtypesByType: typeEnums.subtypesByType,
   };
 
-  mainToppers.forEach((item, index) => validateMainTopper(item, index, canonicalTypeEnums, subtypeMap));
-  supportElements.forEach((item, index) => validateSupportElement(item, index, canonicalTypeEnums, subtypeMap));
-  cakeMessages.forEach(validateCakeMessage);
+  mainToppers.forEach((item, index) => validateMainTopper(item, index, canonicalTypeEnums, subtypeMap, options));
+  supportElements.forEach((item, index) => validateSupportElement(item, index, canonicalTypeEnums, subtypeMap, options));
+  cakeMessages.forEach((item, index) => validateCakeMessage(item, index, options));
 
   const cakeType = requireString(result.cakeType, 'cakeType', rejection.isRejected);
   const cakeThickness = requireString(result.cakeThickness, 'cakeThickness', rejection.isRejected);

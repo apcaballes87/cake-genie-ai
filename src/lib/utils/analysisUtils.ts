@@ -1,4 +1,5 @@
 import type { HybridAnalysisResult } from '@/types';
+import { INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA } from '@/lib/ai/analysisSize';
 
 /**
  * Check if analysis result has bounding box data from Roboflow/Florence-2
@@ -6,6 +7,24 @@ import type { HybridAnalysisResult } from '@/types';
  * @returns true if bbox data exists, false otherwise
  */
 export function hasBoundingBoxData(analysisResult: HybridAnalysisResult): boolean {
+    const hasIntegratedGeometry = analysisResult.analysis_size_schema === INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA
+        && Boolean(
+            analysisResult.geometry?.cake_diameter_line
+            && analysisResult.geometry?.cake_height_line,
+        );
+    const hasIntegratedTopperBoxes = analysisResult.main_toppers?.every((topper) => (
+        Array.isArray(topper.box_2d) && topper.box_2d.length === 4
+    ));
+    const hasIntegratedSupportBoxes = analysisResult.support_elements?.every((element) => (
+        Array.isArray(element.box_2d) && element.box_2d.length === 4
+    ));
+    const hasIntegratedMessageBoxes = analysisResult.cake_messages?.every((message) => (
+        Array.isArray(message.box_2d) && message.box_2d.length === 4
+    ));
+    if (hasIntegratedGeometry && hasIntegratedTopperBoxes && hasIntegratedSupportBoxes && hasIntegratedMessageBoxes) {
+        return true;
+    }
+
     // Check for explicit cake measurement lines, with a legacy bbox fallback.
     const hasCakeMeasurements = Boolean(
         analysisResult.cake_measurements?.diameter
@@ -46,8 +65,9 @@ export function hasBoundingBoxData(analysisResult: HybridAnalysisResult): boolea
  */
 export function needsCoordinateEnrichment(analysisResult: HybridAnalysisResult): boolean {
     const usesLineGeometry = analysisResult.analysis_size_schema === 'line_ratio_v1';
+    const usesIntegratedGeometry = analysisResult.analysis_size_schema === INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA;
 
-    if (usesLineGeometry) return false;
+    if (usesLineGeometry || usesIntegratedGeometry) return false;
 
     // Check if any elements are missing usable geometry. Fresh analyses use
     // normalized size lines; legacy analyses may use bboxes or x/y values.

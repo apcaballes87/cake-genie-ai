@@ -57,7 +57,7 @@ describe('POST /api/ai/analyze', () => {
         mockGetActivePromptDetails.mockReset();
         mockGetDynamicTypeEnums.mockReset();
         mockGetActivePromptDetails.mockResolvedValue({
-            promptText: 'Analyze this cake',
+      promptText: '## STEP 5: SEO COPY GENERATION\nAnalyze this cake',
             version: '1.0',
         });
         mockGetDynamicTypeEnums.mockResolvedValue({
@@ -68,6 +68,17 @@ describe('POST /api/ai/analyze', () => {
         mockGenerateContent.mockResolvedValue({
             text: JSON.stringify(validAnalysis),
         });
+    });
+
+    it('allows a local-only staged prompt override without exposing it outside development', async () => {
+        const { getDevelopmentPromptVersionOverride } = await import('./route');
+
+        vi.stubEnv('NODE_ENV', 'development');
+        vi.stubEnv('CAKE_ANALYSIS_PROMPT_VERSION', ' 3.92 ');
+        expect(getDevelopmentPromptVersionOverride()).toBe('3.92');
+
+        vi.stubEnv('NODE_ENV', 'production');
+        expect(getDevelopmentPromptVersionOverride()).toBeUndefined();
     });
 
     it('rejects requests if imageData or mimeType is missing', async () => {

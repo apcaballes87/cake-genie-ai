@@ -16,6 +16,7 @@ import {
     toFingerprintLookup,
     type ClientImageFingerprint,
 } from '@/lib/utils/serverFingerprint.client';
+import { FEATURE_FLAGS } from '@/config/features';
 
 export const useImageManagement = () => {
     const supabase = getSupabaseClient();
@@ -159,6 +160,7 @@ export const useImageManagement = () => {
                                     pdqHash: fingerprint.pdqHash,
                                     pdqQuality: fingerprint.pdqQuality,
                                     pdqPipeline: fingerprint.pdqPipeline,
+                                    triggerStudioEdit: FEATURE_FLAGS.ENABLE_UPLOAD_AI_IMAGE_EDITING,
                                 });
                             }
 
@@ -209,6 +211,22 @@ export const useImageManagement = () => {
 
                 onSuccess(fastResult); // User can now see features and price immediately!
 
+                // Integrated Gemini analyses already contain complete row-attached
+                // geometry. Preserve that source rather than overwriting it with
+                // a second detector result.
+                if (hasBoundingBoxData(fastResult)) {
+                    if (pHash && hasTrustedFingerprint && fingerprint) {
+                        void cacheAnalysisResult(pHash, fastResult, uploadedImageUrl, finalImageBlobToCache, {
+                            fingerprintPipeline: fingerprint.pipeline,
+                            pdqHash: fingerprint.pdqHash,
+                            pdqQuality: fingerprint.pdqQuality,
+                            pdqPipeline: fingerprint.pdqPipeline,
+                            triggerStudioEdit: FEATURE_FLAGS.ENABLE_UPLOAD_AI_IMAGE_EDITING,
+                        });
+                    }
+                    return;
+                }
+
                 // PHASE 2: Background coordinate enrichment with Roboflow + Florence-2
                 // (Falls back to Gemini if Roboflow fails or is disabled)
                 enrichAnalysisWithRoboflow(
@@ -228,6 +246,7 @@ export const useImageManagement = () => {
                             pdqHash: fingerprint.pdqHash,
                             pdqQuality: fingerprint.pdqQuality,
                             pdqPipeline: fingerprint.pdqPipeline,
+                            triggerStudioEdit: FEATURE_FLAGS.ENABLE_UPLOAD_AI_IMAGE_EDITING,
                         });
                     }
                 }).catch(enrichmentError => {
@@ -238,6 +257,7 @@ export const useImageManagement = () => {
                             pdqHash: fingerprint.pdqHash,
                             pdqQuality: fingerprint.pdqQuality,
                             pdqPipeline: fingerprint.pdqPipeline,
+                            triggerStudioEdit: FEATURE_FLAGS.ENABLE_UPLOAD_AI_IMAGE_EDITING,
                         });
                     }
                 });

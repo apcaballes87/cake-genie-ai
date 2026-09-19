@@ -4,6 +4,13 @@
 
 export const FEATURE_FLAGS = {
     /**
+     * Temporarily pause automatic Image Studio edits for uploaded designs.
+     * Uploads still retain their original source, run cake analysis, and cache
+     * their analysis/pricing data. Re-enable only through a deliberate release.
+     */
+    ENABLE_UPLOAD_AI_IMAGE_EDITING: false,
+
+    /**
      * Use Roboflow for coordinate detection instead of Gemini
      * Default: false (use Gemini)
      */

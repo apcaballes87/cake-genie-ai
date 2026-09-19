@@ -10,6 +10,17 @@ const CORS_HEADERS = {
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
+/**
+ * Lets local browser verification exercise a staged prompt without changing the
+ * active database row. This is intentionally unavailable in test, preview, and
+ * production runtimes.
+ */
+export function getDevelopmentPromptVersionOverride(): string | undefined {
+    if (process.env.NODE_ENV !== 'development') return undefined;
+    const version = process.env.CAKE_ANALYSIS_PROMPT_VERSION?.trim();
+    return version || undefined;
+}
+
 export async function OPTIONS() {
     return new NextResponse(null, {
         status: 200,
@@ -36,6 +47,7 @@ export async function POST(req: NextRequest) {
             mimeType,
             requestContext: req,
             sourceContext: typeof sourceContext === 'string' ? sourceContext : null,
+            promptVersion: getDevelopmentPromptVersionOverride(),
         });
 
         return NextResponse.json(result, { headers: CORS_HEADERS });

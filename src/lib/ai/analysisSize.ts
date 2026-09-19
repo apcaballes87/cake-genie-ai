@@ -12,6 +12,8 @@ export const ANALYSIS_SIZE_SCHEMA = 'bbox_area_v1' as const;
 export const LINE_RATIO_ANALYSIS_SIZE_SCHEMA = 'line_ratio_v1' as const;
 /** Historical fresh analyses whose three-band labels came from AI. */
 export const AI_THREE_BAND_SIZE_SCHEMA = 'three_band_v1' as const;
+/** Fresh analyses sized by the application from row-attached 2D geometry. */
+export const INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA = 'integrated_bbox_v1' as const;
 
 export const CANONICAL_ANALYSIS_SIZES = ['small', 'medium', 'large'] as const;
 export type CanonicalAnalysisSize = typeof CANONICAL_ANALYSIS_SIZES[number];
@@ -22,7 +24,8 @@ export type LegacyAnalysisSize = typeof LEGACY_ANALYSIS_SIZES[number];
 export type AnalysisSizeSchema =
   | typeof ANALYSIS_SIZE_SCHEMA
   | typeof LINE_RATIO_ANALYSIS_SIZE_SCHEMA
-  | typeof AI_THREE_BAND_SIZE_SCHEMA;
+  | typeof AI_THREE_BAND_SIZE_SCHEMA
+  | typeof INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA;
 
 const LEGACY_TO_CANONICAL_SIZE: Record<LegacyAnalysisSize, CanonicalAnalysisSize> = {
   tiny: 'small',
@@ -96,6 +99,7 @@ export function normalizeAnalysisForThreeBandSizing<T extends SizeSchemaAnalysis
     analysis.analysis_size_schema === ANALYSIS_SIZE_SCHEMA
     || analysis.analysis_size_schema === LINE_RATIO_ANALYSIS_SIZE_SCHEMA
     || analysis.analysis_size_schema === AI_THREE_BAND_SIZE_SCHEMA
+    || analysis.analysis_size_schema === INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA
   ) return analysis;
 
   return {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { after } from 'next/server';
 import { runImageStudioJob } from '@/lib/admin/imageStudioJob';
+import { FEATURE_FLAGS } from '@/config/features';
 
 type TriggerStudioEditRequestBody = {
   pHash?: string;
@@ -26,6 +27,14 @@ export async function POST(request: NextRequest) {
         { error: 'originalImage must include both data and mimeType' },
         { status: 400 }
       );
+    }
+
+    if (!FEATURE_FLAGS.ENABLE_UPLOAD_AI_IMAGE_EDITING) {
+      return NextResponse.json({
+        success: true,
+        skipped: true,
+        message: 'Upload AI image editing is currently disabled',
+      });
     }
 
     // Use `after` to decouple the image synthesis so we don't block the UI

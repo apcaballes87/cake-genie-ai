@@ -2,25 +2,80 @@
   "slug": "floral-pink-pink-1-tier-cake-1931",
   "image_url": "https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/customizations/floral-pink-pink-1-tier-cake-1931.webp",
   "source_url": "https://genie.ph/customizing/floral-pink-pink-1-tier-cake-1931",
-  "purpose": "Gold regression fixture for individual mixed-size hero flower counting.",
-  "expected_main_toppers": [
+  "purpose": "Manually adjudicated gold regression fixture for seven visible open physical flower heads: four on top, one attached to the lower side, and two resting at the base/board. Pinterest UI and thumbnail cakes are excluded.",
+  "gold_cake_measurements": {
+    "diameter": { "start": { "x": 302, "y": 327 }, "end": { "x": 813, "y": 315 } },
+    "height": { "start": { "x": 761, "y": 327 }, "end": { "x": 761, "y": 575 } }
+  },
+  "gold_expected_public_totals": {
+    "type": "edible_flowers",
+    "material": "edible_fondant",
+    "main_quantity": 4,
+    "support_quantity": 3
+  },
+  "gold_physical_instances": [
     {
-      "group_id": "large_pink_peony_flowers",
-      "type": "edible_flowers",
-      "material": "edible_fondant",
-      "classification": "hero",
-      "size": "large",
-      "quantity": 3,
-      "description": "three large pink peony flowers on top"
+      "id": "top_peony_01",
+      "family": "physical_flower",
+      "flower_state": "open",
+      "placement": "top",
+      "match_group": "top_large_peony",
+      "center": { "x": 307, "y": 229 },
+      "size_line": { "start": { "x": 154, "y": 230 }, "end": { "x": 452, "y": 230 } }
     },
     {
-      "group_id": "medium_pink_peony_flower",
-      "type": "edible_flowers",
-      "material": "edible_fondant",
-      "classification": "hero",
-      "size": "medium",
-      "quantity": 1,
-      "description": "one medium pink peony flower on top"
+      "id": "top_rose_01",
+      "family": "physical_flower",
+      "flower_state": "open",
+      "placement": "top",
+      "match_group": "top_large_rose",
+      "center": { "x": 589, "y": 217 },
+      "size_line": { "start": { "x": 474, "y": 215 }, "end": { "x": 715, "y": 215 } }
+    },
+    {
+      "id": "top_rose_02",
+      "family": "physical_flower",
+      "flower_state": "open",
+      "placement": "top",
+      "match_group": "top_large_rose",
+      "center": { "x": 459, "y": 269 },
+      "size_line": { "start": { "x": 337, "y": 269 }, "end": { "x": 580, "y": 269 } }
+    },
+    {
+      "id": "top_carnation_01",
+      "family": "physical_flower",
+      "flower_state": "open",
+      "placement": "top",
+      "match_group": "top_medium_carnation",
+      "center": { "x": 702, "y": 279 },
+      "size_line": { "start": { "x": 598, "y": 279 }, "end": { "x": 800, "y": 279 } }
+    },
+    {
+      "id": "side_rose_01",
+      "family": "physical_flower",
+      "flower_state": "open",
+      "placement": "side",
+      "match_group": "side_small_rose",
+      "center": { "x": 237, "y": 452 },
+      "size_line": { "start": { "x": 178, "y": 452 }, "end": { "x": 298, "y": 452 } }
+    },
+    {
+      "id": "base_rose_01",
+      "family": "physical_flower",
+      "flower_state": "open",
+      "placement": "base_board",
+      "match_group": "base_medium_rose",
+      "center": { "x": 228, "y": 528 },
+      "size_line": { "start": { "x": 150, "y": 529 }, "end": { "x": 302, "y": 529 } }
+    },
+    {
+      "id": "base_rose_02",
+      "family": "physical_flower",
+      "flower_state": "open",
+      "placement": "base_board",
+      "match_group": "base_medium_rose_variant",
+      "center": { "x": 322, "y": 510 },
+      "size_line": { "start": { "x": 246, "y": 510 }, "end": { "x": 398, "y": 510 } }
     }
   ],
   "forbidden_grouping": {

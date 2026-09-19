@@ -174,4 +174,49 @@ describe('BoundingBoxOverlay', () => {
         expect(screen.getByText('Number candle')).toBeInTheDocument();
         expect(screen.queryByText('Topper 1')).not.toBeInTheDocument();
     });
+
+    it('renders integrated bbox rows and [y, x] geometry on the storefront overlay', () => {
+        const analysisResult = {
+            geometry: {
+                geometry_version: 'integrated_bbox_v1',
+                cake_diameter_line: { start: [256, 290], end: [256, 915] },
+                cake_height_line: { start: [256, 602], end: [805, 602] },
+            },
+            main_toppers: [{
+                description: 'Chocolate rosettes',
+                box_2d: [134, 305, 452, 903],
+                bbox_confidence: 0.95,
+            }],
+            support_elements: [{
+                description: 'Chocolate sprinkles',
+                box_2d: [267, 497, 461, 712],
+                bbox_confidence: 0.9,
+            }],
+            cake_messages: [],
+        } as unknown as HybridAnalysisResult;
+
+        render(
+            <BoundingBoxOverlay
+                analysisResult={analysisResult}
+                imageWidth={1200}
+                imageHeight={900}
+                containerWidth={1000}
+                containerHeight={1000}
+                useTopLeftOrigin
+            />
+        );
+
+        expect(screen.getByTestId('cake-measurement-diameter')).toHaveStyle({
+            left: '290px', top: '256px', width: '625px', height: '0px',
+        });
+        expect(screen.getByTestId('cake-measurement-height')).toHaveStyle({
+            left: '602px', top: '256px', width: '0px', height: '549px',
+        });
+        expect(screen.getByText('Chocolate rosettes').parentElement).toHaveStyle({
+            left: '305px', top: '134px', width: '598px', height: '318px',
+        });
+        expect(screen.getByText('Chocolate sprinkles').parentElement).toHaveStyle({
+            left: '497px', top: '267px', width: '215px', height: '194px',
+        });
+    });
 });

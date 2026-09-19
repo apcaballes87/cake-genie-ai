@@ -198,7 +198,22 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
         );
     };
 
-    if (analysisResult.cake_measurements) {
+    if (analysisResult.geometry?.cake_diameter_line && analysisResult.geometry.cake_height_line) {
+        // integrated_bbox_v1 points are [y, x], unlike the legacy { x, y }
+        // measurement objects retained for historical cache rows.
+        addMeasurementLine(
+            { x: analysisResult.geometry.cake_diameter_line.start[1], y: analysisResult.geometry.cake_diameter_line.start[0] },
+            { x: analysisResult.geometry.cake_diameter_line.end[1], y: analysisResult.geometry.cake_diameter_line.end[0] },
+            'Diameter',
+            MEASUREMENT_COLORS.diameter,
+        );
+        addMeasurementLine(
+            { x: analysisResult.geometry.cake_height_line.start[1], y: analysisResult.geometry.cake_height_line.start[0] },
+            { x: analysisResult.geometry.cake_height_line.end[1], y: analysisResult.geometry.cake_height_line.end[0] },
+            'Height',
+            MEASUREMENT_COLORS.height,
+        );
+    } else if (analysisResult.cake_measurements) {
         addMeasurementLine(
             analysisResult.cake_measurements.diameter.start,
             analysisResult.cake_measurements.diameter.end,
@@ -255,8 +270,36 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
         }
     };
 
+    const collectIntegratedBox = (
+        box2d: [number, number, number, number] | undefined,
+        confidence: number | undefined,
+        label: string,
+        color: string,
+        type: string,
+    ) => {
+        if (!box2d) return;
+        const [ymin, xmin, ymax, xmax] = box2d;
+        const display = applyImageOffset(normalizedToDisplay(
+            xmin,
+            ymin,
+            xmax - xmin,
+            ymax - ymin,
+            containerWidth,
+            containerHeight,
+        ));
+        boxes.push({ ...display, label, color, type, confidence });
+    };
+
     analysisResult.main_toppers?.forEach((topper, index) => {
-        if (topper.size_line) {
+        if (topper.box_2d) {
+            collectIntegratedBox(
+                topper.box_2d,
+                topper.bbox_confidence,
+                topper.description || `Topper ${index + 1}`,
+                COLORS.main_topper,
+                'topper',
+            );
+        } else if (topper.size_line) {
             addElementSizeLine(
                 topper.size_line.start,
                 topper.size_line.end,
@@ -276,7 +319,15 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
     });
 
     analysisResult.support_elements?.forEach((element, index) => {
-        if (element.size_line) {
+        if (element.box_2d) {
+            collectIntegratedBox(
+                element.box_2d,
+                element.bbox_confidence,
+                element.description || `Element ${index + 1}`,
+                COLORS.support_element,
+                'support',
+            );
+        } else if (element.size_line) {
             addElementSizeLine(
                 element.size_line.start,
                 element.size_line.end,
@@ -296,12 +347,22 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
     });
 
     analysisResult.cake_messages?.forEach((message, index) => {
-        collectElementBbox(
-            message.bbox,
-            message.text || `Message ${index + 1}`,
-            COLORS.cake_message,
-            'message',
-        );
+        if (message.box_2d) {
+            collectIntegratedBox(
+                message.box_2d,
+                message.bbox_confidence,
+                message.text || `Message ${index + 1}`,
+                COLORS.cake_message,
+                'message',
+            );
+        } else {
+            collectElementBbox(
+                message.bbox,
+                message.text || `Message ${index + 1}`,
+                COLORS.cake_message,
+                'message',
+            );
+        }
     });
 
     if (boxes.length === 0 && measurementLines.length === 0) {
@@ -391,12 +452,10 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
                             width: `${box.width}px`,
                             height: `${box.height}px`,
                             border: box.dashed
-                                ? `2px dashed ${box.color}`
-                                : `3px solid ${box.color}`,
+                                ? `1px dashed ${box.color}`
+                                : `1px solid ${box.color}`,
                             borderRadius: '4px',
-                            boxShadow: box.dashed
-                                ? 'none'
-                                : `0 0 0 2px rgba(255, 255, 255, 0.5), 0 0 10px ${box.color}80`,
+                            boxShadow: 'none',
                             transition: 'all 0.2s ease',
                         }}
                     >
