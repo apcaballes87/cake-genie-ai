@@ -6,7 +6,11 @@ import {
   type PinterestCatalogDesign,
 } from '@/lib/pinterest/catalog';
 
-export const revalidate = 21600;
+// This catalog can grow beyond Vercel's 19.07 MB ISR fallback limit. Generate
+// it on demand and keep the six-hour cache policy on the response instead of
+// serializing the entire XML document into the deployment artifact.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET() {
   const supabase = createClient(

@@ -1,0 +1,3 @@
+[submodule "mcp-gsc"]
+	path = mcp-gsc
+	url = https://github.com/AminForou/mcp-gsc.git
