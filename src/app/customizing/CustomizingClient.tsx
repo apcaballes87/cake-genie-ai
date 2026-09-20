@@ -4299,7 +4299,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                             activeTab={activeTab}
                             isAnalyzing={isAnalyzing}
                             isUpdatingDesign={isUpdatingDesign}
-                            isStudioBackgroundEditingPending={isStudioBackgroundEditingPending}
                             isComposingSelfie={isComposingSelfie}
                             dynamicLoadingMessage={dynamicLoadingMessage}
                             error={error}

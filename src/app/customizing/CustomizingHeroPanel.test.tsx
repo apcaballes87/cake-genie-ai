@@ -47,7 +47,6 @@ const buildProps = (): React.ComponentProps<typeof CustomizingHeroPanel> => ({
     activeTab: 'customized',
     isAnalyzing: false,
     isUpdatingDesign: false,
-    isStudioBackgroundEditingPending: false,
     dynamicLoadingMessage: 'Working on your cake...',
     error: null,
     originalImagePreview: null,
@@ -169,19 +168,14 @@ describe('CustomizingHeroPanel', () => {
         expect(screen.queryByRole('button', { name: 'Upload Cake Design' })).not.toBeInTheDocument();
     });
 
-    it('shows a lower-left loader while the studio background edit is still pending', () => {
+    it('does not show the removed background edit hero loader', () => {
         const props = buildProps();
         props.originalImagePreview = 'https://example.com/original-cake.jpg';
         props.preferredOriginalImageUrl = 'https://example.com/original-cake.jpg';
-        props.isStudioBackgroundEditingPending = true;
 
         render(<CustomizingHeroPanel {...props} />);
 
-        expect(screen.getByLabelText('ai is editing your background')).toBeInTheDocument();
-        const loader = screen.getByLabelText('ai is editing your background');
-        expect(loader.className).toContain('py-1');
-        expect(loader.className).not.toContain('h-9');
-        expect(loader.className).not.toContain('max-md:min-h-[44px]');
+        expect(screen.queryByLabelText('ai is editing your background')).not.toBeInTheDocument();
     });
 
     it('does not show the removed icing-mask loader', () => {

@@ -27,7 +27,6 @@ interface CustomizingHeroPanelProps {
     activeTab: ImageTab;
     isAnalyzing: boolean;
     isUpdatingDesign: boolean;
-    isStudioBackgroundEditingPending?: boolean;
     isComposingSelfie?: boolean;
     dynamicLoadingMessage: string;
     error: string | null;
@@ -172,7 +171,6 @@ export const CustomizingHeroPanel = memo(({
     activeTab,
     isAnalyzing,
     isUpdatingDesign,
-    isStudioBackgroundEditingPending = false,
     isComposingSelfie = false,
     dynamicLoadingMessage,
     error,
@@ -286,12 +284,7 @@ export const CustomizingHeroPanel = memo(({
             label: 'ai is adding your image to the cake',
             text: 'ai adding your image on this cake...',
         }
-        : isStudioBackgroundEditingPending
-                ? {
-                    label: 'ai is editing your background',
-                    text: 'ai is editing your background...',
-                }
-                : null;
+        : null;
 
     const openHeroImageModal = () => {
         if (!zoomOriginalImage) return;
