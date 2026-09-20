@@ -1,6 +1,8 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import { getDevelopmentPromptVersionOverride } from './promptVersionOverride';
+import { getContractCorrectionInstruction } from '@/lib/ai/analyzeCakeImage';
+import { GeneratedAnalysisContractError } from '@/lib/ai/generatedAnalysisContract';
 
 const mockGenerateContent = vi.fn();
 const mockGetOrCreatePromptCache = vi.fn();
@@ -78,6 +80,17 @@ describe('POST /api/ai/analyze', () => {
 
         vi.stubEnv('NODE_ENV', 'production');
         expect(getDevelopmentPromptVersionOverride()).toBeUndefined();
+    });
+
+    it('retries an integrated diameter-line orientation violation with explicit [y, x] geometry guidance', () => {
+        const correction = getContractCorrectionInstruction(new GeneratedAnalysisContractError(
+            'integrated bbox geometry: geometry.cake_diameter_line must be a left-to-right predominantly horizontal line',
+        ));
+
+        expect(correction).toContain('integrated_bbox_v1');
+        expect(correction).toContain('Every measurement point is [y, x], never [x, y]');
+        expect(correction).toContain('left rim to right rim');
+        expect(correction).toContain('Do not reuse the invalid measurement lines');
     });
 
     it('rejects requests if imageData or mimeType is missing', async () => {

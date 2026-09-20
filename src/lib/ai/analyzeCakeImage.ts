@@ -170,10 +170,22 @@ function clearCachedPromptCacheName(version: string) {
     }
 }
 
-function getContractCorrectionInstruction(error: unknown): string | null {
+export function getContractCorrectionInstruction(error: unknown): string | null {
     if (!(error instanceof GeneratedAnalysisContractError)) return null;
 
     const message = error.message;
+    const invalidIntegratedDiameterLine = /integrated bbox geometry: geometry\.cake_diameter_line must be a left-to-right predominantly horizontal line/i.test(message);
+    if (invalidIntegratedDiameterLine) {
+        return [
+            'Your previous integrated_bbox_v1 JSON response used an invalid cake_diameter_line.',
+            'Regenerate the complete analysis JSON for the same image with fresh, image-grounded measurement lines.',
+            'Every measurement point is [y, x], never [x, y].',
+            'cake_diameter_line must run from the cake’s left rim to right rim: end.x > start.x and its vertical drift must be smaller than its horizontal span.',
+            'cake_height_line must run top-to-bottom on the diameter midpoint: end.y > start.y and its horizontal drift must be smaller than its vertical span.',
+            'Do not reuse the invalid measurement lines.',
+        ].join(' ');
+    }
+
     const missingElementLine = /(?:main_toppers|support_elements)\[\d+\]\.size_line is required/i.test(message);
     if (!missingElementLine) return null;
 
