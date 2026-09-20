@@ -1,5 +1,7 @@
 # Lessons
 
+- When adding a new hit counter, verify the exact live ledger query and distinguish it from legacy `usage_count`; if the existing cache field is the required source of truth, update it atomically with the deduplicated event.
+
 - Never leave a development-only prompt-loader override on a path used by fresh or batch analysis. Prompt activation is only effective when `getActivePromptDetails` reads the active Supabase row; keep a version-aware local fallback solely for database-query failure.
 
 - After changing Vercel environment variables, verify the deployed function's raw provider resource and redeploy before diagnosing Google IAM. The dashboard can show corrected values while the live deployment still uses its previous environment snapshot.
