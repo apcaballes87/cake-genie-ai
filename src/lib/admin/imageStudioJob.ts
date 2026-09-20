@@ -98,6 +98,10 @@ export type RunImageStudioJobOptions = {
   inlineOriginalImage?: ImageStudioInlineImage | null;
   requireExistingRow?: boolean;
   waitForCacheRow?: boolean;
+  /** Queue workers can generate/upload without mutating the cache row directly. */
+  persistCacheRow?: boolean;
+  /** Reject a queued job if the source URL changed after it was claimed. */
+  expectedOriginalImageUrl?: string | null;
   client?: SupabaseClient;
 };
 
@@ -107,6 +111,8 @@ export type RunImageStudioJobResult = {
   persistedToCacheRow: boolean;
   publicUrl: string;
   storagePath: string;
+  imageWidth: number | null;
+  imageHeight: number | null;
 };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -217,7 +223,7 @@ async function getLogoBuffer(): Promise<Buffer> {
   return cachedLogoBuffer;
 }
 
-const finalizeEditedImage = async (
+export const finalizeEditedImage = async (
   buffer: Buffer,
   dimensions?: { width: number; height: number; wasUpscaled: boolean } | null
 ) => {
@@ -279,6 +285,48 @@ const finalizeEditedImage = async (
       .toBuffer();
   }
 };
+
+/**
+ * Persist a generated Studio image using the same resize, watermark, WebP,
+ * and storage behavior as the interactive Studio route. Batch imports use
+ * this helper so the delayed pipeline cannot silently diverge from manual
+ * edits.
+ */
+export async function uploadGeneratedStudioImage(
+  supabase: SupabaseClient,
+  {
+    pHash,
+    slug,
+    buffer,
+  }: { pHash: string; slug?: string | null; buffer: Buffer },
+) {
+  const generatedMetadata = await sharp(buffer).metadata();
+  const outputDimensions = getImageStudioOutputDimensions(
+    generatedMetadata.width ?? null,
+    generatedMetadata.height ?? null,
+  );
+  const watermarkedBuffer = await finalizeEditedImage(buffer, outputDimensions);
+  const finalizedMetadata = await sharp(watermarkedBuffer).metadata().catch(() => null);
+  const imageWidth = finalizedMetadata?.width ?? generatedMetadata.width ?? null;
+  const imageHeight = finalizedMetadata?.height ?? generatedMetadata.height ?? null;
+  const storagePath = getImageStudioStoragePath({ slug: slug ?? null, pHash });
+
+  const { error: uploadError } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .upload(storagePath, watermarkedBuffer, {
+      contentType: 'image/webp',
+      upsert: true,
+      headers: getSeoImageUploadHeaders(),
+    });
+
+  if (uploadError) throw new Error(uploadError.message);
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(storagePath);
+
+  return { publicUrl, storagePath, imageWidth, imageHeight };
+}
 
 async function getCacheRowByHash(
   supabase: SupabaseClient,
@@ -349,6 +397,8 @@ export async function runImageStudioJob({
   inlineOriginalImage = null,
   requireExistingRow = false,
   waitForCacheRow = false,
+  persistCacheRow = true,
+  expectedOriginalImageUrl = null,
   client,
 }: RunImageStudioJobOptions): Promise<RunImageStudioJobResult> {
   const startedAt = Date.now();
@@ -375,6 +425,13 @@ export async function runImageStudioJob({
       throw createStatusError(404, 'Image cache row not found.');
     }
 
+    if (
+      expectedOriginalImageUrl !== null
+      && cacheRow?.original_image_url !== expectedOriginalImageUrl
+    ) {
+      throw createStatusError(409, 'The source image changed before the Studio edit started.');
+    }
+
     if (!inlineOriginalImage && !cacheRow?.original_image_url) {
       throw createStatusError(
         cacheRow ? 400 : 404,
@@ -384,7 +441,7 @@ export async function runImageStudioJob({
       );
     }
 
-    if (cacheRow) {
+    if (cacheRow && persistCacheRow) {
       const processingRow = await persistStudioUpdateWithRetry(supabase, pHash, {
         studio_edit_status: 'processing',
         studio_edit_error: null,
@@ -406,7 +463,7 @@ export async function runImageStudioJob({
       inlineOriginalImage ?? await fetchImageAsInlineData(cacheRow!.original_image_url!);
     const prompt = buildImageStudioPrompt();
     const systemInstruction = buildImageStudioSystemInstruction();
-    const aiClient = getAI(requestContext);
+    const aiClient = await getAI(requestContext);
 
     let aiResponse: AiGenerateContentResponse | undefined;
     const maxAiRetries = 3;
@@ -463,61 +520,37 @@ export async function runImageStudioJob({
     }
 
     const generatedBuffer = Buffer.from(generatedImage.imageData, 'base64');
-    const generatedMetadata = await sharp(generatedBuffer).metadata();
-    const outputDimensions = getImageStudioOutputDimensions(
-      generatedMetadata.width ?? null,
-      generatedMetadata.height ?? null
-    );
-    const watermarkedBuffer = await finalizeEditedImage(
-      generatedBuffer,
-      outputDimensions
-    );
-    const finalizedMetadata = await sharp(watermarkedBuffer).metadata().catch(() => null);
-    const finalizedWidth = finalizedMetadata?.width ?? generatedMetadata.width ?? null;
-    const finalizedHeight = finalizedMetadata?.height ?? generatedMetadata.height ?? null;
-    const storagePath = getImageStudioStoragePath({
-      slug: cacheRow?.slug ?? null,
-      pHash,
-    });
-
-    const { error: uploadError } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .upload(storagePath, watermarkedBuffer, {
-        contentType: 'image/webp',
-        upsert: true,
-        headers: getSeoImageUploadHeaders(),
+    const { publicUrl, storagePath, imageWidth: finalizedWidth, imageHeight: finalizedHeight } =
+      await uploadGeneratedStudioImage(supabase, {
+        pHash,
+        slug: cacheRow?.slug ?? null,
+        buffer: generatedBuffer,
       });
 
-    if (uploadError) {
-      throw new Error(uploadError.message);
-    }
+    const updatedRow = persistCacheRow
+      ? await persistStudioUpdateWithRetry(
+        supabase,
+        pHash,
+        {
+          studio_edited_image_url: publicUrl,
+          studio_edit_status: 'completed',
+          studio_edit_error: null,
+          studio_edited_at: new Date().toISOString(),
+          image_width: finalizedWidth,
+          image_height: finalizedHeight,
+        },
+        {
+          waitForRow: canWaitForRow,
+          // Cap the inline wait so the studio job returns promptly even when the
+          // analyze flow's cache write hasn't landed yet. Background retry below
+          // covers the slow case.
+          maxAttempts: canWaitForRow ? INLINE_ROW_WAIT_ATTEMPTS : 1,
+          waitMs: INLINE_ROW_WAIT_MS,
+        }
+      )
+      : null;
 
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(storagePath);
-
-    const updatedRow = await persistStudioUpdateWithRetry(
-      supabase,
-      pHash,
-      {
-        studio_edited_image_url: publicUrl,
-        studio_edit_status: 'completed',
-        studio_edit_error: null,
-        studio_edited_at: new Date().toISOString(),
-        image_width: finalizedWidth,
-        image_height: finalizedHeight,
-      },
-      {
-        waitForRow: canWaitForRow,
-        // Cap the inline wait so the studio job returns promptly even when the
-        // analyze flow's cache write hasn't landed yet. Background retry below
-        // covers the slow case.
-        maxAttempts: canWaitForRow ? INLINE_ROW_WAIT_ATTEMPTS : 1,
-        waitMs: INLINE_ROW_WAIT_MS,
-      }
-    );
-
-    if (!updatedRow && canWaitForRow) {
+    if (persistCacheRow && !updatedRow && canWaitForRow) {
       // Row didn't exist within the inline window. Spawn a background tail
       // so the row gets updated once the analyze flow's upsert completes.
       // Storage upload already succeeded — the user's UI (subscribed via
@@ -558,6 +591,8 @@ export async function runImageStudioJob({
       persistedToCacheRow: Boolean(updatedRow),
       publicUrl,
       storagePath,
+      imageWidth: finalizedWidth,
+      imageHeight: finalizedHeight,
     };
   } catch (error: unknown) {
     const normalizedError = normalizeAiRouteError(error, {
@@ -566,7 +601,7 @@ export async function runImageStudioJob({
         'AI image editing is temporarily unavailable due to quota limits. Please try again later.',
     });
 
-    if (pHash) {
+    if (pHash && persistCacheRow) {
       try {
         await persistStudioUpdateWithRetry(
           supabase,

@@ -1051,6 +1051,7 @@ export async function cacheAnalysisResult(
   imageBlob?: Blob,
   options?: {
     client?: SupabaseClient;
+    /** @deprecated Immediate upload Studio triggers are no longer dispatched. */
     triggerStudioEdit?: boolean;
     fingerprintPipeline?: string | null;
     pdqHash?: string | null;
@@ -1274,16 +1275,8 @@ export async function cacheAnalysisResult(
     } else {
       console.log('✅ Analysis result cached successfully with pHash:', resolvedPHash, 'slug:', slug);
 
-      // Trigger background Image Studio edit (Fire and forget) for interactive
-      // flows only. Bulk admin imports can create a second hidden AI pipeline
-      // that collides with analysis traffic and causes quota contention.
-      if (options?.triggerStudioEdit !== false && resolvedPHash && typeof window !== 'undefined') {
-        fetch('/api/ai/trigger-studio-edit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pHash: resolvedPHash })
-        }).catch(err => console.warn('Background trigger fetch error:', err));
-      }
+      // Immediate upload-triggered Studio editing is retired. Delayed jobs are
+      // enqueued by the database after the 48-hour eligibility window instead.
     }
 
     return {

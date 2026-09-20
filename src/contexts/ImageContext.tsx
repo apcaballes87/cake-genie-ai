@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import { usePathname } from 'next/navigation'
 import { v4 as uuidv4 } from 'uuid'
 import { toast as toastHot } from 'react-hot-toast'
-import { fileToBase64, validateCakeImage, analyzeCakeFeaturesOnly, enrichAnalysisWithRoboflow, triggerStudioEditFromUpload } from '@/services/geminiService'
+import { fileToBase64, validateCakeImage, analyzeCakeFeaturesOnly, enrichAnalysisWithRoboflow } from '@/services/geminiService'
 import { createClient } from '@/lib/supabase/client'
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization'
 import { showSuccess, showError, showLoading, showStatus } from '@/lib/utils/toast'
@@ -12,7 +12,6 @@ import { HybridAnalysisResult, CacheSEOMetadata } from '@/types'
 import {
     findSimilarAnalysisByHash,
     cacheAnalysisResult,
-    prepareStudioEditCacheRow,
 } from '@/services/supabaseService'
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils'
 import { COMMON_ASSETS } from '@/constants'
@@ -38,11 +37,6 @@ const fetchImageAsBase64 = async (url: string): Promise<{ data: string; mimeType
     const base64Data = window.btoa(binary);
     return { data: base64Data, mimeType };
 };
-
-const PARALLEL_STUDIO_VALID_CLASSIFICATIONS = new Set([
-    'valid_single_cake',
-    'valid_bento_cupcake_set',
-]);
 
 const VALIDATION_REJECTION_MESSAGES: Record<string, string> = {
     multiple_cakes: 'Please upload a single cake image. This image contains multiple cakes.',
@@ -620,7 +614,6 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             const isFallbackPhotoCandidate = validationClassification === 'not_a_cake'
                 || validationClassification === 'non_food';
             const isPhotoReferenceCandidate = isEdiblePhotoReference || isFallbackPhotoCandidate;
-            const isParallelStudioCandidate = PARALLEL_STUDIO_VALID_CLASSIFICATIONS.has(validationClassification);
 
             if (validationMessage && !isPhotoReferenceCandidate) {
                 throw new Error(`AI_REJECTION: ${validationMessage}`);
@@ -730,39 +723,6 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 return;
             }
 
-            // For clearly valid cake classifications, reserve the Studio row and trigger
-            // Studio before waiting for the more detailed cake analysis. This is the
-            // parallel path. Photo-reference candidates are excluded so a raw portrait or
-            // artwork cannot enter normal Studio before the edible-photo decision is made.
-            const earlyStudioSetupPromise =
-                FEATURE_FLAGS.ENABLE_UPLOAD_AI_IMAGE_EDITING
-                    && isParallelStudioCandidate && hasTrustedFingerprint && pHash && fingerprint
-                    ? (async () => {
-                        const preparedStudioRow = await prepareStudioEditCacheRow(pHash, {
-                            fingerprintPipeline: fingerprint.pipeline,
-                            pdqHash: fingerprint.pdqHash,
-                            pdqQuality: fingerprint.pdqQuality,
-                            pdqPipeline: fingerprint.pdqPipeline,
-                            originalImageUrl: uploadedImageUrl || null,
-                        });
-
-                        if (!preparedStudioRow) {
-                            return { preparedStudioRow: null, studioTriggerHandled: false };
-                        }
-
-                        if (preparedStudioRow.studioTriggerHandled || preparedStudioRow.shouldTriggerStudioEdit === false) {
-                            return { preparedStudioRow, studioTriggerHandled: true };
-                        }
-
-                        const studioTriggerHandled = await triggerStudioEditFromUpload(
-                            preparedStudioRow.storedPHash || pHash,
-                            compressedImageData
-                        );
-
-                        return { preparedStudioRow, studioTriggerHandled };
-                    })()
-                    : null;
-
             // --- STEP 3: TWO-PHASE AI ANALYSIS ---
 
 
@@ -799,38 +759,6 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                 // New analyses stay in the uploader session until SEO publication.
                 setCurrentSlugState(knownSeoMetadata?.slug || null);
 
-                const earlyStudioSetup = earlyStudioSetupPromise
-                    ? await earlyStudioSetupPromise
-                    : null;
-                const preparedStudioRow = earlyStudioSetup?.preparedStudioRow
-                    ?? (FEATURE_FLAGS.ENABLE_UPLOAD_AI_IMAGE_EDITING && hasTrustedFingerprint && pHash && fingerprint
-                        ? await prepareStudioEditCacheRow(pHash, {
-                            fingerprintPipeline: fingerprint.pipeline,
-                            pdqHash: fingerprint.pdqHash,
-                            pdqQuality: fingerprint.pdqQuality,
-                            pdqPipeline: fingerprint.pdqPipeline,
-                            originalImageUrl: uploadedImageUrl || null,
-                        })
-                        : null);
-
-                if (preparedStudioRow) {
-                    setCurrentCacheId(preparedStudioRow.id ?? null);
-                    setCurrentPHash(preparedStudioRow.storedPHash);
-                }
-
-                let studioTriggerHandled = !FEATURE_FLAGS.ENABLE_UPLOAD_AI_IMAGE_EDITING
-                    || earlyStudioSetup?.studioTriggerHandled === true;
-                if (FEATURE_FLAGS.ENABLE_UPLOAD_AI_IMAGE_EDITING && hasTrustedFingerprint && pHash && !earlyStudioSetup) {
-                    if (preparedStudioRow?.studioTriggerHandled || preparedStudioRow?.shouldTriggerStudioEdit === false) {
-                        studioTriggerHandled = true;
-                    } else {
-                        studioTriggerHandled = await triggerStudioEditFromUpload(
-                            preparedStudioRow?.storedPHash || pHash,
-                            compressedImageData
-                        );
-                    }
-                }
-
                 const fastCacheWritePromise: ReturnType<typeof cacheAnalysisResult> | null =
                     hasTrustedFingerprint && pHash && fingerprint
                         ? cacheAnalysisResult(pHash, fastResult, uploadedImageUrl, finalImageBlobToCache, {
@@ -838,7 +766,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                             pdqHash: fingerprint.pdqHash,
                             pdqQuality: fingerprint.pdqQuality,
                             pdqPipeline: fingerprint.pdqPipeline,
-                            triggerStudioEdit: FEATURE_FLAGS.ENABLE_UPLOAD_AI_IMAGE_EDITING && !studioTriggerHandled,
+                            triggerStudioEdit: false,
                         })
                         : null;
 

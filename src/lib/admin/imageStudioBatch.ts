@@ -21,7 +21,7 @@ type AIRequestContext = {
   };
 } | null | undefined;
 
-type BatchItem = {
+export type BatchItem = {
   id: string;
   cache_id: string;
   p_hash: string;
@@ -33,7 +33,7 @@ type BatchItem = {
   cache?: { slug: string | null } | null;
 };
 
-type JsonlResponse = {
+export type ImageStudioBatchJsonlResponse = {
   response?: {
     candidates?: Array<{ content?: { parts?: Array<{ inlineData?: { data?: string; mimeType?: string } }> } }>;
   };
@@ -65,7 +65,7 @@ type SubmitImageStudioBatchOptions = {
   offset?: number;
 };
 
-function parseGcsPrefix() {
+export function parseImageStudioBatchGcsPrefix() {
   const value = process.env.VERTEX_AI_BATCH_GCS_URI?.trim();
   const match = value?.match(/^gs:\/\/([^/]+)\/?(.*)$/);
   if (!match) throw new Error('Set VERTEX_AI_BATCH_GCS_URI to a writable gs:// bucket prefix.');
@@ -118,7 +118,7 @@ export function buildImageStudioBatchInputLine(item: BatchItem, stage: Stage) {
   });
 }
 
-function extractImage(line: JsonlResponse) {
+export function extractImageStudioBatchImage(line: ImageStudioBatchJsonlResponse) {
   const parts = line.response?.candidates?.[0]?.content?.parts ?? [];
   const image = parts.find((part) => part.inlineData?.data)?.inlineData;
   return image?.data ? Buffer.from(image.data, 'base64') : null;
@@ -180,8 +180,8 @@ export async function submitNextImageStudioBatch(
     throw new Error('No eligible cache rows are waiting for batch processing.');
   }
 
-  const adminClient = getAI(requestContext);
-  const gcs = parseGcsPrefix();
+  const adminClient = await getAI(requestContext);
+  const gcs = parseImageStudioBatchGcsPrefix();
   const storage = createBatchStorage(requestContext);
   const runId = crypto.randomUUID();
   const inputUri = `gs://${gcs.bucket}/${objectName(gcs.prefix, `${runId}/studio-input.jsonl`)}`;
@@ -232,9 +232,9 @@ async function importStage(run: BatchRun, items: BatchItem[], stage: Stage, maxI
   let failed = 0;
   let imported = 0;
   for await (const rawLine of lines) {
-    let line: JsonlResponse;
+    let line: ImageStudioBatchJsonlResponse;
     try {
-      line = JSON.parse(rawLine) as JsonlResponse;
+      line = JSON.parse(rawLine) as ImageStudioBatchJsonlResponse;
     } catch {
       continue;
     }
@@ -258,7 +258,7 @@ async function importStage(run: BatchRun, items: BatchItem[], stage: Stage, maxI
     }
     if (imported >= maxImports) break;
     try {
-      const image = extractImage(line);
+      const image = extractImageStudioBatchImage(line);
       if (!image) {
         const { error: failedUpdateError } = await admin
           .from('cakegenie_image_studio_batch_items')
@@ -355,7 +355,7 @@ export async function reconcileImageStudioBatch(runId: string, requestContext?: 
   const admin = createAdminServerSupabaseClient();
   const { data: run, error } = await admin.from('cakegenie_image_studio_batch_jobs').select('*').eq('id', runId).single();
   if (error) throw error;
-  const aiClient = getAI(requestContext);
+  const aiClient = await getAI(requestContext);
   let providerJob: Awaited<ReturnType<typeof aiClient.batches.get>> | null = null;
   if (run.status !== 'JOB_STATE_SUCCEEDED' && run.status !== 'importing') {
     try {
