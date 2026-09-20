@@ -3,9 +3,13 @@
 import { memo, useRef, useState, useEffect, type ReactNode, type RefObject } from 'react';
 import Link from 'next/link';
 import LazyImage from '@/components/LazyImage';
-import { BoundingBoxOverlay } from '@/components/BoundingBoxOverlay';
+import {
+    BoundingBoxOverlay,
+    type CakeMessageBoxTarget,
+    type DecorationBoxTarget,
+} from '@/components/BoundingBoxOverlay';
 import { ImageZoomModal } from '@/components/ImageZoomModal';
-import { Heart, ShieldCheck, Wand2, ScanEye, EyeOff } from 'lucide-react';
+import { Heart, ShieldCheck, Wand2, ScanEye, EyeOff, ZoomIn } from 'lucide-react';
 import { ErrorIcon, ImageIcon, ResetIcon, Loader2, ReportIcon } from '../../components/icons';
 import MagicGlitter from '@/components/MagicGlitter';
 import { getCustomerFacingAnalysisError } from './analysisErrorDisplay';
@@ -63,6 +67,10 @@ interface CustomizingHeroPanelProps {
     initialHeroAspectRatio?: string | null;
     heroImageVariants?: VariantManifest | null;
     analysisResult?: HybridAnalysisResult | null;
+    editableDecorationTargets?: readonly DecorationBoxTarget[];
+    onDecorationActivate?: (targets: DecorationBoxTarget[]) => void;
+    editableCakeMessageTargets?: readonly CakeMessageBoxTarget[];
+    onCakeMessageActivate?: (position: CakeMessageBoxTarget['position']) => void;
     reviewSummary?: {
         total: number;
         averageRating: number;
@@ -197,6 +205,10 @@ export const CustomizingHeroPanel = memo(({
     initialHeroAspectRatio = null,
     heroImageVariants = null,
     analysisResult = null,
+    editableDecorationTargets,
+    onDecorationActivate,
+    editableCakeMessageTargets,
+    onCakeMessageActivate,
 }: CustomizingHeroPanelProps) => {
     const [originalImageDimensions, setOriginalImageDimensions] = useState<{ width: number, height: number } | null>(null);
     const [overlayImageBounds, setOverlayImageBounds] = useState<OverlayImageBounds | null>(null);
@@ -278,8 +290,8 @@ export const CustomizingHeroPanel = memo(({
                 }
                 : null;
 
-    const openHeroImageModal = (src: string) => {
-        if (!src) return;
+    const openHeroImageModal = () => {
+        if (!zoomOriginalImage) return;
         setIsHeroImageZoomOpen(true);
     };
     const closeHeroImageModal = () => setIsHeroImageZoomOpen(false);
@@ -407,7 +419,6 @@ export const CustomizingHeroPanel = memo(({
         title: string,
         caption?: string,
         overlaySrc?: string,
-        modalSrc?: string,
     ) => {
         const responsiveAttrs = getResponsiveAttrsForSrc(src);
 
@@ -435,8 +446,7 @@ export const CustomizingHeroPanel = memo(({
                                 fetchPriority="high"
                                 loading="eager"
                                 decoding="async"
-                                className="block w-full h-auto align-top cursor-zoom-in"
-                                onClick={() => openHeroImageModal(modalSrc || overlaySrc || src)}
+                                className="block w-full h-auto align-top"
                                 onLoad={imageOnLoad}
                             />
                             {overlaySrc ? (
@@ -474,7 +484,6 @@ export const CustomizingHeroPanel = memo(({
         title: string,
         caption?: string,
         overlaySrc?: string,
-        modalSrc?: string,
     ) => (
         <figure className="absolute inset-0 w-full h-full">
             <LazyImage
@@ -484,13 +493,12 @@ export const CustomizingHeroPanel = memo(({
                 title={title}
                 fill
                 sizes="100vw"
-                imageClassName="object-cover rounded-3xl cursor-zoom-in"
+                imageClassName="object-cover rounded-3xl"
                 priority
                 fetchPriority="high"
                 decoding="async"
                 unoptimized
                 variants={shouldUseHeroVariantsForSrc(src) ? heroImageVariants : null}
-                onClick={() => openHeroImageModal(modalSrc || overlaySrc || src)}
                 onLoad={imageOnLoad}
             />
             {overlaySrc ? (
@@ -523,7 +531,6 @@ export const CustomizingHeroPanel = memo(({
         title: string,
         caption?: string,
         overlaySrc?: string,
-        modalSrc?: string,
     ) => {
         const responsiveAttrs = getResponsiveAttrsForSrc(src);
 
@@ -541,8 +548,7 @@ export const CustomizingHeroPanel = memo(({
                     fetchPriority="high"
                     loading="eager"
                     decoding="async"
-                    className="block w-full h-auto rounded-3xl cursor-zoom-in"
-                    onClick={() => openHeroImageModal(modalSrc || overlaySrc || src)}
+                    className="block w-full h-auto rounded-3xl"
                     onLoad={imageOnLoad}
                 />
                 {overlaySrc ? (
@@ -675,7 +681,6 @@ export const CustomizingHeroPanel = memo(({
                                                     heroDisplayTitle,
                                                     undefined,
                                                     shouldRenderStudioOverlay ? (incomingStudioImageUrl || undefined) : undefined,
-                                                    originalHeroModalSrc,
                                                 )
                                                 : renderCoveredImage(
                                                     heroDisplaySrc,
@@ -683,7 +688,6 @@ export const CustomizingHeroPanel = memo(({
                                                     heroDisplayTitle,
                                                     undefined,
                                                     shouldRenderStudioOverlay ? (incomingStudioImageUrl || undefined) : undefined,
-                                                    originalHeroModalSrc,
                                                 )}
                                         </div>
                                         <div className="hidden md:block">
@@ -693,7 +697,6 @@ export const CustomizingHeroPanel = memo(({
                                                 heroDisplayTitle,
                                                 undefined,
                                                 shouldRenderStudioOverlay ? (incomingStudioImageUrl || undefined) : undefined,
-                                                originalHeroModalSrc,
                                             )}
                                         </div>
                                     </>
@@ -709,12 +712,11 @@ export const CustomizingHeroPanel = memo(({
                                             title="Loading your cake design"
                                             fill
                                             sizes="(max-width: 768px) 100vw, 50vw"
-                                            imageClassName="object-cover rounded-3xl cursor-zoom-in"
+                                            imageClassName="object-cover rounded-3xl"
                                             priority
                                             fetchPriority="high"
                                             decoding="async"
                                             unoptimized
-                                            onClick={() => openHeroImageModal(preloadedHeroImage)}
                                             onLoad={imageOnLoad}
                                         />
                                         {isAnalyzing ? (
@@ -733,12 +735,11 @@ export const CustomizingHeroPanel = memo(({
                                             title={fallbackImageTitle}
                                             fill
                                             sizes="(max-width: 768px) 100vw, 50vw"
-                                            imageClassName="object-cover rounded-3xl cursor-zoom-in"
+                                            imageClassName="object-cover rounded-3xl"
                                             priority
                                             fetchPriority="high"
                                             decoding="async"
                                             unoptimized
-                                            onClick={() => openHeroImageModal(fallbackImageUrl)}
                                             onLoad={imageOnLoad}
                                         />
                                         {initialCaption ? (
@@ -759,12 +760,11 @@ export const CustomizingHeroPanel = memo(({
                                             title={heroImageTitle}
                                             fill
                                             sizes="(max-width: 768px) 100vw, 50vw"
-                                            imageClassName="object-cover rounded-3xl cursor-zoom-in"
+                                            imageClassName="object-cover rounded-3xl"
                                             priority
                                             fetchPriority="high"
                                             decoding="async"
                                             unoptimized
-                                            onClick={() => openHeroImageModal(activeTab === 'original' ? originalHeroModalSrc : (editedImage || originalHeroModalSrc))}
                                             onLoad={imageOnLoad}
                                         />
 
@@ -815,8 +815,18 @@ export const CustomizingHeroPanel = memo(({
                                     </div>
                                 ) : null}
 
-                                {editedImage ? (
-                                <div className="absolute bottom-4 right-4 max-md:bottom-3 max-md:right-3 z-10 flex items-center gap-1 p-1 bg-white/85 backdrop-blur-md rounded-full shadow-lg border border-slate-100/60 ring-1 ring-black/5 select-none pointer-events-auto transition-all duration-300 hover:bg-white/95">
+                                <div className="absolute bottom-4 right-4 max-md:bottom-3 max-md:right-3 z-10 flex flex-col items-end gap-2 pointer-events-auto">
+                                    <button
+                                        type="button"
+                                        onClick={openHeroImageModal}
+                                        className="backdrop-blur-sm rounded-full text-[10px] font-semibold transition-all shadow-md px-[10px] py-[4px] flex items-center !gap-[8px] genie-btn-secondary"
+                                        aria-label="Zoom cake image"
+                                    >
+                                        <ZoomIn className="w-[13px] h-[13px]" />
+                                        Zoom
+                                    </button>
+                                    {editedImage ? (
+                                <div className="flex items-center gap-1 p-1 bg-white/85 backdrop-blur-md rounded-full shadow-lg border border-slate-100/60 ring-1 ring-black/5 select-none transition-all duration-300 hover:bg-white/95">
                                         <button
                                             type="button"
                                             onClick={onOriginalTabSelect}
@@ -841,7 +851,8 @@ export const CustomizingHeroPanel = memo(({
                                             Customized
                                         </button>
                                     </div>
-                                ) : null}
+                                    ) : null}
+                                </div>
 
                                 {showPriceGuarantee ? (
                                     <div className="absolute top-3 left-3 max-md:top-2.5 max-md:left-2.5 z-10 transition-all duration-300">
@@ -894,6 +905,11 @@ export const CustomizingHeroPanel = memo(({
                                 offsetX={overlayImageBounds.left}
                                 offsetY={overlayImageBounds.top}
                                 useTopLeftOrigin
+                                showCakeMeasurementLines={false}
+                                editableDecorationTargets={editableDecorationTargets}
+                                onDecorationActivate={onDecorationActivate}
+                                editableCakeMessageTargets={editableCakeMessageTargets}
+                                onCakeMessageActivate={onCakeMessageActivate}
                             />
                         )}
                     </div>

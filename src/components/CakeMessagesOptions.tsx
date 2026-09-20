@@ -78,6 +78,7 @@ const MessageRow: React.FC<{
                 <label htmlFor={`msg-text-${message.id}`} className="sr-only">Text</label>
                 <textarea
                     id={`msg-text-${message.id}`}
+                    data-cake-message-input-id={message.id}
                     ref={textAreaRef}
                     rows={1}
                     value={inputValue}

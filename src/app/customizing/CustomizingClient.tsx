@@ -76,6 +76,7 @@ import {
 } from './CustomizingPageMetaSections';
 import { CustomizingEditorSheet } from './CustomizingEditorSheet';
 import { CustomizingHeroPanel, HeroActionButtonsRow } from './CustomizingHeroPanel';
+import type { CakeMessageBoxTarget, DecorationBoxTarget } from '@/components/BoundingBoxOverlay';
 import { CustomizingIcingEditorPanel, areIcingDesignsEqual } from './CustomizingIcingEditorPanel';
 import { CustomizingInstructionsPanel } from './CustomizingInstructionsPanel';
 import { CustomizingOptionsPanel } from './CustomizingOptionsPanel';
@@ -88,6 +89,13 @@ import { CustomizingEmptyLandingState } from './CustomizingEmptyLandingState';
 import { CustomizingAiChatPanel } from './CustomizingAiChatPanel';
 import { CakeDesignQuickActions } from './CakeDesignQuickActions';
 import { CustomizingToppersPanel } from './CustomizingToppersPanel';
+import { DetectedDecorationChoiceSheet, type DetectedDecorationChoice } from './DetectedDecorationChoiceSheet';
+import { focusCakeMessageForm } from './messageFormFocus';
+import {
+    STICKY_ADD_TO_CART_AVAILABILITY_OFFSET_PX,
+    STICKY_ADD_TO_CART_BASE_OFFSET_PX,
+    STICKY_ADD_TO_CART_PRINTOUT_OFFSET_PX,
+} from './stickyBarLayout';
 import { CustomizingAgentProtocol } from './CustomizingAgentProtocol';
 import { prepareAiChatReferenceImage } from './aiChatReferenceImage';
 import { buildCartCustomizationDetails } from './buildCartCustomizationDetails';
@@ -181,6 +189,8 @@ type AiChatReferenceAttachment = {
     fileName: string;
     image: { data: string; mimeType: string };
 };
+
+type EditableDecorationItem = Extract<AnalysisItem, { itemCategory: 'topper' | 'element' }>;
 
 const AVAILABILITY_MAP: Record<AvailabilityType, AvailabilityInfo> = {
     rush: {
@@ -3187,6 +3197,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     // --- UI State ---
     const [activeTopperSection, setActiveTopperSection] = useState<'main' | 'support' | null>(null);
     const [expandedTopperItemId, setExpandedTopperItemId] = useState<string | null>(null);
+    const [detectedDecorationChoices, setDetectedDecorationChoices] = useState<DetectedDecorationChoice[]>([]);
 
     const openTopperSheet = useCallback((
         section: 'main' | 'support' | null = null,
@@ -3196,6 +3207,119 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         setExpandedTopperItemId(expandedItemId);
         setActiveCustomization('toppers');
     }, []);
+
+    const openEditableDecoration = useCallback((item: EditableDecorationItem) => {
+        setDetectedDecorationChoices([]);
+        setSelectedItem(item);
+        setActiveTopperSection(item.itemCategory === 'topper' ? 'main' : 'support');
+        setExpandedTopperItemId(item.id);
+        setActiveCustomization('toppers');
+    }, []);
+
+    const editableDecorationTargets = useMemo<DecorationBoxTarget[]>(() => {
+        const targets = [
+            ...mainToppers.map((topper) => ({
+                category: 'topper' as const,
+                groupId: topper.group_id,
+                label: topper.description,
+            })),
+            ...supportElements.map((element) => ({
+                category: 'support' as const,
+                groupId: element.group_id,
+                label: element.description,
+            })),
+        ];
+        const seen = new Set<string>();
+
+        return targets.filter((target) => {
+            const key = `${target.category}:${target.groupId}`;
+            if (!target.groupId || seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    }, [mainToppers, supportElements]);
+
+    const editableCakeMessageTargets = useMemo<CakeMessageBoxTarget[]>(() => (
+        cakeMessages.map((message) => ({
+            position: message.position,
+            label: message.text.trim() || message.originalMessage?.text?.trim() || 'Cake message',
+        }))
+    ), [cakeMessages]);
+
+    const handleCakeMessageActivate = useCallback((position: CakeMessageBoxTarget['position']) => {
+        const message = cakeMessages.find((candidate) => candidate.position === position);
+        if (!message) return;
+
+        // Cake-message editing is inline. Minimize any open editor sheet, then
+        // focus the rendered responsive form for the selected message surface.
+        setActiveCustomization(null);
+        setActiveTopperSection(null);
+        setExpandedTopperItemId(null);
+        setSelectedItem(null);
+        setDetectedDecorationChoices([]);
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                focusCakeMessageForm(message.id);
+            });
+        });
+    }, [cakeMessages]);
+
+    const handleDetectedDecorationActivate = useCallback((targets: DecorationBoxTarget[]) => {
+        const choices = targets.flatMap((target): DetectedDecorationChoice[] => {
+            if (target.category === 'topper') {
+                const topper = mainToppers.find((item) => item.group_id === target.groupId);
+                return topper ? [{
+                    id: topper.id,
+                    itemCategory: 'topper',
+                    label: topper.description || target.label,
+                }] : [];
+            }
+
+            const element = supportElements.find((item) => item.group_id === target.groupId);
+            return element ? [{
+                id: element.id,
+                itemCategory: 'element',
+                label: element.description || target.label,
+            }] : [];
+        });
+        const uniqueChoices = choices.filter((choice, index) => (
+            choices.findIndex((candidate) => (
+                candidate.itemCategory === choice.itemCategory && candidate.id === choice.id
+            )) === index
+        ));
+
+        if (uniqueChoices.length === 1) {
+            const [choice] = uniqueChoices;
+            if (choice.itemCategory === 'topper') {
+                const topper = mainToppers.find((item) => item.id === choice.id);
+                if (topper) openEditableDecoration({ ...topper, itemCategory: 'topper' });
+            } else {
+                const element = supportElements.find((item) => item.id === choice.id);
+                if (element) openEditableDecoration({ ...element, itemCategory: 'element' });
+            }
+            return;
+        }
+
+        setDetectedDecorationChoices(uniqueChoices);
+    }, [mainToppers, openEditableDecoration, supportElements]);
+
+    const handleDetectedDecorationChoice = useCallback((choice: DetectedDecorationChoice) => {
+        if (choice.itemCategory === 'topper') {
+            const topper = mainToppers.find((item) => item.id === choice.id);
+            if (topper) {
+                openEditableDecoration({ ...topper, itemCategory: 'topper' });
+                return;
+            }
+        } else {
+            const element = supportElements.find((item) => item.id === choice.id);
+            if (element) {
+                openEditableDecoration({ ...element, itemCategory: 'element' });
+                return;
+            }
+        }
+        setDetectedDecorationChoices([]);
+    }, [mainToppers, openEditableDecoration, supportElements]);
 
     const handleQuickActionTopperMaterial = useCallback((action: AiChatTopperMaterialAction) => {
         if (!aiChatQuickActionMode || aiChatQuickActionMode === 'edible-photo' || isUpdatingDesign) return;
@@ -3280,15 +3404,11 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         if (!target) return;
 
         if (target.itemCategory === 'topper') {
-            setSelectedItem({ ...target.item, itemCategory: 'topper' });
-            setActiveTopperSection('main');
+            openEditableDecoration({ ...target.item, itemCategory: 'topper' });
         } else {
-            setSelectedItem({ ...target.item, itemCategory: 'element' });
-            setActiveTopperSection('support');
+            openEditableDecoration({ ...target.item, itemCategory: 'element' });
         }
-        setExpandedTopperItemId(target.item.id);
-        setActiveCustomization('toppers');
-    }, [mainToppers, supportElements]);
+    }, [mainToppers, openEditableDecoration, supportElements]);
 
     const hasTypeChanges = useMemo(() => {
         if (!analysisResult?.cakeType || !cakeInfo?.type) return false;
@@ -4090,6 +4210,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         supportElements,
     ]);
 
+    const detectedDecorationChoiceBottomOffset = hideStickyBar
+        ? 0
+        : STICKY_ADD_TO_CART_BASE_OFFSET_PX
+            + (!isAnalyzing && availabilityType ? STICKY_ADD_TO_CART_AVAILABILITY_OFFSET_PX : 0)
+            + (!isAnalyzing && (hasPrintoutConversionNotice || toyAvailabilityWarning) ? STICKY_ADD_TO_CART_PRINTOUT_OFFSET_PX : 0);
+
     return (
         <>
             {/* H1 lives in the server-rendered intro section in app/customizing/page.tsx.
@@ -4206,6 +4332,12 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                             reviewSummary={reviewSummary}
                             heroImageVariants={heroImageVariants}
                             analysisResult={analysisResult}
+                            editableDecorationTargets={editableDecorationTargets}
+                            onDecorationActivate={(activeCustomization === null || activeCustomization === 'toppers') && detectedDecorationChoices.length === 0
+                                ? handleDetectedDecorationActivate
+                                : undefined}
+                            editableCakeMessageTargets={editableCakeMessageTargets}
+                            onCakeMessageActivate={handleCakeMessageActivate}
                             initialHeroAspectRatio={
                                 recentSearchDesign?.image_width && recentSearchDesign?.image_height
                                     ? `${recentSearchDesign.image_width} / ${recentSearchDesign.image_height}`
@@ -4548,6 +4680,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                         setActiveTopperSection(null);
                         setExpandedTopperItemId(null);
                         setSelectedItem(null);
+                        setDetectedDecorationChoices([]);
                     }}
 
                 >
@@ -4630,6 +4763,13 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                         onAdditionalInstructionsChange={onAdditionalInstructionsChange}
                     />
                 </CustomizingEditorSheet>
+
+                <DetectedDecorationChoiceSheet
+                    choices={detectedDecorationChoices}
+                    bottomOffset={detectedDecorationChoiceBottomOffset}
+                    onChoose={handleDetectedDecorationChoice}
+                    onClose={() => setDetectedDecorationChoices([])}
+                />
 
                 <CakeFlavorBottomSheet
                     isOpen={activeCustomization === 'flavor'}

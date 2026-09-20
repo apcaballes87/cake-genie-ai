@@ -42,6 +42,7 @@ describe('CakeMessagesOptions', () => {
         renderCakeMessagesOptions([createMessage({ position: 'side', text: 'Hello' })]);
 
         expect(screen.getByLabelText('Text')).toHaveValue('Hello');
+        expect(screen.getByLabelText('Text')).toHaveAttribute('data-cake-message-input-id', 'message-1');
         expect(screen.getByLabelText('Position for message-1')).toHaveValue('side');
         expect(screen.getByRole('button', { name: 'Delete Front message' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Choose color for message-1' })).toBeInTheDocument();
