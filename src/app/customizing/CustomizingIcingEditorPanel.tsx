@@ -1,7 +1,7 @@
 'use client';
 
 import React, { memo, useMemo } from 'react';
-import { AlertCircle, Loader2, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import LazyImage from '@/components/LazyImage';
 import { ColorPalette } from '@/components/ColorPalette';
 import MagicGlitter from '@/components/MagicGlitter';
@@ -163,21 +163,6 @@ const IcingToolbar = memo(function IcingToolbar({
     );
 });
 
-const VisibleStatusMessage = memo(function VisibleStatusMessage({
-    isStudioBackgroundEditingPending,
-}: {
-    isStudioBackgroundEditingPending: boolean;
-}) {
-    if (!isStudioBackgroundEditingPending) return null;
-
-    return (
-        <div className="mt-2.5 flex items-center justify-center gap-2 text-[9px] max-md:text-[8px] font-bold text-purple-600 animate-pulse bg-purple-50/50 py-1.5 px-3 rounded-lg border border-purple-100/60 transition-all duration-300">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            <span>ai is editing your background...</span>
-        </div>
-    );
-});
-
 const areIcingDesignsEqual = (a: IcingDesign, b: IcingDesign): boolean => {
     const aKeys: Array<keyof IcingColorDetails> = ['top', 'side', 'gumpasteBaseBoardColor'];
     for (const key of aKeys) {
@@ -280,9 +265,6 @@ export const CustomizingIcingEditorPanel = memo(function CustomizingIcingEditorP
                         />
                     </div>
                 )}
-                <VisibleStatusMessage
-                    isStudioBackgroundEditingPending={isStudioBackgroundEditingPending}
-                />
             </div>
         );
     };

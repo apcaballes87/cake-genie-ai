@@ -175,7 +175,7 @@ describe('CustomizingIcingEditorPanel', () => {
         expect(screen.queryByTestId('magic-glitter')).not.toBeInTheDocument();
     });
 
-    it('shows a pulsing background edit status below the body icing color palette while background editing is pending', () => {
+    it('does not show the removed background edit status while background editing is pending', () => {
         const props = buildProps();
         props.selectedItem = {
             id: 'icing-edit-side',
@@ -187,7 +187,7 @@ describe('CustomizingIcingEditorPanel', () => {
 
         render(<CustomizingIcingEditorPanel {...props} />);
 
-        expect(screen.getByText('ai is editing your background...')).toBeInTheDocument();
+        expect(screen.queryByText('ai is editing your background...')).not.toBeInTheDocument();
     });
 
     it('disables body icing swatches while the mask is generating (M2)', () => {

@@ -46,7 +46,9 @@ describe('BoundingBoxOverlay', () => {
         ]);
         expect(target).toHaveAttribute('aria-pressed', 'true');
         expect(screen.getByTestId('bounding-box-label-topper-0')).toHaveTextContent('Tiny bow');
-        expect(screen.getByTestId('bounding-box-outline-topper-0').style.boxShadow).toContain('#10B981');
+        const outline = screen.getByTestId('bounding-box-outline-topper-0');
+        expect(outline.style.boxShadow).toContain('#10B981');
+        expect(outline.style.border).toContain('2px');
     });
 
     it('returns every exact overlapping decoration while deduplicating repeated unit boxes', () => {

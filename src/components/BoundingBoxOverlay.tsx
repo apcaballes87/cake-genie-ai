@@ -709,10 +709,10 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
                                 className="absolute inset-0"
                                 style={{
                                     border: box.dashed
-                                        ? `1px dashed ${box.color}`
-                                        : `1px solid ${box.color}`,
+                                        ? `${isActive ? 2 : 1}px dashed ${box.color}`
+                                        : `${isActive ? 2 : 1}px solid ${box.color}`,
                                     borderRadius: '4px',
-                                    boxShadow: isActive ? `0 0 12px ${box.color}` : 'none',
+                                    boxShadow: isActive ? `0 0 12px 2px ${box.color}` : 'none',
                                     opacity: 0.5,
                                     transition: 'all 0.2s ease',
                                 }}
