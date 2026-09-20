@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { normalizeAiRouteError } from '@/lib/ai/routeError';
 import { runActiveCakeAnalysis } from '@/lib/ai/analyzeCakeImage';
+import { getDevelopmentPromptVersionOverride } from './promptVersionOverride';
 
 export const maxDuration = 150; // Internal timeout aborts well before this; keep some headroom for cleanup.
 
@@ -9,17 +10,6 @@ const CORS_HEADERS = {
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
-
-/**
- * Lets local browser verification exercise a staged prompt without changing the
- * active database row. This is intentionally unavailable in test, preview, and
- * production runtimes.
- */
-export function getDevelopmentPromptVersionOverride(): string | undefined {
-    if (process.env.NODE_ENV !== 'development') return undefined;
-    const version = process.env.CAKE_ANALYSIS_PROMPT_VERSION?.trim();
-    return version || undefined;
-}
 
 export async function OPTIONS() {
     return new NextResponse(null, {

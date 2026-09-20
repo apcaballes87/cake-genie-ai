@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
+import { getDevelopmentPromptVersionOverride } from './promptVersionOverride';
 
 const mockGenerateContent = vi.fn();
 const mockGetOrCreatePromptCache = vi.fn();
@@ -71,8 +72,6 @@ describe('POST /api/ai/analyze', () => {
     });
 
     it('allows a local-only staged prompt override without exposing it outside development', async () => {
-        const { getDevelopmentPromptVersionOverride } = await import('./route');
-
         vi.stubEnv('NODE_ENV', 'development');
         vi.stubEnv('CAKE_ANALYSIS_PROMPT_VERSION', ' 3.92 ');
         expect(getDevelopmentPromptVersionOverride()).toBe('3.92');

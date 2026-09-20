@@ -5,6 +5,8 @@ import type { AnalysisSizeSchema, CanonicalAnalysisSize, LegacyAnalysisSize } fr
 import type {
   GeneratedBoundingBox,
   GeneratedBox2D,
+  GeneratedIntegratedBboxConfidence,
+  GeneratedIntegratedBox2D,
   GeneratedCakeMeasurements,
   GeneratedIntegratedGeometry,
   GeneratedMeasurementLine,
@@ -67,8 +69,8 @@ export interface MainTopper {
   bbox?: BoundingBox;  // Object detection bounding box
   size_line?: GeneratedMeasurementLine; // Fresh local sizing geometry
   /** Fresh integrated_bbox_v1 representative-unit geometry in [y, x] order. */
-  box_2d?: GeneratedBox2D;
-  bbox_confidence?: number;
+  box_2d?: GeneratedIntegratedBox2D;
+  bbox_confidence?: GeneratedIntegratedBboxConfidence;
 }
 
 export interface SupportElement {
@@ -95,8 +97,8 @@ export interface SupportElement {
   bbox?: BoundingBox;  // Object detection bounding box
   size_line?: GeneratedMeasurementLine; // Fresh local sizing geometry
   /** Fresh integrated_bbox_v1 representative-unit geometry in [y, x] order. */
-  box_2d?: GeneratedBox2D;
-  bbox_confidence?: number;
+  box_2d?: GeneratedIntegratedBox2D;
+  bbox_confidence?: GeneratedIntegratedBboxConfidence;
 }
 
 export interface CakeMessage {

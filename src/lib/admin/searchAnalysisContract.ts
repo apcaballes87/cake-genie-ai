@@ -854,6 +854,7 @@ export function postProcessSearchAnalysisResult(
     const reconciledResult = reconcileGeneratedCakeTypeThickness(integrated.analysis);
     const reconciledOutput = removeUnverifiedConditionedWaferPaperWaves(
       reconcileDescriptionTypes(removeExplicitSceneOnlyItems(reconciledResult), typeEnums),
+      waferPaperSideWaveVerification,
     );
     const locallySized = applyIntegratedBboxSizing({
       analysis: reconciledOutput as Record<string, unknown>,

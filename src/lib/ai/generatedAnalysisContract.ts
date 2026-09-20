@@ -168,6 +168,10 @@ export interface GeneratedBoundingBox {
 
 /** Normalized [ymin, xmin, ymax, xmax] geometry from integrated_bbox_v1. */
 export type GeneratedBox2D = [number, number, number, number];
+/** Integrated rows may carry one representative box or per-unit boxes. */
+export type GeneratedBox2DCollection = GeneratedBox2D[];
+export type GeneratedIntegratedBox2D = GeneratedBox2D | GeneratedBox2DCollection;
+export type GeneratedIntegratedBboxConfidence = number | number[];
 
 export interface GeneratedIntegratedGeometry {
   geometry_version: 'integrated_bbox_v1';
@@ -212,8 +216,8 @@ export interface GeneratedMainTopper {
   bbox?: GeneratedBoundingBox;
   /** Fresh line-mode sizing geometry for one representative primary dimension. */
   size_line?: GeneratedMeasurementLine;
-  box_2d?: GeneratedBox2D;
-  bbox_confidence?: number;
+  box_2d?: GeneratedIntegratedBox2D;
+  bbox_confidence?: GeneratedIntegratedBboxConfidence;
 }
 
 export interface GeneratedSupportElement {
@@ -231,8 +235,8 @@ export interface GeneratedSupportElement {
   bbox?: GeneratedBoundingBox;
   /** Fresh line-mode sizing geometry for one representative primary dimension. */
   size_line?: GeneratedMeasurementLine;
-  box_2d?: GeneratedBox2D;
-  bbox_confidence?: number;
+  box_2d?: GeneratedIntegratedBox2D;
+  bbox_confidence?: GeneratedIntegratedBboxConfidence;
 }
 
 export interface GeneratedCakeMessage {
