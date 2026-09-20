@@ -3265,6 +3265,14 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
         });
     }, [cakeMessages]);
 
+    const handleDetectedDecorationDismiss = useCallback(() => {
+        setActiveCustomization(null);
+        setActiveTopperSection(null);
+        setExpandedTopperItemId(null);
+        setSelectedItem(null);
+        setDetectedDecorationChoices([]);
+    }, []);
+
     const handleDetectedDecorationActivate = useCallback((targets: DecorationBoxTarget[]) => {
         const choices = targets.flatMap((target): DetectedDecorationChoice[] => {
             if (target.category === 'topper') {
@@ -4338,6 +4346,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                                 : undefined}
                             editableCakeMessageTargets={editableCakeMessageTargets}
                             onCakeMessageActivate={handleCakeMessageActivate}
+                            onDecorationDismiss={handleDetectedDecorationDismiss}
                             initialHeroAspectRatio={
                                 recentSearchDesign?.image_width && recentSearchDesign?.image_height
                                     ? `${recentSearchDesign.image_width} / ${recentSearchDesign.image_height}`

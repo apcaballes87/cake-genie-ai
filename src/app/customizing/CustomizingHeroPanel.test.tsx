@@ -345,9 +345,10 @@ describe('CustomizingHeroPanel', () => {
         expect(heroImages.some((image) => image.getAttribute('src') === 'https://example.com/studio-cake.webp')).toBe(false);
     });
 
-    it('shows and hides analysis controls only for an analyzed original image', () => {
+    it('shows and hides analysis controls for an analyzed customized image', () => {
         const props = buildProps();
-        props.activeTab = 'original';
+        props.activeTab = 'customized';
+        props.editedImage = 'https://example.com/customized-cake.jpg';
         props.originalImagePreview = 'https://example.com/original-cake.jpg';
         props.showSaveDesignButton = true;
         props.analysisResult = { cake_bbox: { x: 10, y: 10, width: 80, height: 80 } } as React.ComponentProps<typeof CustomizingHeroPanel>['analysisResult'];

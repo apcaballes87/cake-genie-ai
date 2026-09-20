@@ -1,5 +1,5 @@
 'use client';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { HybridAnalysisResult, BoundingBox } from '@/types';
 import type {
     GeneratedBox2D,
@@ -57,6 +57,8 @@ interface BoundingBoxOverlayProps {
     editableCakeMessageTargets?: readonly CakeMessageBoxTarget[];
     /** Opens and focuses an inline cake-message form rather than an editor sheet. */
     onCakeMessageActivate?: (position: CakeMessageBoxTarget['position']) => void;
+    /** Clears the active box selection when the hero image or surrounding screen is tapped elsewhere. */
+    onBackgroundActivate?: () => void;
 }
 
 /**
@@ -197,10 +199,31 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
     onDecorationActivate,
     editableCakeMessageTargets = [],
     onCakeMessageActivate,
+    onBackgroundActivate,
 }) => {
     const overlayRef = useRef<HTMLDivElement>(null);
     const [activeDecorationTargetKeys, setActiveDecorationTargetKeys] = useState<Set<string>>(() => new Set());
     const [activeCakeMessagePosition, setActiveCakeMessagePosition] = useState<CakeMessageBoxTarget['position'] | null>(null);
+
+    useEffect(() => {
+        if (activeDecorationTargetKeys.size === 0 && activeCakeMessagePosition === null) return;
+
+        const handleBackgroundPointerDown = (event: PointerEvent) => {
+            const overlay = overlayRef.current;
+            const target = event.target;
+            if (!overlay || !(target instanceof Element)) return;
+
+            if (target.closest('[data-bbox-interactive="true"]')) return;
+            if (target.closest('[role="dialog"]')) return;
+
+            setActiveDecorationTargetKeys(new Set());
+            setActiveCakeMessagePosition(null);
+            onBackgroundActivate?.();
+        };
+
+        window.addEventListener('pointerdown', handleBackgroundPointerDown);
+        return () => window.removeEventListener('pointerdown', handleBackgroundPointerDown);
+    }, [activeCakeMessagePosition, activeDecorationTargetKeys, onBackgroundActivate]);
     const measurementLines: Array<{
         left: number;
         top: number;
@@ -620,6 +643,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
                             <button
                                 type="button"
                                 data-testid={`decoration-hit-${box.target.category}-${index}`}
+                                data-bbox-interactive="true"
                                 aria-label={`Edit ${box.target.label}`}
                                 aria-pressed={isActive}
                                 className="absolute pointer-events-auto cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-600 focus-visible:ring-offset-2"
@@ -646,6 +670,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
                             <button
                                 type="button"
                                 data-testid={`cake-message-hit-${index}`}
+                                data-bbox-interactive="true"
                                 aria-label={`Edit cake message ${box.messageTarget.label}`}
                                 aria-pressed={isActive}
                                 className="absolute pointer-events-auto cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-600 focus-visible:ring-offset-2"
