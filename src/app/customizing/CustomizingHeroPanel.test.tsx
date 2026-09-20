@@ -342,13 +342,20 @@ describe('CustomizingHeroPanel', () => {
 
         const heroImages = screen.getAllByRole('img', { name: 'Hero cake' });
         expect(heroImages.some((image) => image.getAttribute('src') === 'https://example.com/studio-cake.webp')).toBe(true);
-
         const studioImage = heroImages.find((image) => image.getAttribute('src') === 'https://example.com/studio-cake.webp');
         expect(studioImage).toBeTruthy();
-
         fireEvent.load(studioImage as HTMLImageElement);
 
         const postLoadImages = screen.getAllByRole('img', { name: 'Hero cake' });
         expect(postLoadImages.some((image) => image.getAttribute('src') === 'https://example.com/studio-cake.webp')).toBe(true);
+    });
+
+    it('shows and hides analysis controls for an analyzed customized image', () => {
+        const props = buildProps();
+        props.activeTab = 'customized';
+        props.editedImage = 'https://example.com/customized-cake.jpg';
+        props.originalImagePreview = 'https://example.com/original-cake.jpg';
+        props.showSaveDesignButton = true;
+        props.analysisResult = { cake_bbox: { x: 10, y: 10, width: 80, height: 80 } } as React.ComponentProps<typeof CustomizingHeroPanel>['analysisResult'];
     });
 });

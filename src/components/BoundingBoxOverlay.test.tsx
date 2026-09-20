@@ -112,6 +112,40 @@ describe('BoundingBoxOverlay', () => {
         ]);
     });
 
+    it('clears the active label and glow when the hero background is tapped', () => {
+        const onDecorationActivate = vi.fn();
+        const onBackgroundActivate = vi.fn();
+        const analysisResult = {
+            main_toppers: [{ group_id: 'topper-a', description: 'Topper A', box_2d: [100, 100, 200, 200] }],
+            support_elements: [],
+            cake_messages: [],
+        } as unknown as HybridAnalysisResult;
+
+        render(
+            <BoundingBoxOverlay
+                analysisResult={analysisResult}
+                imageWidth={1000}
+                imageHeight={1000}
+                containerWidth={1000}
+                containerHeight={1000}
+                useTopLeftOrigin
+                editableDecorationTargets={[{ category: 'topper', groupId: 'topper-a', label: 'Topper A' }]}
+                onDecorationActivate={onDecorationActivate}
+                onBackgroundActivate={onBackgroundActivate}
+            />
+        );
+
+        const target = screen.getByRole('button', { name: 'Edit Topper A' });
+        fireEvent.click(target);
+        expect(screen.getByTestId('bounding-box-label-topper-0')).toHaveTextContent('Topper A');
+
+        fireEvent.pointerDown(document.body);
+
+        expect(onBackgroundActivate).toHaveBeenCalledTimes(1);
+        expect(screen.queryByTestId('bounding-box-label-topper-0')).not.toBeInTheDocument();
+        expect(screen.getByTestId('bounding-box-outline-topper-0').style.boxShadow).toBe('none');
+    });
+
     it('routes a clicked cake-message box to its inline form instead of a decoration sheet', () => {
         const onCakeMessageActivate = vi.fn();
         const analysisResult = {

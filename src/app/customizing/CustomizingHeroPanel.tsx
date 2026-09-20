@@ -71,6 +71,7 @@ interface CustomizingHeroPanelProps {
     onDecorationActivate?: (targets: DecorationBoxTarget[]) => void;
     editableCakeMessageTargets?: readonly CakeMessageBoxTarget[];
     onCakeMessageActivate?: (position: CakeMessageBoxTarget['position']) => void;
+    onDecorationDismiss?: () => void;
     reviewSummary?: {
         total: number;
         averageRating: number;
@@ -209,8 +210,10 @@ export const CustomizingHeroPanel = memo(({
     onDecorationActivate,
     editableCakeMessageTargets,
     onCakeMessageActivate,
+    onDecorationDismiss,
 }: CustomizingHeroPanelProps) => {
     const [originalImageDimensions, setOriginalImageDimensions] = useState<{ width: number, height: number } | null>(null);
+    const [heroImageLoadVersion, setHeroImageLoadVersion] = useState(0);
     const [overlayImageBounds, setOverlayImageBounds] = useState<OverlayImageBounds | null>(null);
     const heroFrameRef = useRef<HTMLDivElement | null>(null);
     const [isHeroImageZoomOpen, setIsHeroImageZoomOpen] = useState(false);
@@ -331,6 +334,7 @@ export const CustomizingHeroPanel = memo(({
         if (!isCustomizedResult && (!originalImageDimensions || activeTab === 'original')) {
             setOriginalImageDimensions({ width: image.naturalWidth, height: image.naturalHeight });
         }
+        setHeroImageLoadVersion((current) => current + 1);
         centerMobileHeroScrollPosition();
     };
 
@@ -338,7 +342,7 @@ export const CustomizingHeroPanel = memo(({
     // diverge for object-cover crops and a scrolled tall image on mobile.
     useEffect(() => {
         const frame = heroFrameRef.current;
-        if (!frame || !originalImageDimensions) return;
+        if (!frame) return;
 
         const updateImageBounds = () => {
             const images = Array.from(frame.querySelectorAll<HTMLImageElement>('[data-hero-analysis-image]'));
@@ -402,7 +406,7 @@ export const CustomizingHeroPanel = memo(({
             scrollArea?.removeEventListener('scroll', updateImageBounds);
             window.removeEventListener('resize', updateImageBounds);
         };
-    }, [activeTab, enableMobileHeroPan, heroDisplaySrc, originalImageDimensions]);
+    }, [activeTab, enableMobileHeroPan, heroDisplaySrc, heroImageLoadVersion]);
 
     const handleToggleSaveDesign = (event: React.MouseEvent<HTMLButtonElement>) => {
         event.stopPropagation();
@@ -793,7 +797,7 @@ export const CustomizingHeroPanel = memo(({
                             <>
                                 {showSaveDesignButton ? (
                                 <div className="absolute bottom-4 left-4 max-md:bottom-3 max-md:left-3 z-10 flex flex-col gap-2">
-                                        {analysisResult && activeTab === 'original' && (
+                                        {analysisResult && (
                                             <button
                                                 type="button"
                                                 onClick={() => setShowAnalysis(prev => !prev)}
@@ -895,13 +899,13 @@ export const CustomizingHeroPanel = memo(({
                         ) : null}
 
                         {/* Bounding box overlay from Gemini analysis */}
-                        {showAnalysis && analysisResult && originalImageDimensions && overlayImageBounds && activeTab === 'original' && (
+                        {showAnalysis && analysisResult && overlayImageBounds && (
                             <BoundingBoxOverlay
                                 analysisResult={analysisResult}
                                 containerWidth={overlayImageBounds.width}
                                 containerHeight={overlayImageBounds.height}
-                                imageWidth={originalImageDimensions.width}
-                                imageHeight={originalImageDimensions.height}
+                                imageWidth={originalImageDimensions?.width ?? overlayImageBounds.width}
+                                imageHeight={originalImageDimensions?.height ?? overlayImageBounds.height}
                                 offsetX={overlayImageBounds.left}
                                 offsetY={overlayImageBounds.top}
                                 useTopLeftOrigin
@@ -910,6 +914,7 @@ export const CustomizingHeroPanel = memo(({
                                 onDecorationActivate={onDecorationActivate}
                                 editableCakeMessageTargets={editableCakeMessageTargets}
                                 onCakeMessageActivate={onCakeMessageActivate}
+                                onBackgroundActivate={onDecorationDismiss}
                             />
                         )}
                     </div>
