@@ -1,16 +1,22 @@
 'use client';
 
-import { memo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { memo, useRef, useState, useEffect, type ReactNode, type RefObject } from 'react';
 import Link from 'next/link';
 import LazyImage from '@/components/LazyImage';
+import {
+    BoundingBoxOverlay,
+    type CakeMessageBoxTarget,
+    type DecorationBoxTarget,
+} from '@/components/BoundingBoxOverlay';
 import { ImageZoomModal } from '@/components/ImageZoomModal';
-import { Heart, ShieldCheck, Wand2 } from 'lucide-react';
+import { Heart, ShieldCheck, Wand2, ScanEye, EyeOff, ZoomIn } from 'lucide-react';
 import { ErrorIcon, ImageIcon, ResetIcon, Loader2, ReportIcon } from '../../components/icons';
 import MagicGlitter from '@/components/MagicGlitter';
 import { getCustomerFacingAnalysisError } from './analysisErrorDisplay';
 import { useDynamicLoadingPhrase } from '@/hooks/useDynamicLoadingPhrase';
 import { buildSrcSet } from '@/lib/imageVariants/manifest';
 import type { VariantManifest } from '@/lib/imageVariants/types';
+import type { HybridAnalysisResult } from '@/types';
 
 
 type ImageTab = 'original' | 'customized';
@@ -60,6 +66,11 @@ interface CustomizingHeroPanelProps {
      */
     initialHeroAspectRatio?: string | null;
     heroImageVariants?: VariantManifest | null;
+    analysisResult?: HybridAnalysisResult | null;
+    editableDecorationTargets?: readonly DecorationBoxTarget[];
+    onDecorationActivate?: (targets: DecorationBoxTarget[]) => void;
+    editableCakeMessageTargets?: readonly CakeMessageBoxTarget[];
+    onCakeMessageActivate?: (position: CakeMessageBoxTarget['position']) => void;
     reviewSummary?: {
         total: number;
         averageRating: number;
@@ -137,6 +148,13 @@ const reviewStars: ReactNode[] = Array.from({ length: 5 }, (_, index) => (
 
 const MOBILE_HERO_FRAME_RATIO = 5 / 4;
 
+type OverlayImageBounds = {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+};
+
 const parseAspectRatioValue = (value: string | null | undefined): number | null => {
     if (!value) return null;
     const [rawWidth, rawHeight] = value.split('/').map((part) => Number(part.trim()));
@@ -186,9 +204,17 @@ export const CustomizingHeroPanel = memo(({
     reviewSummary,
     initialHeroAspectRatio = null,
     heroImageVariants = null,
+    analysisResult = null,
+    editableDecorationTargets,
+    onDecorationActivate,
+    editableCakeMessageTargets,
+    onCakeMessageActivate,
 }: CustomizingHeroPanelProps) => {
     const [originalImageDimensions, setOriginalImageDimensions] = useState<{ width: number, height: number } | null>(null);
+    const [overlayImageBounds, setOverlayImageBounds] = useState<OverlayImageBounds | null>(null);
+    const heroFrameRef = useRef<HTMLDivElement | null>(null);
     const [isHeroImageZoomOpen, setIsHeroImageZoomOpen] = useState(false);
+    const [showAnalysis, setShowAnalysis] = useState(true);
     const { phrase: dynamicAnalysisPhrase, isVisible: isAnalysisPhraseVisible } = useDynamicLoadingPhrase(isAnalyzing);
     const mobileHeroScrollRef = useRef<HTMLDivElement | null>(null);
     const baseOriginalImageUrl = originalImagePreview || preferredOriginalImageUrl || null;
@@ -264,8 +290,8 @@ export const CustomizingHeroPanel = memo(({
                 }
                 : null;
 
-    const openHeroImageModal = (src: string) => {
-        if (!src) return;
+    const openHeroImageModal = () => {
+        if (!zoomOriginalImage) return;
         setIsHeroImageZoomOpen(true);
     };
     const closeHeroImageModal = () => setIsHeroImageZoomOpen(false);
@@ -308,6 +334,76 @@ export const CustomizingHeroPanel = memo(({
         centerMobileHeroScrollPosition();
     };
 
+    // Track the actual rendered image, rather than the hero frame. The two
+    // diverge for object-cover crops and a scrolled tall image on mobile.
+    useEffect(() => {
+        const frame = heroFrameRef.current;
+        if (!frame || !originalImageDimensions) return;
+
+        const updateImageBounds = () => {
+            const images = Array.from(frame.querySelectorAll<HTMLImageElement>('[data-hero-analysis-image]'));
+            const image = images.find((candidate) => {
+                const rect = candidate.getBoundingClientRect();
+                return candidate.naturalWidth > 0 && candidate.naturalHeight > 0 && rect.width > 0 && rect.height > 0;
+            });
+
+            if (!image) {
+                setOverlayImageBounds((current) => current === null ? current : null);
+                return;
+            }
+
+            const frameRect = frame.getBoundingClientRect();
+            const imageRect = image.getBoundingClientRect();
+            let width = imageRect.width;
+            let height = imageRect.height;
+            let left = imageRect.left - frameRect.left;
+            let top = imageRect.top - frameRect.top;
+
+            if (window.getComputedStyle(image).objectFit === 'cover') {
+                const scale = Math.max(imageRect.width / image.naturalWidth, imageRect.height / image.naturalHeight);
+                width = image.naturalWidth * scale;
+                height = image.naturalHeight * scale;
+                left += (imageRect.width - width) / 2;
+                top += (imageRect.height - height) / 2;
+            }
+
+            const next = { left, top, width, height };
+            setOverlayImageBounds((current) => (
+                current
+                && Math.abs(current.left - next.left) < 0.01
+                && Math.abs(current.top - next.top) < 0.01
+                && Math.abs(current.width - next.width) < 0.01
+                && Math.abs(current.height - next.height) < 0.01
+            ) ? current : next);
+        };
+
+        updateImageBounds();
+        const scrollArea = mobileHeroScrollRef.current;
+        scrollArea?.addEventListener('scroll', updateImageBounds, { passive: true });
+        window.addEventListener('resize', updateImageBounds);
+
+        if (typeof ResizeObserver === 'undefined') {
+            return () => {
+                scrollArea?.removeEventListener('scroll', updateImageBounds);
+                window.removeEventListener('resize', updateImageBounds);
+            };
+        }
+
+        const observer = new ResizeObserver((entries) => {
+            if (entries.length) updateImageBounds();
+        });
+        observer.observe(frame);
+        for (const image of frame.querySelectorAll<HTMLImageElement>('[data-hero-analysis-image]')) {
+            observer.observe(image);
+        }
+
+        return () => {
+            observer.disconnect();
+            scrollArea?.removeEventListener('scroll', updateImageBounds);
+            window.removeEventListener('resize', updateImageBounds);
+        };
+    }, [activeTab, enableMobileHeroPan, heroDisplaySrc, originalImageDimensions]);
+
     const handleToggleSaveDesign = (event: React.MouseEvent<HTMLButtonElement>) => {
         event.stopPropagation();
         void onToggleSaveDesign();
@@ -323,7 +419,6 @@ export const CustomizingHeroPanel = memo(({
         title: string,
         caption?: string,
         overlaySrc?: string,
-        modalSrc?: string,
     ) => {
         const responsiveAttrs = getResponsiveAttrsForSrc(src);
 
@@ -340,6 +435,7 @@ export const CustomizingHeroPanel = memo(({
                             {/* eslint-disable-next-line @next/next/no-img-element -- Mobile hero uses a native scrolling image so the frame stays static and the image can be panned inside it. */}
                             <img
                                 src={src}
+                                data-hero-analysis-image
                                 {...responsiveAttrs}
                                 alt={alt}
                                 title={title}
@@ -350,8 +446,7 @@ export const CustomizingHeroPanel = memo(({
                                 fetchPriority="high"
                                 loading="eager"
                                 decoding="async"
-                                className="block w-full h-auto align-top cursor-zoom-in"
-                                onClick={() => openHeroImageModal(modalSrc || overlaySrc || src)}
+                                className="block w-full h-auto align-top"
                                 onLoad={imageOnLoad}
                             />
                             {overlaySrc ? (
@@ -389,22 +484,21 @@ export const CustomizingHeroPanel = memo(({
         title: string,
         caption?: string,
         overlaySrc?: string,
-        modalSrc?: string,
     ) => (
         <figure className="absolute inset-0 w-full h-full">
             <LazyImage
                 src={src}
+                data-hero-analysis-image
                 alt={alt}
                 title={title}
                 fill
                 sizes="100vw"
-                imageClassName="object-cover rounded-3xl cursor-zoom-in"
+                imageClassName="object-cover rounded-3xl"
                 priority
                 fetchPriority="high"
                 decoding="async"
                 unoptimized
                 variants={shouldUseHeroVariantsForSrc(src) ? heroImageVariants : null}
-                onClick={() => openHeroImageModal(modalSrc || overlaySrc || src)}
                 onLoad={imageOnLoad}
             />
             {overlaySrc ? (
@@ -437,7 +531,6 @@ export const CustomizingHeroPanel = memo(({
         title: string,
         caption?: string,
         overlaySrc?: string,
-        modalSrc?: string,
     ) => {
         const responsiveAttrs = getResponsiveAttrsForSrc(src);
 
@@ -446,6 +539,7 @@ export const CustomizingHeroPanel = memo(({
                 {/* eslint-disable-next-line @next/next/no-img-element -- Desktop hero should size naturally to the source image aspect ratio. */}
                 <img
                     src={src}
+                    data-hero-analysis-image
                     {...responsiveAttrs}
                     alt={alt}
                     title={title}
@@ -454,8 +548,7 @@ export const CustomizingHeroPanel = memo(({
                     fetchPriority="high"
                     loading="eager"
                     decoding="async"
-                    className="block w-full h-auto rounded-3xl cursor-zoom-in"
-                    onClick={() => openHeroImageModal(modalSrc || overlaySrc || src)}
+                    className="block w-full h-auto rounded-3xl"
                     onLoad={imageOnLoad}
                 />
                 {overlaySrc ? (
@@ -490,6 +583,7 @@ export const CustomizingHeroPanel = memo(({
 
                 <div className="grow">
                     <div
+                        ref={heroFrameRef}
                         data-testid="customizer-hero-frame"
                         className={enableMobileHeroPan
                             ? 'relative w-full aspect-[5/4] md:min-h-0 rounded-3xl overflow-hidden touch-none md:touch-auto overscroll-auto md:[aspect-ratio:var(--hero-md-ratio)]'
@@ -587,7 +681,6 @@ export const CustomizingHeroPanel = memo(({
                                                     heroDisplayTitle,
                                                     undefined,
                                                     shouldRenderStudioOverlay ? (incomingStudioImageUrl || undefined) : undefined,
-                                                    originalHeroModalSrc,
                                                 )
                                                 : renderCoveredImage(
                                                     heroDisplaySrc,
@@ -595,7 +688,6 @@ export const CustomizingHeroPanel = memo(({
                                                     heroDisplayTitle,
                                                     undefined,
                                                     shouldRenderStudioOverlay ? (incomingStudioImageUrl || undefined) : undefined,
-                                                    originalHeroModalSrc,
                                                 )}
                                         </div>
                                         <div className="hidden md:block">
@@ -605,7 +697,6 @@ export const CustomizingHeroPanel = memo(({
                                                 heroDisplayTitle,
                                                 undefined,
                                                 shouldRenderStudioOverlay ? (incomingStudioImageUrl || undefined) : undefined,
-                                                originalHeroModalSrc,
                                             )}
                                         </div>
                                     </>
@@ -621,12 +712,11 @@ export const CustomizingHeroPanel = memo(({
                                             title="Loading your cake design"
                                             fill
                                             sizes="(max-width: 768px) 100vw, 50vw"
-                                            imageClassName="object-cover rounded-3xl cursor-zoom-in"
+                                            imageClassName="object-cover rounded-3xl"
                                             priority
                                             fetchPriority="high"
                                             decoding="async"
                                             unoptimized
-                                            onClick={() => openHeroImageModal(preloadedHeroImage)}
                                             onLoad={imageOnLoad}
                                         />
                                         {isAnalyzing ? (
@@ -645,12 +735,11 @@ export const CustomizingHeroPanel = memo(({
                                             title={fallbackImageTitle}
                                             fill
                                             sizes="(max-width: 768px) 100vw, 50vw"
-                                            imageClassName="object-cover rounded-3xl cursor-zoom-in"
+                                            imageClassName="object-cover rounded-3xl"
                                             priority
                                             fetchPriority="high"
                                             decoding="async"
                                             unoptimized
-                                            onClick={() => openHeroImageModal(fallbackImageUrl)}
                                             onLoad={imageOnLoad}
                                         />
                                         {initialCaption ? (
@@ -666,16 +755,16 @@ export const CustomizingHeroPanel = memo(({
                                         <LazyImage
                                             key={`${activeTab}-${heroDisplaySrc}`}
                                             src={heroDisplaySrc}
+                                            data-hero-analysis-image
                                             alt={heroImageAlt}
                                             title={heroImageTitle}
                                             fill
                                             sizes="(max-width: 768px) 100vw, 50vw"
-                                            imageClassName="object-cover rounded-3xl cursor-zoom-in"
+                                            imageClassName="object-cover rounded-3xl"
                                             priority
                                             fetchPriority="high"
                                             decoding="async"
                                             unoptimized
-                                            onClick={() => openHeroImageModal(activeTab === 'original' ? originalHeroModalSrc : (editedImage || originalHeroModalSrc))}
                                             onLoad={imageOnLoad}
                                         />
 
@@ -703,7 +792,18 @@ export const CustomizingHeroPanel = memo(({
                         {hasOriginalDisplayImage ? (
                             <>
                                 {showSaveDesignButton ? (
-                                <div className="absolute bottom-4 left-4 max-md:bottom-3 max-md:left-3 z-10">
+                                <div className="absolute bottom-4 left-4 max-md:bottom-3 max-md:left-3 z-10 flex flex-col gap-2">
+                                        {analysisResult && activeTab === 'original' && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowAnalysis(prev => !prev)}
+                                                className="backdrop-blur-sm rounded-full text-[10px] font-semibold transition-all shadow-md px-[10px] py-[4px] flex items-center !gap-[8px] genie-btn-secondary"
+                                                aria-label={showAnalysis ? 'Hide analysis overlay' : 'Show analysis overlay'}
+                                            >
+                                                {showAnalysis ? <ScanEye className="w-[12px] h-[12px]" /> : <EyeOff className="w-[12px] h-[12px]" />}
+                                                {showAnalysis ? 'Analysis' : 'Analysis'}
+                                            </button>
+                                        )}
                                         <button
                                             onClick={handleToggleSaveDesign}
                                             className={`backdrop-blur-sm rounded-full text-[10px] font-semibold transition-all shadow-md px-[10px] py-[4px] flex items-center !gap-[8px] ${isCurrentDesignSaved ? 'bg-pink-500 text-white hover:bg-pink-600' : 'genie-btn-secondary'}`}
@@ -715,8 +815,18 @@ export const CustomizingHeroPanel = memo(({
                                     </div>
                                 ) : null}
 
-                                {editedImage ? (
-                                <div className="absolute bottom-4 right-4 max-md:bottom-3 max-md:right-3 z-10 flex items-center gap-1 p-1 bg-white/85 backdrop-blur-md rounded-full shadow-lg border border-slate-100/60 ring-1 ring-black/5 select-none pointer-events-auto transition-all duration-300 hover:bg-white/95">
+                                <div className="absolute bottom-4 right-4 max-md:bottom-3 max-md:right-3 z-10 flex flex-col items-end gap-2 pointer-events-auto">
+                                    <button
+                                        type="button"
+                                        onClick={openHeroImageModal}
+                                        className="backdrop-blur-sm rounded-full text-[10px] font-semibold transition-all shadow-md px-[10px] py-[4px] flex items-center !gap-[8px] genie-btn-secondary"
+                                        aria-label="Zoom cake image"
+                                    >
+                                        <ZoomIn className="w-[13px] h-[13px]" />
+                                        Zoom
+                                    </button>
+                                    {editedImage ? (
+                                <div className="flex items-center gap-1 p-1 bg-white/85 backdrop-blur-md rounded-full shadow-lg border border-slate-100/60 ring-1 ring-black/5 select-none transition-all duration-300 hover:bg-white/95">
                                         <button
                                             type="button"
                                             onClick={onOriginalTabSelect}
@@ -741,7 +851,8 @@ export const CustomizingHeroPanel = memo(({
                                             Customized
                                         </button>
                                     </div>
-                                ) : null}
+                                    ) : null}
+                                </div>
 
                                 {showPriceGuarantee ? (
                                     <div className="absolute top-3 left-3 max-md:top-2.5 max-md:left-2.5 z-10 transition-all duration-300">
@@ -782,6 +893,25 @@ export const CustomizingHeroPanel = memo(({
                                 </div>
                             </>
                         ) : null}
+
+                        {/* Bounding box overlay from Gemini analysis */}
+                        {showAnalysis && analysisResult && originalImageDimensions && overlayImageBounds && activeTab === 'original' && (
+                            <BoundingBoxOverlay
+                                analysisResult={analysisResult}
+                                containerWidth={overlayImageBounds.width}
+                                containerHeight={overlayImageBounds.height}
+                                imageWidth={originalImageDimensions.width}
+                                imageHeight={originalImageDimensions.height}
+                                offsetX={overlayImageBounds.left}
+                                offsetY={overlayImageBounds.top}
+                                useTopLeftOrigin
+                                showCakeMeasurementLines={false}
+                                editableDecorationTargets={editableDecorationTargets}
+                                onDecorationActivate={onDecorationActivate}
+                                editableCakeMessageTargets={editableCakeMessageTargets}
+                                onCakeMessageActivate={onCakeMessageActivate}
+                            />
+                        )}
                     </div>
                 </div>
             </div>

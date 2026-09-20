@@ -208,7 +208,7 @@ describe('CustomizingHeroPanel', () => {
         expect(loader.textContent).toMatch(/ai adding your image on this cake/i);
     });
 
-    it('opens a fullscreen image modal when the hero image is clicked', () => {
+    it('opens a fullscreen image modal from the dedicated zoom control, not the hero image', () => {
         const props = buildProps();
         props.originalImagePreview = 'https://example.com/original-cake.jpg';
         props.preferredOriginalImageUrl = 'https://example.com/original-cake.jpg';
@@ -216,6 +216,14 @@ describe('CustomizingHeroPanel', () => {
         render(<CustomizingHeroPanel {...props} />);
 
         fireEvent.click(screen.getByRole('img', { name: 'Hero cake' }));
+
+        expect(screen.queryByRole('dialog', { name: 'Full screen image preview' })).not.toBeInTheDocument();
+
+        const zoomButton = screen.getByRole('button', { name: 'Zoom cake image' });
+        expect(zoomButton.className).toContain('py-[4px]');
+        expect(zoomButton.className).not.toContain('min-h-11');
+
+        fireEvent.click(zoomButton);
 
         expect(screen.getByRole('dialog', { name: 'Full screen image preview' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Close zoomed image' })).toBeInTheDocument();
