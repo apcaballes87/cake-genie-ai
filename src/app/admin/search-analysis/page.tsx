@@ -529,7 +529,11 @@ export default function SearchAnalysisAdminPage() {
                 };
 
                 // --- GATE 1: CACHE CHECK ---
-                const cached = await findSimilarAnalysisByHash(toFingerprintLookup(fingerprint), targetImageUrl);
+                const cached = await findSimilarAnalysisByHash({
+                    ...toFingerprintLookup(fingerprint),
+                    requestId: crypto.randomUUID(),
+                    source: 'admin_search_analysis',
+                }, targetImageUrl);
                 if (cached) {
                     addLog(`[${i + 1}/${currentQueueLength}] Already in cache — skipped.`);
                     skipped++;

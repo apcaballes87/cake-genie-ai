@@ -353,6 +353,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
         onError: (error: Error) => void,
         options?: HandleImageUploadOptions
     ) => {
+        const pdqHitRequestId = uuidv4();
         setIsLoading(true); // For file processing
         setError(null);
 
@@ -629,7 +630,11 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
             const shouldUseSimilarCacheLookup = !knownSeoMetadata && hasTrustedFingerprint && !isPhotoReferenceCandidate;
 
             if (shouldUseSimilarCacheLookup) {
-                const cacheHitRaw = await findSimilarAnalysisByHash(toFingerprintLookup(fingerprint), options?.imageUrl);
+                const cacheHitRaw = await findSimilarAnalysisByHash({
+                    ...toFingerprintLookup(fingerprint),
+                    requestId: pdqHitRequestId,
+                    source: 'customizer_upload',
+                }, options?.imageUrl);
                 if (cacheHitRaw) {
                     showProgressToast('We found your cake photo! 🎉', 3000);
                     cacheHit = cacheHitRaw;

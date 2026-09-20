@@ -449,10 +449,13 @@ export interface FingerprintHashLookup {
   pdqHash?: string | null;
   pdqQuality?: number | null;
   pdqPipeline?: string | null;
+  requestId?: string | null;
+  source?: string | null;
 }
 
 const HEX_PHASH_PATTERN = /^[0-9a-f]{16}$/i;
 const HEX_PDQ_PATTERN = /^[0-9a-f]{64}$/i;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function normalizeHexPHash(candidate: string | null | undefined): string | null {
   if (typeof candidate !== 'string') {
@@ -470,6 +473,12 @@ function normalizeHashLookup(input: FingerprintHashLookup) {
       : null,
     pdqQuality: Number.isInteger(input.pdqQuality) ? input.pdqQuality : null,
     pdqPipeline: input.pdqPipeline?.trim() || null,
+    requestId: typeof input.requestId === 'string' && UUID_PATTERN.test(input.requestId.trim())
+      ? input.requestId.trim()
+      : uuidv4(),
+    source: typeof input.source === 'string' && input.source.trim()
+      ? input.source.trim().slice(0, 64)
+      : 'unknown',
   };
 }
 
@@ -664,6 +673,33 @@ function mapCacheHitResult(result: AnalysisCacheLookupRow, id: string | null): C
   };
 }
 
+async function recordPdqCacheHit(
+  cacheId: string | null,
+  lookup: ReturnType<typeof normalizeHashLookup>,
+): Promise<void> {
+  if (!cacheId || !lookup.pdqHash || lookup.pdqQuality == null || !lookup.pdqPipeline) {
+    return;
+  }
+
+  try {
+    const { error } = await supabase.rpc('record_pdq_cache_hit', {
+      p_cache_id: cacheId,
+      p_incoming_pdq_hash: lookup.pdqHash,
+      p_pdq_quality: lookup.pdqQuality,
+      p_pdq_pipeline: lookup.pdqPipeline,
+      p_request_id: lookup.requestId,
+      p_source: lookup.source,
+    });
+
+    if (error) {
+      console.warn('⚠️ Failed to record PDQ cache hit:', error.message);
+    }
+  } catch (error) {
+    // Analytics failure must never turn an otherwise valid cache hit into a miss.
+    console.warn('⚠️ Exception while recording PDQ cache hit:', error);
+  }
+}
+
 export async function findSimilarAnalysisByHash(fingerprint: FingerprintHashLookup, imageUrl?: string): Promise<CacheHitResult | null> {
   try {
     const lookup = normalizeHashLookup(fingerprint);
@@ -721,6 +757,7 @@ export async function findSimilarAnalysisByHash(fingerprint: FingerprintHashLook
     }
 
     const cacheId = await resolveCacheHitId(result);
+    await recordPdqCacheHit(cacheId, lookup);
     return mapCacheHitResult(result, cacheId);
   } catch (err) {
     console.error('❌ Exception during analysis cache lookup:', err);

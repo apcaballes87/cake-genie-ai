@@ -179,6 +179,25 @@ export async function POST(req: NextRequest) {
             const cached = existingCache.data[0];
             console.log('✅ Cache HIT for PDQ:', fingerprint.pdqHash);
 
+            if (typeof cached.id === 'string' && fingerprint.pdqHash && fingerprint.pdqQuality !== null && fingerprint.pdqPipeline) {
+                try {
+                    const { error: hitRecordError } = await supabase.rpc('record_pdq_cache_hit', {
+                        p_cache_id: cached.id,
+                        p_incoming_pdq_hash: fingerprint.pdqHash,
+                        p_pdq_quality: fingerprint.pdqQuality,
+                        p_pdq_pipeline: fingerprint.pdqPipeline,
+                        p_request_id: crypto.randomUUID(),
+                        p_source: 'url_analysis',
+                    });
+
+                    if (hitRecordError) {
+                        console.warn('Failed to record URL-analysis PDQ cache hit:', hitRecordError.message);
+                    }
+                } catch (hitRecordError) {
+                    console.warn('Exception while recording URL-analysis PDQ cache hit:', hitRecordError);
+                }
+            }
+
             const slug = cached.slug || `url-${pHash.substring(0, 8)}`;
             const filePath = `url-analysis/${slug}.webp`;
 

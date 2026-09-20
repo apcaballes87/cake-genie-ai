@@ -1,5 +1,30 @@
 # Tasks
 
+## Count PDQ cache hits (2026-09-20)
+
+### Plan
+
+- [x] Add an append-only, RLS-protected PDQ hit ledger with request-level deduplication.
+- [x] Add a guarded Supabase RPC that verifies the matched cache row and records the actual PDQ distance.
+- [x] Record hits from the shared lookup path without changing cache analysis or `usage_count` behavior.
+- [x] Apply and verify the live migration, run focused tests, and document the counting query.
+
+### Review
+
+- Added `cakegenie_pdq_cache_hit_events`, keyed by `(request_id, cache_id)`, with RLS enabled and direct browser table access revoked.
+- Added `record_pdq_cache_hit`, which revalidates the matched cache row, PDQ pipeline/quality, placeholder status, and computed Hamming distance before recording.
+- Main customizer uploads, chat uploads, admin search, and URL analysis now record accepted PDQ hits. Existing cache rows and `usage_count` are unchanged.
+- Live verification passed: migration applied, ledger has 10 columns with RLS enabled, the RPC is `SECURITY DEFINER`, anon/authenticated have execute access, a real cache-row probe returned `true`, and a duplicate request produced one ledger row. The probe row was removed afterward.
+- Count hits with:
+
+  ```sql
+  select cache_id, matched_p_hash, source, count(*) as pdq_hits,
+         min(created_at) as first_hit_at, max(created_at) as last_hit_at
+  from public.cakegenie_pdq_cache_hit_events
+  group by cache_id, matched_p_hash, source
+  order by pdq_hits desc, last_hit_at desc;
+  ```
+
 ## White-only wafer-wave gate v3.89 (2026-09-16)
 
 ### Plan

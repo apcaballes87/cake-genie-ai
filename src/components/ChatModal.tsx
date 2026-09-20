@@ -10,6 +10,7 @@ import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils';
 import { ChatMessageText } from './ChatMessageText';
 import { getCustomerChatImageExtension, prepareCustomerChatImage } from './customerChatImage';
+import { v4 as uuidv4 } from 'uuid';
 import {
     generateServerImageFingerprint,
     toFingerprintLookup,
@@ -194,7 +195,8 @@ async function analyzeImageWithCache(
     imageData: { data: string; mimeType: string },
     imageUrl?: string,
     preparedFile?: File,
-): Promise<{ analysis: HybridAnalysisResult | null; slug: string | null; title: string | null; price: number | null; imageUrl: string | null; cacheKey: string | null; pipeline?: string | null; quality?: number | null }> {
+): Promise<{ analysis: HybridAnalysisResult | null; slug: string | null; title: string | null; price: number | null; imageUrl: string | null; cacheKey: string | null; pipeline?: string | null; quality?: number | null; requestId: string }> {
+    const pdqHitRequestId = uuidv4();
     const file = preparedFile || new File([
         dataURItoBlob(`data:${imageData.mimeType};base64,${imageData.data}`),
     ], 'chat-image.webp', { type: imageData.mimeType });
@@ -213,7 +215,11 @@ async function analyzeImageWithCache(
     );
 
     if (fingerprint.pdqHash && fingerprint.pdqQuality !== null && fingerprint.pdqQuality >= 50 && fingerprint.pdqPipeline) {
-        const cacheHit = await findSimilarAnalysisByHash(toFingerprintLookup(fingerprint), imageUrl);
+        const cacheHit = await findSimilarAnalysisByHash({
+            ...toFingerprintLookup(fingerprint),
+            requestId: pdqHitRequestId,
+            source: 'chat_upload',
+        }, imageUrl);
         if (cacheHit) {
             console.log('⚡ Chat: PDQ Cache Hit! Using cached analysis.');
             return {
@@ -225,6 +231,7 @@ async function analyzeImageWithCache(
                 cacheKey,
                 pipeline: fingerprint.pdqPipeline,
                 quality: fingerprint.pdqQuality,
+                requestId: pdqHitRequestId,
             };
         }
     } else {
@@ -233,7 +240,7 @@ async function analyzeImageWithCache(
 
     console.log('🔄 Chat: Cache miss, running AI analysis...');
     const fastResult = await analyzeCakeFeaturesOnly(compressedData.data, compressedData.mimeType);
-    if (!fastResult) return { analysis: null, slug: null, title: null, price: null, imageUrl: null, cacheKey, pipeline: fingerprint.pdqPipeline, quality: fingerprint.pdqQuality };
+    if (!fastResult) return { analysis: null, slug: null, title: null, price: null, imageUrl: null, cacheKey, pipeline: fingerprint.pdqPipeline, quality: fingerprint.pdqQuality, requestId: pdqHitRequestId };
     let finalResult = fastResult;
     const hasBbox = hasBoundingBoxData(fastResult);
     if (!hasBbox) {
@@ -260,11 +267,12 @@ async function analyzeImageWithCache(
                 cacheKey,
                 pipeline: fingerprint.pdqPipeline,
                 quality: fingerprint.pdqQuality,
+                requestId: pdqHitRequestId,
             };
         }
     }
 
-    return { analysis: finalResult, slug: null, title: null, price: null, imageUrl: null, cacheKey, pipeline: fingerprint.pdqPipeline, quality: fingerprint.pdqQuality };
+    return { analysis: finalResult, slug: null, title: null, price: null, imageUrl: null, cacheKey, pipeline: fingerprint.pdqPipeline, quality: fingerprint.pdqQuality, requestId: pdqHitRequestId };
 }
 
 const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmail, userName }) => {
@@ -480,7 +488,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
         return urlData.publicUrl;
     };
 
-    const queueImageLinkFollowUp = (analysisId: number, cacheKey: string, pipeline?: string | null, quality?: number | null) => {
+    const queueImageLinkFollowUp = (analysisId: number, cacheKey: string, pipeline?: string | null, quality?: number | null, requestId?: string) => {
         pendingImageHashRef.current = cacheKey;
 
         const followUpTimeout = window.setTimeout(async () => {
@@ -489,7 +497,13 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
             }
 
             const recheck = pipeline
-                ? await findSimilarAnalysisByHash({ pdqHash: cacheKey, pdqQuality: quality ?? 0, pdqPipeline: pipeline })
+                ? await findSimilarAnalysisByHash({
+                    pdqHash: cacheKey,
+                    pdqQuality: quality ?? 0,
+                    pdqPipeline: pipeline,
+                    requestId,
+                    source: 'chat_upload',
+                })
                 : null;
 
             if (analysisId !== activeImageAnalysisIdRef.current || pendingImageHashRef.current !== cacheKey) {
@@ -653,7 +667,13 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                     }
 
                     if (analysisResult.analysis && !analysisResult.slug && analysisResult.cacheKey) {
-                        queueImageLinkFollowUp(analysisId, analysisResult.cacheKey, analysisResult.pipeline, analysisResult.quality);
+                        queueImageLinkFollowUp(
+                            analysisId,
+                            analysisResult.cacheKey,
+                            analysisResult.pipeline,
+                            analysisResult.quality,
+                            analysisResult.requestId,
+                        );
                     }
                 } catch (analysisErr) {
                     console.error('Error analyzing image:', analysisErr);

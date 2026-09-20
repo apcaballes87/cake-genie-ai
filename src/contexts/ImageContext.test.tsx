@@ -380,11 +380,13 @@ describe('ImageContext', () => {
     });
 
     expect(result.current.currentPHash).toBe('abc123def4567890');
-    expect(findSimilarAnalysisByHashMock).toHaveBeenCalledWith({
+    expect(findSimilarAnalysisByHashMock).toHaveBeenCalledWith(expect.objectContaining({
       pdqHash: 'ab'.repeat(32),
       pdqQuality: 92,
       pdqPipeline: 'pdq-test-pipeline',
-    }, undefined);
+      source: 'customizer_upload',
+      requestId: expect.any(String),
+    }), undefined);
     expect(onSuccess).toHaveBeenCalledWith(expect.objectContaining({
       keyword: 'purple cake',
     }));
