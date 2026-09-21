@@ -8,7 +8,7 @@ import { useNavigation } from '@/contexts/NavigationContext';
 import { v4 as uuidv4 } from 'uuid';
 import { findClosestColor, getIcingBucketName, hexToColorNameProse } from '@/utils/colorUtils';
 import { generateDesignDetails, generateRichAltText } from '@/utils/designContentUtils';
-import { X, Wand2, Palette, MessageSquare, PartyPopper, Image as ImageIconLucide, Cake, Zap, Clock, CalendarDays, ChevronRight } from 'lucide-react';
+import { X, Wand2, Palette, MessageSquare, PartyPopper, Image as ImageIconLucide, Cake, Zap, Clock, CalendarDays, ChevronRight, Sparkles } from 'lucide-react';
 
 import { SegmentationOverlay } from '../../components/SegmentationOverlay';
 import { SegmentationBottomSheet } from '../../components/SegmentationBottomSheet';
@@ -4684,6 +4684,17 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
                     hideAiChat={hideAiChat}
                     showAvailabilityOffset={!hideStickyBar && Boolean(availabilityType) && !isAnalyzing}
                     showPrintoutOffset={!hideStickyBar && (hasPrintoutConversionNotice || toyAvailabilityWarning) && !isAnalyzing}
+                    actionButton={activeCustomization === 'toppers' ? (
+                        <button
+                            type="button"
+                            onClick={() => void handleApplyTopperChanges()}
+                            disabled={!hasToppersChanges || isUpdatingDesign}
+                            className="genie-btn-primary inline-flex w-full min-h-11 items-center justify-center gap-2 rounded-full px-5 py-2 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <Sparkles className="h-4 w-4" aria-hidden="true" />
+                            Apply Design
+                        </button>
+                    ) : undefined}
                     onClose={() => {
                         setActiveCustomization(null);
                         setActiveTopperSection(null);
