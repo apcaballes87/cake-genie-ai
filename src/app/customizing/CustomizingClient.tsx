@@ -3241,13 +3241,14 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
 
     const editableCakeMessageTargets = useMemo<CakeMessageBoxTarget[]>(() => (
         cakeMessages.map((message) => ({
+            id: message.id,
             position: message.position,
             label: message.text.trim() || message.originalMessage?.text?.trim() || 'Cake message',
         }))
     ), [cakeMessages]);
 
-    const handleCakeMessageActivate = useCallback((position: CakeMessageBoxTarget['position']) => {
-        const message = cakeMessages.find((candidate) => candidate.position === position);
+    const handleCakeMessageActivate = useCallback((messageId: CakeMessageBoxTarget['id']) => {
+        const message = cakeMessages.find((candidate) => candidate.id === messageId);
         if (!message) return;
 
         // Cake-message editing is inline. Minimize any open editor sheet, then

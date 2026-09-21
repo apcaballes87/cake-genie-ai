@@ -16,7 +16,8 @@ export type DecorationBoxTarget = {
 };
 
 export type CakeMessageBoxTarget = {
-    /** Cake messages are unique by surface, unlike topper/support groups. */
+    /** Stable UI identity keeps duplicate messages on the same surface distinct. */
+    id: string;
     position: 'top' | 'side' | 'base_board';
     label: string;
 };
@@ -53,10 +54,10 @@ interface BoundingBoxOverlayProps {
     editableDecorationTargets?: readonly DecorationBoxTarget[];
     /** Called with every editable decoration at a tapped point, deduplicated by category and group id. */
     onDecorationActivate?: (targets: DecorationBoxTarget[]) => void;
-    /** Cake-message inputs currently available in the inline customizer form, keyed by their unique surface. */
+    /** Cake-message inputs currently available in the inline customizer form. */
     editableCakeMessageTargets?: readonly CakeMessageBoxTarget[];
     /** Opens and focuses an inline cake-message form rather than an editor sheet. */
-    onCakeMessageActivate?: (position: CakeMessageBoxTarget['position']) => void;
+    onCakeMessageActivate?: (messageId: CakeMessageBoxTarget['id']) => void;
     /** Clears the active box selection when the hero image or surrounding screen is tapped elsewhere. */
     onBackgroundActivate?: () => void;
 }
@@ -208,7 +209,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
     const spotlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const startedSpotlightSequenceRef = useRef<string | null>(null);
     const [activeDecorationTargetKeys, setActiveDecorationTargetKeys] = useState<Set<string>>(() => new Set());
-    const [activeCakeMessagePosition, setActiveCakeMessagePosition] = useState<CakeMessageBoxTarget['position'] | null>(null);
+    const [activeCakeMessageId, setActiveCakeMessageId] = useState<CakeMessageBoxTarget['id'] | null>(null);
     const [spotlightIndex, setSpotlightIndex] = useState<number | null>(null);
     const [hasDismissedInteractionHint, setHasDismissedInteractionHint] = useState(false);
     const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => (
@@ -247,7 +248,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
     }, []);
 
     useEffect(() => {
-        if (activeDecorationTargetKeys.size === 0 && activeCakeMessagePosition === null && spotlightIndex === null) return;
+        if (activeDecorationTargetKeys.size === 0 && activeCakeMessageId === null && spotlightIndex === null) return;
 
         const handleBackgroundPointerDown = (event: PointerEvent) => {
             const overlay = overlayRef.current;
@@ -263,13 +264,13 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
             }
 
             setActiveDecorationTargetKeys(new Set());
-            setActiveCakeMessagePosition(null);
+            setActiveCakeMessageId(null);
             onBackgroundActivate?.();
         };
 
         window.addEventListener('pointerdown', handleBackgroundPointerDown);
         return () => window.removeEventListener('pointerdown', handleBackgroundPointerDown);
-    }, [activeCakeMessagePosition, activeDecorationTargetKeys, onBackgroundActivate, spotlightIndex, stopSpotlight]);
+    }, [activeCakeMessageId, activeDecorationTargetKeys, onBackgroundActivate, spotlightIndex, stopSpotlight]);
     const measurementLines: Array<{
         left: number;
         top: number;
@@ -290,8 +291,8 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
     }> = [];
     const boxes: RenderedBox[] = [];
     const editableTargetKeys = new Set(editableDecorationTargets.map((target) => `${target.category}:${target.groupId}`));
-    const editableCakeMessageTargetsByPosition = new Map(
-        editableCakeMessageTargets.map((target) => [target.position, target]),
+    const editableCakeMessageTargetsById = new Map(
+        editableCakeMessageTargets.map((target) => [target.id, target]),
     );
     const applyImageOffset = (display: { left: number; top: number; width: number; height: number }) => ({
         ...display,
@@ -549,7 +550,11 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
     });
 
     analysisResult.cake_messages?.forEach((message, index) => {
-        const messageTarget = editableCakeMessageTargetsByPosition.get(message.position);
+        // Fresh synced analyses carry the UI message id. Initial persisted
+        // analyses do not, so preserve their array correspondence as the
+        // fallback; unlike position, the index keeps duplicate surfaces distinct.
+        const messageTarget = (message.id ? editableCakeMessageTargetsById.get(message.id) : undefined)
+            ?? editableCakeMessageTargets[index];
         if (message.box_2d) {
             collectIntegratedBox(
                 message.box_2d,
@@ -583,7 +588,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
 
         const key = box.target
             ? `${box.target.category}:${box.target.groupId}`
-            : `message:${box.messageTarget?.position}`;
+            : `message:${box.messageTarget?.id}`;
         if (seenSpotlightKeys.has(key)) return;
         seenSpotlightKeys.add(key);
         spotlightCandidates.push({
@@ -655,13 +660,13 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
 
     const setActiveDecorationTargets = (targets: readonly DecorationBoxTarget[]) => {
         setActiveDecorationTargetKeys(new Set(targets.map((target) => `${target.category}:${target.groupId}`)));
-        setActiveCakeMessagePosition(null);
+        setActiveCakeMessageId(null);
     };
 
     const activateCakeMessage = (target: CakeMessageBoxTarget) => {
         setActiveDecorationTargetKeys(new Set());
-        setActiveCakeMessagePosition(target.position);
-        onCakeMessageActivate?.(target.position);
+        setActiveCakeMessageId(target.id);
+        onCakeMessageActivate?.(target.id);
     };
 
     return (
@@ -747,7 +752,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
                 const touchBounds = getMinimumTouchBounds(box);
                 const targetKey = box.target ? `${box.target.category}:${box.target.groupId}` : null;
                 const isActive = (targetKey !== null && activeDecorationTargetKeys.has(targetKey))
-                    || box.messageTarget?.position === activeCakeMessagePosition;
+                    || box.messageTarget?.id === activeCakeMessageId;
                 const isSpotlighted = spotlightBoxIndex === index;
                 const shouldShowLabel = (!onDecorationActivate && !onCakeMessageActivate) || isActive;
 
@@ -819,7 +824,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
                                     if (event.button !== 0) return;
                                     stopSpotlight();
                                     setActiveDecorationTargetKeys(new Set());
-                                    setActiveCakeMessagePosition(box.messageTarget!.position);
+                                    setActiveCakeMessageId(box.messageTarget!.id);
                                 }}
                                 onPointerUp={(event) => {
                                     if (event.button !== 0) return;

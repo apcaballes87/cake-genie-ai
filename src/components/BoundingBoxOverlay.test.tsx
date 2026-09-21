@@ -167,7 +167,7 @@ describe('BoundingBoxOverlay', () => {
                         { category: 'topper', groupId: 'topper-b', label: 'Topper B' },
                         { category: 'topper', groupId: 'topper-c', label: 'Topper C' },
                     ]}
-                    editableCakeMessageTargets={[{ position: 'side', label: 'Happy Birthday' }]}
+                    editableCakeMessageTargets={[{ id: 'message-1', position: 'side', label: 'Happy Birthday' }]}
                     onDecorationActivate={vi.fn()}
                     onCakeMessageActivate={vi.fn()}
                 />
@@ -343,7 +343,7 @@ describe('BoundingBoxOverlay', () => {
                 containerWidth={1000}
                 containerHeight={1000}
                 useTopLeftOrigin
-                editableCakeMessageTargets={[{ position: 'side', label: 'Happy Birthday' }]}
+                editableCakeMessageTargets={[{ id: 'message-1', position: 'side', label: 'Happy Birthday' }]}
                 onCakeMessageActivate={onCakeMessageActivate}
             />
         );
@@ -353,9 +353,50 @@ describe('BoundingBoxOverlay', () => {
 
         fireEvent.click(target);
 
-        expect(onCakeMessageActivate).toHaveBeenCalledWith('side');
+        expect(onCakeMessageActivate).toHaveBeenCalledWith('message-1');
         expect(target).toHaveAttribute('aria-pressed', 'true');
         expect(screen.getByTestId('bounding-box-label-message-0')).toHaveTextContent('Happy Birthday');
+    });
+
+    it('keeps duplicate-position cake-message boxes tied to their own message IDs', () => {
+        const onCakeMessageActivate = vi.fn();
+        const analysisResult = {
+            main_toppers: [],
+            support_elements: [],
+            cake_messages: [
+                { text: 'First message', position: 'side', box_2d: [100, 100, 200, 300] },
+                { text: 'Second message', position: 'side', box_2d: [400, 500, 500, 700] },
+            ],
+        } as unknown as HybridAnalysisResult;
+
+        render(
+            <BoundingBoxOverlay
+                analysisResult={analysisResult}
+                imageWidth={1000}
+                imageHeight={1000}
+                containerWidth={1000}
+                containerHeight={1000}
+                useTopLeftOrigin
+                editableCakeMessageTargets={[
+                    { id: 'message-1', position: 'side', label: 'First message' },
+                    { id: 'message-2', position: 'side', label: 'Second message' },
+                ]}
+                onCakeMessageActivate={onCakeMessageActivate}
+            />
+        );
+
+        const first = screen.getByRole('button', { name: 'Edit cake message First message' });
+        const second = screen.getByRole('button', { name: 'Edit cake message Second message' });
+
+        fireEvent.click(first);
+        expect(onCakeMessageActivate).toHaveBeenLastCalledWith('message-1');
+        expect(first).toHaveAttribute('aria-pressed', 'true');
+        expect(second).toHaveAttribute('aria-pressed', 'false');
+
+        fireEvent.click(second);
+        expect(onCakeMessageActivate).toHaveBeenLastCalledWith('message-2');
+        expect(first).toHaveAttribute('aria-pressed', 'false');
+        expect(second).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('emits every overlapping topper and support target for a pointer tap', () => {

@@ -69,7 +69,7 @@ interface CustomizingHeroPanelProps {
     editableDecorationTargets?: readonly DecorationBoxTarget[];
     onDecorationActivate?: (targets: DecorationBoxTarget[]) => void;
     editableCakeMessageTargets?: readonly CakeMessageBoxTarget[];
-    onCakeMessageActivate?: (position: CakeMessageBoxTarget['position']) => void;
+    onCakeMessageActivate?: (messageId: CakeMessageBoxTarget['id']) => void;
     onDecorationDismiss?: () => void;
     reviewSummary?: {
         total: number;
