@@ -16,6 +16,7 @@ import type { User, PostgrestError } from '@supabase/supabase-js';
 import { debounce } from 'lodash-es';
 import { showError } from '@/lib/utils/toast';
 import { trackAddToCart, trackCartPersistenceStage, trackEvent } from '@/lib/analytics';
+import { trackBeacon } from '@/lib/analytics/track';
 import { logErrorToSupabase } from '@/components/ErrorLogger';
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
 import { getCartOutbox, putCartOutbox, reassignCartOutboxOwner, removeCartOutbox, withCartOutboxRecordLock, type CartOutboxRecord, type CartOutboxStage, type CartOutboxSourceSurface } from '@/lib/cartOutbox';
@@ -661,6 +662,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 setCartItems(prev => prev.map(item => item.cart_item_id === tempId ? realItem : item));
             }
 
+            trackBeacon('add_to_cart');
+
         } catch (error: unknown) {
             if (!options?.skipOptimistic) {
                 setCartItems(prev => prev.filter(item => item.cart_item_id !== tempId));
@@ -971,6 +974,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 status: 'success',
                 durationMs: Date.now() - outboxStartedAt,
             });
+            trackBeacon('add_to_cart');
         } catch (error) {
             backgroundUploadTasksRef.current.delete(tempId);
             trackCartPersistenceStage({
