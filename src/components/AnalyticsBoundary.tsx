@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import {
   INTERNAL_TRAFFIC_COOKIE_NAME,
@@ -14,6 +14,7 @@ import {
   setAnalyticsRouteTracking,
 } from '@/lib/analytics'
 import { syncBuyerAttributionForCurrentPage } from '@/lib/buyerAttribution'
+import { captureUtmParametersFromLocation, trackBeacon } from '@/lib/analytics/track'
 import { useAuth } from '@/contexts/AuthContext'
 
 interface AnalyticsBoundaryProps {
@@ -40,11 +41,22 @@ function shouldIgnoreReferrer(referrer: string, pathname: string): boolean {
   return isXendit || isGooglePay || isOrderConfirmation
 }
 
+function shouldTrackBeaconPageView(pathname: string | null): boolean {
+  if (!pathname) return false
+
+  return pathname === '/cart'
+    || pathname === '/checkout'
+    || pathname.startsWith('/customizing/')
+    || pathname.startsWith('/shop/')
+    || pathname.startsWith('/designs/')
+}
+
 export function AnalyticsBoundary({ enabled, measurementId }: AnalyticsBoundaryProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const searchParamString = searchParams.toString()
   const { user, isAuthenticated } = useAuth()
+  const lastBeaconPagePathRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (!enabled) return
@@ -61,6 +73,23 @@ export function AnalyticsBoundary({ enabled, measurementId }: AnalyticsBoundaryP
     if (!isTrackable || typeof window === 'undefined') {
       return
     }
+
+    const pagePath = searchParamString ? `${pathname}?${searchParamString}` : pathname
+    void syncBuyerAttributionForCurrentPage(measurementId)
+      .catch(() => null)
+      .then(() => {
+        // Keep the existing buyer-attribution classifier ahead of URL cleanup.
+        captureUtmParametersFromLocation()
+        trackBeacon('visit_start')
+
+        if (
+          shouldTrackBeaconPageView(pathname)
+          && lastBeaconPagePathRef.current !== pathname
+        ) {
+          lastBeaconPagePathRef.current = pathname
+          trackBeacon('page_view')
+        }
+      })
 
     const gtag = (window as typeof window & { gtag?: GoogleTag }).gtag
     if (typeof gtag !== 'function') {
@@ -81,9 +110,6 @@ export function AnalyticsBoundary({ enabled, measurementId }: AnalyticsBoundaryP
     })
 
     markAnalyticsReady()
-    void syncBuyerAttributionForCurrentPage(measurementId)
-
-    const pagePath = searchParamString ? `${pathname}?${searchParamString}` : pathname
     sendPageView({
       page_location: window.location.href,
       page_path: pagePath,

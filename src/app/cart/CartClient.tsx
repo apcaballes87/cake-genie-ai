@@ -26,6 +26,7 @@ import {
     trackCheckoutRedirectStarted,
 } from '@/lib/analytics';
 import { GA4_MEASUREMENT_ID } from '@/lib/analyticsRoutes';
+import { trackBeacon } from '@/lib/analytics/track';
 import { prepareBuyerAttributionForCheckout } from '@/lib/buyerAttribution';
 import { AddressForm, StaticMap } from '@/components/AddressForm';
 import { SplitWithFriendsModal } from '@/components/SplitWithFriendsModal';
@@ -407,6 +408,7 @@ function CartClient() {
     // Record that the user is on the cart page so the context tracks it.
     useEffect(() => {
         recordNavigation('cart', null);
+        trackBeacon('checkout_start');
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -1570,6 +1572,8 @@ function CartClient() {
                     }
                 }
 
+                trackBeacon('purchase', { dedupeKey: order.order_id });
+
                 // Save cart state to sessionStorage as backup before redirect
                 // This allows cart recovery if payment fails
                 if (typeof window !== 'undefined') {
@@ -1791,6 +1795,8 @@ function CartClient() {
                     }
                 }
 
+                trackBeacon('purchase', { dedupeKey: order.order_id });
+
                 // Save cart state to sessionStorage as backup before redirect
                 if (typeof window !== 'undefined') {
                     sessionStorage.setItem('pending_payment_cart', JSON.stringify(cartItems));
@@ -1972,6 +1978,8 @@ function CartClient() {
                     console.error('Error during account upgrade:', upgradeErr);
                 }
             }
+
+            trackBeacon('purchase', { dedupeKey: order.order_id });
 
             // Generate share link
             const shareLink = `${window.location.origin}/contribute/${order.order_id}`;

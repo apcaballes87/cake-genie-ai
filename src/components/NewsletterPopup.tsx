@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { trackSignUp } from '@/lib/analytics';
+import { trackBeacon } from '@/lib/analytics/track';
 import { X, Eye, EyeOff } from 'lucide-react';
 import { PENDING_SIGNUP_DISCOUNT_KEY } from '@/lib/auth/signupDiscountReturnState';
 
@@ -39,6 +40,7 @@ export default function NewsletterPopup() {
         setDiscountCode(data.code);
         setStatus('success');
         localStorage.setItem(SEEN_KEY, 'true');
+        trackBeacon('email_captured');
       } else {
         setStatus('error');
         setErrorMessage(data.error || 'Failed to generate discount code. Please contact support.');
@@ -122,6 +124,7 @@ export default function NewsletterPopup() {
         setDiscountCode(data.code);
         setStatus('success');
         localStorage.setItem(SEEN_KEY, 'true');
+        trackBeacon('email_captured');
       } else {
         setStatus('error');
         setErrorMessage(data.error || 'Failed to generate discount code.');

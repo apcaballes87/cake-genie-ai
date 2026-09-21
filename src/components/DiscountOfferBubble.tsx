@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { validateDiscountCode } from '@/services/discountService';
 import { Sparkles, Check, ChevronRight, X, Eye, EyeOff, Tag } from 'lucide-react';
 import { showSuccess, showError } from '@/lib/utils/toast';
+import { trackBeacon } from '@/lib/analytics/track';
 import {
   clearPendingSignupDiscount,
   getCurrentRelativeUrl,
@@ -71,7 +72,7 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
       : 'mb-[30px]';
 
   /** Calls /api/signup-discount, validates the result, and persists it. */
-  const applyDiscountForCurrentUser = useCallback(async (): Promise<boolean> => {
+  const applyDiscountForCurrentUser = useCallback(async (options?: { trackEmailCapture?: boolean }): Promise<boolean> => {
     setStatus('loading');
     try {
       const res = await fetch('/api/signup-discount', {
@@ -103,6 +104,9 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
       showSuccess(`10% Discount Unlocked! Code ${code} applied.`);
       setStatus('success');
       setHasApplied(true);
+      if (options?.trackEmailCapture) {
+        trackBeacon('email_captured');
+      }
       onApplied?.();
       window.setTimeout(() => setIsExpanded(false), 2000);
       return true;
@@ -123,7 +127,7 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
     if (pending?.source === 'bubble' && isAuthenticated && user && !user.is_anonymous) {
       oauthHandledRef.current = true;
       const resumeTimer = window.setTimeout(() => {
-        void applyDiscountForCurrentUser().then((applied) => {
+        void applyDiscountForCurrentUser({ trackEmailCapture: true }).then((applied) => {
           if (applied) {
             clearPendingSignupDiscount();
           } else {
@@ -181,6 +185,7 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
       showSuccess(`10% Discount Unlocked! Code ${code} applied. Check your email to confirm your account.`);
       setStatus('success');
       setHasApplied(true);
+      trackBeacon('email_captured');
       if (onApplied) onApplied();
       setTimeout(() => setIsExpanded(false), 2000);
     } catch (err) {
@@ -222,7 +227,7 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
     }
 
     // Immediately authenticated (email confirmation disabled)
-    await applyDiscountForCurrentUser();
+    await applyDiscountForCurrentUser({ trackEmailCapture: true });
   };
 
   // Don't render if discount is already applied (and bubble is collapsed) or hidden
@@ -301,7 +306,7 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
             ) : isAuthenticated ? (
               /* ── Already logged in — one-click claim ── */
               <button
-                onClick={applyDiscountForCurrentUser}
+                onClick={() => void applyDiscountForCurrentUser()}
                 disabled={status === 'loading'}
                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs shadow-md active:scale-95 disabled:opacity-50 transition-all flex items-center justify-center gap-1.5"
               >
