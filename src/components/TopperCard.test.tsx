@@ -44,6 +44,16 @@ describe('TopperCard - Color Customization', () => {
     onImageReplace: vi.fn(),
   };
 
+  it('flattens the topper options without an enclosing card container', () => {
+    const item = createMockTopper('printout', 'Printed character topper');
+    const { container } = render(<TopperCard {...defaultProps} item={item} />);
+
+    expect(container.firstElementChild).toHaveClass('w-full');
+    expect(container.firstElementChild).not.toHaveClass('bg-white/90', 'rounded-lg', 'border', 'shadow-sm');
+    expect(screen.getByText('Material Type')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Paper Printout' })).toBeInTheDocument();
+  });
+
   it('labels legacy flower values as edible flowers', () => {
     expect(supportTypeDisplayMap.fresh_flowers).toBe('Edible Flowers');
     expect(supportTypeDisplayMap.artificial_flowers).toBe('Edible Flowers');

@@ -113,7 +113,7 @@ export const TopperCard: React.FC<{
     };
 
     return (
-        <div className="w-full bg-white/90 rounded-lg border border-purple-100 overflow-hidden shadow-sm">
+        <div className="w-full">
             {/* Header - Collapsible */}
             <div
                 onClick={onToggle}
@@ -167,7 +167,7 @@ export const TopperCard: React.FC<{
 
             {/* Expanded Content - Customization Options */}
             {expanded && (
-                <div className="px-2 pb-2 space-y-3 border-t border-purple-100">
+                <div className="px-2 pt-1 pb-2 space-y-3">
                     {/* Material Type Options */}
                     {hasMaterialOptions && (
                         <div>
