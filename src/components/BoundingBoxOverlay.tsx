@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { HybridAnalysisResult, BoundingBox } from '@/types';
 import type {
     GeneratedBox2D,
@@ -158,6 +158,9 @@ function getMinimumTouchBounds(box: Pick<RenderedBox, 'left' | 'top' | 'width' |
     };
 }
 
+const SPOTLIGHT_MAX_BOXES = 3;
+const SPOTLIGHT_STEP_MS = 650;
+
 /**
  * Resolve a pointer position using the visible box first, then a 44px minimum
  * target only when no visible decoration was hit. Multiple unit boxes for one
@@ -202,11 +205,49 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
     onBackgroundActivate,
 }) => {
     const overlayRef = useRef<HTMLDivElement>(null);
+    const spotlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const startedSpotlightSequenceRef = useRef<string | null>(null);
     const [activeDecorationTargetKeys, setActiveDecorationTargetKeys] = useState<Set<string>>(() => new Set());
     const [activeCakeMessagePosition, setActiveCakeMessagePosition] = useState<CakeMessageBoxTarget['position'] | null>(null);
+    const [spotlightIndex, setSpotlightIndex] = useState<number | null>(null);
+    const [hasDismissedInteractionHint, setHasDismissedInteractionHint] = useState(false);
+    const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => (
+        typeof window !== 'undefined'
+        && typeof window.matchMedia === 'function'
+        && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ));
+
+    const stopSpotlight = useCallback(() => {
+        if (spotlightTimerRef.current !== null) {
+            clearTimeout(spotlightTimerRef.current);
+            spotlightTimerRef.current = null;
+        }
+        setSpotlightIndex(null);
+        setHasDismissedInteractionHint(true);
+    }, []);
 
     useEffect(() => {
-        if (activeDecorationTargetKeys.size === 0 && activeCakeMessagePosition === null) return;
+        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+
+        const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const handleMotionPreferenceChange = () => setPrefersReducedMotion(mediaQuery.matches);
+        if (mediaQuery.addEventListener) {
+            mediaQuery.addEventListener('change', handleMotionPreferenceChange);
+        } else {
+            mediaQuery.addListener?.(handleMotionPreferenceChange);
+        }
+
+        return () => {
+            if (mediaQuery.removeEventListener) {
+                mediaQuery.removeEventListener('change', handleMotionPreferenceChange);
+            } else {
+                mediaQuery.removeListener?.(handleMotionPreferenceChange);
+            }
+        };
+    }, []);
+
+    useEffect(() => {
+        if (activeDecorationTargetKeys.size === 0 && activeCakeMessagePosition === null && spotlightIndex === null) return;
 
         const handleBackgroundPointerDown = (event: PointerEvent) => {
             const overlay = overlayRef.current;
@@ -216,6 +257,11 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
             if (target.closest('[data-bbox-interactive="true"]')) return;
             if (target.closest('[role="dialog"]')) return;
 
+            if (spotlightIndex !== null) {
+                stopSpotlight();
+                return;
+            }
+
             setActiveDecorationTargetKeys(new Set());
             setActiveCakeMessagePosition(null);
             onBackgroundActivate?.();
@@ -223,7 +269,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
 
         window.addEventListener('pointerdown', handleBackgroundPointerDown);
         return () => window.removeEventListener('pointerdown', handleBackgroundPointerDown);
-    }, [activeCakeMessagePosition, activeDecorationTargetKeys, onBackgroundActivate]);
+    }, [activeCakeMessagePosition, activeDecorationTargetKeys, onBackgroundActivate, spotlightIndex, stopSpotlight]);
     const measurementLines: Array<{
         left: number;
         top: number;
@@ -526,6 +572,73 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
         }
     });
 
+    const spotlightBoxes: Array<{ boxIndex: number; key: string }> = [];
+    const seenSpotlightKeys = new Set<string>();
+    boxes.forEach((box, boxIndex) => {
+        const isInteractive = Boolean(
+            (box.target && onDecorationActivate)
+            || (box.messageTarget && onCakeMessageActivate)
+        );
+        if (!isInteractive) return;
+
+        const key = box.target
+            ? `${box.target.category}:${box.target.groupId}`
+            : `message:${box.messageTarget?.position}`;
+        if (seenSpotlightKeys.has(key)) return;
+        seenSpotlightKeys.add(key);
+        if (spotlightBoxes.length < SPOTLIGHT_MAX_BOXES) {
+            spotlightBoxes.push({ boxIndex, key });
+        }
+    });
+
+    const spotlightSequenceKey = spotlightBoxes.map(({ key }) => key).join('|');
+
+    useEffect(() => {
+        if (spotlightTimerRef.current !== null) {
+            clearTimeout(spotlightTimerRef.current);
+            spotlightTimerRef.current = null;
+        }
+        setSpotlightIndex(null);
+
+        if (
+            prefersReducedMotion
+            || hasDismissedInteractionHint
+            || spotlightBoxes.length === 0
+            || startedSpotlightSequenceRef.current === spotlightSequenceKey
+        ) {
+            return;
+        }
+
+        startedSpotlightSequenceRef.current = spotlightSequenceKey;
+        let nextIndex = 0;
+        setSpotlightIndex(nextIndex);
+
+        const advanceSpotlight = () => {
+            nextIndex += 1;
+            if (nextIndex >= spotlightBoxes.length) {
+                spotlightTimerRef.current = null;
+                setSpotlightIndex(null);
+                return;
+            }
+
+            setSpotlightIndex(nextIndex);
+            spotlightTimerRef.current = setTimeout(advanceSpotlight, SPOTLIGHT_STEP_MS);
+        };
+
+        spotlightTimerRef.current = setTimeout(advanceSpotlight, SPOTLIGHT_STEP_MS);
+
+        return () => {
+            if (spotlightTimerRef.current !== null) {
+                clearTimeout(spotlightTimerRef.current);
+                spotlightTimerRef.current = null;
+            }
+        };
+    }, [hasDismissedInteractionHint, prefersReducedMotion, spotlightBoxes.length, spotlightSequenceKey]);
+
+    const spotlightBoxIndex = spotlightIndex === null
+        ? null
+        : spotlightBoxes[spotlightIndex]?.boxIndex ?? null;
+
     if (boxes.length === 0 && measurementLines.length === 0) {
         return null;
     }
@@ -543,6 +656,14 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
 
     return (
         <div ref={overlayRef} data-testid="bounding-box-overlay" className="absolute inset-0 pointer-events-none" style={{ zIndex: 5 }}>
+            {spotlightBoxes.length > 0 && !hasDismissedInteractionHint ? (
+                <div
+                    data-testid="bbox-interaction-hint"
+                    className="absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-slate-950/80 px-3 py-1.5 text-center text-[10px] font-semibold text-white shadow-lg backdrop-blur-sm max-md:top-2 max-md:px-2.5 max-md:py-1 max-md:text-[9px]"
+                >
+                    Tap or click a highlighted detail to edit it
+                </div>
+            ) : null}
             {measurementLines.map((line) => {
                 const markerStyle = {
                     position: 'absolute' as const,
@@ -617,6 +738,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
                 const targetKey = box.target ? `${box.target.category}:${box.target.groupId}` : null;
                 const isActive = (targetKey !== null && activeDecorationTargetKeys.has(targetKey))
                     || box.messageTarget?.position === activeCakeMessagePosition;
+                const isSpotlighted = spotlightBoxIndex === index;
                 const shouldShowLabel = (!onDecorationActivate && !onCakeMessageActivate) || isActive;
 
                 const targetsAtPointer = (event: React.PointerEvent<HTMLButtonElement>): DecorationBoxTarget[] => {
@@ -655,10 +777,13 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
                                 }}
                                 onPointerDown={(event) => {
                                     if (event.button !== 0) return;
+                                    stopSpotlight();
                                     setActiveDecorationTargets(targetsAtPointer(event));
                                 }}
                                 onPointerUp={activateAtPointer}
+                                onFocus={stopSpotlight}
                                 onClick={(event) => {
+                                    stopSpotlight();
                                     // Keyboard activation identifies the focused box directly.
                                     if (event.detail === 0) {
                                         setActiveDecorationTargets([box.target!]);
@@ -682,6 +807,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
                                 }}
                                 onPointerDown={(event) => {
                                     if (event.button !== 0) return;
+                                    stopSpotlight();
                                     setActiveDecorationTargetKeys(new Set());
                                     setActiveCakeMessagePosition(box.messageTarget!.position);
                                 }}
@@ -690,8 +816,12 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
                                     activateCakeMessage(box.messageTarget!);
                                 }}
                                 onClick={(event) => {
-                                    if (event.detail === 0) activateCakeMessage(box.messageTarget!);
+                                    stopSpotlight();
+                                    if (event.detail === 0) {
+                                        activateCakeMessage(box.messageTarget!);
+                                    }
                                 }}
+                                onFocus={stopSpotlight}
                             />
                         ) : null}
                         <div
@@ -709,12 +839,18 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
                                 className="absolute inset-0"
                                 style={{
                                     border: box.dashed
-                                        ? `1px dashed ${box.color}`
-                                        : `1px solid ${box.color}`,
+                                        ? `${isActive || isSpotlighted ? 2 : 1}px dashed ${isSpotlighted ? '#FFFFFF' : box.color}`
+                                        : `${isActive || isSpotlighted ? 2 : 1}px solid ${isSpotlighted ? '#FFFFFF' : box.color}`,
                                     borderRadius: '4px',
-                                    boxShadow: isActive ? `0 0 12px ${box.color}` : 'none',
-                                    opacity: 0.5,
-                                    transition: 'all 0.2s ease',
+                                    boxShadow: isActive
+                                        ? `0 0 12px 2px ${box.color}`
+                                        : isSpotlighted
+                                            ? '0 0 0 1px rgba(15, 23, 42, 0.75), 0 0 14px 3px rgba(255, 255, 255, 0.95)'
+                                            : 'none',
+                                    opacity: isActive || isSpotlighted ? 1 : 0.5,
+                                    transition: prefersReducedMotion
+                                        ? 'none'
+                                        : 'border 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease',
                                 }}
                             />
                             {shouldShowLabel ? (
