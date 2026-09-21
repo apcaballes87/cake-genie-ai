@@ -2,7 +2,7 @@
 
 import React, { memo } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import { X, ChevronDown, ChevronUp, Wand2, Check, Sparkles } from 'lucide-react';
+import { X, Check } from 'lucide-react';
 import { CakeBaseOptions } from '@/components/CakeBaseOptions';
 import { CakeMessagesOptions } from '@/components/CakeMessagesOptions';
 import { CustomizingInstructionsPanel } from './CustomizingInstructionsPanel';
@@ -15,7 +15,7 @@ import {
 } from '@/constants';
 import { getIcingImage, type IcingImageType } from '@/utils/icingImage';
 import { roundDownToNearest99 } from '@/lib/utils/pricing';
-import type { BasePriceInfo, CakeInfoUI, CakeMessageUI, ClusteredMarker, IcingDesignUI, IcingGroup, MainTopperType, MainTopperUI, SupportElementType, SupportElementUI } from '@/types';
+import type { BasePriceInfo, CakeInfoUI, CakeMessageUI, ClusteredMarker, IcingDesignUI, IcingGroup, MainTopperUI, SupportElementUI } from '@/types';
 
 type LayoutMode = 'mobile' | 'desktop';
 type StepOneItemKind = 'type' | 'size' | 'height' | 'flavor' | 'icing';
@@ -68,124 +68,6 @@ interface CustomizingStepSummarySectionsProps {
     onApplyTopperChanges?: () => void;
 }
 
-const findScrollableParent = (element: HTMLElement | null): HTMLElement | null => {
-    if (!element || typeof window === 'undefined') {
-        return null;
-    }
-
-    let currentParent = element.parentElement;
-
-    while (currentParent) {
-        const { overflowY } = window.getComputedStyle(currentParent);
-        const canScrollVertically = /(auto|scroll|overlay)/.test(overflowY);
-
-        if (canScrollVertically && currentParent.scrollHeight > currentParent.clientHeight + 1) {
-            return currentParent;
-        }
-
-        currentParent = currentParent.parentElement;
-    }
-
-    return document.scrollingElement instanceof HTMLElement ? document.scrollingElement : null;
-};
-
-const buildCombinedDecorSummary = (mainToppers: MainTopperUI[], supportElements: SupportElementUI[], isCupcake?: boolean) => {
-    const items = [...mainToppers, ...supportElements];
-    if (items.length === 0) return 'No decorations detected yet';
-
-    const descriptions = items.map((item) => {
-        const quantity = item.quantity || 1;
-        const description = item.description
-            .toLowerCase()
-            .replace(/\b\w/g, (character) => character.toUpperCase());
-        return (quantity > 1 && !isCupcake) ? `${description} × ${quantity}` : description;
-    });
-
-    if (descriptions.length === 1) return descriptions[0];
-    if (descriptions.length === 2) return `${descriptions[0]}, ${descriptions[1]}`;
-    return `${descriptions[0]}, ${descriptions[1]} +${descriptions.length - 2} more`;
-};
-
-const getCombinedDecorItems = (mainToppers: MainTopperUI[], supportElements: SupportElementUI[]) => {
-    return [...mainToppers, ...supportElements];
-};
-
-const toTitleCase = (value: string) => value
-    .toLowerCase()
-    .replace(/\b\w/g, (character) => character.toUpperCase());
-
-const topperMaterialLabelMap: Record<MainTopperType, string> = {
-    edible_3d_complex: 'Gumpaste (Complex)',
-    edible_2d_complex: 'Gumpaste (2D Complex)',
-    edible_3d_ordinary: 'Gumpaste (Ordinary)',
-    printout: 'Printout',
-    toy: 'Toy',
-    plastic_crown: 'Crown',
-    edible_crown: 'Edible Crown',
-    figurine: 'Figurine (Simpler)',
-    cardstock: 'Cardstock',
-    edible_photo_top: 'Printout (Edible)',
-    edible_photo_print: 'Printout (Edible)',
-    edible_logo_2d: 'Edible Logo (2D)',
-    candle: 'Candle',
-    edible_2d_shapes: 'Gumpaste (2D)',
-    edible_flowers: 'Edible Flowers',
-    piped_flowers_top: 'Piped Flowers (Top)',
-    icing_doodle: 'Piped Doodles',
-    icing_doodle_intricate: 'Piped Doodles',
-    icing_doodle_intricate_top: 'Intricate Top Doodle',
-    icing_palette_knife: 'Palette Knife Finish',
-    icing_palette_knife_intricate: 'Palette Knife Finish',
-    icing_brush_stroke: 'Brush Stroke Finish',
-    icing_splatter: 'Splatter Finish',
-    icing_minimalist_spread: 'Minimalist Spread',
-    icing_decorations: 'Icing Decorations',
-    meringue_pop: 'Meringue Pop',
-    plastic_ball: 'Plastic Ball',
-};
-
-const supportMaterialLabelMap: Record<SupportElementType, string> = {
-    edible_3d_support: 'Gumpaste (3D)',
-    edible_2d_support: 'Gumpaste (2D)',
-    chocolates: 'Chocolates',
-    sprinkles: 'Sprinkles',
-    premium_sprinkles: 'Premium Sprinkles',
-    support_printout: 'Printout',
-    isomalt: 'Isomalt (Sugar Glass)',
-    dragees: 'Dragees (Pearls)',
-    edible_flowers: 'Edible Flowers',
-    edible_flowers_filler: 'Filler Flowers',
-    piped_flowers_side: 'Piped Flowers (Side)',
-    edible_photo_side: 'Printout (Edible)',
-    edible_photo_side_wave: 'Conditioned Wafer Paper Waves',
-    edible_photo_print: 'Printout (Edible)',
-    icing_doodle: 'Piped Doodles',
-    icing_doodle_intricate_side: 'Intricate Side Doodles',
-    icing_palette_knife: 'Palette Knife Finish',
-    icing_brush_stroke: 'Brush Stroke Finish',
-    icing_splatter: 'Splatter Finish',
-    icing_minimalist_spread: 'Minimalist Spread',
-    plastic_ball_regular: 'Plastic Ball',
-    plastic_ball_disco: 'Disco Ball',
-    plastic_ball: 'Plastic Ball',
-    macarons: 'Macarons',
-    meringue: 'Meringue',
-    gumpaste_bundle: 'Gumpaste Bundle',
-    candy: 'Candy',
-    gumpaste_panel: 'Gumpaste Panel',
-    icing_decorations: 'Icing Decorations',
-    gumpaste_creations: 'Gumpaste Creations',
-    marshmallows: 'Marshmallows',
-    edible_3d_ordinary: 'Gumpaste (3D Ordinary)',
-    edible_lego_bricks: 'Edible Lego Bricks',
-    fresh_flowers: 'Edible Flowers',
-    artificial_flowers: 'Edible Flowers',
-    thin_fabric_ribbon_bows: 'Thin Fabric Ribbon Bows',
-    satin_ribbon: 'Satin/Organza Ribbon',
-    edible_lollipops: 'Edible Lollipops',
-    printout: 'Printout',
-};
-
 export const THEME_COLORS = [
     { name: 'red', hex: '#EF4444' },
     { name: 'light red', hex: '#FCA5A5' },
@@ -211,15 +93,6 @@ export const THEME_COLORS = [
     { name: 'cream', hex: '#FFFDD0' },
 ];
 
-const getDecorationMaterialLabel = (item: MainTopperUI | SupportElementUI) => {
-    if ('classification' in item) {
-        return topperMaterialLabelMap[item.type] || item.type.replace(/_/g, ' ');
-    }
-
-    return supportMaterialLabelMap[item.type] || item.type.replace(/_/g, ' ');
-};
-
-
 const getStepOneFlavorLabel = (index: number, total: number) => {
     if (total === 2) return index === 0 ? 'Top Flavor' : 'Bottom Flavor';
     if (total === 3) return ['Top Flavor', 'Middle Flavor', 'Bottom Flavor'][index] || 'Flavor';
@@ -242,8 +115,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     cakeInfo,
     icingDesign,
     cakeMessages,
-    mainToppers,
-    supportElements,
     basePriceOptions,
     markerMap,
     itemPrices,
@@ -259,11 +130,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     additionalInstructions = '',
     onAdditionalInstructionsChange,
     removeCakeMessage,
-    updateMainTopper,
-    updateSupportElement,
-    onTopperImageReplace,
-    onSupportElementImageReplace,
-    openTopperSheet,
     onCakeInfoChange,
     onIcingTypeChange,
     onIcingDesignChange,
@@ -274,18 +140,13 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
     cakeDesignQuickActionsNode,
     aiChatNode,
     hideStepOne,
-    hideStepFour,
     photoStepNode,
     isUpdatingDesign,
-    dirtyFields,
     isStudioBackgroundEditingPending = false,
     isCupcake = false,
-    hasToppersChanges = false,
-    onApplyTopperChanges,
 }: CustomizingStepSummarySectionsProps) {
     // Default position when "+ Add" is clicked: Bento → front (side), all others → base_board
     const [showIcingChoice, setShowIcingChoice] = React.useState(true);
-    const [showAdvanced, setShowAdvanced] = React.useState(false);
     const [isColorPickerOpen, setIsColorPickerOpen] = React.useState(false);
     const colorPickerRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -312,7 +173,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
         };
     }, [isColorPickerOpen]);
     const stepOneCardRef = React.useRef<HTMLDivElement | null>(null);
-    const advancedSectionRef = React.useRef<HTMLDivElement | null>(null);
     const sizeScrollRef = React.useRef<HTMLDivElement | null>(null);
     const heightScrollRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -350,50 +210,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
             setTimeout(() => scrollToCenter(heightScrollRef.current, `[data-cakethickness="${cakeInfo.thickness}"]`), 100);
         }
     }, [cakeInfo?.thickness]);
-
-    React.useEffect(() => {
-        if (!showAdvanced || layout !== 'desktop' || !advancedSectionRef.current) {
-            return;
-        }
-
-        const scrollAdvancedIntoView = () => {
-            const advancedSection = advancedSectionRef.current;
-            if (!advancedSection) {
-                return;
-            }
-
-            const scrollParent = findScrollableParent(advancedSection);
-            const targetElement = advancedSection.firstElementChild instanceof HTMLElement
-                ? advancedSection.firstElementChild
-                : advancedSection;
-
-            if (!scrollParent || scrollParent === document.scrollingElement) {
-                targetElement.scrollIntoView({
-                    block: 'start',
-                    inline: 'nearest',
-                    behavior: 'smooth',
-                });
-                return;
-            }
-
-            const parentRect = scrollParent.getBoundingClientRect();
-            const targetRect = targetElement.getBoundingClientRect();
-            const targetTop = scrollParent.scrollTop + (targetRect.top - parentRect.top) - 16;
-
-            scrollParent.scrollTo({
-                top: Math.max(0, targetTop),
-                behavior: 'smooth',
-            });
-        };
-
-        const animationFrame = requestAnimationFrame(scrollAdvancedIntoView);
-        const followUpTimeout = window.setTimeout(scrollAdvancedIntoView, 220);
-
-        return () => {
-            cancelAnimationFrame(animationFrame);
-            window.clearTimeout(followUpTimeout);
-        };
-    }, [showAdvanced, layout]);
 
     const isDesktop = layout === 'desktop';
     const cakeType = cakeInfo?.type?.toLowerCase() || '';
@@ -521,8 +337,6 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
         }
     }, [cakeInfo?.type, cakeInfo?.flavors, onCakeInfoChange]);
 
-    const combinedDecorItems = getCombinedDecorItems(mainToppers, supportElements);
-    const combinedDecorSummary = buildCombinedDecorSummary(mainToppers, supportElements, isCupcake);
     const shouldShowAiChatCard = Boolean(cakeInfo && !isAnalyzing && !isRejectionError && aiChatNode);
     const aiChatCard = shouldShowAiChatCard ? (
         <div className="w-full min-w-0">
@@ -951,151 +765,13 @@ export const CustomizingStepSummarySections = memo(function CustomizingStepSumma
                 </div>
             )}
 
-            {cakeInfo && !isAnalyzing && !isRejectionError && (
-                <div className="px-1 py-1">
-                    <button
-                        onClick={() => setShowAdvanced(!showAdvanced)}
-                        className={`w-full flex items-center justify-between px-5 py-4 rounded-2xl border transition-all duration-300 group shadow-sm ${
-                            showAdvanced 
-                                ? 'bg-purple-50 border-purple-200 text-purple-700' 
-                                : 'bg-white border-slate-100 text-slate-700 hover:border-purple-100 hover:bg-purple-50/30'
-                        }`}
-                        aria-expanded={showAdvanced}
-                        aria-controls="advanced-customization-steps"
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors duration-300 ${
-                                showAdvanced ? 'bg-purple-200 text-purple-600' : 'bg-slate-50 text-slate-400 group-hover:bg-purple-100 group-hover:text-purple-500'
-                            }`}>
-                                <Wand2 className="w-5 h-5" />
-                            </div>
-                            <div className="text-left">
-                                <span className="block text-sm font-bold leading-tight">Edit Design Details</span>
-                                <span className="block text-[10px] max-md:text-[9px] font-medium text-slate-500 mt-0.5">
-                                    {showAdvanced ? 'Hide additional options' : 'Cake type, decorations and more'}
-                                </span>
-                            </div>
-                        </div>
-                        <div className={`transition-transform duration-300 ${showAdvanced ? 'rotate-180' : ''}`}>
-                            <ChevronDown className={`w-5 h-5 ${showAdvanced ? 'text-purple-500' : 'text-slate-300'}`} />
-                        </div>
-                    </button>
+            {cakeInfo && !isCupcake && !isAnalyzing && !isRejectionError && cakeTypeSelectorNode && (
+                <div className={cardClassName}>
+                    <div className="flex flex-col gap-2 px-1 pb-2">
+                        {cakeTypeSelectorNode}
+                    </div>
                 </div>
             )}
-
-            <div 
-                ref={advancedSectionRef}
-                id="advanced-customization-steps" 
-                aria-hidden={!showAdvanced}
-                className={`flex flex-col gap-2 transition-all duration-500 ease-in-out ${
-                    showAdvanced ? 'max-h-[2000px] opacity-100 overflow-visible' : 'max-h-0 opacity-0 pointer-events-none overflow-hidden'
-                }`}
-            >
-                {cakeInfo && !isCupcake && !isAnalyzing && !isRejectionError && cakeTypeSelectorNode && (
-                    <div className={cardClassName}>
-                        <div className="flex flex-col gap-2 px-1 pb-2">
-                            {cakeTypeSelectorNode}
-                        </div>
-                    </div>
-                )}
-
-                {cakeInfo && !isAnalyzing && !isRejectionError && !hideStepFour && (
-                    <div className={cardClassName}>
-                        <h3 className="px-1 text-left text-[10px] max-md:text-[9px] font-bold uppercase tracking-wider text-slate-400">
-                            Cake Toppers
-                        </h3>
-                        {combinedDecorItems.length > 0 ? (
-                            <div className="space-y-2">
-                                {combinedDecorItems.slice(0, 3).map((item) => (
-                                    <div
-                                        key={item.id}
-                                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-purple-100 bg-white/90 hover:bg-purple-50/70 transition-colors text-left"
-                                    >
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setSelectedItem({
-                                                    ...item,
-                                                    itemCategory: ('classification' in item ? 'topper' : 'element'),
-                                                } as ClusteredMarker);
-                                                openTopperSheet('classification' in item ? 'main' : 'support', item.id);
-                                            }}
-                                            className="min-w-0 flex-1 flex items-center gap-2 text-[11px] leading-5 text-left"
-                                        >
-                                            <span className="truncate text-slate-500">
-                                                {toTitleCase(item.description)}{' '}
-                                                <span className="text-slate-400">
-                                                    ({getDecorationMaterialLabel(item)})
-                                                </span>
-                                            </span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                if ('classification' in item) {
-                                                    updateMainTopper(item.id, { isEnabled: !item.isEnabled });
-                                                } else {
-                                                    updateSupportElement(item.id, { isEnabled: !item.isEnabled });
-                                                }
-                                            }}
-                                            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ease-in-out ${item.isEnabled ? 'bg-purple-400' : 'bg-slate-300'}`}
-                                            aria-label={`${item.isEnabled ? 'Disable' : 'Enable'} ${toTitleCase(item.description)}`}
-                                            aria-pressed={item.isEnabled}
-                                        >
-                                            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-200 ease-in-out ${item.isEnabled ? 'translate-x-4' : 'translate-x-1'}`} />
-                                        </button>
-                                    </div>
-                                ))}
-
-                                <div className="flex items-center justify-center gap-2 pt-1">
-                                    <button
-                                        type="button"
-                                        onClick={onApplyTopperChanges}
-                                        disabled={!hasToppersChanges || isUpdatingDesign}
-                                        className="genie-btn-primary inline-flex items-center justify-center gap-1.5 text-[10px] max-md:text-[9px] font-bold py-2 px-5 rounded-full disabled:cursor-not-allowed disabled:opacity-50"
-                                    >
-                                        <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-                                        Apply Design
-                                    </button>
-                                    {combinedDecorItems.length > 3 && (
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setSelectedItem(null);
-                                                openTopperSheet();
-                                            }}
-                                            className="genie-btn-secondary text-[10px] max-md:text-[9px] font-bold py-2 px-5 rounded-full"
-                                        >
-                                            Show more
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-purple-100 bg-white/90 text-left">
-                                <div className="min-w-0 flex-1 flex items-center gap-2 text-[11px] leading-5">
-                                    <span className="shrink-0 font-semibold text-slate-700">
-                                        Decorations (0):
-                                    </span>
-                                    <span className="truncate text-slate-500">
-                                        {combinedDecorSummary}
-                                    </span>
-                                </div>
-                            </div>
-                        )}
-
-                        {mainToppers.some((topper) => topper.type === 'toy') && (
-                            <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-start gap-2">
-                                <span className="text-amber-500 text-sm">💡</span>
-                                <p className="text-[11px] text-amber-700 leading-tight">
-                                    <span className="font-semibold">Tip:</span> Switch from toy toppers to edible or printed toppers to reduce the total price!
-                                </p>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-            </div>
 
             {cakeInfo && !isAnalyzing && !isRejectionError && onAdditionalInstructionsChange && (
                 <div className={cardClassName}>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { CakeInfoUI, CakeMessageUI, IcingDesignUI, MainTopperUI, SupportElementUI } from '@/types';
@@ -112,33 +112,29 @@ const buildProps = (): React.ComponentProps<typeof CustomizingStepSummarySection
 });
 
 describe('CustomizingStepSummarySections', () => {
-    it('renders Additional Instructions below Edit Design Details and forwards changes', () => {
+    it('renders Cake Type below Cake Message and Additional Instructions', () => {
         const props = buildProps();
         props.additionalInstructions = 'Keep the topper centered.';
 
         render(<CustomizingStepSummarySections {...props} />);
 
+        const cakeMessage = screen.getByText('CAKE MESSAGE');
+        const cakeType = screen.getByText('Cake Type');
         const instructions = screen.getByRole('textbox', { name: 'Additional Instructions' });
         expect(instructions).toHaveValue('Keep the topper centered.');
         fireEvent.change(instructions, { target: { value: 'Use a softer pink.' } });
 
         expect(props.onAdditionalInstructionsChange).toHaveBeenCalledWith('Use a softer pink.');
-        const editDetailsButton = screen.getByRole('button', { name: /Edit Design Details/i });
-        expect(editDetailsButton.compareDocumentPosition(instructions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-
-        fireEvent.click(editDetailsButton);
-        const tierButton = screen.getByRole('button', { name: /3 Tier/i });
-        expect(tierButton.compareDocumentPosition(instructions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(cakeMessage.compareDocumentPosition(cakeType) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(cakeType.compareDocumentPosition(instructions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(screen.queryByRole('button', { name: /Edit Design Details/i })).not.toBeInTheDocument();
     });
 
-    it('keeps cake type controls in advanced customization and still forwards message actions', () => {
+    it('keeps cake type controls visible and still forwards message actions', () => {
         const props = buildProps();
 
         render(<CustomizingStepSummarySections {...props} />);
 
-        expect(screen.queryByRole('button', { name: /3 Tier/i })).not.toBeInTheDocument();
-
-        fireEvent.click(screen.getByRole('button', { name: /Edit Design Details/i }));
         fireEvent.click(screen.getByRole('button', { name: /3 Tier/i }));
         fireEvent.change(screen.getByLabelText('Text'), { target: { value: 'Congrats!' } });
         fireEvent.click(screen.getByRole('button', { name: 'Delete Front message' }));
@@ -200,7 +196,7 @@ describe('CustomizingStepSummarySections', () => {
         expect(screen.queryByRole('button', { name: /Body Icing/i })).not.toBeInTheDocument();
     });
 
-    it('renders empty-message CTA and combined decoration summary in mobile layout', () => {
+    it('renders the empty-message CTA without the hidden Edit Design Details group', () => {
         const props = buildProps();
         props.layout = 'mobile';
         props.cakeMessages = [];
@@ -208,164 +204,30 @@ describe('CustomizingStepSummarySections', () => {
         render(<CustomizingStepSummarySections {...props} />);
 
         fireEvent.click(screen.getByRole('button', { name: /\+ Add message/i }));
-        fireEvent.click(screen.getByRole('button', { name: /Edit Design Details/i }));
-        fireEvent.click(screen.getByRole('button', { name: /Toy topper\s*\(Toy\)/i }));
-
-        expect(props.setSelectedItem).toHaveBeenCalledWith(expect.objectContaining({
-            id: 'topper-1',
-            itemCategory: 'topper',
-            description: 'Toy topper',
-        }));
-        expect(props.openTopperSheet).toHaveBeenCalledWith('main', 'topper-1');
-        expect(screen.getByRole('button', { name: /Toy topper\s*\(Toy\)/i })).toBeInTheDocument();
-        expect(screen.getByText(/Switch from toy toppers to edible or printed toppers/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /3 Tier/i })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Edit Design Details/i })).not.toBeInTheDocument();
+        expect(screen.queryByText('Cake Toppers')).not.toBeInTheDocument();
     });
 
-    it('shows only the first 3 decoration items and uses show more for overflow', () => {
+    it('does not render the hidden decoration group', () => {
         const props = buildProps();
-        props.mainToppers = [
-            {
-                id: 'topper-1',
-                type: 'toy',
-                original_type: 'toy',
-                description: 'Toy topper',
-                size: 'medium',
-                quantity: 1,
-                group_id: 'group-1',
-                classification: 'hero',
-                isEnabled: true,
-                price: 0,
-            },
-            {
-                id: 'topper-2',
-                type: 'figurine',
-                original_type: 'figurine',
-                description: 'Butterfly topper',
-                size: 'small',
-                quantity: 1,
-                group_id: 'group-1',
-                classification: 'hero',
-                isEnabled: true,
-                price: 0,
-            },
-        ] as MainTopperUI[];
-        props.supportElements = [
-            {
-                id: 'support-1',
-                type: 'fresh_flowers',
-                original_type: 'fresh_flowers',
-                description: 'Pink flowers',
-                size: 'small',
-                quantity: 2,
-                group_id: 'group-2',
-                isEnabled: true,
-                price: 0,
-            },
-            {
-                id: 'support-2',
-                type: 'dragees',
-                original_type: 'dragees',
-                description: 'Sugar pearls',
-                size: 'small',
-                quantity: 1,
-                group_id: 'group-3',
-                isEnabled: true,
-                price: 0,
-            },
-        ] as SupportElementUI[];
 
         render(<CustomizingStepSummarySections {...props} />);
 
-        fireEvent.click(screen.getByRole('button', { name: /Edit Design Details/i }));
-
-        expect(screen.getByRole('button', { name: /Toy topper\s*\(Toy\)/i })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /Butterfly topper\s*\(Figurine \(Simpler\)\)/i })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /Pink flowers\s*\(Edible Flowers\)/i })).toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: /Sugar pearls\s*\(Dragees \(Pearls\)\)/i })).not.toBeInTheDocument();
-
-        fireEvent.click(screen.getByRole('button', { name: /Show more/i }));
-
-        expect(props.setSelectedItem).toHaveBeenCalledWith(null);
-        expect(props.openTopperSheet).toHaveBeenCalledWith();
+        expect(screen.queryByText('Cake Toppers')).not.toBeInTheDocument();
+        expect(screen.queryByText(/No decorations detected yet/i)).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Edit Design Details/i })).not.toBeInTheDocument();
     });
 
-    it('places Apply Design beside Show more and only enables it after topper changes', () => {
-        const props = buildProps();
-        props.hasToppersChanges = false;
-        props.onApplyTopperChanges = vi.fn();
-        props.mainToppers = [
-            ...props.mainToppers,
-            {
-                id: 'topper-2',
-                type: 'figurine',
-                original_type: 'figurine',
-                description: 'Butterfly topper',
-                size: 'small',
-                quantity: 1,
-                group_id: 'group-2',
-                classification: 'hero',
-                isEnabled: true,
-                price: 0,
-            },
-            {
-                id: 'topper-3',
-                type: 'printout',
-                original_type: 'printout',
-                description: 'Number topper',
-                size: 'small',
-                quantity: 1,
-                group_id: 'group-3',
-                classification: 'hero',
-                isEnabled: true,
-                price: 0,
-            },
-            {
-                id: 'topper-4',
-                type: 'candle',
-                original_type: 'candle',
-                description: 'Candle topper',
-                size: 'small',
-                quantity: 1,
-                group_id: 'group-4',
-                classification: 'hero',
-                isEnabled: true,
-                price: 0,
-            },
-        ];
-
-        const { rerender } = render(<CustomizingStepSummarySections {...props} />);
-        fireEvent.click(screen.getByRole('button', { name: /Edit Design Details/i }));
-        const applyDesign = screen.getByRole('button', { name: 'Apply Design' });
-        const showMore = screen.getByRole('button', { name: 'Show more' });
-        expect(applyDesign).toBeDisabled();
-        expect(applyDesign.parentElement).toContainElement(showMore);
-        expect(applyDesign.querySelector('svg')).toHaveClass('lucide-sparkles', 'h-3.5', 'w-3.5');
-
-        rerender(<CustomizingStepSummarySections {...props} hasToppersChanges />);
-
-        const enabledApplyDesign = screen.getByRole('button', { name: 'Apply Design' });
-        expect(enabledApplyDesign).toBeEnabled();
-        fireEvent.click(enabledApplyDesign);
-        expect(props.onApplyTopperChanges).toHaveBeenCalledTimes(1);
-        expect(screen.getByText('Cake Toppers')).toHaveClass(
-            'text-[10px]',
-            'max-md:text-[9px]',
-            'font-bold',
-            'uppercase',
-            'tracking-wider',
-            'text-slate-400',
-        );
-    });
-
-    it('keeps the decoration step visible even when no toppers or support elements were detected', () => {
+    it('keeps cake messages visible even when no toppers or support elements were detected', () => {
         const props = buildProps();
         props.mainToppers = [];
         props.supportElements = [];
 
         render(<CustomizingStepSummarySections {...props} />);
 
-        expect(screen.getByText(/No decorations detected yet/i)).toBeInTheDocument();
-        expect(screen.queryByText(/Switch from toy toppers to edible or printed toppers/i)).not.toBeInTheDocument();
+        expect(screen.getByText('CAKE MESSAGE')).toBeInTheDocument();
+        expect(screen.queryByText('Cake Toppers')).not.toBeInTheDocument();
     });
 
     it('splits icing into its own step when requested', () => {
@@ -387,10 +249,10 @@ describe('CustomizingStepSummarySections', () => {
         const softIcingBtn = screen.getByRole('button', { name: /Soft Icing/i });
         fireEvent.click(softIcingBtn);
 
-        const advancedToggle = screen.getByRole('button', { name: /Edit Design Details/i });
-        const advancedSection = document.getElementById('advanced-customization-steps');
         const icingTypeLabel = screen.getByText('Icing Type & Color');
         const mainLabel = screen.getByText('Main');
+        const cakeMessage = screen.getByText('CAKE MESSAGE');
+        const cakeType = screen.getByText('Cake Type');
         const aiChatTitle = screen.getByText('AI Cake Assistant');
         const aiChatNode = screen.getByTestId('ai-chat-node');
         const cakeDesignQuickActions = screen.getByTestId('cake-design-quick-actions');
@@ -401,22 +263,11 @@ describe('CustomizingStepSummarySections', () => {
         expect(aiChatNode.parentElement).toHaveClass('w-full', 'min-w-0');
         expect(aiChatNode.parentElement).not.toHaveClass('genie-card', 'p-2', 'rounded-2xl');
         expect(screen.getByTitle('red')).toBeInTheDocument();
-        expect(advancedToggle).toHaveAttribute('aria-expanded', 'false');
-        expect(advancedSection).toHaveClass('max-h-0', 'opacity-0', 'pointer-events-none');
-        expect(within(advancedSection as HTMLElement).queryByText('Main')).not.toBeInTheDocument();
-        expect(within(advancedSection as HTMLElement).queryByText('AI Cake Assistant')).not.toBeInTheDocument();
-
-        fireEvent.click(advancedToggle);
-
-        expect(advancedToggle).toHaveAttribute('aria-expanded', 'true');
-        expect(advancedSection).toHaveClass('max-h-[2000px]', 'opacity-100');
-        const advancedScope = within(advancedSection as HTMLElement);
-        const cakeTypeLabel = advancedScope.getByText('Cake Type');
-
-        expect(advancedScope.queryByText('AI Cake Assistant')).not.toBeInTheDocument();
-        expect(advancedScope.getByRole('button', { name: /2 Tier/i })).toHaveClass('max-md:min-h-[34px]');
-        expect(advancedScope.getByRole('button', { name: /3 Tier/i })).toBeInTheDocument();
-        expect(cakeTypeLabel).toBeInTheDocument();
+        expect(cakeMessage.compareDocumentPosition(cakeType) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(screen.getByRole('button', { name: /2 Tier/i })).toHaveClass('max-md:min-h-[34px]');
+        expect(screen.getByRole('button', { name: /3 Tier/i })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Edit Design Details/i })).not.toBeInTheDocument();
+        expect(document.getElementById('advanced-customization-steps')).not.toBeInTheDocument();
         expect(screen.getByRole('button', { name: /^Soft Icing$/i })).toHaveClass('max-md:min-h-[34px]');
         expect(screen.getByRole('button', { name: 'Chocolate' })).toHaveClass('max-md:min-h-[34px]');
     });
@@ -461,73 +312,6 @@ describe('CustomizingStepSummarySections', () => {
 
         expect(screen.queryByRole('button', { name: /Fix Icing Color/i })).not.toBeInTheDocument();
         expect(screen.getByText("Please wait while we're editing the background.")).toBeInTheDocument();
-    });
-
-    it('scrolls the desktop sidebar container to reveal advanced cards when opened', async () => {
-        const props = buildProps();
-
-        render(
-            <div data-testid="scroll-parent" style={{ overflowY: 'auto', maxHeight: '220px' }}>
-                <CustomizingStepSummarySections {...props} />
-            </div>,
-        );
-
-        const scrollParent = screen.getByTestId('scroll-parent');
-        const advancedSection = document.getElementById('advanced-customization-steps');
-
-        expect(advancedSection).not.toBeNull();
-
-        Object.defineProperty(scrollParent, 'scrollHeight', {
-            value: 640,
-            configurable: true,
-        });
-        Object.defineProperty(scrollParent, 'clientHeight', {
-            value: 220,
-            configurable: true,
-        });
-        Object.defineProperty(scrollParent, 'scrollTop', {
-            value: 40,
-            writable: true,
-            configurable: true,
-        });
-
-        scrollParent.getBoundingClientRect = vi.fn(() => ({
-            top: 120,
-            left: 0,
-            bottom: 340,
-            right: 320,
-            width: 320,
-            height: 220,
-            x: 0,
-            y: 120,
-            toJSON: () => ({}),
-        }));
-
-        const firstAdvancedCard = advancedSection?.firstElementChild as HTMLElement | null;
-        expect(firstAdvancedCard).not.toBeNull();
-
-        firstAdvancedCard.getBoundingClientRect = vi.fn(() => ({
-            top: 280,
-            left: 0,
-            bottom: 520,
-            right: 320,
-            width: 320,
-            height: 240,
-            x: 0,
-            y: 280,
-            toJSON: () => ({}),
-        }));
-
-        vi.clearAllMocks();
-
-        fireEvent.click(screen.getByRole('button', { name: /Edit Design Details/i }));
-
-        await waitFor(() => {
-            expect(HTMLElement.prototype.scrollTo).toHaveBeenCalledWith({
-                top: 184,
-                behavior: 'smooth',
-            });
-        });
     });
 
     it('renders tiered flavor rows below height for 3-tier cakes', () => {
