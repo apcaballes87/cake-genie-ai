@@ -35,7 +35,12 @@ describe('BoundingBoxOverlay', () => {
                 />
             );
 
-            expect(screen.getByTestId('bbox-interaction-hint')).toHaveTextContent('Tap or click a highlighted detail to edit it');
+            const interactionHint = screen.getByTestId('bbox-interaction-hint');
+            expect(interactionHint).toHaveClass('top-2/3', 'bg-white', 'text-purple-700');
+            expect(screen.getByTestId('bbox-interaction-hint-mobile')).toHaveTextContent('Tap a highlighted detail to edit');
+            expect(screen.getByTestId('bbox-interaction-hint-mobile')).toHaveClass('lg:hidden');
+            expect(screen.getByTestId('bbox-interaction-hint-desktop')).toHaveTextContent('Click a highlighted detail to edit');
+            expect(screen.getByTestId('bbox-interaction-hint-desktop')).toHaveClass('hidden', 'lg:inline');
             expect(screen.getByTestId('bounding-box-outline-topper-0').style.boxShadow).toMatch(/255/);
             expect(screen.getByTestId('bounding-box-outline-support-1').style.boxShadow).toBe('none');
 

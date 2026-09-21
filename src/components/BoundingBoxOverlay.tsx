@@ -673,9 +673,14 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
             {spotlightBoxes.length > 0 && !hasDismissedInteractionHint ? (
                 <div
                     data-testid="bbox-interaction-hint"
-                    className="absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-slate-950/80 px-3 py-1.5 text-center text-[10px] font-semibold text-white shadow-lg backdrop-blur-sm max-md:top-2 max-md:px-2.5 max-md:py-1 max-md:text-[9px]"
+                    className="absolute left-1/2 top-2/3 -translate-x-1/2 whitespace-nowrap rounded-full border border-purple-100 bg-white px-3 py-1.5 text-center text-[10px] font-semibold text-purple-700 shadow-lg backdrop-blur-sm max-md:px-2.5 max-md:py-1 max-md:text-[9px]"
                 >
-                    Tap or click a highlighted detail to edit it
+                    <span data-testid="bbox-interaction-hint-mobile" className="lg:hidden">
+                        Tap a highlighted detail to edit
+                    </span>
+                    <span data-testid="bbox-interaction-hint-desktop" className="hidden lg:inline">
+                        Click a highlighted detail to edit
+                    </span>
                 </div>
             ) : null}
             {measurementLines.map((line) => {
