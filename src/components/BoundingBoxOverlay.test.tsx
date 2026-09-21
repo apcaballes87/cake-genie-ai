@@ -136,6 +136,54 @@ describe('BoundingBoxOverlay', () => {
         }
     });
 
+    it('spotlights an editable cake message before decoration boxes when the sequence is capped', () => {
+        vi.useFakeTimers();
+
+        try {
+            const analysisResult = {
+                main_toppers: [
+                    { group_id: 'topper-a', description: 'Topper A', box_2d: [100, 100, 200, 200] },
+                    { group_id: 'topper-b', description: 'Topper B', box_2d: [250, 100, 350, 200] },
+                    { group_id: 'topper-c', description: 'Topper C', box_2d: [400, 100, 500, 200] },
+                ],
+                support_elements: [],
+                cake_messages: [{
+                    text: 'Happy Birthday',
+                    position: 'side',
+                    box_2d: [300, 600, 700, 750],
+                }],
+            } as unknown as HybridAnalysisResult;
+
+            render(
+                <BoundingBoxOverlay
+                    analysisResult={analysisResult}
+                    imageWidth={1000}
+                    imageHeight={1000}
+                    containerWidth={1000}
+                    containerHeight={1000}
+                    useTopLeftOrigin
+                    editableDecorationTargets={[
+                        { category: 'topper', groupId: 'topper-a', label: 'Topper A' },
+                        { category: 'topper', groupId: 'topper-b', label: 'Topper B' },
+                        { category: 'topper', groupId: 'topper-c', label: 'Topper C' },
+                    ]}
+                    editableCakeMessageTargets={[{ position: 'side', label: 'Happy Birthday' }]}
+                    onDecorationActivate={vi.fn()}
+                    onCakeMessageActivate={vi.fn()}
+                />
+            );
+
+            expect(screen.getByTestId('bounding-box-outline-message-3').style.boxShadow).toMatch(/255/);
+            expect(screen.getByTestId('bounding-box-outline-topper-0').style.boxShadow).toBe('none');
+
+            act(() => vi.advanceTimersByTime(650));
+            expect(screen.getByTestId('bounding-box-outline-message-3').style.boxShadow).toBe('none');
+            expect(screen.getByTestId('bounding-box-outline-topper-0').style.boxShadow).toMatch(/255/);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
     it('activates a matched topper box as an accessible minimum-size target', () => {
         const onDecorationActivate = vi.fn();
         const analysisResult = {

@@ -572,7 +572,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
         }
     });
 
-    const spotlightBoxes: Array<{ boxIndex: number; key: string }> = [];
+    const spotlightCandidates: Array<{ boxIndex: number; key: string; isMessage: boolean }> = [];
     const seenSpotlightKeys = new Set<string>();
     boxes.forEach((box, boxIndex) => {
         const isInteractive = Boolean(
@@ -586,10 +586,20 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
             : `message:${box.messageTarget?.position}`;
         if (seenSpotlightKeys.has(key)) return;
         seenSpotlightKeys.add(key);
-        if (spotlightBoxes.length < SPOTLIGHT_MAX_BOXES) {
-            spotlightBoxes.push({ boxIndex, key });
-        }
+        spotlightCandidates.push({
+            boxIndex,
+            key,
+            isMessage: Boolean(box.messageTarget),
+        });
     });
+
+    // Message boxes are often the least obvious editable targets, so make sure
+    // they receive the first-use cue before filling the remaining slots with
+    // decoration boxes.
+    const spotlightBoxes = [
+        ...spotlightCandidates.filter((candidate) => candidate.isMessage),
+        ...spotlightCandidates.filter((candidate) => !candidate.isMessage),
+    ].slice(0, SPOTLIGHT_MAX_BOXES);
 
     const spotlightSequenceKey = spotlightBoxes.map(({ key }) => key).join('|');
 
