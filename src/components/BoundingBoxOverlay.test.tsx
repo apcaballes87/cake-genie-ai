@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { HybridAnalysisResult } from '@/types';
 import {
@@ -9,6 +9,133 @@ import {
 } from './BoundingBoxOverlay';
 
 describe('BoundingBoxOverlay', () => {
+    it('spotlights up to three editable boxes once and leaves the interaction hint visible', () => {
+        vi.useFakeTimers();
+
+        try {
+            const analysisResult = {
+                main_toppers: [{ group_id: 'topper-a', description: 'Topper A', box_2d: [100, 100, 200, 200] }],
+                support_elements: [{ group_id: 'support-b', description: 'Support B', box_2d: [400, 400, 500, 500] }],
+                cake_messages: [],
+            } as unknown as HybridAnalysisResult;
+
+            render(
+                <BoundingBoxOverlay
+                    analysisResult={analysisResult}
+                    imageWidth={1000}
+                    imageHeight={1000}
+                    containerWidth={1000}
+                    containerHeight={1000}
+                    useTopLeftOrigin
+                    editableDecorationTargets={[
+                        { category: 'topper', groupId: 'topper-a', label: 'Topper A' },
+                        { category: 'support', groupId: 'support-b', label: 'Support B' },
+                    ]}
+                    onDecorationActivate={vi.fn()}
+                />
+            );
+
+            expect(screen.getByTestId('bbox-interaction-hint')).toHaveTextContent('Tap or click a highlighted detail to edit it');
+            expect(screen.getByTestId('bounding-box-outline-topper-0').style.boxShadow).toMatch(/255/);
+            expect(screen.getByTestId('bounding-box-outline-support-1').style.boxShadow).toBe('none');
+
+            act(() => vi.advanceTimersByTime(650));
+            expect(screen.getByTestId('bounding-box-outline-topper-0').style.boxShadow).toBe('none');
+            expect(screen.getByTestId('bounding-box-outline-support-1').style.boxShadow).toMatch(/255/);
+
+            act(() => vi.advanceTimersByTime(650));
+            expect(screen.getByTestId('bounding-box-outline-topper-0').style.boxShadow).toBe('none');
+            expect(screen.getByTestId('bounding-box-outline-support-1').style.boxShadow).toBe('none');
+            expect(screen.getByTestId('bbox-interaction-hint')).toBeInTheDocument();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('cancels the spotlight sequence and hides the hint after the first selection', () => {
+        vi.useFakeTimers();
+
+        try {
+            const onDecorationActivate = vi.fn();
+            const analysisResult = {
+                main_toppers: [{ group_id: 'topper-a', description: 'Topper A', box_2d: [100, 100, 200, 200] }],
+                support_elements: [{ group_id: 'support-b', description: 'Support B', box_2d: [400, 400, 500, 500] }],
+                cake_messages: [],
+            } as unknown as HybridAnalysisResult;
+
+            render(
+                <BoundingBoxOverlay
+                    analysisResult={analysisResult}
+                    imageWidth={1000}
+                    imageHeight={1000}
+                    containerWidth={1000}
+                    containerHeight={1000}
+                    useTopLeftOrigin
+                    editableDecorationTargets={[
+                        { category: 'topper', groupId: 'topper-a', label: 'Topper A' },
+                        { category: 'support', groupId: 'support-b', label: 'Support B' },
+                    ]}
+                    onDecorationActivate={onDecorationActivate}
+                />
+            );
+
+            fireEvent.click(screen.getByRole('button', { name: 'Edit Topper A' }));
+
+            expect(onDecorationActivate).toHaveBeenCalledWith([
+                { category: 'topper', groupId: 'topper-a', label: 'Topper A' },
+            ]);
+            expect(screen.queryByTestId('bbox-interaction-hint')).not.toBeInTheDocument();
+
+            act(() => vi.advanceTimersByTime(2000));
+            expect(screen.getByTestId('bounding-box-outline-support-1').style.boxShadow).toBe('none');
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('keeps the hint static and skips the sequence when reduced motion is enabled', () => {
+        const originalMatchMedia = window.matchMedia;
+        Object.defineProperty(window, 'matchMedia', {
+            configurable: true,
+            value: vi.fn().mockReturnValue({
+                matches: true,
+                addEventListener: vi.fn(),
+                removeEventListener: vi.fn(),
+            }),
+        });
+
+        try {
+            const analysisResult = {
+                main_toppers: [{ group_id: 'topper-a', description: 'Topper A', box_2d: [100, 100, 200, 200] }],
+                support_elements: [],
+                cake_messages: [],
+            } as unknown as HybridAnalysisResult;
+
+            render(
+                <BoundingBoxOverlay
+                    analysisResult={analysisResult}
+                    imageWidth={1000}
+                    imageHeight={1000}
+                    containerWidth={1000}
+                    containerHeight={1000}
+                    useTopLeftOrigin
+                    editableDecorationTargets={[{ category: 'topper', groupId: 'topper-a', label: 'Topper A' }]}
+                    onDecorationActivate={vi.fn()}
+                />
+            );
+
+            const outline = screen.getByTestId('bounding-box-outline-topper-0');
+            expect(screen.getByTestId('bbox-interaction-hint')).toBeInTheDocument();
+            expect(outline.style.boxShadow).toBe('none');
+            expect(outline.style.transition).toBe('none');
+        } finally {
+            Object.defineProperty(window, 'matchMedia', {
+                configurable: true,
+                value: originalMatchMedia,
+            });
+        }
+    });
+
     it('activates a matched topper box as an accessible minimum-size target', () => {
         const onDecorationActivate = vi.fn();
         const analysisResult = {
@@ -38,7 +165,7 @@ describe('BoundingBoxOverlay', () => {
         expect(target).toHaveStyle({ left: '83px', top: '83px', width: '44px', height: '44px' });
         expect(target).toHaveAttribute('aria-pressed', 'false');
         expect(screen.queryByTestId('bounding-box-label-topper-0')).not.toBeInTheDocument();
-        expect(screen.getByTestId('bounding-box-outline-topper-0')).toHaveStyle({ opacity: '0.5' });
+        expect(screen.getByTestId('bounding-box-outline-topper-0')).toHaveStyle({ opacity: '1' });
         fireEvent.click(target);
 
         expect(onDecorationActivate).toHaveBeenCalledWith([
