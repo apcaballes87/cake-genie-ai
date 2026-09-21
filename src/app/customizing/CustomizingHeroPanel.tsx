@@ -9,7 +9,7 @@ import {
     type DecorationBoxTarget,
 } from '@/components/BoundingBoxOverlay';
 import { ImageZoomModal } from '@/components/ImageZoomModal';
-import { Heart, ShieldCheck, Wand2, ScanEye, EyeOff, ZoomIn } from 'lucide-react';
+import { Heart, ShieldCheck, Wand2, ZoomIn } from 'lucide-react';
 import { ErrorIcon, ImageIcon, ResetIcon, Loader2, ReportIcon } from '../../components/icons';
 import MagicGlitter from '@/components/MagicGlitter';
 import { getCustomerFacingAnalysisError } from './analysisErrorDisplay';
@@ -215,7 +215,6 @@ export const CustomizingHeroPanel = memo(({
     const [overlayImageBounds, setOverlayImageBounds] = useState<OverlayImageBounds | null>(null);
     const heroFrameRef = useRef<HTMLDivElement | null>(null);
     const [isHeroImageZoomOpen, setIsHeroImageZoomOpen] = useState(false);
-    const [showAnalysis, setShowAnalysis] = useState(true);
     const { phrase: dynamicAnalysisPhrase, isVisible: isAnalysisPhraseVisible } = useDynamicLoadingPhrase(isAnalyzing);
     const mobileHeroScrollRef = useRef<HTMLDivElement | null>(null);
     const baseOriginalImageUrl = originalImagePreview || preferredOriginalImageUrl || null;
@@ -790,17 +789,6 @@ export const CustomizingHeroPanel = memo(({
                             <>
                                 {showSaveDesignButton ? (
                                 <div className="absolute bottom-4 left-4 max-md:bottom-3 max-md:left-3 z-10 flex flex-col gap-2">
-                                        {analysisResult && (
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowAnalysis(prev => !prev)}
-                                                className="backdrop-blur-sm rounded-full text-[10px] font-semibold transition-all shadow-md px-[10px] py-[4px] flex items-center !gap-[8px] genie-btn-secondary"
-                                                aria-label={showAnalysis ? 'Hide analysis overlay' : 'Show analysis overlay'}
-                                            >
-                                                {showAnalysis ? <ScanEye className="w-[12px] h-[12px]" /> : <EyeOff className="w-[12px] h-[12px]" />}
-                                                {showAnalysis ? 'Analysis' : 'Analysis'}
-                                            </button>
-                                        )}
                                         <button
                                             onClick={handleToggleSaveDesign}
                                             className={`backdrop-blur-sm rounded-full text-[10px] font-semibold transition-all shadow-md px-[10px] py-[4px] flex items-center !gap-[8px] ${isCurrentDesignSaved ? 'bg-pink-500 text-white hover:bg-pink-600' : 'genie-btn-secondary'}`}
@@ -892,7 +880,7 @@ export const CustomizingHeroPanel = memo(({
                         ) : null}
 
                         {/* Bounding box overlay from Gemini analysis */}
-                        {showAnalysis && analysisResult && overlayImageBounds && (
+                        {analysisResult && overlayImageBounds && (
                             <BoundingBoxOverlay
                                 analysisResult={analysisResult}
                                 containerWidth={overlayImageBounds.width}
