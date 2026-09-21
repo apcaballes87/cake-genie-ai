@@ -9,7 +9,7 @@ import {
 } from './BoundingBoxOverlay';
 
 describe('BoundingBoxOverlay', () => {
-    it('spotlights up to three editable boxes once and leaves the interaction hint visible', () => {
+    it('spotlights every editable box once and leaves the interaction hint visible', () => {
         vi.useFakeTimers();
 
         try {
@@ -136,7 +136,7 @@ describe('BoundingBoxOverlay', () => {
         }
     });
 
-    it('spotlights an editable cake message before decoration boxes when the sequence is capped', () => {
+    it('spotlights an editable cake message before decoration boxes and still reaches every box', () => {
         vi.useFakeTimers();
 
         try {
@@ -179,6 +179,18 @@ describe('BoundingBoxOverlay', () => {
             act(() => vi.advanceTimersByTime(650));
             expect(screen.getByTestId('bounding-box-outline-message-3').style.boxShadow).toBe('none');
             expect(screen.getByTestId('bounding-box-outline-topper-0').style.boxShadow).toMatch(/255/);
+
+            act(() => vi.advanceTimersByTime(650));
+            expect(screen.getByTestId('bounding-box-outline-topper-0').style.boxShadow).toBe('none');
+            expect(screen.getByTestId('bounding-box-outline-topper-1').style.boxShadow).toMatch(/255/);
+
+            act(() => vi.advanceTimersByTime(650));
+            expect(screen.getByTestId('bounding-box-outline-topper-1').style.boxShadow).toBe('none');
+            expect(screen.getByTestId('bounding-box-outline-topper-2').style.boxShadow).toMatch(/255/);
+
+            act(() => vi.advanceTimersByTime(650));
+            expect(screen.getByTestId('bounding-box-outline-topper-2').style.boxShadow).toBe('none');
+            expect(screen.getByTestId('bbox-interaction-hint')).toBeInTheDocument();
         } finally {
             vi.useRealTimers();
         }

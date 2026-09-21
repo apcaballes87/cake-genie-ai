@@ -159,7 +159,6 @@ function getMinimumTouchBounds(box: Pick<RenderedBox, 'left' | 'top' | 'width' |
     };
 }
 
-const SPOTLIGHT_MAX_BOXES = 3;
 const SPOTLIGHT_STEP_MS = 650;
 
 /**
@@ -604,7 +603,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
     const spotlightBoxes = [
         ...spotlightCandidates.filter((candidate) => candidate.isMessage),
         ...spotlightCandidates.filter((candidate) => !candidate.isMessage),
-    ].slice(0, SPOTLIGHT_MAX_BOXES);
+    ];
 
     const spotlightSequenceKey = spotlightBoxes.map(({ key }) => key).join('|');
 
