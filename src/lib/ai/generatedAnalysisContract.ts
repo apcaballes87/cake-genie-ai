@@ -166,11 +166,16 @@ export interface GeneratedBoundingBox {
   height: number;
 }
 
-/** Normalized [ymin, xmin, ymax, xmax] geometry from integrated_bbox_v1. */
+/** Normalized [ymin, xmin, ymax, xmax] geometry from an integrated-bbox response. */
 export type GeneratedBox2D = [number, number, number, number];
+/** Up to five per-unit normalized boxes for a discrete integrated row. */
+export type GeneratedBox2DCollection = GeneratedBox2D[];
+export type GeneratedIntegratedBox2D = GeneratedBox2D | GeneratedBox2DCollection;
+export type GeneratedIntegratedBboxConfidence = number | number[];
+export type GeneratedIntegratedGeometryScope = 'unit' | 'piped_cluster' | 'treatment';
 
 export interface GeneratedIntegratedGeometry {
-  geometry_version: 'integrated_bbox_v1';
+  geometry_version: 'integrated_bbox_v1' | 'integrated_bbox_v2';
   cake_diameter_line?: {
     start: [number, number];
     end: [number, number];
@@ -212,8 +217,9 @@ export interface GeneratedMainTopper {
   bbox?: GeneratedBoundingBox;
   /** Fresh line-mode sizing geometry for one representative primary dimension. */
   size_line?: GeneratedMeasurementLine;
-  box_2d?: GeneratedBox2D;
-  bbox_confidence?: number;
+  box_2d?: GeneratedIntegratedBox2D;
+  bbox_confidence?: GeneratedIntegratedBboxConfidence;
+  geometry_scope?: GeneratedIntegratedGeometryScope;
 }
 
 export interface GeneratedSupportElement {
@@ -231,8 +237,9 @@ export interface GeneratedSupportElement {
   bbox?: GeneratedBoundingBox;
   /** Fresh line-mode sizing geometry for one representative primary dimension. */
   size_line?: GeneratedMeasurementLine;
-  box_2d?: GeneratedBox2D;
-  bbox_confidence?: number;
+  box_2d?: GeneratedIntegratedBox2D;
+  bbox_confidence?: GeneratedIntegratedBboxConfidence;
+  geometry_scope?: GeneratedIntegratedGeometryScope;
 }
 
 export interface GeneratedCakeMessage {
@@ -447,6 +454,7 @@ const SUPPORT_ELEMENT_KEYS = [
 ] as const;
 const CAKE_MESSAGE_KEYS = ['text', 'type', 'color', 'position', 'bbox'] as const;
 const INTEGRATED_BBOX_ROW_KEYS = ['box_2d', 'bbox_confidence'] as const;
+const INTEGRATED_BBOX_V2_ROW_KEYS = [...INTEGRATED_BBOX_ROW_KEYS, 'geometry_scope'] as const;
 const ICING_DESIGN_KEYS = [
   'base',
   'color_type',
@@ -512,6 +520,24 @@ function validateBox2d(value: unknown, path: string): void {
   if (ymin >= ymax || xmin >= xmax) fail(path, 'must have positive ordered extents');
 }
 
+function isBox2dTuple(value: unknown): value is unknown[] {
+  return Array.isArray(value)
+    && value.length === 4
+    && value.every((entry) => typeof entry === 'number');
+}
+
+function validateIntegratedBox2d(value: unknown, path: string): number {
+  if (isBox2dTuple(value)) {
+    validateBox2d(value, path);
+    return 1;
+  }
+  if (!Array.isArray(value) || value.length < 1 || value.length > 5) {
+    fail(path, 'must be one box or an array containing 1 through 5 boxes');
+  }
+  value.forEach((candidate, index) => validateBox2d(candidate, `${path}[${index}]`));
+  return value.length;
+}
+
 function requireFiniteNormalizedCoordinate(value: unknown, path: string): number {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1000) {
     fail(path, 'must be a finite number from 0 through 1000');
@@ -523,6 +549,17 @@ function validateBboxConfidence(value: unknown, path: string): void {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1) {
     fail(path, 'must be a finite number from 0 through 1');
   }
+}
+
+function validateIntegratedBboxConfidence(value: unknown, path: string, boxCount: number): void {
+  if (typeof value === 'number') {
+    validateBboxConfidence(value, path);
+    return;
+  }
+  if (!Array.isArray(value) || value.length !== boxCount) {
+    fail(path, `must be a number or an array of exactly ${boxCount} confidence values`);
+  }
+  value.forEach((candidate, index) => validateBboxConfidence(candidate, `${path}[${index}]`));
 }
 
 function validateOptionalSizeLine(value: unknown, path: string): void {
@@ -631,10 +668,14 @@ function validateMainTopper(
   const item = requireRecord(value, path);
   requireExactKeys(
     item,
-    options.integratedBbox ? [...MAIN_TOPPER_KEYS, ...INTEGRATED_BBOX_ROW_KEYS] : MAIN_TOPPER_KEYS,
+    options.integratedBbox
+      ? [...MAIN_TOPPER_KEYS, ...(options.integratedBboxV2 ? INTEGRATED_BBOX_V2_ROW_KEYS : INTEGRATED_BBOX_ROW_KEYS)]
+      : MAIN_TOPPER_KEYS,
     [
       'type', 'material', 'group_id', 'classification', 'size', 'quantity', 'description',
-      ...(options.integratedBbox ? INTEGRATED_BBOX_ROW_KEYS : []),
+      ...(options.integratedBbox
+        ? (options.integratedBboxV2 ? INTEGRATED_BBOX_V2_ROW_KEYS : INTEGRATED_BBOX_ROW_KEYS)
+        : []),
     ],
     path,
   );
@@ -652,8 +693,11 @@ function validateMainTopper(
   validateOptionalBbox(item.bbox, `${path}.bbox`);
   validateOptionalSizeLine(item.size_line, `${path}.size_line`);
   if (options.integratedBbox) {
-    validateBox2d(item.box_2d, `${path}.box_2d`);
-    validateBboxConfidence(item.bbox_confidence, `${path}.bbox_confidence`);
+    const boxCount = validateIntegratedBox2d(item.box_2d, `${path}.box_2d`);
+    validateIntegratedBboxConfidence(item.bbox_confidence, `${path}.bbox_confidence`, boxCount);
+    if (options.integratedBboxV2) {
+      requireEnum(item.geometry_scope, ['unit', 'piped_cluster', 'treatment'], `${path}.geometry_scope`);
+    }
   }
 }
 
@@ -668,10 +712,14 @@ function validateSupportElement(
   const item = requireRecord(value, path);
   requireExactKeys(
     item,
-    options.integratedBbox ? [...SUPPORT_ELEMENT_KEYS, ...INTEGRATED_BBOX_ROW_KEYS] : SUPPORT_ELEMENT_KEYS,
+    options.integratedBbox
+      ? [...SUPPORT_ELEMENT_KEYS, ...(options.integratedBboxV2 ? INTEGRATED_BBOX_V2_ROW_KEYS : INTEGRATED_BBOX_ROW_KEYS)]
+      : SUPPORT_ELEMENT_KEYS,
     [
       'type', 'material', 'group_id', 'color', 'quantity', 'description',
-      ...(options.integratedBbox ? ['size', ...INTEGRATED_BBOX_ROW_KEYS] : []),
+      ...(options.integratedBbox
+        ? ['size', ...(options.integratedBboxV2 ? INTEGRATED_BBOX_V2_ROW_KEYS : INTEGRATED_BBOX_ROW_KEYS)]
+        : []),
     ],
     path,
   );
@@ -681,7 +729,11 @@ function validateSupportElement(
   requirePaletteHex(item.color, `${path}.color`);
   optionalPaletteHexArray(item.colors, `${path}.colors`);
   validatePipedFlowerCoverage(item, type, path);
-  if (isSizelessSupportElementType(type) && !options.integratedBbox) {
+  if (
+    isSizelessSupportElementType(type)
+    && !options.integratedBbox
+    && !options.requireSizeForSizelessSupportElements
+  ) {
     if (item.size !== undefined) {
       fail(`${path}.size`, `must be omitted for ${type}`);
     }
@@ -694,8 +746,11 @@ function validateSupportElement(
   validateOptionalBbox(item.bbox, `${path}.bbox`);
   validateOptionalSizeLine(item.size_line, `${path}.size_line`);
   if (options.integratedBbox) {
-    validateBox2d(item.box_2d, `${path}.box_2d`);
-    validateBboxConfidence(item.bbox_confidence, `${path}.bbox_confidence`);
+    const boxCount = validateIntegratedBox2d(item.box_2d, `${path}.box_2d`);
+    validateIntegratedBboxConfidence(item.bbox_confidence, `${path}.bbox_confidence`, boxCount);
+    if (options.integratedBboxV2) {
+      requireEnum(item.geometry_scope, ['unit', 'piped_cluster', 'treatment'], `${path}.geometry_scope`);
+    }
   }
 }
 
@@ -799,8 +854,12 @@ export class GeneratedAnalysisContractError extends Error {
 export type AnalysisGenerationSeoSchema = 'analysis_only' | 'legacy_inline_seo';
 
 export type GeneratedAnalysisValidationOptions = {
-  /** Enables the application-owned integrated_bbox_v1 persisted fields. */
+  /** Enables the application-owned integrated-bbox persisted fields. */
   integratedBbox?: boolean;
+  /** Requires the v2 scope discriminator on every topper/support row. */
+  integratedBboxV2?: boolean;
+  /** Direct-diameter mode prices filler flowers by the same size bands as other supports. */
+  requireSizeForSizelessSupportElements?: boolean;
 };
 
 export function resolveAnalysisGenerationSeoSchema(promptText: string): AnalysisGenerationSeoSchema {

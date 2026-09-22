@@ -1,5 +1,13 @@
 import type { HybridAnalysisResult } from '@/types';
-import { INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA } from '@/lib/ai/analysisSize';
+import {
+    INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA,
+    INTEGRATED_BBOX_V2_ANALYSIS_SIZE_SCHEMA,
+} from '@/lib/ai/analysisSize';
+
+function usesIntegratedBboxSchema(value: unknown) {
+    return value === INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA
+        || value === INTEGRATED_BBOX_V2_ANALYSIS_SIZE_SCHEMA;
+}
 
 /**
  * Check if analysis result has bounding box data from Roboflow/Florence-2
@@ -7,19 +15,28 @@ import { INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA } from '@/lib/ai/analysisSize';
  * @returns true if bbox data exists, false otherwise
  */
 export function hasBoundingBoxData(analysisResult: HybridAnalysisResult): boolean {
-    const hasIntegratedGeometry = analysisResult.analysis_size_schema === INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA
+    const hasIntegratedBox = (value: unknown) => {
+        if (!Array.isArray(value)) return false;
+        if (value.length === 4 && value.every((coordinate) => typeof coordinate === 'number')) return true;
+        return value.length >= 1 && value.length <= 5 && value.every((candidate) => (
+            Array.isArray(candidate)
+            && candidate.length === 4
+            && candidate.every((coordinate) => typeof coordinate === 'number')
+        ));
+    };
+    const hasIntegratedGeometry = usesIntegratedBboxSchema(analysisResult.analysis_size_schema)
         && Boolean(
             analysisResult.geometry?.cake_diameter_line
             && analysisResult.geometry?.cake_height_line,
         );
     const hasIntegratedTopperBoxes = analysisResult.main_toppers?.every((topper) => (
-        Array.isArray(topper.box_2d) && topper.box_2d.length === 4
+        hasIntegratedBox(topper.box_2d)
     ));
     const hasIntegratedSupportBoxes = analysisResult.support_elements?.every((element) => (
-        Array.isArray(element.box_2d) && element.box_2d.length === 4
+        hasIntegratedBox(element.box_2d)
     ));
     const hasIntegratedMessageBoxes = analysisResult.cake_messages?.every((message) => (
-        Array.isArray(message.box_2d) && message.box_2d.length === 4
+        hasIntegratedBox(message.box_2d)
     ));
     if (hasIntegratedGeometry && hasIntegratedTopperBoxes && hasIntegratedSupportBoxes && hasIntegratedMessageBoxes) {
         return true;
@@ -65,7 +82,7 @@ export function hasBoundingBoxData(analysisResult: HybridAnalysisResult): boolea
  */
 export function needsCoordinateEnrichment(analysisResult: HybridAnalysisResult): boolean {
     const usesLineGeometry = analysisResult.analysis_size_schema === 'line_ratio_v1';
-    const usesIntegratedGeometry = analysisResult.analysis_size_schema === INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA;
+    const usesIntegratedGeometry = usesIntegratedBboxSchema(analysisResult.analysis_size_schema);
 
     if (usesLineGeometry || usesIntegratedGeometry) return false;
 

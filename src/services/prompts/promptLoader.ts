@@ -3,8 +3,8 @@ import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 
 const FALLBACK_PROMPT_PATH = 'src/services/prompts/fallback-prompt.txt';
-/** Keep offline generation on the same contract as the staged v3.92 fallback bytes. */
-export const FALLBACK_ANALYSIS_PROMPT_VERSION = '3.92';
+/** Keep offline generation on the same contract as the v3.93 scope fallback. */
+export const FALLBACK_ANALYSIS_PROMPT_VERSION = '3.93';
 
 type PromptQueryResult = {
   data: { prompt_text?: string | null; version?: string | number | null } | null;

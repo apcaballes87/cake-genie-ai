@@ -17,6 +17,7 @@ import {
     AI_THREE_BAND_SIZE_SCHEMA,
     ANALYSIS_SIZE_SCHEMA,
     INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA,
+    INTEGRATED_BBOX_V2_ANALYSIS_SIZE_SCHEMA,
     LINE_RATIO_ANALYSIS_SIZE_SCHEMA,
 } from '@/lib/ai/analysisSize';
 import type { AnalysisGenerationSizeSchema } from '@/lib/admin/searchAnalysisContract';
@@ -49,6 +50,43 @@ export class CakeAnalysisResponseError extends Error {
         this.name = 'CakeAnalysisResponseError';
         this.rawResponse = rawResponse;
     }
+}
+
+function contractFailureMessage(error: unknown): string {
+    if (error instanceof Error) {
+        const cause = (error as Error & { cause?: unknown }).cause;
+        if (cause instanceof Error && cause.message) return cause.message;
+    }
+    return 'The previous response did not satisfy the required JSON contract.';
+}
+
+/**
+ * Gemini's response schema can require the line fields but cannot express the
+ * geometric relationship between their coordinates. Give its single bounded
+ * replacement attempt the exact violated invariant instead of a generic JSON
+ * reminder. We deliberately do not repair a bad measurement locally: it is
+ * used to calculate prices, so only a newly observed, validated line is safe.
+ */
+export function buildCakeAnalysisContractRepairInstruction(
+    error: unknown,
+    sizeSchema: AnalysisGenerationSizeSchema,
+): string {
+    const failure = contractFailureMessage(error);
+    const integratedGeometryReminder = sizeSchema === 'integrated_bbox_v1' || sizeSchema === 'integrated_bbox_v2'
+        ? [
+            `For ${sizeSchema}, every point is [y, x], never [x, y].`,
+            'cake_diameter_line must run from the cake’s left rim to right rim: end.x > start.x and its vertical drift must be smaller than its horizontal span.',
+            'cake_height_line must run from the cake’s top/front edge to bottom/front edge on the diameter midpoint: end.y > start.y and its horizontal drift must be smaller than its vertical span.',
+            'Return fresh, image-grounded measurement lines; do not reuse the invalid lines.',
+        ].join(' ')
+        : '';
+
+    return [
+        'Return one complete replacement JSON object that satisfies the response schema exactly.',
+        `The previous response failed this application validation: ${failure}.`,
+        integratedGeometryReminder,
+        'Do not omit required fields or add unsupported fields.',
+    ].filter(Boolean).join(' ');
 }
 
 const ANALYSIS_CONFIG_CACHE_TTL_MS = 5 * 60_000;
@@ -88,7 +126,8 @@ export type RunCakeAnalysisResult = {
             typeof ANALYSIS_SIZE_SCHEMA
             | typeof LINE_RATIO_ANALYSIS_SIZE_SCHEMA
             | typeof AI_THREE_BAND_SIZE_SCHEMA
-            | typeof INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA;
+            | typeof INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA
+            | typeof INTEGRATED_BBOX_V2_ANALYSIS_SIZE_SCHEMA;
     };
     promptVersion: string;
     rawResponse: string;
@@ -105,7 +144,13 @@ export type RunCakeAnalysisResult = {
 
 let cachedPromptDetails: { value: PromptDetails; expiresAt: number } | null = null;
 let cachedTypeEnums: { value: TypeEnums; expiresAt: number } | null = null;
-let cachedPromptCacheByVersion: { version: string; cacheName: string | null; expiresAt: number } | null = null;
+let cachedPromptCacheByVersion: {
+    version: string;
+    promptText: string;
+    systemInstruction: string;
+    cacheName: string | null;
+    expiresAt: number;
+} | null = null;
 
 async function getCachedPromptDetails(supabase: ReturnType<typeof createClient>): Promise<PromptDetails> {
     const now = Date.now();
@@ -138,6 +183,8 @@ async function getCachedPromptCacheName(
     if (
         cachedPromptCacheByVersion &&
         cachedPromptCacheByVersion.version === promptDetails.version &&
+        cachedPromptCacheByVersion.promptText === promptDetails.promptText &&
+        cachedPromptCacheByVersion.systemInstruction === systemInstruction &&
         cachedPromptCacheByVersion.expiresAt > now
     ) {
         return cachedPromptCacheByVersion.cacheName;
@@ -152,6 +199,8 @@ async function getCachedPromptCacheName(
 
     cachedPromptCacheByVersion = {
         version: promptDetails.version,
+        promptText: promptDetails.promptText,
+        systemInstruction,
         cacheName,
         expiresAt: now + PROMPT_CACHE_NAME_TTL_MS,
     };
@@ -222,10 +271,12 @@ export async function runActiveCakeAnalysis({
         ...(temperature === undefined ? {} : { temperature }),
         ...(topP === undefined ? {} : { topP }),
         ...(topK === undefined ? {} : { topK }),
-        // LOW is the only currently supported lab level. Keep the production default.
+        // Keep the production cake-analysis request at LOW unless a trusted
+        // comparison/lab caller explicitly overrides it.
         thinkingConfig: { thinkingLevel: THINKING_LEVELS[thinkingLevel] },
     };
-    let response;
+    type GeneratedResponse = Awaited<ReturnType<typeof aiClient.models.generateContent>>;
+    let response: GeneratedResponse;
     let cacheName: string | null = null;
 
     if (usePromptCache && promptText === undefined) {
@@ -240,49 +291,57 @@ export async function runActiveCakeAnalysis({
         }
     }
 
-    if (cacheName) {
-        const cachedConfig = { ...baseConfig };
-        delete (cachedConfig as { systemInstruction?: unknown }).systemInstruction;
+    const generateResponse = async (repairInstruction?: string) => {
+        const repairPart = repairInstruction ? [{ text: repairInstruction }] : [];
+        if (cacheName) {
+            const cachedConfig = { ...baseConfig };
+            delete (cachedConfig as { systemInstruction?: unknown }).systemInstruction;
 
-        try {
-            response = await aiClient.models.generateContent({
-                model,
-                contents: [{
-                    role: 'user',
-                    parts: [{ inlineData: { mimeType, data: imageData } }],
-                }],
-                config: {
-                    ...cachedConfig,
-                    cachedContent: cacheName,
-                    abortSignal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
-                },
-            });
-        } catch (cachedGenerationError) {
-            clearCachedPromptCacheName(promptDetails.version);
-            console.warn('[AI Cache] Cached analysis generation failed. Retrying without cached content:', cachedGenerationError);
-            response = await aiClient.models.generateContent({
-                model,
-                contents: [{
-                    role: 'user',
-                    parts: [
-                        { inlineData: { mimeType, data: imageData } },
-                        { text: promptDetails.promptText },
-                    ],
-                }],
-                config: {
-                    ...baseConfig,
-                    abortSignal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
-                },
-            });
+            try {
+                return await aiClient.models.generateContent({
+                    model,
+                    contents: [{
+                        role: 'user',
+                        parts: [
+                            { inlineData: { mimeType, data: imageData } },
+                            ...repairPart,
+                        ],
+                    }],
+                    config: {
+                        ...cachedConfig,
+                        cachedContent: cacheName,
+                        abortSignal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
+                    },
+                });
+            } catch (cachedGenerationError) {
+                clearCachedPromptCacheName(promptDetails.version);
+                console.warn('[AI Cache] Cached analysis generation failed. Retrying without cached content:', cachedGenerationError);
+                return aiClient.models.generateContent({
+                    model,
+                    contents: [{
+                        role: 'user',
+                        parts: [
+                            { inlineData: { mimeType, data: imageData } },
+                            { text: promptDetails.promptText },
+                            ...repairPart,
+                        ],
+                    }],
+                    config: {
+                        ...baseConfig,
+                        abortSignal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
+                    },
+                });
+            }
         }
-    } else {
-        response = await aiClient.models.generateContent({
+
+        return aiClient.models.generateContent({
             model,
             contents: [{
                 role: 'user',
                 parts: [
                     { inlineData: { mimeType, data: imageData } },
                     { text: promptDetails.promptText },
+                    ...repairPart,
                 ],
             }],
             config: {
@@ -290,22 +349,46 @@ export async function runActiveCakeAnalysis({
                 abortSignal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
             },
         });
+    };
+
+    const parseAndValidateResponse = (candidateResponse: GeneratedResponse) => {
+        const candidateJsonText = (candidateResponse.text || '').trim();
+        logCakeAnalysisDebug('Gemini raw response received', {
+            promptVersion: promptDetails.version,
+            sizeSchema,
+            usedPromptCache: Boolean(cacheName),
+            rawResponse: candidateJsonText,
+        });
+        try {
+            return {
+                jsonText: candidateJsonText,
+                result: postProcessSearchAnalysisResult(
+                    JSON.parse(candidateJsonText),
+                    typeEnums,
+                    sizeSchema,
+                    seoSchema,
+                ),
+            };
+        } catch (error) {
+            console.error('Failed to parse AI response:', candidateJsonText);
+            throw new CakeAnalysisResponseError('Invalid response format from AI', candidateJsonText, error);
+        }
+    };
+
+    response = await generateResponse();
+    let parsedResponse: ReturnType<typeof parseAndValidateResponse>;
+    try {
+        parsedResponse = parseAndValidateResponse(response);
+    } catch (error) {
+        // Structured output normally prevents this. A single bounded repair
+        // gives the model one chance to satisfy the exact application contract
+        // without inventing missing pricing fields or looping indefinitely.
+        console.warn('[AI Contract] Generated response failed validation; requesting one complete replacement.', error);
+        response = await generateResponse(buildCakeAnalysisContractRepairInstruction(error, sizeSchema));
+        parsedResponse = parseAndValidateResponse(response);
     }
 
-    const jsonText = (response.text || '').trim();
-    logCakeAnalysisDebug('Gemini raw response received', {
-        promptVersion: promptDetails.version,
-        sizeSchema,
-        usedPromptCache: Boolean(cacheName),
-        rawResponse: jsonText,
-    });
-    let result: GeneratedCakeAnalysisResult;
-    try {
-        result = postProcessSearchAnalysisResult(JSON.parse(jsonText), typeEnums, sizeSchema, seoSchema);
-    } catch (error) {
-        console.error('Failed to parse AI response:', jsonText);
-        throw new CakeAnalysisResponseError('Invalid response format from AI', jsonText, error);
-    }
+    const { jsonText, result } = parsedResponse;
 
     const rejection = result.rejection as {
         isRejected?: boolean;
@@ -341,6 +424,8 @@ export async function runActiveCakeAnalysis({
                 ? LINE_RATIO_ANALYSIS_SIZE_SCHEMA
                 : sizeSchema === 'local_bbox_area'
                     ? ANALYSIS_SIZE_SCHEMA
+                    : sizeSchema === 'integrated_bbox_v2'
+                        ? INTEGRATED_BBOX_V2_ANALYSIS_SIZE_SCHEMA
                     : sizeSchema === 'integrated_bbox_v1'
                         ? INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA
                     : AI_THREE_BAND_SIZE_SCHEMA,

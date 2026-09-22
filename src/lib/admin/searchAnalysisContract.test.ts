@@ -79,7 +79,7 @@ function validAnalysis(overrides: Record<string, unknown> = {}) {
 }
 
 describe('search analysis contract', () => {
-  it('pins greedy low-variance decoding for single-image and batch analysis', () => {
+  it('pins greedy low-variance decoding and low thinking for single-image and batch analysis', () => {
     expect(buildSearchAnalysisGenerationConfig(typeEnums)).toMatchObject({
       temperature: 0,
       topP: 1,
@@ -171,6 +171,7 @@ describe('search analysis contract', () => {
     expect(schema.properties.main_toppers.items.properties.size.enum).toEqual(['small', 'medium', 'large']);
     expect(buildSearchAnalysisResponseSchema(typeEnums, 'legacy_six_band').properties.main_toppers.items.properties.size.enum)
       .toEqual(['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge']);
+    expect(getAnalysisGenerationSizeSchema('fallback')).toBe('integrated_bbox_v2');
     expect(getAnalysisGenerationSizeSchema('3.66')).toBe('legacy_six_band');
     expect(getAnalysisGenerationSizeSchema('3.67')).toBe('three_band');
     expect(getAnalysisGenerationSizeSchema('local-dev-bbox')).toBe('local_bbox_area');
@@ -245,11 +246,15 @@ describe('search analysis contract', () => {
     const schema = buildSearchAnalysisResponseSchema(typeEnums, 'ai_diameter_anchor');
     expect(schema.properties).not.toHaveProperty('cake_measurements');
     expect(schema.properties.main_toppers.items.properties).toHaveProperty('size');
+    expect(schema.properties.main_toppers.items.required).toContain('size');
     expect(schema.properties.main_toppers.items.properties).not.toHaveProperty('size_line');
     expect(schema.properties.main_toppers.items.properties).not.toHaveProperty('bbox');
     expect(schema.properties.support_elements.items.properties).toHaveProperty('size');
+    expect(schema.properties.support_elements.items.required).toContain('size');
     expect(schema.properties.support_elements.items.properties).not.toHaveProperty('size_line');
     expect(schema.properties.support_elements.items.properties).not.toHaveProperty('bbox');
+    expect(buildSearchAnalysisGenerationConfig(typeEnums, 'ai_diameter_anchor').systemInstruction)
+      .toContain('including edible_flowers_filler, MUST contain exactly one size value');
 
     const result = postProcessSearchAnalysisResult(validAnalysis({
       main_toppers: [{
@@ -273,7 +278,7 @@ describe('search analysis contract', () => {
       },
     }), typeEnums, 'ai_diameter_anchor')).toThrow(/must not include cake_measurements/i);
 
-    const fillerResult = postProcessSearchAnalysisResult(validAnalysis({
+    expect(() => postProcessSearchAnalysisResult(validAnalysis({
       support_elements: [{
         type: 'edible_flowers_filler',
         material: 'edible_fondant',
@@ -282,12 +287,7 @@ describe('search analysis contract', () => {
         quantity: 7,
         description: 'small white baby’s-breath flowers in a cascading side spray',
       }],
-    }), typeEnums, 'ai_diameter_anchor');
-    expect(fillerResult.support_elements[0]).toMatchObject({
-      type: 'edible_flowers_filler',
-      quantity: 7,
-    });
-    expect(fillerResult.support_elements[0]).not.toHaveProperty('size');
+    }), typeEnums, 'ai_diameter_anchor')).toThrow(/support_elements\[0\]\.size/i);
 
     expect(() => postProcessSearchAnalysisResult(validAnalysis({
       support_elements: [{
@@ -300,7 +300,7 @@ describe('search analysis contract', () => {
       }],
     }), typeEnums, 'ai_diameter_anchor')).toThrow(/support_elements\[0\]\.size/i);
 
-    expect(() => postProcessSearchAnalysisResult(validAnalysis({
+    const sizedFillerResult = postProcessSearchAnalysisResult(validAnalysis({
       support_elements: [{
         type: 'edible_flowers_filler',
         material: 'edible_fondant',
@@ -310,7 +310,8 @@ describe('search analysis contract', () => {
         quantity: 1,
         description: 'small white baby’s-breath flower',
       }],
-    }), typeEnums, 'ai_diameter_anchor')).toThrow(/must be omitted for edible_flowers_filler/i);
+    }), typeEnums, 'ai_diameter_anchor');
+    expect(sizedFillerResult.support_elements[0].size).toBe('small');
   });
 
   it('fails local sizing when an accepted priced element has no bbox', () => {

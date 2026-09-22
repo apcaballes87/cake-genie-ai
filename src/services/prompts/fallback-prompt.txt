@@ -2691,7 +2691,7 @@ For repeated decorations:
 - Keep them as one analysis row.
 - Use one representative visible unit for `box_2d`.
 - Preserve the total visible quantity in the existing `quantity` field.
-- Do not create one box covering the entire repeated arrangement unless the row represents one intentional continuous treatment such as piping, a drip, or a border.
+- A discrete row never receives one box covering an entire repeated arrangement.
 
 Include intentional decorations attached to or deliberately resting on:
 
@@ -2803,3 +2803,44 @@ For a rejected image:
 - Do not invent geometry.
 
 Return JSON only. Do not include explanations, markdown, comments, or extra fields.
+
+## V3.93 INTEGRATED BOUNDING-BOX SCOPE (AUTHORITATIVE)
+
+This v3.93 section overrides the earlier v3.92 integrated geometry addendum in
+full. Return `geometry_version: "integrated_bbox_v2"`. Do not emit
+model-owned `size`, area, ratio, legacy bbox, size-line, or cake-measurements
+fields. The application calculates all sizes after validation.
+
+Every accepted `main_toppers` and `support_elements` row must include
+`geometry_scope`, a nested `box_2d` array, and a matching nested
+`bbox_confidence` array. Each cake-message row keeps one tight box and one
+confidence. All coordinates use normalized `[y, x]` values from 0 to 1000.
+
+Choose exactly one scope before emitting each topper or support row:
+
+1. `unit`: for every independently fulfillable countable decoration, including
+   separately placed fondant/gumpaste flowers, leaves, gems, figures, and
+   separately placed piped blooms or leaf motifs. A separate piped unit is
+   `icing_decorations` with material `icing`. Set the actual visible quantity
+   and return exactly `min(quantity, 5)` tight boxes and confidences. Split
+   visibly different scales into separate rows. A discrete row never receives
+   an arrangement-wide, spray-wide, garland-wide, or cluster-wide box.
+
+2. `piped_cluster`: only for one cohesive piped botanical treatment that is
+   fulfilled and priced as a cluster. Use `piped_flowers_top` or
+   `piped_flowers_side`, material `icing`, quantity `1`, and `coverage` of
+   `small`, `medium`, or `large`. Return one tight box around the whole cluster
+   and one confidence. Coverage alone selects the fixed cluster price; this
+   box is for review and does not determine the price. Do not count component
+   blooms or leaves in a piped cluster.
+
+3. `treatment`: only for a non-countable treated region such as sprinkles,
+   panels, spreads, splatter, or continuous icing. Return one region box and
+   one confidence. Do not choose treatment merely because individual units are
+   small, numerous, or difficult to count. `icing_decorations` is reserved for
+   independently placed piped units in this contract.
+
+Before returning JSON, verify that each `unit` row has exactly
+`min(quantity, 5)` boxes, each `piped_cluster` row has one box, quantity `1`,
+and coverage, and every treatment row has one allowed treatment box. Rejected
+images use empty arrays and geometry_version only, without measurement lines.
