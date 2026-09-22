@@ -3,8 +3,11 @@ import { describe, expect, it } from 'vitest';
 import {
   AI_THREE_BAND_SIZE_SCHEMA,
   ANALYSIS_SIZE_SCHEMA,
+  INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA,
+  INTEGRATED_BBOX_V2_ANALYSIS_SIZE_SCHEMA,
   LINE_RATIO_ANALYSIS_SIZE_SCHEMA,
   getLegacySourceSizeForCanonicalSize,
+  isLegacyIntegratedBboxAnalysis,
   normalizeAnalysisForThreeBandSizing,
   normalizeLegacyAnalysisSize,
 } from './analysisSize';
@@ -95,5 +98,15 @@ describe('three-band analysis sizing', () => {
     expect(getLegacySourceSizeForCanonicalSize('small')).toBe('xsmall');
     expect(getLegacySourceSizeForCanonicalSize('medium')).toBe('medium');
     expect(getLegacySourceSizeForCanonicalSize('large')).toBe('xlarge');
+  });
+
+  it('identifies legacy integrated-bbox rows that must bypass fresh-upload cache hits', () => {
+    expect(isLegacyIntegratedBboxAnalysis({
+      analysis_size_schema: INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA,
+    })).toBe(true);
+    expect(isLegacyIntegratedBboxAnalysis({
+      analysis_size_schema: INTEGRATED_BBOX_V2_ANALYSIS_SIZE_SCHEMA,
+    })).toBe(false);
+    expect(isLegacyIntegratedBboxAnalysis(null)).toBe(false);
   });
 });

@@ -22,6 +22,7 @@ import {
 } from '@/lib/utils/serverFingerprint.client'
 import { FEATURE_FLAGS } from '@/config/features'
 import { logCakeAnalysisDebug } from '@/lib/ai/analysisDebug'
+import { isLegacyIntegratedBboxAnalysis } from '@/lib/ai/analysisSize'
 
 const fetchImageAsBase64 = async (url: string): Promise<{ data: string; mimeType: string }> => {
     const response = await fetch(url);
@@ -636,9 +637,19 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                     source: 'customizer_upload',
                 }, options?.imageUrl);
                 if (cacheHitRaw) {
-                    showProgressToast('We found your cake photo! 🎉', 3000);
-                    cacheHit = cacheHitRaw;
-                    console.log(`✅ PDQ Cache HIT! Found matching analysis for hash: ${fingerprint.pdqHash}`);
+                    if (isLegacyIntegratedBboxAnalysis(cacheHitRaw.analysisResult)) {
+                        logCakeAnalysisDebug('Legacy integrated-bbox cache hit bypassed', {
+                            cacheId: cacheHitRaw.id ?? null,
+                            pHash: cacheHitRaw.pHash ?? null,
+                            analysisSizeSchema: cacheHitRaw.analysisResult.analysis_size_schema ?? null,
+                        });
+                        showProgressToast('Analyzing your design with AI…', 15000);
+                        console.log(`⚠️ PDQ cache hit bypassed because it uses legacy integrated bbox geometry: ${cacheHitRaw.id ?? 'unknown'}`);
+                    } else {
+                        showProgressToast('We found your cake photo! 🎉', 3000);
+                        cacheHit = cacheHitRaw;
+                        console.log(`✅ PDQ Cache HIT! Found matching analysis for hash: ${fingerprint.pdqHash}`);
+                    }
                 } else {
                     showProgressToast('Analyzing your design with AI…', 15000);
                     console.log('⚫️ Cache MISS. No matching PDQ fingerprint found in database.');

@@ -30,6 +30,17 @@ export type AnalysisSizeSchema =
   | typeof INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA
   | typeof INTEGRATED_BBOX_V2_ANALYSIS_SIZE_SCHEMA;
 
+/**
+ * Returns true for integrated-bbox rows that predate the per-unit v2 contract.
+ * These rows must not be reused for fresh uploads because their geometry may
+ * contain arrangement-level boxes and AI-assigned sizes.
+ */
+export function isLegacyIntegratedBboxAnalysis(
+  analysis: { analysis_size_schema?: unknown } | null | undefined,
+): boolean {
+  return analysis?.analysis_size_schema === INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA;
+}
+
 const LEGACY_TO_CANONICAL_SIZE: Record<LegacyAnalysisSize, CanonicalAnalysisSize> = {
   tiny: 'small',
   xsmall: 'small',

@@ -300,6 +300,43 @@ describe('ImageContext', () => {
     expect(triggerStudioEditFromUploadMock).not.toHaveBeenCalled();
   });
 
+  it('bypasses legacy integrated-bbox cache hits and runs fresh analysis', async () => {
+    const onSuccess = vi.fn();
+    const onError = vi.fn();
+    findSimilarAnalysisByHashMock.mockResolvedValue({
+      id: 'legacy-integrated-bbox-row',
+      pHash: 'legacy-phash',
+      analysisResult: {
+        analysis_size_schema: 'integrated_bbox_v1',
+      } as HybridAnalysisResult,
+      seoMetadata: null,
+    });
+
+    const { result } = renderHook(() => useImageManagement(), { wrapper });
+
+    await act(async () => {
+      await result.current.handleImageUpload(
+        new File(['image-bytes'], 'cake.png', { type: 'image/png' }),
+        onSuccess,
+        onError
+      );
+    });
+
+    expect(analyzeCakeFeaturesOnlyMock).toHaveBeenCalled();
+    expect(onSuccess).toHaveBeenCalledWith(expect.objectContaining({
+      keyword: 'purple cake',
+    }));
+    expect(onSuccess).not.toHaveBeenCalledWith(expect.objectContaining({
+      analysis_size_schema: 'integrated_bbox_v1',
+    }));
+    expect(onError).not.toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(result.current.currentCacheId).toBe('cache-row-123');
+    });
+    expect(result.current.currentPHash).toBe('abc123def4567890');
+  });
+
   it('does not schedule any Studio trigger while upload image editing is paused', async () => {
     const onSuccess = vi.fn();
     const onError = vi.fn();
