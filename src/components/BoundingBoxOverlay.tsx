@@ -209,6 +209,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
     const startedSpotlightSequenceRef = useRef<string | null>(null);
     const [activeDecorationTargetKeys, setActiveDecorationTargetKeys] = useState<Set<string>>(() => new Set());
     const [activeCakeMessageId, setActiveCakeMessageId] = useState<CakeMessageBoxTarget['id'] | null>(null);
+    const [hoveredBoxIndex, setHoveredBoxIndex] = useState<number | null>(null);
     const [spotlightIndex, setSpotlightIndex] = useState<number | null>(null);
     const [hasDismissedInteractionHint, setHasDismissedInteractionHint] = useState(false);
     const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => (
@@ -673,7 +674,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
             {spotlightBoxes.length > 0 && !hasDismissedInteractionHint ? (
                 <div
                     data-testid="bbox-interaction-hint"
-                    className="absolute left-1/2 top-2/3 -translate-x-1/2 whitespace-nowrap rounded-full border border-purple-100 bg-white px-3 py-1.5 text-center text-[10px] font-semibold text-purple-700 shadow-lg backdrop-blur-sm max-md:px-2.5 max-md:py-1 max-md:text-[9px]"
+                    className="absolute left-1/2 top-1/3 -translate-x-1/2 whitespace-nowrap rounded-full border border-purple-100 bg-white px-3 py-1.5 text-center text-[10px] font-semibold text-purple-800 shadow-lg backdrop-blur-sm max-md:px-2.5 max-md:py-1 max-md:text-[9px]"
                 >
                     <span data-testid="bbox-interaction-hint-mobile" className="lg:hidden">
                         Tap a highlighted detail to edit
@@ -757,6 +758,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
                 const targetKey = box.target ? `${box.target.category}:${box.target.groupId}` : null;
                 const isActive = (targetKey !== null && activeDecorationTargetKeys.has(targetKey))
                     || box.messageTarget?.id === activeCakeMessageId;
+                const isHovered = hoveredBoxIndex === index;
                 const isSpotlighted = spotlightBoxIndex === index;
                 const shouldShowLabel = (!onDecorationActivate && !onCakeMessageActivate) || isActive;
 
@@ -794,6 +796,8 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
                                     width: `${touchBounds.width}px`,
                                     height: `${touchBounds.height}px`,
                                 }}
+                                onMouseEnter={() => setHoveredBoxIndex(index)}
+                                onMouseLeave={() => setHoveredBoxIndex((current) => current === index ? null : current)}
                                 onPointerDown={(event) => {
                                     if (event.button !== 0) return;
                                     stopSpotlight();
@@ -824,6 +828,8 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
                                     width: `${touchBounds.width}px`,
                                     height: `${touchBounds.height}px`,
                                 }}
+                                onMouseEnter={() => setHoveredBoxIndex(index)}
+                                onMouseLeave={() => setHoveredBoxIndex((current) => current === index ? null : current)}
                                 onPointerDown={(event) => {
                                     if (event.button !== 0) return;
                                     stopSpotlight();
@@ -858,15 +864,17 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
                                 className="absolute inset-0"
                                 style={{
                                     border: box.dashed
-                                        ? `${isActive || isSpotlighted ? 2 : 1}px dashed ${isSpotlighted ? '#FFFFFF' : box.color}`
-                                        : `${isActive || isSpotlighted ? 2 : 1}px solid ${isSpotlighted ? '#FFFFFF' : box.color}`,
+                                        ? `${isActive || isHovered || isSpotlighted ? 2 : 1}px dashed ${isHovered || isSpotlighted ? '#FFFFFF' : box.color}`
+                                        : `${isActive || isHovered || isSpotlighted ? 2 : 1}px solid ${isHovered || isSpotlighted ? '#FFFFFF' : box.color}`,
                                     borderRadius: '4px',
-                                    boxShadow: isActive
+                                    boxShadow: isHovered
+                                        ? '0 0 14px 3px rgba(255, 255, 255, 0.95)'
+                                        : isActive
                                         ? `0 0 12px 2px ${box.color}`
                                         : isSpotlighted
                                             ? '0 0 0 1px rgba(15, 23, 42, 0.75), 0 0 14px 3px rgba(255, 255, 255, 0.95)'
                                             : 'none',
-                                    opacity: isActive || isSpotlighted ? 1 : 0.5,
+                                    opacity: isActive || isHovered || isSpotlighted ? 1 : 0.5,
                                     transition: prefersReducedMotion
                                         ? 'none'
                                         : 'border 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease',

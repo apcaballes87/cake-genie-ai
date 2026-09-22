@@ -36,7 +36,7 @@ describe('BoundingBoxOverlay', () => {
             );
 
             const interactionHint = screen.getByTestId('bbox-interaction-hint');
-            expect(interactionHint).toHaveClass('top-2/3', 'bg-white', 'text-purple-700');
+            expect(interactionHint).toHaveClass('top-1/3', 'bg-white', 'text-purple-800');
             expect(screen.getByTestId('bbox-interaction-hint-mobile')).toHaveTextContent('Tap a highlighted detail to edit');
             expect(screen.getByTestId('bbox-interaction-hint-mobile')).toHaveClass('lg:hidden');
             expect(screen.getByTestId('bbox-interaction-hint-desktop')).toHaveTextContent('Click a highlighted detail to edit');
@@ -241,6 +241,48 @@ describe('BoundingBoxOverlay', () => {
         const outline = screen.getByTestId('bounding-box-outline-topper-0');
         expect(outline.style.boxShadow).toContain('#10B981');
         expect(outline.style.border).toContain('2px');
+    });
+
+    it('highlights an editable bbox white while the mouse hovers over it', () => {
+        vi.useFakeTimers();
+
+        try {
+            const analysisResult = {
+                main_toppers: [{ group_id: 'topper-a', description: 'Topper A', box_2d: [100, 100, 200, 200] }],
+                support_elements: [],
+                cake_messages: [],
+            } as unknown as HybridAnalysisResult;
+
+            render(
+                <BoundingBoxOverlay
+                    analysisResult={analysisResult}
+                    imageWidth={1000}
+                    imageHeight={1000}
+                    containerWidth={1000}
+                    containerHeight={1000}
+                    useTopLeftOrigin
+                    editableDecorationTargets={[{ category: 'topper', groupId: 'topper-a', label: 'Topper A' }]}
+                    onDecorationActivate={vi.fn()}
+                />
+            );
+
+            act(() => vi.advanceTimersByTime(650));
+
+            const target = screen.getByRole('button', { name: 'Edit Topper A' });
+            const outline = screen.getByTestId('bounding-box-outline-topper-0');
+
+            fireEvent.mouseEnter(target);
+            expect(outline.style.border).toMatch(/255/);
+            expect(outline.style.boxShadow).toContain('255');
+            expect(outline.style.opacity).toBe('1');
+
+            fireEvent.mouseLeave(target);
+            expect(outline.style.border).toMatch(/16, 185, 129/);
+            expect(outline.style.boxShadow).toBe('none');
+            expect(outline.style.opacity).toBe('0.5');
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('returns every exact overlapping decoration while deduplicating repeated unit boxes', () => {
