@@ -74,7 +74,9 @@ export async function getActivePromptDetails(supabase: SupabasePromptClient): Pr
   const promptText = loadFallbackAnalysisPrompt();
   return {
     promptText,
-    version: resolvePromptVersion(promptText),
+    // The fallback file retains its historical v3.91 body/header for parity
+    // checks, but its appended scope override is the v3.93 contract.
+    version: FALLBACK_ANALYSIS_PROMPT_VERSION,
   };
 }
 
