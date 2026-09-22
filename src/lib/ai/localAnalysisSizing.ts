@@ -49,6 +49,21 @@ export const LOCAL_CAKE_ASPECT_REFERENCES = [
   { thickness: '6 in', ratio: 1.00 },
 ] as const satisfies ReadonlyArray<{ thickness: GeneratedCakeThickness; ratio: number }>;
 
+/**
+ * Converts the measured top-tier diameter/height ratio into the application's
+ * physical cake-height bands. At the shared 1.2 boundary, the <= 1.2 rule
+ * deliberately selects the 6-inch band.
+ */
+export function cakeThicknessForAspectRatio(ratio: number): GeneratedCakeThickness {
+  if (!Number.isFinite(ratio) || ratio <= 0) {
+    throw new LocalAnalysisSizingError('cake aspect ratio must be a positive finite number');
+  }
+  if (ratio >= 2) return '3 in';
+  if (ratio >= 1.5) return '4 in';
+  if (ratio > 1.2) return '5 in';
+  return '6 in';
+}
+
 export const LOCAL_VARIABLE_HEIGHT_SINGLE_BODY_TYPES = new Set([
   '1 Tier',
   '1 Tier Fondant',
@@ -233,7 +248,9 @@ function inferLocalCakeThicknessFromGeometry(
     throw new LocalAnalysisSizingError(`no supported thickness candidates are defined for cakeType ${cakeType}`);
   }
 
-  const selected = nearestAspectReference(geometry.effectiveAspectRatio, candidates);
+  const desiredThickness = cakeThicknessForAspectRatio(geometry.effectiveAspectRatio);
+  const selected = candidates.find((reference) => reference.thickness === desiredThickness)
+    ?? nearestAspectReference(geometry.effectiveAspectRatio, candidates);
   return reconcileCakeThicknessForType(cakeType, selected.thickness) ?? selected.thickness;
 }
 

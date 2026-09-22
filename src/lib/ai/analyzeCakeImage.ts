@@ -19,6 +19,7 @@ import {
     AI_THREE_BAND_SIZE_SCHEMA,
     ANALYSIS_SIZE_SCHEMA,
     INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA,
+    INTEGRATED_BBOX_V2_ANALYSIS_SIZE_SCHEMA,
     LINE_RATIO_ANALYSIS_SIZE_SCHEMA,
 } from '@/lib/ai/analysisSize';
 import { Type } from '@google/genai';
@@ -93,7 +94,8 @@ export type RunCakeAnalysisResult = {
             typeof ANALYSIS_SIZE_SCHEMA
             | typeof LINE_RATIO_ANALYSIS_SIZE_SCHEMA
             | typeof AI_THREE_BAND_SIZE_SCHEMA
-            | typeof INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA;
+            | typeof INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA
+            | typeof INTEGRATED_BBOX_V2_ANALYSIS_SIZE_SCHEMA;
     };
     promptVersion: string;
     rawResponse: string;
@@ -195,6 +197,34 @@ export function getContractCorrectionInstruction(error: unknown): string | null 
         'Every non-fixed, non-piped-flower `main_toppers` or `support_elements` row must include one normalized `size_line` with integer start and end coordinates from 0 through 1000.',
         'Only fixed-local types and `piped_flowers_top` or `piped_flowers_side` may omit `size_line`.',
     ].join(' ');
+}
+
+function contractFailureMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    return 'The previous response did not satisfy the required JSON contract.';
+}
+
+/** Build the single bounded repair request used for any recoverable contract failure. */
+export function buildCakeAnalysisContractRepairInstruction(
+    error: unknown,
+    sizeSchema: AnalysisGenerationSizeSchema,
+): string {
+    const failure = contractFailureMessage(error);
+    const integratedGeometryReminder = sizeSchema === 'integrated_bbox_v1' || sizeSchema === 'integrated_bbox_v2'
+        ? [
+            `For ${sizeSchema}, every point is [y, x], never [x, y].`,
+            'cake_diameter_line must run from the cake’s left rim to right rim: end.x > start.x and its vertical drift must be smaller than its horizontal span.',
+            'cake_height_line must run from the cake’s top/front edge to bottom/front edge on the diameter midpoint: end.y > start.y and its horizontal drift must be smaller than its vertical span.',
+            'Return fresh, image-grounded measurement lines; do not reuse the invalid lines.',
+        ].join(' ')
+        : '';
+
+    return [
+        'Return one complete replacement JSON object that satisfies the response schema exactly.',
+        `The previous response failed this application validation: ${failure}.`,
+        integratedGeometryReminder,
+        'Do not omit required fields or add unsupported fields.',
+    ].filter(Boolean).join(' ');
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -443,10 +473,10 @@ export async function runActiveCakeAnalysis({
     try {
         result = await parseAndValidate(await generateAnalysis());
     } catch (error) {
-        const correctionInstruction = getContractCorrectionInstruction(error);
-        if (!correctionInstruction) throw error;
+        const correctionInstruction = getContractCorrectionInstruction(error)
+            ?? buildCakeAnalysisContractRepairInstruction(error, sizeSchema);
 
-        console.warn('[AI Contract] Retrying once after recoverable missing element geometry.', {
+        console.warn('[AI Contract] Generated response failed validation; requesting one complete replacement.', {
             promptVersion: promptDetails.version,
             issue: error instanceof Error ? error.message : String(error),
         });
@@ -490,6 +520,8 @@ export async function runActiveCakeAnalysis({
                 ? LINE_RATIO_ANALYSIS_SIZE_SCHEMA
                 : sizeSchema === 'local_bbox_area'
                     ? ANALYSIS_SIZE_SCHEMA
+                    : sizeSchema === 'integrated_bbox_v2'
+                        ? INTEGRATED_BBOX_V2_ANALYSIS_SIZE_SCHEMA
                     : sizeSchema === 'integrated_bbox_v1'
                         ? INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA
                     : AI_THREE_BAND_SIZE_SCHEMA,

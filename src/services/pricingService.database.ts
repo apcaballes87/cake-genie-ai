@@ -31,6 +31,46 @@ type LoadedPricingRule = Omit<PricingRule, 'quantity_rule'> & {
   merchant_id?: string | null;
 };
 
+/**
+ * Optional diagnostic data for read-only callers such as the admin prompt lab.
+ * This intentionally describes the rule already selected by this calculator;
+ * it is not a second rule-matching implementation.
+ */
+export type PricingTraceEntry = {
+  itemId: string;
+  item: string;
+  kind: 'main_topper' | 'support_element' | 'icing_feature' | 'message';
+  requestedType: string;
+  requestedSize?: string;
+  requestedCategory?: PricingCategory;
+  selectedRule: {
+    ruleId: number;
+    itemKey: string;
+    itemType: string;
+    category: PricingCategory | null;
+    size: string | null;
+    quantityRule: RecognizedQuantityRule | null;
+    multiplierRule: string | null;
+    classification: string | null;
+    unitPrice: number;
+  } | null;
+  /** The path that chose the selected rule, or why no rule was applied. */
+  matchBasis: 'subtype_key' | 'size_key' | 'generic_key' | 'item_type_fallback' | 'zero_cost_support' | 'no_rule' | 'cupcake_flat_max' | 'message_included';
+  quantity?: number;
+  amount: number;
+};
+
+export type PricingCalculationOptions = {
+  /** Include selected-rule diagnostics. Existing callers remain unchanged. */
+  trace?: boolean;
+};
+
+export type DatabasePricingResult = {
+  addOnPricing: AddOnPricing;
+  itemPrices: Map<string, number>;
+  pricingTrace?: PricingTraceEntry[];
+};
+
 const recognizedQuantityRules = new Set<string>(RECOGNIZED_QUANTITY_RULES);
 const warnedLegacyEmptyQuantityRuleIds = new Set<number>();
 
@@ -44,6 +84,17 @@ let pricingRulesCache: {
 const CACHE_KEY_PREFIX = 'pricing_rules_';
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 const ZERO_COST_SUPPORT_ELEMENT_TYPES = new Set(['icing_decorations']);
+const PIPED_CLUSTER_TYPES = new Set(['piped_flowers_top', 'piped_flowers_side']);
+
+function pricingSizeForElement(
+  element: { type: string; size?: string; coverage?: string },
+): string | undefined {
+  // A piped cluster stores a group box for visual review, but its fixed price
+  // is determined by its explicit coverage band. Never let a derived BBox size
+  // replace that band.
+  if (PIPED_CLUSTER_TYPES.has(element.type)) return element.coverage || element.size;
+  return element.size || element.coverage;
+}
 
 function normalizeLoadedRule(
   rule: PricingRule & { merchant_id?: string | null; quantity_rule: string | null }
@@ -172,8 +223,9 @@ export async function calculatePriceFromDatabase(
     icingDesign: IcingDesignUI,
     cakeInfo: CakeInfoUI,
   },
-  merchantId?: string
-): Promise<{ addOnPricing: AddOnPricing; itemPrices: Map<string, number> }> {
+  merchantId?: string,
+  options?: PricingCalculationOptions,
+): Promise<DatabasePricingResult> {
 
   // NEW: Validation layer (only runs when feature flag is enabled)
   // This catches type mismatches early with structured logging
@@ -192,6 +244,10 @@ export async function calculatePriceFromDatabase(
   }
 
   const { mainToppers, supportElements, cakeMessages, icingDesign, cakeInfo } = uiState;
+  const pricingTrace: PricingTraceEntry[] = [];
+  const appendTrace = (entry: PricingTraceEntry) => {
+    if (options?.trace) pricingTrace.push(entry);
+  };
 
   // Bento Cupcake Set pricing: Use standard database pricing (Bento rules apply via special_conditions)
   const isBentoCupcakeSet = cakeInfo.type === 'Bento Cupcake Set';
@@ -236,9 +292,13 @@ export async function calculatePriceFromDatabase(
 
     // Process main toppers
     mainToppers.forEach(topper => {
-      if (!topper.isEnabled) return;
+      if (!topper.isEnabled) {
+        appendTrace({ itemId: topper.id, item: topper.description, kind: 'main_topper', requestedType: topper.type, requestedSize: topper.size, requestedCategory: 'main_topper', selectedRule: null, matchBasis: 'cupcake_flat_max', quantity: topper.quantity, amount: 0 });
+        return;
+      }
       const price = getCupcakeItemPrice(topper.type);
       itemPrices.set(topper.id, price);
+      appendTrace({ itemId: topper.id, item: topper.description, kind: 'main_topper', requestedType: topper.type, requestedSize: topper.size, requestedCategory: 'main_topper', selectedRule: null, matchBasis: 'cupcake_flat_max', quantity: topper.quantity, amount: price });
       if (price > maxPrice) {
         maxPrice = price;
         maxPriceItemDescription = topper.description;
@@ -247,9 +307,13 @@ export async function calculatePriceFromDatabase(
 
     // Process support elements
     supportElements.forEach(element => {
-      if (!element.isEnabled) return;
+      if (!element.isEnabled) {
+        appendTrace({ itemId: element.id, item: element.description, kind: 'support_element', requestedType: element.type, requestedSize: element.size, requestedCategory: 'support_element', selectedRule: null, matchBasis: 'cupcake_flat_max', quantity: element.quantity, amount: 0 });
+        return;
+      }
       const price = getCupcakeItemPrice(element.type);
       itemPrices.set(element.id, price);
+      appendTrace({ itemId: element.id, item: element.description, kind: 'support_element', requestedType: element.type, requestedSize: element.size, requestedCategory: 'support_element', selectedRule: null, matchBasis: 'cupcake_flat_max', quantity: element.quantity, amount: price });
       if (price > maxPrice) {
         maxPrice = price;
         maxPriceItemDescription = element.description;
@@ -268,6 +332,7 @@ export async function calculatePriceFromDatabase(
     return {
       addOnPricing: { addOnPrice, breakdown },
       itemPrices,
+      ...(options?.trace ? { pricingTrace } : {}),
     };
   }
 
@@ -283,6 +348,8 @@ export async function calculatePriceFromDatabase(
 
   const breakdown: { item: string; price: number; }[] = [];
   const itemPrices = new Map<string, number>();
+  let lastRuleMatchBasis: PricingTraceEntry['matchBasis'] = 'no_rule';
+  let lastRequestedType = '';
 
   let heroTotal = 0;
   let supportTotal = 0;
@@ -294,6 +361,8 @@ export async function calculatePriceFromDatabase(
     category?: PricingCategory,
     subtype?: string
   ): LoadedPricingRule | undefined => {
+    lastRequestedType = type;
+    lastRuleMatchBasis = 'no_rule';
 
     // Handle legacy type mapping for analyzer/UI values that predate current rule keys.
     let effectiveType = type;
@@ -383,7 +452,10 @@ export async function calculatePriceFromDatabase(
       const subtypeKey = `${effectiveType}_${subtype}`;
       const subtypeRules = rules.get(subtypeKey);
       const subtypeRule = findMatch(subtypeRules || [], lookupSize);
-      if (subtypeRule) return subtypeRule;
+      if (subtypeRule) {
+        lastRuleMatchBasis = 'subtype_key';
+        return subtypeRule;
+      }
     }
 
     // 2. Try specific key: type_size (e.g., chocolates_small)
@@ -391,12 +463,16 @@ export async function calculatePriceFromDatabase(
       const specificKey = `${effectiveType}_${lookupSize}`;
       const specificRules = rules.get(specificKey);
       const specificRule = findMatch(specificRules || [], lookupSize);
-      if (specificRule) return specificRule;
+      if (specificRule) {
+        lastRuleMatchBasis = 'size_key';
+        return specificRule;
+      }
     }
 
     // 3. Try generic key: type (e.g., chocolates)
     const genericRules = rules.get(effectiveType);
     let rule = findMatch(genericRules || [], lookupSize);
+    if (rule) lastRuleMatchBasis = 'generic_key';
 
     // Some legacy rows use a descriptive item_key (for example candy_piece)
     // instead of the analyzer's canonical type. Fall back to the row's declared
@@ -408,12 +484,14 @@ export async function calculatePriceFromDatabase(
         return candidate.size == null || candidate.size.trim().toLowerCase() === normalizedSize;
       });
       rule = findMatch(typeRules, lookupSize);
+      if (rule) lastRuleMatchBasis = 'item_type_fallback';
     }
 
     // Icing decorations are part of the analyzed cake image but currently carry no
     // add-on charge. Keep that intentional zero-price fallback quiet until a paid
     // pricing rule is introduced.
     if (!rule && category === 'support_element' && ZERO_COST_SUPPORT_ELEMENT_TYPES.has(effectiveType)) {
+      lastRuleMatchBasis = 'zero_cost_support';
       return undefined;
     }
 
@@ -434,11 +512,13 @@ export async function calculatePriceFromDatabase(
   mainToppers.forEach(topper => {
     if (!topper.isEnabled) {
       itemPrices.set(topper.id, 0);
+      appendTrace({ itemId: topper.id, item: topper.description, kind: 'main_topper', requestedType: topper.type, requestedSize: topper.size, requestedCategory: 'main_topper', selectedRule: null, matchBasis: 'no_rule', quantity: topper.quantity, amount: 0 });
       return;
     }
 
     let price = 0;
-    const rule = getRule(topper.type, topper.size, 'main_topper', topper.subtype);
+    const effectiveSize = pricingSizeForElement(topper);
+    const rule = getRule(topper.type, effectiveSize, 'main_topper', topper.subtype);
 
     if (rule) {
       price = rule.price;
@@ -473,6 +553,12 @@ export async function calculatePriceFromDatabase(
     }
 
     itemPrices.set(topper.id, price);
+    appendTrace({
+      itemId: topper.id, item: topper.description, kind: 'main_topper', requestedType: lastRequestedType,
+      requestedSize: effectiveSize, requestedCategory: 'main_topper', quantity: topper.quantity, amount: price,
+      matchBasis: lastRuleMatchBasis,
+      selectedRule: rule ? { ruleId: rule.rule_id, itemKey: rule.item_key, itemType: rule.item_type, category: rule.category, size: rule.size, quantityRule: rule.quantity_rule, multiplierRule: rule.multiplier_rule, classification: rule.classification, unitPrice: rule.price } : null,
+    });
     if (price > 0) breakdown.push({ item: topper.description, price });
   });
 
@@ -480,12 +566,13 @@ export async function calculatePriceFromDatabase(
   supportElements.forEach(element => {
     if (!element.isEnabled) {
       itemPrices.set(element.id, 0);
+      appendTrace({ itemId: element.id, item: element.description, kind: 'support_element', requestedType: element.type, requestedSize: element.size, requestedCategory: 'support_element', selectedRule: null, matchBasis: 'no_rule', quantity: element.quantity, amount: 0 });
       return;
     }
 
     let price = 0;
-    // Fallback to coverage if size is missing (backward compatibility)
-    const effectiveSize = element.size || (element as SupportElementUI & { coverage?: string }).coverage;
+    let traceQuantity = element.quantity;
+    const effectiveSize = pricingSizeForElement(element);
     const rule = getRule(element.type, effectiveSize, 'support_element', element.subtype);
 
     if (rule) {
@@ -509,6 +596,7 @@ export async function calculatePriceFromDatabase(
       if (rule.quantity_rule) {
         effectiveQty = Math.max(1, effectiveQty);
       }
+      traceQuantity = effectiveQty;
 
       price = applyQuantityRule(rule, effectiveQty, element.description);
 
@@ -521,6 +609,12 @@ export async function calculatePriceFromDatabase(
     }
 
     itemPrices.set(element.id, price);
+    appendTrace({
+      itemId: element.id, item: element.description, kind: 'support_element', requestedType: lastRequestedType,
+      requestedSize: effectiveSize, requestedCategory: 'support_element', quantity: traceQuantity, amount: price,
+      matchBasis: lastRuleMatchBasis,
+      selectedRule: rule ? { ruleId: rule.rule_id, itemKey: rule.item_key, itemType: rule.item_type, category: rule.category, size: rule.size, quantityRule: rule.quantity_rule, multiplierRule: rule.multiplier_rule, classification: rule.classification, unitPrice: rule.price } : null,
+    });
     if (price > 0) breakdown.push({ item: element.description, price });
   });
 
@@ -529,6 +623,7 @@ export async function calculatePriceFromDatabase(
     // Message text describes editable wording on an already-priced cake/topper.
     // It is never an independent add-on charge, regardless of its carrier type.
     itemPrices.set(message.id, 0);
+    appendTrace({ itemId: message.id, item: message.text, kind: 'message', requestedType: message.type, requestedCategory: 'message', selectedRule: null, matchBasis: 'message_included', amount: 0 });
   });
 
   // Process Icing Features
@@ -539,9 +634,13 @@ export async function calculatePriceFromDatabase(
       nonGumpasteTotal += dripPrice;
       breakdown.push({ item: `Drip Effect`, price: dripPrice });
       itemPrices.set('icing_drip', dripPrice);
+      appendTrace({ itemId: 'icing_drip', item: 'Drip Effect', kind: 'icing_feature', requestedType: 'drip_per_tier', requestedCategory: 'icing_feature', selectedRule: { ruleId: rule.rule_id, itemKey: rule.item_key, itemType: rule.item_type, category: rule.category, size: rule.size, quantityRule: rule.quantity_rule, multiplierRule: rule.multiplier_rule, classification: rule.classification, unitPrice: rule.price }, matchBasis: lastRuleMatchBasis, amount: dripPrice });
+    } else {
+      appendTrace({ itemId: 'icing_drip', item: 'Drip Effect', kind: 'icing_feature', requestedType: 'drip_per_tier', requestedCategory: 'icing_feature', selectedRule: null, matchBasis: lastRuleMatchBasis, amount: 0 });
     }
   } else {
     itemPrices.set('icing_drip', 0);
+    appendTrace({ itemId: 'icing_drip', item: 'Drip Effect', kind: 'icing_feature', requestedType: 'drip_per_tier', requestedCategory: 'icing_feature', selectedRule: null, matchBasis: 'no_rule', amount: 0 });
   }
 
   if (icingDesign.gumpasteBaseBoard) {
@@ -551,9 +650,13 @@ export async function calculatePriceFromDatabase(
       nonGumpasteTotal += baseBoardPrice;
       breakdown.push({ item: "Gumpaste Covered Base Board", price: baseBoardPrice });
       itemPrices.set('icing_gumpasteBaseBoard', baseBoardPrice);
+      appendTrace({ itemId: 'icing_gumpasteBaseBoard', item: 'Gumpaste Covered Base Board', kind: 'icing_feature', requestedType: 'gumpaste_base_board', requestedCategory: 'icing_feature', selectedRule: { ruleId: rule.rule_id, itemKey: rule.item_key, itemType: rule.item_type, category: rule.category, size: rule.size, quantityRule: rule.quantity_rule, multiplierRule: rule.multiplier_rule, classification: rule.classification, unitPrice: rule.price }, matchBasis: lastRuleMatchBasis, amount: baseBoardPrice });
+    } else {
+      appendTrace({ itemId: 'icing_gumpasteBaseBoard', item: 'Gumpaste Covered Base Board', kind: 'icing_feature', requestedType: 'gumpaste_base_board', requestedCategory: 'icing_feature', selectedRule: null, matchBasis: lastRuleMatchBasis, amount: 0 });
     }
   } else {
     itemPrices.set('icing_gumpasteBaseBoard', 0);
+    appendTrace({ itemId: 'icing_gumpasteBaseBoard', item: 'Gumpaste Covered Base Board', kind: 'icing_feature', requestedType: 'gumpaste_base_board', requestedCategory: 'icing_feature', selectedRule: null, matchBasis: 'no_rule', amount: 0 });
   }
 
   const addOnPrice = heroTotal + supportTotal + nonGumpasteTotal;
@@ -561,6 +664,7 @@ export async function calculatePriceFromDatabase(
   return {
     addOnPricing: { addOnPrice, breakdown },
     itemPrices,
+    ...(options?.trace ? { pricingTrace } : {}),
   };
 }
 

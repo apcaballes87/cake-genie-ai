@@ -193,13 +193,14 @@ describe('cake analysis prompt rules', () => {
     expect(activation).toContain('set is_active = true');
   });
 
-  it('treats piped buttercream flowers as coverage-priced icing rather than fondant flowers', () => {
-    expect(SYSTEM_INSTRUCTION).toContain('Piped Icing Flower Treatment');
+  it('splits cohesive piped treatments from independently placed piped units', () => {
+    expect(SYSTEM_INSTRUCTION).toContain('Piped Icing Flower Scope');
     expect(SYSTEM_INSTRUCTION).toContain('piped_flowers_top');
     expect(SYSTEM_INSTRUCTION).toContain('piped_flowers_side');
-    expect(SYSTEM_INSTRUCTION).toContain('small under 30%, medium from 30% to under 60%, and large at 60% or more');
-    expect(SYSTEM_INSTRUCTION).toContain('Never count piped blooms individually, emit `edible_flowers` for them, or provide a `size_line`');
-    expect(SYSTEM_INSTRUCTION).toContain('Separate, molded, cut, sculpted, or thick matte fondant/gumpaste petals remain `edible_flowers`');
+    expect(SYSTEM_INSTRUCTION).toContain('cohesive coverage-priced cluster');
+    expect(SYSTEM_INSTRUCTION).toContain('Independently placed piped blooms or leaf motifs use `icing_decorations`');
+    expect(SYSTEM_INSTRUCTION).toContain('actual visible quantity');
+    expect(SYSTEM_INSTRUCTION).toContain('Separate, molded, cut, sculpted, or thick matte fondant/gumpaste petals remain subject to their own flower and leaf rules');
   });
 
   it('classifies every item through construction, material, type, and description consistency', () => {
@@ -1099,7 +1100,9 @@ describe('cake analysis prompt rules', () => {
     if (prompt.includes('V3.92 INTEGRATED BOUNDING-BOX PRECEDENCE')) {
       expect(prompt).toContain('Keep them as one analysis row.');
       expect(prompt).toContain('Preserve the total visible quantity in the existing `quantity` field.');
-      expect(prompt).toContain('unless the row represents one intentional continuous treatment such as piping, a drip, or a border.');
+      expect(prompt).toContain('A discrete row never receives one box covering an entire repeated arrangement.');
+      expect(prompt).toContain('V3.93 INTEGRATED BOUNDING-BOX SCOPE');
+      expect(prompt).toContain('A discrete row never receives\n   an arrangement-wide, spray-wide, garland-wide, or cluster-wide box.');
       return;
     }
 

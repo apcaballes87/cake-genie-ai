@@ -31,6 +31,10 @@ import {
 } from '@/lib/ai/localAnalysisSizing';
 import {
   applyIntegratedBboxSizing,
+  INTEGRATED_AGGREGATE_GEOMETRY_TYPES,
+  INTEGRATED_GEOMETRY_SCOPES,
+  INTEGRATED_MAX_UNIT_BOXES,
+  INTEGRATED_TREATMENT_GEOMETRY_TYPES,
   validateIntegratedBboxResponse,
 } from '@/lib/ai/integratedBboxAnalysis';
 
@@ -44,7 +48,8 @@ export type AnalysisGenerationSizeSchema =
   | 'ai_diameter_anchor'
   | 'local_bbox_area'
   | 'local_line_ratio'
-  | 'integrated_bbox_v1';
+  | 'integrated_bbox_v1'
+  | 'integrated_bbox_v2';
 
 /**
  * Independent visual verdict for the exceptional, priced wafer-wave type.
@@ -66,7 +71,10 @@ const LEGACY_GENERATION_SIZES = ['tiny', 'xsmall', 'small', 'medium', 'large', '
  * the provider schema boundary.
  */
 export function getAnalysisGenerationSizeSchema(promptVersion: string): AnalysisGenerationSizeSchema {
-  if (promptVersion === 'fallback') return 'three_band';
+  // The checked-in fallback prompt carries the v3.93 scoped integrated-geometry
+  // contract. Its response envelope must be validated as geometry, never as
+  // the older direct-size response shape.
+  if (promptVersion === 'fallback') return 'integrated_bbox_v2';
   if (promptVersion === 'local-dev-diameter-anchor') return 'ai_diameter_anchor';
   if (promptVersion === 'local-dev-bbox') return 'local_bbox_area';
   if (promptVersion === 'local-dev-line') return 'local_line_ratio';
@@ -74,7 +82,10 @@ export function getAnalysisGenerationSizeSchema(promptVersion: string): Analysis
   if (!match) return 'legacy_six_band';
   const major = Number.parseInt(match[1], 10);
   const minor = Number.parseInt(match[2], 10);
-  // v3.92+ owns sizing in application code from a single Gemini response with
+  // v3.93+ owns scope, sizing, and cardinality in application code from a
+  // single Gemini response with row-attached [y, x] boxes and cake lines.
+  if (major > 3 || (major === 3 && minor >= 93)) return 'integrated_bbox_v2';
+  // v3.92 owns sizing in application code from a single Gemini response with
   // row-attached [y, x] bounding boxes and cake measurement lines.
   if (major > 3 || (major === 3 && minor >= 92)) return 'integrated_bbox_v1';
   // v3.84+ uses direct three-band output with the visible top-tier diameter
@@ -530,12 +541,34 @@ const ELEMENT_SIZE_LINE_SCHEMA = {
   description: 'One representative normalized line for the item primary dimension used for local sizing. Measure height for 3D figures, toys, crowns, figurines, and candles; the larger visible span along the dominant physical axis for flat toppers; bloom width for flowers; sphere width for balls; and the longest relevant visible span along one dominant edge or axis for flat artwork, logos, panels, and other flat items. For a repeated icing border row, measure one typical visible shell, bead, dollop, rosette, or swirl, never the full perimeter or border run. Put endpoints on opposite directly visible boundaries of that same dimension and keep the segment within the representative item. Use apparent image-space geometry without perspective correction. Use vertical or horizontal by default; order horizontal lines left-to-right, vertical lines top-to-bottom, and other diagonals by smaller x first. Allow a slant only when the item or its true primary axis is visibly rotated or perspective-skewed. Never use a corner-to-corner diagonal, infer hidden continuation, cross empty space, or slant merely to increase length. For repeated rows, measure one typical visible unit only.',
 };
 
-const INTEGRATED_BBOX_SCHEMA = {
+const INTEGRATED_BBOX_UNIT_SCHEMA = {
   type: Type.ARRAY,
   items: { type: Type.NUMBER },
   minItems: 4,
   maxItems: 4,
-  description: 'Tight normalized [ymin, xmin, ymax, xmax] box for this exact row. Use one representative visible unit for a repeated group.',
+  description: 'Tight normalized [ymin, xmin, ymax, xmax] box for one visible unit or one intentional aggregate region.',
+};
+
+const INTEGRATED_BBOX_COLLECTION_SCHEMA = {
+  type: Type.ARRAY,
+  items: INTEGRATED_BBOX_UNIT_SCHEMA,
+  minItems: 1,
+  maxItems: INTEGRATED_MAX_UNIT_BOXES,
+  description: `One tight normalized box per visible discrete unit, from 1 through ${INTEGRATED_MAX_UNIT_BOXES} boxes. For an aggregate treatment, return exactly one full-region box.`,
+};
+
+const INTEGRATED_BBOX_CONFIDENCE_COLLECTION_SCHEMA = {
+  type: Type.ARRAY,
+  items: { type: Type.NUMBER },
+  minItems: 1,
+  maxItems: INTEGRATED_MAX_UNIT_BOXES,
+  description: 'One confidence from 0 through 1 for each box, in the same order as box_2d.',
+};
+
+const INTEGRATED_BBOX_SCOPE_SCHEMA = {
+  type: Type.STRING,
+  enum: [...INTEGRATED_GEOMETRY_SCOPES],
+  description: 'unit for countable independent decorations; piped_cluster for one cohesive piped botanical treatment; treatment for an allowed non-countable treatment.',
 };
 
 const INTEGRATED_POINT_SCHEMA = {
@@ -560,11 +593,41 @@ const INTEGRATED_LINE_SCHEMA = {
  * historical prompts. Append this only for v3.92+ so the selected generation
  * contract wins without changing a live pre-v3.92 analysis.
  */
-const INTEGRATED_BBOX_SYSTEM_OVERRIDE = `
+const INTEGRATED_BBOX_V1_SYSTEM_OVERRIDE = `
 
 ## V3.92 INTEGRATED BOUNDING-BOX PRECEDENCE (AUTHORITATIVE)
 
-For the integrated_bbox_v1 response schema, this instruction overrides every earlier direct-diameter, model-owned size, cake_measurements, size_line, bbox, fixed-size, size-free filler, and coverage-to-size instruction. Return the required { analysis, geometry } envelope in one response. Never emit a model-owned size, ratio, area, legacy bbox, size_line, or cake_measurements field. Every accepted analysis row in main_toppers, support_elements, and cake_messages needs a tight normalized [ymin, xmin, ymax, xmax] box_2d and bbox_confidence; accepted images need the two geometry lines. Preserve coverage and subtype as analysis metadata only. Rejected images have empty arrays and geometry_version only, with no measurement lines.`;
+For the integrated_bbox_v1 response schema, this instruction overrides every earlier direct-diameter, model-owned size, cake_measurements, size_line, bbox, fixed-size, size-free filler, and coverage-to-size instruction, including the earlier singular representative-unit wording in the v3.92 addendum. Return the required { analysis, geometry } envelope in one response. Never emit a model-owned size, ratio, area, legacy bbox, size_line, or cake_measurements field. Every accepted main_toppers and support_elements row needs a tight normalized box_2d array and matching bbox_confidence array; every cake_messages row needs one tight normalized [ymin, xmin, ymax, xmax] box_2d and one bbox_confidence; accepted images need the two geometry lines. Preserve coverage and subtype as analysis metadata only. Always emit icing_design.colors.gumpasteBaseBoardColor; when gumpasteBaseBoard is false, repeat the closest visible side color.
+
+BOX SCOPE POLICY: First decide whether the row is a discrete/countable item or an aggregate treatment. For every discrete/countable main_toppers or support_elements row—including candles, flowers, gems, dragees, stars, balls, chocolates, lollipops, and repeated figures—return one tight box per clearly visible unit in the row's box_2d array, up to min(quantity, ${INTEGRATED_MAX_UNIT_BOXES}) boxes. When all units are visible, quantity 1 means 1 box and quantities 2 through ${INTEGRATED_MAX_UNIT_BOXES} mean that many boxes; quantities above ${INTEGRATED_MAX_UNIT_BOXES} are capped at ${INTEGRATED_MAX_UNIT_BOXES} boxes while preserving the actual visible count in quantity. If some units cannot be localized with tight boundaries, return every confidently visible unit rather than inventing, merging, or enlarging a box; never use one arrangement-wide box for a discrete row. Return a matching bbox_confidence array with one confidence per box. Aggregate treatment scope is allowed only for these explicit types: ${INTEGRATED_AGGREGATE_GEOMETRY_TYPES.join(', ')}. For an aggregate-treatment type, return exactly one full-region box and one confidence, and use quantity 1 unless that type's existing fulfillment rule explicitly counts covered tiers. This includes inseparable or spread materials such as sand-like texture, sprinkles, splatter, brush-applied icing, piping, borders, panels, and wraps. Do not choose aggregate scope merely because a discrete cluster is difficult to count, and do not invent a new type for sand; use the closest existing allowed aggregate-treatment type. Cake messages remain one box and one confidence because they are not quantity-priced items.
+
+The application determines variable-height cakeThickness from cake_diameter_width / cake_height_length using >=2 => 3 in, >=1.5 => 4 in, >1.2 => 5 in, and <=1.2 => 6 in; do not treat your cakeThickness as authoritative. For topper/support size bands, the application uses cake_area = diameter_width * diameter_width; the height line is not part of that area denominator. It assigns Small when area_ratio_percent <= 15, Medium when area_ratio_percent > 15 and <= 70, and Large when area_ratio_percent > 70. The application accepts either endpoint order and canonicalizes diameter left-to-right and height top-to-bottom before validation and calculation. Rejected images have empty arrays and geometry_version only, with no measurement lines.
+
+FINAL CARDINALITY CHECK BEFORE JSON: For every discrete row, count the nested arrays inside box_2d before responding. Return no more than min(quantity, ${INTEGRATED_MAX_UNIT_BOXES}) distinct tight boxes, one for each confidently visible unit; when all units are visible, return the full capped count. Never collapse a discrete row into an arrangement-wide box because the units are small or difficult to count. Reserve one-box geometry only for a single visible unit or the explicit aggregate-treatment types above.`;
+
+const INTEGRATED_BBOX_V2_SYSTEM_OVERRIDE = `
+
+## V3.93 INTEGRATED BOUNDING-BOX SCOPE (AUTHORITATIVE)
+
+For the integrated_bbox_v2 response schema, this instruction overrides every earlier direct-diameter, model-owned size, cake_measurements, size_line, bbox, fixed-size, size-free filler, and coverage-to-size instruction. Return the required { analysis, geometry } envelope in one response. Never emit a model-owned size, ratio, area, legacy bbox, size_line, or cake_measurements field. Every accepted main_toppers and support_elements row needs geometry_scope, a normalized box_2d array, and a matching bbox_confidence array. Every cake_messages row needs one tight normalized [ymin, xmin, ymax, xmax] box_2d and one bbox_confidence. Accepted images need the two geometry lines.
+
+FIRST CHOOSE ONE GEOMETRY SCOPE FOR EACH TOPPER OR SUPPORT ROW:
+
+1. unit — Use this for every independently fulfillable, countable decoration: separate fondant/gumpaste flowers, leaves, gems, stars, chocolates, candles, figures, and individually placed piped flowers or leaf motifs. For separate piped botanicals, use type icing_decorations and material icing. Set quantity to the actual visible count. box_2d must contain exactly min(quantity, ${INTEGRATED_MAX_UNIT_BOXES}) distinct tight unit boxes, and bbox_confidence must contain exactly one confidence per box. A discrete row never receives an arrangement-wide, spray-wide, garland-wide, or cluster-wide box. Split visibly different scales into separate rows.
+
+2. piped_cluster — Use this only for one cohesive piped botanical treatment made of icing that is fulfilled and priced as a cluster. Use type piped_flowers_top for a top treatment or piped_flowers_side for a side treatment, material icing, quantity 1, and coverage small, medium, or large. box_2d must contain exactly one tight box around the full cluster, with one confidence. This review box does not size the row: coverage alone selects its fixed cluster price. Do not report a component count for the flowers or leaves inside the cluster.
+
+3. treatment — Use this only for a non-countable treated region of one of these types: ${INTEGRATED_TREATMENT_GEOMETRY_TYPES.join(', ')}. Use one region box and one confidence. Do not use treatment merely because independent units are small or difficult to count.
+
+Cake messages remain one box and one confidence because they are not quantity-priced items. The application determines variable-height cakeThickness from cake_diameter_width / cake_height_length using >=2 => 3 in, >=1.5 => 4 in, >1.2 => 5 in, and <=1.2 => 6 in. For unit rows, it uses cake_area = diameter_width * diameter_width and assigns Small when area_ratio_percent <= 15, Medium when > 15 and <= 70, and Large when > 70. All sampled unit boxes in a row must land in the same band. The height line is not part of the area denominator. The application accepts either endpoint order and canonicalizes diameter left-to-right and height top-to-bottom before validation and calculation. Rejected images have empty arrays and geometry_version only, with no measurement lines.
+
+FINAL CARDINALITY CHECK BEFORE JSON: Every unit row must contain exactly min(quantity, ${INTEGRATED_MAX_UNIT_BOXES}) nested boxes and confidences. Every piped_cluster row must contain one box, one confidence, quantity 1, and coverage. Never merge separate decorations into a cluster box.`;
+
+const DIRECT_DIAMETER_SYSTEM_OVERRIDE = `
+
+## DIRECT DIAMETER SIZE CONTRACT (AUTHORITATIVE)
+
+For the ai_diameter_anchor response schema, every main_toppers and support_elements row, including edible_flowers_filler, MUST contain exactly one size value: small, medium, or large. Do not omit size for any row. The response schema is the final field contract: do not follow older size-free filler or application-owned geometry instructions when this schema is active. Do not emit cake_measurements, size_line, bbox, coordinates, or real-world inch estimates in this mode.`;
 
 export function buildSearchAnalysisResponseSchema(
   typeEnums: GeneratedAnalysisTypeEnums,
@@ -589,20 +652,22 @@ export function buildSearchAnalysisResponseSchema(
   const isLocalLineRatio = sizeSchema === 'local_line_ratio';
   const isLocalBboxArea = sizeSchema === 'local_bbox_area';
   const isDirectDiameterAnchor = sizeSchema === 'ai_diameter_anchor';
-  const isIntegratedBbox = sizeSchema === 'integrated_bbox_v1';
+  const isIntegratedBbox = sizeSchema === 'integrated_bbox_v1' || sizeSchema === 'integrated_bbox_v2';
+  const isIntegratedBboxV2 = sizeSchema === 'integrated_bbox_v2';
   const usesLocalGeometry = isLocalLineRatio || isLocalBboxArea || isIntegratedBbox;
   const generatedSizeProperty = usesLocalGeometry
     ? {}
     : { size: { type: Type.STRING, enum: [...generationSizes] } };
   // Local geometry assigns size after generation. Direct-diameter and three-band
-  // modes require every generated item to carry a canonical size.
+  // modes require every generated item to carry a canonical size. Local-geometry
+  // modes intentionally omit it until application sizing runs.
   const generatedSizeRequired = usesLocalGeometry ? [] : ['size'];
   // The line is required by local post-processing for ratio-sized items, but
   // fixed-size overrides intentionally do not need one. The type-specific
   // requirement is enforced after generation rather than in this shared
   // provider schema.
   const localGeometryRequired = isIntegratedBbox
-    ? ['box_2d', 'bbox_confidence']
+    ? [...(isIntegratedBboxV2 ? ['geometry_scope'] : []), 'box_2d', 'bbox_confidence']
     : isLocalBboxArea
       ? ['bbox']
       : [];
@@ -612,14 +677,15 @@ export function buildSearchAnalysisResponseSchema(
       ? { bbox: ELEMENT_BBOX_SCHEMA }
       : isIntegratedBbox
         ? {
-          box_2d: INTEGRATED_BBOX_SCHEMA,
-          bbox_confidence: { type: Type.NUMBER, description: 'Confidence from 0 through 1 for this tight visible box.' },
+          ...(isIntegratedBboxV2 ? { geometry_scope: INTEGRATED_BBOX_SCOPE_SCHEMA } : {}),
+          box_2d: INTEGRATED_BBOX_COLLECTION_SCHEMA,
+          bbox_confidence: INTEGRATED_BBOX_CONFIDENCE_COLLECTION_SCHEMA,
         }
       : isDirectDiameterAnchor
         ? {}
         : { bbox: ELEMENT_BBOX_SCHEMA };
 
-  return {
+  const schema = {
     type: Type.OBJECT,
     properties: {
       // Gemini rejects empty strings inside response-schema enum arrays. These
@@ -649,11 +715,26 @@ export function buildSearchAnalysisResponseSchema(
         items: {
           type: Type.OBJECT,
           properties: {
-            type: { type: Type.STRING, enum: mainTopperTypes },
+            type: {
+              type: Type.STRING,
+              enum: mainTopperTypes,
+              ...(isIntegratedBboxV2
+                ? { description: 'Set geometry_scope first. unit rows use exact per-unit boxes; piped_cluster is allowed only for piped_flower types with quantity 1; treatment is limited to the authoritative v2 treatment list.' }
+                : isIntegratedBbox
+                ? { description: `Use one box per visible discrete unit, capped at ${INTEGRATED_MAX_UNIT_BOXES} boxes. Aggregate full-region geometry is limited to: ${INTEGRATED_AGGREGATE_GEOMETRY_TYPES.join(', ')}.` }
+                : {}),
+            },
             material: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_MATERIALS] },
             group_id: { type: Type.STRING },
             classification: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_CLASSIFICATIONS] },
-            quantity: { type: Type.INTEGER },
+            quantity: {
+              type: Type.INTEGER,
+              ...(isIntegratedBboxV2 ? {
+                description: `unit requires exactly min(quantity, ${INTEGRATED_MAX_UNIT_BOXES}) individual boxes. piped_cluster requires quantity 1.`,
+              } : isIntegratedBbox ? {
+                description: `For discrete rows, box_2d may contain up to min(quantity, ${INTEGRATED_MAX_UNIT_BOXES}) distinct visible-unit boxes. Never use one arrangement-wide box.`,
+              } : {}),
+            },
             description: { type: Type.STRING },
             color: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_COLOR_HEXES] },
             colors: {
@@ -663,8 +744,10 @@ export function buildSearchAnalysisResponseSchema(
             coverage: {
               type: Type.STRING,
               enum: [...GENERATED_PIPED_FLOWER_COVERAGES],
-              description: isIntegratedBbox
-                ? 'Required only for piped_flowers_top as existing treatment metadata. It does not determine size in integrated_bbox_v1.'
+              description: isIntegratedBboxV2
+                ? 'Required for piped_flowers_top with piped_cluster scope. It selects the fixed cluster price; the BBox does not.'
+                : isIntegratedBbox
+                  ? 'Required only for piped_flowers_top as existing treatment metadata. It does not determine size in integrated_bbox_v1.'
                 : 'Required only for piped_flowers_top. Exact top-surface piped-flower coverage price band: small under 30%, medium 30% to under 60%, large 60% or more.',
             },
             ...generatedElementGeometryProperty,
@@ -679,7 +762,15 @@ export function buildSearchAnalysisResponseSchema(
         items: {
           type: Type.OBJECT,
           properties: {
-            type: { type: Type.STRING, enum: supportElementTypes },
+            type: {
+              type: Type.STRING,
+              enum: supportElementTypes,
+              ...(isIntegratedBboxV2
+                ? { description: 'Set geometry_scope first. unit rows use exact per-unit boxes; piped_cluster is allowed only for piped_flower types with quantity 1; treatment is limited to the authoritative v2 treatment list.' }
+                : isIntegratedBbox
+                ? { description: `Use one box per visible discrete unit, capped at ${INTEGRATED_MAX_UNIT_BOXES} boxes. Aggregate full-region geometry is limited to: ${INTEGRATED_AGGREGATE_GEOMETRY_TYPES.join(', ')}.` }
+                : {}),
+            },
             material: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_MATERIALS] },
             group_id: { type: Type.STRING },
             color: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_COLOR_HEXES] },
@@ -690,11 +781,20 @@ export function buildSearchAnalysisResponseSchema(
             coverage: {
               type: Type.STRING,
               enum: [...GENERATED_PIPED_FLOWER_COVERAGES],
-              description: isIntegratedBbox
-                ? 'Required only for piped_flowers_side as existing treatment metadata. It does not determine size in integrated_bbox_v1.'
+              description: isIntegratedBboxV2
+                ? 'Required for piped_flowers_side with piped_cluster scope. It selects the fixed cluster price; the BBox does not.'
+                : isIntegratedBbox
+                  ? 'Required only for piped_flowers_side as existing treatment metadata. It does not determine size in integrated_bbox_v1.'
                 : 'Required only for piped_flowers_side. Exact visible cake-side piped-flower coverage price band: small under 30%, medium 30% to under 60%, large 60% or more.',
             },
-            quantity: { type: Type.INTEGER },
+            quantity: {
+              type: Type.INTEGER,
+              ...(isIntegratedBboxV2 ? {
+                description: `unit requires exactly min(quantity, ${INTEGRATED_MAX_UNIT_BOXES}) individual boxes. piped_cluster requires quantity 1.`,
+              } : isIntegratedBbox ? {
+                description: `For discrete rows, box_2d may contain up to min(quantity, ${INTEGRATED_MAX_UNIT_BOXES}) distinct visible-unit boxes. Never use one arrangement-wide box.`,
+              } : {}),
+            },
             description: { type: Type.STRING },
             ...generatedElementGeometryProperty,
             ...generatedSizeProperty,
@@ -714,7 +814,7 @@ export function buildSearchAnalysisResponseSchema(
             position: { type: Type.STRING, enum: [...GENERATED_ANALYSIS_MESSAGE_POSITIONS] },
             ...(isIntegratedBbox
               ? {
-                box_2d: INTEGRATED_BBOX_SCHEMA,
+                box_2d: INTEGRATED_BBOX_UNIT_SCHEMA,
                 bbox_confidence: { type: Type.NUMBER, description: 'Confidence from 0 through 1 for this tight visible box.' },
               }
               : { bbox: ELEMENT_BBOX_SCHEMA }),
@@ -742,9 +842,12 @@ export function buildSearchAnalysisResponseSchema(
               gumpasteBaseBoardColor: {
                 type: Type.STRING,
                 enum: [...GENERATED_ANALYSIS_COLOR_HEXES],
+                description: isIntegratedBbox
+                  ? 'Required in every integrated_bbox_v1 response. When gumpasteBaseBoard is false, repeat the closest visible side color.'
+                  : undefined,
               },
             },
-            required: ['side', 'top'],
+            required: ['side', 'top', ...(isIntegratedBbox ? ['gumpasteBaseBoardColor'] : [])],
           },
           drip: { type: Type.BOOLEAN }, border_top: { type: Type.BOOLEAN },
           border_base: { type: Type.BOOLEAN },
@@ -801,6 +904,8 @@ export function buildSearchAnalysisResponseSchema(
       'rejection',
     ],
   };
+
+  return schema;
 }
 
 export function buildSearchAnalysisGenerationConfig(
@@ -810,11 +915,15 @@ export function buildSearchAnalysisGenerationConfig(
 ) {
   const analysisSchema = buildSearchAnalysisResponseSchema(typeEnums, sizeSchema, seoSchema);
   return {
-    systemInstruction: sizeSchema === 'integrated_bbox_v1'
-      ? `${SYSTEM_INSTRUCTION}${INTEGRATED_BBOX_SYSTEM_OVERRIDE}`
-      : SYSTEM_INSTRUCTION,
+    systemInstruction: sizeSchema === 'integrated_bbox_v2'
+      ? `${SYSTEM_INSTRUCTION}${INTEGRATED_BBOX_V2_SYSTEM_OVERRIDE}`
+      : sizeSchema === 'integrated_bbox_v1'
+        ? `${SYSTEM_INSTRUCTION}${INTEGRATED_BBOX_V1_SYSTEM_OVERRIDE}`
+      : sizeSchema === 'ai_diameter_anchor'
+        ? `${SYSTEM_INSTRUCTION}${DIRECT_DIAMETER_SYSTEM_OVERRIDE}`
+        : SYSTEM_INSTRUCTION,
     responseMimeType: 'application/json',
-    responseSchema: sizeSchema === 'integrated_bbox_v1'
+    responseSchema: sizeSchema === 'integrated_bbox_v1' || sizeSchema === 'integrated_bbox_v2'
       ? {
         type: Type.OBJECT,
         properties: {
@@ -822,7 +931,7 @@ export function buildSearchAnalysisGenerationConfig(
           geometry: {
             type: Type.OBJECT,
             properties: {
-              geometry_version: { type: Type.STRING, enum: ['integrated_bbox_v1'] },
+              geometry_version: { type: Type.STRING, enum: [sizeSchema] },
               cake_diameter_line: INTEGRATED_LINE_SCHEMA,
               cake_height_line: INTEGRATED_LINE_SCHEMA,
             },
@@ -842,6 +951,37 @@ export function buildSearchAnalysisGenerationConfig(
   };
 }
 
+/**
+ * Gemini occasionally emits the conditional board flag without its optional
+ * color. Keep integrated analysis usable by carrying forward the closest
+ * visible cake-side color; the final generated-analysis validator still
+ * enforces that the resulting value is an approved palette color.
+ */
+function normalizeIntegratedGumpasteBoardColor(analysis: Record<string, unknown>): Record<string, unknown> {
+  const icing = analysis.icing_design;
+  if (!isRecord(icing) || icing.gumpasteBaseBoard !== true || !isRecord(icing.colors)) {
+    return analysis;
+  }
+  if (icing.colors.gumpasteBaseBoardColor !== undefined) return analysis;
+
+  const fallbackColor = icing.colors.side;
+  if (typeof fallbackColor !== 'string') return analysis;
+
+  console.warn('[AI Contract] Missing gumpasteBaseBoardColor; using the cake side color', {
+    fallbackColor,
+  });
+  return {
+    ...analysis,
+    icing_design: {
+      ...icing,
+      colors: {
+        ...icing.colors,
+        gumpasteBaseBoardColor: fallbackColor,
+      },
+    },
+  };
+}
+
 export function postProcessSearchAnalysisResult(
   result: unknown,
   typeEnums: GeneratedAnalysisTypeEnums,
@@ -849,22 +989,29 @@ export function postProcessSearchAnalysisResult(
   seoSchema: AnalysisGenerationSeoSchema = 'analysis_only',
   waferPaperSideWaveVerification?: WhiteWaferPaperSideWaveVerification,
 ): GeneratedCakeAnalysisResult {
-  if (sizeSchema === 'integrated_bbox_v1') {
-    const integrated = validateIntegratedBboxResponse(result);
+  if (sizeSchema === 'integrated_bbox_v1' || sizeSchema === 'integrated_bbox_v2') {
+    const integrated = validateIntegratedBboxResponse(result, sizeSchema);
     const reconciledResult = reconcileGeneratedCakeTypeThickness(integrated.analysis);
-    const reconciledOutput = removeUnverifiedConditionedWaferPaperWaves(
+    const reconciledAnalysis = removeUnverifiedConditionedWaferPaperWaves(
       reconcileDescriptionTypes(removeExplicitSceneOnlyItems(reconciledResult), typeEnums),
       waferPaperSideWaveVerification,
     );
-    const locallySized = applyIntegratedBboxSizing({
+    const reconciledOutput = normalizeIntegratedGumpasteBoardColor(
+      reconciledAnalysis as Record<string, unknown>,
+    );
+    // Revalidate after type/description reconciliation so a row whose type is
+    // normalized into or out of an aggregate-treatment exception still has the
+    // correct one-box versus per-unit geometry cardinality.
+    const reconciledIntegrated = validateIntegratedBboxResponse({
       analysis: reconciledOutput as Record<string, unknown>,
       geometry: integrated.geometry,
-    });
+    }, sizeSchema);
+    const locallySized = applyIntegratedBboxSizing(reconciledIntegrated);
     return validateGeneratedCakeAnalysisResult(
       locallySized,
       typeEnums,
       seoSchema,
-      { integratedBbox: true },
+      { integratedBbox: true, integratedBboxV2: sizeSchema === 'integrated_bbox_v2' },
     );
   }
   const reconciledResult = reconcileGeneratedCakeTypeThickness(result);
@@ -912,5 +1059,8 @@ export function postProcessSearchAnalysisResult(
     locallySizedResult,
     typeEnums,
     seoSchema,
+    sizeSchema === 'ai_diameter_anchor'
+      ? { requireSizeForSizelessSupportElements: true }
+      : undefined,
   );
 }

@@ -947,7 +947,7 @@ describe('calculatePriceFromDatabase', () => {
     ['small', 50],
     ['medium', 100],
     ['large', 150],
-  ] as const)('prices grouped %s piped flowers at ₱%i for both top and side', async (size, expectedPrice) => {
+  ] as const)('prices grouped %s piped flowers by coverage, not a stale BBox-derived size, at ₱%i for both top and side', async (size, expectedPrice) => {
     const { calculatePriceFromDatabase } = await import('./pricingService.database');
     pricingRows.push(
       {
@@ -988,12 +988,12 @@ describe('calculatePriceFromDatabase', () => {
       mainToppers: [{
         id: `piped-top-${size}`, type: 'piped_flowers_top', material: 'icing',
         description: 'piped buttercream flower treatment on top', quantity: 12,
-        isEnabled: true, size, coverage: size, group_id: 'top_piped_flowers', classification: 'hero',
+        isEnabled: true, size: size === 'small' ? 'large' : 'small', coverage: size, group_id: 'top_piped_flowers', classification: 'hero',
       } as MainTopperUI],
       supportElements: [{
         id: `piped-side-${size}`, type: 'piped_flowers_side', material: 'icing', color: '#FF69B4',
         description: 'piped buttercream flower treatment on side', quantity: 12,
-        isEnabled: true, size, coverage: size, group_id: 'side_piped_flowers',
+        isEnabled: true, size: size === 'small' ? 'large' : 'small', coverage: size, group_id: 'side_piped_flowers',
       } as SupportElementUI],
       cakeMessages: [],
       icingDesign: {} as IcingDesignUI,

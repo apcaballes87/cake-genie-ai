@@ -7,6 +7,7 @@ import type {
   GeneratedBox2D,
   GeneratedIntegratedBboxConfidence,
   GeneratedIntegratedBox2D,
+  GeneratedIntegratedGeometryScope,
   GeneratedCakeMeasurements,
   GeneratedIntegratedGeometry,
   GeneratedMeasurementLine,
@@ -71,6 +72,7 @@ export interface MainTopper {
   /** Fresh integrated_bbox_v1 representative-unit geometry in [y, x] order. */
   box_2d?: GeneratedIntegratedBox2D;
   bbox_confidence?: GeneratedIntegratedBboxConfidence;
+  geometry_scope?: GeneratedIntegratedGeometryScope;
 }
 
 export interface SupportElement {
@@ -99,6 +101,7 @@ export interface SupportElement {
   /** Fresh integrated_bbox_v1 representative-unit geometry in [y, x] order. */
   box_2d?: GeneratedIntegratedBox2D;
   bbox_confidence?: GeneratedIntegratedBboxConfidence;
+  geometry_scope?: GeneratedIntegratedGeometryScope;
 }
 
 export interface CakeMessage {
