@@ -2,10 +2,20 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { HybridAnalysisResult, BoundingBox } from '@/types';
 import type {
-    GeneratedBox2D,
     GeneratedIntegratedBboxConfidence,
     GeneratedIntegratedBox2D,
 } from '@/lib/ai/generatedAnalysisContract';
+import {
+    MEASUREMENT_COLORS,
+    OVERLAY_COLORS,
+    alignUnitConfidences,
+    appCoordinatesToDisplay,
+    applyImageOffset,
+    measurementLineToDisplay,
+    normalizedToDisplay,
+    splitIntegratedBox2D,
+    type DisplayBox,
+} from '@/lib/ai/bboxGeometry';
 
 type AnyBoundingBox = BoundingBox | { x: number; y: number; width: number; height: number };
 
@@ -16,7 +26,8 @@ export type DecorationBoxTarget = {
 };
 
 export type CakeMessageBoxTarget = {
-    /** Cake messages are unique by surface, unlike topper/support groups. */
+    /** Stable UI identity keeps duplicate messages on the same surface distinct. */
+    id: string;
     position: 'top' | 'side' | 'base_board';
     label: string;
 };
@@ -33,9 +44,7 @@ export type RenderedBox = {
     confidence?: number;
     target?: DecorationBoxTarget;
     messageTarget?: CakeMessageBoxTarget;
-};
-
-interface BoundingBoxOverlayProps {
+};interface BoundingBoxOverlayProps {
     analysisResult: HybridAnalysisResult;
     /** Rendered image dimensions, before any crop is clipped by the hero frame. */
     containerWidth: number;
@@ -53,88 +62,18 @@ interface BoundingBoxOverlayProps {
     editableDecorationTargets?: readonly DecorationBoxTarget[];
     /** Called with every editable decoration at a tapped point, deduplicated by category and group id. */
     onDecorationActivate?: (targets: DecorationBoxTarget[]) => void;
-    /** Cake-message inputs currently available in the inline customizer form, keyed by their unique surface. */
+    /** Cake-message inputs currently available in the inline customizer form. */
     editableCakeMessageTargets?: readonly CakeMessageBoxTarget[];
     /** Opens and focuses an inline cake-message form rather than an editor sheet. */
-    onCakeMessageActivate?: (position: CakeMessageBoxTarget['position']) => void;
+    onCakeMessageActivate?: (messageId: CakeMessageBoxTarget['id']) => void;
     /** Clears the active box selection when the hero image or surrounding screen is tapped elsewhere. */
     onBackgroundActivate?: () => void;
 }
 
 /**
- * Color palette for different element types
+ * Shared colors and coordinate conversions live in `@/lib/ai/bboxGeometry`
+ * so customer and inspection surfaces use the same math.
  */
-const COLORS = {
-    main_topper: '#10B981',      // Green
-    support_element: '#3B82F6',  // Blue
-    cake_message: '#F59E0B',     // Amber
-    cake: '#22C55E',             // Distinct green for cake body
-    default: '#8B5CF6'           // Purple
-};
-
-const MEASUREMENT_COLORS = {
-    diameter: '#22C55E',
-    height: '#0EA5E9',
-};
-
-/**
- * Scale a Gemini bbox from its normalized 0–1000, top-left coordinate space
- * to the rendered image. Gemini emits this normalized space regardless of the
- * original file's natural pixel dimensions.
- */
-function normalizedToDisplay(
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-    containerWidth: number,
-    containerHeight: number,
-): { left: number; top: number; width: number; height: number } {
-    const scaleX = containerWidth / 1000;
-    const scaleY = containerHeight / 1000;
-    return {
-        left: x * scaleX,
-        top: y * scaleY,
-        width: width * scaleX,
-        height: height * scaleY,
-    };
-}
-
-function normalizedPointToDisplay(
-    point: { x: number; y: number },
-    containerWidth: number,
-    containerHeight: number,
-): { x: number; y: number } {
-    return {
-        x: point.x * (containerWidth / 1000),
-        y: point.y * (containerHeight / 1000),
-    };
-}
-
-/**
- * Convert legacy center-origin app coordinates to display pixels
- */
-function appCoordinatesToDisplay(
-    appX: number,
-    appY: number,
-    appWidth: number,
-    appHeight: number,
-    imageWidth: number,
-    imageHeight: number,
-    containerWidth: number,
-    containerHeight: number,
-): { left: number; top: number; width: number; height: number } {
-    const imgX = appX + (imageWidth / 2);
-    const imgY = (imageHeight / 2) - appY;
-    const scaleX = containerWidth / imageWidth;
-    const scaleY = containerHeight / imageHeight;
-    return {
-        left: imgX * scaleX,
-        top: imgY * scaleY,
-        width: appWidth * scaleX,
-        height: appHeight * scaleY,
-    };
-}
 
 function isWithinBounds(
     point: { x: number; y: number },
@@ -158,7 +97,6 @@ function getMinimumTouchBounds(box: Pick<RenderedBox, 'left' | 'top' | 'width' |
     };
 }
 
-const SPOTLIGHT_MAX_BOXES = 3;
 const SPOTLIGHT_STEP_MS = 650;
 
 /**
@@ -208,7 +146,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
     const spotlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const startedSpotlightSequenceRef = useRef<string | null>(null);
     const [activeDecorationTargetKeys, setActiveDecorationTargetKeys] = useState<Set<string>>(() => new Set());
-    const [activeCakeMessagePosition, setActiveCakeMessagePosition] = useState<CakeMessageBoxTarget['position'] | null>(null);
+    const [activeCakeMessageId, setActiveCakeMessageId] = useState<CakeMessageBoxTarget['id'] | null>(null);
     const [spotlightIndex, setSpotlightIndex] = useState<number | null>(null);
     const [hasDismissedInteractionHint, setHasDismissedInteractionHint] = useState(false);
     const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => (
@@ -247,7 +185,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
     }, []);
 
     useEffect(() => {
-        if (activeDecorationTargetKeys.size === 0 && activeCakeMessagePosition === null && spotlightIndex === null) return;
+        if (activeDecorationTargetKeys.size === 0 && activeCakeMessageId === null && spotlightIndex === null) return;
 
         const handleBackgroundPointerDown = (event: PointerEvent) => {
             const overlay = overlayRef.current;
@@ -263,13 +201,13 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
             }
 
             setActiveDecorationTargetKeys(new Set());
-            setActiveCakeMessagePosition(null);
+            setActiveCakeMessageId(null);
             onBackgroundActivate?.();
         };
 
         window.addEventListener('pointerdown', handleBackgroundPointerDown);
         return () => window.removeEventListener('pointerdown', handleBackgroundPointerDown);
-    }, [activeCakeMessagePosition, activeDecorationTargetKeys, onBackgroundActivate, spotlightIndex, stopSpotlight]);
+    }, [activeCakeMessageId, activeDecorationTargetKeys, onBackgroundActivate, spotlightIndex, stopSpotlight]);
     const measurementLines: Array<{
         left: number;
         top: number;
@@ -290,14 +228,10 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
     }> = [];
     const boxes: RenderedBox[] = [];
     const editableTargetKeys = new Set(editableDecorationTargets.map((target) => `${target.category}:${target.groupId}`));
-    const editableCakeMessageTargetsByPosition = new Map(
-        editableCakeMessageTargets.map((target) => [target.position, target]),
+    const editableCakeMessageTargetsById = new Map(
+        editableCakeMessageTargets.map((target) => [target.id, target]),
     );
-    const applyImageOffset = (display: { left: number; top: number; width: number; height: number }) => ({
-        ...display,
-        left: display.left + offsetX,
-        top: display.top + offsetY,
-    });
+    const applyOffset = (display: DisplayBox) => applyImageOffset(display, { left: offsetX, top: offsetY });
 
     const addMeasurementLine = (
         startPoint: { x: number; y: number },
@@ -307,30 +241,10 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
         testId = `cake-measurement-${label.toLowerCase()}`,
         ariaLabel = `Cake ${label.toLowerCase()} measurement line`,
     ) => {
-        const start = normalizedPointToDisplay(startPoint, containerWidth, containerHeight);
-        const end = normalizedPointToDisplay(endPoint, containerWidth, containerHeight);
-        const left = Math.min(start.x, end.x) + offsetX;
-        const top = Math.min(start.y, end.y) + offsetY;
-        const startX = start.x + offsetX - left;
-        const startY = start.y + offsetY - top;
-        const endX = end.x + offsetX - left;
-        const endY = end.y + offsetY - top;
-        const deltaX = end.x - start.x;
-        const deltaY = end.y - start.y;
+        const line = measurementLineToDisplay(startPoint, endPoint, containerWidth, containerHeight, { left: offsetX, top: offsetY });
 
         measurementLines.push({
-            left,
-            top,
-            width: Math.abs(deltaX),
-            height: Math.abs(deltaY),
-            startX,
-            startY,
-            endX,
-            endY,
-            midpointX: (startX + endX) / 2,
-            midpointY: (startY + endY) / 2,
-            length: Math.hypot(deltaX, deltaY),
-            angle: Math.atan2(deltaY, deltaX) * (180 / Math.PI),
+            ...line,
             label,
             testId,
             ariaLabel,
@@ -415,11 +329,11 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
         if (!bbox) return;
         if (useTopLeftOrigin) {
             // Gemini normalized coordinates (0–1000, top-left origin)
-            const display = applyImageOffset(normalizedToDisplay(bbox.x, bbox.y, bbox.width, bbox.height, containerWidth, containerHeight));
+            const display = applyOffset(normalizedToDisplay(bbox.x, bbox.y, bbox.width, bbox.height, containerWidth, containerHeight));
             boxes.push({ ...display, label, color, type, target, messageTarget });
         } else {
             // Legacy center-origin app coordinates
-            const display = applyImageOffset(appCoordinatesToDisplay(bbox.x, bbox.y, bbox.width, bbox.height, imageWidth, imageHeight, containerWidth, containerHeight));
+            const display = applyOffset(appCoordinatesToDisplay(bbox.x, bbox.y, bbox.width, bbox.height, imageWidth, imageHeight, containerWidth, containerHeight));
             boxes.push({
                 ...display,
                 label,
@@ -442,14 +356,10 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
         messageTarget?: CakeMessageBoxTarget,
     ) => {
         if (!box2d) return;
-        const unitBoxes: GeneratedBox2D[] = box2d.length === 4 && box2d.every((value) => typeof value === 'number')
-            ? [box2d as GeneratedBox2D]
-            : box2d as GeneratedBox2D[];
-        const unitConfidences = Array.isArray(confidence)
-            ? confidence
-            : unitBoxes.map(() => confidence);
+        const unitBoxes = splitIntegratedBox2D(box2d);
+        const unitConfidences = alignUnitConfidences(unitBoxes.length, confidence);
         unitBoxes.forEach(([ymin, xmin, ymax, xmax], unitIndex) => {
-            const display = applyImageOffset(normalizedToDisplay(
+            const display = applyOffset(normalizedToDisplay(
                 xmin,
                 ymin,
                 xmax - xmin,
@@ -489,7 +399,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
                 topper.box_2d,
                 topper.bbox_confidence,
                 topper.description || `Topper ${index + 1}`,
-                COLORS.main_topper,
+                OVERLAY_COLORS.main_topper,
                 'topper',
                 target,
             );
@@ -498,7 +408,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
                 topper.size_line.start,
                 topper.size_line.end,
                 topper.description || `Topper ${index + 1}`,
-                COLORS.main_topper,
+                OVERLAY_COLORS.main_topper,
                 'topper',
                 index,
             );
@@ -506,7 +416,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
             collectElementBbox(
                 topper.bbox,
                 topper.description || `Topper ${index + 1}`,
-                COLORS.main_topper,
+                OVERLAY_COLORS.main_topper,
                 'topper',
                 target,
             );
@@ -524,7 +434,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
                 element.box_2d,
                 element.bbox_confidence,
                 element.description || `Element ${index + 1}`,
-                COLORS.support_element,
+                OVERLAY_COLORS.support_element,
                 'support',
                 target,
             );
@@ -533,7 +443,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
                 element.size_line.start,
                 element.size_line.end,
                 element.description || `Element ${index + 1}`,
-                COLORS.support_element,
+                OVERLAY_COLORS.support_element,
                 'support',
                 index,
             );
@@ -541,7 +451,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
             collectElementBbox(
                 element.bbox,
                 element.description || `Element ${index + 1}`,
-                COLORS.support_element,
+                OVERLAY_COLORS.support_element,
                 'support',
                 target,
             );
@@ -549,13 +459,17 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
     });
 
     analysisResult.cake_messages?.forEach((message, index) => {
-        const messageTarget = editableCakeMessageTargetsByPosition.get(message.position);
+        // Fresh synced analyses carry the UI message id. Initial persisted
+        // analyses do not, so preserve their array correspondence as the
+        // fallback; unlike position, the index keeps duplicate surfaces distinct.
+        const messageTarget = (message.id ? editableCakeMessageTargetsById.get(message.id) : undefined)
+            ?? editableCakeMessageTargets[index];
         if (message.box_2d) {
             collectIntegratedBox(
                 message.box_2d,
                 message.bbox_confidence,
                 message.text || `Message ${index + 1}`,
-                COLORS.cake_message,
+                OVERLAY_COLORS.cake_message,
                 'message',
                 undefined,
                 messageTarget,
@@ -564,7 +478,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
             collectElementBbox(
                 message.bbox,
                 message.text || `Message ${index + 1}`,
-                COLORS.cake_message,
+                OVERLAY_COLORS.cake_message,
                 'message',
                 undefined,
                 messageTarget,
@@ -583,7 +497,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
 
         const key = box.target
             ? `${box.target.category}:${box.target.groupId}`
-            : `message:${box.messageTarget?.position}`;
+            : `message:${box.messageTarget?.id}`;
         if (seenSpotlightKeys.has(key)) return;
         seenSpotlightKeys.add(key);
         spotlightCandidates.push({
@@ -599,7 +513,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
     const spotlightBoxes = [
         ...spotlightCandidates.filter((candidate) => candidate.isMessage),
         ...spotlightCandidates.filter((candidate) => !candidate.isMessage),
-    ].slice(0, SPOTLIGHT_MAX_BOXES);
+    ];
 
     const spotlightSequenceKey = spotlightBoxes.map(({ key }) => key).join('|');
 
@@ -655,13 +569,13 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
 
     const setActiveDecorationTargets = (targets: readonly DecorationBoxTarget[]) => {
         setActiveDecorationTargetKeys(new Set(targets.map((target) => `${target.category}:${target.groupId}`)));
-        setActiveCakeMessagePosition(null);
+        setActiveCakeMessageId(null);
     };
 
     const activateCakeMessage = (target: CakeMessageBoxTarget) => {
         setActiveDecorationTargetKeys(new Set());
-        setActiveCakeMessagePosition(target.position);
-        onCakeMessageActivate?.(target.position);
+        setActiveCakeMessageId(target.id);
+        onCakeMessageActivate?.(target.id);
     };
 
     return (
@@ -669,9 +583,14 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
             {spotlightBoxes.length > 0 && !hasDismissedInteractionHint ? (
                 <div
                     data-testid="bbox-interaction-hint"
-                    className="absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-slate-950/80 px-3 py-1.5 text-center text-[10px] font-semibold text-white shadow-lg backdrop-blur-sm max-md:top-2 max-md:px-2.5 max-md:py-1 max-md:text-[9px]"
+                    className="absolute left-1/2 top-2/3 -translate-x-1/2 whitespace-nowrap rounded-full border border-purple-100 bg-white px-3 py-1.5 text-center text-[10px] font-semibold text-purple-700 shadow-lg backdrop-blur-sm max-md:px-2.5 max-md:py-1 max-md:text-[9px]"
                 >
-                    Tap or click a highlighted detail to edit it
+                    <span data-testid="bbox-interaction-hint-mobile" className="lg:hidden">
+                        Tap a highlighted detail to edit
+                    </span>
+                    <span data-testid="bbox-interaction-hint-desktop" className="hidden lg:inline">
+                        Click a highlighted detail to edit
+                    </span>
                 </div>
             ) : null}
             {measurementLines.map((line) => {
@@ -747,7 +666,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
                 const touchBounds = getMinimumTouchBounds(box);
                 const targetKey = box.target ? `${box.target.category}:${box.target.groupId}` : null;
                 const isActive = (targetKey !== null && activeDecorationTargetKeys.has(targetKey))
-                    || box.messageTarget?.position === activeCakeMessagePosition;
+                    || box.messageTarget?.id === activeCakeMessageId;
                 const isSpotlighted = spotlightBoxIndex === index;
                 const shouldShowLabel = (!onDecorationActivate && !onCakeMessageActivate) || isActive;
 
@@ -819,7 +738,7 @@ export const BoundingBoxOverlay: React.FC<BoundingBoxOverlayProps> = ({
                                     if (event.button !== 0) return;
                                     stopSpotlight();
                                     setActiveDecorationTargetKeys(new Set());
-                                    setActiveCakeMessagePosition(box.messageTarget!.position);
+                                    setActiveCakeMessageId(box.messageTarget!.id);
                                 }}
                                 onPointerUp={(event) => {
                                     if (event.button !== 0) return;
