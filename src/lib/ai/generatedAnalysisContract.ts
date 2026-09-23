@@ -391,8 +391,6 @@ export function reconcileGeneratedCakeTypeThickness(value: unknown): unknown {
   if (
     typeof cakeType !== 'string'
     || !GENERATED_ANALYSIS_CAKE_TYPES.includes(cakeType as GeneratedCakeType)
-    || typeof cakeThickness !== 'string'
-    || !GENERATED_ANALYSIS_CAKE_THICKNESSES.includes(cakeThickness as GeneratedCakeThickness)
   ) {
     return value;
   }

@@ -2837,10 +2837,17 @@ Choose exactly one scope before emitting each topper or support row:
 3. `treatment`: only for a non-countable treated region such as sprinkles,
    panels, spreads, splatter, or continuous icing. Return one region box and
    one confidence. Do not choose treatment merely because individual units are
-   small, numerous, or difficult to count. `icing_decorations` is reserved for
-   independently placed piped units in this contract.
+   small, numerous, or difficult to count. For `icing_decorations`, treatment
+   is allowed only for one continuous icing border or region with material
+   `icing` and quantity `1`; separately placed piped blooms and leaf motifs
+   remain `unit` rows with exact per-unit boxes.
 
 Before returning JSON, verify that each `unit` row has exactly
 `min(quantity, 5)` boxes, each `piped_cluster` row has one box, quantity `1`,
-and coverage, and every treatment row has one allowed treatment box. Rejected
-images use empty arrays and geometry_version only, without measurement lines.
+and coverage, each `icing_decorations` treatment row is one continuous icing
+region with quantity `1`, and every treatment row has one allowed treatment
+box. Accepted images require the diameter line. If the height line is missing
+or unusable after one complete replacement attempt, omit it; the application
+keeps a valid model thickness or uses the lowest thickness supported for a
+confirmed cake type. Rejected images use empty arrays and geometry_version
+only, without measurement lines.

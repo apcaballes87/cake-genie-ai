@@ -1,5 +1,8 @@
 import type { ValidSize } from '@/constants/pricingEnums';
-import { GeneratedAnalysisContractError } from '@/lib/ai/generatedAnalysisContract';
+import {
+  GeneratedAnalysisContractError,
+  reconcileCakeThicknessForType,
+} from '@/lib/ai/generatedAnalysisContract';
 import { cakeThicknessForAspectRatio, LOCAL_VARIABLE_HEIGHT_SINGLE_BODY_TYPES } from '@/lib/ai/localAnalysisSizing';
 
 export const INTEGRATED_BBOX_V1_GEOMETRY_VERSION = 'integrated_bbox_v1' as const;
@@ -28,6 +31,7 @@ export const INTEGRATED_TREATMENT_GEOMETRY_TYPES = [
   'icing_brush_stroke',
   'icing_splatter',
   'icing_minimalist_spread',
+  'icing_decorations',
   'edible_photo_side',
   'edible_photo_side_wave',
   'thin_fabric_ribbon_bows',
@@ -35,13 +39,12 @@ export const INTEGRATED_TREATMENT_GEOMETRY_TYPES = [
 ] as const;
 
 /**
- * The v1 contract treated icing_decorations as an aggregate fallback. Keep
- * that historical allowlist for warm v1 responses, while v2 deliberately
- * reserves icing_decorations for independently placed unit rows.
+ * The v1 contract treated icing_decorations as an aggregate fallback. V2 also
+ * permits it as a treatment only for one continuous icing region; independent
+ * decorations still use exact per-unit boxes.
  */
 export const INTEGRATED_AGGREGATE_GEOMETRY_TYPES = [
   ...INTEGRATED_TREATMENT_GEOMETRY_TYPES,
-  'icing_decorations',
 ] as const;
 
 function isTreatmentGeometryType(value: unknown): boolean {
@@ -247,6 +250,9 @@ function expectedBoxCount(
       if (!isTreatmentGeometryType(row.type)) {
         fail(`${path}.geometry_scope`, 'treatment is not allowed for this type');
       }
+      if (row.type === 'icing_decorations' && (row.material !== 'icing' || row.quantity !== 1)) {
+        fail(`${path}.geometry_scope`, 'icing_decorations treatment requires icing material and quantity 1');
+      }
       return 1;
     }
     if (isPipedClusterType(row.type)) {
@@ -337,12 +343,30 @@ function validateGeometry(
   value: unknown,
   rejected: boolean,
   geometryVersion: IntegratedBboxGeometryVersion,
+  allowMissingCakeHeightLine = false,
 ): IntegratedBboxGeometry {
   const geometry = requireRecord(value, 'geometry');
-  const expected = rejected
-    ? ['geometry_version']
-    : ['geometry_version', 'cake_diameter_line', 'cake_height_line'];
-  requireExactKeys(geometry, expected, 'geometry');
+  const canFallbackHeight = !rejected
+    && geometryVersion === INTEGRATED_BBOX_GEOMETRY_VERSION
+    && allowMissingCakeHeightLine;
+  if (rejected) {
+    requireExactKeys(geometry, ['geometry_version'], 'geometry');
+  } else if (canFallbackHeight) {
+    const allowedKeys = ['geometry_version', 'cake_diameter_line', 'cake_height_line'];
+    if (Object.keys(geometry).some((key) => !allowedKeys.includes(key))) {
+      fail('geometry', `must contain only: ${allowedKeys.join(', ')}`);
+    }
+    if (!('geometry_version' in geometry)) fail('geometry.geometry_version', 'is required');
+    if (!('cake_diameter_line' in geometry)) fail('geometry.cake_diameter_line', 'is required for accepted analysis');
+  } else {
+    const expected = ['geometry_version', 'cake_diameter_line', 'cake_height_line'];
+    if (Object.keys(geometry).some((key) => !expected.includes(key))) {
+      fail('geometry', `must contain only: ${expected.join(', ')}`);
+    }
+    for (const key of expected) {
+      if (!(key in geometry)) fail(`geometry.${key}`, 'is required');
+    }
+  }
   if (geometry.geometry_version !== geometryVersion) {
     fail('geometry.geometry_version', `must be ${geometryVersion}`);
   }
@@ -355,31 +379,42 @@ function validateGeometry(
     line(geometry.cake_diameter_line, 'geometry.cake_diameter_line'),
     'horizontal',
   );
-  const height = canonicalizeLineDirection(
-    line(geometry.cake_height_line, 'geometry.cake_height_line'),
-    'vertical',
-  );
   if (!isPredominantlyHorizontal(diameter)) {
     fail('geometry.cake_diameter_line', 'must be a left-to-right predominantly horizontal line');
   }
-  if (!isPredominantlyVertical(height)) {
-    fail('geometry.cake_height_line', 'must be a top-to-bottom predominantly vertical line');
-  }
+  let height: IntegratedBboxLine | undefined;
+  try {
+    if (!('cake_height_line' in geometry)) {
+      fail('geometry.cake_height_line', 'is required for accepted analysis');
+    }
+    height = canonicalizeLineDirection(
+      line(geometry.cake_height_line, 'geometry.cake_height_line'),
+      'vertical',
+    );
+    if (!isPredominantlyVertical(height)) {
+      fail('geometry.cake_height_line', 'must be a top-to-bottom predominantly vertical line');
+    }
 
-  const diameterCenter = (diameter.start[1] + diameter.end[1]) / 2;
-  const diameterWidth = diameter.end[1] - diameter.start[1];
-  const centerTolerance = Math.max(MAX_AXIS_DRIFT, diameterWidth * MAX_CENTER_OFFSET_RATIO);
-  if (
-    Math.abs(height.start[1] - diameterCenter) > centerTolerance
-    || Math.abs(height.end[1] - diameterCenter) > centerTolerance
-  ) {
-    fail('geometry.cake_height_line', 'must align with the cake diameter midpoint');
+    const diameterCenter = (diameter.start[1] + diameter.end[1]) / 2;
+    const diameterWidth = diameter.end[1] - diameter.start[1];
+    const centerTolerance = Math.max(MAX_AXIS_DRIFT, diameterWidth * MAX_CENTER_OFFSET_RATIO);
+    if (
+      Math.abs(height.start[1] - diameterCenter) > centerTolerance
+      || Math.abs(height.end[1] - diameterCenter) > centerTolerance
+    ) {
+      fail('geometry.cake_height_line', 'must align with the cake diameter midpoint');
+    }
+  } catch (error) {
+    const isHeightLineFailure = error instanceof GeneratedAnalysisContractError
+      && error.message.includes('geometry.cake_height_line');
+    if (!canFallbackHeight || !isHeightLineFailure) throw error;
+    height = undefined;
   }
 
   return {
     geometry_version: geometryVersion,
     cake_diameter_line: diameter,
-    cake_height_line: height,
+    ...(height ? { cake_height_line: height } : {}),
   };
 }
 
@@ -390,6 +425,7 @@ function validateGeometry(
 export function validateIntegratedBboxResponse(
   value: unknown,
   geometryVersion: IntegratedBboxGeometryVersion = INTEGRATED_BBOX_V1_GEOMETRY_VERSION,
+  options: { allowMissingCakeHeightLine?: boolean } = {},
 ): IntegratedBboxResponse {
   const response = requireRecord(value, 'integrated response');
   requireExactKeys(response, ['analysis', 'geometry'], 'integrated response');
@@ -400,7 +436,12 @@ export function validateIntegratedBboxResponse(
     fail('analysis', 'must not include legacy or duplicate geometry fields');
   }
 
-  const geometry = validateGeometry(response.geometry, rejection.isRejected, geometryVersion);
+  const geometry = validateGeometry(
+    response.geometry,
+    rejection.isRejected,
+    geometryVersion,
+    options.allowMissingCakeHeightLine,
+  );
   if (!rejection.isRejected) {
     requireGeometryRows(analysis, 'main_toppers', geometryVersion);
     requireGeometryRows(analysis, 'support_elements', geometryVersion);
@@ -484,18 +525,26 @@ function applyAspectRatioCakeThickness(
     return analysis;
   }
 
+  if (!geometry.cake_height_line) {
+    const fallbackThickness = reconcileCakeThicknessForType(cakeType, analysis.cakeThickness);
+    return !fallbackThickness || fallbackThickness === analysis.cakeThickness
+      ? analysis
+      : { ...analysis, cakeThickness: fallbackThickness };
+  }
+
   const diameterLength = measuredLineLength(geometry.cake_diameter_line!);
   const heightLength = measuredLineLength(geometry.cake_height_line!);
   const aspectRatio = diameterLength / heightLength;
   const requestedThickness = cakeThicknessForAspectRatio(aspectRatio);
-  const allowedThicknesses = ['1 Tier', 'Square', 'Rectangle'].includes(cakeType)
-    ? ['3 in', '4 in', '5 in', '6 in']
-    : cakeType.includes('Fondant')
-      ? ['5 in', '6 in']
-      : ['3 in', '4 in'];
-  const cakeThickness = allowedThicknesses.includes(requestedThickness)
-    ? requestedThickness
-    : analysis.cakeThickness;
+  const cakeThickness = reconcileCakeThicknessForType(cakeType, requestedThickness);
+  if (!cakeThickness) return analysis;
+  if (cakeThickness !== requestedThickness) {
+    console.warn('[AI Contract] Reconciled measured cake thickness to the nearest supported value', {
+      cakeType,
+      measuredThickness: requestedThickness,
+      reconciledThickness: cakeThickness,
+    });
+  }
   return cakeThickness === analysis.cakeThickness ? analysis : { ...analysis, cakeThickness };
 }
 

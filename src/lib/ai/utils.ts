@@ -20,10 +20,23 @@ const ITEM_KEY_TYPE_ALIASES: Record<string, string> = {
 };
 
 export async function getDynamicTypeEnums(supabase: any) {
-    const { data, error } = await supabase
-        .from('pricing_rules')
-        .select('item_type, item_key, category, sub_item_type')
-        .eq('is_active', true);
+    let queryResult: { data: any; error: any };
+    try {
+        queryResult = await supabase
+            .from('pricing_rules')
+            .select('item_type, item_key, category, sub_item_type')
+            .eq('is_active', true);
+    } catch (queryError) {
+        console.warn('Failed to fetch dynamic enums from database, using fallbacks', queryError);
+        return {
+            mainTopperTypes: [...MAIN_TOPPER_TYPES],
+            supportElementTypes: [...SUPPORT_ELEMENT_TYPES],
+            subtypesByType: Object.fromEntries(
+                Object.entries(SUBTYPES_BY_TYPE).map(([type, subtypes]) => [type, [...subtypes]]),
+            ),
+        };
+    }
+    const { data, error } = queryResult;
 
     if (error || !data) {
         console.warn('Failed to fetch dynamic enums from database, using fallbacks');

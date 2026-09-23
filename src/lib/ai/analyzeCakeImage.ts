@@ -49,6 +49,7 @@ const THINKING_LEVELS: Record<CakeAnalysisThinkingLevel, ThinkingLevel> = {
 /** Includes provider text for internal diagnostic consumers without changing public route errors. */
 export class CakeAnalysisResponseError extends Error {
     rawResponse: string;
+    status = 502;
 
     constructor(message: string, rawResponse: string, cause?: unknown) {
         super(message, cause === undefined ? undefined : { cause });
@@ -225,6 +226,15 @@ export function buildCakeAnalysisContractRepairInstruction(
         integratedGeometryReminder,
         'Do not omit required fields or add unsupported fields.',
     ].filter(Boolean).join(' ');
+}
+
+function isCakeHeightLineContractError(error: unknown): boolean {
+    let current: unknown = error;
+    while (current && typeof current === 'object') {
+        if (current instanceof Error && current.message.includes('geometry.cake_height_line')) return true;
+        current = (current as { cause?: unknown }).cause;
+    }
+    return false;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -448,7 +458,10 @@ export async function runActiveCakeAnalysis({
     };
 
     let rawResponse = '';
-    const parseAndValidate = async (response: Awaited<ReturnType<typeof generateAnalysis>>) => {
+    const parseAndValidate = async (
+        response: Awaited<ReturnType<typeof generateAnalysis>>,
+        options: { allowMissingCakeHeightLine?: boolean } = {},
+    ) => {
         const jsonText = (response.text || '').trim();
         rawResponse = jsonText;
         try {
@@ -462,6 +475,7 @@ export async function runActiveCakeAnalysis({
                 sizeSchema,
                 seoSchema,
                 waferPaperSideWaveVerification,
+                options,
             );
         } catch (error) {
             console.error('Failed to parse AI response:', jsonText);
@@ -480,10 +494,19 @@ export async function runActiveCakeAnalysis({
             promptVersion: promptDetails.version,
             issue: error instanceof Error ? error.message : String(error),
         });
-        result = await parseAndValidate(await generateAnalysis(
+        const repairedResponse = await generateAnalysis(
             correctionInstruction,
             ANALYSIS_CONTRACT_CORRECTION_TIMEOUT_MS,
-        ));
+        );
+        try {
+            result = await parseAndValidate(repairedResponse);
+        } catch (repairError) {
+            if (sizeSchema !== 'integrated_bbox_v2' || !isCakeHeightLineContractError(repairError)) {
+                throw repairError;
+            }
+            console.warn('[AI Contract] Cake height geometry remains unusable after repair; applying the type-safe thickness fallback.');
+            result = await parseAndValidate(repairedResponse, { allowMissingCakeHeightLine: true });
+        }
     }
 
     const rejection = result.rejection as {

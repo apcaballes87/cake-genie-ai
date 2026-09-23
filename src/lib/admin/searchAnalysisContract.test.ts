@@ -87,6 +87,48 @@ function validAnalysis(overrides: Record<string, unknown> = {}) {
 }
 
 describe('search analysis contract', () => {
+  it('defaults missing thickness to the lowest supported value for a known cake type', () => {
+    const result = postProcessSearchAnalysisResult(
+      validAnalysis({ cakeType: 'Square', cakeThickness: undefined }),
+      typeEnums,
+      'three_band',
+    );
+
+    expect(result.cakeThickness).toBe('3 in');
+  });
+
+  it('does not guess a thickness for an unknown cake type', () => {
+    expect(() => postProcessSearchAnalysisResult(
+      validAnalysis({ cakeType: 'Unknown Shape', cakeThickness: '3 in' }),
+      typeEnums,
+      'three_band',
+    )).toThrow(/cakeType/);
+  });
+
+  it('keeps the integrated v2 treatment, height fallback, and response schema aligned', () => {
+    const config = buildSearchAnalysisGenerationConfig(typeEnums, 'integrated_bbox_v2');
+    const schema = config.responseSchema as unknown as {
+      properties: {
+        geometry: { required: string[] };
+        analysis: {
+          properties: {
+            support_elements: { items: { properties: Record<string, { description?: string }> } };
+          };
+        };
+      };
+    };
+
+    expect(config.systemInstruction).toContain('one continuous icing border or region');
+    expect(config.systemInstruction).toContain('material icing and quantity 1');
+    expect(config.systemInstruction).toContain('nearest thickness supported by the cake type');
+    expect(config.systemInstruction).toContain('uses the lowest thickness supported for a confirmed cake type');
+    expect(schema.properties.analysis.properties.support_elements.items.properties.type.description)
+      .toContain('one continuous icing region');
+    expect(schema.properties.analysis.properties.support_elements.items.properties.quantity.description)
+      .toContain('icing_decorations treatment requires icing material and quantity 1');
+    expect(schema.properties.geometry.required).toEqual(['geometry_version']);
+  });
+
   it('pins greedy low-variance decoding and low thinking for single-image and batch analysis', () => {
     expect(buildSearchAnalysisGenerationConfig(typeEnums)).toMatchObject({
       temperature: 0,
@@ -547,10 +589,10 @@ describe('search analysis contract', () => {
       }],
     }), typeEnums)).toThrow(/subtype/i);
 
-    expect(() => postProcessSearchAnalysisResult(validAnalysis({
+    expect(postProcessSearchAnalysisResult(validAnalysis({
       cakeType: 'Bento',
       cakeThickness: '7 in',
-    }), typeEnums)).toThrow(/cakeThickness/i);
+    }), typeEnums).cakeThickness).toBe('2 in');
 
     expect(() => postProcessSearchAnalysisResult(validAnalysis({
       support_elements: [{

@@ -609,7 +609,7 @@ const INTEGRATED_BBOX_V2_SYSTEM_OVERRIDE = `
 
 ## V3.93 INTEGRATED BOUNDING-BOX SCOPE (AUTHORITATIVE)
 
-For the integrated_bbox_v2 response schema, this instruction overrides every earlier direct-diameter, model-owned size, cake_measurements, size_line, bbox, fixed-size, size-free filler, and coverage-to-size instruction. Return the required { analysis, geometry } envelope in one response. Never emit a model-owned size, ratio, area, legacy bbox, size_line, or cake_measurements field. Every accepted main_toppers and support_elements row needs geometry_scope, a normalized box_2d array, and a matching bbox_confidence array. Every cake_messages row needs one tight normalized [ymin, xmin, ymax, xmax] box_2d and one bbox_confidence. Accepted images need the two geometry lines.
+For the integrated_bbox_v2 response schema, this instruction overrides every earlier direct-diameter, model-owned size, cake_measurements, size_line, bbox, fixed-size, size-free filler, and coverage-to-size instruction. Return the required { analysis, geometry } envelope in one response. Never emit a model-owned size, ratio, area, legacy bbox, size_line, or cake_measurements field. Every accepted main_toppers and support_elements row needs geometry_scope, a normalized box_2d array, and a matching bbox_confidence array. Every cake_messages row needs one tight normalized [ymin, xmin, ymax, xmax] box_2d and one bbox_confidence. Accepted images need the diameter line; include a cake height line when it is measurable.
 
 FIRST CHOOSE ONE GEOMETRY SCOPE FOR EACH TOPPER OR SUPPORT ROW:
 
@@ -617,11 +617,11 @@ FIRST CHOOSE ONE GEOMETRY SCOPE FOR EACH TOPPER OR SUPPORT ROW:
 
 2. piped_cluster — Use this only for one cohesive piped botanical treatment made of icing that is fulfilled and priced as a cluster. Use type piped_flowers_top for a top treatment or piped_flowers_side for a side treatment, material icing, quantity 1, and coverage small, medium, or large. box_2d must contain exactly one tight box around the full cluster, with one confidence. This review box does not size the row: coverage alone selects its fixed cluster price. Do not report a component count for the flowers or leaves inside the cluster.
 
-3. treatment — Use this only for a non-countable treated region of one of these types: ${INTEGRATED_TREATMENT_GEOMETRY_TYPES.join(', ')}. Use one region box and one confidence. Do not use treatment merely because independent units are small or difficult to count.
+3. treatment — Use this only for a non-countable treated region of one of these types: ${INTEGRATED_TREATMENT_GEOMETRY_TYPES.join(', ')}. For icing_decorations, treatment is allowed only for one continuous icing border or region with material icing and quantity 1. Individually placed piped blooms, leaf motifs, and other discrete decorations remain unit rows with exact per-unit boxes.
 
-Cake messages remain one box and one confidence because they are not quantity-priced items. The application determines variable-height cakeThickness from cake_diameter_width / cake_height_length using >=2 => 3 in, >=1.5 => 4 in, >1.2 => 5 in, and <=1.2 => 6 in. For unit rows, it uses cake_area = diameter_width * diameter_width and assigns Small when area_ratio_percent <= 15, Medium when > 15 and <= 70, and Large when > 70. All sampled unit boxes in a row must land in the same band. The height line is not part of the area denominator. The application accepts either endpoint order and canonicalizes diameter left-to-right and height top-to-bottom before validation and calculation. Rejected images have empty arrays and geometry_version only, with no measurement lines.
+Cake messages remain one box and one confidence because they are not quantity-priced items. The application determines variable-height cakeThickness from cake_diameter_width / cake_height_length using >=2 => 3 in, >=1.5 => 4 in, >1.2 => 5 in, and <=1.2 => 6 in, then reconciles that value to the nearest thickness supported by the cake type. For unit rows, it uses cake_area = diameter_width * diameter_width and assigns Small when area_ratio_percent <= 15, Medium when > 15 and <= 70, and Large when > 70. All sampled unit boxes in a row must land in the same band. The height line is not part of the area denominator. The application accepts either endpoint order and canonicalizes diameter left-to-right and height top-to-bottom before validation and calculation. The diameter line is required. If the cake height line is missing or unusable after one complete replacement attempt, omit it; the application keeps a valid model thickness or uses the lowest thickness supported for a confirmed cake type. Rejected images have empty arrays and geometry_version only, with no measurement lines.
 
-FINAL CARDINALITY CHECK BEFORE JSON: Every unit row must contain exactly min(quantity, ${INTEGRATED_MAX_UNIT_BOXES}) nested boxes and confidences. Every piped_cluster row must contain one box, one confidence, quantity 1, and coverage. Never merge separate decorations into a cluster box.`;
+FINAL CARDINALITY CHECK BEFORE JSON: Every unit row must contain exactly min(quantity, ${INTEGRATED_MAX_UNIT_BOXES}) nested boxes and confidences. Every piped_cluster row must contain one box, one confidence, quantity 1, and coverage. Every icing_decorations treatment row must be one continuous icing region with quantity 1. Never merge separate decorations into a cluster box.`;
 
 const DIRECT_DIAMETER_SYSTEM_OVERRIDE = `
 
@@ -719,7 +719,7 @@ export function buildSearchAnalysisResponseSchema(
               type: Type.STRING,
               enum: mainTopperTypes,
               ...(isIntegratedBboxV2
-                ? { description: 'Set geometry_scope first. unit rows use exact per-unit boxes; piped_cluster is allowed only for piped_flower types with quantity 1; treatment is limited to the authoritative v2 treatment list.' }
+                ? { description: 'Set geometry_scope first. unit rows use exact per-unit boxes; piped_cluster is allowed only for piped_flower types with quantity 1; icing_decorations may use treatment only for one continuous icing region with material icing and quantity 1; all other treatment types use the authoritative v2 treatment list.' }
                 : isIntegratedBbox
                 ? { description: `Use one box per visible discrete unit, capped at ${INTEGRATED_MAX_UNIT_BOXES} boxes. Aggregate full-region geometry is limited to: ${INTEGRATED_AGGREGATE_GEOMETRY_TYPES.join(', ')}.` }
                 : {}),
@@ -730,7 +730,7 @@ export function buildSearchAnalysisResponseSchema(
             quantity: {
               type: Type.INTEGER,
               ...(isIntegratedBboxV2 ? {
-                description: `unit requires exactly min(quantity, ${INTEGRATED_MAX_UNIT_BOXES}) individual boxes. piped_cluster requires quantity 1.`,
+                description: `unit requires exactly min(quantity, ${INTEGRATED_MAX_UNIT_BOXES}) individual boxes. piped_cluster requires quantity 1. icing_decorations treatment requires icing material and quantity 1.`,
               } : isIntegratedBbox ? {
                 description: `For discrete rows, box_2d may contain up to min(quantity, ${INTEGRATED_MAX_UNIT_BOXES}) distinct visible-unit boxes. Never use one arrangement-wide box.`,
               } : {}),
@@ -766,7 +766,7 @@ export function buildSearchAnalysisResponseSchema(
               type: Type.STRING,
               enum: supportElementTypes,
               ...(isIntegratedBboxV2
-                ? { description: 'Set geometry_scope first. unit rows use exact per-unit boxes; piped_cluster is allowed only for piped_flower types with quantity 1; treatment is limited to the authoritative v2 treatment list.' }
+                ? { description: 'Set geometry_scope first. unit rows use exact per-unit boxes; piped_cluster is allowed only for piped_flower types with quantity 1; icing_decorations may use treatment only for one continuous icing region with material icing and quantity 1; all other treatment types use the authoritative v2 treatment list.' }
                 : isIntegratedBbox
                 ? { description: `Use one box per visible discrete unit, capped at ${INTEGRATED_MAX_UNIT_BOXES} boxes. Aggregate full-region geometry is limited to: ${INTEGRATED_AGGREGATE_GEOMETRY_TYPES.join(', ')}.` }
                 : {}),
@@ -790,7 +790,7 @@ export function buildSearchAnalysisResponseSchema(
             quantity: {
               type: Type.INTEGER,
               ...(isIntegratedBboxV2 ? {
-                description: `unit requires exactly min(quantity, ${INTEGRATED_MAX_UNIT_BOXES}) individual boxes. piped_cluster requires quantity 1.`,
+                description: `unit requires exactly min(quantity, ${INTEGRATED_MAX_UNIT_BOXES}) individual boxes. piped_cluster requires quantity 1. icing_decorations treatment requires icing material and quantity 1.`,
               } : isIntegratedBbox ? {
                 description: `For discrete rows, box_2d may contain up to min(quantity, ${INTEGRATED_MAX_UNIT_BOXES}) distinct visible-unit boxes. Never use one arrangement-wide box.`,
               } : {}),
@@ -988,9 +988,10 @@ export function postProcessSearchAnalysisResult(
   sizeSchema: AnalysisGenerationSizeSchema = 'three_band',
   seoSchema: AnalysisGenerationSeoSchema = 'analysis_only',
   waferPaperSideWaveVerification?: WhiteWaferPaperSideWaveVerification,
+  options: { allowMissingCakeHeightLine?: boolean } = {},
 ): GeneratedCakeAnalysisResult {
   if (sizeSchema === 'integrated_bbox_v1' || sizeSchema === 'integrated_bbox_v2') {
-    const integrated = validateIntegratedBboxResponse(result, sizeSchema);
+    const integrated = validateIntegratedBboxResponse(result, sizeSchema, options);
     const reconciledResult = reconcileGeneratedCakeTypeThickness(integrated.analysis);
     const reconciledAnalysis = removeUnverifiedConditionedWaferPaperWaves(
       reconcileDescriptionTypes(removeExplicitSceneOnlyItems(reconciledResult), typeEnums),
@@ -1005,7 +1006,7 @@ export function postProcessSearchAnalysisResult(
     const reconciledIntegrated = validateIntegratedBboxResponse({
       analysis: reconciledOutput as Record<string, unknown>,
       geometry: integrated.geometry,
-    }, sizeSchema);
+    }, sizeSchema, options);
     const locallySized = applyIntegratedBboxSizing(reconciledIntegrated);
     return validateGeneratedCakeAnalysisResult(
       locallySized,

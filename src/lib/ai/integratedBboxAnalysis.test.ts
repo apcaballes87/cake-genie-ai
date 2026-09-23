@@ -481,6 +481,36 @@ describe('integrated_bbox_v1 analysis', () => {
     expect(result.support_elements[1].box_2d).toHaveLength(5);
   });
 
+  it('reconciles a measured 5-inch Square candidate to the nearest supported 4-inch value', () => {
+    const result = processV2(acceptedV2Envelope({
+      analysis: acceptedAnalysis({ cakeType: 'Square', cakeThickness: '5 in' }),
+      geometry: {
+        geometry_version: 'integrated_bbox_v2',
+        cake_diameter_line: { start: [300, 100], end: [300, 900] },
+        cake_height_line: { start: [200, 500], end: [815, 500] },
+      },
+    }));
+
+    expect(result.cakeThickness).toBe('4 in');
+  });
+
+  it('allows one continuous piped icing border as a treatment while keeping multi-unit rows strict', () => {
+    const result = processV2(acceptedV2Envelope({
+      analysis: acceptedAnalysis({
+        support_elements: [{
+          type: 'icing_decorations', material: 'icing', group_id: 'continuous_border', color: '#FFFFFF',
+          geometry_scope: 'treatment', quantity: 1, description: 'one continuous piped icing border',
+          box_2d: [[850, 100, 900, 900]], bbox_confidence: [0.95],
+        }],
+      }),
+    }));
+
+    expect(result.support_elements[0]).toMatchObject({
+      type: 'icing_decorations', geometry_scope: 'treatment', quantity: 1,
+    });
+    expect(result.support_elements[0].box_2d).toEqual([[850, 100, 900, 900]]);
+  });
+
   it('v2 keeps a cohesive piped cluster as one coverage-priced region', () => {
     const result = processV2(acceptedV2Envelope({
       analysis: acceptedAnalysis({
@@ -559,6 +589,6 @@ describe('integrated_bbox_v1 analysis', () => {
         }],
       }),
     });
-    expect(() => processV2(incorrectlyAggregatedIcingDecorations)).toThrow(/treatment is not allowed for this type/);
+    expect(() => processV2(incorrectlyAggregatedIcingDecorations)).toThrow(/requires icing material and quantity 1/);
   });
 });
