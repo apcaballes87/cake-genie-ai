@@ -5487,20 +5487,20 @@ AI chat submit
 
 ### Plan
 
-- [x] Use the live active v3.95 prompt as the immutable source and preserve it as active.
+- [x] Use the live active v3.95 prompt as the immutable source and preserve its row as historical.
 - [x] Add a narrow v3.96 rule classifying detailed handmade edible character figures as `edible_3d_complex` in `main_toppers` regardless of placement or tier attachment; preserve toy, ceramic, flat-art, and ordinary-object precedence.
-- [x] Restore the fallback prompt to byte-identical live v3.95 and create a focused case fixture/regression check for the three Spider-Man figures.
+- [x] Keep the fallback byte-identical to the currently active prompt and create a focused case fixture/regression check for the three Spider-Man figures.
 - [x] Create a guarded staging migration that inserts v3.96 inactive from the exact active v3.95 row without touching cache/pricing or activating the prompt.
 - [x] Run focused verification, `git diff --check`, and verify live staging, active prompt, fallback MD5, and historical cache invariance.
-- [ ] Publish the matching system instruction, fallback, and fallback-version update; wait for the production build to succeed.
-- [ ] Activate v3.96 transactionally after deployment and verify the sole active prompt plus historical cache invariance.
+- [x] Publish the matching system instruction, fallback, and fallback-version update; wait for the production build to succeed.
+- [x] Activate v3.96 transactionally after deployment and verify the sole active prompt plus historical cache invariance.
 
 ### Review
 
-- Live verification: v3.95 remains active at MD5 `d53fd769dcd1e258c04c5f9beec3be29`; v3.96 is staged inactive at MD5 `afc7a90e525fcc74fa7c018f6d47d1ea`. Fallback and staged files match their corresponding live prompt MD5s.
+- Live verification: v3.96 is the sole active global prompt at MD5 `afc7a90e525fcc74fa7c018f6d47d1ea`; v3.95 remains preserved as an inactive historical row at MD5 `d53fd769dcd1e258c04c5f9beec3be29`. Fallback MD5 matches active v3.96.
+- Published commit `6e4cb8a1534fa23bd2407cd21feb3c638d191999`; Vercel production deployment `dpl_BvktL58JmRpFvs5dBqtuD4vJC4Sj` reached `READY` on the `genie.ph` alias before database activation.
 - The case cache row remains unchanged: `cb243cd4-9d30-4665-a53a-f9899522cc16`, analysis MD5 `851e23575d238a7cfe3cf946fff6aa2f`, stored price ₱5,099. No pricing rules changed.
-- Verification: 66 focused tests passed; 5 historical migration-dependent tests were filtered because their migration files are absent from `origin/main`; `git diff --check` passed. No fresh analysis or cache backfill was run.
-- v3.96 is not active; activation remains a separate approval.
+- Verification: 66 focused tests passed; 5 historical migration-dependent tests were filtered because their migration files are absent from `origin/main`; `git diff --check` passed. Vercel's production build succeeded. The local build was blocked by sandbox `EPERM` when Next tried to create `.next` in the managed worktree. No fresh model analysis or cache backfill was run.
 
 ## Review
 
