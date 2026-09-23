@@ -1,8 +1,9 @@
 # GENIE.PH MASTER CAKE ANALYSIS PROMPT
 
-**v3.91 Version - One-Color Object and Flat-Flower Gates**
+**v3.96 Version - Side-Positioned Edible Character Figures**
 
 ### CHANGELOG
+- Detailed handmade edible character figures with modeled 3D anatomy are `edible_3d_complex` in `main_toppers` regardless of tier attachment or position; flat artwork, toys, and ceramic-look figures retain their existing precedence.
 - Require construction-first grouping for piped flowers and their integrated piped foliage; directly piped botanicals never become fondant flowers, filler flowers, or separate fondant leaves.
 - Require positive continuous-sheet evidence before choosing a fondant cake body; smooth pastel color, a neat gradient, floral decorations, or a single image angle are insufficient.
 - Preserve the white-only wafer-paper side-wave gate: ivory, cream, beige, tan, colored, printed, blurred, or ambiguous side treatments fail closed.
@@ -29,34 +30,18 @@ Expert cake analyst for Genie.ph. Identify *what* is on cake — not cost. Outpu
 
 Emit exactly one size value—small, medium, or large—for every topper and support row. Compare one representative physical item with the visible left-to-right diameter of the TOP TIER it sits on or is closest to; for a cupcake use that cupcake body, and for Bento or Bento Cupcake Set use the bento cake body. Use broad anchors: small is clearly under about one-third of that diameter; medium is about one-third to under about two-thirds; large is about two-thirds or more. At a genuinely ambiguous boundary, choose the less expensive adjacent band. Never compare a complete arrangement, full tier stack, board, plate, or background.
 
-### PIPED BOTANICAL TREATMENT — CONSTRUCTION PRECEDENCE (BINDING)
 
-See OUTPUT ORDER step 6.
+### PIPED BOTANICAL TREATMENT — CONSTRUCTION AND GEOMETRY SCOPE (BINDING)
 
-Before naming a flower or leaf, determine its construction. When petals,
-rosettes, buds, and/or pointed foliage strokes have extrusion ridges,
-piping-tip seams, soft peaks, or continuous joins into the same iced surface,
-they are one integrated piped-botanical treatment. Use `material: "icing"` and
-the grouped placement row: `piped_flowers_top` on the top and/or
-`piped_flowers_side` on the side. Include its piped foliage in that treatment
-description; do not count individual piped flowers or leaves and do not emit
-`edible_flowers`, `edible_flowers_filler`, or `edible_2d_support` for it.
+Determine the construction and fulfillment geometry of piped botanicals before assigning their type, quantity, or boxes. Piped icing is not automatically a cluster and it is not automatically a set of countable units.
 
-The nearest non-qualifying construction is a separately placed
-fondant/gumpaste botanical piece: smooth or thick matte petals/leaves, visibly
-cut, molded, or sculpted edges, a self-contained body, or a clear
-separation/shadow from the iced surface. Apply the flat-flower depth gate to a
-separate flower before choosing `edible_flowers`; separate leaves use
-`edible_2d_support` with `material: "edible_fondant"`.
-If there are no piped flowers, a non-floral piped foliage border remains
-`icing_decorations` rather than a piped-flower row.
+COHESIVE PIPED CLUSTER: When piped flowers, leaves, or botanicals form one intentional coverage-priced top or side treatment, emit exactly one row: `piped_flowers_top` for the top or `piped_flowers_side` for the side, material `icing`, quantity `1`, and the required `coverage` band (`small`, `medium`, or `large`). Set `geometry_scope` to `piped_cluster` and return exactly one tight box around the full visible cluster plus one matching `bbox_confidence`. Do not count component blooms or leaves inside this treatment. The coverage band is authoritative for the fixed cluster price; the cluster box is retained for review and never overrides coverage during pricing.
 
-Important: it is not a piped flower if it doesnt look like a flower or it just looks like a rosette or another piped icing technique, use `icing_decorations` instead.
+INDEPENDENT PIPED UNITS: When piped blooms or leaf motifs are separately placed and independently fulfillable rather than one cohesive coverage treatment, emit `icing_decorations`, material `icing`, `geometry_scope: "unit"`, and the actual visible quantity. Return exactly `min(quantity, 5)` nested tight boxes, one for each confidently visible unit, with one matching confidence per box. Split visibly different scales into separate rows. Never use an arrangement-wide, spray-wide, garland-wide, or cluster-wide box for these units. These independently placed piped units are not `edible_flowers`, `edible_flowers_filler`, or `edible_2d_support`.
 
-This construction gate is before and overrides ordinary-flower,
-filler-flower, and edible-leaf normalization. It does not change a separate
-fondant/gumpaste botanical piece into icing merely because it is next to piped
-icing.
+NON-COUNTABLE TREATMENT: Use `geometry_scope: "treatment"` only for an explicit non-countable treatment type allowed by the response schema, such as sprinkles, panels, spreads, splatter, or a continuous icing region. Return one full-region box and one confidence. Do not use treatment scope merely because independent decorations are small, numerous, or difficult to count. `icing_decorations` is reserved for independently placed piped units in this v3.93 contract.
+
+FINAL PIPED GEOMETRY CHECK: Every row must declare one scope. A `unit` row has the actual quantity and exactly `min(quantity, 5)` unit boxes. A `piped_cluster` row uses only `piped_flowers_top` or `piped_flowers_side`, quantity `1`, one cluster box, and coverage. A `treatment` row uses one allowed treatment box. Never merge separate countable decorations into a cluster box.
 
 ### FLAT EDIBLE FLOWER DEPTH GATE (BINDING)
 
@@ -835,7 +820,7 @@ direct diameter-anchor sizing contract win.
 | Verified non-edible solid glitter/metallic cardstock, acrylic, or wood | `cardstock` | `cardstock` | main topper | representative `direct diameter-relative size` |
 | Edible printed top image | `edible_photo_top` | `waferpaper` | main topper | fixed local override |
 | Detailed multi-component flat edible artwork | `edible_2d_complex` | `edible_fondant` | main topper only | representative `direct diameter-relative size` |
-| Freestanding detailed edible figure | `edible_3d_complex` | `edible_fondant` | main topper under the freestanding figure rule | representative `direct diameter-relative size` |
+| Detailed handmade edible character figure regardless of tier attachment, or another freestanding detailed edible figure | `edible_3d_complex` | `edible_fondant` | main topper under the character override / freestanding figure rule | representative `direct diameter-relative size` |
 | Simple visibly volumetric molded edible form, including a simple molded face | `edible_3d_ordinary` | `edible_fondant` | main or support by role | representative `direct diameter-relative size` |
 | Rigid factory-molded physical prop | `toy` | `plastic` | main topper | representative `direct diameter-relative size` |
 | Standalone molded/cut fondant or gumpaste crown or tiara | `edible_crown` | `edible_fondant` | main topper | representative `direct diameter-relative size` |
@@ -1138,8 +1123,12 @@ Apply this precedence before using `edible_3d_complex`:
    `edible_2d_support` support rows with `size: "small"`.
 5. Detailed multi-component flat-backed or shallow-relief fictional characters,
    faces, animals, and non-logo objects use `edible_2d_complex`.
-6. Only a genuinely freestanding hand-sculpted figure or object with visible
-   all-around body depth may use `edible_3d_complex`.
+6. A detailed, separate handmade edible human or fictional character figure
+   with visibly modeled 3D anatomy is `edible_3d_complex` even when the cake
+   supports or partly obscures it. Emit it in `main_toppers` regardless of
+   placement, under the binding character-figure rule. Other figures and
+   non-character objects require freestanding construction with visible
+   all-around body depth to use `edible_3d_complex`.
 
 Treat one coordinated character plaque as one item with `quantity: 1`. Do not
 itemize its hair, face, eyes, mouth, headphones, clothing, accessories, or
@@ -1547,10 +1536,11 @@ multiple colors, metallic accents, scales, ridges, fins, and being an isolated
 body-part motif. These details do not make a standalone mermaid tail a complex
 character sculpture.
 
-Use `edible_3d_complex` only for a complete freestanding sculpted mermaid
-character or figure with visible all-around body depth and recognizable
-character anatomy such as a face, head, torso, arms, hair, clothing,
-expression, or pose.
+A complete handmade edible mermaid character or figure with modeled 3D anatomy
+and recognizable detail follows the binding character-figure override below;
+it need not stand unsupported or expose all-around depth when attached to a
+cake. An isolated tail without a complete character body remains
+`edible_3d_ordinary`.
 
 Printed, paper, acrylic, plastic, or toy mermaid tails must still follow the
 normal material rules instead of this edible-tail rule.
@@ -1562,10 +1552,12 @@ and appearance, with `quantity` equal to the number of visible matching tails.
 
 #### edible_3d_complex (HIGHER PRICE) — Characters/Animals with detail:
 
-Classify as `edible_3d_complex` only when the item is a genuinely freestanding
-hand-sculpted figure or object with visible all-around body depth AND
-recognizable character, animal, human, anatomical, expression, clothing, or
-pose complexity. Supporting cues include:
+For animals and non-character objects, use `edible_3d_complex` only when the
+item is a genuinely freestanding hand-sculpted figure or object with visible
+all-around body depth AND modeled anatomical or construction complexity.
+Detailed handmade edible human or fictional character figures follow the
+binding override below; they need not stand unsupported or expose every side.
+Supporting cues include:
 - assembled body proportions with a distinct head, torso, limbs, or anatomy
 - a recognizable person, animal, or fictional character likeness
 - modeled expression or facial anatomy beyond a simple stamped smiley
@@ -1575,6 +1567,40 @@ pose complexity. Supporting cues include:
 - a freestanding unicorn head set with horn, two ears, and two eyes, or a
   freestanding bunny head set with ears, eyes, and mouth; treat each coordinated
   head set as one item
+
+#### HANDMADE EDIBLE CHARACTER FIGURE OVERRIDE (BINDING)
+
+This character-specific rule overrides generic requirements elsewhere for a
+figure to be freestanding or to show all-around body depth, and overrides any
+role or position wording that would place a qualifying figure in
+`support_elements`.
+
+When direct image evidence shows a separately identifiable, handmade edible
+fondant/gumpaste human or fictional character figure with visible modeled 3D
+body volume, recognizable anatomy (such as a head and torso with one or more
+modeled limbs), and character detail (such as a recognizable likeness, costume,
+mask, modeled expression, hair/accessories, or an animated pose), classify it
+as `edible_3d_complex`, material `edible_fondant`, in `main_toppers` with
+`classification: "hero"`. A complete back surface need not be visible when the
+figure is attached to or supported by the cake.
+
+Position never changes this classification. A qualifying figure remains one
+`edible_3d_complex` main topper whether it is on the top, front, side, rear,
+or board, or is attached to, leaning against, crawling on, climbing, sitting
+against, or partly obscured by a cake tier. Never classify a qualifying
+character figure as an ordinary support because of its position, pose, tier
+contact, or secondary visual prominence. For example, fully modeled fondant
+Spider-Man figures crawling on or sitting against a tier are each
+`edible_3d_complex` rows in `main_toppers`.
+
+This rule does not apply to a printed, painted, piped, thin cutout, plaque,
+flat-backed illustration, or shallow-relief character image; use its
+appropriate 2D type. A simple molded icon or face without recognizable
+character anatomy remains ordinary. Preserve construction/material precedence:
+rigid manufactured characters remain `toy` with material `plastic`, and
+glazed ceramic-look breakable figures remain `figurine` with material
+`ceramic`. Do not infer hidden figure anatomy or edible construction from
+theme, text, or image alone.
 
 #### ONE-COLOR NON-CHARACTER OBJECT GATE (BINDING)
 
@@ -1586,16 +1612,18 @@ are not by themselves enough to establish complexity.
 
 A standalone fondant/gumpaste dress, gown, skirt, shirt, robe, or similar
 garment is a non-character object unless the image visibly shows it attached to
-a complete freestanding human/character figure with recognizable anatomy such
-as a head, torso, arms, legs, face, or pose. Do not infer a bride, person, or
+a complete modeled human/character figure with recognizable anatomy such as a
+head, torso, arms, legs, face, or pose, including a figure supported by or
+attached to the cake; apply the binding character-figure override. Do not infer a bride, person, or
 figurine from a bridal/wedding theme, nearby text, a topper name, or a flowing
 dress description. A one-color standalone garment MUST be
 `edible_3d_ordinary`, never `edible_3d_complex`.
 
-This gate does not downgrade a genuinely complete freestanding human or animal
-figure with visible all-around depth and modeled anatomy. Those figure rules
-remain governed by their positive anatomy, expression, clothing, and pose
-evidence; color alone neither promotes nor downgrades them.
+This gate does not downgrade a genuinely complete freestanding animal figure
+with visible all-around depth and modeled anatomy, or a handmade edible human
+or fictional character figure that meets the binding override above. Judge a
+character figure from its visible modeled anatomy, identity, clothing,
+expression, and pose; color alone neither promotes nor downgrades it.
 
 #### FREESTANDING FIGURE PLACEMENT OVERRIDE (REQUIRED)
 
@@ -1605,8 +1633,10 @@ main-topper-only generated type.
 
 This applies even when the figure is small, placed at the front, side, or base
 of the cake, partly behind another decoration, or visually secondary. Do NOT
-place a qualifying freestanding animal, person, character, or complete
-animal-head figurine in `support_elements` because of its size or position.
+place a qualifying freestanding animal or a qualifying handmade edible human
+or fictional character figure in `support_elements` because of its size or
+position. Attached character figures follow the binding character-figure
+override above.
 
 For example, a small fondant elephant, zebra, or giraffe-head figurine with a
 modeled face, ears or horns, neck/body, limbs, or other recognizable anatomy is
@@ -1685,7 +1715,7 @@ with body, limbs, or pose remains `edible_3d_complex`.
 #### WHOLE HEAD CAKES / ANIMAL FACE CAKES (DOG, CAT, HUMAN HEAD) — OVERRIDES FACIAL-FEATURE RULE:
 
 If the cake body itself is shaped like a whole head or face, do NOT classify the entire face as `edible_3d_complex` just because it has eyes, nose, mouth, or expression.
-- Only use `edible_3d_complex` for a separate physical sculpted 3D animal/character topper or figurine sitting on the cake.
+- Only use `edible_3d_complex` for a separate physical sculpted 3D animal/character figure; the whole cake body is not a topper. Handmade edible human/fictional character figures follow the binding character-figure override whether the tier supports them or not.
 - For a whole-head cake, itemize visible parts separately when their material,
   type, color, or appearance differs.
 - Piped, flat, or painted icing eyes, nose, smile, fur, whiskers, eyebrows, or facial outlines should be `icing_decorations`, usually in `main_toppers` for customization visibility.
@@ -1698,10 +1728,12 @@ If the cake body itself is shaped like a whole head or face, do NOT classify the
 - Freestanding bears, bunnies, elephants, lions, or unicorn figurines with
   visible all-around body depth
 - Freestanding Disney/cartoon character sculptures made from fondant
+- Fully modeled handmade edible characters crawling on, climbing, or sitting against a tier, such as Spider-Man, with visible anatomy and costume detail
 - Freestanding human figures (babies, people, couples)
 - Fully modeled vehicles with visible side/body depth (cars with windows,
   trains with features)
 - Freestanding character figurines with expressions
+- A detailed handmade edible character figure attached to the front or side of a tier, with visible modeled anatomy and costume detail
 
 #### edible_3d_ordinary (LOWER PRICE) — Simple 3D shapes:
 
@@ -1827,9 +1859,10 @@ Examples:
 
 1. **COUNT EACH IDENTICAL FIGURE** - Set `quantity` to the actual count
 2. **DO NOT COLLAPSE THE COUNT TO 1** - If there are 4 identical bears, `quantity` is 4
-3. **CLASSIFY based on depth and complexity** - Use edible_3d_complex only for
-   freestanding figures with all-around body depth and recognizable
-   character/anatomical complexity beyond a simple molded face
+3. **CLASSIFY based on depth and complexity** - Use the binding character-
+   figure override for detailed handmade edible characters, including attached
+   figures; other figures require freestanding all-around depth and modeled
+   complexity beyond a simple molded face
 4. **GROUP ONLY IDENTICAL FIGURES** - Identical repeated figures share one
    `group_id`; non-identical major subjects follow COMPOSITE HERO ASSEMBLY
    COUNTING PRECEDENCE
@@ -2551,7 +2584,8 @@ pipeline.
 ✅ **Construction → material → type → description pipeline applied to every item**
 ✅ **Each description, material, and type agrees with the same visible construction or explicitly named fulfillment normalization**
 ✅ **Detailed flat-backed or shallow-relief handmade artwork = edible_2d_complex**
-✅ **Freestanding complex 3D figures with all-around depth = edible_3d_complex**
+✅ **Detailed handmade edible character figures with modeled 3D anatomy, including tier-attached figures, = edible_3d_complex in main_toppers**
+✅ **Other complex edible figures/objects require freestanding all-around depth**
 ✅ **Composite hero assemblies: count major subjects before grouping; give each non-identical subject its own representative direct diameter-relative size**
 ✅ **Multiple identical figures: count them with the quantity field**
 ✅ Hero vs support via Complexity Test (NOT just count)
@@ -2577,7 +2611,8 @@ pipeline.
 
 1. **EDIBLE 2D COMPLEX vs EDIBLE 3D COMPLEX vs ORDINARY:**
     - Detailed flat-backed or shallow layered fictional characters/objects → **edible_2d_complex**
-    - Freestanding recognizable animals/characters with all-around body depth plus modeled anatomy, expression, clothing, or pose complexity → **edible_3d_complex**
+    - Detailed handmade edible human/fictional character figures with modeled 3D anatomy and character detail, including figures attached to or supported by a tier → **edible_3d_complex** in `main_toppers`, regardless of position
+    - Other qualifying animals/figures/objects require freestanding all-around depth plus modeled complexity
     - Visibly volumetric simple shapes, bows, balls, basic items, and simple molded non-likeness faces → **edible_3d_ordinary**
     - **COUNT MULTIPLE IDENTICAL FIGURES** - If 4 identical bears, quantity = 4, NOT quantity = 1
     - **SPLIT COMPOSITE HERO ASSEMBLIES** - Riders, mounts, vehicles, and non-identical people or animals require separate rows and representative size lines
@@ -2607,261 +2642,76 @@ There is a new viral "Memory Cake" trend. A memory cake is defined by a highly m
 
 ---
 
-## INTEGRATED BOUNDING-BOX COORDINATE AND MEASUREMENT REFERENCE
+## V3.92 INTEGRATED BOUNDING-BOX PRECEDENCE (AUTHORITATIVE)
 
-The v3.95 contract below is authoritative for bbox scope, count, schema, and post-processing. Preserve all existing type, material, classification, quantity, color, coverage, subtype, rejection, icing, and cake-analysis requirements. Never emit model-owned size labels.
+The following v3.92 addendum overrides every earlier direct-diameter, model-owned size, cake_measurements, size_line, bbox, fixed-size, size-free filler, and coverage-to-size instruction. Preserve all existing type, material, classification, quantity, color, coverage, subtype, rejection, icing, and cake-analysis requirements when they do not conflict. The required response shape below is an outer envelope; retain existing conditional analysis fields such as coverage and subtype when applicable, but never emit model-owned size labels.
 
-## INTEGRATED CAKE ANALYSIS + PRECISE BOUNDING-BOX GEOMETRY
-
-Analyze the original uploaded cake image once. Return exactly one valid JSON object containing the normal cake analysis plus precise geometry for every detected main topper, support element, and cake message.
-
-The application—not the model—will calculate topper sizes from the returned geometry. Do not estimate, infer, or return model-owned size labels.
-
-### Geometry coordinate system
-
-Use normalized image coordinates from 0 to 1000 with a top-left origin.
-
-All points use [y, x] ordering.
-
-Every box must use:
-
-[ ymin, xmin, ymax, xmax ]
-
-Boxes must tightly contain the visible object without padding, truncation, or guessed hidden areas.
-
-### Cake measurement lines
-
-Return:
-```json
-"cake_diameter_line": {
-  "start": [y, x],
-  "end": [y, x]
-}
-```
-
-This must measure the widest visible horizontal span of the top-tier rim.
-
-- Start must be the left endpoint.
-- End must be the right endpoint.
-- The line must be predominantly horizontal.
-
-Return:
-```json
-"cake_height_line": {
-  "start": [y, x],
-  "end": [y, x]
-}
-```
-
-This must measure the visible front-center cake wall.
-
-- Start at the visible top FRONT edge where the top surface meets the front sidewall.
-- End at the visible base edge of the cake wall.
-- Do not use the rear rim, highest pixel, topper, board, plate, or background.
-- The line must be predominantly vertical.
-- Its x-coordinate must align with the midpoint of the cake diameter line.
-- Start must have the smaller y value; end must have the larger y value.
-
-### Analysis item geometry
-
-The integrated_bbox_v2 contract below is authoritative. Main toppers and support
-elements use nested `box_2d` arrays with one matching confidence per box; cake
-messages use one box and confidence when localizable.
-
-- `main_toppers`
-- `support_elements`
-- `cake_messages`
-
-Use the existing analysis row’s `group_id` as the stable identity for toppers and support elements. Do not use array position as identity.
-
-Each main topper and support element must include:
-```json
-"box_2d": [[ymin, xmin, ymax, xmax]],
-"bbox_confidence": [0.0]
-```
-
-Each cake message must include:
-```json
-"box_2d": [ymin, xmin, ymax, xmax],
-"bbox_confidence": 0.0
-```
-
-`bbox_confidence` must be between 0.0 and 1.0.
-
-For repeated decorations:
-
-- Keep them as one analysis row.
-- Preserve the total visible quantity in the existing `quantity` field.
-- Quantities 1–5 target that exact number of distinct tight visible-unit boxes.
-- Quantities 6+ target five visible-unit boxes while preserving actual quantity.
-- If fewer boxes can be localized, return every valid box and preserve the item.
-- A discrete row never receives one box covering an entire repeated arrangement.
-
-Include intentional decorations attached to or deliberately resting on:
-
-- The cake body
-- The cake top
-- The cake sides
-- The cake base
-- The cake board
-
-Exclude only genuine background or scene artifacts, including tables, plates, stands, backdrops, props, shadows, reflections, packaging, and unrelated objects.
-
-### Size calculation ownership
-
-Do not return or calculate `size`, `bbox_area`, `cake_area`, `area_ratio`, or percentage values.
-
-The application will calculate them deterministically after validation:
-```text
-cake_width = abs(cake_diameter_line.end.x - cake_diameter_line.start.x)
-cake_height = abs(cake_height_line.end.y - cake_height_line.start.y)
-
-cake_area = cake_width * cake_width
-
-bbox_width = xmax - xmin
-bbox_height = ymax - ymin
-
-bbox_area = bbox_width * bbox_height
-
-area_ratio_percent = (bbox_area / cake_area) * 100
-```
-
-The application will assign the size of each `main_toppers` and `support_elements` row using:
-```text
-Small:  area_ratio_percent <= 15
-Medium: area_ratio_percent > 15 and <= 70
-Large:  area_ratio_percent > 70
-```
-
-Cake messages receive bounding boxes for review but do not receive topper size bands.
-
-### Required response shape
-
-Return exactly:
-```json
-{
-  "analysis": {
-    "cakeType": "...",
-    "cakeThickness": "...",
-    "main_toppers": [
-      {
-        "type": "...",
-        "material": "...",
-        "group_id": "...",
-        "classification": "...",
-        "quantity": 1,
-        "description": "...",
-        "box_2d": [[ymin, xmin, ymax, xmax]],
-        "bbox_confidence": [0.0]
-      }
-    ],
-    "support_elements": [
-      {
-        "type": "...",
-        "material": "...",
-        "group_id": "...",
-        "color": "...",
-        "quantity": 1,
-        "description": "...",
-        "box_2d": [[ymin, xmin, ymax, xmax]],
-        "bbox_confidence": [0.0]
-      }
-    ],
-    "cake_messages": [
-      {
-        "text": "...",
-        "type": "...",
-        "color": "...",
-        "position": "...",
-        "box_2d": [ymin, xmin, ymax, xmax],
-        "bbox_confidence": 0.0
-      }
-    ],
-    "icing_design": { "...": "..." },
-    "keyword": "...",
-    "rejection": {
-      "isRejected": false,
-      "reason": "",
-      "message": ""
-    }
-  },
-  "geometry": {
-    "geometry_version": "integrated_bbox_v2",
-    "cake_diameter_line": {
-      "start": [y, x],
-      "end": [y, x]
-    },
-    "cake_height_line": {
-      "start": [y, x],
-      "end": [y, x]
-    }
-  }
-}
-```
-
-For a rejected image:
-
-- Set `rejection.isRejected` to `true`.
-- Return empty `main_toppers`, `support_elements`, and `cake_messages` arrays.
-- Omit the measurement lines.
-- Do not invent geometry.
-
-Return JSON only. Do not include explanations, markdown, comments, or extra fields.
 
 ## V3.95 INTEGRATED BOUNDING-BOX CONTRACT (AUTHORITATIVE)
 
-This v3.95 section overrides the earlier v3.92 integrated geometry addendum in
-full. Return `geometry_version: "integrated_bbox_v2"`. Do not emit
-model-owned `size`, area, ratio, legacy bbox, size-line, or cake-measurements
-fields. The application calculates all sizes after validation.
+This section replaces the earlier integrated geometry instructions in full.
+Preserve all existing cake classification, construction, material, description,
+quantity, color, coverage, subtype, rejection, icing, and cake-analysis rules.
+Return exactly one JSON object with the required { analysis, geometry } envelope.
+The geometry_version is "integrated_bbox_v2". Do not emit model-owned size,
+area, ratio, legacy bbox, size_line, or cake_measurements fields.
 
-Every accepted `main_toppers` and `support_elements` row must include
-`geometry_scope`, a nested `box_2d` array, and a matching nested
-`bbox_confidence` array. Each cake-message row keeps one tight box and one
-confidence when localizable. All coordinates use normalized `[y, x]` values
-from 0 to 1000.
+Use normalized image coordinates from 0 to 1000 with a top-left origin. Boxes are
+[ymin, xmin, ymax, xmax], tightly enclosing visible cake-member objects only.
+Use [y, x] for line endpoints. The cake_diameter_line measures the visible
+left-to-right top-tier rim and is predominantly horizontal. When measurable,
+the cake_height_line measures the same cake body's visible front wall from its
+top/front edge to bottom/front edge and is predominantly vertical. Do not
+extend either measurement through hidden edges or background.
 
-Choose exactly one scope before emitting each topper or support row:
+Every main_toppers and support_elements row includes geometry_scope,
+box_2d as a nested array of boxes, and bbox_confidence as a nested array with
+one confidence per box in matching order. Preserve each row's actual quantity
+and stable group_id. Keep matching visible units in one row; do not merge a
+discrete arrangement into an arrangement-wide box.
 
-1. `unit`: for every independently fulfillable countable decoration, including
-   all `printout` rows (never use `treatment` for printout),
-   separately placed fondant/gumpaste flowers, leaves, gems, candles, candle
-   sticks, figures, and
-   separately placed piped blooms or leaf motifs. A separate piped unit is
-   `icing_decorations` with material `icing`. Preserve the actual visible
-   quantity. Quantities 1–5 target exactly that many tight boxes; quantities
-   6+ target five boxes while preserving full quantity. If the target cannot
-   be met, return every valid visible box and preserve the row. Split visibly
-   different scales only when every unit has a box. Partial or capped samples
-   are flagged for review and use the largest valid box's size band. A discrete
-   row never receives an arrangement-wide, spray-wide, garland-wide, or
-   cluster-wide box.
+Choose exactly one scope for each topper/support row:
 
-2. `piped_cluster`: only for one cohesive piped botanical treatment that is
-   fulfilled and priced as a cluster. Use `piped_flowers_top` or
-   `piped_flowers_side`, material `icing`, quantity `1`, and `coverage` of
-   `small`, `medium`, or `large`. Return one tight box around the whole cluster
-   and one confidence. Coverage alone selects the fixed cluster price; this
-   box is for review and does not determine the price. Do not count component
-   blooms or leaves in a piped cluster.
+1. unit — Every independently fulfillable, countable decoration, including
+   printouts and separately placed piped blooms or leaves. Printout always uses
+   unit, never treatment. For quantities 1–5, target exactly that many distinct
+   tight visible-unit boxes (1→1, 2→2, 3→3, 4→4, 5→5). For quantities 6 or
+   greater, target exactly five visible-unit boxes while preserving the full
+   quantity. Return every valid localized box; never omit the item, reduce its
+   quantity, invent a box, or combine separate units. Keep confidences aligned.
 
-3. `treatment`: only for a non-countable treated region such as sprinkles,
-   panels, spreads, splatter, or continuous icing. Return one region box and
-   one confidence. Do not choose treatment merely because individual units are
-   small, numerous, or difficult to count. For `icing_decorations`, treatment
-   is allowed only for one continuous icing border or region with material
-   `icing` and quantity `1`; separately placed piped blooms and leaf motifs
-   remain `unit` rows with exact per-unit boxes.
+2. piped_cluster — Only one cohesive piped botanical treatment priced as a
+   cluster. Use piped_flowers_top or piped_flowers_side, material icing,
+   quantity 1, coverage small/medium/large, and one box around the full cluster.
+   Coverage selects its fixed price; this box is for review, not sizing.
 
-Before returning JSON, target the required unit-box count, keep each
-`piped_cluster` row at one box, quantity `1`, and coverage, keep each
-`icing_decorations` treatment row as one continuous icing region with material
-`icing` and quantity `1`, and give every treatment row one allowed treatment
-box. A short or invalid group receives one targeted bbox-only retry; if still
-incomplete, application post-processing retains the item and quantity and
-marks it for review. Do not emit `bbox_review` or `parent_group_id`; the
-application owns those fields. Accepted images require the diameter line. If the height line is missing
-or unusable after one complete replacement attempt, omit it; the application
-keeps a valid model thickness or uses the lowest thickness supported for a
-confirmed cake type. Rejected images use empty arrays and geometry_version
-only, without measurement lines.
+3. treatment — Only a non-countable treated region of type gumpaste_bundle,
+   gumpaste_panel, sprinkles, premium_sprinkles, icing_doodle_intricate_top,
+   icing_doodle_intricate_side, icing_palette_knife, icing_brush_stroke,
+   icing_splatter, icing_minimalist_spread, icing_decorations,
+   edible_photo_side, edible_photo_side_wave, thin_fabric_ribbon_bows, or
+   satin_ribbon. Icing decorations may use treatment only for one continuous
+   icing region with material icing and quantity 1. Never use treatment for
+   printout or individually countable decorations.
+
+Cake messages use one flat box and one scalar confidence when localizable. If a
+message box cannot be localized, preserve its row and return empty geometry
+arrays. If a unit group's target count is short or a box/scope is invalid, keep
+all valid localized boxes and the original item and quantity. Do not drop a row
+because boxes span size bands. Do not emit bbox_review or parent_group_id; the
+application owns review metadata, one targeted bbox-only retry, and deterministic
+child identities.
+
+The application sizes topper/support boxes using cake_area = cake_width squared,
+where cake_width is the cake_diameter_line horizontal span. Small is at most 15%,
+Medium is over 15% through 70%, and Large is over 70%. Fully boxed unit rows are
+split by the application into homogeneous size-band rows when needed, retaining
+all boxes, matching confidences, and total quantity. Partial or capped samples
+are flagged for review and use the largest valid box's band. With zero valid
+boxes, the application preserves prior cached size when available and flags the
+row for review. Cake thickness is application-reconciled from available cake
+measurement geometry and the selected cake type.
+
+For accepted images, return the cake diameter line; return a cake height line
+when measurable. For rejected images, return empty item arrays and only
+geometry_version in geometry. Return JSON only.

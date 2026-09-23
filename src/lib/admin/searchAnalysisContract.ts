@@ -80,8 +80,8 @@ function isTolerantIntegratedBboxV2Schema(sizeSchema: AnalysisGenerationSizeSche
  * the provider schema boundary.
  */
 export function getAnalysisGenerationSizeSchema(promptVersion: string): AnalysisGenerationSizeSchema {
-  // The checked-in fallback prompt carries the staged v3.95 tolerant bbox
-  // contract. It remains distinct from the still-active strict v3.93 contract.
+  // The active v3.96 fallback retains v3.95's tolerant bbox contract; v3.96
+  // changes character placement rules without changing the bbox response shape.
   if (promptVersion === 'fallback') return 'integrated_bbox_v2_tolerant';
   if (promptVersion === 'local-dev-diameter-anchor') return 'ai_diameter_anchor';
   if (promptVersion === 'local-dev-bbox') return 'local_bbox_area';

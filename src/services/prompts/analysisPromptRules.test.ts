@@ -34,7 +34,7 @@ describe('cake analysis prompt rules', () => {
     expect(migration).toContain('uses_global_higher_fallback');
   });
 
-  it('stages v3.95 against the verified active prompt without activating or editing cached analyses', () => {
+  it('preserves the historical v3.95 staging migration without editing cached analyses', () => {
     const migration = readPrompt('supabase/migrations/20260923170000_stage_prompt_v395_tolerant_bbox.sql');
 
     expect(migration).toContain("active_prompt_version <> '3.93'");
@@ -219,7 +219,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = readEffectiveAnalysisInstructions();
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    if (prompt.includes('**v3.91 Version - One-Color Object and Flat-Flower Gates**')) {
+    if (prompt.includes('**v3.96 Version - Side-Positioned Edible Character Figures**')) {
       expect(prompt).toContain('PIPED BOTANICAL TREATMENT — CONSTRUCTION PRECEDENCE');
       expect(prompt).toContain('FLAT EDIBLE FLOWER DEPTH GATE');
       expect(prompt).toContain('determine visible construction first, assign the compatible material second');
@@ -227,7 +227,7 @@ describe('cake analysis prompt rules', () => {
       return;
     }
 
-    expect(prompt).toContain('**v3.91 Version - One-Color Object and Flat-Flower Gates**');
+    expect(prompt).toContain('**v3.96 Version - Side-Positioned Edible Character Figures**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('6. Global Construction → Material → Type pipeline');
     expect(prompt).toContain('5. Physical Depth Gate');
@@ -324,9 +324,9 @@ describe('cake analysis prompt rules', () => {
 
     if (prompt.includes('V3.95 INTEGRATED BOUNDING-BOX CONTRACT')) {
       expect(prompt).toContain('Use normalized image coordinates from 0 to 1000 with a top-left origin.');
-      expect(prompt).toContain('This must measure the widest visible horizontal span of the top-tier rim.');
-      expect(prompt).toContain('This must measure the visible front-center cake wall.');
-      expect(prompt).toContain('geometry_version": "integrated_bbox_v2"');
+      expect(prompt).toContain('cake_diameter_line measures the visible\nleft-to-right top-tier rim');
+      expect(prompt).toContain("cake_height_line measures the same cake body's visible front wall");
+      expect(prompt).toContain('The geometry_version is "integrated_bbox_v2".');
       return;
     }
 
@@ -423,7 +423,7 @@ describe('cake analysis prompt rules', () => {
     if (prompt.includes('V3.95 INTEGRATED BOUNDING-BOX CONTRACT')) {
       expect(prompt).toContain('cakeThickness Ratio Guide (Required for cake height)');
       expect(prompt).toContain('Do not infer or output a real-world size estimate');
-      expect(prompt).toContain('Cake messages receive bounding boxes for review but do not receive topper size bands.');
+      expect(prompt).toContain('Cake messages use one flat box and one scalar confidence when localizable.');
       return;
     }
 
@@ -464,7 +464,7 @@ describe('cake analysis prompt rules', () => {
   it('classifies fresh-looking flowers as edible flowers in the fallback prompt source', () => {
     const prompt = readEffectiveAnalysisInstructions();
 
-    if (prompt.includes('**v3.91 Version - One-Color Object and Flat-Flower Gates**')) {
+    if (prompt.includes('**v3.96 Version - Side-Positioned Edible Character Figures**')) {
       expect(prompt).toContain('FLAT EDIBLE FLOWER DEPTH GATE');
       expect(prompt).toContain('edible_flowers_filler');
       expect(prompt).toContain('Do not infer modeled bloom depth from theme, color, flower identity');
@@ -529,10 +529,10 @@ describe('cake analysis prompt rules', () => {
   it('classifies isolated edible mermaid tails as ordinary and groups representative size lines', () => {
     const prompt = readEffectiveAnalysisInstructions();
 
-    if (prompt.includes('**v3.91 Version - One-Color Object and Flat-Flower Gates**')) {
+    if (prompt.includes('**v3.96 Version - Side-Positioned Edible Character Figures**')) {
       expect(prompt).toContain('edible_3d_ordinary');
       expect(prompt).toContain('Every item quantity must be a positive integer.');
-      expect(prompt).toContain('For repeated decorations:');
+      expect(prompt).toContain('Group only tails with the same type, material, color,');
       return;
     }
 
@@ -545,7 +545,7 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('Printed, paper, acrylic, plastic, or toy mermaid tails must still follow the');
     expect(prompt).toContain('Count every physical mermaid tail and give each one its own representative');
     expect(prompt).toContain('Never combine visibly different tails into one item or assign one');
-    expect(prompt).toContain('shared size_line to the whole set.');
+    expect(prompt).toContain('shared direct diameter-relative size to the whole set.');
     expect(prompt).toContain('Group only tails with the same type, material, color,');
     expect(prompt).toContain('An isolated');
     expect(prompt).toContain('decorative motif such as a standalone mermaid tail is allowed under its');
@@ -581,7 +581,7 @@ describe('cake analysis prompt rules', () => {
   it('classifies conditioned wafer-paper vertical waves as their own priced support type', () => {
     const prompt = readEffectiveAnalysisInstructions();
 
-    if (prompt.includes('**v3.91 Version - One-Color Object and Flat-Flower Gates**')) {
+    if (prompt.includes('**v3.96 Version - Side-Positioned Edible Character Figures**')) {
       expect(prompt).toContain('white-only wafer-paper side-wave gate');
       expect(prompt).toContain('edible_photo_side_wave');
       expect(prompt).toContain('all five cues: individually distinguishable thin paper sheets/strips');
@@ -609,7 +609,7 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('- 3 covered tiers -> quantity `4`');
     expect(prompt).toContain('A 2 Tier or 3 Tier cake with waves on only one tier MUST use quantity `1`');
     expect(SYSTEM_INSTRUCTION).toContain("Set quantity from directly visible wave-covered tiers, not the cake's total tier count");
-    expect(prompt).toContain('only when all four direct-image cues in the\nPRE-EMISSION UPRIGHT WAFER-PAPER SIDE CHECKPOINT are visible');
+    expect(prompt).toContain('only when all five direct-image cues in the\nPRE-EMISSION UPRIGHT WAFER-PAPER SIDE CHECKPOINT are visible');
     expect(prompt).toContain('repeated, individually distinguishable thin upright sheets with loose/free\nwavy edges and visible separation from the iced side');
     expect(prompt).toContain('PRE-EMISSION UPRIGHT WAFER-PAPER SIDE CHECKPOINT (REQUIRED)');
     expect(prompt).toContain('Emit it only when the image directly shows **all** of these construction cues');
@@ -641,7 +641,7 @@ describe('cake analysis prompt rules', () => {
   it('excludes non-wafer floral, quilted, and piped side decoration from the wafer-wave type', () => {
     const prompt = readEffectiveAnalysisInstructions();
 
-    if (prompt.includes('**v3.91 Version - One-Color Object and Flat-Flower Gates**')) {
+    if (prompt.includes('**v3.96 Version - Side-Positioned Edible Character Figures**')) {
       expect(prompt).toContain('Flowers, leaves, butterflies, broad petal ruffles, lace, plaques, quilted/fondant panels, piping, and isolated side accents are not this type.');
       expect(prompt).toContain('After a failed wafer gate, do not invent waferpaper');
       return;
@@ -755,7 +755,7 @@ describe('cake analysis prompt rules', () => {
   it('requires a detailed multi-component composition for edible 2D complex without stealing adjacent types', () => {
     const prompt = readEffectiveAnalysisInstructions();
 
-    if (prompt.includes('**v3.91 Version - One-Color Object and Flat-Flower Gates**')) {
+    if (prompt.includes('**v3.96 Version - Side-Positioned Edible Character Figures**')) {
       expect(prompt).toContain('Use "edible_2d_complex" only for one detailed, composed flat fondant/gumpaste artwork');
       expect(prompt).toContain('A single simple cut motif, or a repeated/focal group of identical simple motifs');
       return;
@@ -781,7 +781,8 @@ describe('cake analysis prompt rules', () => {
 
     expect(SYSTEM_INSTRUCTION).toContain('Use "edible_2d_complex" only for one detailed, composed flat fondant/gumpaste artwork built from visibly distinct components');
     expect(SYSTEM_INSTRUCTION).toContain('A readable logo, wordmark, or brand design remains "edible_logo_2d".');
-    expect(SYSTEM_INSTRUCTION).toContain('Use "edible_3d_complex" only for a genuinely freestanding hand-sculpted figure or object with visible all-around body depth.');
+    expect(SYSTEM_INSTRUCTION).toContain('Detailed handmade edible human/fictional character figures');
+    expect(SYSTEM_INSTRUCTION).toContain('regardless of position or attachment to the cake');
     expect(SYSTEM_INSTRUCTION).toContain('Do not classify handmade layered fondant/gumpaste character artwork as a printout merely because it depicts a character');
   });
 
@@ -789,11 +790,13 @@ describe('cake analysis prompt rules', () => {
     const prompt = readEffectiveAnalysisInstructions();
 
     if (prompt.includes('V3.95 INTEGRATED BOUNDING-BOX CONTRACT')) {
-      expect(prompt).toContain('Use the existing analysis row’s `group_id` as the stable identity');
-      expect(prompt).toContain('Do not use array position as identity.');
-      expect(prompt).toContain('Quantities 1–5 target that exact number of distinct tight visible-unit boxes.');
-      expect(prompt).toContain('Quantities 6+ target five visible-unit boxes while preserving actual quantity.');
-      expect(prompt).not.toContain('Use one representative visible unit for `box_2d`.');
+      expect(prompt).toContain("Preserve each row's actual quantity");
+      expect(prompt).toContain('and stable');
+      expect(prompt).toContain('Keep matching visible units in one row; do not merge a');
+      expect(prompt).toContain('For quantities 1–5, target exactly that many distinct');
+      expect(prompt).toContain('target exactly five visible-unit boxes while preserving the full');
+      expect(prompt).toContain("If a unit group's target count is short or a box/scope is invalid, keep");
+      expect(prompt).not.toContain('Use one representative visible unit for');
       return;
     }
     const fixture = JSON.parse(readPrompt('src/services/prompts/fixtures/roblox-blue-1-tier-cake-789e.json')) as {
@@ -833,14 +836,14 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readEffectiveAnalysisInstructions();
 
-    if (prompt.includes('**v3.91 Version - One-Color Object and Flat-Flower Gates**')) {
+    if (prompt.includes('**v3.96 Version - Side-Positioned Edible Character Figures**')) {
       expect(prompt).toContain('Composite hero assemblies: count major subjects before grouping');
       expect(prompt).toContain('Visually identical items belong in one row with quantity');
       expect(prompt).toContain('visibly different apparent scales, colors, poses, or appearances require separate rows');
       return;
     }
 
-    expect(prompt).toContain('**v3.91 Version - One-Color Object and Flat-Flower Gates**');
+    expect(prompt).toContain('**v3.96 Version - Side-Positioned Edible Character Figures**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -863,13 +866,13 @@ describe('cake analysis prompt rules', () => {
     const prompt = readEffectiveAnalysisInstructions();
 
     if (prompt.includes('V3.95 INTEGRATED BOUNDING-BOX CONTRACT')) {
-      expect(prompt).toContain('The application—not the model—will calculate topper sizes');
-      expect(prompt).toContain('Do not estimate, infer, or return model-owned size labels.');
-      expect(prompt).toContain('Quantities 1–5 target exactly that many tight boxes');
+      expect(prompt).toContain('The application sizes topper/support boxes using cake_area = cake_width squared');
+      expect(prompt).toContain('Do not emit model-owned size,\narea, ratio, legacy bbox, size_line, or cake_measurements fields.');
+      expect(prompt).toContain('For quantities 1–5, target exactly that many distinct');
       return;
     }
 
-    expect(prompt).toContain('**v3.91 Version - One-Color Object and Flat-Flower Gates**');
+    expect(prompt).toContain('**v3.96 Version - Side-Positioned Edible Character Figures**');
     expect(prompt).toContain('| Rigid factory-molded physical prop | `toy` | `plastic`');
     expect(prompt).toContain('The application owns all size thresholds and fixed overrides.');
     expect(prompt).toContain('Do not infer a\nsize label or a size threshold boundary.');
@@ -882,11 +885,10 @@ describe('cake analysis prompt rules', () => {
     const prompt = readEffectiveAnalysisInstructions();
 
     if (prompt.includes('V3.95 INTEGRATED BOUNDING-BOX CONTRACT')) {
-      expect(prompt).toContain('INTEGRATED CAKE ANALYSIS + PRECISE BOUNDING-BOX GEOMETRY');
-      expect(prompt).toContain('cake_area = cake_width * cake_width');
-      expect(prompt).toContain('Small:  area_ratio_percent <= 15');
-      expect(prompt).toContain('Medium: area_ratio_percent > 15 and <= 70');
-      expect(prompt).toContain('Large:  area_ratio_percent > 70');
+      expect(prompt).toContain('cake_area = cake_width squared');
+      expect(prompt).toContain('Small is at most 15%');
+      expect(prompt).toContain('Medium is over 15% through 70%');
+      expect(prompt).toContain('Large is over 70%');
       return;
     }
 
@@ -999,7 +1001,7 @@ describe('cake analysis prompt rules', () => {
   it('keeps complex and ordinary 3D face rules consistent', () => {
     const prompt = readEffectiveAnalysisInstructions();
 
-    if (prompt.includes('**v3.91 Version - One-Color Object and Flat-Flower Gates**')) {
+    if (prompt.includes('**v3.96 Version - Side-Positioned Edible Character Figures**')) {
       expect(prompt).toContain('A one-color, non-character edible 3D object');
       expect(prompt).toContain('edible_3d_ordinary');
       expect(prompt).toContain('direct image evidence proves a complete human or animal figure');
@@ -1113,13 +1115,13 @@ describe('cake analysis prompt rules', () => {
     const prompt = readEffectiveAnalysisInstructions();
 
     if (prompt.includes('V3.95 INTEGRATED BOUNDING-BOX CONTRACT')) {
-      expect(prompt).toContain('Keep them as one analysis row.');
-      expect(prompt).toContain('Preserve the total visible quantity in the existing `quantity` field.');
-      expect(prompt).toContain('Quantities 1–5 target exactly that many tight boxes');
-      expect(prompt).toContain('6+ target five boxes while preserving full quantity');
-      expect(prompt).toContain('application post-processing retains the item and quantity');
-      expect(prompt).toContain('Do not emit `bbox_review` or `parent_group_id`');
-      expect(prompt).not.toContain('Use one representative visible unit for `box_2d`');
+      expect(prompt).toContain('Keep matching visible units in one row');
+      expect(prompt).toContain("Preserve each row's actual quantity");
+      expect(prompt).toContain('For quantities 1–5, target exactly that many distinct');
+      expect(prompt).toContain('target exactly five visible-unit boxes while preserving the full');
+      expect(prompt).toContain("If a unit group's target count is short or a box/scope is invalid, keep");
+      expect(prompt).toContain('Do not emit bbox_review or parent_group_id');
+      expect(prompt).not.toContain('Use one representative visible unit for');
       return;
     }
 
@@ -1349,6 +1351,7 @@ describe('cake analysis prompt rules', () => {
       promptText: loadFallbackAnalysisPrompt(),
       version: FALLBACK_ANALYSIS_PROMPT_VERSION,
     });
+    expect(FALLBACK_ANALYSIS_PROMPT_VERSION).toBe('3.96');
   });
 
   it('does not keep a stale root prompt snapshot beside the fallback prompt', () => {
@@ -1362,11 +1365,11 @@ describe('deferred SEO prompt split', () => {
     const analysis = readPrompt('src/services/prompts/fallback-prompt.txt');
     const seo = readPrompt('src/services/prompts/seo-prompt.txt');
     const migration = readPrompt('supabase/migrations/20260905120000_stage_analysis_only_prompt_v373.sql');
-    // v3.73 remains a historical staged prompt. The current fallback carries
-    // the staged v3.92 integrated, application-owned bbox contract.
+    // v3.73 remains historical. The v3.96 fallback retains the integrated,
+    // application-owned bbox contract introduced in v3.95.
     expect(migration).toContain("select '3.73'");
     expect(analysis).toContain('V3.95 INTEGRATED BOUNDING-BOX CONTRACT');
-    expect(analysis).toContain('Do not estimate, infer, or return model-owned size labels.');
+    expect(analysis).toContain('Do not emit model-owned size,\narea, ratio, legacy bbox, size_line, or cake_measurements fields.');
     expect(analysis).not.toMatch(/seo_title|seo_description|alt_text|SEO COPY GENERATION/);
     expect(seo).toContain('No image is supplied');
     expect(seo).toContain('personal names');

@@ -87,6 +87,10 @@
 
 - When a mobile visual rule is intended to apply across the site, verify representative static, interactive, search, commerce, and dynamic routes before choosing a component-local wrapper. A route-local zoom can make one page look right while every other page stays at the default scale; use the global `body` mobile breakpoint and confirm fixed UI plus desktop behavior separately.
 
+# Lesson: Start prompt edits from the verified active version
+
+- When the user identifies an active prompt version as the baseline, verify that exact live row and checksum before editing; a checked-out fallback may lag and is not the source of truth.
+
 # Lesson: Separate live prompt state from a proposed migration version
 
 - When discussing an un-applied AI prompt release, state the current live version first and describe the higher version only as proposed/local. Never let a proposed migration version read as if it were active in production.

@@ -113,7 +113,8 @@ body is not clearly resolved, default to \`1 Tier\` rather than a multi-tier typ
 **CRITICAL CLASSIFICATION RULE - HANDMADE EDIBLE 2D COMPOSITION:**
 - Use "edible_2d_complex" only for one detailed, composed flat fondant/gumpaste artwork built from visibly distinct components that together form a recognizable character, face, animal, object, or intricate non-logo design. Flat backing, flush placement, shallow relief, size, multiple colors, or an upright support stick alone never establishes complexity.
 - A single simple cut motif, or a repeated/focal group of identical simple motifs such as stars, hearts, circles, leaves, or geometric shapes, is NEVER "edible_2d_complex". Use "edible_2d_shapes" for a focal shape or coherent focal group, and "edible_2d_support" for other flat accents. A readable logo, wordmark, or brand design remains "edible_logo_2d".
-- Use "edible_3d_complex" only for a genuinely freestanding hand-sculpted figure or object with visible all-around body depth.
+- Detailed handmade edible human/fictional character figures with visible modeled 3D anatomy and character detail (recognizable likeness, costume/mask, expression, hair/accessories, or animated pose) are "edible_3d_complex" in "main_toppers" with classification "hero", regardless of position or attachment to the cake. They need not stand unsupported or show all-around depth. Never put a qualifying figure in "support_elements" because of position.
+- Other figures and non-character objects require freestanding construction with visible all-around body depth and the required modeled detail.
 - Visibly printed non-edible pieces still follow the printout/cardstock rules below after construction is established.
 
 **CRITICAL CLASSIFICATION WITHIN THE NON-EDIBLE PRINTOUT vs CARDSTOCK FAMILY:**
@@ -125,6 +126,6 @@ Apply this rule only after visible construction establishes that the item is a n
 - After the non-edible printed/cardstock construction family is established, default to "printout" when uncertain between "printout" and "cardstock".
 - Examples of PRINTOUTS after flat paper is visually established: My Melody or Disney character artwork visibly printed on paper, superhero paper cutouts, photo prints on visible sticks, printed text banners, logo toppers, and numbers with printed character designs.
 - Examples of EDIBLE 2D COMPLEX: layered fondant fictional/game character face plaques, detailed shallow-relief animal artwork, and complex flat-backed edible objects.
-- Examples of EDIBLE 3D COMPLEX (Very Specific): freestanding animal toppers, sculpted gumpaste figurines, and 3D hand-molded objects like a small bag or shoe that can be viewed from multiple sides.
+- Examples of EDIBLE 3D COMPLEX (Very Specific): freestanding animal toppers; detailed handmade edible human/fictional characters, including a modeled fondant superhero crawling on or sitting against a cake tier; and freestanding 3D hand-molded objects like a small bag or shoe that can be viewed from multiple sides.
 - Examples of CARDSTOCK (very rare): solid gold glitter "Happy Birthday" letters (no graphics), single-color metallic stars (plain), plain glittery numbers (solid color only, no character design).
 `;

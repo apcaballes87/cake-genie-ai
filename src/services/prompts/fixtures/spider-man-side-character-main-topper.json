@@ -1,0 +1,55 @@
+{
+  "case_slug": "spider-man-cake-blue-2-tier-fondant-cake-0f4d",
+  "visual_observation": "Three modeled fondant Spider-Man figures are visible: one on top, one crawling on the blue tier side, and one seated against the red tier side.",
+  "expected_main_toppers": [
+    {
+      "group_id": "spider_man_hero",
+      "collection": "main_toppers",
+      "type": "edible_3d_complex",
+      "material": "edible_fondant",
+      "classification": "hero",
+      "quantity": 1,
+      "position": "top"
+    },
+    {
+      "group_id": "spider_man_crawling",
+      "collection": "main_toppers",
+      "type": "edible_3d_complex",
+      "material": "edible_fondant",
+      "classification": "hero",
+      "quantity": 1,
+      "position": "tier_side"
+    },
+    {
+      "group_id": "black_suit_spider_man",
+      "collection": "main_toppers",
+      "type": "edible_3d_complex",
+      "material": "edible_fondant",
+      "classification": "hero",
+      "quantity": 1,
+      "position": "tier_side"
+    }
+  ],
+  "forbidden_support_group_ids": [
+    "spider_man_crawling",
+    "black_suit_spider_man"
+  ],
+  "nearest_non_qualifying_constructions": [
+    {
+      "construction": "printed, painted, piped, thin cutout, plaque, or shallow-relief character artwork",
+      "type": "edible_2d_complex"
+    },
+    {
+      "construction": "rigid factory-molded plastic character",
+      "type": "toy"
+    },
+    {
+      "construction": "glazed ceramic-look breakable character figure",
+      "type": "figurine"
+    },
+    {
+      "construction": "simple molded icon or face without recognizable character anatomy",
+      "type": "edible_3d_ordinary"
+    }
+  ]
+}

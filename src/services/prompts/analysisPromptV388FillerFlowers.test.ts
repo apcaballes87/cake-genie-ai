@@ -39,7 +39,7 @@ describe('v3.88 sized filler flower support normalization', () => {
     expect(fixture.counterexample).toContain('distinct ordinary or intricate bloom');
   });
 
-  it('preserves historical v3.88 staging while v3.91 owns the active fallback', () => {
+  it('preserves historical v3.88 staging while v3.96 owns the active fallback', () => {
     const prompt = readProjectFile('src/services/prompts/fallback-prompt.txt');
     const stageMigration = readProjectFile(
       'supabase/migrations/20260915110000_stage_prompt_v388_sized_filler_flower_support.sql',
@@ -54,7 +54,7 @@ describe('v3.88 sized filler flower support normalization', () => {
       'supabase/migrations/20260917100000_stage_prompt_v391_one_color_non_character_3d_gate.sql',
     );
 
-    expect(createHash('md5').update(prompt).digest('hex')).toBe('388e050b2c43655b289bcbe9aa7fc125');
+    expect(createHash('md5').update(prompt).digest('hex')).toBe('afc7a90e525fcc74fa7c018f6d47d1ea');
     expect(stageMigration).toContain("v386_md5 constant text := '64542a47d0e7f19b51db22a6209ed0e4'");
     expect(stageMigration).toContain("v388_md5 constant text := 'c4afb9b84576b1c37501e9a56fd379f6'");
     expect(stageMigration).toContain("source_version <> '3.86'");

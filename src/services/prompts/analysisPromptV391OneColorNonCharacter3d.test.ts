@@ -9,7 +9,7 @@ function readProjectFile(path: string) {
   return readFileSync(join(rootDir, path), 'utf8');
 }
 
-describe('v3.91 one-color object and flat-flower gates', () => {
+describe('v3.91 one-color object and flat-flower gates retained in v3.96', () => {
   it('keeps a standalone one-color bridal dress ordinary without downgrading complete figures', () => {
     const prompt = readProjectFile('src/services/prompts/fallback-prompt.txt');
     const fixture = JSON.parse(readProjectFile(
@@ -22,11 +22,11 @@ describe('v3.91 one-color object and flat-flower gates', () => {
       qualifying_counterexample: string;
     };
 
-    expect(prompt).toContain('**v3.91 Version - One-Color Object and Flat-Flower Gates**');
+    expect(prompt).toContain('**v3.96 Version - Side-Positioned Edible Character Figures**');
     expect(prompt).toContain('#### ONE-COLOR NON-CHARACTER OBJECT GATE (BINDING)');
     expect(prompt).toContain('one visibly distinct color is a\ndisqualifier for `edible_3d_complex`');
     expect(prompt).toContain('Do not infer a bride, person, or\nfigurine from a bridal/wedding theme');
-    expect(prompt).toContain('This gate does not downgrade a genuinely complete freestanding human or animal');
+    expect(prompt).toContain('This gate does not downgrade a genuinely complete freestanding animal figure');
     expect(fixture.observed_construction).toHaveLength(3);
     expect(fixture.expected_main_topper).toEqual({
       type: 'edible_3d_ordinary',
@@ -68,24 +68,38 @@ describe('v3.91 one-color object and flat-flower gates', () => {
     expect(fixture.qualifying_counterexample).toContain('visible petal side surfaces');
   });
 
-  it('keeps the fallback byte-identical to the verified live v3.91 prompt while preserving the immutable staging migration', () => {
+  it('keeps the fallback byte-identical to active v3.96 and verifies its guarded migrations', () => {
     const prompt = readProjectFile('src/services/prompts/fallback-prompt.txt');
-    const stageMigration = readProjectFile(
+    const historicalStageMigration = readProjectFile(
       'supabase/migrations/20260917100000_stage_prompt_v391_one_color_non_character_3d_gate.sql',
     );
-    const activateMigration = readProjectFile(
+    const historicalActivateMigration = readProjectFile(
       'supabase/migrations/20260917101000_activate_prompt_v391_one_color_non_character_3d_gate.sql',
     );
+    const stageMigration = readProjectFile(
+      'supabase/migrations/20260923130801_stage_prompt_v396_side_positioned_edible_characters.sql',
+    );
+    const activateMigration = readProjectFile(
+      'supabase/migrations/20260923142826_activate_prompt_v396_side_positioned_edible_characters.sql',
+    );
 
-    expect(createHash('md5').update(prompt).digest('hex')).toBe('388e050b2c43655b289bcbe9aa7fc125');
-    expect(prompt).toContain('it is not a piped flower if it doesnt look like a flower or it just looks like a rosette');
-    expect(stageMigration).toContain("v390_md5 constant text := 'ac7f65da35135d3d4e42e90b7c82e655'");
-    expect(stageMigration).toContain("v391_md5 constant text := 'fede0545b650c86737631e714bd918ee'");
-    expect(stageMigration).toContain("source_version <> '3.90'");
-    expect(stageMigration).toContain("values (\n    '3.91',\n    next_prompt,\n    false,");
+    expect(createHash('md5').update(prompt).digest('hex')).toBe('afc7a90e525fcc74fa7c018f6d47d1ea');
+    expect(prompt).toContain('**v3.96 Version - Side-Positioned Edible Character Figures**');
+    expect(prompt).toContain('Require construction-first grouping for piped flowers');
+    expect(historicalStageMigration).toContain("v390_md5 constant text := 'ac7f65da35135d3d4e42e90b7c82e655'");
+    expect(historicalStageMigration).toContain("v391_md5 constant text := 'fede0545b650c86737631e714bd918ee'");
+    expect(historicalStageMigration).toContain("source_version <> '3.90'");
+    expect(historicalStageMigration).toContain("values (\n    '3.91',\n    next_prompt,\n    false,");
+    expect(historicalStageMigration).not.toContain('update public.ai_prompts\n  set is_active = false');
+    expect(historicalActivateMigration).toContain("where version = '3.90'");
+    expect(historicalActivateMigration).toContain("where version = '3.91'");
+    expect(historicalActivateMigration).toContain('update public.ai_prompts\n  set is_active = false');
+    expect(stageMigration).toContain("v395_md5 constant text := 'd53fd769dcd1e258c04c5f9beec3be29'");
+    expect(stageMigration).toContain("v396_md5 constant text := 'afc7a90e525fcc74fa7c018f6d47d1ea'");
+    expect(stageMigration).toContain("where version = '3.96'");
     expect(stageMigration).not.toContain('update public.ai_prompts\n  set is_active = false');
-    expect(activateMigration).toContain("where version = '3.90'");
-    expect(activateMigration).toContain("where version = '3.91'");
+    expect(activateMigration).toContain("v395_md5 constant text := 'd53fd769dcd1e258c04c5f9beec3be29'");
+    expect(activateMigration).toContain("v396_md5 constant text := 'afc7a90e525fcc74fa7c018f6d47d1ea'");
     expect(activateMigration).toContain('update public.ai_prompts\n  set is_active = false');
   });
 });

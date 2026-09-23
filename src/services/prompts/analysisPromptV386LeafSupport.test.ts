@@ -24,7 +24,7 @@ describe('v3.86 edible leaf support normalization', () => {
     expect(prompt).toContain('`material: "edible_fondant"`, and `size: "small"`.');
     expect(prompt).toContain('This leaf rule overrides every flower, flat-shape, focal-shape, complexity,');
     expect(prompt).toContain('| Any discrete edible fondant/gumpaste leaf or foliage piece | `edible_2d_support` | `edible_fondant` | support element only | fixed `small` |');
-    expect(prompt).toContain('A discrete edible leaf or foliage piece is never a flower');
+    expect(prompt).toContain('A\ndiscrete edible leaf or foliage piece is never a flower for this rule');
     expect(prompt).toContain('Discrete edible leaves and foliage use `edible_2d_support` instead.');
     expect(prompt).toContain('Every discrete edible leaf/foliage piece = `edible_2d_support`, support, `small`');
     expect(fixture.expected_support_element).toEqual({
