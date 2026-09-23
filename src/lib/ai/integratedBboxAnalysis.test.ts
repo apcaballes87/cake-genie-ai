@@ -6,12 +6,16 @@ import {
   getAnalysisGenerationSizeSchema,
   postProcessSearchAnalysisResult,
 } from '@/lib/admin/searchAnalysisContract';
+import {
+  getIntegratedBboxRepairCandidates,
+  mergeIntegratedBboxRepairResponse,
+} from '@/lib/ai/integratedBboxAnalysis';
 import type { HybridAnalysisResult } from '@/types';
 import { hasBoundingBoxData, needsCoordinateEnrichment } from '@/lib/utils/analysisUtils';
 
 const typeEnums = {
-  mainTopperTypes: ['edible_3d_complex', 'piped_flowers_top'],
-  supportElementTypes: ['edible_flowers_filler', 'edible_flowers', 'edible_2d_support', 'icing_decorations', 'piped_flowers_side'],
+  mainTopperTypes: ['edible_3d_complex', 'piped_flowers_top', 'printout'],
+  supportElementTypes: ['edible_flowers_filler', 'edible_flowers', 'edible_2d_support', 'icing_decorations', 'piped_flowers_side', 'printout'],
 };
 
 function acceptedAnalysis(overrides: Record<string, unknown> = {}) {
@@ -66,6 +70,17 @@ function acceptedV2Envelope(overrides: Record<string, unknown> = {}) {
 
 function processV2(result: unknown) {
   return postProcessSearchAnalysisResult(result, typeEnums, 'integrated_bbox_v2');
+}
+
+function processV2Tolerant(result: unknown, previousAnalysis?: unknown) {
+  return postProcessSearchAnalysisResult(
+    result,
+    typeEnums,
+    'integrated_bbox_v2_tolerant',
+    'analysis_only',
+    undefined,
+    { previousAnalysis },
+  );
 }
 
 describe('integrated_bbox_v1 analysis', () => {
@@ -128,7 +143,9 @@ describe('integrated_bbox_v1 analysis', () => {
       }),
     }));
 
-    expect(result.icing_design.colors.gumpasteBaseBoardColor).toBe('#FFFFFF');
+    expect('gumpasteBaseBoardColor' in result.icing_design.colors
+      ? result.icing_design.colors.gumpasteBaseBoardColor
+      : undefined).toBe('#FFFFFF');
   });
 
   it('calculates the exact 15% and 70% boundaries, including filler and piped support rows', () => {
@@ -383,7 +400,7 @@ describe('integrated_bbox_v1 analysis', () => {
       },
     }));
 
-    expect(result.geometry.cake_diameter_line).toEqual({
+    expect(result.geometry?.cake_diameter_line).toEqual({
       start: [377, 290],
       end: [849, 715],
     });
@@ -442,8 +459,8 @@ describe('integrated_bbox_v1 analysis', () => {
   it('v2 sizes repeated flowers and leaves from individual unit boxes, never their arrangement span', () => {
     expect(getAnalysisGenerationSizeSchema('3.93')).toBe('integrated_bbox_v2');
     const config = buildSearchAnalysisGenerationConfig(typeEnums, 'integrated_bbox_v2');
-    expect(config.systemInstruction).toContain('FIRST CHOOSE ONE GEOMETRY SCOPE');
-    expect(config.systemInstruction).not.toContain('unless row represents intentional continuous treatment');
+    expect(config.systemInstruction).toContain('V3.93 INTEGRATED BOUNDING-BOX SCOPE');
+    expect(config.systemInstruction).toContain('exactly min(quantity, 5) distinct tight unit boxes');
     const v2Properties = (config.responseSchema as unknown as {
       properties: { analysis: { properties: { support_elements: { items: { properties: Record<string, unknown>; required: string[] } } } } };
     }).properties.analysis.properties.support_elements.items;
@@ -590,5 +607,199 @@ describe('integrated_bbox_v1 analysis', () => {
       }),
     });
     expect(() => processV2(incorrectlyAggregatedIcingDecorations)).toThrow(/requires icing material and quantity 1/);
+  });
+
+  it('keeps the strict v3.93 contract and selects tolerant geometry only for v3.95+', () => {
+    expect(getAnalysisGenerationSizeSchema('3.94')).toBe('integrated_bbox_v2');
+    expect(getAnalysisGenerationSizeSchema('3.95')).toBe('integrated_bbox_v2_tolerant');
+    expect(getAnalysisGenerationSizeSchema('fallback')).toBe('integrated_bbox_v2_tolerant');
+    const stagedConfig = buildSearchAnalysisGenerationConfig(typeEnums, 'integrated_bbox_v2_tolerant');
+    expect(stagedConfig.systemInstruction).toContain('V3.95 INTEGRATED BOUNDING-BOX CONTRACT');
+    expect(stagedConfig.systemInstruction).toContain('Printouts always use unit');
+    expect(stagedConfig.systemInstruction).toContain('For quantity 6 or greater, target 5 visible-unit boxes');
+    const schema = stagedConfig.responseSchema as unknown as {
+      properties: {
+        analysis: {
+          properties: {
+            support_elements: {
+              items: {
+                properties: {
+                  quantity: { description: string };
+                  box_2d: { minItems: number };
+                };
+              };
+            };
+          };
+        };
+      };
+    };
+    expect(schema.properties.analysis.properties.support_elements.items.properties.quantity.description)
+      .toContain('after one targeted bbox-only retry');
+    expect(schema.properties.analysis.properties.support_elements.items.properties.box_2d.minItems).toBe(0);
+  });
+
+  it('targets exact boxes for quantities 1–5 and five boxes for quantities 6+', () => {
+    for (const quantity of [1, 2, 3, 4, 5, 6, 10]) {
+      const target = Math.min(quantity, 5);
+      const boxes = Array.from({ length: target }, (_, index) => [
+        100 + index * 30, 100 + index * 30, 120 + index * 30, 120 + index * 30,
+      ]);
+      const envelope = acceptedV2Envelope({
+        geometry: {
+          geometry_version: 'integrated_bbox_v2',
+          cake_diameter_line: { start: [300, 0], end: [300, 1000] },
+          cake_height_line: { start: [300, 500], end: [900, 500] },
+        },
+        analysis: acceptedAnalysis({
+          support_elements: [{
+            type: 'edible_flowers', material: 'edible_fondant', group_id: `flowers_${quantity}`,
+            color: '#FFFFFF', geometry_scope: 'unit', quantity,
+            description: `${quantity} flowers`, box_2d: boxes,
+            bbox_confidence: boxes.map(() => 0.9),
+          }],
+        }),
+      });
+      const row = processV2Tolerant(envelope).support_elements[0];
+      expect(row.quantity).toBe(quantity);
+      expect(row.box_2d).toHaveLength(target);
+      if (quantity <= 5) expect(row).not.toHaveProperty('bbox_review');
+      else expect(row.bbox_review).toMatchObject({
+        status: 'needs_review', target_box_count: 5, returned_box_count: 5, valid_box_count: 5,
+      });
+    }
+  });
+
+  it('repairs a short q3 group once, then preserves quantity and aligned valid boxes for review', () => {
+    const envelope = acceptedV2Envelope({
+      analysis: acceptedAnalysis({
+        support_elements: [{
+          type: 'edible_flowers', material: 'edible_fondant', group_id: 'three_bows',
+          color: '#FFFFFF', geometry_scope: 'unit', quantity: 3,
+          description: 'three matching bows',
+          box_2d: [[100, 100, 200, 200], [250, 250, 350, 350]],
+          bbox_confidence: [0.95, 0.9, 0.7],
+        }],
+      }),
+    });
+    const candidates = getIntegratedBboxRepairCandidates(envelope);
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0]).toMatchObject({ groupId: 'three_bows', targetBoxCount: 3 });
+
+    const merged = mergeIntegratedBboxRepairResponse(envelope, candidates, {
+      repairs: [{
+        repair_key: 'row_0',
+        box_2d: [[100, 100, 200, 200], [250, 250, 350, 350]],
+        // Captures the provider's repeated mismatch: two boxes but three scores.
+        bbox_confidence: [0.95, 0.9, 0.7],
+        geometry_scope: 'unit',
+      }],
+    });
+    const result = processV2Tolerant(merged);
+    const row = result.support_elements[0];
+    expect(row.quantity).toBe(3);
+    expect(row.box_2d).toHaveLength(2);
+    expect(row.bbox_confidence).toHaveLength(2);
+    expect(row.bbox_review).toMatchObject({
+      status: 'needs_review', target_box_count: 3, returned_box_count: 2, valid_box_count: 2,
+    });
+    expect(row.bbox_review?.reasons).toEqual(expect.arrayContaining([
+      'under_count', 'confidence_count_mismatch',
+    ]));
+  });
+
+  it('splits a fully boxed q4 row by size band without losing boxes, confidences, or quantity', () => {
+    const result = processV2Tolerant(acceptedV2Envelope({
+      geometry: {
+        geometry_version: 'integrated_bbox_v2',
+        cake_diameter_line: { start: [300, 0], end: [300, 1000] },
+        cake_height_line: { start: [300, 500], end: [900, 500] },
+      },
+      analysis: acceptedAnalysis({
+        support_elements: [{
+          type: 'edible_flowers', material: 'edible_fondant', group_id: 'mixed_flowers',
+          color: '#FFFFFF', geometry_scope: 'unit', quantity: 4,
+          description: 'four flowers in two sizes',
+          box_2d: [
+            [10, 10, 110, 110], [200, 200, 500, 500],
+            [100, 100, 500, 500], [100, 100, 900, 900],
+          ],
+          bbox_confidence: [0.91, 0.82, 0.73, 0.64],
+        }],
+      }),
+    }));
+
+    expect(result.support_elements).toHaveLength(2);
+    expect(result.support_elements.map((row) => row.size)).toEqual(['small', 'medium']);
+    expect(result.support_elements.map((row) => row.quantity)).toEqual([2, 2]);
+    expect(result.support_elements.map((row) => row.group_id)).toEqual([
+      'mixed_flowers::bbox:small', 'mixed_flowers::bbox:medium',
+    ]);
+    expect(result.support_elements.map((row) => row.parent_group_id)).toEqual([
+      'mixed_flowers', 'mixed_flowers',
+    ]);
+    expect(result.support_elements.flatMap((row) => (row.box_2d ?? []) as unknown[])).toHaveLength(4);
+    expect(result.support_elements.flatMap((row) => row.bbox_confidence)).toEqual([0.91, 0.82, 0.73, 0.64]);
+    expect(result.support_elements.reduce((sum, row) => sum + row.quantity, 0)).toBe(4);
+  });
+
+  it('normalizes printout treatment to unit instead of rejecting or dropping the row', () => {
+    const envelope = acceptedV2Envelope({
+      analysis: acceptedAnalysis({
+        support_elements: [{
+          type: 'printout', material: 'photopaper', group_id: 'name_printout',
+          color: '#FFFFFF', geometry_scope: 'treatment', quantity: 1,
+          description: 'flat printed name topper',
+          box_2d: [[100, 100, 200, 400]], bbox_confidence: [0.92],
+        }],
+      }),
+    });
+    const candidates = getIntegratedBboxRepairCandidates(envelope);
+    expect(candidates[0]).toMatchObject({ groupId: 'name_printout', reasons: ['scope_normalized'] });
+    const result = processV2Tolerant(envelope);
+    expect(result.support_elements).toHaveLength(1);
+    expect(result.support_elements[0]).toMatchObject({
+      type: 'printout', geometry_scope: 'unit', quantity: 1,
+      bbox_review: { status: 'needs_review', reasons: ['scope_normalized'] },
+    });
+    expect(result.support_elements[0].box_2d).toHaveLength(1);
+  });
+
+  it('keeps a zero-box decoration and preserves its prior cached size', () => {
+    const result = processV2Tolerant(acceptedV2Envelope({
+      analysis: acceptedAnalysis({
+        support_elements: [{
+          type: 'edible_flowers', material: 'edible_fondant', group_id: 'unboxed_flowers',
+          color: '#FFFFFF', geometry_scope: 'unit', quantity: 3,
+          description: 'three visible flowers', box_2d: [], bbox_confidence: [],
+        }],
+      }),
+    }), {
+      support_elements: [{
+        type: 'edible_flowers', group_id: 'unboxed_flowers', quantity: 3, size: 'medium',
+      }],
+    });
+    const row = result.support_elements[0];
+    expect(row).toMatchObject({ quantity: 3, size: 'medium', box_2d: [], bbox_confidence: [] });
+    expect(row.bbox_review).toMatchObject({
+      status: 'needs_review', target_box_count: 3, returned_box_count: 0, valid_box_count: 0,
+    });
+    expect(row.bbox_review?.reasons).toContain('zero_boxes_prior_size_preserved');
+  });
+
+  it('keeps a cake-message row when its bbox cannot be localized', () => {
+    const result = processV2Tolerant(acceptedV2Envelope({
+      analysis: acceptedAnalysis({
+        cake_messages: [{
+          text: 'Happy Birthday', type: 'icing_script', color: '#FFFFFF', position: 'top',
+          box_2d: [], bbox_confidence: [],
+        }],
+      }),
+    }));
+
+    expect(result.cake_messages).toHaveLength(1);
+    expect(result.cake_messages[0]).toMatchObject({
+      text: 'Happy Birthday', box_2d: [], bbox_confidence: [],
+      bbox_review: { status: 'needs_review', target_box_count: 1, returned_box_count: 0, valid_box_count: 0 },
+    });
   });
 });

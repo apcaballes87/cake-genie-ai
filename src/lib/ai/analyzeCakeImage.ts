@@ -22,10 +22,13 @@ import {
     INTEGRATED_BBOX_V2_ANALYSIS_SIZE_SCHEMA,
     LINE_RATIO_ANALYSIS_SIZE_SCHEMA,
 } from '@/lib/ai/analysisSize';
-import { Type } from '@google/genai';
 import type { AnalysisGenerationSizeSchema } from '@/lib/admin/searchAnalysisContract';
-import { ThinkingLevel } from '@google/genai';
+import { ThinkingLevel, Type } from '@google/genai';
 import { logCakeAnalysisDebug } from '@/lib/ai/analysisDebug';
+import {
+    getIntegratedBboxRepairCandidates,
+    mergeIntegratedBboxRepairResponse,
+} from '@/lib/ai/integratedBboxAnalysis';
 
 export const ANALYSIS_MODEL = 'gemini-3.5-flash-lite';
 export const CAKE_ANALYSIS_LAB_MODELS = [
@@ -58,6 +61,68 @@ export class CakeAnalysisResponseError extends Error {
     }
 }
 
+function buildIntegratedBboxRepairSchema(candidateCount: number) {
+    const repairKeys = Array.from({ length: candidateCount }, (_, index) => `row_${index}`);
+    return {
+        type: Type.OBJECT,
+        properties: {
+            repairs: {
+                type: Type.ARRAY,
+                maxItems: candidateCount,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        repair_key: { type: Type.STRING, enum: repairKeys },
+                        box_2d: {
+                            type: Type.ARRAY,
+                            minItems: 0,
+                            maxItems: 5,
+                            items: {
+                                type: Type.ARRAY,
+                                minItems: 4,
+                                maxItems: 4,
+                                items: { type: Type.NUMBER, minimum: 0, maximum: 1000 },
+                            },
+                        },
+                        bbox_confidence: {
+                            type: Type.ARRAY,
+                            minItems: 0,
+                            maxItems: 5,
+                            items: { type: Type.NUMBER, minimum: 0, maximum: 1 },
+                        },
+                        geometry_scope: {
+                            type: Type.STRING,
+                            enum: ['unit', 'piped_cluster', 'treatment'],
+                        },
+                    },
+                    required: ['repair_key', 'box_2d', 'bbox_confidence'],
+                },
+            },
+        },
+        required: ['repairs'],
+    };
+}
+
+function buildIntegratedBboxRepairInstruction(
+    candidates: ReturnType<typeof getIntegratedBboxRepairCandidates>,
+): string {
+    const requested = candidates.map((candidate, index) => ({
+        repair_key: `row_${index}`,
+        category: candidate.category,
+        group_id: candidate.groupId,
+        type: candidate.type,
+        quantity: candidate.quantity,
+        geometry_scope: candidate.geometryScope,
+        target_box_count: candidate.targetBoxCount,
+        known_issues: candidate.reasons,
+    }));
+    return [
+        'This is a targeted bbox-only repair for the listed analysis rows. Inspect the image and return only the requested repair objects; do not rewrite cake classification, descriptions, materials, row identities, or quantities.',
+        'For unit rows, target exactly quantity boxes for quantities 1–5, and five boxes for quantity 6 or greater. For treatment or piped_cluster rows, return one tight region box. Never pair printout with treatment.',
+        'Return one confidence per returned box in matching order. If a tight box cannot be localized, return empty box_2d and bbox_confidence arrays. Do not invent coordinates or merge separate countable items into an arrangement box.',
+        `Rows to repair: ${JSON.stringify(requested)}`,
+    ].join('\n');
+}
 const ANALYSIS_CONFIG_CACHE_TTL_MS = 5 * 60_000;
 const PROMPT_CACHE_NAME_TTL_MS = 30 * 60_000;
 
@@ -87,6 +152,8 @@ export type RunCakeAnalysisInput = {
     topK?: number;
     sizeSchema?: AnalysisGenerationSizeSchema;
     usePromptCache?: boolean;
+    /** Existing cached analysis, used only if a row has no valid boxes. */
+    previousAnalysis?: unknown;
 };
 
 export type RunCakeAnalysisResult = {
@@ -351,6 +418,7 @@ export async function runActiveCakeAnalysis({
     topK,
     sizeSchema: requestedSizeSchema,
     usePromptCache = true,
+    previousAnalysis,
 }: RunCakeAnalysisInput): Promise<RunCakeAnalysisResult> {
     const supabase = createClient();
     // Explicit versions are supplied only by trusted server-side flows (admin
@@ -412,6 +480,7 @@ export async function runActiveCakeAnalysis({
     const generateAnalysis = async (
         correctionInstruction?: string,
         timeoutMs = AI_REQUEST_TIMEOUT_MS,
+        responseSchemaOverride?: typeof baseConfig.responseSchema | ReturnType<typeof buildIntegratedBboxRepairSchema>,
     ) => {
         const generateWithoutCache = () => aiClient.models.generateContent({
             model,
@@ -425,6 +494,7 @@ export async function runActiveCakeAnalysis({
             }],
             config: {
                 ...baseConfig,
+                ...(responseSchemaOverride ? { responseSchema: responseSchemaOverride } : {}),
                 abortSignal: AbortSignal.timeout(timeoutMs),
             },
         });
@@ -445,6 +515,7 @@ export async function runActiveCakeAnalysis({
                 }],
                 config: {
                     ...cachedConfig,
+                    ...(responseSchemaOverride ? { responseSchema: responseSchemaOverride } : {}),
                     cachedContent: cacheName,
                     abortSignal: AbortSignal.timeout(timeoutMs),
                 },
@@ -459,10 +530,10 @@ export async function runActiveCakeAnalysis({
 
     let rawResponse = '';
     const parseAndValidate = async (
-        response: Awaited<ReturnType<typeof generateAnalysis>>,
+        jsonText: string,
         options: { allowMissingCakeHeightLine?: boolean } = {},
     ) => {
-        const jsonText = (response.text || '').trim();
+        jsonText = jsonText.trim();
         rawResponse = jsonText;
         try {
             const generated = JSON.parse(jsonText);
@@ -475,7 +546,7 @@ export async function runActiveCakeAnalysis({
                 sizeSchema,
                 seoSchema,
                 waferPaperSideWaveVerification,
-                options,
+                { ...options, previousAnalysis },
             );
         } catch (error) {
             console.error('Failed to parse AI response:', jsonText);
@@ -483,13 +554,62 @@ export async function runActiveCakeAnalysis({
             throw new CakeAnalysisResponseError('Invalid response format from AI', jsonText, error);
         }
     };
+    let bboxRepairAttempted = false;
+    const prepareResponseText = async (
+        response: Awaited<ReturnType<typeof generateAnalysis>>,
+    ): Promise<string> => {
+        const originalText = (response.text || '').trim();
+        if (sizeSchema !== 'integrated_bbox_v2_tolerant' || bboxRepairAttempted) return originalText;
+
+        let envelope: unknown;
+        try {
+            envelope = JSON.parse(originalText);
+        } catch {
+            return originalText;
+        }
+        const candidates = getIntegratedBboxRepairCandidates(envelope);
+        if (candidates.length === 0) return originalText;
+        bboxRepairAttempted = true;
+
+        logCakeAnalysisDebug('Gemini targeted bbox repair starting', {
+            promptVersion: promptDetails.version,
+            candidateCount: candidates.length,
+            candidates,
+        });
+        try {
+            const repairResponse = await generateAnalysis(
+                buildIntegratedBboxRepairInstruction(candidates),
+                AI_REQUEST_TIMEOUT_MS,
+                buildIntegratedBboxRepairSchema(candidates.length),
+            );
+            const repairText = (repairResponse.text || '').trim();
+            const merged = mergeIntegratedBboxRepairResponse(
+                envelope,
+                candidates,
+                JSON.parse(repairText),
+            );
+            logCakeAnalysisDebug('Gemini targeted bbox repair completed', {
+                promptVersion: promptDetails.version,
+                candidateCount: candidates.length,
+                rawRepairResponse: repairText,
+            });
+            return JSON.stringify(merged);
+        } catch (error) {
+            console.warn('[AI Contract] Targeted bbox repair failed; keeping the original analysis rows.', error);
+            logCakeAnalysisDebug('Gemini targeted bbox repair could not be parsed', {
+                promptVersion: promptDetails.version,
+                candidateCount: candidates.length,
+                error: error instanceof Error ? error.message : String(error),
+            });
+            return originalText;
+        }
+    };
     let result: GeneratedCakeAnalysisResult;
     try {
-        result = await parseAndValidate(await generateAnalysis());
+        result = await parseAndValidate(await prepareResponseText(await generateAnalysis()));
     } catch (error) {
         const correctionInstruction = getContractCorrectionInstruction(error)
             ?? buildCakeAnalysisContractRepairInstruction(error, sizeSchema);
-
         console.warn('[AI Contract] Generated response failed validation; requesting one complete replacement.', {
             promptVersion: promptDetails.version,
             issue: error instanceof Error ? error.message : String(error),
@@ -499,13 +619,19 @@ export async function runActiveCakeAnalysis({
             ANALYSIS_CONTRACT_CORRECTION_TIMEOUT_MS,
         );
         try {
-            result = await parseAndValidate(repairedResponse);
+            result = await parseAndValidate(await prepareResponseText(repairedResponse));
         } catch (repairError) {
-            if (sizeSchema !== 'integrated_bbox_v2' || !isCakeHeightLineContractError(repairError)) {
+            if (
+                (sizeSchema !== 'integrated_bbox_v2' && sizeSchema !== 'integrated_bbox_v2_tolerant')
+                || !isCakeHeightLineContractError(repairError)
+            ) {
                 throw repairError;
             }
             console.warn('[AI Contract] Cake height geometry remains unusable after repair; applying the type-safe thickness fallback.');
-            result = await parseAndValidate(repairedResponse, { allowMissingCakeHeightLine: true });
+            result = await parseAndValidate(
+                await prepareResponseText(repairedResponse),
+                { allowMissingCakeHeightLine: true },
+            );
         }
     }
 
@@ -543,7 +669,7 @@ export async function runActiveCakeAnalysis({
                 ? LINE_RATIO_ANALYSIS_SIZE_SCHEMA
                 : sizeSchema === 'local_bbox_area'
                     ? ANALYSIS_SIZE_SCHEMA
-                    : sizeSchema === 'integrated_bbox_v2'
+                    : sizeSchema === 'integrated_bbox_v2' || sizeSchema === 'integrated_bbox_v2_tolerant'
                         ? INTEGRATED_BBOX_V2_ANALYSIS_SIZE_SCHEMA
                     : sizeSchema === 'integrated_bbox_v1'
                         ? INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA

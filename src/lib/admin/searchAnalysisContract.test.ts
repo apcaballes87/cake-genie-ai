@@ -223,7 +223,7 @@ describe('search analysis contract', () => {
     expect(schema.properties.support_elements.items.required).toContain('size');
     expect(buildSearchAnalysisResponseSchema(typeEnums, 'legacy_six_band').properties.main_toppers.items.properties.size.enum)
       .toEqual(['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge']);
-    expect(getAnalysisGenerationSizeSchema('fallback')).toBe('integrated_bbox_v2');
+    expect(getAnalysisGenerationSizeSchema('fallback')).toBe('integrated_bbox_v2_tolerant');
     expect(getAnalysisGenerationSizeSchema('3.66')).toBe('legacy_six_band');
     expect(getAnalysisGenerationSizeSchema('3.67')).toBe('three_band');
     expect(getAnalysisGenerationSizeSchema('local-dev-bbox')).toBe('local_bbox_area');
