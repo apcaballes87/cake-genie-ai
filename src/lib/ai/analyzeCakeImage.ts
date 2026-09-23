@@ -21,8 +21,12 @@ import {
     LINE_RATIO_ANALYSIS_SIZE_SCHEMA,
 } from '@/lib/ai/analysisSize';
 import type { AnalysisGenerationSizeSchema } from '@/lib/admin/searchAnalysisContract';
-import { ThinkingLevel } from '@google/genai';
+import { ThinkingLevel, Type } from '@google/genai';
 import { logCakeAnalysisDebug } from '@/lib/ai/analysisDebug';
+import {
+    getIntegratedBboxRepairCandidates,
+    mergeIntegratedBboxRepairResponse,
+} from '@/lib/ai/integratedBboxAnalysis';
 
 export const ANALYSIS_MODEL = 'gemini-3.5-flash-lite';
 export const CAKE_ANALYSIS_LAB_MODELS = [
@@ -44,6 +48,7 @@ const THINKING_LEVELS: Record<CakeAnalysisThinkingLevel, ThinkingLevel> = {
 /** Includes provider text for internal diagnostic consumers without changing public route errors. */
 export class CakeAnalysisResponseError extends Error {
     rawResponse: string;
+    status = 502;
 
     constructor(message: string, rawResponse: string, cause?: unknown) {
         super(message, cause === undefined ? undefined : { cause });
@@ -60,6 +65,15 @@ function contractFailureMessage(error: unknown): string {
     return 'The previous response did not satisfy the required JSON contract.';
 }
 
+function isCakeHeightLineContractError(error: unknown): boolean {
+    let current: unknown = error;
+    while (current && typeof current === 'object') {
+        if (current instanceof Error && current.message.includes('geometry.cake_height_line')) return true;
+        current = (current as { cause?: unknown }).cause;
+    }
+    return false;
+}
+
 /**
  * Gemini's response schema can require the line fields but cannot express the
  * geometric relationship between their coordinates. Give its single bounded
@@ -72,7 +86,9 @@ export function buildCakeAnalysisContractRepairInstruction(
     sizeSchema: AnalysisGenerationSizeSchema,
 ): string {
     const failure = contractFailureMessage(error);
-    const integratedGeometryReminder = sizeSchema === 'integrated_bbox_v1' || sizeSchema === 'integrated_bbox_v2'
+    const integratedGeometryReminder = sizeSchema === 'integrated_bbox_v1'
+        || sizeSchema === 'integrated_bbox_v2'
+        || sizeSchema === 'integrated_bbox_v2_tolerant'
         ? [
             `For ${sizeSchema}, every point is [y, x], never [x, y].`,
             'cake_diameter_line must run from the cake’s left rim to right rim: end.x > start.x and its vertical drift must be smaller than its horizontal span.',
@@ -87,6 +103,69 @@ export function buildCakeAnalysisContractRepairInstruction(
         integratedGeometryReminder,
         'Do not omit required fields or add unsupported fields.',
     ].filter(Boolean).join(' ');
+}
+
+function buildIntegratedBboxRepairSchema(candidateCount: number) {
+    const repairKeys = Array.from({ length: candidateCount }, (_, index) => `row_${index}`);
+    return {
+        type: Type.OBJECT,
+        properties: {
+            repairs: {
+                type: Type.ARRAY,
+                maxItems: candidateCount,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        repair_key: { type: Type.STRING, enum: repairKeys },
+                        box_2d: {
+                            type: Type.ARRAY,
+                            minItems: 0,
+                            maxItems: 5,
+                            items: {
+                                type: Type.ARRAY,
+                                minItems: 4,
+                                maxItems: 4,
+                                items: { type: Type.NUMBER, minimum: 0, maximum: 1000 },
+                            },
+                        },
+                        bbox_confidence: {
+                            type: Type.ARRAY,
+                            minItems: 0,
+                            maxItems: 5,
+                            items: { type: Type.NUMBER, minimum: 0, maximum: 1 },
+                        },
+                        geometry_scope: {
+                            type: Type.STRING,
+                            enum: ['unit', 'piped_cluster', 'treatment'],
+                        },
+                    },
+                    required: ['repair_key', 'box_2d', 'bbox_confidence'],
+                },
+            },
+        },
+        required: ['repairs'],
+    };
+}
+
+function buildIntegratedBboxRepairInstruction(
+    candidates: ReturnType<typeof getIntegratedBboxRepairCandidates>,
+): string {
+    const requested = candidates.map((candidate, index) => ({
+        repair_key: `row_${index}`,
+        category: candidate.category,
+        group_id: candidate.groupId,
+        type: candidate.type,
+        quantity: candidate.quantity,
+        geometry_scope: candidate.geometryScope,
+        target_box_count: candidate.targetBoxCount,
+        known_issues: candidate.reasons,
+    }));
+    return [
+        'This is a targeted bbox-only repair for the listed analysis rows. Inspect the image and return only the requested repair objects; do not rewrite cake classification, descriptions, materials, row identities, or quantities.',
+        'For unit rows, target exactly quantity boxes for quantities 1–5, and five boxes for quantity 6 or greater. For treatment or piped_cluster rows, return one tight region box. Never pair printout with treatment.',
+        'Return one confidence per returned box in matching order. If a tight box cannot be localized, return empty box_2d and bbox_confidence arrays. Do not invent coordinates or merge separate countable items into an arrangement box.',
+        `Rows to repair: ${JSON.stringify(requested)}`,
+    ].join('\n');
 }
 
 const ANALYSIS_CONFIG_CACHE_TTL_MS = 5 * 60_000;
@@ -118,6 +197,8 @@ export type RunCakeAnalysisInput = {
     topK?: number;
     sizeSchema?: AnalysisGenerationSizeSchema;
     usePromptCache?: boolean;
+    /** Existing cached analysis, used only if a row has no valid boxes. */
+    previousAnalysis?: unknown;
 };
 
 export type RunCakeAnalysisResult = {
@@ -230,6 +311,7 @@ export async function runActiveCakeAnalysis({
     topK,
     sizeSchema: requestedSizeSchema,
     usePromptCache = true,
+    previousAnalysis,
 }: RunCakeAnalysisInput): Promise<RunCakeAnalysisResult> {
     const supabase = createClient();
     // Explicit versions are supplied only by trusted server-side flows (admin
@@ -291,7 +373,10 @@ export async function runActiveCakeAnalysis({
         }
     }
 
-    const generateResponse = async (repairInstruction?: string) => {
+    const generateResponse = async (
+        repairInstruction?: string,
+        responseSchemaOverride?: typeof baseConfig.responseSchema | ReturnType<typeof buildIntegratedBboxRepairSchema>,
+    ) => {
         const repairPart = repairInstruction ? [{ text: repairInstruction }] : [];
         if (cacheName) {
             const cachedConfig = { ...baseConfig };
@@ -309,6 +394,7 @@ export async function runActiveCakeAnalysis({
                     }],
                     config: {
                         ...cachedConfig,
+                        ...(responseSchemaOverride ? { responseSchema: responseSchemaOverride } : {}),
                         cachedContent: cacheName,
                         abortSignal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
                     },
@@ -328,6 +414,7 @@ export async function runActiveCakeAnalysis({
                     }],
                     config: {
                         ...baseConfig,
+                        ...(responseSchemaOverride ? { responseSchema: responseSchemaOverride } : {}),
                         abortSignal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
                     },
                 });
@@ -346,13 +433,16 @@ export async function runActiveCakeAnalysis({
             }],
             config: {
                 ...baseConfig,
+                ...(responseSchemaOverride ? { responseSchema: responseSchemaOverride } : {}),
                 abortSignal: AbortSignal.timeout(AI_REQUEST_TIMEOUT_MS),
             },
         });
     };
 
-    const parseAndValidateResponse = (candidateResponse: GeneratedResponse) => {
-        const candidateJsonText = (candidateResponse.text || '').trim();
+    const parseAndValidateResponse = (
+        candidateJsonText: string,
+        options: { allowMissingCakeHeightLine?: boolean } = {},
+    ) => {
         logCakeAnalysisDebug('Gemini raw response received', {
             promptVersion: promptDetails.version,
             sizeSchema,
@@ -367,6 +457,7 @@ export async function runActiveCakeAnalysis({
                     typeEnums,
                     sizeSchema,
                     seoSchema,
+                    { ...options, previousAnalysis },
                 ),
             };
         } catch (error) {
@@ -375,17 +466,87 @@ export async function runActiveCakeAnalysis({
         }
     };
 
+    let bboxRepairAttempted = false;
+    const prepareResponseText = async (candidateResponse: GeneratedResponse): Promise<string> => {
+        const originalText = (candidateResponse.text || '').trim();
+        if (sizeSchema !== 'integrated_bbox_v2_tolerant' || bboxRepairAttempted) return originalText;
+
+        let envelope: unknown;
+        try {
+            envelope = JSON.parse(originalText);
+        } catch {
+            return originalText;
+        }
+        const candidates = getIntegratedBboxRepairCandidates(envelope);
+        if (candidates.length === 0) return originalText;
+        // At most one bbox-only generation is allowed for this analysis, even
+        // if a separate full-contract replacement is later needed.
+        bboxRepairAttempted = true;
+
+        logCakeAnalysisDebug('Gemini targeted bbox repair starting', {
+            promptVersion: promptDetails.version,
+            candidateCount: candidates.length,
+            candidates,
+        });
+        try {
+            const repairResponse = await generateResponse(
+                buildIntegratedBboxRepairInstruction(candidates),
+                buildIntegratedBboxRepairSchema(candidates.length),
+            );
+            const repairText = (repairResponse.text || '').trim();
+            const merged = mergeIntegratedBboxRepairResponse(
+                envelope,
+                candidates,
+                JSON.parse(repairText),
+            );
+            logCakeAnalysisDebug('Gemini targeted bbox repair completed', {
+                promptVersion: promptDetails.version,
+                candidateCount: candidates.length,
+                rawRepairResponse: repairText,
+            });
+            return JSON.stringify(merged);
+        } catch (error) {
+            // A failed or malformed bbox-only retry must not turn otherwise
+            // usable analysis into a provider failure. Main validation keeps
+            // the original row, salvageable boxes, and a review marker.
+            console.warn('[AI Contract] Targeted bbox repair failed; keeping the original analysis rows.', error);
+            logCakeAnalysisDebug('Gemini targeted bbox repair could not be parsed', {
+                promptVersion: promptDetails.version,
+                candidateCount: candidates.length,
+                error: error instanceof Error ? error.message : String(error),
+            });
+            return originalText;
+        }
+    };
+
     response = await generateResponse();
     let parsedResponse: ReturnType<typeof parseAndValidateResponse>;
     try {
-        parsedResponse = parseAndValidateResponse(response);
+        parsedResponse = parseAndValidateResponse(await prepareResponseText(response));
     } catch (error) {
+        if (!(error instanceof CakeAnalysisResponseError)) throw error;
         // Structured output normally prevents this. A single bounded repair
         // gives the model one chance to satisfy the exact application contract
         // without inventing missing pricing fields or looping indefinitely.
         console.warn('[AI Contract] Generated response failed validation; requesting one complete replacement.', error);
         response = await generateResponse(buildCakeAnalysisContractRepairInstruction(error, sizeSchema));
-        parsedResponse = parseAndValidateResponse(response);
+        try {
+            parsedResponse = parseAndValidateResponse(await prepareResponseText(response));
+        } catch (replacementError) {
+            if (!(replacementError instanceof CakeAnalysisResponseError)) throw replacementError;
+            if (
+                sizeSchema !== 'integrated_bbox_v2'
+                && sizeSchema !== 'integrated_bbox_v2_tolerant'
+                || !isCakeHeightLineContractError(replacementError)
+            ) {
+                throw replacementError;
+            }
+            console.warn('[AI Contract] Cake height geometry remains unusable after repair; applying the type-safe thickness fallback.');
+            parsedResponse = parseAndValidateResponse(
+                await prepareResponseText(response),
+                { allowMissingCakeHeightLine: true },
+            );
+        }
     }
 
     const { jsonText, result } = parsedResponse;
@@ -424,7 +585,7 @@ export async function runActiveCakeAnalysis({
                 ? LINE_RATIO_ANALYSIS_SIZE_SCHEMA
                 : sizeSchema === 'local_bbox_area'
                     ? ANALYSIS_SIZE_SCHEMA
-                    : sizeSchema === 'integrated_bbox_v2'
+                    : sizeSchema === 'integrated_bbox_v2' || sizeSchema === 'integrated_bbox_v2_tolerant'
                         ? INTEGRATED_BBOX_V2_ANALYSIS_SIZE_SCHEMA
                     : sizeSchema === 'integrated_bbox_v1'
                         ? INTEGRATED_BBOX_ANALYSIS_SIZE_SCHEMA

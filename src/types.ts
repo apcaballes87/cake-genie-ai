@@ -4,7 +4,7 @@ import type { TierFlavorAssignment } from '@/lib/tierFlavorMapping';
 import type { AnalysisSizeSchema, CanonicalAnalysisSize, LegacyAnalysisSize } from '@/lib/ai/analysisSize';
 import type {
   GeneratedBoundingBox,
-  GeneratedBox2D,
+  GeneratedBboxReview,
   GeneratedIntegratedBboxConfidence,
   GeneratedIntegratedBox2D,
   GeneratedIntegratedGeometryScope,
@@ -73,6 +73,8 @@ export interface MainTopper {
   box_2d?: GeneratedIntegratedBox2D;
   bbox_confidence?: GeneratedIntegratedBboxConfidence;
   geometry_scope?: GeneratedIntegratedGeometryScope;
+  bbox_review?: GeneratedBboxReview;
+  parent_group_id?: string;
 }
 
 export interface SupportElement {
@@ -102,6 +104,8 @@ export interface SupportElement {
   box_2d?: GeneratedIntegratedBox2D;
   bbox_confidence?: GeneratedIntegratedBboxConfidence;
   geometry_scope?: GeneratedIntegratedGeometryScope;
+  bbox_review?: GeneratedBboxReview;
+  parent_group_id?: string;
 }
 
 export interface CakeMessage {
@@ -114,8 +118,9 @@ export interface CakeMessage {
   x?: number;
   y?: number;
   bbox?: BoundingBox;  // Object detection bounding box
-  box_2d?: GeneratedBox2D;
-  bbox_confidence?: number;
+  box_2d?: GeneratedIntegratedBox2D;
+  bbox_confidence?: GeneratedIntegratedBboxConfidence;
+  bbox_review?: GeneratedBboxReview;
 }
 
 export interface IcingColorDetails {

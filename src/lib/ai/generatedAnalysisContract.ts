@@ -173,6 +173,13 @@ export type GeneratedBox2DCollection = GeneratedBox2D[];
 export type GeneratedIntegratedBox2D = GeneratedBox2D | GeneratedBox2DCollection;
 export type GeneratedIntegratedBboxConfidence = number | number[];
 export type GeneratedIntegratedGeometryScope = 'unit' | 'piped_cluster' | 'treatment';
+export interface GeneratedBboxReview {
+  status: 'needs_review';
+  target_box_count: number;
+  returned_box_count: number;
+  valid_box_count: number;
+  reasons: string[];
+}
 
 export interface GeneratedIntegratedGeometry {
   geometry_version: 'integrated_bbox_v1' | 'integrated_bbox_v2';
@@ -220,6 +227,8 @@ export interface GeneratedMainTopper {
   box_2d?: GeneratedIntegratedBox2D;
   bbox_confidence?: GeneratedIntegratedBboxConfidence;
   geometry_scope?: GeneratedIntegratedGeometryScope;
+  bbox_review?: GeneratedBboxReview;
+  parent_group_id?: string;
 }
 
 export interface GeneratedSupportElement {
@@ -240,6 +249,8 @@ export interface GeneratedSupportElement {
   box_2d?: GeneratedIntegratedBox2D;
   bbox_confidence?: GeneratedIntegratedBboxConfidence;
   geometry_scope?: GeneratedIntegratedGeometryScope;
+  bbox_review?: GeneratedBboxReview;
+  parent_group_id?: string;
 }
 
 export interface GeneratedCakeMessage {
@@ -248,8 +259,9 @@ export interface GeneratedCakeMessage {
   color: string;
   position: typeof GENERATED_ANALYSIS_MESSAGE_POSITIONS[number];
   bbox?: GeneratedBoundingBox;
-  box_2d?: GeneratedBox2D;
-  bbox_confidence?: number;
+  box_2d?: GeneratedIntegratedBox2D;
+  bbox_confidence?: GeneratedIntegratedBboxConfidence;
+  bbox_review?: GeneratedBboxReview;
 }
 
 export interface GeneratedIcingDesign {
@@ -387,16 +399,11 @@ export function reconcileGeneratedCakeTypeThickness(value: unknown): unknown {
   }
 
   const cakeType = value.cakeType;
-  const cakeThickness = value.cakeThickness;
-  if (
-    typeof cakeType !== 'string'
-    || !GENERATED_ANALYSIS_CAKE_TYPES.includes(cakeType as GeneratedCakeType)
-    || typeof cakeThickness !== 'string'
-    || !GENERATED_ANALYSIS_CAKE_THICKNESSES.includes(cakeThickness as GeneratedCakeThickness)
-  ) {
+  if (typeof cakeType !== 'string' || !GENERATED_ANALYSIS_CAKE_TYPES.includes(cakeType as GeneratedCakeType)) {
     return value;
   }
 
+  const cakeThickness = value.cakeThickness;
   const reconciledThickness = reconcileCakeThicknessForType(cakeType, cakeThickness);
   if (!reconciledThickness || reconciledThickness === cakeThickness) {
     return value;
@@ -454,7 +461,15 @@ const SUPPORT_ELEMENT_KEYS = [
 ] as const;
 const CAKE_MESSAGE_KEYS = ['text', 'type', 'color', 'position', 'bbox'] as const;
 const INTEGRATED_BBOX_ROW_KEYS = ['box_2d', 'bbox_confidence'] as const;
-const INTEGRATED_BBOX_V2_ROW_KEYS = [...INTEGRATED_BBOX_ROW_KEYS, 'geometry_scope'] as const;
+const INTEGRATED_BBOX_V2_REQUIRED_ROW_KEYS = [
+  ...INTEGRATED_BBOX_ROW_KEYS,
+  'geometry_scope',
+] as const;
+const INTEGRATED_BBOX_V2_ROW_KEYS = [
+  ...INTEGRATED_BBOX_V2_REQUIRED_ROW_KEYS,
+  'bbox_review',
+  'parent_group_id',
+] as const;
 const ICING_DESIGN_KEYS = [
   'base',
   'color_type',
@@ -526,13 +541,13 @@ function isBox2dTuple(value: unknown): value is unknown[] {
     && value.every((entry) => typeof entry === 'number');
 }
 
-function validateIntegratedBox2d(value: unknown, path: string): number {
+function validateIntegratedBox2d(value: unknown, path: string, allowEmpty = false): number {
   if (isBox2dTuple(value)) {
     validateBox2d(value, path);
     return 1;
   }
-  if (!Array.isArray(value) || value.length < 1 || value.length > 5) {
-    fail(path, 'must be one box or an array containing 1 through 5 boxes');
+  if (!Array.isArray(value) || (!allowEmpty && value.length < 1) || value.length > 5) {
+    fail(path, `must be one box or an array containing ${allowEmpty ? '0' : '1'} through 5 boxes`);
   }
   value.forEach((candidate, index) => validateBox2d(candidate, `${path}[${index}]`));
   return value.length;
@@ -560,6 +575,28 @@ function validateIntegratedBboxConfidence(value: unknown, path: string, boxCount
     fail(path, `must be a number or an array of exactly ${boxCount} confidence values`);
   }
   value.forEach((candidate, index) => validateBboxConfidence(candidate, `${path}[${index}]`));
+}
+
+function validateBboxReview(value: unknown, path: string): value is GeneratedBboxReview {
+  if (value === undefined) return false;
+  const review = requireRecord(value, path);
+  requireExactKeys(
+    review,
+    ['status', 'target_box_count', 'returned_box_count', 'valid_box_count', 'reasons'],
+    ['status', 'target_box_count', 'returned_box_count', 'valid_box_count', 'reasons'],
+    path,
+  );
+  if (review.status !== 'needs_review') fail(`${path}.status`, 'must be needs_review');
+  requirePositiveInteger(review.target_box_count, `${path}.target_box_count`);
+  for (const key of ['returned_box_count', 'valid_box_count'] as const) {
+    if (!Number.isInteger(review[key]) || Number(review[key]) < 0) {
+      fail(`${path}.${key}`, 'must be a non-negative integer');
+    }
+  }
+  const reasons = requireArray(review.reasons, `${path}.reasons`);
+  if (reasons.length === 0) fail(`${path}.reasons`, 'must contain at least one review reason');
+  reasons.forEach((reason, index) => requireString(reason, `${path}.reasons[${index}]`));
+  return true;
 }
 
 function validateOptionalSizeLine(value: unknown, path: string): void {
@@ -674,7 +711,7 @@ function validateMainTopper(
     [
       'type', 'material', 'group_id', 'classification', 'size', 'quantity', 'description',
       ...(options.integratedBbox
-        ? (options.integratedBboxV2 ? INTEGRATED_BBOX_V2_ROW_KEYS : INTEGRATED_BBOX_ROW_KEYS)
+        ? (options.integratedBboxV2 ? INTEGRATED_BBOX_V2_REQUIRED_ROW_KEYS : INTEGRATED_BBOX_ROW_KEYS)
         : []),
     ],
     path,
@@ -693,7 +730,13 @@ function validateMainTopper(
   validateOptionalBbox(item.bbox, `${path}.bbox`);
   validateOptionalSizeLine(item.size_line, `${path}.size_line`);
   if (options.integratedBbox) {
-    const boxCount = validateIntegratedBox2d(item.box_2d, `${path}.box_2d`);
+    const hasReview = options.integratedBboxV2
+      ? validateBboxReview(item.bbox_review, `${path}.bbox_review`)
+      : false;
+    if (options.integratedBboxV2 && item.parent_group_id !== undefined) {
+      requireString(item.parent_group_id, `${path}.parent_group_id`);
+    }
+    const boxCount = validateIntegratedBox2d(item.box_2d, `${path}.box_2d`, hasReview);
     validateIntegratedBboxConfidence(item.bbox_confidence, `${path}.bbox_confidence`, boxCount);
     if (options.integratedBboxV2) {
       requireEnum(item.geometry_scope, ['unit', 'piped_cluster', 'treatment'], `${path}.geometry_scope`);
@@ -718,7 +761,7 @@ function validateSupportElement(
     [
       'type', 'material', 'group_id', 'color', 'quantity', 'description',
       ...(options.integratedBbox
-        ? ['size', ...(options.integratedBboxV2 ? INTEGRATED_BBOX_V2_ROW_KEYS : INTEGRATED_BBOX_ROW_KEYS)]
+        ? ['size', ...(options.integratedBboxV2 ? INTEGRATED_BBOX_V2_REQUIRED_ROW_KEYS : INTEGRATED_BBOX_ROW_KEYS)]
         : []),
     ],
     path,
@@ -746,7 +789,13 @@ function validateSupportElement(
   validateOptionalBbox(item.bbox, `${path}.bbox`);
   validateOptionalSizeLine(item.size_line, `${path}.size_line`);
   if (options.integratedBbox) {
-    const boxCount = validateIntegratedBox2d(item.box_2d, `${path}.box_2d`);
+    const hasReview = options.integratedBboxV2
+      ? validateBboxReview(item.bbox_review, `${path}.bbox_review`)
+      : false;
+    if (options.integratedBboxV2 && item.parent_group_id !== undefined) {
+      requireString(item.parent_group_id, `${path}.parent_group_id`);
+    }
+    const boxCount = validateIntegratedBox2d(item.box_2d, `${path}.box_2d`, hasReview);
     validateIntegratedBboxConfidence(item.bbox_confidence, `${path}.bbox_confidence`, boxCount);
     if (options.integratedBboxV2) {
       requireEnum(item.geometry_scope, ['unit', 'piped_cluster', 'treatment'], `${path}.geometry_scope`);
@@ -768,7 +817,9 @@ function validateCakeMessage(value: unknown, index: number, options: GeneratedAn
   const item = requireRecord(value, path);
   requireExactKeys(
     item,
-    options.integratedBbox ? [...CAKE_MESSAGE_KEYS, ...INTEGRATED_BBOX_ROW_KEYS] : CAKE_MESSAGE_KEYS,
+    options.integratedBbox
+      ? [...CAKE_MESSAGE_KEYS, ...INTEGRATED_BBOX_ROW_KEYS, ...(options.integratedBboxV2 ? ['bbox_review'] : [])]
+      : CAKE_MESSAGE_KEYS,
     [
       'text', 'type', 'color', 'position',
       ...(options.integratedBbox ? INTEGRATED_BBOX_ROW_KEYS : []),
@@ -781,8 +832,11 @@ function validateCakeMessage(value: unknown, index: number, options: GeneratedAn
   requireEnum(item.position, GENERATED_ANALYSIS_MESSAGE_POSITIONS, `${path}.position`);
   validateOptionalBbox(item.bbox, `${path}.bbox`);
   if (options.integratedBbox) {
-    validateBox2d(item.box_2d, `${path}.box_2d`);
-    validateBboxConfidence(item.bbox_confidence, `${path}.bbox_confidence`);
+    const hasReview = options.integratedBboxV2
+      ? validateBboxReview(item.bbox_review, `${path}.bbox_review`)
+      : false;
+    const boxCount = validateIntegratedBox2d(item.box_2d, `${path}.box_2d`, hasReview);
+    validateIntegratedBboxConfidence(item.bbox_confidence, `${path}.bbox_confidence`, boxCount);
   }
 }
 
