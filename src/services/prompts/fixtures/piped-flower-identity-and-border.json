@@ -1,0 +1,81 @@
+{
+  "case": "calendar-heart-cake-ivory-1-tier-cake-210c",
+  "purpose": "Regression fixture for separating a non-floral shell border from cohesive piped flower treatments and independently placed piped units.",
+  "scenarios": [
+    {
+      "id": "top_edge_shell_border",
+      "visual_evidence": [
+        "continuous top-edge run of repeated shell-like icing lobes",
+        "no distinct flower heads with recognizable petals"
+      ],
+      "expected_rows": {
+        "icing_design": {
+          "border_top": true
+        },
+        "main_toppers": [],
+        "support_elements": [
+          {
+            "type": "icing_decorations",
+            "material": "icing",
+            "quantity": 1,
+            "geometry_scope": "treatment",
+            "description": "Piped shell border along the top edge"
+          }
+        ]
+      },
+      "forbidden_types_for_border": [
+        "piped_flowers_top",
+        "piped_flowers_side"
+      ]
+    },
+    {
+      "id": "cohesive_top_flower_treatment",
+      "visual_evidence": [
+        "multiple distinct flower heads",
+        "separable petals arranged into recognizable blooms",
+        "one connected coverage-priced treatment on the top"
+      ],
+      "expected_row": {
+        "location": "main_toppers",
+        "type": "piped_flowers_top",
+        "material": "icing",
+        "quantity": 1,
+        "geometry_scope": "piped_cluster",
+        "coverage": "large"
+      }
+    },
+    {
+      "id": "cohesive_side_flower_treatment",
+      "visual_evidence": [
+        "distinct sidewall flower heads",
+        "recognizable petals",
+        "one connected coverage-priced treatment on the side",
+        "integrated foliage may accompany flower heads"
+      ],
+      "expected_row": {
+        "location": "support_elements",
+        "type": "piped_flowers_side",
+        "material": "icing",
+        "quantity": 1,
+        "geometry_scope": "piped_cluster",
+        "coverage": "medium"
+      }
+    },
+    {
+      "id": "independently_placed_piped_units",
+      "visual_evidence": [
+        "three separated, independently placed piped units",
+        "units do not form one cohesive floral treatment"
+      ],
+      "expected_row": {
+        "location": "support_elements",
+        "type": "icing_decorations",
+        "material": "icing",
+        "quantity": 3,
+        "geometry_scope": "unit",
+        "box_count": 3
+      }
+    }
+  ],
+  "separation_rule": "The shell border remains its own icing_decorations support row. It is never merged into a flower row, and a separate cohesive flower treatment keeps its own placement-specific piped_flowers row."
+}

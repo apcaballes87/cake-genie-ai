@@ -205,21 +205,65 @@ describe('cake analysis prompt rules', () => {
     expect(activation).toContain('set is_active = true');
   });
 
-  it('splits cohesive piped treatments from independently placed piped units', () => {
-    expect(SYSTEM_INSTRUCTION).toContain('Piped Icing Flower Scope');
-    expect(SYSTEM_INSTRUCTION).toContain('piped_flowers_top');
-    expect(SYSTEM_INSTRUCTION).toContain('piped_flowers_side');
-    expect(SYSTEM_INSTRUCTION).toContain('cohesive coverage-priced cluster');
-    expect(SYSTEM_INSTRUCTION).toContain('Independently placed piped blooms or leaf motifs use `icing_decorations`');
-    expect(SYSTEM_INSTRUCTION).toContain('actual visible quantity');
-    expect(SYSTEM_INSTRUCTION).toContain('Separate, molded, cut, sculpted, or thick matte fondant/gumpaste petals remain subject to their own flower and leaf rules');
+  it('requires recognizable flower heads and keeps shell borders and piped units separate', () => {
+    const fixture = JSON.parse(readPrompt('src/services/prompts/fixtures/piped-flower-identity-and-border.json')) as {
+      scenarios: Array<{
+        id: string;
+        expected_rows?: {
+          icing_design?: { border_top?: boolean };
+          main_toppers?: unknown[];
+          support_elements?: Array<Record<string, unknown>>;
+        };
+        forbidden_types_for_border?: string[];
+        expected_row?: Record<string, unknown>;
+      }>;
+    };
+    const border = fixture.scenarios.find((scenario) => scenario.id === 'top_edge_shell_border');
+    const topFlowers = fixture.scenarios.find((scenario) => scenario.id === 'cohesive_top_flower_treatment');
+    const sideFlowers = fixture.scenarios.find((scenario) => scenario.id === 'cohesive_side_flower_treatment');
+    const separateUnits = fixture.scenarios.find((scenario) => scenario.id === 'independently_placed_piped_units');
+    const prompt = readEffectiveAnalysisInstructions();
+
+    expect(border?.expected_rows?.icing_design?.border_top).toBe(true);
+    expect(border?.expected_rows?.main_toppers).toEqual([]);
+    expect(border?.expected_rows?.support_elements?.[0]).toMatchObject({
+      type: 'icing_decorations', material: 'icing', quantity: 1, geometry_scope: 'treatment',
+    });
+    expect(border?.forbidden_types_for_border).toEqual(['piped_flowers_top', 'piped_flowers_side']);
+    expect(topFlowers?.expected_row).toMatchObject({ location: 'main_toppers', type: 'piped_flowers_top', geometry_scope: 'piped_cluster' });
+    expect(sideFlowers?.expected_row).toMatchObject({ location: 'support_elements', type: 'piped_flowers_side', geometry_scope: 'piped_cluster' });
+    expect(separateUnits?.expected_row).toMatchObject({ type: 'icing_decorations', quantity: 3, geometry_scope: 'unit', box_count: 3 });
+
+    expect(prompt).toContain('FLOWER IDENTITY GATE (BINDING)');
+    expect(prompt).toContain('distinct flower heads with recognizable petals arranged into actual blooms');
+    expect(prompt).toContain('shells, beads, dollops, generic spiral rosettes, ruffles, swirls, and foliage or leaf strokes alone establish icing construction, never flower identity');
+    expect(prompt).toContain('If recognizable flower heads are absent, do not emit either `piped_flowers_*` type');
+    expect(prompt).toContain('a non-floral piped border');
+    expect(prompt).toContain('Independently placed piped units remain `icing_decorations`');
+    expect(prompt).toContain('do not duplicate that same piping as an `icing_decorations` row');
+  });
+
+  it('guards v3.97 staging and activation with the v3.96 and v3.97 prompt checksums', () => {
+    const stage = readPrompt('supabase/migrations/20260924135345_stage_prompt_v397_piped_flower_identity.sql');
+    const activation = readPrompt('supabase/migrations/20260924135908_activate_prompt_v397_piped_flower_identity.sql');
+
+    expect(stage).toContain("v396_md5 constant text := 'afc7a90e525fcc74fa7c018f6d47d1ea'");
+    expect(stage).toContain("v397_md5 constant text := '54ec2f698a847e34e4abf96ad36ba675'");
+    expect(stage).toContain("'3.97', staged_prompt, false,");
+    expect(stage).not.toMatch(/set is_active = true/i);
+    expect(stage).not.toMatch(/cakegenie_analysis_cache|pricing_rules/i);
+    expect(activation).toContain("active_version <> '3.96'");
+    expect(activation).toContain("where version = '3.97'");
+    expect(activation).toContain('set is_active = false');
+    expect(activation).toContain('set is_active = true');
+    expect(activation).toContain("final_count <> 1 or final_md5 <> v397_md5");
   });
 
   it('classifies every item through construction, material, type, and description consistency', () => {
     const prompt = readEffectiveAnalysisInstructions();
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    if (prompt.includes('**v3.96 Version - Side-Positioned Edible Character Figures**')) {
+    if (prompt.includes('**v3.97 Version - Piped Flower Identity Gate**')) {
       expect(prompt).toContain('PIPED BOTANICAL TREATMENT — CONSTRUCTION PRECEDENCE');
       expect(prompt).toContain('FLAT EDIBLE FLOWER DEPTH GATE');
       expect(prompt).toContain('determine visible construction first, assign the compatible material second');
@@ -227,7 +271,7 @@ describe('cake analysis prompt rules', () => {
       return;
     }
 
-    expect(prompt).toContain('**v3.96 Version - Side-Positioned Edible Character Figures**');
+    expect(prompt).toContain('**v3.97 Version - Piped Flower Identity Gate**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('6. Global Construction → Material → Type pipeline');
     expect(prompt).toContain('5. Physical Depth Gate');
@@ -464,7 +508,7 @@ describe('cake analysis prompt rules', () => {
   it('classifies fresh-looking flowers as edible flowers in the fallback prompt source', () => {
     const prompt = readEffectiveAnalysisInstructions();
 
-    if (prompt.includes('**v3.96 Version - Side-Positioned Edible Character Figures**')) {
+    if (prompt.includes('**v3.97 Version - Piped Flower Identity Gate**')) {
       expect(prompt).toContain('FLAT EDIBLE FLOWER DEPTH GATE');
       expect(prompt).toContain('edible_flowers_filler');
       expect(prompt).toContain('Do not infer modeled bloom depth from theme, color, flower identity');
@@ -529,7 +573,7 @@ describe('cake analysis prompt rules', () => {
   it('classifies isolated edible mermaid tails as ordinary and groups representative size lines', () => {
     const prompt = readEffectiveAnalysisInstructions();
 
-    if (prompt.includes('**v3.96 Version - Side-Positioned Edible Character Figures**')) {
+    if (prompt.includes('**v3.97 Version - Piped Flower Identity Gate**')) {
       expect(prompt).toContain('edible_3d_ordinary');
       expect(prompt).toContain('Every item quantity must be a positive integer.');
       expect(prompt).toContain('Group only tails with the same type, material, color,');
@@ -581,7 +625,7 @@ describe('cake analysis prompt rules', () => {
   it('classifies conditioned wafer-paper vertical waves as their own priced support type', () => {
     const prompt = readEffectiveAnalysisInstructions();
 
-    if (prompt.includes('**v3.96 Version - Side-Positioned Edible Character Figures**')) {
+    if (prompt.includes('**v3.97 Version - Piped Flower Identity Gate**')) {
       expect(prompt).toContain('white-only wafer-paper side-wave gate');
       expect(prompt).toContain('edible_photo_side_wave');
       expect(prompt).toContain('all five cues: individually distinguishable thin paper sheets/strips');
@@ -641,7 +685,7 @@ describe('cake analysis prompt rules', () => {
   it('excludes non-wafer floral, quilted, and piped side decoration from the wafer-wave type', () => {
     const prompt = readEffectiveAnalysisInstructions();
 
-    if (prompt.includes('**v3.96 Version - Side-Positioned Edible Character Figures**')) {
+    if (prompt.includes('**v3.97 Version - Piped Flower Identity Gate**')) {
       expect(prompt).toContain('Flowers, leaves, butterflies, broad petal ruffles, lace, plaques, quilted/fondant panels, piping, and isolated side accents are not this type.');
       expect(prompt).toContain('After a failed wafer gate, do not invent waferpaper');
       return;
@@ -755,7 +799,7 @@ describe('cake analysis prompt rules', () => {
   it('requires a detailed multi-component composition for edible 2D complex without stealing adjacent types', () => {
     const prompt = readEffectiveAnalysisInstructions();
 
-    if (prompt.includes('**v3.96 Version - Side-Positioned Edible Character Figures**')) {
+    if (prompt.includes('**v3.97 Version - Piped Flower Identity Gate**')) {
       expect(prompt).toContain('Use "edible_2d_complex" only for one detailed, composed flat fondant/gumpaste artwork');
       expect(prompt).toContain('A single simple cut motif, or a repeated/focal group of identical simple motifs');
       return;
@@ -836,14 +880,14 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readEffectiveAnalysisInstructions();
 
-    if (prompt.includes('**v3.96 Version - Side-Positioned Edible Character Figures**')) {
+    if (prompt.includes('**v3.97 Version - Piped Flower Identity Gate**')) {
       expect(prompt).toContain('Composite hero assemblies: count major subjects before grouping');
       expect(prompt).toContain('Visually identical items belong in one row with quantity');
       expect(prompt).toContain('visibly different apparent scales, colors, poses, or appearances require separate rows');
       return;
     }
 
-    expect(prompt).toContain('**v3.96 Version - Side-Positioned Edible Character Figures**');
+    expect(prompt).toContain('**v3.97 Version - Piped Flower Identity Gate**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -872,7 +916,7 @@ describe('cake analysis prompt rules', () => {
       return;
     }
 
-    expect(prompt).toContain('**v3.96 Version - Side-Positioned Edible Character Figures**');
+    expect(prompt).toContain('**v3.97 Version - Piped Flower Identity Gate**');
     expect(prompt).toContain('| Rigid factory-molded physical prop | `toy` | `plastic`');
     expect(prompt).toContain('The application owns all size thresholds and fixed overrides.');
     expect(prompt).toContain('Do not infer a\nsize label or a size threshold boundary.');
@@ -1001,7 +1045,7 @@ describe('cake analysis prompt rules', () => {
   it('keeps complex and ordinary 3D face rules consistent', () => {
     const prompt = readEffectiveAnalysisInstructions();
 
-    if (prompt.includes('**v3.96 Version - Side-Positioned Edible Character Figures**')) {
+    if (prompt.includes('**v3.97 Version - Piped Flower Identity Gate**')) {
       expect(prompt).toContain('A one-color, non-character edible 3D object');
       expect(prompt).toContain('edible_3d_ordinary');
       expect(prompt).toContain('direct image evidence proves a complete human or animal figure');
