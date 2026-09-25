@@ -227,7 +227,7 @@ describe('CustomizingHeroPanel', () => {
         expect(screen.queryByRole('dialog', { name: 'Full screen image preview' })).not.toBeInTheDocument();
     });
 
-    it('shows a mobile scroll cue when the hero uses the mobile scrollable image mode', () => {
+    it('allows vertical scrolling in the mobile hero and keeps the tall image scrollable', () => {
         const props = buildProps();
         props.enableMobileHeroPan = true;
         props.originalImagePreview = 'https://example.com/original-cake.jpg';
@@ -235,6 +235,13 @@ describe('CustomizingHeroPanel', () => {
         props.initialHeroAspectRatio = '1 / 2';
 
         render(<CustomizingHeroPanel {...props} />);
+
+        const heroFrame = screen.getByTestId('customizer-hero-frame');
+        expect(heroFrame).toHaveClass('touch-pan-y', 'md:touch-auto', 'overscroll-auto');
+        expect(heroFrame).not.toHaveClass('touch-none');
+
+        const scrollArea = screen.getByTestId('mobile-hero-scroll-area');
+        expect(scrollArea).toHaveClass('overflow-y-auto', 'overscroll-auto');
 
         expect(screen.getByText('Scroll')).toBeInTheDocument();
         expect(screen.getByText('↑')).toBeInTheDocument();

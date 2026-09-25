@@ -582,7 +582,7 @@ export const CustomizingHeroPanel = memo(({
                         ref={heroFrameRef}
                         data-testid="customizer-hero-frame"
                         className={enableMobileHeroPan
-                            ? 'relative w-full aspect-[5/4] md:min-h-0 rounded-3xl overflow-hidden touch-none md:touch-auto overscroll-auto md:[aspect-ratio:var(--hero-md-ratio)]'
+                            ? 'relative w-full aspect-[5/4] md:min-h-0 rounded-3xl overflow-hidden touch-pan-y md:touch-auto overscroll-auto md:[aspect-ratio:var(--hero-md-ratio)]'
                             : 'relative w-full min-h-[270px] md:min-h-[400px] rounded-3xl overflow-hidden'
                         }
                         onContextMenu={(event) => event.preventDefault()}
