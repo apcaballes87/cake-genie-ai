@@ -330,6 +330,33 @@ export const CustomizingHeroPanel = memo(({
         centerMobileHeroScrollPosition();
     };
 
+    const renderBoundingBoxOverlay = (
+        bounds: OverlayImageBounds,
+        offsetX = bounds.left,
+        offsetY = bounds.top,
+    ) => {
+        if (!analysisResult) return null;
+
+        return (
+            <BoundingBoxOverlay
+                analysisResult={analysisResult}
+                containerWidth={bounds.width}
+                containerHeight={bounds.height}
+                imageWidth={originalImageDimensions?.width ?? bounds.width}
+                imageHeight={originalImageDimensions?.height ?? bounds.height}
+                offsetX={offsetX}
+                offsetY={offsetY}
+                useTopLeftOrigin
+                showCakeMeasurementLines={false}
+                editableDecorationTargets={editableDecorationTargets}
+                onDecorationActivate={onDecorationActivate}
+                editableCakeMessageTargets={editableCakeMessageTargets}
+                onCakeMessageActivate={onCakeMessageActivate}
+                onBackgroundActivate={onDecorationDismiss}
+            />
+        );
+    };
+
     // Track the actual rendered image, rather than the hero frame. The two
     // diverge for object-cover crops and a scrolled tall image on mobile.
     useEffect(() => {
@@ -354,6 +381,13 @@ export const CustomizingHeroPanel = memo(({
             let height = imageRect.height;
             let left = imageRect.left - frameRect.left;
             let top = imageRect.top - frameRect.top;
+
+            // Keep mobile hit targets inside the image's scroll container so
+            // native touch scrolling pans the image before chaining to the page.
+            if (mobileHeroScrollRef.current?.contains(image)) {
+                left = 0;
+                top = 0;
+            }
 
             if (window.getComputedStyle(image).objectFit === 'cover') {
                 const scale = Math.max(imageRect.width / image.naturalWidth, imageRect.height / image.naturalHeight);
@@ -454,6 +488,9 @@ export const CustomizingHeroPanel = memo(({
                                     className="pointer-events-none absolute inset-x-0 top-0 w-full h-auto align-top"
                                     onLoad={imageOnLoad}
                                 />
+                            ) : null}
+                            {analysisResult && overlayImageBounds ? (
+                                renderBoundingBoxOverlay(overlayImageBounds, 0, 0)
                             ) : null}
                         </div>
                     </div>
@@ -881,22 +918,13 @@ export const CustomizingHeroPanel = memo(({
 
                         {/* Bounding box overlay from Gemini analysis */}
                         {analysisResult && overlayImageBounds && (
-                            <BoundingBoxOverlay
-                                analysisResult={analysisResult}
-                                containerWidth={overlayImageBounds.width}
-                                containerHeight={overlayImageBounds.height}
-                                imageWidth={originalImageDimensions?.width ?? overlayImageBounds.width}
-                                imageHeight={originalImageDimensions?.height ?? overlayImageBounds.height}
-                                offsetX={overlayImageBounds.left}
-                                offsetY={overlayImageBounds.top}
-                                useTopLeftOrigin
-                                showCakeMeasurementLines={false}
-                                editableDecorationTargets={editableDecorationTargets}
-                                onDecorationActivate={onDecorationActivate}
-                                editableCakeMessageTargets={editableCakeMessageTargets}
-                                onCakeMessageActivate={onCakeMessageActivate}
-                                onBackgroundActivate={onDecorationDismiss}
-                            />
+                            shouldUseScrollableMobileHero ? (
+                                <div className="absolute inset-0 hidden md:block">
+                                    {renderBoundingBoxOverlay(overlayImageBounds)}
+                                </div>
+                            ) : (
+                                renderBoundingBoxOverlay(overlayImageBounds)
+                            )
                         )}
                     </div>
                 </div>

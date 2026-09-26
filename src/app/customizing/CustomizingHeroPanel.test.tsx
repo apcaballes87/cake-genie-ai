@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { CustomizingHeroPanel } from './CustomizingHeroPanel';
 
@@ -246,6 +246,57 @@ describe('CustomizingHeroPanel', () => {
         expect(screen.getByText('Scroll')).toBeInTheDocument();
         expect(screen.getByText('↑')).toBeInTheDocument();
         expect(screen.getByText('↓')).toBeInTheDocument();
+    });
+
+    it('keeps editable mobile bboxes inside the image scroll area', () => {
+        const props = buildProps();
+        props.enableMobileHeroPan = true;
+        props.initialHeroAspectRatio = '1 / 2';
+        props.originalImagePreview = 'https://example.com/original-cake.jpg';
+        props.preferredOriginalImageUrl = 'https://example.com/original-cake.jpg';
+        props.analysisResult = {
+            main_toppers: [{ group_id: 'topper-a', description: 'Topper A', box_2d: [100, 100, 200, 200] }],
+            support_elements: [],
+            cake_messages: [],
+        } as React.ComponentProps<typeof CustomizingHeroPanel>['analysisResult'];
+        props.editableDecorationTargets = [{ category: 'topper', groupId: 'topper-a', label: 'Topper A' }];
+        const onDecorationActivate = vi.fn();
+        props.onDecorationActivate = onDecorationActivate;
+
+        const rectSpy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(() => ({
+            x: 0,
+            y: 0,
+            width: 390,
+            height: 780,
+            top: 0,
+            right: 390,
+            bottom: 780,
+            left: 0,
+            toJSON: () => ({}),
+        }) as DOMRect);
+
+        try {
+            render(<CustomizingHeroPanel {...props} />);
+
+            const scrollArea = screen.getByTestId('mobile-hero-scroll-area');
+            const image = scrollArea.querySelector('img');
+            expect(image).not.toBeNull();
+            Object.defineProperties(image, {
+                naturalWidth: { configurable: true, value: 1000 },
+                naturalHeight: { configurable: true, value: 2000 },
+            });
+            fireEvent.load(image!);
+
+            const bbox = within(scrollArea).getByRole('button', { name: 'Edit Topper A' });
+            expect(bbox).toHaveAttribute('data-bbox-interactive', 'true');
+
+            fireEvent.click(bbox);
+            expect(onDecorationActivate).toHaveBeenCalledWith([
+                { category: 'topper', groupId: 'topper-a', label: 'Topper A' },
+            ]);
+        } finally {
+            rectSpy.mockRestore();
+        }
     });
 
     it('starts tall mobile hero images centered instead of at the top', () => {
