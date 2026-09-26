@@ -417,7 +417,7 @@ export async function runActiveCakeAnalysis({
     topP,
     topK,
     sizeSchema: requestedSizeSchema,
-    usePromptCache = true,
+    usePromptCache = false,
     previousAnalysis,
 }: RunCakeAnalysisInput): Promise<RunCakeAnalysisResult> {
     const supabase = createClient();

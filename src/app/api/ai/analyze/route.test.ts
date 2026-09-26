@@ -420,7 +420,7 @@ describe('POST /api/ai/analyze', () => {
         })]);
     });
 
-    it('reuses cached prompt details and enum config across hot requests', async () => {
+    it('reuses prompt details and enum config across hot requests without creating a provider cache', async () => {
         mockGetOrCreatePromptCache.mockResolvedValue('mock-cache-name');
 
         const { POST } = await import('./route');
@@ -440,6 +440,6 @@ describe('POST /api/ai/analyze', () => {
         expect(secondResponse.status).toBe(200);
         expect(mockGetActivePromptDetails).toHaveBeenCalledTimes(1);
         expect(mockGetDynamicTypeEnums).toHaveBeenCalledTimes(1);
-        expect(mockGetOrCreatePromptCache).toHaveBeenCalledTimes(1);
+        expect(mockGetOrCreatePromptCache).not.toHaveBeenCalled();
     });
 });
