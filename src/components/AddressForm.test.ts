@@ -137,9 +137,9 @@ describe('Google Places delivery-location selection', () => {
     it('configures the map search as a non-autofill browser field', () => {
         render(createElement(MapSearchInput, { inputRef: createRef<HTMLInputElement>() }));
 
-        const input = screen.getByPlaceholderText('Search for a building or street...');
+        const input = screen.getByPlaceholderText('Search for a place...');
         expect(input).toHaveAttribute('type', MAP_SEARCH_INPUT_ATTRIBUTES.type);
-        expect(input).toHaveAttribute('name', MAP_SEARCH_INPUT_ATTRIBUTES.name);
+        expect(input).toHaveAttribute('name', 'place-search-query');
         expect(input).toHaveAttribute('autocomplete', MAP_SEARCH_INPUT_ATTRIBUTES.autoComplete);
         expect(input).toHaveAttribute('data-lpignore', MAP_SEARCH_INPUT_ATTRIBUTES['data-lpignore']);
         expect(input).toHaveAttribute('data-1p-ignore');

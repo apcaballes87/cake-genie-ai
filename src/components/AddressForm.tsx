@@ -165,12 +165,11 @@ export const getGooglePlaceLocationDetails = (place: GooglePlaceLike): GooglePla
     };
 };
 
-// This is a map-search control, not a postal-address form field. The
-// autocomplete token and search input type keep browser-saved addresses from
-// competing with the Google Places results.
+// Keep this map-search control's name neutral so browser autofill does not
+// mistake it for a delivery-address field and compete with Google Places.
 export const MAP_SEARCH_INPUT_ATTRIBUTES = {
     type: 'search',
-    name: 'delivery-location-search',
+    name: 'place-search-query',
     autoComplete: 'off',
     'data-lpignore': 'true',
     'data-1p-ignore': true,
@@ -181,7 +180,7 @@ export const MapSearchInput: React.FC<{ inputRef: RefObject<HTMLInputElement | n
     <input
         ref={inputRef}
         {...MAP_SEARCH_INPUT_ATTRIBUTES}
-        placeholder="Search for a building or street..."
+        placeholder="Search for a place..."
         aria-autocomplete="list"
         className="w-full px-4 py-3 bg-white rounded-full shadow-lg border border-purple-200 focus:ring-2 focus:ring-purple-200 focus:border-purple-400 focus:outline-none text-sm"
     />
