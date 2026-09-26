@@ -646,9 +646,165 @@ describe('RecentSearchPage', () => {
   });
 
   describe('generateMetadata', () => {
+    it.each(['pending', 'processing', 'failed'])('marks %s share pages as noindex without a canonical', async (seoStatus) => {
+      const design = {
+        slug: 'lifecycle-share-cake',
+        seo_status: seoStatus,
+        keywords: 'Lifecycle Cake',
+        seo_title: 'Lifecycle Cake Design',
+        seo_description: 'A custom cake shared before SEO publication.',
+        original_image_url: 'https://example.com/lifecycle-cake.webp',
+        price: 1499,
+        analysis_json: { cakeType: '1 Tier' },
+      };
+      vi.mocked(createClient).mockResolvedValueOnce({
+        from: (table: string) => ({
+          select: () => {
+            let requestedSlug: string | null = null;
+            const query: any = {
+              eq: (field: string, value: string) => {
+                if (field === 'slug') requestedSlug = value;
+                return query;
+              },
+              single: () => Promise.resolve({
+                data: table === 'cakegenie_analysis_cache' && requestedSlug === design.slug ? design : null,
+              }),
+            };
+            return query;
+          },
+        }),
+      } as never);
+
+      const metadata = await generateMetadata({ params: Promise.resolve({ slug: design.slug }) }, {} as never);
+
+      expect(metadata.alternates?.canonical).toBeUndefined();
+      expect(metadata.robots).toMatchObject({
+        index: false,
+        follow: false,
+        googleBot: { index: false, follow: false, noimageindex: true },
+      });
+      expect(metadata.openGraph?.url).toBeUndefined();
+      expect(metadata.other).toBeUndefined();
+    });
+
+    it('keeps an unpublished exact slug when a published legacy alias exists', async () => {
+      const exactDesign = {
+        slug: 'mickey-mouse-white-1-tier-cake-ffdf',
+        seo_status: 'pending',
+        keywords: 'Mickey Mouse Cake',
+        seo_title: 'Mickey Mouse Cake',
+        analysis_json: { cakeType: '1 Tier' },
+      };
+      const legacyAlias = {
+        slug: 'mickey-mouse-white-1-tier-ffdf',
+        seo_status: 'published',
+      };
+      vi.mocked(createClient).mockResolvedValueOnce({
+        from: (table: string) => ({
+          select: () => {
+            const conditions: Array<[string, string]> = [];
+            const query: any = {
+              eq: (field: string, value: string) => {
+                conditions.push([field, value]);
+                return query;
+              },
+              single: () => {
+                const requestedSlug = conditions.find(([field]) => field === 'slug')?.[1];
+                const data = table === 'cakegenie_analysis_cache'
+                  ? requestedSlug === exactDesign.slug ? exactDesign
+                    : requestedSlug === legacyAlias.slug ? legacyAlias
+                      : null
+                  : null;
+                return Promise.resolve({ data });
+              },
+            };
+            return query;
+          },
+        }),
+      } as never);
+      const { permanentRedirect } = await import('next/navigation');
+      vi.mocked(permanentRedirect).mockClear();
+
+      const metadata = await generateMetadata({ params: Promise.resolve({ slug: exactDesign.slug }) }, {} as never);
+
+      expect(permanentRedirect).not.toHaveBeenCalled();
+      expect(metadata.alternates?.canonical).toBeUndefined();
+      expect(metadata.robots).toMatchObject({ index: false, follow: false });
+    });
+
+    it('keeps published designs indexable on cake-option share URLs', async () => {
+      const design = {
+        slug: 'photo-cake-white-1-tier-cake-39cc',
+        seo_status: 'published',
+        keywords: 'Photo Cake',
+        seo_title: 'Photo Cake White 1 Tier Cake',
+        seo_description: 'A white one-tier custom photo cake with a clean printed top design.',
+        original_image_url: 'https://example.com/photo-cake.webp',
+        image_width: 1200,
+        image_height: 1200,
+        price: 1499,
+        tags: ['photo cake'],
+        analysis_json: { cakeType: '1 Tier' },
+      };
+      vi.mocked(createClient).mockResolvedValueOnce({
+        from: () => ({
+          select: () => ({
+            eq: function (this: any, field: string) {
+              if (field === 'seo_status') return this;
+              return { single: () => Promise.resolve({ data: design }) };
+            },
+          }),
+        }),
+      } as never);
+
+      const metadata = await generateMetadata({ params: Promise.resolve({ slug: design.slug }) }, {} as never);
+
+      expect(metadata.alternates?.canonical).toBe(`https://genie.ph/customizing/${design.slug}`);
+      expect(metadata.robots).toMatchObject({ index: true, follow: true });
+      expect(metadata.other?.['product:price:currency']).toBe('PHP');
+    });
+
+    it('renders a pending design by slug without structured data', async () => {
+      const design = {
+        slug: 'pending-share-cake',
+        seo_status: 'pending',
+        keywords: 'Pending Share Cake',
+        seo_title: 'Pending Share Cake',
+        seo_description: 'A cake analysis that is ready to share.',
+        original_image_url: 'https://example.com/pending-share-cake.webp',
+        price: 1499,
+        analysis_json: { cakeType: '1 Tier', icing_design: {}, main_toppers: [], support_elements: [], cake_messages: [] },
+      };
+      vi.mocked(createClient).mockResolvedValue({
+        from: (table: string) => {
+          let requestedSlug: string | null = null;
+          const query: any = {
+            select: () => query,
+            eq: (field: string, value: string) => {
+              if (field === 'slug') requestedSlug = value;
+              return query;
+            },
+            single: () => Promise.resolve({
+              data: table === 'cakegenie_analysis_cache' && requestedSlug === design.slug ? design : null,
+            }),
+            then: (resolve: (value: { data: unknown[] }) => unknown) =>
+              Promise.resolve({ data: [] }).then(resolve),
+          };
+          return query;
+        },
+      } as never);
+
+      const page = await RecentSearchPage({ params: Promise.resolve({ slug: design.slug }) });
+      const markup = renderToStaticMarkup(page);
+
+      expect(markup).toContain('data-testid="customizing-client"');
+      expect(markup).not.toContain('application/ld+json');
+    });
+
     it('uses the same canonical Open Graph tags for cake-option query share URLs', async () => {
       const design = {
         slug: 'photo-cake-white-1-tier-cake-39cc',
+        seo_status: 'published',
         keywords: 'Photo Cake',
         seo_title: 'Photo Cake White 1 Tier Cake',
         seo_description: 'A white one-tier custom photo cake with a clean printed top design.',

@@ -26,6 +26,7 @@ describe('robots metadata route', () => {
     expect(generalRule?.disallow).toEqual(
       expect.arrayContaining(['/customizing?*', '/customizing/*?*']),
     );
+    expect(generalRule?.allow).toEqual(expect.arrayContaining(['/customizing/*?caketype=*']));
     expect(generalRule?.disallow).not.toContain('/search');
   });
 

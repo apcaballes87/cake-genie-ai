@@ -434,7 +434,7 @@ export interface CacheHitResult {
 }
 
 export interface CacheWriteResult {
-  /** Empty until the server has published the design. */
+  /** Existing cache slug, available to share before SEO publication. */
   slug: string;
   seo_status: string;
   seo_title: string;
@@ -656,7 +656,7 @@ function mapCacheHitResult(result: AnalysisCacheLookupRow, id: string | null): C
     seo_description: result.seo_description || null,
     keywords: result.keywords || null,
     alt_text: result.alt_text || null,
-    slug: result.seo_status === 'published' ? result.slug || null : null,
+    slug: result.slug || null,
     original_image_url: result.original_image_url || null,
     price: result.price ? Number(result.price) : null,
     availability: result.availability || null,
@@ -1317,7 +1317,7 @@ export async function cacheAnalysisResult(
     }
 
     return {
-      slug: persistedRow?.seo_status === 'published' ? persistedRow.slug || slug : '',
+      slug: persistedRow?.slug || slug,
       seo_status: persistedRow?.seo_status || 'pending',
       seo_title: persistedRow?.seo_status === 'published' ? persistedRow.seo_title || '' : '',
       price: totalPrice,

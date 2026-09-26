@@ -13,12 +13,12 @@ interface UseDesignSharingProps {
 
 type CakeOptionSelection = Partial<Pick<CakeInfoUI, 'type' | 'size' | 'thickness'>>;
 
-const buildCakeOptionQuery = (cakeInfo?: CakeOptionSelection | null) => {
+const buildCakeOptionQuery = (cakeInfo?: CakeOptionSelection | null, includeHeight = true) => {
     const params = new URLSearchParams();
 
     if (cakeInfo?.type) params.set('caketype', cakeInfo.type);
     if (cakeInfo?.size) params.set('size', cakeInfo.size);
-    if (cakeInfo?.thickness) params.set('height', cakeInfo.thickness);
+    if (includeHeight && cakeInfo?.thickness) params.set('height', cakeInfo.thickness);
 
     const queryString = params.toString();
     return queryString ? `?${queryString}` : '';
@@ -36,13 +36,13 @@ export const useDesignSharing = ({ slug, originalImageUrl, cakeInfo }: UseDesign
         setIsShareModalOpen(false);
     };
 
-    const buildShareData = useCallback((resolvedSlug: string) => {
+    const buildShareData = useCallback((resolvedSlug: string, includeHeight: boolean) => {
         const clientDomain = typeof window !== 'undefined' ? window.location.origin : 'https://genie.ph';
         const optionQuery = buildCakeOptionQuery({
             type: cakeType ?? undefined,
             size: cakeSize ?? undefined,
             thickness: cakeHeight ?? undefined,
-        });
+        }, includeHeight);
         const shareUrl = `${clientDomain}/customizing/${resolvedSlug}${optionQuery}`;
         const botShareUrl = `https://genie.ph/customizing/${resolvedSlug}${optionQuery}`;
 
@@ -55,19 +55,21 @@ export const useDesignSharing = ({ slug, originalImageUrl, cakeInfo }: UseDesign
     }, [cakeType, cakeSize, cakeHeight]);
 
     const handleShare = useCallback(async () => {
-        // A local slug can predate publication. Verify readiness before exposing a public URL.
+        // Resolve status from the saved row so pending uploads can be shared while
+        // retaining the existing height selection for already-published designs.
         if (!slug && !originalImageUrl) return;
         setIsSavingDesign(true);
         try {
             const supabase = createClient();
             let query = supabase
                 .from('cakegenie_analysis_cache')
-                .select('slug')
-                .eq('seo_status', 'published');
+                .select('slug, seo_status');
             query = slug ? query.eq('slug', slug) : query.eq('original_image_url', originalImageUrl!);
             const { data } = await query.maybeSingle();
             if (data?.slug) {
-                setShareData(buildShareData(data.slug));
+                const seoStatus = typeof data.seo_status === 'string' ? data.seo_status : '';
+                const isPrePublication = ['pending', 'processing', 'failed'].includes(seoStatus);
+                setShareData(buildShareData(data.slug, !isPrePublication));
                 setIsShareModalOpen(true);
             } else {
                 toast('This design is not ready to share yet.');

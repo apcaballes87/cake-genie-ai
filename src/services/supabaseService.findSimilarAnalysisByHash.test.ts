@@ -39,10 +39,10 @@ describe('findSimilarAnalysisByHash', () => {
     mockClient.from.mockClear();
   });
 
-  it('uses the PDQ RPC with quality, pipeline, and the initial distance threshold', async () => {
+  it('returns a pending cache slug from a PDQ cache hit', async () => {
     rpcMock.mockResolvedValue({
       data: [{
-        seo_status: 'published',
+        seo_status: 'pending',
         id: 'cache-row-1',
         p_hash: 'abc123def4567890',
         pdq_hash: pdqHash,
@@ -71,6 +71,7 @@ describe('findSimilarAnalysisByHash', () => {
     });
 
     expect(result?.seoMetadata.slug).toBe('lavender-cake-abc123de');
+    expect(result?.seoMetadata.seo_status).toBe('pending');
     expect(result?.pdqHash).toBe(pdqHash);
     expect(rpcMock).toHaveBeenCalledWith('find_similar_analysis_by_pdq', {
       new_hash: pdqHash,

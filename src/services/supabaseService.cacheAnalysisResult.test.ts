@@ -194,7 +194,7 @@ describe('cacheAnalysisResult', () => {
     getDesignAvailabilityMock.mockReturnValue('same-day');
     const { cacheAnalysisResult } = await import('./supabaseService');
 
-    await cacheAnalysisResult(
+    const result = await cacheAnalysisResult(
       '1234567890abcdef',
       {
         cakeType: '1 Tier',
@@ -239,6 +239,8 @@ describe('cacheAnalysisResult', () => {
     expect(payload).not.toHaveProperty('seo_title');
     expect(payload).not.toHaveProperty('alt_text');
     expect(payload.analysis_json).not.toHaveProperty('seo_description');
+    expect(result?.slug).toBe(payload.slug);
+    expect(result?.seo_status).toBe('pending');
   });
 
   it('stores fingerprint pipeline metadata with the canonical p_hash', async () => {

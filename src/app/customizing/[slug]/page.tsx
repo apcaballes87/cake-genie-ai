@@ -202,7 +202,6 @@ const getDesign = cache(async (slug: string) => {
         supabase
             .from('cakegenie_analysis_cache')
             .select('*')
-            .eq('seo_status', 'published')
             .eq('slug', slug)
             .single(),
         shouldCheckUpgrade
@@ -219,6 +218,12 @@ const getDesign = cache(async (slug: string) => {
             .eq('url_slug', slug)
             .single(),
     ]);
+
+    // Share links resolve directly to their saved row while SEO is pending.
+    // Published legacy aliases can still take precedence below.
+    if (exactResult.data && !isSeoPublishedDesign(exactResult.data)) {
+        return withPreferredHeroImage(exactResult.data);
+    }
 
     // Priority 1: a legacy (downgraded) version exists → consolidate via 301.
     // Preserve candidate order so the most-likely match wins.
@@ -297,6 +302,12 @@ type Props = {
     params: Promise<{ slug: string }>
 }
 
+type SeoStatusDesign = { isSharedDesign?: boolean; seo_status?: string | null };
+
+function isSeoPublishedDesign(design: SeoStatusDesign | null | undefined): boolean {
+    return design?.isSharedDesign === true || !design?.seo_status || design.seo_status === 'published';
+}
+
 export async function generateMetadata(
     { params }: Props,
     parent: ResolvingMetadata
@@ -312,6 +323,8 @@ export async function generateMetadata(
             robots: { index: false, follow: false },
         }
     }
+
+    const isPublished = isSeoPublishedDesign(design);
 
     // Title body is the stored, deterministically-reconstructed seo_title (R6/R7).
     // The root layout template appends ' | Genie.ph'. No price segment in the title.
@@ -370,28 +383,34 @@ export async function generateMetadata(
         },
     ] : [];
 
-    return {
-        title,
-        description,
-        alternates: {
-            canonical: canonicalUrl,
-        },
-        robots: {
+    const robots = isPublished
+        ? {
             index: true,
             follow: true,
-            'max-image-preview': 'large',
+            'max-image-preview': 'large' as const,
             googleBot: {
                 index: true,
                 follow: true,
                 'max-video-preview': -1,
-                'max-image-preview': 'large',
+                'max-image-preview': 'large' as const,
                 'max-snippet': -1,
             },
-        },
+        }
+        : {
+            index: false,
+            follow: false,
+            googleBot: { index: false, follow: false, noimageindex: true },
+        };
+
+    return {
+        title,
+        description,
+        ...(isPublished ? { alternates: { canonical: canonicalUrl } } : {}),
+        robots,
         openGraph: {
             title,
             description,
-            url: canonicalUrl,
+            ...(isPublished ? { url: canonicalUrl } : {}),
             siteName: 'Genie.ph',
             images: metadataImages,
             type: 'website',
@@ -402,15 +421,17 @@ export async function generateMetadata(
             description,
             images: metadataImages,
         },
-        other: {
-            thumbnail: crawlerImage.url || '',
-            // Explicit og:image:alt for Pinterest and crawlers that read it separately
-            // Uses generateRichAltText so short/generic stored values get upgraded
-            'og:image:alt': imageAltText,
-            // product:* meta tags for e-commerce enrichment (og:type set via openGraph.type above)
-            'product:price:amount': (design.price && design.price > 0) ? Math.round(design.price).toString() : FALLBACK_MIN_PRICE.toString(),
-            'product:price:currency': 'PHP',
-        },
+        ...(isPublished ? {
+            other: {
+                thumbnail: crawlerImage.url || '',
+                // Explicit og:image:alt for Pinterest and crawlers that read it separately
+                // Uses generateRichAltText so short/generic stored values get upgraded
+                'og:image:alt': imageAltText,
+                // product:* meta tags for e-commerce enrichment (og:type set via openGraph.type above)
+                'product:price:amount': (design.price && design.price > 0) ? Math.round(design.price).toString() : FALLBACK_MIN_PRICE.toString(),
+                'product:price:currency': 'PHP',
+            },
+        } : {}),
     }
 }
 
@@ -1371,6 +1392,8 @@ export default async function RecentSearchPage({ params }: Props) {
         notFound()
     }
 
+    const isPublished = isSeoPublishedDesign(design);
+
     const seoAnalysis = design.analysis_json || {};
     const seoCakeType: CakeType = normalizeCakeType(seoAnalysis.cakeType);
 
@@ -1521,7 +1544,7 @@ export default async function RecentSearchPage({ params }: Props) {
 
     return (
         <>
-            <DesignSchema
+            {isPublished && <DesignSchema
                 design={design}
                 prices={prices}
                 pageDescription={pageContent.description}
@@ -1531,7 +1554,7 @@ export default async function RecentSearchPage({ params }: Props) {
                 linkedMerchantProducts={linkedMerchantProducts}
                 faqs={dynamicFAQs}
                 themedReviews={themedReviews}
-            />
+            />}
 
             {/* Preload the hero image for faster LCP.
 

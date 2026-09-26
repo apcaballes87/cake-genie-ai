@@ -5,7 +5,7 @@ export default function robots(): MetadataRoute.Robots {
         rules: [
             {
                 userAgent: '*',
-                allow: '/',
+                allow: ['/', '/customizing/*?caketype=*'],
                 disallow: [
                     '/account/',
                     '/admin/',
@@ -26,7 +26,7 @@ export default function robots(): MetadataRoute.Robots {
             // Explicitly allow AI crawlers for GEO (Generative Engine Optimization)
             {
                 userAgent: ['GPTBot', 'ChatGPT-User', 'ClaudeBot', 'Google-Extended', 'PerplexityBot', 'OAI-SearchBot', 'Bytespider'],
-                allow: '/',
+                allow: ['/', '/customizing/*?caketype=*'],
                 disallow: [
                     '/admin/',
                     '/api/',

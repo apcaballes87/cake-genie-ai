@@ -333,6 +333,7 @@ describe('ImageContext', () => {
 
     await waitFor(() => {
       expect(result.current.currentCacheId).toBe('cache-row-123');
+      expect(result.current.currentSlug).toBe('generated-slug');
     });
     expect(result.current.currentPHash).toBe('abc123def4567890');
   });

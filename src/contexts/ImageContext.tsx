@@ -792,6 +792,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                             if (cacheWrite) {
                                 setCurrentCacheId(cacheWrite.id ?? null);
                                 setCurrentPHash(cacheWrite.storedPHash);
+                                setCurrentSlugState(cacheWrite.slug || null);
                                 console.log(`✅ Fast analysis result cached successfully with pHash: ${cacheWrite.storedPHash}`);
                                 setIsAnalysisCached(true);
                             } else {
@@ -850,6 +851,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                             if (cacheWrite) {
                                 setCurrentCacheId(cacheWrite.id ?? null);
                                 setCurrentPHash(cacheWrite.storedPHash);
+                                setCurrentSlugState(cacheWrite.slug || null);
                                 console.log(`✅ Enriched analysis cache update completed with pHash: ${cacheWrite.storedPHash}`);
                                 setIsAnalysisCached(true);
                             } else {
@@ -876,6 +878,7 @@ export function ImageProvider({ children }: { children: React.ReactNode }) {
                                 if (cacheWrite) {
                                     setCurrentCacheId(cacheWrite.id ?? null);
                                     setCurrentPHash(cacheWrite.storedPHash);
+                                    setCurrentSlugState(cacheWrite.slug || null);
                                     console.log(`✅ Analysis result (fast profile) cached successfully with pHash: ${cacheWrite.storedPHash}`);
                                     setIsAnalysisCached(true);
                                 } else {
