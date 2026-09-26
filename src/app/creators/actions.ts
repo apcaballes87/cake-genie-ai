@@ -108,6 +108,7 @@ export type CreatorSubmission = {
     email: string;
     contact_number: string;
     address: string;
+    birthday: string;
     content_niche: string;
     tiktok_handle?: string;
     tiktok_followers?: number;
@@ -162,6 +163,28 @@ function createServiceClient(config: CreatorServiceConfig) {
     }
 }
 
+function getManilaToday() {
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Manila',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    }).formatToParts(new Date());
+    const value = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value || '';
+
+    return `${value('year')}-${value('month')}-${value('day')}`;
+}
+
+function isValidBirthday(value: string) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    if (Number(value.slice(0, 4)) < 1) return false;
+
+    const date = new Date(`${value}T00:00:00.000Z`);
+    return Number.isFinite(date.getTime())
+        && date.toISOString().slice(0, 10) === value
+        && value <= getManilaToday();
+}
+
 function requireServiceClient() {
     return createServiceClient(requireServiceConfig());
 }
@@ -169,6 +192,10 @@ function requireServiceClient() {
 function validateCreatorSubmission(data: CreatorSubmission) {
     if (!data.name?.trim() || !data.email?.trim() || !data.contact_number?.trim() || !data.address?.trim() || !data.content_niche?.trim()) {
         throw new AppError('Please fill in all required application details.', 'VALIDATION_ERROR');
+    }
+
+    if (!data.birthday || !isValidBirthday(data.birthday)) {
+        throw new AppError('Please provide a valid birthday.', 'VALIDATION_ERROR');
     }
 
     if (!/^\S+@\S+\.\S+$/.test(data.email.trim())) {
@@ -277,6 +304,7 @@ export async function submitCreatorApplication(data: CreatorSubmission): Promise
             p_contact_number: data.contact_number.trim(),
             p_address: data.address.trim(),
             p_content_niche: data.content_niche.trim(),
+            p_birthday: data.birthday,
             p_tiktok_handle: data.tiktok_handle?.trim() || null,
             p_tiktok_followers: data.tiktok_followers ?? null,
             p_instagram_handle: data.instagram_handle?.trim() || null,
