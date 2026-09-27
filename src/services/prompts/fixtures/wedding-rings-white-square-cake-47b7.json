@@ -1,0 +1,29 @@
+{
+  "slug": "wedding-rings-white-square-cake-47b7",
+  "image_url": "https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/cakegenie/customizations/wedding-rings-white-square-cake-47b7.webp",
+  "source_url": "https://genie.ph/customizing/wedding-rings-white-square-cake-47b7",
+  "historical_cache_id": "0131f854-b70e-4ada-b1ed-a5e8612b562c",
+  "purpose": "Positive regression fixture for a dense white wafer-paper side-wave curtain whose neighboring strip boundaries merge at image resolution.",
+  "observed_side_construction": [
+    "one visible tier has a repeated, predominantly full-height curtain of narrow upright white sheets",
+    "at least two representative strips show thin sheet faces, loose free wavy edges, and separate attachment from the iced side",
+    "many neighboring strip boundaries merge at the supplied image resolution",
+    "the sheets appear white and unprinted"
+  ],
+  "expected_support_element": {
+    "group_id": "conditioned_waferpaper_vertical_wave_side_wrap",
+    "type": "edible_photo_side_wave",
+    "material": "waferpaper",
+    "color": "#FFFFFF",
+    "size": "large",
+    "quantity": 1,
+    "geometry_scope": "treatment",
+    "description": "conditioned white wafer paper strips softened and shaped into loose upright vertical waves around the cake side"
+  },
+  "forbidden_lookalikes": [
+    "piped icing ridges, shells, fans, or rosettes",
+    "broad cupped or overlapping flower-petal ruffles",
+    "shadows, folds, or overlap boundaries without representative sheet faces and free edges",
+    "ivory, cream, beige, tan, colored, printed, or ambiguous sheets"
+  ]
+}

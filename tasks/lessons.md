@@ -1,5 +1,7 @@
 # Lessons
 
+- For repeated wafer-paper side waves, do not require every neighboring strip boundary to be individually resolvable. Require at least two representative thin sheet faces with free wavy edges and separate attachment, plus the repeated full-height white/unprinted construction; keep piped ruffles and broad petal folds explicitly excluded. Update the master prompt, shared system instruction, second image verifier, and a dense-curtain regression fixture together.
+
 - When adding a new hit counter, verify the exact live ledger query and distinguish it from legacy `usage_count`; if the existing cache field is the required source of truth, update it atomically with the deduplicated event.
 
 - Never leave a development-only prompt-loader override on a path used by fresh or batch analysis. Prompt activation is only effective when `getActivePromptDetails` reads the active Supabase row; keep a version-aware local fallback solely for database-query failure.

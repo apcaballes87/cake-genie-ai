@@ -357,14 +357,18 @@ fail-closed verification for a paid conditioned wafer-paper wave wrap. Return
 JSON booleans only. Set a field true only when the image itself directly proves
 it; do not rely on another model's description, labels, or likely materials.
 
-A passing wrap must show: (1) individually distinguishable, thin paper strips;
-(2) those strips upright and separately attached to the iced side; (3) each
-strip has a loose/free wavy, ruffled, or pleated outer edge; (4) the strips form
-a repeated predominantly full-height wrap around a visible tier; and (5) the
-strips are visibly white and unprinted. For this purpose, ivory, cream, beige,
-tan, any colored treatment, any printed/patterned treatment, piped frosting,
-continuous texture, shadows, scalloped folds, flower petals, or an unclear
-image are false. Any uncertainty is false.`,
+A passing wrap must show: (1) at least two representative thin paper strips,
+each with a narrow sheet face and loose unsupported outer edge; (2) those
+representative strips upright and separately attached to the iced side; (3)
+loose/free wavy, ruffled, or pleated edges on those strips; (4) a repeated
+predominantly full-height wrap around a visible tier; and (5) visibly white,
+unprinted sheets. In a dense repeated curtain, neighboring strip boundaries
+may merge at image resolution; do not require every strip to be individually
+traceable. For this purpose, ivory, cream, beige, tan, any colored treatment,
+any printed/patterned treatment, piped frosting, continuous texture, shadows,
+scalloped folds, flower petals, or an unclear image are false. Any uncertainty
+about the representative sheet construction, attachment, edge, color, or
+full-height repetition is false.`,
                     },
                 ],
             }],

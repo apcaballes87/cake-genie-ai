@@ -259,11 +259,28 @@ describe('cake analysis prompt rules', () => {
     expect(activation).toContain("final_count <> 1 or final_md5 <> v397_md5");
   });
 
+  it('guards v3.98 staging and activation with the live v3.97 and target prompt checksums', () => {
+    const stage = readPrompt('supabase/migrations/20260927040018_stage_prompt_v398_wafer_wave_representative_strips.sql');
+    const activation = readPrompt('supabase/migrations/20260927040115_activate_prompt_v398_wafer_wave_representative_strips.sql');
+
+    expect(stage).toContain("v397_md5 constant text := '54ec2f698a847e34e4abf96ad36ba675'");
+    expect(stage).toContain("v398_md5 constant text := '328f9f964322447c648def85a1682ed5'");
+    expect(stage).toContain("'3.98', staged_prompt, false,");
+    expect(stage).toContain('source patch anchor');
+    expect(stage).not.toMatch(/set is_active = true/i);
+    expect(stage).not.toMatch(/cakegenie_analysis_cache|pricing_rules/i);
+    expect(activation).toContain("active_version <> '3.97'");
+    expect(activation).toContain("where version = '3.98'");
+    expect(activation).toContain('set is_active = false');
+    expect(activation).toContain('set is_active = true');
+    expect(activation).toContain("final_count <> 1 or final_md5 <> v398_md5");
+  });
+
   it('classifies every item through construction, material, type, and description consistency', () => {
     const prompt = readEffectiveAnalysisInstructions();
     const fenceCount = prompt.match(/^```/gm)?.length ?? 0;
 
-    if (prompt.includes('**v3.97 Version - Piped Flower Identity Gate**')) {
+    if (prompt.includes('**v3.98 Version - Representative Wafer-Wave Evidence**')) {
       expect(prompt).toContain('PIPED BOTANICAL TREATMENT — CONSTRUCTION PRECEDENCE');
       expect(prompt).toContain('FLAT EDIBLE FLOWER DEPTH GATE');
       expect(prompt).toContain('determine visible construction first, assign the compatible material second');
@@ -271,7 +288,7 @@ describe('cake analysis prompt rules', () => {
       return;
     }
 
-    expect(prompt).toContain('**v3.97 Version - Piped Flower Identity Gate**');
+    expect(prompt).toContain('**v3.98 Version - Representative Wafer-Wave Evidence**');
     expect(prompt).toContain('GLOBAL ITEM CLASSIFICATION PIPELINE — CONSTRUCTION → MATERIAL → TYPE → DESCRIPTION');
     expect(prompt).toContain('6. Global Construction → Material → Type pipeline');
     expect(prompt).toContain('5. Physical Depth Gate');
@@ -353,11 +370,11 @@ describe('cake analysis prompt rules', () => {
     expect(SYSTEM_INSTRUCTION).toContain('Intricate Flower Minimum Role');
     expect(SYSTEM_INSTRUCTION).toContain('such as an intricate rose, tulip, stargazer, sunflower, or peony');
     expect(SYSTEM_INSTRUCTION).toContain('Conditioned Wafer-Paper Side Waves');
-    expect(SYSTEM_INSTRUCTION).toContain('all five cues: individually distinguishable thin paper sheets/strips');
+    expect(SYSTEM_INSTRUCTION).toContain('all five cues: at least two representative thin paper-sheet faces');
     expect(SYSTEM_INSTRUCTION).toContain('Physical Cake-Body Tier Test');
     expect(SYSTEM_INSTRUCTION).toContain('same-footprint stacked bodies require clearly visible');
     expect(SYSTEM_INSTRUCTION).toContain('default to `1 Tier` rather than a multi-tier type');
-    expect(SYSTEM_INSTRUCTION).toContain('Count a sheet cue only when its narrow sheet face and free outer edge');
+    expect(SYSTEM_INSTRUCTION).toContain('In a dense repeated curtain, neighboring strip boundaries may merge at image resolution');
     expect(SYSTEM_INSTRUCTION).toContain('Scalloped folds, shadows, overlap boundaries, and edges of cupped/overlapping petals');
     expect(SYSTEM_INSTRUCTION).toContain('After a failed wafer gate, do not invent waferpaper; classify the visible construction');
     expect(SYSTEM_INSTRUCTION).toContain('If no `edible_photo_side_wave` support row is emitted, `wafer`, `wafer paper`, and `wafer-paper` are prohibited');
@@ -508,7 +525,7 @@ describe('cake analysis prompt rules', () => {
   it('classifies fresh-looking flowers as edible flowers in the fallback prompt source', () => {
     const prompt = readEffectiveAnalysisInstructions();
 
-    if (prompt.includes('**v3.97 Version - Piped Flower Identity Gate**')) {
+    if (prompt.includes('**v3.98 Version - Representative Wafer-Wave Evidence**')) {
       expect(prompt).toContain('FLAT EDIBLE FLOWER DEPTH GATE');
       expect(prompt).toContain('edible_flowers_filler');
       expect(prompt).toContain('Do not infer modeled bloom depth from theme, color, flower identity');
@@ -573,7 +590,7 @@ describe('cake analysis prompt rules', () => {
   it('classifies isolated edible mermaid tails as ordinary and groups representative size lines', () => {
     const prompt = readEffectiveAnalysisInstructions();
 
-    if (prompt.includes('**v3.97 Version - Piped Flower Identity Gate**')) {
+    if (prompt.includes('**v3.98 Version - Representative Wafer-Wave Evidence**')) {
       expect(prompt).toContain('edible_3d_ordinary');
       expect(prompt).toContain('Every item quantity must be a positive integer.');
       expect(prompt).toContain('Group only tails with the same type, material, color,');
@@ -625,10 +642,10 @@ describe('cake analysis prompt rules', () => {
   it('classifies conditioned wafer-paper vertical waves as their own priced support type', () => {
     const prompt = readEffectiveAnalysisInstructions();
 
-    if (prompt.includes('**v3.97 Version - Piped Flower Identity Gate**')) {
+    if (prompt.includes('**v3.98 Version - Representative Wafer-Wave Evidence**')) {
       expect(prompt).toContain('white-only wafer-paper side-wave gate');
       expect(prompt).toContain('edible_photo_side_wave');
-      expect(prompt).toContain('all five cues: individually distinguishable thin paper sheets/strips');
+      expect(prompt).toContain('all five cues: at least two representative thin paper-sheet faces');
       return;
     }
     const fixture = JSON.parse(readPrompt('src/services/prompts/fixtures/minimalist-white-white-1-tier-cake-00e0.json')) as {
@@ -654,13 +671,13 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('A 2 Tier or 3 Tier cake with waves on only one tier MUST use quantity `1`');
     expect(SYSTEM_INSTRUCTION).toContain("Set quantity from directly visible wave-covered tiers, not the cake's total tier count");
     expect(prompt).toContain('only when all five direct-image cues in the\nPRE-EMISSION UPRIGHT WAFER-PAPER SIDE CHECKPOINT are visible');
-    expect(prompt).toContain('repeated, individually distinguishable thin upright sheets with loose/free\nwavy edges and visible separation from the iced side');
+    expect(prompt).toContain('of repeated thin upright sheets with loose/free wavy edges and visible\nseparation from the iced side');
     expect(prompt).toContain('PRE-EMISSION UPRIGHT WAFER-PAPER SIDE CHECKPOINT (REQUIRED)');
     expect(prompt).toContain('Emit it only when the image directly shows **all** of these construction cues');
     expect(prompt).toContain('Do not infer this type from white color, generic words such as wave, ruffle');
     expect(prompt).toContain('flowers, leaves, butterflies, lace, plaques, quilted/fondant panels, piped');
-    expect(prompt).toContain('Count a sheet cue only when its narrow sheet face and a free outer sheet edge');
-    expect(prompt).toContain('traceable narrow sheet face with its own free outer edge and separate attachment');
+    expect(prompt).toContain('Count the sheet cue only when at least two representative strips each show a');
+    expect(prompt).toContain('At least two representative strips must show a thin sheet face, free wavy edge, and separate attachment');
 
     expect(fixture.expected_support_element).toMatchObject({
       type: 'edible_photo_side_wave',
@@ -682,10 +699,47 @@ describe('cake analysis prompt rules', () => {
     ]);
   });
 
+  it('accepts a dense white wafer-wave curtain from representative strips and preserves nearby exclusions', () => {
+    const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
+    const verifier = readPrompt('src/lib/ai/analyzeCakeImage.ts');
+    const fixture = JSON.parse(readPrompt('src/services/prompts/fixtures/wedding-rings-white-square-cake-47b7.json')) as {
+      observed_side_construction: string[];
+      expected_support_element: Record<string, unknown>;
+      forbidden_lookalikes: string[];
+    };
+
+    expect(prompt).toContain('at least two representative thin paper-sheet faces');
+    expect(prompt).toContain('neighboring sheet\nboundaries may merge at image resolution');
+    expect(prompt).toContain('do not require every strip to be\nindividually traceable');
+    expect(prompt).toContain('Anything extruded through a pastry tip, including white or vertically arranged');
+    expect(prompt).toContain('edge of a cupped\npetal is not a paper-sheet boundary');
+    expect(SYSTEM_INSTRUCTION).toContain('at least two representative thin paper-sheet faces');
+    expect(SYSTEM_INSTRUCTION).toContain('do not require every strip to be individually traceable');
+    expect(verifier).toContain('at least two representative thin paper strips');
+    expect(verifier).toContain('neighboring strip boundaries\nmay merge at image resolution');
+    expect(verifier).toContain('piped frosting, continuous texture, shadows,');
+    expect(verifier).toContain('flower petals');
+    expect(fixture.observed_side_construction).toEqual(expect.arrayContaining([
+      'at least two representative strips show thin sheet faces, loose free wavy edges, and separate attachment from the iced side',
+      'many neighboring strip boundaries merge at the supplied image resolution',
+    ]));
+    expect(fixture.expected_support_element).toMatchObject({
+      type: 'edible_photo_side_wave',
+      material: 'waferpaper',
+      size: 'large',
+      quantity: 1,
+      geometry_scope: 'treatment',
+    });
+    expect(fixture.forbidden_lookalikes).toEqual(expect.arrayContaining([
+      'piped icing ridges, shells, fans, or rosettes',
+      'broad cupped or overlapping flower-petal ruffles',
+    ]));
+  });
+
   it('excludes non-wafer floral, quilted, and piped side decoration from the wafer-wave type', () => {
     const prompt = readEffectiveAnalysisInstructions();
 
-    if (prompt.includes('**v3.97 Version - Piped Flower Identity Gate**')) {
+    if (prompt.includes('**v3.98 Version - Representative Wafer-Wave Evidence**')) {
       expect(prompt).toContain('Flowers, leaves, butterflies, broad petal ruffles, lace, plaques, quilted/fondant panels, piping, and isolated side accents are not this type.');
       expect(prompt).toContain('After a failed wafer gate, do not invent waferpaper');
       return;
@@ -703,8 +757,8 @@ describe('cake analysis prompt rules', () => {
       allowed_non_wafer_type: string;
     };
 
-    expect(prompt).toContain('all five cues are not directly visible, omit `edible_photo_side_wave`.');
-    expect(prompt).toContain('A scalloped fold,\nshadow line, overlap boundary, or edge of a cupped petal is not a paper-sheet\nboundary.');
+    expect(prompt).toContain('all five cues are not\ndirectly visible, omit `edible_photo_side_wave`.');
+    expect(prompt).toContain('A scalloped fold, shadow line, overlap boundary, or edge of a cupped\npetal is not a paper-sheet boundary.');
     expect(prompt).toContain('broad cupped, folded, scalloped, or overlapping\nflower-petal ruffles');
     expect(prompt).toContain('Do not invent\nwaferpaper after this gate fails; classify the visible construction under its\nordinary compatible type rule.');
     expect(prompt).toContain('**Final literal wafer check:** After all structured rows are drafted,');
@@ -715,7 +769,7 @@ describe('cake analysis prompt rules', () => {
     ]));
     expect(fixture.forbidden_support_type).toBe('edible_photo_side_wave');
     expect(fixture.forbidden_description).toContain('conditioned wafer paper vertical wave');
-    expect(fixture.required_wafer_evidence).toHaveLength(4);
+    expect(fixture.required_wafer_evidence).toHaveLength(5);
     expect(petalFixture.observed_side_construction).toEqual(expect.arrayContaining([
       'broad overlapping cupped and scalloped flower-petal ruffles',
       'dense lower-tier ruffle mass without traceable narrow sheet faces',
@@ -735,7 +789,7 @@ describe('cake analysis prompt rules', () => {
     };
 
     expect(prompt).toContain('**Paper-strip versus piped-ruffle decision (mandatory):**');
-    expect(prompt).toContain('predominantly full-height **vertical\nsheets**');
+    expect(prompt).toContain('predominantly full-height\n**vertical sheets**');
     expect(prompt).toContain('Anything extruded through a pastry tip, including white or vertically arranged\npiped ruffles, is `icing_decorations` with material `icing`');
     expect(prompt).toContain('Piped ruffle bands are not wafer-paper strips: buttercream extrusion leaves');
     expect(prompt).toContain('short ridges, shells, fans, rosettes, or stacked swirls rather than separate\npaper-thin vertical planes');
@@ -799,7 +853,7 @@ describe('cake analysis prompt rules', () => {
   it('requires a detailed multi-component composition for edible 2D complex without stealing adjacent types', () => {
     const prompt = readEffectiveAnalysisInstructions();
 
-    if (prompt.includes('**v3.97 Version - Piped Flower Identity Gate**')) {
+    if (prompt.includes('**v3.98 Version - Representative Wafer-Wave Evidence**')) {
       expect(prompt).toContain('Use "edible_2d_complex" only for one detailed, composed flat fondant/gumpaste artwork');
       expect(prompt).toContain('A single simple cut motif, or a repeated/focal group of identical simple motifs');
       return;
@@ -880,14 +934,14 @@ describe('cake analysis prompt rules', () => {
   it('separates non-identical subjects in composite 3D hero assemblies', () => {
     const prompt = readEffectiveAnalysisInstructions();
 
-    if (prompt.includes('**v3.97 Version - Piped Flower Identity Gate**')) {
+    if (prompt.includes('**v3.98 Version - Representative Wafer-Wave Evidence**')) {
       expect(prompt).toContain('Composite hero assemblies: count major subjects before grouping');
       expect(prompt).toContain('Visually identical items belong in one row with quantity');
       expect(prompt).toContain('visibly different apparent scales, colors, poses, or appearances require separate rows');
       return;
     }
 
-    expect(prompt).toContain('**v3.97 Version - Piped Flower Identity Gate**');
+    expect(prompt).toContain('**v3.98 Version - Representative Wafer-Wave Evidence**');
     expect(prompt).toContain('COMPOSITE HERO ASSEMBLY COUNTING PRECEDENCE');
     expect(prompt).toContain('Count each independently sculpted major subject before grouping.');
     expect(prompt).toContain('A separately sculpted major vehicle or mount—such as a scooter, motorcycle,');
@@ -916,7 +970,7 @@ describe('cake analysis prompt rules', () => {
       return;
     }
 
-    expect(prompt).toContain('**v3.97 Version - Piped Flower Identity Gate**');
+    expect(prompt).toContain('**v3.98 Version - Representative Wafer-Wave Evidence**');
     expect(prompt).toContain('| Rigid factory-molded physical prop | `toy` | `plastic`');
     expect(prompt).toContain('The application owns all size thresholds and fixed overrides.');
     expect(prompt).toContain('Do not infer a\nsize label or a size threshold boundary.');
@@ -1045,7 +1099,7 @@ describe('cake analysis prompt rules', () => {
   it('keeps complex and ordinary 3D face rules consistent', () => {
     const prompt = readEffectiveAnalysisInstructions();
 
-    if (prompt.includes('**v3.97 Version - Piped Flower Identity Gate**')) {
+    if (prompt.includes('**v3.98 Version - Representative Wafer-Wave Evidence**')) {
       expect(prompt).toContain('A one-color, non-character edible 3D object');
       expect(prompt).toContain('edible_3d_ordinary');
       expect(prompt).toContain('direct image evidence proves a complete human or animal figure');

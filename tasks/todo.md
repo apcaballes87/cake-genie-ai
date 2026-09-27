@@ -1,5 +1,29 @@
 # Tasks
 
+## Recognize dense wafer-paper side-wave curtains (2026-09-27)
+
+### Plan
+
+- [x] Lock the supplied wedding-cake image and historical cache row; verify the active live prompt checksum.
+- [x] Trace the master prompt, shared system instruction, fresh-image verifier, output filtering, and existing pricing type.
+- [x] Relax only the visual evidence threshold to two representative strips while retaining white/unprinted, attachment, wave-edge, full-height, piping, and petal checks.
+- [x] Add a positive case fixture and a focused regression for the prompt and verifier layers.
+- [x] Prepare guarded inactive-stage and transactional activation migrations for prompt v3.98.
+- [x] Verify migration/fallback/live-baseline checksum lineage, focused tests, diff hygiene, and unchanged historical cache.
+- [x] Attempt a non-persisted fresh analysis and production build where the isolated environment permits; record approval and environment blockers.
+
+### Review
+
+- Work is in the detached `origin/main` worktree at `c0d5c74ca0a4e034ec1fe65d2d96974e4f7d609c`; the dirty primary checkout was not edited.
+- Live baseline remains prompt 104 / v3.97 / MD5 `54ec2f698a847e34e4abf96ad36ba675`. Proposed fallback and migration body are byte-identical at MD5 `328f9f964322447c648def85a1682ed5`.
+- The supplied case remains cache ID `0131f854-b70e-4ada-b1ed-a5e8612b562c`, analysis MD5 `d83b7b6687e26d382bc512f0449db8d7`, stored price ₱1,699, add-on ₱0. It was not modified. Existing wave pricing rule 232 remains ₱500 per piece; no pricing changes were made.
+- The stage migration inserts v3.98 inactive; the separate activation migration checks the current version/checksum and switches transactionally. Neither migration was applied.
+- Focused wafer-wave and migration tests pass (5/5); `git diff --check` passes. The full prompt file has 60 passing tests and 5 failures because five historical v3.74-v3.76 migration files are absent from clean `origin/main`.
+- The production build compiled and typechecked, then stopped during page data collection because the isolated worktree lacks `NEXT_PUBLIC_SUPABASE_URL` / `supabaseUrl`.
+- The non-persisted fresh analysis was blocked by automatic review because it would send the private attachment to Gemini. No image was transmitted; explicit user approval is required before retrying.
+- Awaiting approval for the external fresh-analysis request and a separate production stage/activation review.
+
+
 ## Count PDQ cache hits (2026-09-20)
 
 ### Plan
