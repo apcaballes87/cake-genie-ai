@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { User } from '@supabase/supabase-js';
 import { CartProvider, cleanupExpiredLocalStorage, useCartActions, useCartData } from './CartContext';
@@ -10,6 +11,7 @@ const mocks = vi.hoisted(() => ({
     pathname: '/',
     getUser: vi.fn(),
     getCartPageData: vi.fn(),
+    getCheckoutReadyCartItemIds: vi.fn(),
     addToCart: vi.fn(),
     addToCartIdempotent: vi.fn(),
     updateCartItemImages: vi.fn(),
@@ -44,6 +46,7 @@ vi.mock('@/lib/supabase/client', () => ({
 
 vi.mock('@/services/supabaseService', () => ({
     getCartPageData: mocks.getCartPageData,
+    getCheckoutReadyCartItemIds: mocks.getCheckoutReadyCartItemIds,
     addToCart: mocks.addToCart,
     addToCartIdempotent: mocks.addToCartIdempotent,
     updateCartItemQuantity: vi.fn(),
@@ -142,6 +145,27 @@ function BackgroundUploadProbe() {
     );
 }
 
+function CheckoutPersistenceProbe({ cartItemId }: { cartItemId: string }) {
+    const { ensureCartItemsReady } = useCartActions();
+    const [status, setStatus] = useState('idle');
+
+    return (
+        <div>
+            <div data-testid="checkout-persistence-status">{status}</div>
+            <button
+                type="button"
+                onClick={() => {
+                    void ensureCartItemsReady([cartItemId])
+                        .then(() => setStatus('ready'))
+                        .catch(error => setStatus(error.message));
+                }}
+            >
+                checkout
+            </button>
+        </div>
+    );
+}
+
 describe('CartProvider hydration', () => {
     beforeEach(() => {
         cleanup();
@@ -182,6 +206,7 @@ describe('CartProvider hydration', () => {
             error: null,
         });
         mocks.addToCartIdempotent.mockResolvedValue({ data: null, error: new Error('network unavailable') });
+        mocks.getCheckoutReadyCartItemIds.mockResolvedValue({ data: [], error: null });
         mocks.getPendingCartAuthTransfer.mockReturnValue(null);
         mocks.getCartOutbox.mockResolvedValue([]);
         mocks.putCartOutbox.mockResolvedValue(undefined);
@@ -383,6 +408,141 @@ describe('CartProvider hydration', () => {
             expect(screen.getByTestId('cart-count')).toHaveTextContent('1');
             expect(screen.getByTestId('pending-state')).toHaveTextContent('pending');
         });
+    });
+
+    it('confirms saved cart ownership before allowing checkout to continue', async () => {
+        mocks.pathname = '/cart';
+        mocks.authUser = { id: 'registered-user', is_anonymous: false } as User;
+        mocks.getCheckoutReadyCartItemIds.mockResolvedValue({ data: ['saved-item'], error: null });
+        writeCartCache([{
+            cart_item_id: 'saved-item',
+            user_id: 'registered-user',
+            session_id: null,
+            quantity: 1,
+            final_price: 1200,
+        }]);
+
+        render(
+            <CartProvider>
+                <CheckoutPersistenceProbe cartItemId="saved-item" />
+            </CartProvider>
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: 'checkout' }));
+
+        await waitFor(() => {
+            expect(screen.getByTestId('checkout-persistence-status')).toHaveTextContent('ready');
+        });
+        expect(mocks.getCheckoutReadyCartItemIds).toHaveBeenCalledWith(
+            ['saved-item'],
+            'registered-user',
+            null,
+        );
+    });
+
+    it('blocks checkout when the saved cart row cannot be confirmed', async () => {
+        mocks.pathname = '/cart';
+        mocks.authUser = { id: 'anonymous-user', is_anonymous: true } as User;
+        writeCartCache([{
+            cart_item_id: 'missing-item',
+            user_id: null,
+            session_id: 'anonymous-user',
+            quantity: 1,
+            final_price: 1200,
+        }]);
+
+        render(
+            <CartProvider>
+                <CheckoutPersistenceProbe cartItemId="missing-item" />
+            </CartProvider>
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: 'checkout' }));
+
+        await waitFor(() => {
+            expect(screen.getByTestId('checkout-persistence-status')).toHaveTextContent(
+                'Some cake details are not saved yet.',
+            );
+        });
+    });
+
+    it('flushes pending cart outbox records before allowing checkout', async () => {
+        const now = new Date().toISOString();
+        let outboxRecords: CartOutboxRecord[] = [{
+            cartItem: {
+                cart_item_id: 'pending-item',
+                client_request_id: 'pending-item',
+                user_id: null,
+                session_id: 'anonymous-user',
+                merchant_id: null,
+                product_id: null,
+                cake_type: 'Round',
+                cake_thickness: 'Regular',
+                cake_size: '6 inch',
+                base_price: 1000,
+                addon_price: 0,
+                final_price: 1000,
+                quantity: 1,
+                original_image_url: 'https://example.com/original.webp',
+                customized_image_url: 'https://example.com/custom.webp',
+                customization_details: {} as CakeGenieCartItem['customization_details'],
+                created_at: now,
+                updated_at: now,
+                expires_at: new Date(Date.now() + 60_000).toISOString(),
+            },
+            createdAt: now,
+            attempts: 1,
+            stage: 'image_update',
+            nextAttemptAt: new Date(Date.now() + 60_000).toISOString(),
+        }];
+        mocks.pathname = '/cart';
+        mocks.authUser = { id: 'anonymous-user', is_anonymous: true } as User;
+        mocks.getCartOutbox.mockImplementation(async () => outboxRecords);
+        mocks.removeCartOutbox.mockImplementation(async (cartItemId: string) => {
+            outboxRecords = outboxRecords.filter(record => record.cartItem.cart_item_id !== cartItemId);
+        });
+        mocks.addToCartIdempotent.mockImplementation(async (item: CakeGenieCartItem) => ({ data: item, error: null }));
+        mocks.updateCartItemImages.mockImplementation(async (
+            cartItemId: string,
+            originalImageUrl: string | null,
+            customizedImageUrl: string | null,
+        ) => ({
+            data: {
+                ...outboxRecords[0]?.cartItem,
+                cart_item_id: cartItemId,
+                original_image_url: originalImageUrl,
+                customized_image_url: customizedImageUrl,
+            } as CakeGenieCartItem,
+            error: null,
+        }));
+        mocks.getCheckoutReadyCartItemIds.mockResolvedValue({ data: ['pending-item'], error: null });
+        writeCartCache([{
+            ...outboxRecords[0].cartItem,
+            isPending: true,
+        }]);
+
+        render(
+            <CartProvider>
+                <CheckoutPersistenceProbe cartItemId="pending-item" />
+            </CartProvider>
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: 'checkout' }));
+
+        await waitFor(() => {
+            expect(screen.getByTestId('checkout-persistence-status')).toHaveTextContent('ready');
+        });
+        expect(mocks.addToCartIdempotent).toHaveBeenCalledTimes(1);
+        expect(mocks.updateCartItemImages).toHaveBeenCalledWith(
+            'pending-item',
+            'https://example.com/original.webp',
+            'https://example.com/custom.webp',
+        );
+        expect(mocks.getCheckoutReadyCartItemIds).toHaveBeenCalledWith(
+            ['pending-item'],
+            null,
+            'anonymous-user',
+        );
     });
 
     it('lets an AI-backed preview run past 30 seconds and persists its exact URLs before the cart update', async () => {

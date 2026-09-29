@@ -70,6 +70,17 @@ const buildCartItem = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+function mockPersistedCartQuery(rows: Array<{ cart_item_id: string; customized_image_url: string | null }>) {
+  const query = {
+    select: vi.fn().mockReturnThis(),
+    in: vi.fn().mockReturnThis(),
+    gt: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockResolvedValue({ data: rows, error: null }),
+  };
+  fromMock.mockReturnValueOnce(query as never);
+  return query;
+}
+
 describe('deferred cart clear (data-layer track)', () => {
   beforeEach(() => {
     rpcMock.mockReset();
@@ -148,9 +159,49 @@ describe('deferred cart clear (data-layer track)', () => {
     // loss bug comes back — fail loudly with a guard message.
     const params = createOrderCall![1] as Record<string, unknown>;
     expect(params).not.toHaveProperty('p_clear_cart', true);
+    expect(params.p_cart_item_ids).toEqual(['cart-1']);
     // Be explicit about the default we expect (the RPC's
     // DEFAULT FALSE — the client doesn't pass the key at all).
     expect(params.p_clear_cart).toBeUndefined();
+  });
+
+  it('checks active persisted cart rows for a registered owner', async () => {
+    const query = mockPersistedCartQuery([{
+      cart_item_id: 'cart-1',
+      customized_image_url: 'https://example.com/custom.webp',
+    }]);
+    const { getCheckoutReadyCartItemIds } = await import('./supabaseService');
+
+    const result = await getCheckoutReadyCartItemIds(['cart-1'], 'user-123', null);
+
+    expect(result).toEqual({ data: ['cart-1'], error: null });
+    expect(fromMock).toHaveBeenCalledWith('cakegenie_cart');
+    expect(query.select).toHaveBeenCalledWith('cart_item_id, customized_image_url');
+    expect(query.in).toHaveBeenCalledWith('cart_item_id', ['cart-1']);
+    expect(query.gt).toHaveBeenCalledWith('expires_at', expect.any(String));
+    expect(query.eq).toHaveBeenCalledWith('user_id', 'user-123');
+  });
+
+  it('checks active persisted cart rows for an anonymous session owner', async () => {
+    const query = mockPersistedCartQuery([{
+      cart_item_id: 'cart-1',
+      customized_image_url: 'https://example.com/custom.webp',
+    }]);
+    const { getCheckoutReadyCartItemIds } = await import('./supabaseService');
+
+    const result = await getCheckoutReadyCartItemIds(['cart-1'], null, 'anonymous-user');
+
+    expect(result).toEqual({ data: ['cart-1'], error: null });
+    expect(query.eq).toHaveBeenCalledWith('session_id', 'anonymous-user');
+  });
+
+  it('does not treat rows without an uploaded preview as checkout ready', async () => {
+    mockPersistedCartQuery([{ cart_item_id: 'cart-1', customized_image_url: null }]);
+    const { getCheckoutReadyCartItemIds } = await import('./supabaseService');
+
+    const result = await getCheckoutReadyCartItemIds(['cart-1'], 'user-123', null);
+
+    expect(result).toEqual({ data: [], error: null });
   });
 
   it('createOrderFromCart still passes the full guest-address payload (no regressions)', async () => {

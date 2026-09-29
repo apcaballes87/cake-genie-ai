@@ -28,6 +28,7 @@ import { createClient } from '@/lib/supabase/client';
 import { CakeGenieCartItem, CakeGenieAddress, CakeGenieMerchant } from '@/lib/database.types';
 import {
     getCartPageData,
+    getCheckoutReadyCartItemIds,
     addToCart as addToCartService,
     addToCartIdempotent,
     updateCartItemImages,
@@ -86,6 +87,8 @@ const CART_AUTH_TIMEOUT_MS = 8_000;
 const CART_INSERT_TIMEOUT_MS = 10_000;
 const CART_IMAGE_TIMEOUT_MS = 30_000;
 const CART_IMAGE_UPDATE_TIMEOUT_MS = 10_000;
+const CART_CHECKOUT_PERSISTENCE_TIMEOUT_MS = 180_000;
+const CART_CHECKOUT_POLL_INTERVAL_MS = 250;
 
 function getCartOutboxRetryDelayMs(attempts: number): number {
     return Math.min(CART_OUTBOX_MAX_RETRY_DELAY_MS, 1_000 * (2 ** Math.min(attempts, 6)));
@@ -254,6 +257,8 @@ type BackgroundUploadOptions = {
     requiresFreshPreview?: boolean;
 };
 
+type CartOutboxProcessResult = 'completed' | 'failed' | 'busy' | 'scheduled';
+
 interface CartDataType {
     cartItems: (CakeGenieCartItem & { merchant?: CakeGenieMerchant; isPending?: boolean })[];
     addresses: CakeGenieAddress[];
@@ -276,6 +281,7 @@ interface CartActionsType {
     setDeliveryInstructions: (instructions: string) => void;
     setSelectedAddressId: (id: string) => void;
     refreshCart: () => Promise<void>;
+    ensureCartItemsReady: (cartItemIds: string[]) => Promise<void>;
     addToCartOptimistic: (
         item: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'>,
         options?: { skipOptimistic?: boolean }
@@ -328,6 +334,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const previousUserRef = useRef<User | null | undefined>(undefined);
     const cartItemsRef = useRef(cartItems);
     const outboxInFlightRef = useRef(new Set<string>());
+    const checkoutSaveAttemptsRef = useRef(new Set<string>());
     const backgroundUploadTasksRef = useRef(new Map<string, BackgroundUploadTask>());
 
     useEffect(() => {
@@ -701,14 +708,17 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const processCartOutboxRecordUnlocked = useCallback(async (
         record: CartOutboxRecord,
         uploadTask?: BackgroundUploadTask,
-    ) => {
+        forceRetry = false,
+    ): Promise<CartOutboxProcessResult> => {
         const requestId = record.cartItem.cart_item_id;
         if (uploadTask) {
             backgroundUploadTasksRef.current.set(requestId, uploadTask);
         }
         const registeredUploadTask = uploadTask ?? backgroundUploadTasksRef.current.get(requestId);
-        if (record.nextAttemptAt && new Date(record.nextAttemptAt).getTime() > Date.now()) return;
-        if (outboxInFlightRef.current.has(requestId)) return;
+        if (!forceRetry && record.nextAttemptAt && new Date(record.nextAttemptAt).getTime() > Date.now()) {
+            return 'scheduled';
+        }
+        if (outboxInFlightRef.current.has(requestId)) return 'busy';
         outboxInFlightRef.current.add(requestId);
 
         let workingRecord = record;
@@ -865,6 +875,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 status: 'success',
                 durationMs: Date.now() - new Date(workingRecord.createdAt).getTime(),
             });
+            return 'completed';
         } catch (error) {
             const errorDetails = getCartOutboxErrorDetails(error, stage);
             const nextAttemptAt = new Date(Date.now() + getCartOutboxRetryDelayMs(workingRecord.attempts + 1)).toISOString();
@@ -907,7 +918,10 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     authFailure: errorDetails.authFailure,
                 },
             });
-            showError("We're keeping your cake in the cart and will retry its preview.");
+            if (!checkoutSaveAttemptsRef.current.has(requestId)) {
+                showError("We're keeping your cake in the cart and will retry its preview.");
+            }
+            return 'failed';
         } finally {
             outboxInFlightRef.current.delete(requestId);
         }
@@ -916,10 +930,76 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const processCartOutboxRecord = useCallback(async (
         record: CartOutboxRecord,
         uploadTask?: BackgroundUploadTask,
-    ) => withCartOutboxRecordLock(
-        record.cartItem.cart_item_id,
-        () => processCartOutboxRecordUnlocked(record, uploadTask),
-    ), [processCartOutboxRecordUnlocked]);
+        forceRetry = false,
+    ): Promise<CartOutboxProcessResult> => {
+        const result = await withCartOutboxRecordLock(
+            record.cartItem.cart_item_id,
+            () => processCartOutboxRecordUnlocked(record, uploadTask, forceRetry),
+        );
+        return result ?? 'busy';
+    }, [processCartOutboxRecordUnlocked]);
+
+    const ensureCartItemsReady = useCallback(async (cartItemIds: string[]): Promise<void> => {
+        const uniqueCartItemIds = [...new Set(cartItemIds)];
+        if (
+            uniqueCartItemIds.length === 0
+            || uniqueCartItemIds.length !== cartItemIds.length
+            || uniqueCartItemIds.some(id => !id.trim())
+        ) {
+            throw new Error('We could not verify the cakes in your cart. Refresh the cart and try again.');
+        }
+        if (!user?.id) {
+            throw new Error('Please sign in or continue as guest to place an order.');
+        }
+
+        const requestedIds = new Set(uniqueCartItemIds);
+        uniqueCartItemIds.forEach(id => checkoutSaveAttemptsRef.current.add(id));
+        const deadline = Date.now() + CART_CHECKOUT_PERSISTENCE_TIMEOUT_MS;
+
+        try {
+            while (Date.now() < deadline) {
+                let outboxRecords: CartOutboxRecord[];
+                try {
+                    outboxRecords = await getCartOutbox();
+                } catch {
+                    throw new Error('We could not confirm that your cake details were saved. Please try checkout again.');
+                }
+
+                const selectedRecords = outboxRecords.filter(record =>
+                    requestedIds.has(record.cartItem.cart_item_id),
+                );
+
+                if (selectedRecords.length === 0) {
+                    const { data: readyCartItemIds, error } = await getCheckoutReadyCartItemIds(
+                        uniqueCartItemIds,
+                        user.is_anonymous ? null : user.id,
+                        user.is_anonymous ? user.id : null,
+                    );
+                    if (error || !readyCartItemIds) {
+                        throw new Error('We could not confirm that your cake details were saved. Please try checkout again.');
+                    }
+
+                    const readyCartItemIdSet = new Set(readyCartItemIds);
+                    if (uniqueCartItemIds.every(id => readyCartItemIdSet.has(id))) return;
+
+                    throw new Error('Some cake details are not saved yet. Refresh the cart and try again.');
+                }
+
+                for (const record of selectedRecords) {
+                    const result = await processCartOutboxRecord(record, undefined, true);
+                    if (result === 'failed') {
+                        throw new Error('We could not save all cake details. Check your connection and try checkout again.');
+                    }
+                }
+
+                await new Promise(resolve => setTimeout(resolve, CART_CHECKOUT_POLL_INTERVAL_MS));
+            }
+
+            throw new Error('Saving your cake details took too long. Please try checkout again when your connection is stable.');
+        } finally {
+            uniqueCartItemIds.forEach(id => checkoutSaveAttemptsRef.current.delete(id));
+        }
+    }, [processCartOutboxRecord, user]);
 
     const addToCartWithBackgroundUpload = useCallback(async (
         initialItem: Omit<CakeGenieCartItem, 'cart_item_id' | 'created_at' | 'updated_at' | 'expires_at'>,
@@ -1135,6 +1215,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const actionsValue = useMemo(() => ({
         refreshCart,
+        ensureCartItemsReady,
         addToCartOptimistic,
         updateQuantityOptimistic,
         removeItemOptimistic,
@@ -1147,6 +1228,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         addToCartWithBackgroundUpload,
     }), [
         refreshCart,
+        ensureCartItemsReady,
         addToCartOptimistic,
         updateQuantityOptimistic,
         removeItemOptimistic,

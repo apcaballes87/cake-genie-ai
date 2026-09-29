@@ -457,6 +457,7 @@ function CartClient() {
         setDeliveryInstructions,
         setSelectedAddressId,
         removeItemOptimistic,
+        ensureCartItemsReady,
     } = useCartActions();
 
     const { data: savedAddresses = [], isLoading: isAddressesLoading } = useAddresses(user?.id);
@@ -506,6 +507,7 @@ function CartClient() {
     const [isAddingAddress, setIsAddingAddress] = useState(false);
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
     const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+    const [isPreparingCart, setIsPreparingCart] = useState(false);
     const [isCartLoginModalOpen, setIsCartLoginModalOpen] = useState(false);
     const [cartLoginEmail, setCartLoginEmail] = useState('');
     const [isCreatingPayment, setIsCreatingPayment] = useState(false);
@@ -1394,6 +1396,15 @@ function CartClient() {
         isGuest: isAnonymous,
     });
 
+    const prepareCartForCheckout = async () => {
+        setIsPreparingCart(true);
+        try {
+            await ensureCartItemsReady(cartItems.map(item => item.cart_item_id));
+        } finally {
+            setIsPreparingCart(false);
+        }
+    };
+
     const handleSubmitOrder = async () => {
         const analyticsBase = getCheckoutAnalyticsBase('full_payment');
         trackCheckoutPlaceOrderClicked(analyticsBase);
@@ -1415,6 +1426,8 @@ function CartClient() {
 
         setIsPlacingOrder(true);
         try {
+            await prepareCartForCheckout();
+
             // Handle Address Saving/Creation if needed
             let effectiveDeliveryAddressId = isAnonymous ? null : selectedAddress?.address_id || null;
             let effectiveGuestAddress = isAnonymous ? guestAddress : undefined;
@@ -1639,6 +1652,8 @@ function CartClient() {
         setIsPlacingOrder(true);
         const analyticsBase = getCheckoutAnalyticsBase('downpayment_50');
         try {
+            await prepareCartForCheckout();
+
             // Handle Address Saving/Creation if needed
             let effectiveDeliveryAddressId = isAnonymous ? null : selectedAddress?.address_id || null;
             let effectiveGuestAddress = isAnonymous ? guestAddress : undefined;
@@ -1843,6 +1858,8 @@ function CartClient() {
 
         setIsPlacingOrder(true);
         try {
+            await prepareCartForCheckout();
+
             // Handle Address Saving/Creation if needed
             let effectiveDeliveryAddressId = isAnonymous ? null : selectedAddress?.address_id || null;
             let effectiveGuestAddress = isAnonymous ? guestAddress : undefined;
@@ -2857,6 +2874,11 @@ function CartClient() {
                                                     <span className="flex items-center justify-center gap-2">
                                                         <Loader2 className="w-5 h-5 animate-spin" />
                                                         Redirecting to Payment...
+                                                    </span>
+                                                ) : isPreparingCart ? (
+                                                    <span className="flex items-center justify-center gap-2">
+                                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                                        Saving Cake Details...
                                                     </span>
                                                 ) : isPlacingOrder ? (
                                                     <span className="flex items-center justify-center gap-2">

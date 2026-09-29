@@ -1,5 +1,22 @@
 # Tasks
 
+## Prevent checkout with unsaved cart items (2026-09-29)
+
+### Plan
+
+- [x] Trace cart outbox persistence and both standard/split checkout paths.
+- [x] Add a checkout barrier that waits for every selected cart item to be saved in Supabase and stops checkout on failure.
+- [x] Add a Supabase migration that rejects missing, mismatched, or unowned cart item IDs and refuses to create empty orders.
+- [x] Add focused regressions for frontend persistence gating and database RPC guards.
+- [x] Run focused tests and diff checks; record review and note that production activation remains separate.
+
+### Review
+
+- Full-payment, downpayment, and split-order checkout now flush pending cart outbox records, then confirm every requested row belongs to the active owner, is unexpired, and has an uploaded preview before order creation begins.
+- Standard checkout now sends its exact cart item IDs. Both order RPCs lock and validate those rows, then raise inside the transaction if any requested row is missing or not copied, preventing an empty or partial order.
+- Focused regressions pass: 23 tests. Production-file TypeScript check passes; focused ESLint reports 0 errors and 21 existing warnings. `git diff --check` passes.
+- Local Supabase lint could not run because no Postgres service is listening on 127.0.0.1:54322. The migration is prepared but not applied to production.
+
 ## Recognize dense wafer-paper side-wave curtains (2026-09-27)
 
 ### Plan

@@ -2259,6 +2259,46 @@ export async function getCartItems(
 }
 
 /**
+ * Confirms that the requested cart rows and their uploaded previews are
+ * persisted for the active owner.
+ * Row-level security remains an additional boundary on this client query.
+ */
+export async function getCheckoutReadyCartItemIds(
+  cartItemIds: string[],
+  userId: string | null,
+  sessionId: string | null,
+): Promise<SupabaseServiceResponse<string[]>> {
+  if (cartItemIds.length === 0) return { data: [], error: null };
+  if (!userId && !sessionId) {
+    return { data: null, error: new Error('Cart owner session is unavailable.') };
+  }
+
+  try {
+    let query = supabase
+      .from('cakegenie_cart')
+      .select('cart_item_id, customized_image_url')
+      .in('cart_item_id', cartItemIds)
+      .gt('expires_at', new Date().toISOString());
+
+    query = userId
+      ? query.eq('user_id', userId)
+      : query.eq('session_id', sessionId!);
+
+    const { data, error } = await query;
+    if (error) return { data: null, error };
+
+    return {
+      data: (data || [])
+        .filter(item => item.customized_image_url?.startsWith('http'))
+        .map(item => item.cart_item_id),
+      error: null,
+    };
+  } catch (error) {
+    return { data: null, error: error as Error };
+  }
+}
+
+/**
  * Adds a new item to the shopping cart.
  * @param params - The details of the cart item to add.
  * @returns An object containing the newly added cart item or an error.
@@ -2712,6 +2752,7 @@ export async function createOrderFromCart(
       p_delivery_city: guestAddress?.city || 'Cebu City', // Default to Cebu City if not provided
       p_delivery_latitude: guestAddress?.latitude || null,
       p_delivery_longitude: guestAddress?.longitude || null,
+      p_cart_item_ids: cartItems.map(item => item.cart_item_id),
       p_buyer_attribution: buyerAttribution || {},
     });
 
