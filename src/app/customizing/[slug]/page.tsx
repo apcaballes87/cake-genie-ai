@@ -37,8 +37,8 @@ import {
     resolveSkuMpn,
     FALLBACK_MIN_PRICE,
 } from './metadataHelpers'
-import { buildCakeTitle, extractTitleInputFromAnalysis, extractDesignCodeFromSlug, CAKE_TITLE_BUDGET } from '@/lib/seo/cakeTitle'
-import { buildLicensedImageObject, getPublicCrawlerImageManifest, isPublicHttpImageUrl, selectCrawlerImage } from '@/lib/seo/crawlerImage'
+import { buildCakeTitle, extractDesignCodeFromSlug, extractTitleInputFromAnalysis, stripInternalDesignCode, type TitleAnalysisLike } from '@/lib/seo/cakeTitle'
+import { buildLicensedImageObject, getCurrentCrawlerImageManifest, isPublicHttpImageUrl, selectCrawlerImage } from '@/lib/seo/crawlerImage'
 
 const CAKE_TYPE_THICKNESS_MAP: Record<string, CakeThickness> = {
     '1 Tier': '4 in', '2 Tier': '4 in', '3 Tier': '4 in',
@@ -166,6 +166,35 @@ const resolveRichDescription = (design: any, prices?: BasePriceInfo[]): string =
     return `Customize this ${tagsPrefix}${keywords} cake design on Genie.ph. Get instant pricing from local bakers in Cebu and Cavite.`;
 };
 
+function getPublicDesignTitle(design: {
+    seo_title?: string | null;
+    slug?: string | null;
+    analysis_json?: TitleAnalysisLike | null;
+    keywords?: string | null;
+    tags?: (string | null | undefined)[] | null;
+}): string {
+    const rawTitle = typeof design.seo_title === 'string' ? design.seo_title.trim() : '';
+    const titleWithoutSite = rawTitle.replace(/\s*\|\s*Genie\.ph\s*$/i, '').trim();
+    const storedTitle = stripInternalDesignCode(rawTitle, extractDesignCodeFromSlug(design.slug));
+    const hadInternalCode = titleWithoutSite !== storedTitle;
+    const title = storedTitle && !hadInternalCode
+        ? storedTitle
+        : buildCakeTitle(extractTitleInputFromAnalysis(
+            design.analysis_json,
+            design.keywords,
+            design.tags,
+            design.slug,
+        ));
+    const isCupcake = (design.analysis_json?.cakeType || '').toLowerCase() === 'cupcake'
+        || (design.analysis_json?.cakeType || '').startsWith('cupcakes-')
+        || (design.slug || '').includes('cupcakes-')
+        || (design.slug || '').includes('cupcake-');
+
+    return isCupcake && /cupcake/i.test(title) && / cake$/i.test(title)
+        ? title.replace(/\s+cake$/i, '')
+        : title;
+}
+
 // ISR: Cache pages for 1 hour, then revalidate in the background.
 // Reduces TTFB for 8k+ pages and gives Google a faster crawl experience.
 export const revalidate = 3600;
@@ -219,8 +248,8 @@ const getDesign = cache(async (slug: string) => {
             .single(),
     ]);
 
-    // Share links resolve directly to their saved row while SEO is pending.
-    // Published legacy aliases can still take precedence below.
+    // Share links must resolve to their exact saved cache row while SEO is
+    // pending. Published legacy aliases can still take precedence below.
     if (exactResult.data && !isSeoPublishedDesign(exactResult.data)) {
         return withPreferredHeroImage(exactResult.data);
     }
@@ -298,14 +327,19 @@ const getDesign = cache(async (slug: string) => {
     return null
 })
 
-type Props = {
-    params: Promise<{ slug: string }>
-}
-
-type SeoStatusDesign = { isSharedDesign?: boolean; seo_status?: string | null };
+type SeoStatusDesign = {
+    isSharedDesign?: boolean;
+    seo_status?: string | null;
+};
 
 function isSeoPublishedDesign(design: SeoStatusDesign | null | undefined): boolean {
+    // Shared designs predate the cache publication gate and retain their current
+    // public behavior. Cache rows are indexable only after the SEO worker publishes them.
     return design?.isSharedDesign === true || !design?.seo_status || design.seo_status === 'published';
+}
+
+type Props = {
+    params: Promise<{ slug: string }>
 }
 
 export async function generateMetadata(
@@ -326,38 +360,7 @@ export async function generateMetadata(
 
     const isPublished = isSeoPublishedDesign(design);
 
-    // Title body is the stored, deterministically-reconstructed seo_title (R6/R7).
-    // The root layout template appends ' | Genie.ph'. No price segment in the title.
-    // Fallback: if seo_title is somehow blank, rebuild from the design's own
-    // structured attributes (same builder the write path and backfill use).
-    const rawStoredTitle = typeof design.seo_title === 'string' ? design.seo_title.trim() : '';
-    const isCupcake = (design.analysis_json?.cakeType || '').toLowerCase() === 'cupcake' || (design.analysis_json?.cakeType || '').startsWith('cupcakes-') || (design.slug || '').includes('cupcakes-') || (design.slug || '').includes('cupcake-');
-    let storedTitle = rawStoredTitle;
-    if (isCupcake && /cupcake/i.test(storedTitle) && / cake$/i.test(storedTitle)) {
-        storedTitle = storedTitle.replace(/\s+cake$/i, '');
-    }
-    
-    const designCode = extractDesignCodeFromSlug(slug);
-    const suffix = designCode ? ` - ${designCode}` : '';
-    let baseTitle = storedTitle.length > 0
-        ? storedTitle
-        : buildCakeTitle(
-            extractTitleInputFromAnalysis(
-                (design.analysis_json ?? {}) as Parameters<typeof extractTitleInputFromAnalysis>[0],
-                design.keywords,
-                design.tags,
-                slug,
-            ),
-        );
-
-    if (suffix && !baseTitle.endsWith(suffix)) {
-        const budget = CAKE_TITLE_BUDGET - suffix.length;
-        if (baseTitle.length > budget) {
-            baseTitle = baseTitle.substring(0, budget).trim();
-        }
-        baseTitle = `${baseTitle}${suffix}`;
-    }
-    const title = baseTitle;
+    const title = getPublicDesignTitle(design);
 
     // Description with rich fallback chain:
     // 1. Use seo_description if available (unless it's generic/templated)
@@ -383,30 +386,32 @@ export async function generateMetadata(
         },
     ] : [];
 
-    const robots = isPublished
-        ? {
-            index: true,
-            follow: true,
-            'max-image-preview': 'large' as const,
-            googleBot: {
-                index: true,
-                follow: true,
-                'max-video-preview': -1,
-                'max-image-preview': 'large' as const,
-                'max-snippet': -1,
-            },
-        }
-        : {
-            index: false,
-            follow: false,
-            googleBot: { index: false, follow: false, noimageindex: true },
-        };
-
     return {
         title,
         description,
         ...(isPublished ? { alternates: { canonical: canonicalUrl } } : {}),
-        robots,
+        robots: isPublished
+            ? {
+                index: true,
+                follow: true,
+                'max-image-preview': 'large',
+                googleBot: {
+                    index: true,
+                    follow: true,
+                    'max-video-preview': -1,
+                    'max-image-preview': 'large',
+                    'max-snippet': -1,
+                },
+            }
+            : {
+                index: false,
+                follow: false,
+                googleBot: {
+                    index: false,
+                    follow: false,
+                    noimageindex: true,
+                },
+            },
         openGraph: {
             title,
             description,
@@ -421,17 +426,15 @@ export async function generateMetadata(
             description,
             images: metadataImages,
         },
-        ...(isPublished ? {
-            other: {
-                thumbnail: crawlerImage.url || '',
-                // Explicit og:image:alt for Pinterest and crawlers that read it separately
-                // Uses generateRichAltText so short/generic stored values get upgraded
-                'og:image:alt': imageAltText,
-                // product:* meta tags for e-commerce enrichment (og:type set via openGraph.type above)
-                'product:price:amount': (design.price && design.price > 0) ? Math.round(design.price).toString() : FALLBACK_MIN_PRICE.toString(),
-                'product:price:currency': 'PHP',
-            },
-        } : {}),
+        ...(isPublished ? { other: {
+            thumbnail: crawlerImage.url || '',
+            // Explicit og:image:alt for Pinterest and crawlers that read it separately
+            // Uses generateRichAltText so short/generic stored values get upgraded
+            'og:image:alt': imageAltText,
+            // product:* meta tags for e-commerce enrichment (og:type set via openGraph.type above)
+            'product:price:amount': (design.price && design.price > 0) ? Math.round(design.price).toString() : FALLBACK_MIN_PRICE.toString(),
+            'product:price:currency': 'PHP',
+        } } : {}),
     }
 }
 
@@ -477,23 +480,7 @@ function DesignSchema({
         listings: linkedMerchantProducts,
     });
 
-    const tags = design.tags || [];
-    const keywords = design.keywords || 'Custom';
-    const isCupcake = (design.analysis_json?.cakeType || '').toLowerCase() === 'cupcake' || (design.analysis_json?.cakeType || '').startsWith('cupcakes-') || (design.slug || '').includes('cupcakes-') || (design.slug || '').includes('cupcake-');
-    let baseTitle = design.seo_title || `${tags.length > 0 ? tags[0] + ' ' : ''}${keywords} ${isCupcake ? 'Cupcakes' : 'Cake'}`;
-    if (isCupcake && /cupcake/i.test(baseTitle) && / cake$/i.test(baseTitle)) {
-        baseTitle = baseTitle.replace(/\s+cake$/i, '');
-    }
-    const designCode = extractDesignCodeFromSlug(design.slug);
-    const suffix = designCode ? ` - ${designCode}` : '';
-    if (suffix && !baseTitle.endsWith(suffix)) {
-        const budget = CAKE_TITLE_BUDGET - suffix.length;
-        if (baseTitle.length > budget) {
-            baseTitle = baseTitle.substring(0, budget).trim();
-        }
-        baseTitle = `${baseTitle}${suffix}`;
-    }
-    const title = baseTitle;
+    const title = getPublicDesignTitle(design);
     // Image URL for structured data + sitemap parity. Point at the SAME image the
     // page actually renders as its hero (the largest slug-based variant ≤ 1200,
     // falling back to the original). After the slug-based variant re-path this URL
@@ -790,29 +777,11 @@ function SSRCakeDetails({
     linkedMerchantProducts?: LinkedMerchantProduct[];
     themeCollection?: { slug: string; name: string; item_count: number } | null;
 }) {
-    const keywords = design.keywords || 'Custom';
     const analysis = design.analysis_json || {};
     const policyUrls = getCommercePolicyUrls();
 
-    const isCupcake = (analysis.cakeType || '').toLowerCase() === 'cupcake' || (analysis.cakeType || '').startsWith('cupcakes-') || (design.slug || '').includes('cupcakes-') || (design.slug || '').includes('cupcake-');
-    const fallbackTitleSuffix = isCupcake ? 'Cupcakes Design' : 'Cake Design';
-    let rawTitle = (design.seo_title || `${keywords} ${fallbackTitleSuffix}`).replace(/\s*\|\s*Genie\.ph\s*$/i, '');
-    if (isCupcake && /cupcake/i.test(rawTitle) && / cake$/i.test(rawTitle)) {
-        rawTitle = rawTitle.replace(/\s+cake$/i, '');
-    }
-    const designCode = extractDesignCodeFromSlug(design.slug);
-    const suffix = designCode ? ` - ${designCode}` : '';
-    let baseTitle = isCupcake
-        ? (/cupcakes?\s*design/i.test(rawTitle) ? rawTitle : /cupcakes?\s*$/i.test(rawTitle) ? `${rawTitle} Design` : `${rawTitle} Cupcakes Design`)
-        : (/cake\s*design/i.test(rawTitle) ? rawTitle : /cake\s*$/i.test(rawTitle) ? `${rawTitle} Design` : `${rawTitle} Cake Design`);
-    if (suffix && !baseTitle.endsWith(suffix)) {
-        const budget = CAKE_TITLE_BUDGET - suffix.length;
-        if (baseTitle.length > budget) {
-            baseTitle = baseTitle.substring(0, budget).trim();
-        }
-        baseTitle = `${baseTitle}${suffix}`;
-    }
-    const title = baseTitle;
+    const publicTitle = getPublicDesignTitle(design);
+    const title = /\bdesign$/i.test(publicTitle) ? publicTitle : `${publicTitle} Design`;
     const altText = generateRichAltText(design);
     const displayPrice = prices?.[0]?.price || design.price;
 
@@ -857,7 +826,7 @@ function SSRCakeDetails({
                     // When `image_variants` is NULL/malformed, parseManifest
                     // returns null and the renderer falls back to the original
                     // URL with no <source srcset> (Req 5.2).
-                    const heroManifest = getPublicCrawlerImageManifest(design.image_variants);
+                    const heroManifest = getCurrentCrawlerImageManifest(design);
                     const heroSrc = selectCrawlerImage(design).url;
                     const heroSrcSet = heroManifest ? buildSrcSet(heroManifest) : '';
                     const heroSizes = '(max-width: 640px) 92vw, (max-width: 1024px) 60vw, 800px';
@@ -1537,24 +1506,26 @@ export default async function RecentSearchPage({ params }: Props) {
         initialState = mapProductToDefaultState(undefined, prices);
     }
 
-    const heroPreloadManifest = getPublicCrawlerImageManifest(design.image_variants);
+    const heroPreloadManifest = getCurrentCrawlerImageManifest(design);
     const heroPreloadSrcSet = heroPreloadManifest ? buildSrcSet(heroPreloadManifest) : '';
     const heroPreloadSizes = '(max-width: 768px) 100vw, 50vw';
     const heroPreloadHref = selectCrawlerImage(design).url;
 
     return (
         <>
-            {isPublished && <DesignSchema
-                design={design}
-                prices={prices}
-                pageDescription={pageContent.description}
-                siteReviewSummary={reviewSummary}
-                isSiteReviewSummaryFallback={isSiteReviewSummaryFallback}
-                perDesignReviewStats={perDesignReviewStats}
-                linkedMerchantProducts={linkedMerchantProducts}
-                faqs={dynamicFAQs}
-                themedReviews={themedReviews}
-            />}
+            {isPublished && (
+                <DesignSchema
+                    design={design}
+                    prices={prices}
+                    pageDescription={pageContent.description}
+                    siteReviewSummary={reviewSummary}
+                    isSiteReviewSummaryFallback={isSiteReviewSummaryFallback}
+                    perDesignReviewStats={perDesignReviewStats}
+                    linkedMerchantProducts={linkedMerchantProducts}
+                    faqs={dynamicFAQs}
+                    themedReviews={themedReviews}
+                />
+            )}
 
             {/* Preload the hero image for faster LCP.
 

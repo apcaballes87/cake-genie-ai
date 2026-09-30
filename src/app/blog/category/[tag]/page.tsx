@@ -4,73 +4,21 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, Calendar, ChevronRight } from 'lucide-react';
 import { getAllBlogs } from '@/services/supabaseService';
 import LazyImage from '@/components/LazyImage';
+import { BLOG_TAG_CONFIG, getBlogTagsForPost, getPopulatedBlogCategorySlugs } from '@/lib/seo/blogCategories';
 
 export const revalidate = 3600;
-
-// Canonical tag-to-label map — drives static generation and display names
-const TAG_CONFIG: Record<string, { label: string; description: string }> = {
-    'birthday-cakes': {
-        label: 'Birthday Cakes',
-        description: 'Tips, guides, and inspiration for birthday cake designs and party ideas in the Philippines.',
-    },
-    'cebu-cakes': {
-        label: 'Cebu Cakes',
-        description: 'Everything about ordering, customizing, and finding the best cakes in Cebu City and Metro Cebu.',
-    },
-    'wedding-cakes': {
-        label: 'Wedding Cakes',
-        description: 'Wedding cake designs, inspiration, and guides for couples planning their big day in Cebu.',
-    },
-    'party-packages': {
-        label: 'Party Packages',
-        description: 'Honest comparisons of Jollibee, McDonald\'s, and other party packages for kids and adults.',
-    },
-    'cake-comparison': {
-        label: 'Cake Comparisons',
-        description: 'Side-by-side comparisons of popular cake brands — Red Ribbon, Goldilocks, Mary Grace, and more.',
-    },
-    'character-cakes': {
-        label: 'Character Cakes',
-        description: 'K-pop, anime, and character-themed cake designs — Katseye, Kuromi, Disney, and more.',
-    },
-    'graduation-cakes': {
-        label: 'Graduation Cakes',
-        description: 'Graduation cake ideas, designs, and ordering tips for celebrating academic achievements.',
-    },
-    'kids-cakes': {
-        label: 'Kids Cakes',
-        description: 'Birthday cake themes and ideas for kids of all ages — toddlers, preschoolers, and beyond.',
-    },
-};
-
-// Maps blog post keywords to tag slugs
-function getTagsForPost(keywords: string): string[] {
-    const kw = keywords.toLowerCase();
-    const tags: string[] = [];
-
-    if (kw.includes('birthday')) tags.push('birthday-cakes');
-    if (kw.includes('cebu') || kw.includes('metro cebu')) tags.push('cebu-cakes');
-    if (kw.includes('wedding') || kw.includes('bridal')) tags.push('wedding-cakes');
-    if (kw.includes('party package') || kw.includes('jollibee') || kw.includes('mcdonalds') || kw.includes('mcdonald')) tags.push('party-packages');
-    if (kw.includes('goldilocks') || kw.includes('red ribbon') || kw.includes('mary grace') || kw.includes('estrel') || kw.includes('lemon square')) tags.push('cake-comparison');
-    if (kw.includes('katseye') || kw.includes('kpop') || kw.includes('character cake') || kw.includes('fandom')) tags.push('character-cakes');
-    if (kw.includes('graduation')) tags.push('graduation-cakes');
-    if (kw.includes('kids') || kw.includes('toddler') || kw.includes('children') || kw.includes('boys') || kw.includes('girls')) tags.push('kids-cakes');
-
-    return tags;
-}
 
 interface Props {
     params: Promise<{ tag: string }>;
 }
 
 export async function generateStaticParams() {
-    return Object.keys(TAG_CONFIG).map((tag) => ({ tag }));
+    return Object.keys(BLOG_TAG_CONFIG).map((tag) => ({ tag }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { tag } = await params;
-    const config = TAG_CONFIG[tag];
+    const config = BLOG_TAG_CONFIG[tag];
     if (!config) return {};
 
     const title = `${config.label} — Guides & Ideas | Genie.ph Blog`;
@@ -94,13 +42,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function BlogCategoryPage({ params }: Props) {
     const { tag } = await params;
-    const config = TAG_CONFIG[tag];
+    const config = BLOG_TAG_CONFIG[tag];
     if (!config) notFound();
 
     const { data: allPosts } = await getAllBlogs();
     const posts = (allPosts || []).filter((post) =>
-        getTagsForPost(post.keywords || '').includes(tag)
+        getBlogTagsForPost(post.keywords || '').includes(tag)
     );
+    const populatedCategories = new Set(getPopulatedBlogCategorySlugs(allPosts || []));
 
     if (posts.length === 0) notFound();
 
@@ -211,7 +160,8 @@ export default async function BlogCategoryPage({ params }: Props) {
                 <div className="mt-12 pt-8 border-t border-purple-100">
                     <h2 className="text-lg font-semibold text-slate-800 mb-4">Browse More Topics</h2>
                     <div className="flex flex-wrap gap-2">
-                        {Object.entries(TAG_CONFIG)
+                        {Object.entries(BLOG_TAG_CONFIG)
+                            .filter(([slug]) => populatedCategories.has(slug))
                             .filter(([slug]) => slug !== tag)
                             .map(([slug, cfg]) => (
                                 <Link

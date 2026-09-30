@@ -7,6 +7,7 @@ export const GENIE_IMAGE_CREATOR_NAME = 'Genie.ph'
 
 export type CrawlerImageInput = {
   image_variants?: unknown
+  image_variants_indexed_source?: string | null
   studio_edited_image_url?: string | null
   original_image_url?: string | null
   customized_image_url?: string | null
@@ -38,7 +39,7 @@ export function selectCrawlerImage(
   input: CrawlerImageInput,
   maxWidth = 1200,
 ): CrawlerImageSelection {
-  const manifest = getPublicCrawlerImageManifest(input.image_variants)
+  const manifest = getCurrentCrawlerImageManifest(input)
   const variantUrl = pickFallbackSrc(manifest, maxWidth)
   const selectedVariant = variantUrl && isPublicHttpImageUrl(variantUrl) && manifest
     ? manifest.variants.find((variant) => variant.url.trim() === variantUrl.trim()) ?? null
@@ -69,6 +70,16 @@ export function selectCrawlerImage(
     width: input.image_width ?? null,
     height: input.image_height ?? null,
   }
+}
+
+export function getCurrentCrawlerImageManifest(input: CrawlerImageInput): VariantManifest | null {
+  const indexedSource = input.image_variants_indexed_source?.trim()
+  const preferredSource = [input.studio_edited_image_url, input.original_image_url]
+    .find(isPublicHttpImageUrl)?.trim()
+
+  // Without a recorded source, an old manifest cannot be tied to today's image.
+  if (!indexedSource || indexedSource !== preferredSource) return null
+  return getPublicCrawlerImageManifest(input.image_variants)
 }
 
 export function getPublicCrawlerImageManifest(value: unknown): VariantManifest | null {

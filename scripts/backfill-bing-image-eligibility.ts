@@ -46,6 +46,7 @@ type CustomizedCakeRow = {
   original_image_url: string | null;
   studio_edited_image_url: string | null;
   image_variants?: unknown;
+  image_variants_indexed_source?: string | null;
   image_width?: number | null;
   image_height?: number | null;
 };
@@ -132,7 +133,8 @@ async function fetchCustomizedRows(
   return fetchAllPages(async (offset) => {
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
-      .select('slug, created_at, seo_title, alt_text, keywords, original_image_url, studio_edited_image_url, image_variants, image_width, image_height')
+      .select('slug, created_at, seo_title, alt_text, keywords, original_image_url, studio_edited_image_url, image_variants, image_variants_indexed_source, image_width, image_height')
+      .eq('seo_status', 'published')
       .not('slug', 'is', null)
       .lte('created_at', cutoffDate)
       .order('created_at', { ascending: false })
@@ -251,7 +253,7 @@ async function buildInventory(supabase: SupabaseClient): Promise<InventoryPage[]
     toIndexableCustomizedCakeRow,
     toIndexableSharedDesignRow,
   } = await import('../src/lib/sitemap/indexability');
-  const { getPublicCrawlerImageManifest } = await import('../src/lib/seo/crawlerImage');
+  const { getCurrentCrawlerImageManifest } = await import('../src/lib/seo/crawlerImage');
 
   const cutoffDate = getSitemapCutoffDate();
   const [customizedRows, customizedSharedRows, originalSharedRows] = await Promise.all([
@@ -268,7 +270,7 @@ async function buildInventory(supabase: SupabaseClient): Promise<InventoryPage[]
     if (!indexable || customizedSlugs.has(indexable.slug)) continue;
     customizedSlugs.add(indexable.slug);
 
-    const manifest = getPublicCrawlerImageManifest(row.image_variants);
+    const manifest = getCurrentCrawlerImageManifest(row);
     const imageUrls = manifest?.variants.map((variant) => variant.url) ?? [indexable.image_url];
     pages.push({
       slug: indexable.slug,

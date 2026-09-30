@@ -239,7 +239,10 @@ async function LandingDataSections() {
                     limitInitialProductsAtDesktopBreakpoints
                 />
                 <IntroContent />
-                <HomepageAeoSections reviews={homepageReviews.reviews} />
+                <HomepageAeoSections
+                    reviews={homepageReviews.reviews}
+                    reviewSummary={homepageReviews.reviewSummary}
+                />
             </LandingClient>
             <LandingFooter reviewSummary={homepageReviews.reviewSummary} />
         </>

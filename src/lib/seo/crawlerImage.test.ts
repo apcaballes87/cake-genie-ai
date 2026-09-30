@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildLicensedImageObject,
+  getCurrentCrawlerImageManifest,
   getPublicCrawlerImageManifest,
   isPublicHttpImageUrl,
   selectCrawlerImage,
@@ -54,6 +55,7 @@ describe('crawler image selection', () => {
         ],
       },
       original_image_url: 'https://cdn.example.com/original.webp',
+      image_variants_indexed_source: 'https://cdn.example.com/original.webp',
       image_width: 1200,
       image_height: 1500,
     }).url).toBe('https://cdn.example.com/cake-400.webp')
@@ -67,6 +69,7 @@ describe('crawler image selection', () => {
         variants: [{ width: 600, url: 'https://cdn.example.com/cake-600.webp', bytes: 100 }],
       },
       studio_edited_image_url: 'https://cdn.example.com/studio.webp',
+      image_variants_indexed_source: 'https://cdn.example.com/studio.webp',
       image_width: 1200,
       image_height: 1500,
     })).toEqual({
@@ -74,6 +77,32 @@ describe('crawler image selection', () => {
       width: 600,
       height: 750,
     })
+  })
+
+  it('rejects a variant generated from an older source and selects the current Studio image', () => {
+    const input = {
+      image_variants: {
+        format: 'webp',
+        source: 'original_image_url',
+        variants: [{ width: 800, url: 'https://cdn.example.com/old-variant.webp', bytes: 100 }],
+      },
+      image_variants_indexed_source: 'https://cdn.example.com/original.webp',
+      original_image_url: 'https://cdn.example.com/original.webp',
+      studio_edited_image_url: 'https://cdn.example.com/studio.webp',
+      image_width: 1000,
+      image_height: 1200,
+    }
+
+    expect(getCurrentCrawlerImageManifest(input)).toBeNull()
+    expect(selectCrawlerImage(input)).toEqual({
+      url: 'https://cdn.example.com/studio.webp',
+      width: 1000,
+      height: 1200,
+    })
+    expect(selectCrawlerImage({ ...input, image_variants_indexed_source: ' https://cdn.example.com/studio.webp ' }).url)
+      .toBe('https://cdn.example.com/old-variant.webp')
+    expect(selectCrawlerImage({ ...input, image_variants_indexed_source: null }).url)
+      .toBe('https://cdn.example.com/studio.webp')
   })
 
   it('omits invalid licensed image objects', () => {

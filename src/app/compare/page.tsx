@@ -52,8 +52,8 @@ const comparisons = [
     },
     {
         href: '/compare/custom-cake-pricing-cebu',
-        title: 'Custom Cake Pricing Guide: Cebu 2025',
-        description: 'A comprehensive comparison of custom cake prices across different ordering methods in Cebu City.',
+        title: 'Custom Cake Pricing Guide: Cebu',
+        description: 'See Genie.ph starting prices and how cake size, design complexity, and decoration affect your quote.',
         highlight: 'Price Guide',
     },
 ]

@@ -1426,7 +1426,7 @@ export async function getPopularDesigns(
   try {
     let query = client
       .from('cakegenie_analysis_cache')
-      .select('p_hash, slug, keywords, original_image_url, price, alt_text, availability, image_width, image_height, studio_edited_image_url, image_variants')
+      .select('p_hash, slug, keywords, original_image_url, price, alt_text, availability, image_width, image_height, studio_edited_image_url, image_variants, image_variants_indexed_source')
       .eq('seo_status', 'published')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
@@ -1510,7 +1510,7 @@ export async function getAllRecentDesigns(limit: number = 24, offset: number = 0
   try {
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
-      .select('slug, keywords, original_image_url, price, alt_text, created_at, p_hash, availability, analysis_json, image_width, image_height, studio_edited_image_url, image_variants')
+      .select('slug, keywords, original_image_url, price, alt_text, created_at, p_hash, availability, analysis_json, image_width, image_height, studio_edited_image_url, image_variants, image_variants_indexed_source')
       .eq('seo_status', 'published')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
@@ -1741,7 +1741,7 @@ export async function getDesignsByKeyword(keywordOrSlug: string, limit: number =
     // not fall back to accent tags or substring matching.
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
-      .select('slug, keywords, original_image_url, price, alt_text, usage_count, p_hash, availability, analysis_json, image_width, image_height, studio_edited_image_url, image_variants, icing_colors')
+      .select('slug, keywords, original_image_url, price, alt_text, usage_count, p_hash, availability, analysis_json, image_width, image_height, studio_edited_image_url, image_variants, image_variants_indexed_source, icing_colors')
       .eq('seo_status', 'published')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
@@ -1872,7 +1872,7 @@ export async function getRelatedProductsByKeywords(
     const fetchRelatedProductsWithFilters = async () => {
       const distinctiveTerms = getDistinctiveRelatedSearchTerms(keywords);
       const selectFields =
-        'p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability, image_width, image_height, usage_count, studio_edited_image_url, image_variants';
+        'p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability, image_width, image_height, usage_count, studio_edited_image_url, image_variants, image_variants_indexed_source';
 
       const buildBaseQuery = () => {
         let query = client
@@ -1957,7 +1957,7 @@ export async function getRelatedProductsByKeywords(
       if (pHashes.length > 0) {
         const { data: studioRows, error: studioError } = await client
           .from('cakegenie_analysis_cache')
-          .select('p_hash, original_image_url, studio_edited_image_url')
+          .select('p_hash, original_image_url, studio_edited_image_url, image_variants, image_variants_indexed_source')
           .eq('seo_status', 'published')
           .in('p_hash', pHashes);
 
@@ -1974,6 +1974,9 @@ export async function getRelatedProductsByKeywords(
                 item.original_image_url ?? studioRow?.original_image_url ?? null,
               studio_edited_image_url:
                 item.studio_edited_image_url ?? studioRow?.studio_edited_image_url ?? null,
+              image_variants: item.image_variants ?? studioRow?.image_variants ?? null,
+              image_variants_indexed_source:
+                item.image_variants_indexed_source ?? studioRow?.image_variants_indexed_source ?? null,
             });
           });
         }
@@ -2017,7 +2020,7 @@ async function hydrateSearchProductRows(client: SupabaseClient, rows: any[]): Pr
 
   const { data: studioRows, error: studioError } = await client
     .from('cakegenie_analysis_cache')
-    .select('p_hash, original_image_url, studio_edited_image_url')
+    .select('p_hash, original_image_url, studio_edited_image_url, image_variants, image_variants_indexed_source')
     .eq('seo_status', 'published')
     .in('p_hash', pHashes);
   if (studioError || !studioRows) return rows.map(applyImageFallback);
@@ -2029,6 +2032,9 @@ async function hydrateSearchProductRows(client: SupabaseClient, rows: any[]): Pr
       ...item,
       original_image_url: item.original_image_url ?? studioRow?.original_image_url ?? null,
       studio_edited_image_url: item.studio_edited_image_url ?? studioRow?.studio_edited_image_url ?? null,
+      image_variants: item.image_variants ?? studioRow?.image_variants ?? null,
+      image_variants_indexed_source:
+        item.image_variants_indexed_source ?? studioRow?.image_variants_indexed_source ?? null,
     });
   });
 }

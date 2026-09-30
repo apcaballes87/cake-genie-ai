@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next'
 import { createClient } from '@supabase/supabase-js'
-import { getAllBlogSlugs } from '@/services/supabaseService'
+import { getAllBlogSlugs, getAllBlogs } from '@/services/supabaseService'
 import { LOCAL_SEO_ROUTES } from '@/components/local-seo/cebuLandingData'
 import {
     getSitemapChunkHints,
@@ -8,6 +8,8 @@ import {
     SITEMAP_CHUNK_SIZE,
 } from '@/lib/sitemap/indexability'
 import { isPublicHttpImageUrl } from '@/lib/seo/crawlerImage'
+import { getBlogTagsForPost, getPopulatedBlogCategorySlugs } from '@/lib/seo/blogCategories'
+import { isPublishedIndexableCollection } from '@/lib/seo/collectionEligibility'
 
 export const dynamic = 'force-dynamic'
 
@@ -73,12 +75,12 @@ type MerchantProductSitemapRow = {
     slug: string;
     updated_at: string | null;
     image_url: string | null;
-    cakegenie_merchants: { slug: string } | { slug: string }[] | null;
+    cakegenie_merchants: { slug: string; is_active: boolean } | { slug: string; is_active: boolean }[] | null;
 };
 
 type CollectionSitemapRow = {
     slug: string;
-    created_at: string | null;
+    published_at: string | null;
     sample_image: string | null;
     item_count: number | null;
     publication_status: string | null;
@@ -155,6 +157,11 @@ export default async function sitemap({ id }: { id: SitemapParam }): Promise<Met
             '/blog',
             '/about',
             '/services',
+            '/coldcaking',
+            '/delivery-rates',
+            '/payment-options',
+            '/price-list',
+            '/investors',
             '/is-genie-ph-a-scam',
             '/cake-price-calculator',
             '/chatgpt-cake-design-quote',
@@ -176,47 +183,51 @@ export default async function sitemap({ id }: { id: SitemapParam }): Promise<Met
             '/compare/genie-ph-vs-traditional-bakeries',
             '/compare/genie-ph-vs-social-media-ordering',
             '/compare/custom-cake-pricing-cebu',
+            '/compare/genie-ph-vs-goldilocks',
+            '/compare/genie-ph-vs-red-ribbon',
+            '/compare/genie-ph-vs-contis',
+            '/compare/genie-ph-vs-caramia',
             ...LOCAL_SEO_ROUTES,
         ].map((route) => ({
             url: `${baseUrl}${route}`,
-            lastModified: new Date('2026-02-27'),
             changeFrequency: 'daily' as const,
             priority: 1,
         }));
 
-        const blogCategoryRoutes = [
-            '/blog/category/birthday-cakes',
-            '/blog/category/cebu-cakes',
-            '/blog/category/wedding-cakes',
-            '/blog/category/party-packages',
-            '/blog/category/cake-comparison',
-            '/blog/category/character-cakes',
-            '/blog/category/graduation-cakes',
-            '/blog/category/kids-cakes',
-        ].map((route) => ({
-            url: `${baseUrl}${route}`,
-            lastModified: new Date(),
-            changeFrequency: 'weekly' as const,
-            priority: 0.8,
-        }));
+        const { data: blogPosts, error: blogError } = await getAllBlogs();
+        if (blogError) throw blogError;
+
+        const blogCategoryRoutes = getPopulatedBlogCategorySlugs(blogPosts || []).map((tag) => {
+            const dates = (blogPosts || [])
+                .filter((post) => getBlogTagsForPost(post.keywords || '').includes(tag))
+                .map((post) => post.updated_at || post.date)
+                .filter(Boolean)
+                .map((value) => new Date(value).getTime())
+                .filter(Number.isFinite);
+
+            return {
+                url: `${baseUrl}/blog/category/${tag}`,
+                ...(dates.length > 0 ? { lastModified: new Date(Math.max(...dates)) } : {}),
+                changeFrequency: 'weekly' as const,
+                priority: 0.8,
+            };
+        });
 
         const { data: collections, error: collectionsError } = await supabase
             .from('cakegenie_collections')
-            .select('slug, created_at, sample_image, item_count, publication_status, is_indexable')
+            .select('slug, published_at, sample_image, item_count, publication_status, is_indexable')
             .eq('publication_status', 'published')
             .eq('is_indexable', true)
             .gte('item_count', 8)
             .returns<CollectionSitemapRow[]>()
 
-        if (collectionsError) {
-            console.error('Error fetching collection sitemap routes:', collectionsError)
-        }
+        if (collectionsError) throw collectionsError
 
         const collectionRoutes = (collections || [])
-            .filter((collection) => collection.slug)
+            .filter((collection) => collection.slug && isPublishedIndexableCollection(collection))
             .map((collection) => ({
                 url: `${baseUrl}/collections/${collection.slug}`,
-                lastModified: collection.created_at ? new Date(collection.created_at) : new Date(),
+                ...(collection.published_at ? { lastModified: new Date(collection.published_at) } : {}),
                 changeFrequency: 'weekly' as const,
                 priority: 0.85,
                 images: sanitizeUrl(collection.sample_image) ? [sanitizeUrl(collection.sample_image)] : [],
@@ -227,14 +238,16 @@ export default async function sitemap({ id }: { id: SitemapParam }): Promise<Met
 
     // Chunk 1: Bakeries (Merchants)
     if (sitemapId === 1) {
-        const { data: merchants } = await supabase
+        const { data: merchants, error } = await supabase
             .from('cakegenie_merchants')
             .select('slug, updated_at')
             .eq('is_active', true)
 
-        return (merchants || []).map((merchant) => ({
+        if (error) throw error
+
+        return (merchants || []).filter((merchant) => merchant.slug).map((merchant) => ({
             url: `${baseUrl}/shop/${merchant.slug}`,
-            lastModified: merchant.updated_at ? new Date(merchant.updated_at) : new Date(),
+            ...(merchant.updated_at ? { lastModified: new Date(merchant.updated_at) } : {}),
             changeFrequency: 'weekly' as const,
             priority: 0.9,
         }))
@@ -242,22 +255,25 @@ export default async function sitemap({ id }: { id: SitemapParam }): Promise<Met
 
     // Chunk 2: Products
     if (sitemapId === 2) {
-        const { data: products } = await supabase
+        const { data: products, error } = await supabase
             .from('cakegenie_merchant_products')
             .select(`
                 slug,
                 updated_at,
                 image_url,
-                cakegenie_merchants!inner(slug)
+                cakegenie_merchants!inner(slug, is_active)
             `)
             .eq('is_active', true)
+            .eq('cakegenie_merchants.is_active', true)
             .returns<MerchantProductSitemapRow[]>()
+
+        if (error) throw error
 
         return (products || [])
             .filter((product) => product.slug && getMerchantSlug(product.cakegenie_merchants))
             .map((product) => ({
             url: `${baseUrl}/shop/${getMerchantSlug(product.cakegenie_merchants)}/${product.slug}`,
-            lastModified: product.updated_at ? new Date(product.updated_at) : new Date(),
+            ...(product.updated_at ? { lastModified: new Date(product.updated_at) } : {}),
             changeFrequency: 'weekly' as const,
             priority: 0.8,
             images: sanitizeUrl(product.image_url) ? [sanitizeUrl(product.image_url)] : [],
@@ -266,11 +282,12 @@ export default async function sitemap({ id }: { id: SitemapParam }): Promise<Met
 
     // Chunk 3: Blog Posts
     if (sitemapId === 3) {
-        const { data: blogPosts } = await getAllBlogSlugs();
+        const { data: blogPosts, error } = await getAllBlogSlugs();
+        if (error) throw error;
         const posts = blogPosts || [];
         return posts.map((post) => ({
             url: `${baseUrl}/blog/${post.slug}`,
-            lastModified: post.updated_at ? new Date(post.updated_at) : new Date(),
+            ...(post.updated_at ? { lastModified: new Date(post.updated_at) } : {}),
             changeFrequency: 'weekly' as const,
             priority: 0.8,
             images: sanitizeUrl(post.image) ? [sanitizeUrl(post.image)] : [],

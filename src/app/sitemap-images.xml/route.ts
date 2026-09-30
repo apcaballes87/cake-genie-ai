@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { getIndexableCustomizedCakeRows } from "@/lib/sitemap/indexability";
+import { getSitemapInventory } from "@/lib/sitemap/indexability";
 import { isPublicHttpImageUrl } from "@/lib/seo/crawlerImage";
+import { isPublishedIndexableCollection } from "@/lib/seo/collectionEligibility";
 
 export const dynamic = "force-dynamic";
-
-/** Site-wide license URL, matching the JSON-LD ImageObject on the slug page */
-const LICENSE_URL = "https://genie.ph/terms";
 
 /**
  * Sanitize a URL for XML sitemap output.
@@ -17,7 +15,7 @@ const sanitizeUrl = (url: string | null | undefined): string => {
   try {
     const parsed = new URL(url.trim());
     if (parsed.hostname.includes("supabase")) {
-      return `${parsed.origin}${parsed.pathname}`;
+      return escapeXml(`${parsed.origin}${parsed.pathname}`);
     }
     return escapeXml(url.trim());
   } catch {
@@ -34,52 +32,15 @@ const escapeXml = (str: string): string =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;");
 
-const normalizeCollectionLabel = (value: string): string =>
-  value.replace(/\s+/g, " ").trim();
-
-const buildCollectionImageTitle = (
-  keyword: string,
-  collectionName: string,
-): string => {
-  const normalizedKeyword = normalizeCollectionLabel(keyword);
-  const normalizedCollection = normalizeCollectionLabel(collectionName);
-  const collectionCore = normalizedCollection
-    .replace(/\scakes?$/i, "")
-    .trim()
-    .toLowerCase();
-  const keywordLower = normalizedKeyword.toLowerCase();
-
-  if (
-    collectionCore &&
-    (keywordLower.includes(collectionCore) ||
-      collectionCore.includes(keywordLower))
-  ) {
-    return /cake design/i.test(normalizedKeyword)
-      ? normalizedKeyword
-      : `${normalizedKeyword} cake design`;
-  }
-
-  const keywordWithSuffix = /cake$/i.test(normalizedKeyword)
-    ? normalizedKeyword
-    : `${normalizedKeyword} cake`;
-
-  return `${keywordWithSuffix} - ${normalizedCollection} design`;
-};
-
 type ProductImageSitemapRow = {
   slug: string | null;
-  title: string | null;
   image_url: string | null;
-  alt_text: string | null;
-  short_description: string | null;
-  merchant: { slug: string } | { slug: string }[] | null;
+  merchant: { slug: string; is_active: boolean } | { slug: string; is_active: boolean }[] | null;
 };
 
 type BlogImageSitemapRow = {
   slug: string | null;
-  title: string | null;
   image: string | null;
-  excerpt: string | null;
 };
 
 type CollectionImageSitemapRow = {
@@ -118,20 +79,32 @@ function getMerchantSlug(
   value: ProductImageSitemapRow["merchant"],
 ): string | null {
   if (Array.isArray(value)) {
-    return value[0]?.slug ?? null;
+    return value[0]?.is_active ? value[0].slug : null;
   }
 
-  return value?.slug ?? null;
+  return value?.is_active ? value.slug : null;
 }
 
 export async function GET() {
+  try {
+    return await buildImageSitemapResponse();
+  } catch (error) {
+    console.error("Failed to build image sitemap", error);
+    return new NextResponse("Image sitemap temporarily unavailable", {
+      status: 503,
+      headers: { "Cache-Control": "no-store" },
+    });
+  }
+}
+
+async function buildImageSitemapResponse() {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   );
 
   const baseUrl = "https://genie.ph";
-  const allItems = await getIndexableCustomizedCakeRows();
+  const { customizedCakes: allItems, sharedDesigns } = await getSitemapInventory();
 
   // --- Customizing entries ---
   const customizingEntries = allItems
@@ -139,30 +112,23 @@ export async function GET() {
       const imageLoc = sanitizeUrl(item.image_url);
       if (!imageLoc) return "";
 
-      // Title logic: strip suffix and ensure "Cake Design" is always present
-      // "Cake Design" matches what Filipino users search in Google Images
-      const rawTitle = item.seo_title
-        ? item.seo_title.replace(" | Genie.ph", "").trim()
-        : `${item.keywords ? item.keywords.split(",")[0].trim() : "Custom"} Cake Design`;
-      const title = /cake\s*design/i.test(rawTitle)
-        ? rawTitle
-        : /cake\s*$/i.test(rawTitle)
-          ? `${rawTitle} Design`
-          : `${rawTitle} Cake Design`;
-
-      // Caption logic: alt_text or fallback with mandatory suffix
-      const caption =
-        item.alt_text ||
-        `${title} — customize this cake design and get instant pricing on Genie.ph`;
-
       return `  <url>
-    <loc>${baseUrl}/customizing/${item.slug}</loc>
+    <loc>${baseUrl}/customizing/${escapeXml(item.slug)}</loc>
     <image:image>
       <image:loc>${imageLoc}</image:loc>
-      <image:title>${escapeXml(title)}</image:title>
-      <image:caption>${escapeXml(caption)}</image:caption>
-      <image:geo_location>Cebu, Philippines</image:geo_location>
-      <image:license>${LICENSE_URL}</image:license>
+    </image:image>
+  </url>`;
+    })
+    .filter(Boolean);
+
+  const sharedDesignEntries = sharedDesigns
+    .map((design) => {
+      const imageLoc = sanitizeUrl(design.image_url);
+      if (!imageLoc) return "";
+      return `  <url>
+    <loc>${baseUrl}/customizing/${escapeXml(design.url_slug)}</loc>
+    <image:image>
+      <image:loc>${imageLoc}</image:loc>
     </image:image>
   </url>`;
     })
@@ -175,15 +141,18 @@ export async function GET() {
   let offset = 0;
   let hasMore = true;
   while (hasMore) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("cakegenie_merchant_products")
       .select(
-        "slug, title, image_url, alt_text, short_description, merchant:cakegenie_merchants!merchant_id(slug)",
+        "slug, image_url, merchant:cakegenie_merchants!merchant_id!inner(slug,is_active)",
       )
       .eq("is_active", true)
+      .eq("merchant.is_active", true)
       .not("image_url", "is", null)
       .range(offset, offset + BATCH_SIZE - 1)
       .returns<ProductImageSitemapRow[]>();
+
+    if (error) throw new Error(`Failed to fetch product images: ${error.message}`);
 
     const batch = data || [];
     productItems.push(...batch);
@@ -195,54 +164,36 @@ export async function GET() {
     .map((item) => {
       const imageLoc = sanitizeUrl(item.image_url);
       const merchantSlug = getMerchantSlug(item.merchant);
-      if (!imageLoc || !merchantSlug) return "";
-
-      const title = escapeXml(item.title || "Custom Cake");
-      const caption = escapeXml(
-        item.alt_text ||
-          item.short_description ||
-          `${item.title} — order custom cakes on Genie.ph`,
-      );
+      if (!imageLoc || !merchantSlug || !item.slug) return "";
 
       return `  <url>
-    <loc>${baseUrl}/shop/${merchantSlug}/${item.slug}</loc>
+    <loc>${baseUrl}/shop/${escapeXml(merchantSlug)}/${escapeXml(item.slug)}</loc>
     <image:image>
       <image:loc>${imageLoc}</image:loc>
-      <image:title>${title}</image:title>
-      <image:caption>${caption}</image:caption>
-      <image:geo_location>Cebu, Philippines</image:geo_location>
-      <image:license>${LICENSE_URL}</image:license>
     </image:image>
   </url>`;
     })
     .filter(Boolean);
 
   // --- Blog entries ---
-  const { data: blogPosts } = await supabase
+  const { data: blogPosts, error: blogError } = await supabase
     .from("blogs")
-    .select("slug, title, image, excerpt")
+    .select("slug, image")
     .not("image", "is", null)
     .eq("is_published", true)
     .returns<BlogImageSitemapRow[]>();
 
+  if (blogError) throw new Error(`Failed to fetch blog images: ${blogError.message}`);
+
   const blogEntries = (blogPosts || [])
     .map((post) => {
       const imageLoc = sanitizeUrl(post.image);
-      if (!imageLoc) return "";
-
-      const title = escapeXml(post.title || "Blog Post");
-      const caption = escapeXml(
-        post.excerpt || `${post.title} — read more on Genie.ph`,
-      );
+      if (!imageLoc || !post.slug) return "";
 
       return `  <url>
-    <loc>${baseUrl}/blog/${post.slug}</loc>
+    <loc>${baseUrl}/blog/${escapeXml(post.slug)}</loc>
     <image:image>
       <image:loc>${imageLoc}</image:loc>
-      <image:title>${title}</image:title>
-      <image:caption>${caption}</image:caption>
-      <image:geo_location>Cebu, Philippines</image:geo_location>
-      <image:license>${LICENSE_URL}</image:license>
     </image:image>
   </url>`;
     })
@@ -250,13 +201,15 @@ export async function GET() {
 
   // --- Collection entries ---
   // Each collection page gets its top design images in the image sitemap
-  const { data: collections } = await supabase
+  const { data: collections, error: collectionsError } = await supabase
     .from("cakegenie_collections")
     .select("slug, name, description, tags, sample_image, item_count, publication_status, is_indexable")
     .eq("publication_status", "published")
     .eq("is_indexable", true)
     .gte("item_count", 8)
     .returns<CollectionImageSitemapRow[]>();
+
+  if (collectionsError) throw new Error(`Failed to fetch collection images: ${collectionsError.message}`);
 
   const collectionEntries: string[] = [];
   if (collections && collections.length > 0) {
@@ -268,7 +221,7 @@ export async function GET() {
       searchKw: (item.keywords || "").toLowerCase(),
     }));
 
-    for (const col of collections) {
+    for (const col of collections.filter(isPublishedIndexableCollection)) {
       const colName = (col.name || col.slug || "")
         .toLowerCase()
         .replace(/-/g, " ");
@@ -296,26 +249,15 @@ export async function GET() {
         .map((item) => {
           const imageLoc = sanitizeUrl(item.image_url);
           if (!imageLoc) return "";
-          const kw = item.keywords
-            ? item.keywords.split(",")[0].trim()
-            : col.name;
-          const title = escapeXml(buildCollectionImageTitle(kw, col.name));
-          const caption = escapeXml(
-            `${kw} cake design — browse the ${normalizeCollectionLabel(col.name)} collection on Genie.ph`,
-          );
           return `    <image:image>
       <image:loc>${imageLoc}</image:loc>
-      <image:title>${title}</image:title>
-      <image:caption>${caption}</image:caption>
-      <image:geo_location>Cebu, Philippines</image:geo_location>
-      <image:license>${LICENSE_URL}</image:license>
     </image:image>`;
         })
         .filter(Boolean);
 
       if (imageEntries.length > 0) {
         collectionEntries.push(`  <url>
-    <loc>${baseUrl}/collections/${col.slug}</loc>
+    <loc>${baseUrl}/collections/${escapeXml(col.slug)}</loc>
 ${imageEntries.join("\n")}
   </url>`);
       }
@@ -324,6 +266,7 @@ ${imageEntries.join("\n")}
 
   const entries = [
     ...customizingEntries,
+    ...sharedDesignEntries,
     ...productEntries,
     ...blogEntries,
     ...collectionEntries,

@@ -12,18 +12,12 @@ export const MIN_SITEMAP_IMAGE_DIMENSION = 300
 const SUPABASE_BATCH_SIZE = 1000
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 const LEGACY_ANALYSIS_SLUG_RE = /[a-f0-9]{16}$/i
-const ADULT_SITEMAP_TERMS = [
-  'adult',
-  'cock',
-  'penis',
-  'vulva',
-]
-
 type ImageLikeRow = {
   original_image_url?: string | null
   studio_edited_image_url?: string | null
   customized_image_url?: string | null
   image_variants?: unknown
+  image_variants_indexed_source?: string | null
 }
 
 type RawCustomizedCakeRow = {
@@ -35,6 +29,7 @@ type RawCustomizedCakeRow = {
   original_image_url: string | null
   studio_edited_image_url: string | null
   image_variants?: unknown
+  image_variants_indexed_source?: string | null
   image_width?: number | null
   image_height?: number | null
 }
@@ -63,9 +58,9 @@ export type IndexableSharedDesignRow = RawSharedDesignRow & {
 
 export type SitemapChunkHints = {
   customizedChunkCount: number
-  customizedLastMod: string
+  customizedLastMod: string | null
   sharedDesignChunkCount: number
-  sharedDesignLastMod: string
+  sharedDesignLastMod: string | null
 }
 
 export type SitemapInventory = {
@@ -95,15 +90,6 @@ function hasGenericTextValue(value: string | null | undefined): boolean {
     || normalized === 'custom cake | genie.ph'
 }
 
-function containsBlockedAdultTerm(...values: Array<string | null | undefined>): boolean {
-  const haystack = values
-    .filter((value): value is string => typeof value === 'string')
-    .join(' ')
-    .toLowerCase()
-
-  return ADULT_SITEMAP_TERMS.some((term) => new RegExp(`\\b${term}\\b`, 'i').test(haystack))
-}
-
 function hasTinyMeasuredImage(row: { image_width?: number | null; image_height?: number | null }): boolean {
   if (!row.image_width || !row.image_height) {
     return false
@@ -112,11 +98,7 @@ function hasTinyMeasuredImage(row: { image_width?: number | null; image_height?:
   return row.image_width < MIN_SITEMAP_IMAGE_DIMENSION || row.image_height < MIN_SITEMAP_IMAGE_DIMENSION
 }
 
-function passesCustomizedCakeQualityGate(row: RawCustomizedCakeRow, slug: string): boolean {
-  if (containsBlockedAdultTerm(slug, row.seo_title, row.alt_text, row.keywords)) {
-    return false
-  }
-
+function passesCustomizedCakeQualityGate(row: RawCustomizedCakeRow): boolean {
   if (!row.image_width || !row.image_height) {
     return false
   }
@@ -134,11 +116,7 @@ function passesCustomizedCakeQualityGate(row: RawCustomizedCakeRow, slug: string
     || hasUsefulTextValue(row.keywords)
 }
 
-function passesSharedDesignQualityGate(row: RawSharedDesignRow, slug: string): boolean {
-  if (containsBlockedAdultTerm(slug, row.title, row.alt_text, row.description)) {
-    return false
-  }
-
+function passesSharedDesignQualityGate(row: RawSharedDesignRow): boolean {
   if (hasTinyMeasuredImage(row)) {
     return false
   }
@@ -173,21 +151,18 @@ export function getPreferredSitemapImage(row: ImageLikeRow): string | null {
 export function buildSitemapChunkHints(
   customizedCakes: IndexableCustomizedCakeRow[],
   sharedDesigns: IndexableSharedDesignRow[],
-  now = new Date(),
 ): SitemapChunkHints {
-  const fallbackLastMod = now.toISOString()
-
   return {
     customizedChunkCount: Math.ceil(customizedCakes.length / SITEMAP_CHUNK_SIZE),
-    customizedLastMod: customizedCakes[0]?.created_at || fallbackLastMod,
+    customizedLastMod: customizedCakes[0]?.created_at || null,
     sharedDesignChunkCount: Math.ceil(sharedDesigns.length / SITEMAP_CHUNK_SIZE),
-    sharedDesignLastMod: sharedDesigns[0]?.created_at || fallbackLastMod,
+    sharedDesignLastMod: sharedDesigns[0]?.created_at || null,
   }
 }
 
-export async function getSitemapChunkHints(now = new Date()): Promise<SitemapChunkHints> {
+export async function getSitemapChunkHints(): Promise<SitemapChunkHints> {
   const { customizedCakes, sharedDesigns } = await getSitemapInventory()
-  return buildSitemapChunkHints(customizedCakes, sharedDesigns, now)
+  return buildSitemapChunkHints(customizedCakes, sharedDesigns)
 }
 
 export function toIndexableCustomizedCakeRow(
@@ -217,7 +192,7 @@ export function toIndexableCustomizedCakeRow(
     return null
   }
 
-  if (!passesCustomizedCakeQualityGate(row, slug)) {
+  if (!passesCustomizedCakeQualityGate(row)) {
     return null
   }
 
@@ -255,7 +230,7 @@ export function toIndexableSharedDesignRow(
     return null
   }
 
-  if (!passesSharedDesignQualityGate(row, urlSlug)) {
+  if (!passesSharedDesignQualityGate(row)) {
     return null
   }
 
@@ -271,7 +246,7 @@ async function fetchCustomizedCakePage(offset: number): Promise<RawCustomizedCak
   const cutoffDate = getSitemapCutoffDate()
   const { data, error } = await supabase
     .from('cakegenie_analysis_cache')
-    .select('slug, created_at, seo_title, alt_text, keywords, original_image_url, studio_edited_image_url, image_variants, image_width, image_height')
+    .select('slug, created_at, seo_title, alt_text, keywords, original_image_url, studio_edited_image_url, image_variants, image_variants_indexed_source, image_width, image_height')
     .eq('seo_status', 'published')
     .not('slug', 'is', null)
     .lte('created_at', cutoffDate)

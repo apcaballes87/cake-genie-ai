@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import CustomizingClient from '@/app/customizing/CustomizingClient';
 import { CustomizingPageSkeleton } from '@/components/LoadingSkeletons';
-import { getMerchantBySlug, getMerchantProductBySlug, getCakeBasePriceOptions, getAnalysisByExactHash, getImageDimensionsByHash, getProductReviewStats, getCollectionForDesignKeyword } from '@/services/supabaseService';
+import { getMerchantBySlug, getMerchantProductBySlug, getCakeBasePriceOptions, getAnalysisByExactHash, getProductReviewStats, getCollectionForDesignKeyword } from '@/services/supabaseService';
 import { BasePriceInfo, CakeType, ProductPageProps, CakeThickness } from '@/types';
 import { ProductSchema } from '@/components/SEOSchemas';
 import { CustomizationProvider } from '@/contexts/CustomizationContext';
@@ -91,8 +91,6 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
             images: product.image_url ? [
                 {
                     url: product.image_url,
-                    width: 1200,
-                    height: 630,
                     alt: imageAlt,
                 }
             ] : [],
@@ -105,8 +103,6 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
             images: product.image_url ? [
                 {
                     url: product.image_url,
-                    width: 1200,
-                    height: 630,
                     alt: imageAlt,
                 }
             ] : [],
@@ -131,17 +127,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
     // 1. Fetch Analysis Result and Image Dimensions (if p_hash exists)
     let initialCustomizationState = undefined;
-    let imageDims: { image_width: number | null; image_height: number | null } | null = null;
     if (product.p_hash) {
         try {
-            const [analysisResult, dims] = await Promise.all([
-                getAnalysisByExactHash(product.p_hash),
-                getImageDimensionsByHash(product.p_hash),
-            ]);
+            const analysisResult = await getAnalysisByExactHash(product.p_hash);
             if (analysisResult) {
                 initialCustomizationState = mapAnalysisToState(analysisResult);
             }
-            imageDims = dims;
         } catch (e) {
             console.error('Error fetching analysis for SSR:', e);
         }
@@ -186,8 +177,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 product={product}
                 merchant={merchant}
                 prices={prices}
-                imageWidth={imageDims?.image_width}
-                imageHeight={imageDims?.image_height}
                 ratingValue={productReviewStats && productReviewStats.total > 0 ? productReviewStats.averageRating.toFixed(1) : undefined}
                 reviewCount={productReviewStats && productReviewStats.total > 0 ? String(productReviewStats.total) : undefined}
             />
@@ -217,10 +206,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
                     {/* eslint-disable-next-line @next/next/no-img-element -- Intentional SEO/LCP image markup for the primary product image. */}
                     <img
                         src={product.image_url || ''}
-                        alt={product.alt_text || product.title}
-                        width={600}
-                        height={600}
-                        className="w-full max-w-md h-auto rounded-xl shadow-md"
+                        alt={product.alt_text || `${product.title} cake from ${merchant.business_name}`}
+                        className="w-full max-w-md aspect-square object-contain rounded-xl shadow-md"
                         loading="eager" // Force early load for LCP
                         fetchPriority="high"
                         itemProp="image"

@@ -576,7 +576,9 @@ function HeroReviewSummary({
             className={`inline-flex items-center justify-center gap-1.5 text-gray-600 hover:text-purple-500 ${compact ? 'text-[11px]' : 'text-[13px] md:text-[14px]'}`}
         >
             <span>{averageLabel}</span>
-            <span className="text-yellow-500">★★★★★</span>
+            {reviewSummary && reviewSummary.total > 0 && reviewSummary.averageRating > 0 && (
+                <span aria-hidden="true" className="text-yellow-500">★</span>
+            )}
             <span>{countLabel}</span>
             <span>|</span>
             <span className="font-bold text-green-600">Verified ✓</span>

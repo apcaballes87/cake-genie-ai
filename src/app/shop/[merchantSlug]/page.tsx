@@ -34,16 +34,12 @@ export async function generateMetadata({ params }: MerchantPageProps): Promise<M
             images: merchant.cover_image_url ? [
                 {
                     url: merchant.cover_image_url,
-                    width: 1200,
-                    height: 630,
-                    alt: `${merchant.business_name} cover image`,
+                    alt: `${merchant.business_name} bakery cover photo`,
                 }
             ] : merchant.profile_image_url ? [
                 {
                     url: merchant.profile_image_url,
-                    width: 800,
-                    height: 800,
-                    alt: merchant.business_name,
+                    alt: `${merchant.business_name} bakery profile photo`,
                 }
             ] : [],
             siteName: 'Genie.ph',
@@ -55,16 +51,12 @@ export async function generateMetadata({ params }: MerchantPageProps): Promise<M
             images: merchant.cover_image_url ? [
                 {
                     url: merchant.cover_image_url,
-                    width: 1200,
-                    height: 630,
-                    alt: `${merchant.business_name} cover image`,
+                    alt: `${merchant.business_name} bakery cover photo`,
                 }
             ] : merchant.profile_image_url ? [
                 {
                     url: merchant.profile_image_url,
-                    width: 800,
-                    height: 800,
-                    alt: merchant.business_name,
+                    alt: `${merchant.business_name} bakery profile photo`,
                 }
             ] : [],
         },

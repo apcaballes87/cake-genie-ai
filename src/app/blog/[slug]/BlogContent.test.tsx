@@ -28,15 +28,15 @@ describe('BlogContent', () => {
     );
   });
 
-  it('adds stable dimensions to raw article images', () => {
+  it('does not invent dimensions for raw article images with unknown source size', () => {
     render(
       <BlogContent content='<img src="https://example.com/party.jpg" alt="Party package" class="w-full h-auto" />' />,
     );
 
     const image = screen.getByRole('img', { name: 'Party package' });
 
-    expect(image).toHaveAttribute('width', '800');
-    expect(image).toHaveAttribute('height', '450');
+    expect(image).not.toHaveAttribute('width');
+    expect(image).not.toHaveAttribute('height');
     expect(image).toHaveAttribute('loading', 'lazy');
     expect(image).toHaveAttribute('decoding', 'async');
   });

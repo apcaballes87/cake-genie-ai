@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { buildMarketingPageMetadata } from '@/lib/utils/metadata'
+import { isPublishedIndexableCollection } from '@/lib/seo/collectionEligibility'
+import { toIndexableCustomizedCakeRow, type IndexableCustomizedCakeRow } from '@/lib/sitemap/indexability'
 
 export const metadata = buildMarketingPageMetadata({
     title: 'HTML Sitemap',
@@ -13,20 +15,35 @@ export const revalidate = 86400; // Cache for 24 hours
 export default async function SitemapHtmlPage() {
     const supabase = await createClient();
 
-    const { data: collections } = await supabase
+    const { data: collections, error: collectionsError } = await supabase
         .from('cakegenie_collections')
-        .select('name, slug, item_count')
-        .gt('item_count', 0)
+        .select('name, slug, item_count, publication_status, is_indexable')
+        .eq('publication_status', 'published')
+        .eq('is_indexable', true)
+        .gte('item_count', 8)
         .order('name', { ascending: true });
+    if (collectionsError) throw collectionsError;
+    const publishedCollections = (collections || []).filter(
+        (collection) => Boolean(collection.slug) && isPublishedIndexableCollection(collection),
+    );
 
     // Fetch up to 500 latest designs for the HTML sitemap
-    const { data: recentSearches } = await supabase
+    const { data: recentSearches, error: recentSearchesError } = await supabase
         .from('cakegenie_analysis_cache')
-        .select('slug, keywords')
+        .select('slug, created_at, seo_title, alt_text, keywords, original_image_url, studio_edited_image_url, image_variants, image_variants_indexed_source, image_width, image_height')
         .eq('seo_status', 'published')
         .not('slug', 'is', null)
         .order('created_at', { ascending: false })
         .limit(500);
+    if (recentSearchesError) throw recentSearchesError;
+    const seenDesignSlugs = new Set<string>();
+    const recentIndexableDesigns = (recentSearches || [])
+        .map((design) => toIndexableCustomizedCakeRow(design))
+        .filter((design): design is IndexableCustomizedCakeRow => {
+            if (!design || seenDesignSlugs.has(design.slug)) return false;
+            seenDesignSlugs.add(design.slug);
+            return true;
+        });
 
     return (
         <main className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -92,9 +109,9 @@ export default async function SitemapHtmlPage() {
                             Browse Collections →
                         </Link>
                     </div>
-                    {collections && collections.length > 0 ? (
+                    {publishedCollections.length > 0 ? (
                         <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-                            {collections.map((collection) => (
+                            {publishedCollections.map((collection) => (
                                 <li key={collection.slug}>
                                     <Link
                                         href={`/collections/${collection.slug}`}
@@ -118,9 +135,9 @@ export default async function SitemapHtmlPage() {
                             View All →
                         </Link>
                     </div>
-                    {recentSearches && recentSearches.length > 0 ? (
+                    {recentIndexableDesigns.length > 0 ? (
                         <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-                            {recentSearches.map((design) => (
+                            {recentIndexableDesigns.map((design) => (
                                 <li key={design.slug}>
                                     <Link
                                         href={`/customizing/${design.slug}`}

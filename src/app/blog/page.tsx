@@ -6,6 +6,7 @@ import { BlogSchema } from '@/components/SEOSchemas';
 import LazyImage from '@/components/LazyImage';
 import LandingHeader from '@/components/landing/LandingHeader';
 import { LandingFooter } from '@/components/landing/LandingFooter';
+import { BLOG_TAG_CONFIG, getPopulatedBlogCategorySlugs } from '@/lib/seo/blogCategories';
 
 export const revalidate = 3600; // Rebuild cache every 1 hour
 
@@ -40,6 +41,7 @@ export default async function BlogPage() {
 
   // Fallback to empty array if no posts
   const blogPosts = posts || [];
+  const categorySlugs = getPopulatedBlogCategorySlugs(blogPosts);
 
   // Transform for BlogSchema (convert snake_case to camelCase)
   const schemaPosts = blogPosts.map(post => ({
@@ -66,22 +68,13 @@ export default async function BlogPage() {
 
         {/* Topic tag navigation */}
         <div className="flex flex-wrap gap-2 mb-10">
-          {[
-            { slug: 'birthday-cakes', label: 'Birthday Cakes' },
-            { slug: 'cebu-cakes', label: 'Cebu Cakes' },
-            { slug: 'wedding-cakes', label: 'Wedding Cakes' },
-            { slug: 'party-packages', label: 'Party Packages' },
-            { slug: 'cake-comparison', label: 'Cake Comparisons' },
-            { slug: 'character-cakes', label: 'Character Cakes' },
-            { slug: 'graduation-cakes', label: 'Graduation Cakes' },
-            { slug: 'kids-cakes', label: 'Kids Cakes' },
-          ].map(({ slug, label }) => (
+          {categorySlugs.map((slug) => (
             <Link
               key={slug}
               href={`/blog/category/${slug}`}
               className="px-4 py-1.5 rounded-full text-sm font-medium bg-white border border-purple-200 text-purple-700 hover:bg-purple-50 transition-colors"
             >
-              {label}
+              {BLOG_TAG_CONFIG[slug].label}
             </Link>
           ))}
         </div>

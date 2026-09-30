@@ -27,6 +27,9 @@ interface BlogPostPageProps {
 interface BlogRelatedProduct {
   p_hash: string;
   original_image_url: string;
+  studio_edited_image_url?: string | null;
+  image_variants?: unknown;
+  image_variants_indexed_source?: string | null;
   price?: number | null;
   availability?: string | null;
   slug?: string | null;
@@ -94,13 +97,13 @@ export async function generateMetadata({
       modifiedTime: getBlogModifiedTime(post) || undefined,
       authors: [post.author],
       tags: keywords.length > 0 ? keywords : undefined,
-      images: featuredImage.url ? [{ url: featuredImage.url, width: featuredImage.width || 1200, height: featuredImage.height || 630, alt: post.title }] : [],
+      images: featuredImage.url ? [{ url: featuredImage.url, alt: post.title }] : [],
     },
     twitter: {
       card: 'summary_large_image',
       title: post.title,
       description: post.excerpt,
-      images: featuredImage.url ? [{ url: featuredImage.url, width: featuredImage.width || 1200, height: featuredImage.height || 630, alt: post.title }] : [],
+      images: featuredImage.url ? [{ url: featuredImage.url, alt: post.title }] : [],
     },
   };
 }
@@ -170,8 +173,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         authorName={post.author}
         authorUrl={post.author_url}
         image={featuredImage.url || undefined}
-        imageWidth={post.image ? 1200 : undefined}
-        imageHeight={post.image ? 630 : undefined}
+        imageWidth={featuredImage.width || undefined}
+        imageHeight={featuredImage.height || undefined}
         imageAlt={post.title}
         description={post.excerpt}
         url={`https://genie.ph/blog/${post.slug}`}

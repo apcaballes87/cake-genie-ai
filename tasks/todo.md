@@ -5546,3 +5546,32 @@ AI chat submit
 ## Review
 
 - Plan prepared from the verified current seams in `CustomizingClient`, `useDesignUpdate`, `/api/ai/chat-edit`, and `/api/ai/edit-image`. Product code has not been changed; implementation and verification remain pending.
+
+# Current task: implement SEO and image SEO audit plan (2026-09-30)
+
+## Plan
+
+- [x] Align robots, private-route metadata, published design rules, and truthful sitemap inventory.
+- [x] Align collection publication checks and canonical internal links.
+- [x] Verify public image GET headers and align image selection, sitemaps, alt text, and dimensions.
+- [x] Repair visible title, rating, and stale editorial copy within the approved SEO scope.
+- [x] Run focused tests, production build, rendered-route checks, and read-only Search Console verification.
+- [x] Review scoped diff and record results, risks, and any production-only follow-up below.
+
+## Review
+
+- Robots now come from `src/app/robots.ts` alone; `/_next/` is crawlable. Order confirmation, contributions, and password recovery render `noindex`. Pending design share links remain accessible by exact slug but have noindex, no Product schema, and no sitemap entry. Published adult-themed designs pass the same quality gate as other designs.
+- One collection eligibility predicate governs the page, HTML sitemap, XML sitemap, and image sitemap. On the final local production build, HTML and XML each linked exactly 208 collections with zero differences; the prior 133 HTML-only links are gone. The HTML sitemap now lists only design rows that pass the XML image/text/age gate (493 of its latest 500 candidates). Empty blog categories and products under inactive merchants are excluded, and synthetic sitemap modification dates are omitted.
+- The crawler image selector rejects manifests whose indexed source differs from the current source. The image sitemap includes eligible shared designs, emits only supported image tags, and returns uncached 503 on a failed database read. Merchant/blog markup no longer invents image dimensions.
+- Normal public GET found `X-Robots-Tag: none` on the tested Kuromi original and Studio images and a Peppa variant. Exact-object Storage updates preserved byte hashes, MIME types, dimensions, and URLs; CDN purge and fresh GET verified `200 image/webp` with `X-Robots-Tag: all` for all three. A further 25 current published sitemap variants were repaired and independently rechecked; all now return `all`. All 48 currently selected published shared-design Storage images already return `all` and were left intact. Historical or unselected objects can still return `none`; they were not mass-updated.
+- Design titles no longer display hash codes or mid-word cuts. The homepage rating is computed from approved, visible reviews (15 reviews, 4.9/5 at verification). Mother's Day copy is evergreen, and the pricing comparison uses the existing public order facts instead of 2025 market estimates.
+- Focused Vitest run: 18 files passed, 99 tests passed, 1 skipped; Storage helper suite: 20 passed. Production build completed, including TypeScript. Local rendered checks covered design, collection, product, blog, private routes, robots, XML parsing, schema, canonical tags, and HTML/XML collection parity. Scoped ESLint passed outside the already lint-noisy customizing page; its new title helper no longer introduces an `any` type.
+- After release, inspect representative page and image URLs in Search Console, then compare Web and Image performance separately from the September baseline. The universal same-day marketing promise still differs from the cart's one-day path for complex cakes; fulfillment policy needs an operational decision outside this SEO task.
+
+## Publication plan
+
+- [x] Assemble only the SEO and image SEO changes on a clean checkout of the latest `origin/main`.
+- [x] Run focused tests and a production build on that exact checkout; inspect the final diff for unrelated files.
+- [x] Commit and push the verified commit to `main`, then confirm the remote commit.
+
+Clean `origin/main` publication checkout: 17 focused test files passed (98 tests passed, 1 skipped); production build and TypeScript passed; `git diff --check` passed. The shared Supabase service includes only the image-source query changes, preserving current cart code.
