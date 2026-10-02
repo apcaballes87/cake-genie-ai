@@ -1,0 +1,53 @@
+FROM --platform=linux/amd64 node:22-bookworm-slim AS build
+
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+
+# These values are public and are already embedded in the browser bundle.
+# Private credentials are injected only when the container starts.
+ARG NEXT_PUBLIC_CREATOR_APPLICATIONS_OPEN
+ARG NEXT_PUBLIC_GOOGLE_AI_API_KEY
+ARG NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+ARG NEXT_PUBLIC_PINTEREST_APP_ID
+ARG NEXT_PUBLIC_ROBOFLOW_API_KEY
+ARG NEXT_PUBLIC_ROBOFLOW_CONFIDENCE
+ARG NEXT_PUBLIC_ROBOFLOW_FALLBACK
+ARG NEXT_PUBLIC_ROBOFLOW_WORKFLOW_ID
+ARG NEXT_PUBLIC_ROBOFLOW_WORKSPACE
+ARG NEXT_PUBLIC_SITE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_USE_NEW_PRICING
+ENV NEXT_PUBLIC_CREATOR_APPLICATIONS_OPEN=$NEXT_PUBLIC_CREATOR_APPLICATIONS_OPEN \
+    NEXT_PUBLIC_GOOGLE_AI_API_KEY=$NEXT_PUBLIC_GOOGLE_AI_API_KEY \
+    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=$NEXT_PUBLIC_GOOGLE_MAPS_API_KEY \
+    NEXT_PUBLIC_PINTEREST_APP_ID=$NEXT_PUBLIC_PINTEREST_APP_ID \
+    NEXT_PUBLIC_ROBOFLOW_API_KEY=$NEXT_PUBLIC_ROBOFLOW_API_KEY \
+    NEXT_PUBLIC_ROBOFLOW_CONFIDENCE=$NEXT_PUBLIC_ROBOFLOW_CONFIDENCE \
+    NEXT_PUBLIC_ROBOFLOW_FALLBACK=$NEXT_PUBLIC_ROBOFLOW_FALLBACK \
+    NEXT_PUBLIC_ROBOFLOW_WORKFLOW_ID=$NEXT_PUBLIC_ROBOFLOW_WORKFLOW_ID \
+    NEXT_PUBLIC_ROBOFLOW_WORKSPACE=$NEXT_PUBLIC_ROBOFLOW_WORKSPACE \
+    NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL \
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY \
+    NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
+    NEXT_PUBLIC_USE_NEW_PRICING=$NEXT_PUBLIC_USE_NEW_PRICING
+RUN npm run build
+
+FROM --platform=linux/amd64 node:22-bookworm-slim
+ENV NODE_ENV=production PORT=8080 HOSTNAME=0.0.0.0
+WORKDIR /app
+COPY --from=build --chown=node:node /app/.next/standalone ./
+COPY --from=build --chown=node:node /app/.next/static ./.next/static
+COPY --from=build --chown=node:node /app/public ./public
+# The prompt is opened through process.cwd(), and native/WASM assets must be
+# present even when Next's file tracing does not discover their runtime loads.
+COPY --from=build --chown=node:node /app/src/services/prompts/fallback-prompt.txt ./src/services/prompts/fallback-prompt.txt
+COPY --from=build --chown=node:node /app/node_modules/pdq-wasm ./node_modules/pdq-wasm
+COPY --from=build --chown=node:node /app/node_modules/sharp ./node_modules/sharp
+COPY --from=build --chown=node:node /app/node_modules/@img ./node_modules/@img
+RUN mkdir -p .next/cache && chown -R node:node .next/cache
+USER node
+EXPOSE 8080
+CMD ["node", "server.js"]

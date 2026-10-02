@@ -30,9 +30,9 @@ function readString(value: unknown, maxLength = 500): string | null {
 
 function readCountry(request: NextRequest): string | null {
   const candidate = [
+    request.headers.get('cf-ipcountry'),
     request.headers.get('x-vercel-ip-country'),
     request.headers.get('x-country'),
-    request.headers.get('cf-ipcountry'),
   ]
     .map((value) => value?.trim().toUpperCase() || '')
     .find((value) => /^[A-Z]{2}$/.test(value))

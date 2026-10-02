@@ -1,5 +1,5 @@
 import { Ratelimit } from '@upstash/ratelimit';
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
 
 interface RateLimitConfig {
     limit: number;
@@ -64,9 +64,13 @@ function runInMemoryLimit(config: RateLimitConfig, type: keyof typeof LIMIT_CONF
 
 if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
     try {
+        const redis = new Redis({
+            url: process.env.KV_REST_API_URL,
+            token: process.env.KV_REST_API_TOKEN,
+        });
         for (const [key, config] of Object.entries(LIMIT_CONFIGS)) {
             limiters[key] = new Ratelimit({
-                redis: kv,
+                redis,
                 limiter: Ratelimit.slidingWindow(config.limit, config.window),
                 analytics: true,
                 prefix: `ratelimit:genie:${key}`,
@@ -77,7 +81,7 @@ if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
     }
 } else {
     if (process.env.NODE_ENV !== 'test') {
-        console.warn('[RateLimiter] Vercel KV environment variables (KV_REST_API_URL / KV_REST_API_TOKEN) are missing. Falling back to per-instance in-memory rate limiting.');
+        console.warn('[RateLimiter] Upstash Redis environment variables (KV_REST_API_URL / KV_REST_API_TOKEN) are missing. Falling back to per-instance in-memory rate limiting.');
     }
 }
 

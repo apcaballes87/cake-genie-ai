@@ -1,5 +1,48 @@
 # Tasks
 
+## Cloudflare Container hosting migration (2026-10-02)
+
+### Staging comparison follow-up (2026-10-02)
+
+- [x] Recheck the existing migration worktree, current Vercel deployment, Cloudflare Worker inventory, and local build prerequisites.
+- [x] Carry the migration changes onto a clean checkout of current production commit `76b3d44f` without altering the dirty primary checkout.
+- [ ] Supply the exact staging `workers.dev` origin and review every production redirect or callback assumption; the config generator now rejects the live origin.
+- [x] Confirm the account subdomain and existing GitHub access to `apcaballes87/cake-genie-ai`; planned staging origin is `https://genieph-container-staging.apcaballes.workers.dev`.
+- [ ] Publish the scoped migration branch and configure the remote build to use it.
+- [ ] Use a Linux/amd64 Docker builder (local or Cloudflare Workers Builds) to build and smoke-check the real Container image.
+- [x] Confirm Cloudflare account is already on Workers Paid; the account plan page shows “Current plan” at $5/month plus usage and includes Containers.
+- [ ] Configure only staging-required secrets and test credentials.
+- [ ] Deploy the isolated staging Worker on `workers.dev` with no custom routes or cron triggers.
+- [ ] Compare matching real Genie routes and safe test flows against Vercel for correctness, latency, memory, cold starts, and projected monthly cost.
+
+### Follow-up review
+
+- Vercel's latest READY production deployment and this new worktree's HEAD are both `76b3d44f`. The migration patch applied cleanly, and staging has not been deployed.
+- Cloudflare account inventory currently shows zero Workers. This Mac has no Docker CLI and has about 7.6 GiB available; use a remote builder if a local Docker build is impractical.
+- The generated config now requires a staging-specific `NEXT_PUBLIC_SITE_URL`; it rejects the live domain so auth and Studio links cannot silently use it.
+- Verified the generator accepts a sample staging `workers.dev` origin and rejects `https://genie.ph` (expected error). Temporary dummy config and dependency symlink were removed afterward; `git diff --check` passes.
+- Wrangler login has Container permissions and `wrangler containers list` reports no containers. The dashboard now confirms Workers Paid is the current account plan; no purchase was made. GitHub access to `cake-genie-ai` is confirmed in the creation wizard. The initial wizard exposes build/deploy commands but no branch selector, so do not launch its default build until staging branch selection is resolved.
+- No DNS, Vercel, cron, payment, or production service setting was changed in this follow-up.
+
+### Plan
+
+- [x] Isolate current `origin/main` and inspect the production hosting dependencies.
+- [x] Add a standalone Next.js Linux image and a minimal Cloudflare Worker/Container entrypoint.
+- [x] Replace the Vercel KV wrapper and narrow Vercel-only request assumptions.
+- [x] Add five production cron mappings, staging-safe config, and deployment runbook.
+- [x] Run focused tests, Worker typecheck, production build, Wrangler packaging checks, and a standalone Node smoke check.
+- [ ] Run the actual Linux Container locally (Docker is not installed on this host).
+- [ ] Deploy staging and verify critical flows without changing production traffic.
+- [ ] Reconcile DNS and execute cutover only after staging parity and cron ownership are proven.
+
+### Review
+
+- Prepared in managed worktree `codex/cloudflare-container` from production `origin/main` (`77b5e7c2`); the primary dirty checkout and production Cloudflare/Vercel settings remain untouched.
+- Next.js production build succeeds using public build variables only. Standalone `GET /robots.txt` returned HTTP 200. Focused tests pass (25/25), Worker typecheck and staging/production Wrangler dry-run bundling pass, scoped ESLint has no errors, and `git diff --check` passes.
+- Full repository `tsc --noEmit` still reports existing test-fixture type errors; the production build's TypeScript step passed. Wrangler's image rollout cannot be dry-run without Docker. No Linux-native Sharp/PDQ parity, Cloudflare runtime, staging flow, DNS, cron handover, or production cutover is claimed.
+- The runbook at `docs/cloudflare-container-migration.md` keeps crons and routes inactive until external prerequisites and staging parity are proven.
+- On 2026-10-02, staging preflight confirmed Wrangler authentication and a valid generated config (mode `600`, four public build variable names, one `basic` instance, no routes or crons). The Cloudflare account has no existing Container app. Docker/Podman/Colima are absent and local free disk is under 1 GiB, so no image build or staging deployment was attempted.
+
 ## Prevent checkout with unsaved cart items (2026-09-29)
 
 ### Plan

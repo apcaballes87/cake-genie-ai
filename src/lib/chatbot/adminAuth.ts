@@ -21,7 +21,8 @@ function getAllowedAdminOrigin() {
 
 export function getNetworkAdminIpHash(request: NextRequest): string | null {
   if (request.headers.get('origin') !== getAllowedAdminOrigin()) return null;
-  const rawIp = request.headers.get('x-vercel-forwarded-for')
+  const rawIp = request.headers.get('cf-connecting-ip')
+    || request.headers.get('x-vercel-forwarded-for')
     || request.headers.get('x-forwarded-for')
     || (process.env.NODE_ENV === 'development' ? request.headers.get('x-real-ip') : null);
   const ip = rawIp?.split(',')[0]?.trim();

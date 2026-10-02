@@ -2,12 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-// Service role client — bypasses RLS so we can write to discount_codes
-const serviceClient = createServiceClient(supabaseUrl, supabaseServiceKey);
-
 /**
  * Generates a unique, human-readable discount code.
  * Uses a character set that avoids visual ambiguity (no 0/O/1/I).
@@ -31,6 +25,8 @@ export async function POST(request: NextRequest) {
         if (!user || user.is_anonymous) {
             return NextResponse.json({ success: false, error: 'Authentication required.' }, { status: 401 });
         }
+
+        const serviceClient = createServiceClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
         const { source = 'popup' } = await request.json().catch(() => ({}));
         const userId = user.id;

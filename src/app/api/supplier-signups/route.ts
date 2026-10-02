@@ -25,11 +25,6 @@ const SUPPLIER_TYPES = new Set([
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-)
-
 function normalizeFormString(value: FormDataEntryValue | null): string {
   return typeof value === 'string' ? value.trim() : ''
 }
@@ -79,6 +74,7 @@ function isUploadedFile(value: FormDataEntryValue | null): value is File {
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
     const formData = await request.formData()
     const name = normalizeFormString(formData.get('name'))
     const contactNumber = normalizeFormString(formData.get('contactNumber'))

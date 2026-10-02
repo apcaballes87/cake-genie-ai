@@ -12,8 +12,7 @@ function getBaseUrl(req: NextRequest) {
   const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
   const protocol = req.headers.get('x-forwarded-proto') || 'https';
   if (host) return `${protocol}://${host}`;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return 'https://genie.ph';
+  return process.env.NEXT_PUBLIC_SITE_URL || 'https://genie.ph';
 }
 
 function scheduleImageStudioContinuation(req: NextRequest) {

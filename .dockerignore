@@ -1,0 +1,17 @@
+.git
+.codex
+.next
+.vercel
+.wrangler
+node_modules
+.env*
+.dev.vars*
+wrangler.*.generated.jsonc
+backend
+supabase
+tasks
+docs
+artifacts
+scratch
+*.log
+*.heapsnapshot

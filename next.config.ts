@@ -1,6 +1,9 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
+  outputFileTracingRoot: process.cwd(),
+  turbopack: { root: process.cwd() },
   // Inline CSS into <head> instead of emitting render-blocking external
   // <link rel="stylesheet"> requests. Lighthouse flagged ~760ms of render-
   // blocking CSS on the customizing PDP (two Tailwind chunks). Inlining

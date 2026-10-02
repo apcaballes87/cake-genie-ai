@@ -15,9 +15,12 @@
     "backfill:bing-images": "tsx scripts/backfill-bing-image-eligibility.ts",
     "backfill:pdq": "tsx scripts/backfill-pdq.ts",
     "benchmark:pdq-crops": "tsx scripts/benchmark-pdq-crops.ts",
-    "reconcile:local": "tsx scripts/reconcile-batch-local.ts"
+    "reconcile:local": "tsx scripts/reconcile-batch-local.ts",
+    "cf:types": "wrangler types worker-configuration.d.ts -c wrangler.jsonc --include-runtime=false",
+    "cf:typecheck": "tsc --noEmit -p tsconfig.cloudflare.json"
   },
   "dependencies": {
+    "@cloudflare/containers": "0.3.7",
     "@google-cloud/storage": "^7.19.0",
     "@google/genai": "^1.38.0",
     "@react-google-maps/api": "^2.20.7",
@@ -26,7 +29,7 @@
     "@tanstack/react-query": "^5.90.11",
     "@types/papaparse": "^5.5.2",
     "@upstash/ratelimit": "^2.0.8",
-    "@vercel/kv": "^3.0.0",
+    "@upstash/redis": "1.39.0",
     "browser-image-compression": "^2.0.2",
     "embla-carousel-react": "^8.6.0",
     "embla-carousel-wheel-gestures": "^8.1.0",
@@ -45,6 +48,7 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "5.20261002.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
@@ -67,7 +71,8 @@
     "node-fetch": "^2.7.0",
     "tailwindcss": "^4",
     "typescript": "5.9.3",
-    "vitest": "^4.0.18"
+    "vitest": "^4.0.18",
+    "wrangler": "4.146.0"
   },
   "browserslist": [
     "chrome >= 109",

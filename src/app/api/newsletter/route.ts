@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-// Service role client — bypasses RLS so we can write to discount_codes
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
 /**
  * Generates a unique, human-readable discount code.
  * Uses a character set that avoids visual ambiguity (no 0/O/1/I).
@@ -23,6 +17,7 @@ function generateCode(): string {
 
 export async function POST(request: NextRequest) {
     try {
+        const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
         const { email, source = 'popup' } = await request.json();
 
         if (!email || typeof email !== 'string') {

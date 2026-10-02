@@ -12,9 +12,11 @@ vi.mock('@upstash/ratelimit', () => {
     };
 });
 
-vi.mock('@vercel/kv', () => {
+vi.mock('@upstash/redis', () => {
     return {
-        kv: {}
+        Redis: class {
+            constructor(_options: { url: string; token: string }) {}
+        }
     };
 });
 

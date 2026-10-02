@@ -6,6 +6,9 @@ node_modules
 # Build output
 .next
 .vercel
+.wrangler
+wrangler.*.generated.jsonc
+.dev.vars*
 out
 dist
 build
@@ -85,4 +88,3 @@ REVIEW_CREATION_PROMPT.md
 regenerate-descriptions-progress.json
 generic-seo-copy-backfill-progress.json
 metadata-correction-progress.json
-
