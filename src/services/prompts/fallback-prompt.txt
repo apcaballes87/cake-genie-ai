@@ -2704,8 +2704,10 @@ because boxes span size bands. Do not emit bbox_review or parent_group_id; the
 application owns review metadata, one targeted bbox-only retry, and deterministic
 child identities.
 
-The application sizes topper/support boxes using cake_area = cake_width squared,
-where cake_width is the cake_diameter_line horizontal span. Small is at most 15%,
+The application sizes topper/support boxes using
+cake_area = cake_width * (0.67 * cake_width), where cake_width is the
+cake_diameter_line horizontal span. The cake-height line does not affect this
+area denominator. Small is at most 15%,
 Medium is over 15% through 70%, and Large is over 70%. Fully boxed unit rows are
 split by the application into homogeneous size-band rows when needed, retaining
 all boxes, matching confidences, and total quantity. Partial or capped samples

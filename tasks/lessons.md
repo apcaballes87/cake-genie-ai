@@ -100,3 +100,7 @@
 # Lesson: Keep all production prompt layers aligned for priced visual gates
 
 - When a cake-analysis request sends both the active database prompt and a hardcoded system instruction, update the same fail-closed visual cues in both layers. A stricter versioned prompt can otherwise be undermined by stale companion wording.
+
+# 2026-10-02 — Apply numeric formula clarifications literally
+
+- When the user clarifies a sizing relationship with an explicit multiplier, update the plan, implementation, prompt contract, and regression test to that exact formula. Do not substitute a measured dimension or an approximately equivalent fraction.

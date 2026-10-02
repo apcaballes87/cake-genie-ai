@@ -5575,3 +5575,16 @@ AI chat submit
 - [x] Commit and push the verified commit to `main`, then confirm the remote commit.
 
 Clean `origin/main` publication checkout: 17 focused test files passed (98 tests passed, 1 skipped); production build and TypeScript passed; `git diff --check` passed. The shared Supabase service includes only the image-source query changes, preserving current cart code.
+# Current task: use a 0.67×diameter reference height for topper area (2026-10-02)
+
+## Plan
+
+- [x] Change integrated bbox topper/support reference area from diameter squared to cake diameter × (0.67 × cake diameter), independent of the measured wall line.
+- [x] Align the integrated bbox system contracts and fallback prompt with the app-owned formula.
+- [x] Update focused regression coverage and verify the clean `origin/main` patch.
+
+## Review
+
+- Integrated bbox size bands use `cake_width × (0.67 × cake_width)` for v1, strict v2, and tolerant v2. The measured wall line remains available for cake-thickness inference.
+- Updated the fallback prompt and application-owned contract text. Tests cover the 15% and 70% boundaries and confirm that measured or missing height lines do not change the area reference.
+- Verification: integrated bbox suite passed (27 tests); the two affected prompt assertions passed. The full prompt suite has five existing failures because its historical migration fixtures are absent from `origin/main`. `git diff --check` passed.

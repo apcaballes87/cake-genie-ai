@@ -964,7 +964,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = readEffectiveAnalysisInstructions();
 
     if (prompt.includes('V3.95 INTEGRATED BOUNDING-BOX CONTRACT')) {
-      expect(prompt).toContain('The application sizes topper/support boxes using cake_area = cake_width squared');
+      expect(prompt).toContain('cake_area = cake_width * (0.67 * cake_width)');
       expect(prompt).toContain('Do not emit model-owned size,\narea, ratio, legacy bbox, size_line, or cake_measurements fields.');
       expect(prompt).toContain('For quantities 1–5, target exactly that many distinct');
       return;
@@ -983,7 +983,7 @@ describe('cake analysis prompt rules', () => {
     const prompt = readEffectiveAnalysisInstructions();
 
     if (prompt.includes('V3.95 INTEGRATED BOUNDING-BOX CONTRACT')) {
-      expect(prompt).toContain('cake_area = cake_width squared');
+      expect(prompt).toContain('cake_area = cake_width * (0.67 * cake_width)');
       expect(prompt).toContain('Small is at most 15%');
       expect(prompt).toContain('Medium is over 15% through 70%');
       expect(prompt).toContain('Large is over 70%');

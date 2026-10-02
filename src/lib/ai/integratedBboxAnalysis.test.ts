@@ -72,14 +72,18 @@ function processV2(result: unknown) {
   return postProcessSearchAnalysisResult(result, typeEnums, 'integrated_bbox_v2');
 }
 
-function processV2Tolerant(result: unknown, previousAnalysis?: unknown) {
+function processV2Tolerant(
+  result: unknown,
+  previousAnalysis?: unknown,
+  options: { allowMissingCakeHeightLine?: boolean } = {},
+) {
   return postProcessSearchAnalysisResult(
     result,
     typeEnums,
     'integrated_bbox_v2_tolerant',
     'analysis_only',
     undefined,
-    { previousAnalysis },
+    { previousAnalysis, ...options },
   );
 }
 
@@ -90,7 +94,7 @@ describe('integrated_bbox_v1 analysis', () => {
     expect(config.responseSchema.required).toEqual(['analysis', 'geometry']);
     expect(config.systemInstruction).toContain('V3.92 INTEGRATED BOUNDING-BOX PRECEDENCE');
     expect(config.systemInstruction).toContain('Never emit a model-owned size');
-    expect(config.systemInstruction).toContain('cake_area = diameter_width * diameter_width');
+    expect(config.systemInstruction).toContain('cake_area = diameter_width * (0.67 * diameter_width)');
     expect(config.systemInstruction).toContain('Small when area_ratio_percent <= 15');
     expect(config.systemInstruction).toContain('accepts either endpoint order');
     expect(config.systemInstruction).toContain('return one tight box per clearly visible unit');
@@ -153,16 +157,16 @@ describe('integrated_bbox_v1 analysis', () => {
       analysis: acceptedAnalysis({
         main_toppers: [{
           type: 'edible_3d_complex', material: 'edible_fondant', group_id: 'hero', classification: 'hero',
-          quantity: 1, description: 'fondant figure', box_2d: [250, 125, 350, 140], bbox_confidence: 0.9,
+          quantity: 1, description: 'fondant figure', box_2d: [250, 125, 265, 192], bbox_confidence: 0.9,
         }],
         support_elements: [
           {
             type: 'edible_flowers_filler', material: 'edible_fondant', group_id: 'filler', color: '#FFFFFF',
-            quantity: 12, description: 'twelve filler flowers', box_2d: [250, 100, 350, 170], bbox_confidence: 0.8,
+            quantity: 12, description: 'twelve filler flowers', box_2d: [250, 100, 320, 167], bbox_confidence: 0.8,
           },
           {
             type: 'piped_flowers_side', material: 'icing', group_id: 'piped', color: '#FFFFFF', coverage: 'small',
-            quantity: 1, description: 'continuous piped flower side treatment', box_2d: [250, 100, 350, 171], bbox_confidence: 1,
+            quantity: 1, description: 'continuous piped flower side treatment', box_2d: [250, 100, 320, 168], bbox_confidence: 1,
           },
         ],
         cake_messages: [{
@@ -217,7 +221,7 @@ describe('integrated_bbox_v1 analysis', () => {
 
     expect(result.main_toppers[0].box_2d).toEqual(unitBoxes);
     expect(result.main_toppers[0].bbox_confidence).toEqual([0.91, 0.88]);
-    expect(result.main_toppers[0].size).toBe('medium');
+    expect(result.main_toppers[0].size).toBe('large');
     expect((result.main_toppers[1].box_2d as unknown[]).length).toBe(5);
     expect(result.main_toppers[1].quantity).toBe(6);
     expect((result.support_elements[0].box_2d as unknown[]).length).toBe(5);
@@ -252,12 +256,12 @@ describe('integrated_bbox_v1 analysis', () => {
     expect(result.cakeThickness).toBe('3 in');
   });
 
-  it('uses diameter squared for topper area even when the height line length changes', () => {
+  it('uses a fixed 0.67×diameter reference height even when measured wall height differs', () => {
     const result = process(acceptedEnvelope({
       analysis: acceptedAnalysis({
         main_toppers: [{
           type: 'edible_3d_complex', material: 'edible_fondant', group_id: 'hero', classification: 'hero',
-          quantity: 1, description: 'fondant figure', box_2d: [250, 125, 350, 140], bbox_confidence: 0.9,
+          quantity: 1, description: 'fondant figure', box_2d: [250, 125, 267, 184], bbox_confidence: 0.9,
         }],
         support_elements: [{
           type: 'edible_flowers_filler', material: 'edible_fondant', group_id: 'filler', color: '#FFFFFF',
@@ -267,12 +271,35 @@ describe('integrated_bbox_v1 analysis', () => {
       geometry: {
         geometry_version: 'integrated_bbox_v1',
         cake_diameter_line: { start: [300, 100], end: [300, 200] },
-        cake_height_line: { start: [300, 150], end: [900, 150] },
+        cake_height_line: { start: [300, 150], end: [350, 150] },
       },
     }));
 
     expect(result.main_toppers[0].size).toBe('small');
-    expect(result.support_elements[0].size).toBe('medium');
+    expect(result.support_elements[0].size).toBe('large');
+  });
+
+  it('uses the same fixed 0.67×diameter reference when tolerant sizing has no cake-height line', () => {
+    const result = processV2Tolerant(acceptedV2Envelope({
+      analysis: acceptedAnalysis({
+        main_toppers: [{
+          type: 'edible_3d_complex', material: 'edible_fondant', group_id: 'hero', classification: 'hero',
+          quantity: 1, description: 'fondant figure', box_2d: [[250, 125, 267, 184]], bbox_confidence: [0.9],
+        }],
+        support_elements: [{
+          type: 'edible_flowers_filler', material: 'edible_fondant', group_id: 'filler', color: '#FFFFFF',
+          quantity: 1, description: 'filler flowers', box_2d: [[250, 100, 350, 170]], bbox_confidence: [0.8],
+        }],
+      }),
+      geometry: {
+        geometry_version: 'integrated_bbox_v2',
+        cake_diameter_line: { start: [300, 100], end: [300, 200] },
+      },
+    }), undefined, { allowMissingCakeHeightLine: true });
+
+    expect(result.main_toppers[0].size).toBe('small');
+    expect(result.support_elements[0].size).toBe('large');
+    expect(result.geometry).not.toHaveProperty('cake_height_line');
   });
 
   it('fails closed on missing or invalid boxes, invalid lines, and model-owned sizes', () => {
@@ -617,6 +644,7 @@ describe('integrated_bbox_v1 analysis', () => {
     expect(stagedConfig.systemInstruction).toContain('V3.95 INTEGRATED BOUNDING-BOX CONTRACT');
     expect(stagedConfig.systemInstruction).toContain('Printouts always use unit');
     expect(stagedConfig.systemInstruction).toContain('For quantity 6 or greater, target 5 visible-unit boxes');
+    expect(stagedConfig.systemInstruction).toContain('cake_area = diameter_width * (0.67 * diameter_width)');
     const schema = stagedConfig.responseSchema as unknown as {
       properties: {
         analysis: {
@@ -728,14 +756,14 @@ describe('integrated_bbox_v1 analysis', () => {
       }),
     }));
 
-    expect(result.support_elements).toHaveLength(2);
-    expect(result.support_elements.map((row) => row.size)).toEqual(['small', 'medium']);
-    expect(result.support_elements.map((row) => row.quantity)).toEqual([2, 2]);
+    expect(result.support_elements).toHaveLength(3);
+    expect(result.support_elements.map((row) => row.size)).toEqual(['small', 'medium', 'large']);
+    expect(result.support_elements.map((row) => row.quantity)).toEqual([2, 1, 1]);
     expect(result.support_elements.map((row) => row.group_id)).toEqual([
-      'mixed_flowers::bbox:small', 'mixed_flowers::bbox:medium',
+      'mixed_flowers::bbox:small', 'mixed_flowers::bbox:medium', 'mixed_flowers::bbox:large',
     ]);
     expect(result.support_elements.map((row) => row.parent_group_id)).toEqual([
-      'mixed_flowers', 'mixed_flowers',
+      'mixed_flowers', 'mixed_flowers', 'mixed_flowers',
     ]);
     expect(result.support_elements.flatMap((row) => (row.box_2d ?? []) as unknown[])).toHaveLength(4);
     expect(result.support_elements.flatMap((row) => row.bbox_confidence)).toEqual([0.91, 0.82, 0.73, 0.64]);

@@ -105,6 +105,7 @@ const RETRYABLE_BBOX_REASONS = new Set([
 ]);
 
 const MAX_AXIS_DRIFT = 25;
+const CAKE_HEIGHT_TO_DIAMETER_REFERENCE_RATIO = 0.67;
 // Cake rims and front walls are visibly perspective-skewed in many source
 // photos. "Predominantly" means the requested axis remains the dominant one;
 // 25% keeps that constraint meaningful without rejecting a normal cake rim.
@@ -995,10 +996,9 @@ export function applyIntegratedBboxSizing(
 
   const diameter = geometry.cake_diameter_line!;
   const cakeWidth = Math.abs(diameter.end[1] - diameter.start[1]);
-  // The height line remains the aspect-ratio input for cakeThickness. For
-  // topper/support area bands, use the diameter square as the stable reference
-  // area so camera perspective on the wall height cannot change size bands.
-  const cakeArea = cakeWidth * cakeWidth;
+  // Use the fixed 6×4-equivalent reference requested for topper sizing;
+  // cake_height_line does not affect this area calculation.
+  const cakeArea = cakeWidth * (CAKE_HEIGHT_TO_DIAMETER_REFERENCE_RATIO * cakeWidth);
   if (!Number.isFinite(cakeArea) || cakeArea <= 0) {
     fail('geometry', 'must produce a positive finite cake area');
   }
