@@ -8,7 +8,8 @@
 - [x] Carry the migration changes onto a clean checkout of current production commit `76b3d44f` without altering the dirty primary checkout.
 - [ ] Supply the exact staging `workers.dev` origin and review every production redirect or callback assumption; the config generator now rejects the live origin.
 - [x] Confirm the account subdomain and existing GitHub access to `apcaballes87/cake-genie-ai`; planned staging origin is `https://genieph-container-staging.apcaballes.workers.dev`.
-- [ ] Publish the scoped migration branch and configure the remote build to use it.
+- [x] Publish the migration branch `codex/cloudflare-staging-baseline` at `d9294cf1`.
+- [ ] Configure Cloudflare Builds to deploy only that staging branch.
 - [ ] Use a Linux/amd64 Docker builder (local or Cloudflare Workers Builds) to build and smoke-check the real Container image.
 - [x] Confirm Cloudflare account is already on Workers Paid; the account plan page shows “Current plan” at $5/month plus usage and includes Containers.
 - [ ] Configure only staging-required secrets and test credentials.
