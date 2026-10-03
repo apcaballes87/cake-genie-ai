@@ -9,20 +9,34 @@
 - [ ] Supply the exact staging `workers.dev` origin and review every production redirect or callback assumption; the config generator now rejects the live origin.
 - [x] Confirm the account subdomain and existing GitHub access to `apcaballes87/cake-genie-ai`; planned staging origin is `https://genieph-container-staging.apcaballes.workers.dev`.
 - [x] Publish the migration branch `codex/cloudflare-staging-baseline` at `d9294cf1`.
-- [ ] Configure Cloudflare Builds to deploy only that staging branch.
+- [x] Configure Cloudflare Builds to deploy only that staging branch.
 - [ ] Use a Linux/amd64 Docker builder (local or Cloudflare Workers Builds) to build and smoke-check the real Container image.
 - [x] Confirm Cloudflare account is already on Workers Paid; the account plan page shows “Current plan” at $5/month plus usage and includes Containers.
 - [ ] Configure only staging-required secrets and test credentials.
 - [ ] Deploy the isolated staging Worker on `workers.dev` with no custom routes or cron triggers.
 - [ ] Compare matching real Genie routes and safe test flows against Vercel for correctness, latency, memory, cold starts, and projected monthly cost.
 
-### Follow-up review
+### Baseline recovery and staging execution (2026-10-03)
+
+- [x] Verify the production project and branch inventory, then distinguish TCP/TLS reachability from PostgreSQL login.
+- [x] Confirm native PostgreSQL login with SSL required and GSS encryption disabled, without displaying connection credentials.
+- [x] Export a schema-only baseline privately and inspect it for secrets, dependencies, RLS, and replay hazards.
+- [x] Prepare a reviewable staging-only baseline and inventory required seeds, Storage, Auth, and external-provider configuration.
+- [x] Initialize an isolated staging database without changing production schema or migration history.
+- [ ] Configure staging-only credentials, build/deploy the Genie Cloudflare Container, and compare safe real flows against Vercel.
+
+### Follow-up evidence
 
 - Vercel's latest READY production deployment and this new worktree's HEAD are both `76b3d44f`. The migration patch applied cleanly, and staging has not been deployed.
 - Cloudflare account inventory currently shows zero Workers. This Mac has no Docker CLI and has about 7.6 GiB available; use a remote builder if a local Docker build is impractical.
 - The generated config now requires a staging-specific `NEXT_PUBLIC_SITE_URL`; it rejects the live domain so auth and Studio links cannot silently use it.
 - Verified the generator accepts a sample staging `workers.dev` origin and rejects `https://genie.ph` (expected error). Temporary dummy config and dependency symlink were removed afterward; `git diff --check` passes.
 - Wrangler login has Container permissions and `wrangler containers list` reports no containers. The dashboard now confirms Workers Paid is the current account plan; no purchase was made. GitHub access to `cake-genie-ai` is confirmed in the creation wizard. The initial wizard exposes build/deploy commands but no branch selector, so do not launch its default build until staging branch selection is resolved.
+- On 2026-10-03, configured the user-scoped Cloudflare Build token, GitHub connection, and one trigger for `codex/cloudflare-staging-baseline` only. The trigger points to Worker tag `be0e85d278724a75aa3647580a042d90`; Build API confirms zero builds. The custom-domain/routes table is empty and only the `workers.dev` URL is enabled. A direct GET returns HTTP 200 `Hello World!`, so the Genie container has not been built or deployed.
+- On 2026-10-03, `npm ci`, `npm run cf:typecheck`, and a local `npm run build` with deliberately fake/unreachable Supabase values completed. The build compiled and generated all 108 static pages; expected Supabase fetches failed against `does-not-exist.invalid`, so this verifies compilation only, not real page data or runtime behavior. This host has no Docker CLI, so the Container image remains unbuilt locally.
+- On 2026-10-03, created isolated Supabase preview branch `cloudflare-staging` (`tvnvkkqduyvorbyqrqyo`) with `with_data=false`. Its migration replay failed after three migrations: `20241102000000_fix_shared_designs_rls` references missing `cakegenie_shared_designs`. Production metadata lists 79 public tables and 276 migrations; the failed branch had one table and three migrations. Branch-only rebase did not resolve the missing baseline. The empty failed branch was deleted; production remains `ACTIVE_HEALTHY`, and only its `main` branch remains. No branch credentials were sent to Cloudflare.
+- On 2026-10-03, baseline preparation remained read-only. The normal Supabase schema-dump wrapper requires Docker; the generated schema-only `pg_dump` command then timed out connecting to the Supabase pooler. No full baseline SQL was produced and no production migration history or schema was changed. Homebrew's keg-only `libpq` client and dependencies were installed locally for the export attempt; the package was not added to the shell PATH. This diagnosis was superseded below: native login works with SSL required and GSS disabled; catalog collection needed additional time.
+- Supabase's production table inventory also reports nine public tables with RLS disabled. Do not apply the generated RLS remediation automatically; policy/access behavior needs review. Before Cloudflare deployment, repair or replace the incomplete Supabase branch migration baseline and review the RLS findings.
 - No DNS, Vercel, cron, payment, or production service setting was changed in this follow-up.
 
 ### Plan
@@ -5632,3 +5646,10 @@ Clean `origin/main` publication checkout: 17 focused test files passed (98 tests
 - Integrated bbox size bands use `cake_width × (0.67 × cake_width)` for v1, strict v2, and tolerant v2. The measured wall line remains available for cake-thickness inference.
 - Updated the fallback prompt and application-owned contract text. Tests cover the 15% and 70% boundaries and confirm that measured or missing height lines do not change the area reference.
 - Verification: integrated bbox suite passed (27 tests); the two affected prompt assertions passed. The full prompt suite has five existing failures because its historical migration fixtures are absent from `origin/main`. `git diff --check` passed.
+
+### Cloudflare staging baseline recovery result (2026-10-03)
+
+- Native read-only schema export succeeded. Sanitized application baseline imported transactionally into isolated branch `eukfiktniwjtfjwjuvia`; verified 79 public tables, 129 application functions, 172 public policies, 32 Storage policies, two Auth triggers, and zero unsafe outbound hooks. Branch Data API returned HTTP 200. Production schema and migration history were not changed.
+- Prepared ignored generated Cloudflare build configuration using only staging site URL, staging Supabase URL, and branch anon key. Public fixture seeds, runtime credentials, hosted deployment, and performance comparison remain pending.
+
+- Follow-up: staging-only seed transaction imported global cake sizes, active pricing rules, active global prompts, and three published public designs. Two staging Storage buckets created. Cloudflare Worker typecheck and diff checks pass. Hosted deployment is pending Cloudflare browser login because Builds API access returns 403; browser sign-in requested.
