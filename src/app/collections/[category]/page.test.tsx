@@ -31,6 +31,11 @@ vi.mock('@/app/collections/[category]/CategoryClient', () => ({
 }));
 
 describe('collections category metadata', () => {
+  it('renders query-dependent pagination dynamically even with an empty build catalog', async () => {
+    const { dynamic } = await import('./page');
+    expect(dynamic).toBe('force-dynamic');
+  });
+
   beforeEach(() => {
     getCollectionBySlug.mockReset();
     getDesignCategories.mockReset();

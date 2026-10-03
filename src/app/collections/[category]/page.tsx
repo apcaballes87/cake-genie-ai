@@ -19,7 +19,9 @@ import {
     resolvePriorityCollectionSlug,
 } from '@/lib/seo/priorityCollections'
 
-export const revalidate = 3600; // ISR: revalidate every hour
+// Pagination reads searchParams at request time. An empty build-time catalog
+// must not classify this route as static and fail its first runtime request.
+export const dynamic = 'force-dynamic';
 
 const COLLECTION_SEO_FALLBACKS: Record<string, { description: string; keywords: string[] }> = {
     ...PRIORITY_COLLECTION_SEO,
