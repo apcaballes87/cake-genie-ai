@@ -1,0 +1,18 @@
+{
+  "name": "genieph-vertex-staging-auth",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "test": "vitest run --config vitest.config.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "types": "wrangler types worker-configuration.d.ts --include-runtime=false",
+    "deploy:check": "wrangler deploy --dry-run",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20261002.1",
+    "wrangler": "4.146.0",
+    "typescript": "5.9.3",
+    "vitest": "4.0.18"
+  }
+}
