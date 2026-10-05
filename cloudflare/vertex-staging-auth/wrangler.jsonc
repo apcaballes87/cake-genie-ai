@@ -7,11 +7,13 @@
   "preview_urls": false,
   "observability": {
     "enabled": true,
-    "traces": { "enabled": true }
+    "traces": {
+      "enabled": true
+    }
   },
   "vars": {
-    "ACCESS_TEAM_DOMAIN": "",
-    "ACCESS_AUDIENCE": "",
-    "ACCESS_SERVICE_TOKEN_ID": ""
+    "ACCESS_TEAM_DOMAIN": "https://withered-sunset-1d5b.cloudflareaccess.com",
+    "ACCESS_AUDIENCE": "0c00b9b51dea63e5a633a0fc62b2e3d091c2d9ab4006218a66e01cba770c109d",
+    "ACCESS_SERVICE_TOKEN_ID": "9fbc5d106e5d58c64f688e9b7ad31f35.access"
   }
 }
