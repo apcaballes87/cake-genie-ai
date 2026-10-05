@@ -372,6 +372,8 @@ export async function calculatePriceFromDatabase(
       } else {
         effectiveType = 'edible_2d_support';
       }
+    } else if (category === 'support_element' && type === 'support_printout') {
+      effectiveType = 'printout';
     } else if (category === 'message' && type === 'icing_text') {
       effectiveType = 'icing_script';
     } else if (category === 'support_element' && type === 'edible_2d_shapes') {
