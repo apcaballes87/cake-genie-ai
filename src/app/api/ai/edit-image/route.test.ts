@@ -15,6 +15,7 @@ import { POST } from './route';
 describe('/api/ai/edit-image', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        generateContent.mockReset();
     });
 
     it('calls the Gemini 3.1 Flash Image model for image edits', async () => {
@@ -325,7 +326,7 @@ describe('/api/ai/edit-image', () => {
         });
     });
 
-    it('preserves non-quota failures as 500s with the underlying message', async () => {
+    it('sanitizes unexpected failures instead of exposing provider internals', async () => {
         generateContent.mockRejectedValueOnce(new Error('Unexpected Gemini failure'));
 
         const response = await POST(
@@ -341,7 +342,37 @@ describe('/api/ai/edit-image', () => {
 
         expect(response.status).toBe(500);
         await expect(response.json()).resolves.toEqual({
-            error: 'Unexpected Gemini failure',
+            error: 'Failed to edit image. Please try again.',
         });
     });
+    const editRequest = () => new Request('http://localhost/api/ai/edit-image', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: 'Make the topper pink', originalImage: { data: 'abc123', mimeType: 'image/png' } }),
+    }) as never;
+
+    it('retries an empty generation once and returns the generated image', async () => {
+        generateContent.mockResolvedValueOnce({ candidates: [{ finishReason: 'NO_IMAGE' }] })
+            .mockResolvedValueOnce({ candidates: [{ content: { parts: [{ inlineData: { data: 'edited', mimeType: 'image/png' } }] } }] });
+        const response = await POST(editRequest());
+        expect(response.status).toBe(200);
+        expect(generateContent).toHaveBeenCalledTimes(2);
+        expect((await response.json()).imageData).toBe('edited');
+    });
+
+    it('returns an explicit provider block without retrying it', async () => {
+        generateContent.mockResolvedValueOnce({ candidates: [{ finishReason: 'IMAGE_RECITATION' }] });
+        const response = await POST(editRequest());
+        expect(response.status).toBe(422);
+        expect(generateContent).toHaveBeenCalledTimes(1);
+        expect(await response.json()).toMatchObject({ code: 'AI_CONTENT_BLOCKED', reason: 'IMAGE_RECITATION' });
+    });
+
+    it('reports an unavailable image after at most two empty generations', async () => {
+        generateContent.mockResolvedValue({ candidates: [] });
+        const response = await POST(editRequest());
+        expect(response.status).toBe(502);
+        expect(generateContent).toHaveBeenCalledTimes(2);
+        expect(await response.json()).toMatchObject({ code: 'AI_NO_IMAGE' });
+    });
+
 });
