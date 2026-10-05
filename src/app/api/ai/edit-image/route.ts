@@ -24,7 +24,9 @@ type AiInlineDataPart = {
 };
 
 type AiGenerateContentResponse = {
+    promptFeedback?: { blockReason?: string };
     candidates?: Array<{
+        finishReason?: string;
         content?: {
             parts?: AiInlineDataPart[];
         };
@@ -214,6 +216,9 @@ export async function POST(req: NextRequest) {
                 responseModalities: getResponseModalities(DEFAULT_MODEL_NAME),
                 fallbackFrom: COLOR_ONLY_MODEL_NAME,
             });
+        } else {
+            // Retry one empty generation; explicit provider blocks return before retrying.
+            attempts.push({ modelName, responseModalities: getResponseModalities(modelName) });
         }
 
         let lastTextResponse = '';
@@ -233,7 +238,10 @@ export async function POST(req: NextRequest) {
                 config: {
                     systemInstruction: systemInstruction,
                     responseModalities: attempt.responseModalities,
-                    abortSignal: AbortSignal.timeout(AI_EDIT_REQUEST_TIMEOUT_MS),
+                    abortSignal: AbortSignal.timeout(Math.max(1, Math.min(
+                        AI_EDIT_REQUEST_TIMEOUT_MS,
+                        150_000 - (Date.now() - startedAt),
+                    ))),
                 },
             });
 
@@ -255,12 +263,28 @@ export async function POST(req: NextRequest) {
             }
 
             const textResponse = extractTextResponse(response);
+            const providerResponse = response as AiGenerateContentResponse;
+            const finishReason = providerResponse.candidates?.[0]?.finishReason;
+            const blockReason = providerResponse.promptFeedback?.blockReason;
+            const isContentBlocked = Boolean(blockReason && blockReason !== 'BLOCK_REASON_UNSPECIFIED')
+                || ['SAFETY', 'RECITATION', 'BLOCKLIST', 'PROHIBITED_CONTENT', 'IMAGE_SAFETY', 'IMAGE_PROHIBITED_CONTENT', 'IMAGE_RECITATION'].includes(finishReason || '');
+            if (isContentBlocked) {
+                console.warn(`[AI TRACE ${traceId}] /api/ai/edit-image:blocked`, {
+                    requestSource, model: attempt.modelName, finishReason, blockReason,
+                });
+                return NextResponse.json({
+                    error: 'The AI provider could not edit this image because of its content restrictions. Please try a different reference image.',
+                    code: 'AI_CONTENT_BLOCKED',
+                    reason: blockReason || finishReason,
+                    traceId,
+                }, { status: 422 });
+            }
             lastTextResponse = textResponse;
-            lastSerializedResponse = JSON.stringify(response).slice(0, 2000);
+            lastSerializedResponse = JSON.stringify({ finishReason, blockReason, model: attempt.modelName });
 
             const hasRetryAttempt = attemptIndex < attempts.length - 1;
 
-            if (hasRetryAttempt) {
+            if (hasRetryAttempt && (!textResponse || attempt.modelName === COLOR_ONLY_MODEL_NAME)) {
                 console.warn(`[AI TRACE ${traceId}] /api/ai/edit-image:fallback`, {
                     requestSource,
                     fromModel: attempt.modelName,
@@ -307,7 +331,7 @@ export async function POST(req: NextRequest) {
         });
 
         return NextResponse.json(
-            { error: 'AI did not return an edited image. Please try again.' },
+            { error: 'The AI returned no edited image after two attempts. Your original image is unchanged. Please try again.', code: 'AI_NO_IMAGE', traceId },
             { status: 502 }
         );
 

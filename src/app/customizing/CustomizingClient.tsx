@@ -4027,7 +4027,6 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
     const hasPrintoutConversionNotice = hasPrintoutConversion(printoutConversions);
 
     const showStickyBar = finalPrice !== null || !!basePriceError || isAnalyzing || hasPendingVisualChanges || isUpdatingDesign;
-    const isStudioBackgroundEditingTerminal = studioEditStatus === 'failed' || studioEditStatus === 'completed';
     const isStudioBackgroundEditingPending = Boolean(
         !isComposingSelfie
         && originalImagePreview
@@ -4035,7 +4034,7 @@ const CustomizingClient: React.FC<CustomizingClientProps> = ({ product: initialP
             currentPHash
             || (recentSearchDesign?.p_hash && recentSearchDesign?.studio_edit_status === 'processing')
         )
-        && !isStudioBackgroundEditingTerminal
+        && studioEditStatus === 'processing'
         && !liveStudioEditedImageUrl
     );
     const preferredHeroOriginalImage = firstNonBlankImageUrl(
