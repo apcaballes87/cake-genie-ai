@@ -6,6 +6,7 @@
     "test": "vitest run --config vitest.config.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "types": "wrangler types worker-configuration.d.ts --include-runtime=false",
+    "refresh-access-jwks": "node scripts/refresh-access-jwks.mjs",
     "deploy:check": "wrangler deploy --dry-run",
     "deploy": "wrangler deploy"
   },

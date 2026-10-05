@@ -1,5 +1,7 @@
 // Access authenticates a dedicated staging service token before this Worker runs.
 // Verify its signed identity again before returning a subject token to Google STS.
+import accessJwks from './access-jwks.json' with { type: 'json' };
+
 type BrokerConfig = { [K in keyof Pick<Cloudflare.Env, 'ACCESS_TEAM_DOMAIN' | 'ACCESS_AUDIENCE' | 'ACCESS_SERVICE_TOKEN_ID'>]: string };
 
 type SigningKey = JsonWebKey & { kid?: string };
@@ -12,7 +14,7 @@ function decodePart(value: string): Uint8Array {
 export async function verifyAccessToken(
   token: string,
   config: BrokerConfig,
-  fetchKeys: typeof fetch = fetch,
+  fetchKeys: typeof fetch = async () => Response.json(accessJwks),
   now = Math.floor(Date.now() / 1000),
 ): Promise<void> {
   const issuer = new URL(config.ACCESS_TEAM_DOMAIN);
@@ -39,12 +41,19 @@ export async function verifyAccessToken(
     redirect: 'error', signal: AbortSignal.timeout(5000),
   });
   if (!response.ok) throw new Error('Signing keys unavailable');
-  const jwks = await response.json() as { keys?: SigningKey[] };
+  let jwks: { keys?: SigningKey[] };
+  try { jwks = await response.json() as { keys?: SigningKey[] }; }
+  catch { throw new Error('Signing key response invalid'); }
   const jwk = jwks.keys?.find(key => key.kid === header.kid && key.kty === 'RSA');
   if (!jwk) throw new Error('Signing key unavailable');
-  const key = await crypto.subtle.importKey('jwk', jwk, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
-  if (!await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, decodePart(parts[2]),
-      new TextEncoder().encode(`${parts[0]}.${parts[1]}`))) {
+  let key: CryptoKey;
+  try { key = await crypto.subtle.importKey('jwk', jwk, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']); }
+  catch { throw new Error('Signing key import failed'); }
+  let signatureValid: boolean;
+  try { signatureValid = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, decodePart(parts[2]),
+      new TextEncoder().encode(`${parts[0]}.${parts[1]}`)); }
+  catch { throw new Error('Signature check failed'); }
+  if (!signatureValid) {
     throw new Error('Invalid signature');
   }
 }
@@ -59,8 +68,18 @@ export default {
     try {
       await verifyAccessToken(token, env);
       return new Response(token, { headers });
-    } catch {
-      // Never log the assertion, client secret, or full request headers.
+    } catch (error) {
+      // Log only fixed verifier messages, never the assertion or request headers.
+      const reason = error instanceof Error && [
+        'Invalid broker configuration', 'Token too large', 'Malformed JWT',
+        'Unsupported signing algorithm', 'Invalid service identity',
+        'Signing keys unavailable', 'Signing key unavailable', 'Invalid signature',
+        'Signing key response invalid',
+        'Signing key import failed', 'Signature check failed',
+      ].includes(error.message) ? error.message : 'Verification error';
+      const errorType = error instanceof Error && ['TypeError', 'SyntaxError', 'RangeError', 'DataError', 'TimeoutError'].includes(error.name)
+        ? error.name : 'Other';
+      console.warn(JSON.stringify({ event: 'access_token_rejected', reason, errorType }));
       return new Response('Unauthorized', { status: 401, headers });
     }
   },

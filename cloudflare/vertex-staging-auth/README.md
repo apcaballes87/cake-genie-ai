@@ -19,10 +19,25 @@ belongs only in the staging application's server-side credential configuration.
   `CF-Access-Client-Secret` through Access. Never log or display the returned JWT.
 
 The broker validates RS256 signature, issuer, audience, service identity, and
-expiry. It uses the team's fixed `/cdn-cgi/access/certs` endpoint rather than a
-URL supplied by the request. Service-token JWTs have an empty `sub`, so the
-Google principal must use `common_name` instead. Do not rely on an Access cookie:
-strict service-token authentication can omit `CF_Authorization`.
+expiry. Its bundled `access-jwks.json` contains public verification keys only;
+the Worker runtime cannot reliably fetch the Access team cert endpoint. Service
+token JWTs have an empty `sub`, so the Google principal must use `common_name`.
+Do not rely on an Access cookie: service-token authentication does not return
+`CF_Authorization`.
+
+Refresh and redeploy the public verification keys when Cloudflare rotates the
+Access signing keys:
+
+```sh
+cd cloudflare/vertex-staging-auth
+npm run refresh-access-jwks -- https://withered-sunset-1d5b.cloudflareaccess.com
+npm test
+npm run typecheck
+npm run deploy
+```
+
+Commit the refreshed public JWKS file to keep the deployed verification set
+reproducible. These are public keys, not credentials.
 
 ## Dedicated Google trust
 
