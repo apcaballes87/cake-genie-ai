@@ -553,8 +553,8 @@ function HeroProductPeekCarousel({
  */
 
 /**
- * Hero "AI price calculator" CTA — the homepage's primary action — with the
- * three-step explainer underneath. Opens the existing uploader.
+ * Hero "AI price calculator" CTA — the homepage's primary action.
+ * Opens the existing uploader.
  */
 function HeroInstantPriceCta({
     onUpload,
@@ -564,30 +564,34 @@ function HeroInstantPriceCta({
     trackingSource: LandingCtaLocation;
 }) {
     return (
-        <div className="w-full">
-            <button
-                type="button"
-                onClick={() => {
-                    trackLandingCtaClick(trackingSource);
-                    onUpload();
-                }}
-                className={`flex w-full items-center justify-center gap-2.5 ${LANDING_PRIMARY_CTA_RADIUS} bg-[var(--genie-primary)] py-[18px] px-4 text-[13px] min-[390px]:text-[14px] md:text-[17px] font-extrabold uppercase md:tracking-wide text-white shadow-[0_14px_28px_-14px_rgba(91,42,110,0.7)] transition-colors hover:bg-[var(--genie-primary-hover)] active:scale-[0.99]`}
-            >
-                <ImagePlus size={20} className="shrink-0" />
-                <span className="whitespace-nowrap">Upload design · Get instant price</span>
-            </button>
-            <ol className="mt-4 flex items-start justify-center gap-2">
-                {['Upload', 'AI prices it', 'Customize & order'].map((step, index) => (
-                    <li key={step} className="flex items-center gap-2">
-                        {index > 0 && <span aria-hidden="true" className="h-px w-4 bg-[var(--genie-line)] min-[400px]:w-6" />}
-                        <span className="flex items-center gap-1.5 whitespace-nowrap text-[12px] md:text-[13px] font-semibold text-[var(--genie-muted)]">
-                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--genie-primary)] text-[10px] font-bold text-white">{index + 1}</span>
-                            {step}
-                        </span>
-                    </li>
-                ))}
-            </ol>
-        </div>
+        <button
+            type="button"
+            onClick={() => {
+                trackLandingCtaClick(trackingSource);
+                onUpload();
+            }}
+            className={`flex w-full items-center justify-center gap-2.5 ${LANDING_PRIMARY_CTA_RADIUS} bg-[var(--genie-primary)] py-[18px] px-4 text-[13px] min-[390px]:text-[14px] md:text-[17px] font-extrabold uppercase md:tracking-wide text-white shadow-[0_14px_28px_-14px_rgba(91,42,110,0.7)] transition-colors hover:bg-[var(--genie-primary-hover)] active:scale-[0.99]`}
+        >
+            <ImagePlus size={20} className="shrink-0" />
+            <span className="whitespace-nowrap">Upload design · Get instant price</span>
+        </button>
+    );
+}
+
+/** Three-step "how AI pricing works" strip shown under the hero headline. */
+function HeroPricingSteps({ className = '' }: { className?: string }) {
+    return (
+        <ol className={`flex items-center justify-center gap-1.5 min-[390px]:gap-2 md:gap-3 ${className}`}>
+            {['Upload', 'AI prices it', 'Customize & order'].map((step, index) => (
+                <li key={step} className="flex items-center gap-1.5 min-[390px]:gap-2 md:gap-3">
+                    {index > 0 && <span aria-hidden="true" className="h-px w-2 bg-[#d9cfc4] min-[390px]:w-5 md:w-8" />}
+                    <span className="flex items-center gap-1 min-[390px]:gap-1.5 md:gap-2 whitespace-nowrap text-[12px] min-[390px]:text-[14px] md:text-[17px] font-semibold text-[var(--genie-ink)]">
+                        <span className="flex h-5 w-5 min-[390px]:h-6 min-[390px]:w-6 md:h-7 md:w-7 shrink-0 items-center justify-center rounded-full bg-[var(--genie-primary)] text-[10px] min-[390px]:text-[11px] md:text-[13px] font-bold text-white">{index + 1}</span>
+                        {step}
+                    </span>
+                </li>
+            ))}
+        </ol>
     );
 }
 
@@ -2073,9 +2077,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                             </>
                                         )}
                         </h1>
-                        <p className="mx-auto mt-4 max-w-[330px] text-[16px] leading-relaxed text-[var(--genie-muted)]">
-                            Upload any cake design. Get a real price in seconds. Delivered today.
-                        </p>
+                        <HeroPricingSteps className="mt-5" />
                     </div>
 
                     {/* Desktop Hero View: 2-column layout */}
@@ -2105,9 +2107,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                             </>
                                         )}
                             </h1>
-                            <p className="mx-auto mt-5 max-w-[500px] text-[17px] lg:text-[19px] leading-relaxed text-[var(--genie-muted)]">
-                                Upload any cake design and our AI gives you a real price in seconds. Customize every detail, then get it delivered across Metro Cebu, even today.
-                            </p>
+                            <HeroPricingSteps className="mt-7" />
                             {heroUploadState === 'idle' && (
                                 <div className="mt-7 flex w-full max-w-[480px] flex-col">
                                     <HeroInstantPriceCta
