@@ -25,6 +25,8 @@ import {
 import type { AnalysisGenerationSizeSchema } from '@/lib/admin/searchAnalysisContract';
 import { ThinkingLevel, Type } from '@google/genai';
 import { logCakeAnalysisDebug } from '@/lib/ai/analysisDebug';
+import { generateClaudeJson } from '@/lib/ai/claudeClient';
+import { getCakeAnalysisProviderSettings, type CakeAnalysisProvider } from '@/lib/ai/providerSettings';
 import {
     getIntegratedBboxRepairCandidates,
     mergeIntegratedBboxRepairResponse,
@@ -156,6 +158,8 @@ export type RunCakeAnalysisInput = {
     previousAnalysis?: unknown;
 };
 
+type ProviderTarget = { provider: CakeAnalysisProvider; model: string };
+
 export type RunCakeAnalysisResult = {
     result: GeneratedCakeAnalysisResult & {
         analysis_size_schema:
@@ -169,7 +173,8 @@ export type RunCakeAnalysisResult = {
     rawResponse: string;
     sizeSchema: AnalysisGenerationSizeSchema;
     effectiveSettings: {
-        model: CakeAnalysisModel;
+        model: CakeAnalysisModel | string;
+        provider: CakeAnalysisProvider;
         thinkingLevel: CakeAnalysisThinkingLevel;
         temperature: number;
         topP: number;
@@ -406,7 +411,36 @@ full-height repetition is false.`,
     }
 }
 
-export async function runActiveCakeAnalysis({
+/**
+ * Production callers omit `model`, so the provider comes from the
+ * admin-controlled `ai_provider_settings` row (with optional cross-provider
+ * fallback). Explicit lab/comparison models always run on Gemini as requested.
+ */
+export async function runActiveCakeAnalysis(input: RunCakeAnalysisInput): Promise<RunCakeAnalysisResult> {
+    if (input.model) {
+        return runCakeAnalysisWithProvider(input, { provider: 'gemini', model: input.model });
+    }
+
+    const settings = await getCakeAnalysisProviderSettings();
+    const targets: ProviderTarget[] = [
+        { provider: 'gemini', model: settings.geminiModel },
+        { provider: 'claude', model: settings.claudeModel },
+    ];
+    if (settings.provider === 'claude') targets.reverse();
+
+    try {
+        return await runCakeAnalysisWithProvider(input, targets[0]);
+    } catch (primaryError) {
+        // Skip a Claude fallback that cannot authenticate rather than masking
+        // the real Gemini error with a missing-key error.
+        const fallbackUnavailable = targets[1].provider === 'claude' && !process.env.ANTHROPIC_API_KEY;
+        if (!settings.fallbackEnabled || fallbackUnavailable) throw primaryError;
+        console.warn(`[AI Provider] ${targets[0].provider} analysis failed; falling back to ${targets[1].provider}.`, primaryError);
+        return runCakeAnalysisWithProvider(input, targets[1]);
+    }
+}
+
+async function runCakeAnalysisWithProvider({
     imageData,
     mimeType,
     requestContext,
@@ -415,7 +449,6 @@ export async function runActiveCakeAnalysis({
     persistRejectedUpload = true,
     promptVersion,
     promptText,
-    model = ANALYSIS_MODEL as CakeAnalysisModel,
     thinkingLevel = 'LOW',
     temperature,
     topP,
@@ -423,7 +456,7 @@ export async function runActiveCakeAnalysis({
     sizeSchema: requestedSizeSchema,
     usePromptCache = false,
     previousAnalysis,
-}: RunCakeAnalysisInput): Promise<RunCakeAnalysisResult> {
+}: RunCakeAnalysisInput, { provider, model }: ProviderTarget): Promise<RunCakeAnalysisResult> {
     const supabase = createClient();
     // Explicit versions are supplied only by trusted server-side flows (admin
     // comparisons, selected reruns, or the local development selector). They
@@ -445,10 +478,11 @@ export async function runActiveCakeAnalysis({
         throw new Error(`AI prompt version ${promptVersion} was not found.`);
     }
 
-    const aiClient = await getAI(requestContext);
+    const aiClient = provider === 'gemini' ? await getAI(requestContext) : null;
     const sizeSchema = requestedSizeSchema ?? getAnalysisGenerationSizeSchema(promptDetails.version);
     const seoSchema = resolveAnalysisGenerationSeoSchema(promptDetails.promptText);
-    logCakeAnalysisDebug('Gemini request starting', {
+    logCakeAnalysisDebug('AI request starting', {
+        provider,
         promptVersion: promptDetails.version,
         sizeSchema,
         seoSchema,
@@ -469,7 +503,7 @@ export async function runActiveCakeAnalysis({
     };
     let cacheName: string | null = null;
 
-    if (usePromptCache && promptText === undefined) {
+    if (aiClient && usePromptCache && promptText === undefined) {
         try {
             cacheName = await getCachedPromptCacheName(
                 aiClient,
@@ -485,7 +519,21 @@ export async function runActiveCakeAnalysis({
         correctionInstruction?: string,
         timeoutMs = AI_REQUEST_TIMEOUT_MS,
         responseSchemaOverride?: typeof baseConfig.responseSchema | ReturnType<typeof buildIntegratedBboxRepairSchema>,
-    ) => {
+    ): Promise<{ text?: string }> => {
+        if (!aiClient) {
+            return {
+                text: await generateClaudeJson({
+                    model,
+                    systemInstruction: baseConfig.systemInstruction,
+                    promptText: promptDetails.promptText,
+                    imageData,
+                    mimeType,
+                    repairInstruction: correctionInstruction,
+                    responseSchema: responseSchemaOverride ?? baseConfig.responseSchema,
+                    timeoutMs,
+                }),
+            };
+        }
         const generateWithoutCache = () => aiClient.models.generateContent({
             model,
             contents: [{
@@ -541,7 +589,9 @@ export async function runActiveCakeAnalysis({
         rawResponse = jsonText;
         try {
             const generated = JSON.parse(jsonText);
-            const waferPaperSideWaveVerification = hasWaferPaperSideWaveCandidate(generated)
+            // The wafer gate is a Gemini verification call; on Claude it fails
+            // closed (unverified), matching its behavior on any check error.
+            const waferPaperSideWaveVerification = aiClient && hasWaferPaperSideWaveCandidate(generated)
                 ? await verifyWhiteWaferPaperSideWave(aiClient, imageData, mimeType)
                 : undefined;
             return postProcessSearchAnalysisResult(
@@ -684,6 +734,7 @@ export async function runActiveCakeAnalysis({
         sizeSchema,
         effectiveSettings: {
             model,
+            provider,
             thinkingLevel,
             temperature: baseConfig.temperature,
             topP: baseConfig.topP,
