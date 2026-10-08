@@ -131,10 +131,8 @@ const HeroTypingHeadlineLine: React.FC<{
     phrases?: readonly string[];
     a11yLabel?: string;
     onPhraseSettled?: (phraseIndex: number) => void;
-    align?: 'center' | 'start';
 }> = ({
     className = '',
-    align = 'center',
     controlledPhraseIndex,
     phrases = DEFAULT_LANDING_HERO_CONTENT.headlineVariants,
     a11yLabel,
@@ -204,7 +202,7 @@ const HeroTypingHeadlineLine: React.FC<{
                     <span className={placeholderPhraseClassName}>{longestPhrase}</span>
                     <span className="ml-1 inline-block h-[0.92em] w-[3px] align-middle" />
                 </span>
-                <span aria-hidden="true" className={`absolute inset-0 inline-flex items-start whitespace-nowrap ${align === 'start' ? 'justify-start' : 'justify-center'}`}>
+                <span aria-hidden="true" className="absolute inset-0 inline-flex items-start justify-center whitespace-nowrap">
                     <span className={activePhraseClassName}>{displayText}</span>
                     {animationState !== 'idle' && (
                         <span
@@ -561,11 +559,9 @@ function HeroProductPeekCarousel({
 function HeroInstantPriceCta({
     onUpload,
     trackingSource,
-    align = 'start',
 }: {
     onUpload: () => void;
     trackingSource: LandingCtaLocation;
-    align?: 'center' | 'start';
 }) {
     return (
         <div className="w-full">
@@ -580,7 +576,7 @@ function HeroInstantPriceCta({
                 <ImagePlus size={20} className="shrink-0" />
                 <span className="whitespace-nowrap">Upload design · Get instant price</span>
             </button>
-            <ol className={`mt-4 flex items-start gap-2 ${align === 'center' ? 'justify-center' : 'justify-start'}`}>
+            <ol className="mt-4 flex items-start justify-center gap-2">
                 {['Upload', 'AI prices it', 'Customize & order'].map((step, index) => (
                     <li key={step} className="flex items-center gap-2">
                         {index > 0 && <span aria-hidden="true" className="h-px w-4 bg-[var(--genie-line)] min-[400px]:w-6" />}
@@ -793,7 +789,7 @@ function HeroProductPreviewStack({
             <>
                 {/* Primary CTA - Mobile: AI price calculator */}
                 <div className="mx-auto w-full max-w-[480px] mt-1 mb-2">
-                    <HeroInstantPriceCta align="center" trackingSource="hero_mobile" onUpload={onOpenUploader} />
+                    <HeroInstantPriceCta trackingSource="hero_mobile" onUpload={onOpenUploader} />
                     <div className="mt-4 text-center text-[14px] text-[var(--genie-muted)] font-medium">
                         Don&apos;t have a photo?{' '}
                         <Link href="/collections" className="font-bold text-[var(--genie-primary)] underline decoration-[var(--genie-butter)] decoration-2 underline-offset-4">Browse 10,000+ designs</Link>
@@ -2084,18 +2080,17 @@ const LandingClient: React.FC<LandingClientProps> = ({
 
                     {/* Desktop Hero View: 2-column layout */}
                     <div className="hidden md:grid min-h-[620px] lg:min-h-[680px] items-center gap-10 md:grid-cols-[minmax(0,11fr)_minmax(0,9fr)] lg:gap-14">
-                        <div className="flex flex-col items-start py-14 text-left">
+                        <div className="flex flex-col items-center py-14 text-center">
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--genie-butter)] px-3.5 py-1.5 text-[11px] font-extrabold uppercase tracking-wider text-[var(--genie-ink)]">
                                 <Sparkles size={13} className="shrink-0" />
                                 {heroContent.eyebrow}
                             </span>
-                            <h1 className="font-display mt-5 flex flex-col items-start text-[3rem] lg:text-[4rem] xl:text-[4.6rem] font-bold leading-[0.98] tracking-tight">
+                            <h1 className="font-display mt-5 flex flex-col items-center text-[3rem] lg:text-[4rem] xl:text-[4.6rem] font-bold leading-[0.98] tracking-tight">
                                         {heroContent.headlinePrefix && heroContent.headlineSuffix && (
                                             <span className="block whitespace-nowrap">{heroContent.headlinePrefix}</span>
                                         )}
                                         <HeroTypingHeadlineLine
-                                            className="block h-[1.02em] w-full min-h-0 whitespace-nowrap text-left italic text-[var(--genie-primary)]"
-                                            align="start"
+                                            className="block h-[1.02em] w-full min-h-0 whitespace-nowrap text-center italic text-[var(--genie-primary)]"
                                             controlledPhraseIndex={heroHeadlineVariant}
                                             phrases={heroContent.headlineVariants}
                                             a11yLabel={heroContent.headlineA11yLabel}
@@ -2110,7 +2105,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                             </>
                                         )}
                             </h1>
-                            <p className="mt-5 max-w-[500px] text-[17px] lg:text-[19px] leading-relaxed text-[var(--genie-muted)]">
+                            <p className="mx-auto mt-5 max-w-[500px] text-[17px] lg:text-[19px] leading-relaxed text-[var(--genie-muted)]">
                                 Upload any cake design and our AI gives you a real price in seconds. Customize every detail, then get it delivered across Metro Cebu, even today.
                             </p>
                             {heroUploadState === 'idle' && (
@@ -2119,7 +2114,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                         trackingSource="hero_desktop"
                                         onUpload={() => setIsUploaderOpen(true)}
                                     />
-                                    <div className="mt-4 text-[14px] text-[var(--genie-muted)] font-medium">
+                                    <div className="mt-4 text-center text-[14px] text-[var(--genie-muted)] font-medium">
                                         Don&apos;t have a photo?{' '}
                                         <Link href="/collections" className="font-bold text-[var(--genie-primary)] underline decoration-[var(--genie-butter)] decoration-2 underline-offset-4 hover:text-[var(--genie-primary-hover)]">Browse 10,000+ cake designs</Link>
                                     </div>
