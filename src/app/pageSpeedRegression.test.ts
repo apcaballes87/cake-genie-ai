@@ -30,19 +30,20 @@ describe('homepage PageSpeed regressions', () => {
     expect(carousel).toContain('h-8 w-8')
   })
 
-  it('preloads only the mobile LCP image plus the desktop-only LCP image', () => {
+  it('preloads only the first hero cake image (the LCP on mobile and desktop)', () => {
     const source = readSource('src/app/page.tsx')
     const landingClient = readSource('src/app/LandingClient.tsx')
     const preloadCount = source.match(/rel="preload"/g)?.length ?? 0
+    const preloadCalls = source.match(/preload\(/g)?.length ?? 0
     const demoImage = landingClient.slice(
       landingClient.indexOf('src={displayedImageSrc}'),
       landingClient.indexOf('style={{ opacity: imgVisible'),
     )
 
-    expect(preloadCount).toBe(2)
-    expect(source).toContain('HOMEPAGE_ASSETS.heroProducts.minimalist')
-    expect(source).toContain('HOMEPAGE_ASSETS.transition')
-    expect(source).toContain('media="(min-width: 768px)"')
+    expect(preloadCount).toBe(0)
+    expect(preloadCalls).toBe(1)
+    expect(source).toContain("preload(heroStudioCakes[0]?.image ?? HOMEPAGE_ASSETS.heroProducts.minimalist")
+    expect(source).toContain("fetchPriority: 'high'")
     expect(demoImage).toContain('loading="lazy"')
     expect(demoImage).toContain('fetchPriority="low"')
     expect(landingClient).toContain('if (entry.isIntersecting) setHasActivatedDemo(true)')

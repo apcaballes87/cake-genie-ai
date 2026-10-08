@@ -139,10 +139,10 @@ const RecommendedProductsGridComponent = ({
         <>
             {/* Section Header */}
             <div className="text-center mb-8 md:mb-12">
-                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-3">
-                    <span className="text-purple-400">{headingHighlight}</span> {headingText}
+                <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold text-[var(--genie-ink)] leading-[1.1] tracking-tight mb-3">
+                    <span className="italic text-[var(--genie-primary)]">{headingHighlight}</span> {headingText}
                 </h2>
-                <p className="text-base text-slate-500 max-w-2xl mx-auto">
+                <p className="text-base text-[var(--genie-muted)] max-w-2xl mx-auto">
                     {description}
                 </p>
             </div>

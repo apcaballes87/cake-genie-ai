@@ -11,13 +11,14 @@ import { showError, showLoading, showInfo } from '@/lib/utils/toast';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import SameDayCutoffBanner from '@/components/SameDayCutoffBanner';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import type { BlogHomepagePreview } from '@/services/supabaseService';
+import type { BlogHomepagePreview, HeroStudioCake } from '@/services/supabaseService';
+import { formatStartingPrice } from '@/lib/utils/currency';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation } from '@/contexts/NavigationContext';
 import { batchSaveToLocalStorage } from '@/contexts/CartContext';
 import { COMMON_ASSETS, HOMEPAGE_ASSETS } from '@/constants';
-import { trackImageUpload, trackLandingCtaClick } from '@/lib/analytics';
+import { trackImageUpload, trackLandingCtaClick, type LandingCtaLocation } from '@/lib/analytics';
 import { getCuratedCollectionHref } from '@/lib/seo/collectionLinks';
 import {
     DEFAULT_LANDING_HERO_CONTENT,
@@ -33,7 +34,6 @@ import {
     Home,
     Heart,
     User,
-    Cake,
     ImagePlus,
     Upload,
     Menu,
@@ -47,7 +47,8 @@ import {
     ChevronRight,
     X,
     Clock,
-    Calendar
+    Calendar,
+    Sparkles
 } from 'lucide-react';
 
 const ImageUploader = dynamic(
@@ -68,9 +69,30 @@ interface LandingClientProps {
         total: number;
         averageRating: number;
     };
+    /** Random studio-edited cake designs for the desktop hero mosaic. */
+    heroStudioCakes?: HeroStudioCake[];
 }
 
-const LANDING_PRIMARY_CTA_RADIUS = 'rounded-[1.35rem]';
+const LANDING_PRIMARY_CTA_RADIUS = 'rounded-xl';
+
+const UPLOAD_CAKE_ICON_SRC = 'https://cqmhanqnfybyxezhobkx.supabase.co/storage/v1/object/public/landingpage/upload-cake-image.webp';
+
+/** Storefront category navigation (header row + "Shop by style" strip). */
+const LANDING_SHOP_CATEGORIES = [
+    { label: 'Minimalist', href: '/collections/minimalist-cake', image: HOMEPAGE_ASSETS.heroProducts.minimalist },
+    { label: 'Bento', href: '/collections/bento-cake', image: HOMEPAGE_ASSETS.heroProducts.bento },
+    { label: 'Photo Cakes', href: '/collections/edible-photo-cake', image: HOMEPAGE_ASSETS.heroProducts.photo },
+    { label: 'Vintage', href: '/collections/vintage-cake', image: HOMEPAGE_ASSETS.heroProducts.vintage },
+    { label: 'Floral', href: '/collections/floral-cake', image: HOMEPAGE_ASSETS.heroProducts.floral },
+    { label: 'Doodle', href: '/collections/doodle-cake', image: HOMEPAGE_ASSETS.heroProducts.doodle },
+] as const;
+
+const LANDING_HEADER_LINKS = [
+    ...LANDING_SHOP_CATEGORIES.map(({ label, href }) => ({ label, href })),
+    { label: 'Wedding', href: '/collections/wedding-cake' },
+    { label: 'All Designs', href: '/collections' },
+] as const;
+
 
 const getHeroAvailabilityConfig = (title: string, isDesktop: boolean = false) => {
     const isRush = ['Bento Cakes', 'Minimalist Cakes', 'Doodle Cakes'].includes(title);
@@ -109,8 +131,10 @@ const HeroTypingHeadlineLine: React.FC<{
     phrases?: readonly string[];
     a11yLabel?: string;
     onPhraseSettled?: (phraseIndex: number) => void;
+    align?: 'center' | 'start';
 }> = ({
     className = '',
+    align = 'center',
     controlledPhraseIndex,
     phrases = DEFAULT_LANDING_HERO_CONTENT.headlineVariants,
     a11yLabel,
@@ -180,12 +204,12 @@ const HeroTypingHeadlineLine: React.FC<{
                     <span className={placeholderPhraseClassName}>{longestPhrase}</span>
                     <span className="ml-1 inline-block h-[0.92em] w-[3px] align-middle" />
                 </span>
-                <span aria-hidden="true" className="absolute inset-0 inline-flex items-start justify-center whitespace-nowrap">
+                <span aria-hidden="true" className={`absolute inset-0 inline-flex items-start whitespace-nowrap ${align === 'start' ? 'justify-start' : 'justify-center'}`}>
                     <span className={activePhraseClassName}>{displayText}</span>
                     {animationState !== 'idle' && (
                         <span
                             aria-hidden="true"
-                            className="ml-1 inline-block h-[0.92em] w-[3px] translate-y-[2px] bg-purple-500 align-middle animate-pulse"
+                            className="ml-1 inline-block h-[0.92em] w-[3px] translate-y-[2px] bg-[var(--genie-primary)] align-middle animate-pulse"
                         />
                     )}
                 </span>
@@ -233,115 +257,92 @@ function HeroProductImage({
     );
 }
 
-const HeroMasonryGrid: React.FC<{ 
-    products: readonly LandingHeroProduct[],
-    onSelectProduct?: (index: number) => void,
-    onInteraction?: (index: number) => void
-}> = ({ products, onSelectProduct, onInteraction }) => {
-    const handleInteraction = (index: number) => {
-        onSelectProduct?.(index);
-        onInteraction?.(index);
-    };
+type HeroMosaicTile = {
+    key: string;
+    image: string;
+    alt: string;
+    label: string;
+    href?: string;
+    headlineVariant: number;
+};
+
+/**
+ * Desktop hero mosaic: three staggered columns of large tiles on the plum
+ * hero band. Hovering a tile swaps the typing headline to its cake style.
+ */
+const HeroPhotoMosaic: React.FC<{
+    tiles: readonly HeroMosaicTile[],
+    onTileHover?: (headlineVariant: number) => void,
+    /** Optional badge rendered just above a tile, keyed by tile key. */
+    tileBadges?: Partial<Record<string, React.ReactNode>>
+}> = ({ tiles, onTileHover, tileBadges }) => {
+    const columns = [[0, 3], [1, 4], [2, 5]];
+    const columnOffsets = ['translate-y-10', '-translate-y-6', 'translate-y-16'];
+    const tileClassName = 'group relative block aspect-3/4 w-full overflow-hidden rounded-[1.6rem] bg-white text-left ring-1 ring-[var(--genie-line)] shadow-[0_18px_40px_-28px_rgba(31,26,23,0.45)]';
 
     return (
-        <div className="grid w-full grid-cols-3 gap-2.5 min-[450px]:gap-3.5 lg:gap-4">
-            <div className="flex flex-col gap-2.5 min-[450px]:gap-3.5 lg:gap-4">
-                <div 
-                    className="group relative aspect-5/6 cursor-pointer overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl min-[450px]:rounded-2xl"
-                    onMouseEnter={() => handleInteraction(0)}
-                    onClick={() => handleInteraction(0)}
-                >
-                    <HeroProductImage
-                        src={products[0]?.image || ''}
-                        alt={products[0]?.title || 'Custom cake design'}
-                        priority={true}
-                        sizes="(max-width: 767px) 33vw, (max-width: 1279px) 18vw, 220px"
-                        imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
+        <div className="grid h-full w-full grid-cols-3 gap-3 lg:gap-4">
+            {columns.map((indices, columnIndex) => (
+                <div key={columnIndex} className={`relative flex flex-col gap-3 lg:gap-4 ${columnOffsets[columnIndex]} ${indices.some((index) => tiles[index] && tileBadges?.[tiles[index].key]) ? 'z-20' : ''}`}>
+                    {indices.map((index) => {
+                        const tile = tiles[index];
+                        if (!tile) return null;
+                        const content = (
+                            <>
+                                <HeroProductImage
+                                    src={tile.image}
+                                    alt={tile.alt}
+                                    priority={index === 0}
+                                    sizes="(max-width: 1279px) 16vw, 200px"
+                                    imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
+                                />
+                                <span className="absolute inset-x-0 bottom-0 h-2/5 bg-linear-to-t from-black/45 to-transparent" />
+                                <span className="absolute bottom-3 left-3 rounded-full bg-white px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-[var(--genie-ink)] shadow-sm">
+                                    {tile.label}
+                                </span>
+                            </>
+                        );
+                        const tileElement = tile.href ? (
+                            <Link
+                                key={tile.key}
+                                href={tile.href}
+                                className={tileClassName}
+                                onMouseEnter={() => onTileHover?.(tile.headlineVariant)}
+                                onFocus={() => onTileHover?.(tile.headlineVariant)}
+                                aria-label={`Customize this ${tile.label.toLowerCase()} cake`}
+                            >
+                                {content}
+                            </Link>
+                        ) : (
+                            <button
+                                type="button"
+                                key={tile.key}
+                                className={tileClassName}
+                                onMouseEnter={() => onTileHover?.(tile.headlineVariant)}
+                                onClick={() => onTileHover?.(tile.headlineVariant)}
+                                aria-label={`Show ${tile.label}`}
+                            >
+                                {content}
+                            </button>
+                        );
+                        const badge = tileBadges?.[tile.key];
+                        if (!badge) return tileElement;
+                        return (
+                            <div key={tile.key} className="relative">
+                                <div className="absolute bottom-full left-0 z-10 mb-3">{badge}</div>
+                                {tileElement}
+                            </div>
+                        );
+                    })}
                 </div>
-                <div 
-                    className="group relative aspect-5/6 cursor-pointer overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl min-[450px]:rounded-2xl"
-                    onMouseEnter={() => handleInteraction(1)}
-                    onClick={() => handleInteraction(1)}
-                >
-                    <HeroProductImage
-                        src={products[1]?.image || ''}
-                        alt={products[1]?.title || 'Custom cake design'}
-                        priority={false}
-                        sizes="(max-width: 767px) 33vw, (max-width: 1279px) 18vw, 220px"
-                        imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
-                </div>
-            </div>
-            <div className="flex flex-col gap-2.5 pt-7 min-[450px]:gap-3.5 min-[450px]:pt-12 lg:gap-4 lg:pt-14">
-                <div 
-                    className="group relative aspect-5/6 cursor-pointer overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl min-[450px]:rounded-2xl"
-                    onMouseEnter={() => handleInteraction(2)}
-                    onClick={() => handleInteraction(2)}
-                >
-                    <HeroProductImage
-                        src={products[2]?.image || ''}
-                        alt={products[2]?.title || 'Custom cake design'}
-                        priority={false}
-                        sizes="(max-width: 767px) 33vw, (max-width: 1279px) 18vw, 220px"
-                        imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
-                </div>
-                <div 
-                    className="group relative aspect-5/6 cursor-pointer overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl min-[450px]:rounded-2xl"
-                    onMouseEnter={() => handleInteraction(3)}
-                    onClick={() => handleInteraction(3)}
-                >
-                    <HeroProductImage
-                        src={products[3]?.image || ''}
-                        alt={products[3]?.title || 'Custom cake design'}
-                        priority={false}
-                        sizes="(max-width: 767px) 33vw, (max-width: 1279px) 18vw, 220px"
-                        imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
-                </div>
-            </div>
-            <div className="flex flex-col gap-2.5 pt-3.5 min-[450px]:gap-3.5 min-[450px]:pt-6 lg:gap-4 lg:pt-8">
-                <div 
-                    className="group relative aspect-5/6 cursor-pointer overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl min-[450px]:rounded-2xl"
-                    onMouseEnter={() => handleInteraction(4)}
-                    onClick={() => handleInteraction(4)}
-                >
-                    <HeroProductImage
-                        src={products[4]?.image || ''}
-                        alt={products[4]?.title || 'Custom cake design'}
-                        priority={false}
-                        sizes="(max-width: 767px) 33vw, (max-width: 1279px) 18vw, 220px"
-                        imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
-                </div>
-                <div 
-                    className="group relative aspect-5/6 cursor-pointer overflow-hidden rounded-xl bg-slate-100 shadow-sm transition-all duration-500 hover:shadow-xl min-[450px]:rounded-2xl"
-                    onMouseEnter={() => handleInteraction(5)}
-                    onClick={() => handleInteraction(5)}
-                >
-                    <HeroProductImage
-                        src={products[5]?.image || ''}
-                        alt={products[5]?.title || 'Custom cake design'}
-                        priority={false}
-                        sizes="(max-width: 767px) 33vw, (max-width: 1279px) 18vw, 220px"
-                        imageClassName="object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
-                </div>
-            </div>
+            ))}
         </div>
     );
 };
 
 /**
  * Returns true once we want to actually mount the Embla carousel:
- *   1. Viewport is <768px (mobile only — desktop uses HeroMasonryGrid).
+ *   1. Viewport is <768px (mobile only — desktop uses HeroPhotoMosaic).
  *   2. AND the user has provided explicit pointer, touch, or keyboard input.
  *
  * Why: useEmblaCarousel synchronously calls getBoundingClientRect on every
@@ -553,62 +554,206 @@ function HeroProductPeekCarousel({
  * the move.
  */
 
-function HeroReviewSummary({
-    compact = false,
-    reviewSummary,
+/**
+ * Hero "AI price calculator" CTA — the homepage's primary action — with the
+ * three-step explainer underneath. Opens the existing uploader.
+ */
+function HeroInstantPriceCta({
+    onUpload,
+    trackingSource,
+    align = 'start',
 }: {
-    compact?: boolean;
-    reviewSummary?: {
-        total: number;
-        averageRating: number;
-    };
+    onUpload: () => void;
+    trackingSource: LandingCtaLocation;
+    align?: 'center' | 'start';
 }) {
-    const averageLabel = reviewSummary && reviewSummary.averageRating > 0
-        ? reviewSummary.averageRating.toFixed(1)
-        : 'Verified';
-    const countLabel = reviewSummary && reviewSummary.total > 0
-        ? `based on ${reviewSummary.total} Happy Customer${reviewSummary.total === 1 ? '' : 's'}.`
-        : 'real customer feedback and order photos.'
-
     return (
-        <Link
-            href="/reviews"
-            className={`inline-flex items-center justify-center gap-1.5 text-gray-600 hover:text-purple-500 ${compact ? 'text-[11px]' : 'text-[13px] md:text-[14px]'}`}
-        >
-            <span>{averageLabel}</span>
-            {reviewSummary && reviewSummary.total > 0 && reviewSummary.averageRating > 0 && (
-                <span aria-hidden="true" className="text-yellow-500">★</span>
-            )}
-            <span>{countLabel}</span>
-            <span>|</span>
-            <span className="font-bold text-green-600">Verified ✓</span>
-        </Link>
+        <div className="w-full">
+            <button
+                type="button"
+                onClick={() => {
+                    trackLandingCtaClick(trackingSource);
+                    onUpload();
+                }}
+                className={`flex w-full items-center justify-center gap-2.5 ${LANDING_PRIMARY_CTA_RADIUS} bg-[var(--genie-primary)] py-[18px] px-4 text-[13px] min-[390px]:text-[14px] md:text-[17px] font-extrabold uppercase md:tracking-wide text-white shadow-[0_14px_28px_-14px_rgba(91,42,110,0.7)] transition-colors hover:bg-[var(--genie-primary-hover)] active:scale-[0.99]`}
+            >
+                <ImagePlus size={20} className="shrink-0" />
+                <span className="whitespace-nowrap">Upload design · Get instant price</span>
+            </button>
+            <ol className={`mt-4 flex items-start gap-2 ${align === 'center' ? 'justify-center' : 'justify-start'}`}>
+                {['Upload', 'AI prices it', 'Customize & order'].map((step, index) => (
+                    <li key={step} className="flex items-center gap-2">
+                        {index > 0 && <span aria-hidden="true" className="h-px w-4 bg-[var(--genie-line)] min-[400px]:w-6" />}
+                        <span className="flex items-center gap-1.5 whitespace-nowrap text-[12px] md:text-[13px] font-semibold text-[var(--genie-muted)]">
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--genie-primary)] text-[10px] font-bold text-white">{index + 1}</span>
+                            {step}
+                        </span>
+                    </li>
+                ))}
+            </ol>
+        </div>
     );
 }
 
-function HeroFeatureHighlights({ compact = false, className = '' }: { compact?: boolean; className?: string }) {
+const MARQUEE_ITEMS = [
+    'Upload any cake design',
+    'Instant AI pricing',
+    'Same-day delivery in Metro Cebu',
+    'Free delivery in Cebu City',
+];
+
+const MARQUEE_SPEED_PX_PER_SECOND = 40;
+const MARQUEE_DRAG_THRESHOLD_PX = 5;
+
+/**
+ * Infinite ticker that scrolls on its own and can also be dragged/swiped.
+ * The track holds the items twice; the offset wraps within one copy's width.
+ */
+function LandingMarquee({ reviewSummary }: { reviewSummary?: { total: number; averageRating: number } }) {
+    const trackRef = useRef<HTMLUListElement>(null);
+    const offsetRef = useRef(0);
+    const dragRef = useRef<{ startX: number; startOffset: number; moved: boolean } | null>(null);
+    const suppressClickRef = useRef(false);
+
+    useEffect(() => {
+        const track = trackRef.current;
+        if (!track) return;
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        let frameId = 0;
+        let lastTime = performance.now();
+
+        const tick = (now: number) => {
+            const elapsedSeconds = Math.min(now - lastTime, 64) / 1000;
+            lastTime = now;
+            if (!dragRef.current && !reduceMotion) {
+                offsetRef.current -= MARQUEE_SPEED_PX_PER_SECOND * elapsedSeconds;
+            }
+            const loopWidth = track.scrollWidth / 2;
+            if (loopWidth > 0) {
+                // Keep the offset within (-loopWidth, 0] in either drag direction.
+                offsetRef.current = ((offsetRef.current % loopWidth) - loopWidth) % loopWidth;
+            }
+            track.style.transform = `translate3d(${offsetRef.current}px, 0, 0)`;
+            frameId = requestAnimationFrame(tick);
+        };
+
+        frameId = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(frameId);
+    }, []);
+
+    const endDrag = () => {
+        suppressClickRef.current = Boolean(dragRef.current?.moved);
+        dragRef.current = null;
+    };
+
+    const hasReviews = Boolean(reviewSummary && reviewSummary.total > 0 && reviewSummary.averageRating > 0);
+    const renderItems = (copy: number) => (
+        <>
+            {hasReviews && reviewSummary && (
+                <li aria-hidden={copy > 0} className="flex items-center gap-8 pr-8">
+                    <Link
+                        href="/reviews"
+                        draggable={false}
+                        tabIndex={copy > 0 ? -1 : undefined}
+                        className="flex items-center gap-2 text-[13px] md:text-[15px] font-extrabold uppercase tracking-wider text-[var(--genie-ink)] hover:underline"
+                    >
+                        {reviewSummary.averageRating.toFixed(1)}
+                        <span aria-hidden="true" className="text-amber-500">★★★★★</span>
+                        <span className="normal-case tracking-normal font-bold">based on {reviewSummary.total} Happy Customer{reviewSummary.total === 1 ? '' : 's'}</span>
+                        <span className="text-green-700">Verified ✓</span>
+                    </Link>
+                    <span aria-hidden="true" className="text-[var(--genie-primary)]">✦</span>
+                </li>
+            )}
+            {MARQUEE_ITEMS.map((item) => (
+                <li key={`${item}-${copy}`} aria-hidden={copy > 0} className="flex items-center gap-8 pr-8 text-[13px] md:text-[15px] font-extrabold uppercase tracking-wider text-[var(--genie-ink)]">
+                    {item}
+                    <span aria-hidden="true" className="text-[var(--genie-primary)]">✦</span>
+                </li>
+            ))}
+        </>
+    );
+
     return (
         <div
-            className={`${compact
-                ? 'flex flex-nowrap items-center justify-center gap-x-1 min-[390px]:gap-x-1.5 text-[8px] min-[390px]:text-[9px]'
-                : 'flex items-center justify-center gap-2 text-[11px] lg:text-[12px]'
-                } font-bold uppercase tracking-wide text-neutral-500 ${className}`}
+            aria-label="Why order with Genie.ph"
+            className="cursor-grab touch-pan-y select-none overflow-hidden border-y-2 border-[var(--genie-ink)] bg-[var(--genie-butter)] py-3 active:cursor-grabbing"
+            onPointerDown={(event) => {
+                dragRef.current = { startX: event.clientX, startOffset: offsetRef.current, moved: false };
+            }}
+            onPointerMove={(event) => {
+                const drag = dragRef.current;
+                if (!drag) return;
+                const deltaX = event.clientX - drag.startX;
+                if (!drag.moved && Math.abs(deltaX) > MARQUEE_DRAG_THRESHOLD_PX) {
+                    drag.moved = true;
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                }
+                if (drag.moved) offsetRef.current = drag.startOffset + deltaX;
+            }}
+            onPointerUp={endDrag}
+            onPointerCancel={endDrag}
+            onClickCapture={(event) => {
+                if (!suppressClickRef.current) return;
+                suppressClickRef.current = false;
+                event.preventDefault();
+                event.stopPropagation();
+            }}
         >
-            <div className={compact ? 'flex items-center gap-1' : 'flex items-center gap-1.5'}>
-                <ImagePlus size={compact ? 12 : 14} className="text-neutral-400" />
-                <span className="whitespace-nowrap">Any Cake Image</span>
-            </div>
-            <span className="text-neutral-300">•</span>
-            <div className={compact ? 'flex items-center gap-1' : 'flex items-center gap-1.5'}>
-                <Zap size={compact ? 12 : 14} className="text-neutral-400" />
-                <span className="whitespace-nowrap">Instant AI Pricing</span>
-            </div>
-            <span className="text-neutral-300">•</span>
-            <div className={compact ? 'flex items-center gap-1' : 'flex items-center gap-1.5'}>
-                <Truck size={compact ? 12 : 14} className="text-neutral-400" />
-                <span className="whitespace-nowrap">Same-day Delivery</span>
-            </div>
+            <ul ref={trackRef} className="flex w-max items-center whitespace-nowrap will-change-transform">
+                {renderItems(0)}
+                {renderItems(1)}
+            </ul>
         </div>
+    );
+}
+
+const CATEGORY_TILE_COLORS = ['#f9d9e3', '#ffe08a', '#e4d4f4', '#cdeccf', '#fcd9c0', '#cfe6f7'];
+
+function ShopByCategorySection() {
+    return (
+        <section aria-labelledby="shop-by-style-heading" className="mx-auto w-full max-w-7xl px-4 pt-12 pb-6 sm:px-6 md:pt-20 lg:px-8">
+            <div className="mb-7 flex flex-col items-start justify-between gap-3 md:flex-row md:items-end">
+                <div>
+                    <p className="text-[12px] font-extrabold uppercase tracking-[0.16em] text-[var(--genie-primary)]">Shop by style</p>
+                    <h2 id="shop-by-style-heading" className="font-display mt-1 text-[38px] font-bold leading-[0.98] tracking-tight text-[var(--genie-ink)] md:text-[56px]">
+                        Find a cake <span className="italic text-[var(--genie-primary)]">that&apos;s so you.</span>
+                    </h2>
+                </div>
+                <Link href="/collections" className="group inline-flex shrink-0 items-center gap-2 rounded-full border-2 border-[var(--genie-ink)] px-5 py-2.5 text-[13px] font-extrabold uppercase tracking-wider text-[var(--genie-ink)] transition-colors hover:bg-[var(--genie-ink)] hover:text-white">
+                    Shop all designs
+                    <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
+                </Link>
+            </div>
+            <ul className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 scrollbar-hide sm:mx-0 sm:px-0 md:grid md:grid-cols-3 md:gap-5 md:overflow-visible lg:grid-cols-6">
+                {LANDING_SHOP_CATEGORIES.map((category, index) => (
+                    <li key={category.href} className="w-[44%] shrink-0 snap-start min-[480px]:w-[32%] md:w-auto">
+                        <Link
+                            href={category.href}
+                            className="group block overflow-hidden rounded-[1.6rem] p-2 transition-transform duration-300 hover:-translate-y-1"
+                            style={{ backgroundColor: CATEGORY_TILE_COLORS[index % CATEGORY_TILE_COLORS.length] }}
+                        >
+                            <span className="relative block aspect-4/5 overflow-hidden rounded-[1.2rem]">
+                                <img
+                                    src={category.image}
+                                    alt={`${category.label} cakes`}
+                                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                    loading="lazy"
+                                    decoding="async"
+                                    fetchPriority="low"
+                                />
+                            </span>
+                            <span className="flex items-center justify-between px-2 pt-3 pb-1.5">
+                                <span className="text-[15px] font-extrabold uppercase tracking-wide text-[var(--genie-ink)]">{category.label}</span>
+                                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--genie-ink)] text-white transition-transform group-hover:translate-x-0.5">
+                                    <ArrowRight size={14} />
+                                </span>
+                            </span>
+                        </Link>
+                    </li>
+                ))}
+            </ul>
+        </section>
     );
 }
 
@@ -646,21 +791,12 @@ function HeroProductPreviewStack({
     if (heroUploadState === 'idle') {
         return (
             <>
-                {/* Primary CTA - Mobile */}
-                <div className="mx-auto w-full max-w-[480px] mt-2 mb-1">
-                    <button
-                        onClick={() => {
-                            trackLandingCtaClick('hero_mobile');
-                            onOpenUploader();
-                        }}
-                        className={`genie-btn-primary flex w-full items-center justify-center gap-2 ${LANDING_PRIMARY_CTA_RADIUS} py-4 px-3 font-bold active:scale-[0.98] shadow-md shadow-purple-50/50`}
-                    >
-                        <ImagePlus size={20} className="shrink-0" />
-                        <span className="whitespace-nowrap text-[12px] min-[360px]:text-[13px] min-[390px]:text-sm">Upload Your Design - Get Instant Pricing</span>
-                    </button>
-                    <div className="mt-2.5 text-center text-[13px] text-slate-500 font-medium">
-                        Don't have a photo?{' '}
-                        <Link href="/collections" className="text-purple-600 font-bold hover:underline hover:text-purple-700 transition-colors">Browse from 10,000+ cake designs</Link>
+                {/* Primary CTA - Mobile: AI price calculator */}
+                <div className="mx-auto w-full max-w-[480px] mt-1 mb-2">
+                    <HeroInstantPriceCta align="center" trackingSource="hero_mobile" onUpload={onOpenUploader} />
+                    <div className="mt-4 text-center text-[14px] text-[var(--genie-muted)] font-medium">
+                        Don&apos;t have a photo?{' '}
+                        <Link href="/collections" className="font-bold text-[var(--genie-primary)] underline decoration-[var(--genie-butter)] decoration-2 underline-offset-4">Browse 10,000+ designs</Link>
                     </div>
                 </div>
                 <div className="relative -mx-4 md:mx-auto md:w-full md:max-w-[480px] min-[505px]:mask-[linear-gradient(to_right,transparent,black_15%,black_85%,transparent)] min-[505px]:[-webkit-mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
@@ -1371,6 +1507,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
     blogPosts = [],
     heroContent: propHeroContent,
     reviewSummary,
+    heroStudioCakes,
 }) => {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('home');
@@ -1401,7 +1538,19 @@ const LandingClient: React.FC<LandingClientProps> = ({
     const [heroAnalysis, setHeroAnalysis] = useState<HeroAnalysisSummary>({ price: null, size: null, availability: null, slug: null });
     const [heroUploadError, setHeroUploadError] = useState<string | null>(null);
     // ───────────────────────────────────────────────────────────────────────
-    const heroProducts = heroContent.products;
+    // Hero imagery: random studio-edited cakes (homepage) when available,
+    // otherwise the hero content's own photos (campaign pages).
+    const heroProducts = useMemo<readonly LandingHeroProduct[]>(() => {
+        if (!heroStudioCakes || heroStudioCakes.length < 3) return heroContent.products;
+        return heroStudioCakes.map((cake) => {
+            const variantIndex = heroContent.headlineVariants.findIndex((phrase) => phrase.toLowerCase().startsWith(cake.style.toLowerCase()));
+            return {
+                title: `${cake.style} Cakes`,
+                image: cake.image,
+                headlineVariant: variantIndex >= 0 ? variantIndex : 0,
+            };
+        });
+    }, [heroContent.headlineVariants, heroContent.products, heroStudioCakes]);
     const heroProductCount = heroProducts.length;
     const openUploaderFromQuery = useCallback(() => setIsUploaderOpen(true), []);
 
@@ -1420,15 +1569,32 @@ const LandingClient: React.FC<LandingClientProps> = ({
         };
     }, []);
 
-    const activateHeroHeadlineVariant = useCallback((productIndex: number) => {
-        const nextVariant = heroProducts[productIndex]?.headlineVariant ?? 0;
+    const showHeroHeadlineVariant = useCallback((nextVariant: number) => {
         setHeroHeadlineVariant(nextVariant);
 
         if (heroHeadlineResetTimeoutRef.current) {
             clearTimeout(heroHeadlineResetTimeoutRef.current);
             heroHeadlineResetTimeoutRef.current = null;
         }
-    }, [heroProducts]);
+    }, []);
+
+    const activateHeroHeadlineVariant = useCallback((productIndex: number) => {
+        showHeroHeadlineVariant(heroProducts[productIndex]?.headlineVariant ?? 0);
+    }, [heroProducts, showHeroHeadlineVariant]);
+
+    const heroMosaicTiles = useMemo<HeroMosaicTile[]>(() => heroProducts.map((product, index) => {
+        const studioCake = heroStudioCakes && heroStudioCakes.length >= 3 ? heroStudioCakes[index] : undefined;
+        return {
+            key: studioCake?.slug ?? product.title,
+            image: product.image,
+            alt: studioCake?.alt ?? product.title,
+            label: studioCake?.style ?? product.title.replace(/ Cakes?$/, ''),
+            href: studioCake ? `/customizing/${studioCake.slug}` : undefined,
+            headlineVariant: product.headlineVariant,
+        };
+    }), [heroProducts, heroStudioCakes]);
+
+    const heroPriceTagCake = heroStudioCakes?.find((cake) => cake.style === 'Minimalist' && cake.price != null) ?? null;
 
     const handleHeroHeadlineSettled = useCallback((phraseIndex: number) => {
         if (heroHeadlineResetTimeoutRef.current) {
@@ -1695,7 +1861,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
             </Suspense>
 
             {/* ========== SAME-DAY CUTOFF COUNTDOWN BANNER ========== */}
-            <div className="w-full bg-purple-700 py-[4.5px] flex justify-center items-center">
+            <div className="w-full bg-[var(--genie-primary)] py-[5px] flex justify-center items-center">
                 <SameDayCutoffBanner />
             </div>
 
@@ -1707,9 +1873,9 @@ const LandingClient: React.FC<LandingClientProps> = ({
               hit during scroll. Solid bg-white/[0.95] looks visually identical
               over the page gradient and avoids the layer thrash.
             */}
-            <nav className={`sticky top-0 z-80 w-full border-b transition-all duration-200 ${(isScrolled || isSearchFocused) ? 'border-purple-100 bg-white/[0.95] shadow-sm' : 'border-transparent bg-transparent'}`}>
-                <div className="max-w-7xl mx-auto px-4">
-                    <div className="w-full flex items-center justify-between py-2.5 md:py-[14px] relative">
+            <nav className={`sticky top-0 z-80 w-full border-b border-[var(--genie-line)] bg-white transition-shadow duration-200 ${(isScrolled || isSearchFocused) ? 'shadow-sm' : ''}`}>
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="w-full flex items-center justify-between py-2.5 md:py-3 relative">
                         {/* Left Side: Menu & Desktop Logo */}
                         <div className="flex items-center gap-2 md:gap-4 shrink-0">
                             <button
@@ -1761,12 +1927,12 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                     onBlur={() => setIsSearchFocused(false)}
                                     onSearch={handleSearch}
                                     onUploadClick={() => setIsUploaderOpen(true)}
-                                    placeholder="Search for other designs..."
+                                    placeholder="Search cake designs, e.g. minimalist, bento..."
                                     value={searchQuery}
                                     onChange={setSearchQuery}
                                     showUploadButton={false}
                                     autoFocus={isSearchFocused}
-                                    inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-white border-purple-100 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
+                                    inputClassName="w-full pl-5 pr-12 py-3 text-sm bg-[var(--genie-cream)] border-[var(--genie-line)] border rounded-full focus:bg-white focus:ring-2 focus:ring-[var(--genie-primary)]/30 focus:outline-none transition-shadow"
                                 />
                             ) : (
                                 <div className="relative w-full">
@@ -1781,8 +1947,8 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                                 handleSearch(searchQuery.trim());
                                             }
                                         }}
-                                        placeholder="Search for other designs..."
-                                        className="w-full pl-5 pr-12 py-3 text-sm bg-white border-purple-100 border rounded-full shadow-md focus:ring-2 focus:ring-purple-400 focus:outline-none transition-shadow"
+                                        placeholder="Search cake designs, e.g. minimalist, bento..."
+                                        className="w-full pl-5 pr-12 py-3 text-sm bg-[var(--genie-cream)] border-[var(--genie-line)] border rounded-full focus:bg-white focus:ring-2 focus:ring-[var(--genie-primary)]/30 focus:outline-none transition-shadow"
                                     />
                                     <button
                                         type="button"
@@ -1841,7 +2007,7 @@ const LandingClient: React.FC<LandingClientProps> = ({
                             >
                                 <ShoppingBag className="h-5 w-5 md:h-6 md:w-6" />
                                 {isMounted && itemCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-purple-500 text-white text-[9px] md:text-[10px] font-bold">
+                                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--genie-primary)] text-white text-[9px] md:text-[10px] font-bold">
                                         {itemCount}
                                     </span>
                                 )}
@@ -1849,117 +2015,151 @@ const LandingClient: React.FC<LandingClientProps> = ({
                         </div>
                     </div>
                 </div>
+                {/* Desktop category navigation */}
+                <div className="hidden md:block border-t border-[var(--genie-line)]">
+                    <ul className="max-w-7xl mx-auto flex items-center gap-1 overflow-x-auto px-4 sm:px-6 lg:px-8 scrollbar-hide">
+                        {LANDING_HEADER_LINKS.map((link) => (
+                            <li key={link.href}>
+                                <Link
+                                    href={link.href}
+                                    className="block whitespace-nowrap px-3 py-2.5 text-[13px] font-medium text-[var(--genie-ink)] transition-colors hover:text-[var(--genie-primary)]"
+                                >
+                                    {link.label}
+                                </Link>
+                            </li>
+                        ))}
+                        <li className="ml-auto">
+                            <button
+                                type="button"
+                                onClick={() => setIsUploaderOpen(true)}
+                                className="flex items-center gap-1.5 whitespace-nowrap px-3 py-2.5 text-[13px] font-semibold text-[var(--genie-primary)] hover:underline"
+                            >
+                                <Sparkles size={14} className="shrink-0" />
+                                AI Price Check
+                            </button>
+                        </li>
+                    </ul>
+                </div>
             </nav>
 
             {/* ========== MAIN CONTENT ========== */}
             <main className="flex-1">
-                {/* ===== HERO SECTION ===== */}
-                <section aria-label="Hero" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-0 md:pt-[10px] pb-2 md:pb-1 lg:pb-1">
-                    <div className="flex flex-col md:flex-row gap-8 md:gap-12 lg:gap-16 items-start">
-                        {/* Mobile Hero View */}
-                        {/* Mobile Hero View - Simplified */}
-                        <div className="md:hidden w-full flex flex-col mt-2">
-                            <div className="mb-3 text-center">
-                                <HeroReviewSummary compact reviewSummary={reviewSummary} />
-                            </div>
-                            <p className="mb-4 text-center text-[10px] min-[360px]:text-[11px] font-bold uppercase tracking-[0.06em] text-neutral-600 whitespace-nowrap">
+                {/* ===== HERO SECTION: full-bleed plum colour block ===== */}
+                <div className="relative overflow-hidden bg-[var(--genie-cream)] text-[var(--genie-ink)]">
+                    {/* Decorative glow (static, no blur filter) */}
+                    <div aria-hidden="true" className="pointer-events-none absolute -left-40 -top-40 h-[520px] w-[520px] rounded-full bg-[radial-gradient(circle,rgba(249,217,227,0.9),transparent_65%)]" />
+                    <div aria-hidden="true" className="pointer-events-none absolute -bottom-48 right-[-10%] h-[560px] w-[560px] rounded-full bg-[radial-gradient(circle,rgba(228,212,244,0.85),transparent_65%)]" />
+
+                <section aria-label="Hero" className="relative max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
+                    {/* Mobile Hero View */}
+                    <div className="md:hidden w-full flex flex-col pt-7 pb-5 text-center">
+                        <span className="mx-auto inline-flex max-w-full items-center gap-1 whitespace-nowrap rounded-full bg-[var(--genie-butter)] px-2.5 py-1 text-[clamp(7.5px,2.3vw,10px)] font-extrabold uppercase tracking-[0.02em] text-[var(--genie-ink)]">
+                            <Sparkles size={11} className="shrink-0" />
+                            {heroContent.eyebrow}
+                        </span>
+                        <h1 className="font-display mt-4 text-[46px] max-[390px]:text-[40px] font-bold leading-[0.98] tracking-tight">
+                                        {heroContent.headlinePrefix && heroContent.headlineSuffix && (
+                                            <span className="block whitespace-nowrap">{heroContent.headlinePrefix}</span>
+                                        )}
+                                        <HeroTypingHeadlineLine
+                                            className="block min-h-[1em] whitespace-nowrap text-center italic text-[var(--genie-primary)]"
+                                            controlledPhraseIndex={heroHeadlineVariant}
+                                            phrases={heroContent.headlineVariants}
+                                            a11yLabel={heroContent.headlineA11yLabel}
+                                            onPhraseSettled={handleHeroHeadlineSettled}
+                                        />
+                                        {heroContent.headlinePrefix && heroContent.headlineSuffix ? (
+                                            <span className="block whitespace-nowrap">{heroContent.headlineSuffix}</span>
+                                        ) : (
+                                            <>
+                                                <span className="block whitespace-nowrap">{heroContent.lineTwo}</span>
+                                                <span className="block whitespace-nowrap">{heroContent.lineThree}</span>
+                                            </>
+                                        )}
+                        </h1>
+                        <p className="mx-auto mt-4 max-w-[330px] text-[16px] leading-relaxed text-[var(--genie-muted)]">
+                            Upload any cake design. Get a real price in seconds. Delivered today.
+                        </p>
+                    </div>
+
+                    {/* Desktop Hero View: 2-column layout */}
+                    <div className="hidden md:grid min-h-[620px] lg:min-h-[680px] items-center gap-10 md:grid-cols-[minmax(0,11fr)_minmax(0,9fr)] lg:gap-14">
+                        <div className="flex flex-col items-start py-14 text-left">
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--genie-butter)] px-3.5 py-1.5 text-[11px] font-extrabold uppercase tracking-wider text-[var(--genie-ink)]">
+                                <Sparkles size={13} className="shrink-0" />
                                 {heroContent.eyebrow}
+                            </span>
+                            <h1 className="font-display mt-5 flex flex-col items-start text-[3rem] lg:text-[4rem] xl:text-[4.6rem] font-bold leading-[0.98] tracking-tight">
+                                        {heroContent.headlinePrefix && heroContent.headlineSuffix && (
+                                            <span className="block whitespace-nowrap">{heroContent.headlinePrefix}</span>
+                                        )}
+                                        <HeroTypingHeadlineLine
+                                            className="block h-[1.02em] w-full min-h-0 whitespace-nowrap text-left italic text-[var(--genie-primary)]"
+                                            align="start"
+                                            controlledPhraseIndex={heroHeadlineVariant}
+                                            phrases={heroContent.headlineVariants}
+                                            a11yLabel={heroContent.headlineA11yLabel}
+                                            onPhraseSettled={handleHeroHeadlineSettled}
+                                        />
+                                        {heroContent.headlinePrefix && heroContent.headlineSuffix ? (
+                                            <span className="block whitespace-nowrap">{heroContent.headlineSuffix}</span>
+                                        ) : (
+                                            <>
+                                                <span className="block whitespace-nowrap">{heroContent.lineTwo}</span>
+                                                <span className="block whitespace-nowrap">{heroContent.lineThree}</span>
+                                            </>
+                                        )}
+                            </h1>
+                            <p className="mt-5 max-w-[500px] text-[17px] lg:text-[19px] leading-relaxed text-[var(--genie-muted)]">
+                                Upload any cake design and our AI gives you a real price in seconds. Customize every detail, then get it delivered across Metro Cebu, even today.
                             </p>
-                            <div className="mb-3 text-center">
-                                <h1 className="text-[50px] max-[390px]:text-[43px] font-extrabold leading-none tracking-tight text-gray-900">
-                                    {heroContent.headlinePrefix && heroContent.headlineSuffix && (
-                                        <span className="block whitespace-nowrap text-black italic">{heroContent.headlinePrefix}</span>
-                                    )}
-                                    <HeroTypingHeadlineLine
-                                        className="block min-h-[1em] whitespace-nowrap text-center text-purple-600"
-                                        controlledPhraseIndex={heroHeadlineVariant}
-                                        phrases={heroContent.headlineVariants}
-                                        a11yLabel={heroContent.headlineA11yLabel}
-                                        onPhraseSettled={handleHeroHeadlineSettled}
+                            {heroUploadState === 'idle' && (
+                                <div className="mt-7 flex w-full max-w-[480px] flex-col">
+                                    <HeroInstantPriceCta
+                                        trackingSource="hero_desktop"
+                                        onUpload={() => setIsUploaderOpen(true)}
                                     />
-                                    {heroContent.headlinePrefix && heroContent.headlineSuffix ? (
-                                        <span className="block whitespace-nowrap text-black italic">{heroContent.headlineSuffix}</span>
-                                    ) : (
-                                        <>
-                                            <span className="block whitespace-nowrap text-black italic">{heroContent.lineTwo}</span>
-                                            <span className="block whitespace-nowrap text-black italic">{heroContent.lineThree}</span>
-                                        </>
-                                    )}
-                                </h1>
-                                {heroUploadState === 'idle' && (
-                                    <HeroFeatureHighlights compact className="mx-auto mt-3 w-full max-w-[480px] px-2" />
-                                )}
-                            </div>
+                                    <div className="mt-4 text-[14px] text-[var(--genie-muted)] font-medium">
+                                        Don&apos;t have a photo?{' '}
+                                        <Link href="/collections" className="font-bold text-[var(--genie-primary)] underline decoration-[var(--genie-butter)] decoration-2 underline-offset-4 hover:text-[var(--genie-primary-hover)]">Browse 10,000+ cake designs</Link>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
-
-                        {/* Desktop Hero View: 2-column layout */}
-                        <div className="hidden md:flex md:flex-col w-full max-w-[1180px] mx-auto pt-3 pb-2.5">
-                            <div className="grid items-center gap-8 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-10 xl:gap-12">
-                                <div className="col-span-1 mt-2 flex flex-col items-center text-center md:pr-2">
-                                    <div className="w-full md:-translate-y-8">
-                                        <div className="mb-3 text-center">
-                                            <HeroReviewSummary reviewSummary={reviewSummary} />
-                                        </div>
-                                        <p className="mb-3 text-center text-[11px] font-bold uppercase tracking-[0.092em] text-neutral-600">
-                                            {heroContent.eyebrow}
-                                        </p>
-                                        <h1 className="mt-2 flex flex-col items-center gap-0 text-[3.79rem] min-[945px]:text-[3.85rem] lg:text-[4.62rem] min-[1232px]:text-[5.7rem] font-extrabold text-gray-900 leading-none tracking-tight">
-                                            {heroContent.headlinePrefix && heroContent.headlineSuffix && (
-                                                <span className="block h-[1em] whitespace-nowrap leading-none text-black italic">{heroContent.headlinePrefix}</span>
-                                            )}
-                                            <HeroTypingHeadlineLine
-                                                className="block h-[1em] w-full min-h-0 whitespace-nowrap text-center leading-none text-purple-600"
-                                                controlledPhraseIndex={heroHeadlineVariant}
-                                                phrases={heroContent.headlineVariants}
-                                                a11yLabel={heroContent.headlineA11yLabel}
-                                                onPhraseSettled={handleHeroHeadlineSettled}
-                                            />
-                                            {heroContent.headlinePrefix && heroContent.headlineSuffix ? (
-                                                <span className="block h-[1em] whitespace-nowrap leading-none text-black italic">{heroContent.headlineSuffix}</span>
-                                            ) : (
-                                                <>
-                                                    <span className="block h-[1em] whitespace-nowrap leading-none text-black italic">{heroContent.lineTwo}</span>
-                                                    <span className="block h-[1em] whitespace-nowrap leading-none text-black italic">{heroContent.lineThree}</span>
-                                                </>
-                                            )}
-                                        </h1>
-                                        {heroUploadState === 'idle' && (
-                                            <HeroFeatureHighlights className="mt-6" />
-                                        )}
+                        <div className="relative flex h-full items-center justify-center py-10">
+                            {heroUploadState === 'idle' ? (
+                                <div className="relative w-full max-w-[520px]">
+                                    <HeroPhotoMosaic
+                                        tiles={heroMosaicTiles}
+                                        onTileHover={showHeroHeadlineVariant}
+                                        tileBadges={heroPriceTagCake ? {
+                                            [heroPriceTagCake.slug]: (
+                                                <Link
+                                                    href={`/customizing/${heroPriceTagCake.slug}`}
+                                                    className="flex rotate-[-3deg] items-center gap-2.5 whitespace-nowrap rounded-2xl bg-white px-3.5 py-2.5 text-[var(--genie-ink)] shadow-[0_18px_36px_-18px_rgba(31,26,23,0.5)] ring-1 ring-[var(--genie-line)] transition-transform hover:rotate-0"
+                                                >
+                                                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--genie-butter)]">
+                                                        <Zap size={16} className="text-[var(--genie-ink)]" />
+                                                    </span>
+                                                    <span>
+                                                        <span className="block text-[10px] font-bold uppercase tracking-wider text-[var(--genie-muted)]">
+                                                            {heroPriceTagCake.style}{heroPriceTagCake.cakeType ? ` · ${heroPriceTagCake.cakeType}` : ''}
+                                                        </span>
+                                                        <span className="font-display block text-[20px] font-bold leading-none">
+                                                            {formatStartingPrice(heroPriceTagCake.price).replace('Starts at ', 'from ')}
+                                                        </span>
+                                                    </span>
+                                                </Link>
+                                            ),
+                                        } : undefined}
+                                    />
+                                    <div className="absolute -right-3 top-2 z-10 rotate-[6deg] rounded-full bg-[var(--genie-primary)] px-4 py-2 text-[12px] font-extrabold uppercase tracking-wider text-white shadow-xl">
+                                        Priced in seconds ✦
                                     </div>
-                                    {heroUploadState === 'idle' && (
-                                        <div className="mt-3 flex w-full max-w-[440px] flex-col items-center">
-                                            <button
-                                                onClick={() => {
-                                                    trackLandingCtaClick('hero_desktop');
-                                                    setIsUploaderOpen(true);
-                                                }}
-                                                className={`genie-btn-primary flex w-full items-center justify-center gap-3 ${LANDING_PRIMARY_CTA_RADIUS} py-[15px] px-6 md:px-8 text-[17px] lg:text-lg font-bold active:scale-[0.99] shadow-lg shadow-purple-100/50`}
-                                            >
-                                                <ImagePlus size={22} className="shrink-0" />
-                                                <span className="whitespace-nowrap">Upload Your Design - Get Instant Pricing</span>
-                                            </button>
-                                            <div className="mt-3.5 text-center text-[14px] text-slate-500 font-medium">
-                                                Don't have a photo?{' '}
-                                                <Link href="/collections" className="text-purple-600 font-bold hover:underline hover:text-purple-700 transition-colors">Browse from 10,000+ cake designs</Link>
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
-
-                                <div className="col-span-1 flex flex-col items-center justify-center">
-                                    {heroUploadState === 'idle' ? (
-                                        <>
-                                            <div className="w-full max-w-[680px] xl:max-w-[720px]">
-                                                <HeroMasonryGrid
-                                                    products={heroProducts}
-                                                    onSelectProduct={setHeroProductIndex}
-                                                    onInteraction={handleHeroInteraction}
-                                                />
-                                            </div>
-                                        </>
-                                    ) : (
+                            ) : (
+                                <div className="flex w-full flex-col items-center gap-4">
                                         <>
                                             <div className="relative w-full max-w-[560px]">
                                                 <div className="overflow-hidden bg-transparent">
@@ -2151,14 +2351,13 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                                 </div>
                                             </div>
                                         </>
-                                    )}
                                 </div>
-                            </div>{/* /.grid */}
-                        </div>{/* /.flex-col outer */}
+                            )}
+                        </div>
                     </div>
                 </section>
 
-                <section ref={heroMobilePreviewRef} aria-label="Featured cake preview" className="md:hidden w-full scroll-mt-28 px-4 pb-8">
+                <section ref={heroMobilePreviewRef} aria-label="Featured cake preview" className="md:hidden w-full scroll-mt-28 px-4 pb-10">
                     <div className="mx-auto flex w-full max-w-[480px] flex-col gap-4">
                         <HeroProductPreviewStack
                             products={heroProducts}
@@ -2180,16 +2379,24 @@ const LandingClient: React.FC<LandingClientProps> = ({
                     </div>
                 </section>
 
+
+                </div>
+
+                <LandingMarquee reviewSummary={reviewSummary} />
+
+                <ShopByCategorySection />
+
                 <HeroTransitionSection />
 
                 {/* ===== INTERACTIVE CUSTOMIZER DEMO ===== */}
 
                 <section aria-label="AI-powered instant pricing" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:pt-6 md:pb-12">
-                    <h2 id="price-change-heading" className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-2 text-center">
-                        Get your <span className="text-purple-600">Personalized Cake</span> today
+                    <p className="mb-2 text-center text-[12px] font-extrabold uppercase tracking-[0.16em] text-[var(--genie-primary)]">✦ Live demo ✦</p>
+                    <h2 id="price-change-heading" className="font-display text-[38px] md:text-[56px] font-bold text-[var(--genie-ink)] leading-[1.1] tracking-tight mb-3 text-center">
+                        Change anything, <span className="italic text-[var(--genie-primary)]">watch the price update</span>
                     </h2>
-                    <p className="text-base text-slate-500 mb-8 max-w-2xl mx-auto text-center">
-                        Upload any cake design. Customize it. See your price instantly. Same-day delivery.
+                    <p className="text-base text-[var(--genie-muted)] mb-8 max-w-2xl mx-auto text-center">
+                        Pick a size, flavor, icing and toppers. Your price updates instantly, and what you see is what you pay.
                     </p>
 
                     {(() => {
@@ -2282,25 +2489,25 @@ const LandingClient: React.FC<LandingClientProps> = ({
 
 
                 {/* ===== SAME-DAY FREE DELIVERY SECTION ===== */}
-                <section aria-label="Same-day free delivery" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10 md:py-16">
-                    <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12 lg:gap-16">
+                <section aria-label="Same-day free delivery" className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10 md:py-14">
+                    <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12 lg:gap-16 rounded-[2rem] bg-[var(--genie-primary)] p-5 md:p-12">
 
                         {/* Left Column: Copy + CTA (order-2 on mobile, md:order-1 on desktop) */}
-                        <div className="w-full md:w-1/2 flex flex-col items-center text-center order-2 md:order-1">
+                        <div className="w-full md:flex-1 md:min-w-0 flex flex-col items-center text-center order-2 md:order-1">
                             {/* Eyebrow */}
-                            <p className="text-[11px] font-bold uppercase tracking-widest text-purple-500 mb-3">
-                                🚀 Same-Day Delivery
+                            <p className="text-[12px] font-extrabold uppercase tracking-[0.16em] text-[var(--genie-butter)] mb-3">
+                                Same-Day Delivery
                             </p>
 
                             {/* Headline */}
-                            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-[1.1] tracking-tight mb-4">
-                                Your Cake.{' '}
-                                <span className="text-purple-600">Safely Delivered Today.</span>
+                            <h2 className="font-display text-[40px] lg:text-[60px] font-bold text-white leading-[0.98] tracking-tight mb-5">
+                                Your cake.{' '}
+                                <span className="italic text-[var(--genie-butter)]">Safely delivered today.</span>
                             </h2>
 
                             {/* Subheadline */}
-                            <p className="text-base md:text-lg text-slate-500 leading-relaxed mb-8 max-w-xl">
-                                Order before 4 PM for same day delivery. <span className="font-semibold text-purple-600 uppercase tracking-wide text-sm md:text-base">FREE DELIVERY within Cebu City</span>.
+                            <p className="text-base md:text-lg text-white/80 leading-relaxed mb-8 max-w-xl">
+                                Order before 4 PM for same day delivery. <span className="font-semibold text-white uppercase tracking-wide text-sm md:text-base">FREE DELIVERY within Cebu City</span>.
                                 {' '}Minimal fees for Mandaue, Mactan &amp; Talisay City.
                             </p>
 
@@ -2309,20 +2516,20 @@ const LandingClient: React.FC<LandingClientProps> = ({
                                 <button
                                     id="delivery-section-upload-cta"
                                     onClick={() => setIsUploaderOpen(true)}
-                                    className={`genie-btn-primary flex w-full items-center justify-center gap-2.5 ${LANDING_PRIMARY_CTA_RADIUS} py-4 px-7 text-[15px] font-bold shadow-lg shadow-purple-100/60 active:scale-[0.98] transition-transform`}
+                                    className={`flex w-full items-center justify-center gap-2.5 ${LANDING_PRIMARY_CTA_RADIUS} bg-white py-4 px-7 text-[15px] font-extrabold uppercase tracking-wide text-[var(--genie-primary)] transition-colors hover:bg-[var(--genie-cream)] active:scale-[0.98]`}
                                 >
                                     <ImagePlus size={18} className="shrink-0" />
-                                    <span className="whitespace-nowrap">Upload design - Check same-day availability</span>
+                                    <span className="text-center">Check same-day availability</span>
                                 </button>
-                                <p className="mt-3 text-[11px] text-slate-600 font-medium">
+                                <p className="mt-3 text-[12px] text-white/70 font-medium">
                                     Upload now and we&apos;ll instantly tell you if it&apos;s available for today.
                                 </p>
                             </div>
                         </div>
 
                         {/* Right Column: Delivery photo (order-1 on mobile, md:order-2 on desktop) */}
-                        <div className="w-full md:w-1/2 shrink-0 order-1 md:order-2">
-                            <div className="relative rounded-3xl overflow-hidden shadow-2xl group">
+                        <div className="w-full md:flex-1 md:min-w-0 order-1 md:order-2">
+                            <div className="relative rounded-2xl overflow-hidden group">
                                 <img
                                     src={HOMEPAGE_ASSETS.delivery}
                                     alt="Genie.ph same-day cake delivery in Cebu"
@@ -2347,6 +2554,34 @@ const LandingClient: React.FC<LandingClientProps> = ({
                 <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
                     {children}
                 </div>
+
+                {/* ===== CLOSING AI PRICE CTA ===== */}
+                <section aria-labelledby="closing-price-cta-heading" className="relative overflow-hidden bg-[var(--genie-primary)] text-white">
+                    <div aria-hidden="true" className="pointer-events-none absolute -left-32 -bottom-40 h-[460px] w-[460px] rounded-full bg-[radial-gradient(circle,rgba(184,126,254,0.35),transparent_65%)]" />
+                    <div className="relative max-w-7xl mx-auto flex w-full flex-col items-center gap-7 px-4 py-16 text-center sm:px-6 md:py-24 lg:px-8">
+                        <img
+                            src={UPLOAD_CAKE_ICON_SRC}
+                            alt=""
+                            width={88}
+                            height={88}
+                            className="h-20 w-20 rotate-[-6deg] rounded-2xl bg-white object-contain p-2"
+                            loading="lazy"
+                            decoding="async"
+                        />
+                        <h2 id="closing-price-cta-heading" className="font-display max-w-3xl text-[40px] md:text-[72px] font-bold leading-[0.95] tracking-tight">
+                            Got a cake peg? <span className="italic text-[var(--genie-butter)]">Price it in seconds.</span>
+                        </h2>
+                        <p className="max-w-xl text-[17px] text-white/75">Upload any design and see your instant price. No DMs, no waiting for a quote.</p>
+                        <button
+                            type="button"
+                            onClick={() => setIsUploaderOpen(true)}
+                            className={`inline-flex items-center justify-center gap-2 ${LANDING_PRIMARY_CTA_RADIUS} bg-[var(--genie-butter)] px-9 py-5 text-[16px] font-extrabold uppercase tracking-wide text-[var(--genie-ink)] transition-transform hover:-translate-y-0.5 active:scale-[0.99]`}
+                        >
+                            <ImagePlus size={20} className="shrink-0" />
+                            Get My Instant Price
+                        </button>
+                    </div>
+                </section>
             </main>
 
             {/* ========== MOBILE BOTTOM NAV ========== */}

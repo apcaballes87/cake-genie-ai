@@ -22,11 +22,11 @@ describe('HeroTransitionSection', () => {
         expect(headline.parentElement).toHaveClass('text-3xl');
         expect(headline.parentElement).toHaveClass('sm:text-4xl');
         expect(headline.parentElement).toHaveClass('lg:text-5xl');
-        expect(headline.parentElement).toHaveClass('font-bold');
-        expect(headline.parentElement).toHaveClass('text-slate-900');
+        expect(headline.parentElement).toHaveClass('font-display');
+        expect(headline.parentElement).toHaveClass('font-semibold');
         expect(headline).toHaveClass('mx-auto');
         expect(supportingLine).toHaveClass('text-base');
-        expect(supportingLine).toHaveClass('text-slate-500');
+        expect(supportingLine).toHaveClass('font-sans');
         const image = screen.getByAltText('Generic cake compared with a more personal cake');
         expect(image).toBeInTheDocument();
         expect(image.parentElement).toHaveClass('aspect-[21/9]');

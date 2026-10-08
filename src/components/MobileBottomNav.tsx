@@ -61,7 +61,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onUploadClick }) => {
 
     return (
         <>
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 w-full bg-white border-t border-purple-100 py-2.5 px-5 grid grid-cols-5 items-center text-gray-500 z-50 pb-safe shadow-[0_-10px_30px_-24px_rgba(88,28,135,0.55)]">
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 w-full bg-white border-t border-purple-100 py-2.5 px-5 grid grid-cols-5 items-center text-gray-500 z-50 pb-safe shadow-[0_-10px_30px_-24px_rgba(91,42,110,0.55)]">
                 <button
                     onClick={() => router.push('/')}
                     className={`${navItemClass('home')} min-h-[44px] justify-center`}

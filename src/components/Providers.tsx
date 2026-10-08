@@ -50,11 +50,18 @@ export function Providers({ children }: { children: React.ReactNode }) {
             <Toaster
                 position="bottom-center"
                 toastOptions={{
+                    // Brand plum (matches --genie-primary and lib/utils/toast helpers).
                     style: {
                         borderRadius: '9999px',
-                        background: '#333',
+                        background: '#5b2a6e',
                         color: '#fff',
-                        boxShadow: '0 3px 10px rgba(0, 0, 0, 0.2)',
+                        boxShadow: '0 10px 24px -12px rgba(91, 42, 110, 0.6)',
+                    },
+                    success: {
+                        iconTheme: { primary: '#ffffff', secondary: '#5b2a6e' },
+                    },
+                    error: {
+                        iconTheme: { primary: '#ffffff', secondary: '#ef4444' },
                     },
                 }}
             />

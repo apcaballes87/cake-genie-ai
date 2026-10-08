@@ -64,7 +64,7 @@ export default function ServicesPage() {
 
       <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(233,213,255,0.45),_transparent_35%),linear-gradient(180deg,_#fffdf8,_#f8fafc_35%,_#ffffff)] px-4 py-10 sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-6xl flex-col gap-8">
-          <section className="overflow-hidden rounded-[2.25rem] border border-purple-100 bg-purple-50/30 p-8 text-slate-900 shadow-[0_15px_40px_-20px_rgba(168,85,247,0.15)] md:p-12">
+          <section className="overflow-hidden rounded-[2.25rem] border border-purple-100 bg-purple-50/30 p-8 text-slate-900 shadow-[0_15px_40px_-20px_rgba(91,42,110,0.15)] md:p-12">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-purple-600">Genie.ph Services</p>
             <h1 className="mt-5 max-w-4xl text-4xl font-black tracking-tight sm:text-5xl text-slate-900">
               Custom cake services in <span className="text-purple-600">Cebu</span>, from instant pricing to final delivery.

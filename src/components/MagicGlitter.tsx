@@ -18,8 +18,8 @@ const MagicGlitter = () => {
             duration: `${1.5 + Math.random() * 2.5}s`,
             type: Math.random() > 0.7 ? 'star' : 'circle',
             color: [
-                '#c084fc', // var(--genie-primary)
-                '#ec4899', // var(--genie-accent)
+                '#7d4593', // brand plum (purple-400)
+                '#f9d9e3', // blush
                 '#fbbf24', // Gold
                 '#ffffff', // White
                 '#818cf8', // Indigo

@@ -745,7 +745,7 @@ export default function ImageStudioAdminClient() {
 
   return (
     <div className="mx-auto max-w-7xl px-4">
-      <div className="overflow-hidden rounded-[32px] border border-white/70 bg-white/90 shadow-[0_30px_120px_-48px_rgba(168,85,247,0.45)] backdrop-blur">
+      <div className="overflow-hidden rounded-[32px] border border-white/70 bg-white/90 shadow-[0_30px_120px_-48px_rgba(91,42,110,0.45)] backdrop-blur">
         <div className="border-b border-slate-100 bg-linear-to-r from-fuchsia-600 via-violet-600 to-slate-900 px-6 py-8 text-white md:px-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">

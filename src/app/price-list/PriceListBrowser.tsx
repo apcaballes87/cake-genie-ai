@@ -385,7 +385,7 @@ export default function PriceListBrowser({
                             onClick={() => handleThicknessSelect(summary.cakeType, thickness)}
                             className={`min-h-[60px] min-w-[80px] max-md:min-h-[52px] max-md:min-w-[68px] min-[390px]:min-w-[76px] md:min-w-[92px] rounded-[1.1rem] border px-3 py-3 text-center text-base font-black transition min-[390px]:text-lg ${
                               isSelected
-                                ? 'border-purple-400 bg-purple-50 text-purple-700 shadow-[0_0_0_3px_rgba(168,85,247,0.12)]'
+                                ? 'border-purple-400 bg-purple-50 text-purple-700 shadow-[0_0_0_3px_rgba(91,42,110,0.12)]'
                                 : 'border-slate-200 bg-white text-slate-700 hover:border-purple-300 hover:bg-purple-50/50'
                             }`}
                           >
