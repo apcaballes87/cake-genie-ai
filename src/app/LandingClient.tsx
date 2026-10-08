@@ -87,11 +87,6 @@ const LANDING_SHOP_CATEGORIES = [
     { label: 'Doodle', href: '/collections/doodle-cake', image: HOMEPAGE_ASSETS.heroProducts.doodle },
 ] as const;
 
-const LANDING_HEADER_LINKS = [
-    ...LANDING_SHOP_CATEGORIES.map(({ label, href }) => ({ label, href })),
-    { label: 'Wedding', href: '/collections/wedding-cake' },
-    { label: 'All Designs', href: '/collections' },
-] as const;
 
 
 const getHeroAvailabilityConfig = (title: string, isDesktop: boolean = false) => {
@@ -2014,31 +2009,6 @@ const LandingClient: React.FC<LandingClientProps> = ({
                             </button>
                         </div>
                     </div>
-                </div>
-                {/* Desktop category navigation */}
-                <div className="hidden md:block border-t border-[var(--genie-line)]">
-                    <ul className="max-w-7xl mx-auto flex items-center gap-1 overflow-x-auto px-4 sm:px-6 lg:px-8 scrollbar-hide">
-                        {LANDING_HEADER_LINKS.map((link) => (
-                            <li key={link.href}>
-                                <Link
-                                    href={link.href}
-                                    className="block whitespace-nowrap px-3 py-2.5 text-[13px] font-medium text-[var(--genie-ink)] transition-colors hover:text-[var(--genie-primary)]"
-                                >
-                                    {link.label}
-                                </Link>
-                            </li>
-                        ))}
-                        <li className="ml-auto">
-                            <button
-                                type="button"
-                                onClick={() => setIsUploaderOpen(true)}
-                                className="flex items-center gap-1.5 whitespace-nowrap px-3 py-2.5 text-[13px] font-semibold text-[var(--genie-primary)] hover:underline"
-                            >
-                                <Sparkles size={14} className="shrink-0" />
-                                AI Price Check
-                            </button>
-                        </li>
-                    </ul>
                 </div>
             </nav>
 
