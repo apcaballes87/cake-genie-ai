@@ -238,29 +238,29 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
       {/* ── Collapsed teaser bubble ── */}
       {!isExpanded ? (
         <div className={`absolute bottom-full -left-2 ${collapsedOffsetClass} animate-bounce-subtle`}>
-          <div className="relative bg-emerald-100 text-emerald-900 px-4 max-md:px-3 py-3 max-md:py-2.5 rounded-2xl shadow-xl border border-emerald-200 min-w-[200px] max-md:min-w-[180px] flex flex-col gap-1">
+          <div className="relative bg-purple-100 text-purple-900 px-4 max-md:px-3 py-3 max-md:py-2.5 rounded-2xl shadow-xl border border-purple-200 min-w-[200px] max-md:min-w-[180px] flex flex-col gap-1">
             {/* Close */}
             <button
               onClick={(e) => { e.stopPropagation(); setIsVisible(false); }}
-              className="absolute -top-2 -right-2 p-1 bg-white hover:bg-gray-50 border border-emerald-200 text-emerald-600 rounded-full shadow-md transition-all active:scale-95 z-50"
+              className="absolute -top-2 -right-2 p-1 bg-white hover:bg-gray-50 border border-purple-200 text-purple-600 rounded-full shadow-md transition-all active:scale-95 z-50"
               aria-label="Close discount offer"
             >
               <X className="w-3 h-3" />
             </button>
             {/* Arrow pointing down */}
-            <div className="absolute -bottom-1.5 left-6 w-3 h-3 bg-emerald-100 border-r border-b border-emerald-200 rotate-45" />
+            <div className="absolute -bottom-1.5 left-6 w-3 h-3 bg-purple-100 border-r border-b border-purple-200 rotate-45" />
 
-            <div className="text-[11px] max-md:text-[9px] font-extrabold flex items-center gap-1 text-emerald-700 uppercase tracking-tight">
-              <Sparkles className="w-3 h-3 fill-emerald-600" />
+            <div className="text-[11px] max-md:text-[9px] font-extrabold flex items-center gap-1 text-purple-700 uppercase tracking-tight">
+              <Sparkles className="w-3 h-3 fill-purple-600" />
               SIGN UP &amp; GET 10% OFF!!
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-emerald-400 line-through font-medium">₱{basePrice.toLocaleString()}</span>
-              <span className="text-sm text-emerald-900 font-black">₱{discountedPrice.toLocaleString()}</span>
+              <span className="text-xs text-purple-400 line-through font-medium">₱{basePrice.toLocaleString()}</span>
+              <span className="text-sm text-purple-900 font-black">₱{discountedPrice.toLocaleString()}</span>
               <button
                 onClick={() => setIsExpanded(true)}
-                className="ml-auto bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] max-md:text-[9px] font-black px-3 py-1 rounded-lg transition-all active:scale-90 shadow-sm"
+                className="ml-auto bg-purple-600 hover:bg-purple-700 text-white text-[10px] max-md:text-[9px] font-black px-3 py-1 rounded-lg transition-all active:scale-90 shadow-sm"
               >
                 OK
               </button>
@@ -270,12 +270,12 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
 
       ) : (
         /* ── Expanded form panel ── */
-        <div className={`absolute bottom-full -left-2 ${expandedOffsetClass} w-72 bg-white rounded-2xl shadow-2xl border border-emerald-100 overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-300 z-50`}>
+        <div className={`absolute bottom-full -left-2 ${expandedOffsetClass} w-72 bg-white rounded-2xl shadow-2xl border border-purple-100 overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-300 z-50`}>
           {/* Header */}
-          <div className="bg-emerald-50 p-4 border-b border-emerald-100">
+          <div className="bg-purple-50 p-4 border-b border-purple-100">
             <div className="flex justify-between items-start mb-1">
               <h3 className="font-extrabold text-gray-900 text-sm flex items-center gap-1.5">
-                <Tag className="w-4 h-4 text-emerald-600" />
+                <Tag className="w-4 h-4 text-purple-600" />
                 {isAuthenticated ? 'CLAIM YOUR DISCOUNT' : 'SIGN UP TO SAVE'}
               </h3>
               <button
@@ -308,7 +308,7 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
               <button
                 onClick={() => void applyDiscountForCurrentUser()}
                 disabled={status === 'loading'}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs shadow-md active:scale-95 disabled:opacity-50 transition-all flex items-center justify-center gap-1.5"
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 rounded-xl text-xs shadow-md active:scale-95 disabled:opacity-50 transition-all flex items-center justify-center gap-1.5"
               >
                 {status === 'loading' ? 'APPLYING…' : (
                   <>
@@ -352,7 +352,7 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Email address"
                     autoComplete="email"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-400 focus:outline-none transition-all"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-purple-400 focus:outline-none transition-all"
                     disabled={status === 'loading'}
                   />
                   <div className="relative">
@@ -362,7 +362,7 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Password (min. 6 chars)"
                       autoComplete="new-password"
-                      className="w-full px-3 py-2 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-400 focus:outline-none transition-all"
+                      className="w-full px-3 py-2 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-purple-400 focus:outline-none transition-all"
                       disabled={status === 'loading'}
                     />
                     <button
@@ -382,7 +382,7 @@ export const DiscountOfferBubble: React.FC<DiscountOfferBubbleProps> = ({
                   <button
                     type="submit"
                     disabled={status === 'loading'}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs shadow-md active:scale-95 disabled:opacity-50 transition-all flex items-center justify-center gap-1.5"
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 rounded-xl text-xs shadow-md active:scale-95 disabled:opacity-50 transition-all flex items-center justify-center gap-1.5"
                   >
                     {status === 'loading' ? 'SIGNING UP…' : (
                       <>

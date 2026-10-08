@@ -6,7 +6,7 @@ export const IntroContent = () => {
     return (
         <section className="py-4 md:py-6">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                <h2 className="text-[22px] md:text-[28px] font-bold text-gray-900 mb-4">
+                <h2 className="font-display text-[26px] md:text-[34px] font-semibold leading-tight text-[var(--genie-ink)] mb-4">
                     Spontaneous Celebrations deserve more than a grocery cake.
                 </h2>
                 <div className="prose prose-base md:prose-lg mx-auto text-gray-600 space-y-4 md:space-y-6 leading-relaxed">
@@ -33,7 +33,7 @@ export const IntroContent = () => {
                         </li>
                     </ul>
 
-                    <h3 className="text-[18px] md:text-[21px] font-bold text-gray-800 mt-6 mb-2">Celebrate Every Occasion</h3>
+                    <h3 className="font-display text-[20px] md:text-[24px] font-semibold text-[var(--genie-ink)] mt-6 mb-2">Celebrate Every Occasion</h3>
                     <p>
                         No celebration is complete without a cake. At Genie.ph, we cater to all occasions:
                     </p>

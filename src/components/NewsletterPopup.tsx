@@ -295,7 +295,7 @@ export default function NewsletterPopup() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Password (min. 6 characters)"
                     autoComplete="new-password"
-                    className="w-full border border-slate-200 px-4 py-3 pr-11 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 bg-slate-50 text-gray-900 text-sm transition-shadow"
+                    className="w-full border border-slate-200 px-4 py-3 pr-11 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 bg-slate-50 text-gray-900 text-sm transition-shadow"
                     disabled={status === 'loading'}
                   />
                   <button
@@ -316,7 +316,7 @@ export default function NewsletterPopup() {
                   <button
                     type="submit"
                     disabled={status === 'loading'}
-                    className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold py-3 px-2 rounded-xl transition-all shadow-lg active:scale-[0.98] disabled:opacity-70 whitespace-nowrap text-[12px] sm:text-sm"
+                    className="flex-1 bg-[var(--genie-primary)] hover:bg-[var(--genie-primary-hover)] text-white font-bold py-3 px-2 rounded-xl transition-all shadow-lg active:scale-[0.98] disabled:opacity-70 whitespace-nowrap text-[12px] sm:text-sm"
                   >
                     {status === 'loading' ? 'SIGNING UP…' : 'SIGN UP & SAVE 10%'}
                   </button>

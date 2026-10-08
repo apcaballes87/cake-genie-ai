@@ -1,8 +1,9 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
+import { preload } from 'react-dom';
 import dynamic from 'next/dynamic';
 import LandingClient from './LandingClient';
-import { getRecommendedProducts, getHomepageBlogPreviews } from '@/services/supabaseService';
+import { getRecommendedProducts, getHomepageBlogPreviews, getHeroStudioCakes } from '@/services/supabaseService';
 import { RecommendedProductsSection, IntroContent } from '@/components/landing';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import { LandingPageSkeleton } from '@/components/LoadingSkeletons';
@@ -208,7 +209,7 @@ async function getHomepageReviews() {
  * Suspense still provides a safe fallback during an uncached regeneration.
  */
 async function LandingDataSections() {
-    const [recommendedProductsRes, blogsRes, homepageReviews] = await Promise.all([
+    const [recommendedProductsRes, blogsRes, homepageReviews, heroStudioCakesRes] = await Promise.all([
         getRecommendedProducts(12, 0).catch(err => ({ data: [], error: err })),
         getHomepageBlogPreviews(3).catch(err => ({ data: [], error: err })),
         getHomepageReviews().catch(() => ({
@@ -219,10 +220,20 @@ async function LandingDataSections() {
                 averageRating: 0,
             },
         })),
+        getHeroStudioCakes().catch(err => ({ data: [], error: err })),
     ]);
 
     const recommendedProducts = recommendedProductsRes.data || [];
     const blogPosts = blogsRes.data || [];
+    const heroStudioCakes = heroStudioCakesRes.data || [];
+
+    // The first hero cake is the LCP image on both mobile (carousel) and
+    // desktop (mosaic). Preload only that one so it doesn't compete with the
+    // rest of the hero images on throttled mobile networks.
+    preload(heroStudioCakes[0]?.image ?? HOMEPAGE_ASSETS.heroProducts.minimalist, {
+        as: 'image',
+        fetchPriority: 'high',
+    });
 
     return (
         <>
@@ -233,6 +244,7 @@ async function LandingDataSections() {
             <LandingClient
                 blogPosts={blogPosts}
                 reviewSummary={homepageReviews.reviewSummary}
+                heroStudioCakes={heroStudioCakes}
             >
                 <RecommendedProductsSection
                     products={recommendedProducts}
@@ -249,26 +261,6 @@ async function LandingDataSections() {
 export default function Home() {
     return (
         <>
-            {/*
-              Mobile Lighthouse consistently identifies the first minimalist
-              card as LCP. Preloading all six hero images made the other five
-              compete with that critical request on throttled mobile networks,
-              so only the actual LCP candidate receives a global preload.
-            */}
-            <link
-                rel="preload"
-                as="image"
-                href={HOMEPAGE_ASSETS.heroProducts.minimalist}
-                fetchPriority="high"
-            />
-            {/* Desktop's measured LCP is the transition image below the hero. */}
-            <link
-                rel="preload"
-                as="image"
-                href={HOMEPAGE_ASSETS.transition}
-                media="(min-width: 768px)"
-                fetchPriority="high"
-            />
             <WebSiteSchema />
             <HomepageFAQSchema />
             {/*

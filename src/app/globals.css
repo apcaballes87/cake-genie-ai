@@ -2,52 +2,89 @@
 
 @theme {
   --breakpoint-xs: 280px;
+
+  /* Brand plum: every purple-* / violet-* utility resolves to the Genie palette
+     (600 = --genie-primary). */
+  --color-purple-50: #f7f1f9;
+  --color-purple-100: #efe3f3;
+  --color-purple-200: #dfc8e7;
+  --color-purple-300: #b98fc9;
+  --color-purple-400: #7d4593;
+  --color-purple-500: #6a3680;
+  --color-purple-600: #5b2a6e;
+  --color-purple-700: #4d2360;
+  --color-purple-800: #45204f;
+  --color-purple-900: #341a3c;
+  --color-purple-950: #22102a;
+  --color-violet-50: #f7f1f9;
+  --color-violet-100: #efe3f3;
+  --color-violet-200: #dfc8e7;
+  --color-violet-300: #b98fc9;
+  --color-violet-400: #7d4593;
+  --color-violet-500: #6a3680;
+  --color-violet-600: #5b2a6e;
+  --color-violet-700: #4d2360;
+  --color-violet-800: #45204f;
+  --color-violet-900: #341a3c;
+  --color-violet-950: #22102a;
+
+  /* Strong pink/fuchsia shades read as berry-red next to the plum brand;
+     map them onto the plum scale too (light pink tints stay pink). */
+  --color-pink-500: #6a3680;
+  --color-pink-600: #5b2a6e;
+  --color-pink-700: #4d2360;
+  --color-pink-800: #45204f;
+  --color-fuchsia-500: #6a3680;
+  --color-fuchsia-600: #5b2a6e;
+  --color-fuchsia-700: #4d2360;
+  --color-fuchsia-800: #45204f;
 }
 
-/* Genie landing-page theme tokens */
+/* Genie brand tokens — "bakery boutique": warm cream, deep plum, berry accent */
 :root {
   --mobile-ui-scale: 1;
-  --genie-primary: #b87efe;
-  --genie-primary-hover: #7e22ce;
-  --genie-primary-strong: #b87efe;
-  --genie-accent: #ec4899;
-  --genie-accent-soft: #fce7f3;
+  --genie-primary: #5b2a6e;
+  --genie-primary-hover: #45204f;
+  --genie-primary-strong: #5b2a6e;
+  --genie-accent: #5b2a6e;
+  --genie-accent-soft: #f7f1f9;
+  --genie-lilac: #b87efe;
   --genie-indigo: #818cf8;
   --genie-sky: #38bdf8;
   --genie-success: #22c55e;
   --genie-warning: #f59e0b;
-  --genie-ink: #111827;
-  --genie-muted: #64748b;
-  --genie-soft: #faf5ff;
-  --genie-soft-border: #eadcff;
-  --genie-card-shadow: 0 18px 44px -34px rgba(88, 28, 135, 0.72);
-  --genie-card-shadow-hover: 0 24px 52px -30px rgba(88, 28, 135, 0.78);
-  --genie-focus-ring: 0 0 0 3px rgba(169, 86, 248, 0.32);
+  --genie-ink: #1f1a17;
+  --genie-muted: #6b625b;
+  --genie-cream: #fbf7f2;
+  --genie-butter: #ffe08a;
+  --genie-blush: #f9d9e3;
+  --genie-cream-deep: #f4ece2;
+  --genie-line: #ede4da;
+  --genie-soft: #f7f1f9;
+  --genie-soft-border: #e6dbe9;
+  --genie-card-shadow: 0 1px 2px rgba(31, 26, 23, 0.04), 0 8px 24px -16px rgba(31, 26, 23, 0.18);
+  --genie-card-shadow-hover: 0 2px 4px rgba(31, 26, 23, 0.05), 0 18px 36px -18px rgba(31, 26, 23, 0.28);
+  --genie-focus-ring: 0 0 0 3px rgba(91, 42, 110, 0.28);
 }
 
 ::selection {
-  background: rgba(169, 86, 248, 0.28);
+  background: rgba(91, 42, 110, 0.2);
   color: var(--genie-ink);
 }
 
 .genie-page-bg {
-  background:
-    radial-gradient(circle at top left, rgba(252, 231, 243, 0.82), transparent 34rem),
-    linear-gradient(135deg, #fdf2f8 0%, #faf5ff 46%, #e0e7ff 100%);
+  background: var(--genie-cream);
+}
+
+.font-display {
+  font-family: var(--font-display), Georgia, 'Times New Roman', serif;
+  font-optical-sizing: auto;
 }
 
 .genie-card {
-  /*
-   * Previously used `backdrop-filter: blur(16px)` for a frosted-glass effect.
-   * That forces the compositor to re-blur whatever's behind every card on
-   * every paint, which is ~5-15ms per frame on mid-tier mobile GPUs and
-   * shows up as render delay during LCP. We trade a tiny bit of visual
-   * frost for a much cleaner paint by raising the background opacity from
-   * 0.78 -> 0.92 and dropping the blur. On the homepage's pink/purple
-   * gradient this is visually nearly indistinguishable.
-   */
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.78);
+  /* Solid surface (no backdrop-filter) keeps paint cheap on mobile GPUs. */
+  background: #fff;
+  border: 1px solid var(--genie-line);
   box-shadow: var(--genie-card-shadow);
 }
 
@@ -56,7 +93,7 @@
 }
 
 .genie-card-hover:hover {
-  border-color: rgba(169, 86, 248, 0.45);
+  border-color: #dccfc2;
   box-shadow: var(--genie-card-shadow-hover);
 }
 
@@ -73,39 +110,38 @@
 .genie-btn-primary {
   background: var(--genie-primary);
   color: #fff;
-  border: 1px solid rgba(169, 86, 248, 0.86);
-  box-shadow: 0 20px 50px -20px rgba(169, 86, 248, 0.45);
+  border: 1px solid var(--genie-primary);
+  box-shadow: 0 10px 24px -14px rgba(91, 42, 110, 0.7);
 }
 
 .genie-btn-primary:hover {
   background: var(--genie-primary-hover);
   border-color: var(--genie-primary-hover);
-  box-shadow: 0 25px 60px -20px rgba(149, 59, 246, 0.55);
+  box-shadow: 0 14px 30px -14px rgba(69, 32, 79, 0.75);
 }
 
 .genie-btn-secondary {
-  background: rgba(255, 255, 255, 0.88);
-  color: #7e22ce;
-  border: 1px solid rgba(169, 86, 248, 0.38);
-  box-shadow: 0 10px 30px -22px rgba(88, 28, 135, 0.75);
+  background: #fff;
+  color: var(--genie-primary);
+  border: 1px solid var(--genie-soft-border);
+  box-shadow: none;
 }
 
 .genie-btn-secondary:hover {
-  background: #faf5ff;
-  border-color: rgba(149, 59, 246, 0.55);
-  color: #6b21a8;
-  box-shadow: 0 16px 36px -24px rgba(88, 28, 135, 0.78);
+  background: var(--genie-soft);
+  border-color: rgba(91, 42, 110, 0.4);
+  color: var(--genie-primary-hover);
 }
 
 .genie-btn-ghost {
-  color: #7e22ce;
+  color: var(--genie-primary);
   border: 1px solid transparent;
 }
 
 .genie-btn-ghost:hover {
-  background: #faf5ff;
-  border-color: rgba(169, 86, 248, 0.22);
-  color: #6b21a8;
+  background: var(--genie-soft);
+  border-color: var(--genie-soft-border);
+  color: var(--genie-primary-hover);
 }
 
 .genie-btn-primary:disabled,
@@ -119,15 +155,15 @@
 
 .genie-icon,
 .genie-icon-button {
-  color: var(--genie-primary-strong);
+  color: var(--genie-ink);
 }
 
 .genie-icon-button {
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.86);
-  border: 1px solid rgba(169, 86, 248, 0.28);
-  box-shadow: 0 12px 30px -24px rgba(88, 28, 135, 0.8);
+  background: transparent;
+  border: 1px solid transparent;
+  box-shadow: none;
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
@@ -136,22 +172,21 @@
 }
 
 .genie-icon-button:hover {
-  background: #faf5ff;
-  border-color: rgba(149, 59, 246, 0.5);
-  color: #6b21a8;
-  box-shadow: 0 18px 34px -26px rgba(88, 28, 135, 0.9);
+  background: var(--genie-cream-deep);
+  border-color: var(--genie-line);
+  color: var(--genie-primary);
 }
 
 .genie-icon-soft {
-  background: linear-gradient(135deg, #faf5ff 0%, #fce7f3 100%);
+  background: var(--genie-soft);
   color: var(--genie-primary-strong);
-  border: 1px solid rgba(169, 86, 248, 0.22);
+  border: 1px solid var(--genie-soft-border);
 }
 
 .genie-control-selected {
-  border-color: var(--genie-primary-hover) !important;
-  background: #faf5ff !important;
-  box-shadow: 0 0 0 3px rgba(169, 86, 248, 0.24);
+  border-color: var(--genie-primary) !important;
+  background: var(--genie-soft) !important;
+  box-shadow: 0 0 0 3px rgba(91, 42, 110, 0.18);
 }
 
 .genie-focus {
@@ -163,12 +198,12 @@
 }
 
 .genie-link {
-  color: #7e22ce;
+  color: var(--genie-primary);
   transition: color 0.2s ease;
 }
 
 .genie-link:hover {
-  color: #6b21a8;
+  color: var(--genie-primary-hover);
 }
 
 /* Keep older page/component utilities aligned with the landing palette. */
@@ -199,7 +234,7 @@
 
 .hover\:bg-pink-700:hover,
 .hover\:bg-pink-600:hover {
-  background-color: #db2777 !important;
+  background-color: var(--genie-primary-hover) !important;
 }
 
 .text-purple-700,
@@ -217,13 +252,13 @@
 .hover\:text-purple-800:hover,
 .hover\:text-purple-700:hover,
 .hover\:text-purple-600:hover {
-  color: #6b21a8 !important;
+  color: var(--genie-primary-hover) !important;
 }
 
 .border-purple-300,
 .border-purple-200,
 .border-purple-100 {
-  border-color: rgba(169, 86, 248, 0.36) !important;
+  border-color: var(--genie-soft-border) !important;
 }
 
 .ring-purple-500,
@@ -231,7 +266,7 @@
 .focus\:ring-purple-500:focus,
 .focus\:ring-purple-400:focus,
 .focus-visible\:ring-purple-400:focus-visible {
-  --tw-ring-color: rgba(169, 86, 248, 0.5) !important;
+  --tw-ring-color: rgba(91, 42, 110, 0.4) !important;
 }
 
 /* Custom styles from original React app */
@@ -333,7 +368,7 @@ body.genie-image-zoom-open [data-sticky-add-to-cart-bar] {
 }
 
 .gsc-cursor-current-page {
-  background: linear-gradient(to right, #ec4899, #8b5cf6);
+  background: linear-gradient(to right, #7d4593, #5b2a6e);
   color: white;
   border-color: transparent;
   font-weight: bold;
@@ -402,7 +437,7 @@ body.genie-image-zoom-open [data-sticky-add-to-cart-bar] {
 
 .analysis-marker:hover .marker-dot {
   transform: scale(1.3);
-  background-color: rgba(139, 92, 246, 0.9);
+  background-color: rgba(91, 42, 110, 0.9);
   opacity: 1;
 }
 
@@ -412,7 +447,7 @@ body.genie-image-zoom-open [data-sticky-add-to-cart-bar] {
 
 .analysis-marker.selected .marker-dot {
   transform: scale(1.5);
-  background-color: rgba(139, 92, 246, 1);
+  background-color: rgba(91, 42, 110, 1);
   opacity: 1;
 }
 
@@ -725,7 +760,7 @@ div.gs-image-box div.gs-image {
   margin-top: 2.5rem;
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 2px solid #e9d5ff;
+  border-bottom: 2px solid #dfc8e7;
 }
 
 .blog-content h3 {
@@ -751,13 +786,13 @@ div.gs-image-box div.gs-image {
 }
 
 .blog-content a {
-  color: #7c3aed;
+  color: #5b2a6e;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
 .blog-content a:hover {
-  color: #5b21b6;
+  color: #45204f;
 }
 
 .blog-content strong {
@@ -841,9 +876,9 @@ div.gs-image-box div.gs-image {
 
 /* Demo Customizer - Option glow */
 @keyframes optionGlow {
-  0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.5); }
-  50% { box-shadow: 0 0 0 8px rgba(139, 92, 246, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(91, 42, 110, 0.5); }
+  50% { box-shadow: 0 0 0 8px rgba(91, 42, 110, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(91, 42, 110, 0); }
 }
 .animate-option-glow {
   animation: optionGlow 1s ease-out;
@@ -867,12 +902,12 @@ div.gs-image-box div.gs-image {
 }
 
 .blog-content blockquote {
-  border-left: 4px solid #c084fc;
-  background-color: #faf5ff;
+  border-left: 4px solid #c7a2d4;
+  background-color: #f7f1f9;
   padding: 1rem 1.25rem;
   margin: 1.5rem 0;
   border-radius: 0 0.5rem 0.5rem 0;
-  color: #6b21a8;
+  color: #4d2360;
   font-size: 0.95rem;
 }
 
@@ -911,12 +946,12 @@ div.gs-image-box div.gs-image {
 }
 
 .blog-content th {
-  background-color: #f3e8ff;
-  color: #581c87;
+  background-color: #efe3f3;
+  color: #341a3c;
   font-weight: 600;
   padding: 0.75rem 1rem;
   text-align: left;
-  border-bottom: 2px solid #d8b4fe;
+  border-bottom: 2px solid #c7a2d4;
 }
 
 .blog-content td {
@@ -930,7 +965,7 @@ div.gs-image-box div.gs-image {
 }
 
 .blog-content tr:hover td {
-  background-color: #faf5ff;
+  background-color: #f7f1f9;
 }
 
 @keyframes fadeInScale {

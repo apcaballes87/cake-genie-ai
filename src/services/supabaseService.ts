@@ -1383,6 +1383,93 @@ export async function getRecommendedProducts(
   }
 }
 
+export interface HeroStudioCake {
+  /** Style label shown on the tile, e.g. "Minimalist". */
+  style: string;
+  slug: string;
+  image: string;
+  alt: string;
+  price: number | null;
+  cakeType: string | null;
+}
+
+/** Cake styles featured in the homepage hero mosaic, matched against `keywords`. */
+export const HERO_STUDIO_CAKE_STYLES = [
+  { style: 'Minimalist', keyword: 'minimalist' },
+  { style: 'Vintage', keyword: 'vintage' },
+  { style: 'Doodle', keyword: 'doodle' },
+  { style: 'Photo', keyword: 'photo' },
+  { style: 'Floral', keyword: 'floral' },
+  { style: 'Bento', keyword: 'bento' },
+] as const;
+
+const HERO_STUDIO_CANDIDATE_POOL = 40;
+
+type HeroStudioCakeRow = {
+  slug: string | null;
+  alt_text: string | null;
+  price: number | null;
+  analysis_json: { cakeType?: string | null } | null;
+  studio_edited_image_url: string;
+};
+
+/**
+ * Picks one random published design per hero style, using ONLY studio-edited
+ * images (completed studio edits). Randomness is resolved on the server, so a
+ * new selection appears each time the homepage ISR snapshot regenerates.
+ */
+export async function getHeroStudioCakes(
+  customClient?: SupabaseClient
+): Promise<SupabaseServiceResponse<HeroStudioCake[]>> {
+  const client = customClient || (typeof window === 'undefined' ? publicSupabaseClient : supabase);
+  try {
+    const pools = await Promise.all(
+      HERO_STUDIO_CAKE_STYLES.map(({ keyword }) =>
+        client
+          .from('cakegenie_analysis_cache')
+          .select('slug, alt_text, price, analysis_json, studio_edited_image_url')
+          .eq('seo_status', 'published')
+          .eq('studio_edit_status', 'completed')
+          .not('studio_edited_image_url', 'is', null)
+          .neq('studio_edited_image_url', '')
+          .not('slug', 'is', null)
+          .ilike('keywords', `%${keyword}%`)
+          .order('created_at', { ascending: false })
+          .limit(HERO_STUDIO_CANDIDATE_POOL)
+      )
+    );
+
+    const usedSlugs = new Set<string>();
+    const cakes: HeroStudioCake[] = [];
+
+    HERO_STUDIO_CAKE_STYLES.forEach(({ style }, index) => {
+      const { data, error } = pools[index];
+      if (error || !data?.length) return;
+
+      const candidates = (data as HeroStudioCakeRow[]).filter(
+        (row): row is HeroStudioCakeRow & { slug: string } => Boolean(row.slug) && !usedSlugs.has(row.slug as string)
+      );
+      if (!candidates.length) return;
+
+      const row = candidates[Math.floor(Math.random() * candidates.length)];
+      usedSlugs.add(row.slug);
+      cakes.push({
+        style,
+        slug: row.slug,
+        image: row.studio_edited_image_url,
+        alt: row.alt_text || `${style} cake design`,
+        price: typeof row.price === 'number' ? row.price : null,
+        cakeType: row.analysis_json?.cakeType ?? null,
+      });
+    });
+
+    return { data: cakes, error: null };
+  } catch (err) {
+    console.error('Exception fetching hero studio cakes:', err);
+    return { data: null, error: err as Error };
+  }
+}
+
 /**
  * Fetches the most popular designs by usage_count for SSR homepage section.
  * Returns designs with real <Link> tags for Google crawlability.

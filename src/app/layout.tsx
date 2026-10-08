@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
-import { Inter } from 'next/font/google'
+import { Fraunces, Inter } from 'next/font/google'
 import { Suspense } from 'react'
 import './globals.css'
 import { Providers } from '@/components/Providers'
@@ -20,6 +20,8 @@ import {
 import { CLARITY_PROJECT_ID, GA4_MEASUREMENT_ID } from '@/lib/analyticsRoutes'
 
 const inter = Inter({ subsets: ['latin'], display: 'optional' })
+// Serif display face for storefront headings (exposed as --font-display, used via .font-display).
+const fraunces = Fraunces({ subsets: ['latin'], display: 'swap', variable: '--font-display', weight: ['500', '600', '700', '800'] })
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -122,7 +124,7 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
       </head>
-      <body className={`${inter.className} min-h-screen genie-page-bg`} suppressHydrationWarning>
+      <body className={`${inter.className} ${fraunces.variable} min-h-screen genie-page-bg`} suppressHydrationWarning>
         <OrganizationSchema />
         <Providers>
           <ErrorBoundary>

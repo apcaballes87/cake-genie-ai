@@ -252,7 +252,7 @@ export default function ChatGptCakeDesignQuoteClient() {
                   {CHATGPT_CAKE_DESIGN_QUOTE_H1}
                 </h1>
 
-                <div className="mt-6 rounded-[1.8rem] border border-purple-200/70 bg-white/80 p-6 shadow-[0_24px_60px_-38px_rgba(88,28,135,0.75)] backdrop-blur">
+                <div className="mt-6 rounded-[1.8rem] border border-purple-200/70 bg-white/80 p-6 shadow-[0_24px_60px_-38px_rgba(91,42,110,0.75)] backdrop-blur">
                   <p className="text-sm font-bold uppercase tracking-[0.2em] text-purple-400">
                     I made a cake design in ChatGPT. Can someone make this into a real cake?
                   </p>
@@ -448,7 +448,7 @@ export default function ChatGptCakeDesignQuoteClient() {
 
         <section className="px-4 pb-6 pt-6 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">
-            <div className="overflow-hidden rounded-[2.2rem] border border-purple-200 bg-linear-to-br from-purple-50 via-white to-pink-50/30 px-6 py-10 text-slate-900 shadow-[0_20px_50px_-25px_rgba(88,28,135,0.15)] sm:px-10">
+            <div className="overflow-hidden rounded-[2.2rem] border border-purple-200 bg-linear-to-br from-purple-50 via-white to-pink-50/30 px-6 py-10 text-slate-900 shadow-[0_20px_50px_-25px_rgba(91,42,110,0.15)] sm:px-10">
               <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.22em] text-purple-600">Ready to test your AI design?</p>

@@ -76,7 +76,7 @@ function HeroSampleTile({ product }: { product: ProductPreview }) {
   return (
     <Link
       href={href}
-      className="group overflow-hidden rounded-[1.6rem] border border-white/80 bg-white/85 shadow-[0_18px_44px_-34px_rgba(88,28,135,0.72)] transition-transform duration-300 hover:-translate-y-1"
+      className="group overflow-hidden rounded-[1.6rem] border border-white/80 bg-white/85 shadow-[0_18px_44px_-34px_rgba(91,42,110,0.72)] transition-transform duration-300 hover:-translate-y-1"
     >
       <div className="relative aspect-[4/5] overflow-hidden">
         <Image
@@ -249,7 +249,7 @@ export async function LocalSeoLandingPage({ config }: { config: LandingPageConfi
 
         <main>
           <section className="mx-auto max-w-7xl px-4 pb-6 pt-6 sm:px-6 lg:px-8 lg:pb-10">
-            <div className="overflow-hidden rounded-[2rem] border border-white/70 bg-white/80 shadow-[0_24px_60px_-40px_rgba(88,28,135,0.55)] backdrop-blur">
+            <div className="overflow-hidden rounded-[2rem] border border-white/70 bg-white/80 shadow-[0_24px_60px_-40px_rgba(91,42,110,0.55)] backdrop-blur">
               <div className="grid gap-8 p-6 md:p-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)] lg:p-10">
                 <div>
                   <h1 className="sr-only">{config.h1}</h1>
@@ -553,7 +553,7 @@ export async function LocalSeoLandingPage({ config }: { config: LandingPageConfi
           </section>
 
           <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-            <div className="overflow-hidden rounded-[2rem] border border-white/70 bg-linear-to-r from-slate-900 via-purple-900 to-pink-700 p-6 text-white shadow-[0_24px_60px_-40px_rgba(88,28,135,0.72)] md:p-8">
+            <div className="overflow-hidden rounded-[2rem] border border-white/70 bg-linear-to-r from-slate-900 via-purple-900 to-pink-700 p-6 text-white shadow-[0_24px_60px_-40px_rgba(91,42,110,0.72)] md:p-8">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/75">Final CTA</p>
               <h2 className="mt-3 max-w-3xl text-3xl font-extrabold tracking-tight sm:text-4xl">{config.finalCtaTitle}</h2>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-white/85 sm:text-base">{config.finalCtaBody}</p>

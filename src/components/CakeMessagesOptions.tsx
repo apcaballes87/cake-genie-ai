@@ -117,7 +117,7 @@ const MessageRow: React.FC<{
                     aria-haspopup="true"
                 />
                 {isColorPickerOpen && (
-                    <div className="absolute bottom-full right-0 z-50 mb-2 w-52 rounded-xl border border-purple-100 bg-white p-3 shadow-[0_12px_30px_-12px_rgba(88,28,135,0.45)]">
+                    <div className="absolute bottom-full right-0 z-50 mb-2 w-52 rounded-xl border border-purple-100 bg-white p-3 shadow-[0_12px_30px_-12px_rgba(91,42,110,0.45)]">
                         <div className="mb-2 flex items-center justify-between">
                             <span className="text-[10px] font-bold uppercase tracking-tight text-slate-500">Choose color</span>
                             <button

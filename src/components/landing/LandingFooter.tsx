@@ -42,9 +42,9 @@ export function LandingFooter({ reviewSummary }: LandingFooterProps) {
     : 'Verified customer reviews';
 
   return (
-    <footer className="genie-page-bg text-gray-900 pt-0 pb-24 md:pb-8 border-t border-purple-100">
+    <footer className="bg-white text-[var(--genie-ink)] pt-0 pb-24 md:pb-8 border-t border-[var(--genie-line)]">
 
-      <div className="border-y border-purple-100 bg-white/45 backdrop-blur-sm">
+      <div className="border-b border-[var(--genie-line)] bg-[var(--genie-cream)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-3">
             {socialLinks.map(({ href, label, icon: Icon }) => <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className="w-10 h-10 rounded-full genie-icon-button flex items-center justify-center"><Icon size={18} /></a>)}

@@ -116,7 +116,7 @@ export const ReviewCard: React.FC<{
               {/* Header */}
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3.5">
-                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-white/80 bg-linear-to-br from-[#f3e8ff] via-[#ddd6fe] to-[#c084fc] text-xs font-bold text-purple-700 shadow-sm">
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-white/80 bg-linear-to-br from-[#f7f1f9] via-[#efe3f3] to-[#c7a2d4] text-xs font-bold text-purple-700 shadow-sm">
                     {getReviewAvatarInitial(review)}
                   </div>
                   <div>
@@ -173,7 +173,7 @@ export const ReviewCard: React.FC<{
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-3">
               {/* Avatar */}
-              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/80 bg-linear-to-br from-[#f3e8ff] via-[#ddd6fe] to-[#c084fc] text-sm font-bold text-purple-700 shadow-sm">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/80 bg-linear-to-br from-[#f7f1f9] via-[#efe3f3] to-[#c7a2d4] text-sm font-bold text-purple-700 shadow-sm">
                 {getReviewAvatarInitial(review)}
               </div>
               <div>

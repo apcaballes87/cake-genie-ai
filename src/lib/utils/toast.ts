@@ -11,10 +11,10 @@ export const showSuccess = (message: string, options?: ToastOptions) => {
     position: 'top-center',
     iconTheme: {
       primary: '#ffffff',
-      secondary: '#7c3aed',
+      secondary: '#5b2a6e',
     },
     style: {
-      background: '#7c3aed',
+      background: '#5b2a6e',
       color: '#ffffff',
       fontSize: '13px',
       padding: '8px 16px',
@@ -38,7 +38,7 @@ export const showError = (message: string, options?: ToastOptions) => {
       secondary: '#ef4444',
     },
     style: {
-      background: '#7c3aed',
+      background: '#5b2a6e',
       color: '#ffffff',
       fontSize: '13px',
       padding: '8px 16px',
@@ -58,7 +58,7 @@ export const showLoading = (message: string, options?: ToastOptions): string => 
   return toast.loading(message, {
     position: 'top-center',
     style: {
-      background: '#7c3aed',
+      background: '#5b2a6e',
       color: '#ffffff',
       fontSize: '13px',
       padding: '8px 16px',
@@ -79,7 +79,7 @@ export const showInfo = (message: string, options?: ToastOptions) => {
     position: 'top-center',
     icon: 'ℹ️',
     style: {
-      background: '#7c3aed',
+      background: '#5b2a6e',
       color: '#ffffff',
       fontSize: '13px',
       padding: '8px 16px',
@@ -99,7 +99,7 @@ export const showStatus = (message: string, options?: ToastOptions): string => {
     duration: 3000,
     position: 'top-center',
     style: {
-      background: '#7c3aed',
+      background: '#5b2a6e',
       color: '#ffffff',
       fontSize: '13px',
       padding: '8px 16px',

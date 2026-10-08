@@ -9,15 +9,15 @@ export function HeroTransitionSection() {
     <section aria-label="Why personal cakes feel different" className="px-4 sm:px-6 lg:px-8 py-8 md:py-12">
       <div className="mx-auto grid max-w-7xl items-center gap-8 md:grid-cols-2 md:gap-12">
         <div className="order-1 text-center md:order-none md:text-center">
-          <h2 className="max-w-2xl text-3xl sm:text-4xl lg:text-5xl font-bold leading-[0.98] tracking-tight text-slate-900">
+          <h2 className="font-display max-w-2xl text-3xl sm:text-4xl lg:text-5xl font-semibold leading-[1.05] tracking-tight text-[var(--genie-ink)]">
             <span className="block">Generic cakes make generic celebrations.</span>
-            <span className="mt-4 block max-w-xl text-base font-normal leading-relaxed text-slate-500 mx-auto">
+            <span className="mt-4 block max-w-xl font-sans text-base font-normal leading-relaxed text-[var(--genie-muted)] mx-auto">
               Give a cake that feels more personal and thoughtful. Available today.
             </span>
           </h2>
         </div>
 
-        <div className="relative order-2 aspect-[21/9] overflow-hidden rounded-[2rem] bg-slate-100 shadow-[0_24px_60px_-42px_rgba(15,23,42,0.55)] md:order-none">
+        <div className="relative order-2 aspect-[21/9] overflow-hidden rounded-3xl bg-[var(--genie-cream-deep)] md:order-none">
           <Image
             src={TRANSITION_IMAGE_SRC}
             alt="Generic cake compared with a more personal cake"
