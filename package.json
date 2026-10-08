@@ -18,6 +18,7 @@
     "reconcile:local": "tsx scripts/reconcile-batch-local.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.132.1",
     "@google-cloud/storage": "^7.19.0",
     "@google/genai": "^1.38.0",
     "@react-google-maps/api": "^2.20.7",
