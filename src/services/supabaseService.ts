@@ -3151,15 +3151,16 @@ export async function uploadPaymentProof(
       .from('payments')
       .getPublicUrl(filePath);
 
+    // Narrow RPC: customers can no longer update cakegenie_orders directly.
     const { data, error: updateError } = await supabase
-      .from('cakegenie_orders')
-      .update({ payment_proof_url: publicUrl, payment_status: 'verifying' })
-      .eq('order_id', orderId)
-      .select().single();
+      .rpc('submit_payment_proof', {
+        p_order_id: orderId,
+        p_payment_proof_url: publicUrl,
+      });
 
     if (updateError) throw updateError;
 
-    return { data, error: null };
+    return { data: data as CakeGenieOrder, error: null };
   } catch (err) {
     return { data: null, error: err as Error };
   }
@@ -3422,22 +3423,26 @@ export async function getBillSharingCreations(userId: string): Promise<SupabaseS
  */
 export async function getSingleOrderPublic(orderId: string): Promise<SupabaseServiceResponse<CakeGenieOrder & { cakegenie_order_items: CakeGenieOrderItem[], order_contributions: OrderContribution[], organizer?: { first_name: string | null, email: string } }>> {
   try {
+    // Whitelisted RPC: the order tables are not publicly readable.
     const { data, error } = await supabase
-      .from('cakegenie_orders')
-      .select(`
-        *,
-        cakegenie_order_items(*),
-        order_contributions(*),
-        organizer:cakegenie_users!organizer_user_id(first_name, email)
-      `)
-      .eq('order_id', orderId)
-      .single();
+      .rpc('get_order_for_contribution', { p_order_id: orderId });
 
     if (error) {
       return { data: null, error };
     }
 
-    return { data, error: null };
+    if (!data) {
+      return { data: null, error: new Error('Order not found') };
+    }
+
+    return {
+      data: data as unknown as CakeGenieOrder & {
+        cakegenie_order_items: CakeGenieOrderItem[];
+        order_contributions: OrderContribution[];
+        organizer?: { first_name: string | null; email: string };
+      },
+      error: null,
+    };
   } catch (err) {
     return { data: null, error: err as Error };
   }
