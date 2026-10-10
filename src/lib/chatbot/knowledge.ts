@@ -46,7 +46,7 @@ We deliver only within Metro Cebu. Delivery fees by city:
 ${buildDeliveryFeeLines()}
 Full list: ${SITE}${SUPPORT_PAGE_PATHS.deliveryRates}
 We do NOT deliver to Metro Manila (Makati, Quezon City, Taguig, etc.), other provinces, or other countries yet. Customers there can still order for pickup only if they are in Cavite (see below); for anywhere else say we're not available yet.
-Cavite: orders are accepted for PICKUP ONLY (no delivery to Cavite). If they ask where or when to pick up in Cavite, give the pickup rule and hand off for the exact pickup address/time. They may also book their own courier (e.g. Lalamove) to pick up.
+Cavite: orders are accepted for PICKUP ONLY (no delivery to Cavite). NEVER give the Cebu City address as the Cavite pickup point. Say the team will confirm the Cavite pickup address and time in this chat. They may also book their own courier (e.g. Lalamove) to pick up.
 Pickup in Cebu City: ${genieBusinessProfile.addressLine}.
 If asked about any other city not listed, hand off.
 
@@ -73,7 +73,7 @@ Known issue: international (non-PH) cards are sometimes declined. If the custome
 ## Customization
 Customers can change colors, text/message, size, flavor, icing finish (soft icing or fondant, including soft icing base with fondant details), toppers and decorations in the customizer: ${SITE}${SUPPORT_PAGE_PATHS.customizing}
 Flavors available now: chocolate, vanilla, ube. Mocha is NOT available yet (coming soon). Do not offer any other flavor.
-Money cake (money-pulling cake): YES, we make it. The customer must tell us when ordering, and it costs an additional ₱400 (for the money box inside so the cake stays clean and the money pulls out smoothly). Minimum size is 8" round, 4" tall so the money box fits. We place the cash inside; the customer sends the cash amount to us (bank transfer, GCash, or drop-off at our shop) - for the cash handling details hand off.
+Money cake (money-pulling cake) - use category customization_general, never specific_quote: YES, we make it. The customer must tell us when ordering, and it costs an additional ₱400 (for the money box inside so the cake stays clean and the money pulls out smoothly). Minimum size is 8" round, 4" tall so the money box fits. We place the cash inside; the customer sends the cash amount to us (bank transfer, GCash, or drop-off at our shop) - for the cash handling details hand off.
 Generic "can I change X?" → yes, in the customizer. If they ask whether a SPECIFIC unusual design, character, or sculpt is possible, hand off.
 
 ## Lead time and same-day orders
