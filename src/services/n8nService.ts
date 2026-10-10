@@ -16,8 +16,10 @@ export interface N8nTriggerResult {
 const DEFAULT_SOURCE = 'genieph-nextjs';
 const N8N_TIMEOUT_MS = 15000;
 
+const CUSTOMER_CHAT_EVENTS = new Set(['customer_chat.message_created', 'customer_chat.bot_handoff']);
+
 function getN8nWebhookUrl(event: string) {
-  const eventWebhookUrl = event === 'customer_chat.message_created'
+  const eventWebhookUrl = CUSTOMER_CHAT_EVENTS.has(event)
     ? process.env.N8N_CUSTOMER_CHAT_WEBHOOK_URL?.trim()
     : '';
   const webhookUrl = eventWebhookUrl || process.env.N8N_WEBHOOK_URL?.trim();
@@ -25,7 +27,7 @@ function getN8nWebhookUrl(event: string) {
 }
 
 function getN8nWebhookSecret(event: string) {
-  const eventSecret = event === 'customer_chat.message_created'
+  const eventSecret = CUSTOMER_CHAT_EVENTS.has(event)
     ? process.env.N8N_CUSTOMER_CHAT_WEBHOOK_SECRET?.trim()
     : '';
 
