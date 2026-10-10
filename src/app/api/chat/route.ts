@@ -161,7 +161,7 @@ function scheduleAssistantReply({
   messageId: string | undefined;
   pageContext: ChatPageContext | null;
 }) {
-  if (!messageId || process.env.CHATBOT_ENABLED !== 'true') {
+  if (!messageId) {
     return;
   }
 

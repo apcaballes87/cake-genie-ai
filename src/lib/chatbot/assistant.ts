@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { getAnthropic } from '@/lib/ai/claudeClient';
 import { getChatbotCollections, type ChatbotCollection } from '@/lib/chatbot/collections';
 import { buildSystemPrompt } from '@/lib/chatbot/knowledge';
+import { isChatbotEnabled } from '@/lib/chatbot/settings';
 import { FEATURED_COLLECTION_LINKS } from '@/lib/seo/priorityCollections';
 import {
   BOT_CATEGORIES,
@@ -194,7 +195,7 @@ export async function runAssistantForMessage(
 ): Promise<AssistantOutcome> {
   const env = deps.env ?? process.env;
   const { supabase } = deps;
-  const enabled = env.CHATBOT_ENABLED === 'true';
+  const enabled = await isChatbotEnabled(supabase, env);
 
   if (!enabled) {
     return { status: 'skipped', reason: 'bot_disabled' };

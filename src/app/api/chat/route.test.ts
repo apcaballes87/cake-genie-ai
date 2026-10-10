@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server';
 const notificationMocks = vi.hoisted(() => ({
   afterCallbacks: [] as Array<() => void | Promise<void>>,
   triggerN8nWorkflow: vi.fn(),
+  runAssistantForMessage: vi.fn(),
 }));
 
 vi.mock('next/server', async (importOriginal) => {
@@ -16,6 +17,10 @@ vi.mock('next/server', async (importOriginal) => {
     }),
   };
 });
+
+vi.mock('@/lib/chatbot/assistant', () => ({
+  runAssistantForMessage: notificationMocks.runAssistantForMessage,
+}));
 
 vi.mock('@/services/n8nService', () => ({
   triggerN8nWorkflow: notificationMocks.triggerN8nWorkflow,
@@ -229,10 +234,17 @@ describe('POST /api/chat', () => {
       }),
     );
     expect(updatedConversationPayloads[0].last_customer_page_seen_at).toEqual(expect.any(String));
-    expect(notificationMocks.afterCallbacks).toHaveLength(1);
+    // One after() for the admin notification, one for the assistant.
+    expect(notificationMocks.afterCallbacks).toHaveLength(2);
 
     await notificationMocks.afterCallbacks[0]();
+    await notificationMocks.afterCallbacks[1]();
 
+    expect(notificationMocks.runAssistantForMessage).toHaveBeenCalledTimes(1);
+    expect(notificationMocks.runAssistantForMessage).toHaveBeenCalledWith(
+      { conversationId: 'conversation-1', messageId: 'message-1' },
+      expect.objectContaining({ notifyHandoff: expect.any(Function) }),
+    );
     expect(notificationMocks.triggerN8nWorkflow).toHaveBeenCalledTimes(1);
     expect(notificationMocks.triggerN8nWorkflow).toHaveBeenCalledWith({
       event: 'customer_chat.message_created',
