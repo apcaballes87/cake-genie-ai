@@ -7,6 +7,7 @@ import {
   runAssistantForMessage,
   type HandoffNotice,
 } from '@/lib/chatbot/assistant';
+import { resetChatbotSettingsCache } from '@/lib/chatbot/settings';
 import { HANDOFF_HOLDING_MESSAGE, type BotDecision } from '@/lib/chatbot/guardrails';
 
 type Row = {
@@ -28,7 +29,7 @@ const row = (id: string, sender: Row['sender_type'], content: string | null, ext
   ...extra,
 });
 
-function fakeSupabase({ rows, botState = 'active' }: { rows: Row[]; botState?: string }) {
+function fakeSupabase({ rows, botState = 'active', enabled = true }: { rows: Row[]; botState?: string; enabled?: boolean }) {
   const inserts: Array<{ table: string; payload: Record<string, unknown> }> = [];
   const updates: Array<{ table: string; payload: Record<string, unknown> }> = [];
 
@@ -36,6 +37,7 @@ function fakeSupabase({ rows, botState = 'active' }: { rows: Row[]; botState?: s
     from: (table: string) => ({
       select: () => ({
         eq: () => ({
+          maybeSingle: async () => ({ data: { enabled }, error: null }),
           single: async () => ({ data: { bot_state: botState }, error: null }),
           order: () => ({
             limit: async () => ({ data: [...rows].reverse(), error: null }),
@@ -58,15 +60,16 @@ function fakeSupabase({ rows, botState = 'active' }: { rows: Row[]; botState?: s
   return { client, inserts, updates };
 }
 
-const env = { CHATBOT_ENABLED: 'true' } as unknown as NodeJS.ProcessEnv;
+const env = {} as unknown as NodeJS.ProcessEnv;
 const noSleep = async () => undefined;
 
 const run = (
   rows: Row[],
   decide: (t: string) => Promise<BotDecision>,
-  opts: { botState?: string; env?: NodeJS.ProcessEnv; messageId?: string } = {},
+  opts: { botState?: string; env?: NodeJS.ProcessEnv; messageId?: string; enabled?: boolean } = {},
 ) => {
-  const fake = fakeSupabase({ rows, botState: opts.botState });
+  resetChatbotSettingsCache();
+  const fake = fakeSupabase({ rows, botState: opts.botState, enabled: opts.enabled });
   const notices: HandoffNotice[] = [];
   const decideSpy = vi.fn(decide);
   const promise = runAssistantForMessage(
@@ -96,11 +99,20 @@ describe('runAssistantForMessage', () => {
     expect(notices).toHaveLength(0);
   });
 
-  it('does nothing when the bot is disabled (no model call, no writes)', async () => {
-    const { promise, decideSpy, inserts } = run([row('1', 'customer', 'hello')], async () => confident, { env: {} as NodeJS.ProcessEnv });
+  it('does nothing when the dashboard toggle is off (no model call, no writes)', async () => {
+    const { promise, decideSpy, inserts } = run([row('1', 'customer', 'hello')], async () => confident, { enabled: false });
     expect(await promise).toEqual({ status: 'skipped', reason: 'bot_disabled' });
     expect(decideSpy).not.toHaveBeenCalled();
     expect(inserts).toHaveLength(0);
+  });
+
+  it('the CHATBOT_ENABLED=false env override beats the dashboard toggle', async () => {
+    const { promise, decideSpy } = run([row('1', 'customer', 'hello')], async () => confident, {
+      enabled: true,
+      env: { CHATBOT_ENABLED: 'false' } as unknown as NodeJS.ProcessEnv,
+    });
+    expect(await promise).toEqual({ status: 'skipped', reason: 'bot_disabled' });
+    expect(decideSpy).not.toHaveBeenCalled();
   });
 
   it('hands off refund requests without calling the model, sends the holding message once, and alerts the admin', async () => {
