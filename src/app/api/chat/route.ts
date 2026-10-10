@@ -1,6 +1,7 @@
 import { after, NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { triggerN8nWorkflow } from '@/services/n8nService';
+import { runAssistantForMessage, type HandoffNotice } from '@/lib/chatbot/assistant';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -8,6 +9,9 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabaseAdmin = supabaseUrl && supabaseServiceKey
   ? createClient(supabaseUrl, supabaseServiceKey)
   : null;
+
+// The assistant waits briefly for follow-up messages before answering.
+export const maxDuration = 30;
 
 type ChatPageContext = {
   url: string | null;
@@ -123,6 +127,59 @@ function scheduleCustomerMessageNotification({
   });
 }
 
+async function notifyBotHandoff(notice: HandoffNotice, pageContext: ChatPageContext | null) {
+  const result = await triggerN8nWorkflow({
+    event: 'customer_chat.bot_handoff',
+    data: {
+      conversationId: notice.conversationId,
+      messageId: notice.messageId,
+      category: notice.category,
+      reason: notice.reason,
+      customerText: notice.customerText,
+      hasImage: notice.hasImage,
+      holdingMessageSent: notice.holdingMessageSent,
+      pageUrl: pageContext?.url || null,
+      pageTitle: pageContext?.title || null,
+    },
+    metadata: {
+      notificationChannel: 'telegram',
+      needsHuman: true,
+    },
+  });
+
+  if (!result.success) {
+    console.error('[customer-chat] Bot handoff notification failed:', result.error);
+  }
+}
+
+function scheduleAssistantReply({
+  conversationId,
+  messageId,
+  pageContext,
+}: {
+  conversationId: string;
+  messageId: string | undefined;
+  pageContext: ChatPageContext | null;
+}) {
+  if (!messageId || process.env.CHATBOT_ENABLED !== 'true') {
+    return;
+  }
+
+  after(async () => {
+    try {
+      await runAssistantForMessage(
+        { conversationId, messageId },
+        {
+          supabase: supabaseAdmin!,
+          notifyHandoff: (notice) => notifyBotHandoff(notice, pageContext),
+        },
+      );
+    } catch (error) {
+      console.error('[chat-assistant] Unexpected failure:', error);
+    }
+  });
+}
+
 export async function GET(request: NextRequest) {
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
@@ -216,6 +273,12 @@ export async function POST(request: NextRequest) {
           image_url: storedMessage?.image_url ?? imageUrl ?? null,
           created_at: storedMessage?.created_at,
         },
+        pageContext,
+      });
+
+      scheduleAssistantReply({
+        conversationId,
+        messageId: storedMessage?.id,
         pageContext,
       });
 

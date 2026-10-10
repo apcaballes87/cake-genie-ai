@@ -25,6 +25,7 @@ interface ChatMessage {
     created_at: string;
     is_read: boolean;
 }
+    is_bot?: boolean | null;
 
 interface ProductLink {
     slug: string;
@@ -44,6 +45,7 @@ interface Message {
     is_read: boolean;
     is_sent?: boolean;
 }
+    is_bot?: boolean;
 
 interface ChatPageContext {
     url: string;
@@ -358,6 +360,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
             )
             .on(
                 'postgres_changes',
+                                is_bot: Boolean(newMessage.is_bot),
                 {
                     event: 'UPDATE',
                     schema: 'public',
@@ -456,6 +459,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                     body: JSON.stringify({
                         action: 'mark_read',
                         conversationId: convoId,
+                    is_bot: Boolean(msg.is_bot),
                     }),
                 });
             }
@@ -916,6 +920,9 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                                             )}
                                             <p className={`text-[10px] mt-1 flex items-center gap-1 ${message.isUser ? 'text-purple-200' : 'text-slate-400'}`}>
                                                 {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            {message.is_bot && (
+                                                <p className="text-[10px] font-semibold text-purple-600 mb-1">Genie Assistant (AI)</p>
+                                            )}
                                                 {message.isUser && (
                                                     <span className="flex items-center">
                                                         {message.is_sent ? (

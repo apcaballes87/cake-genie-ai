@@ -20,7 +20,7 @@ describe('delivery rates', () => {
     expect(getDeliveryRateCards()).toEqual([
       { city: 'Cebu City', rate: 0 },
       { city: 'Mandaue City', rate: 50 },
-      { city: 'Lapu-Lapu City', rate: 100 },
+      { city: 'Lapu-Lapu City', rate: 200 },
       { city: 'Talisay City', rate: 150 },
       { city: 'Consolacion', rate: 200 },
       { city: 'Cordova', rate: 200 },

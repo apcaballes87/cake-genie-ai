@@ -90,7 +90,40 @@ export async function PATCH(
         .update({ updated_at: new Date().toISOString() })
         .eq('id', id);
 
+      // A human reply takes over the conversation so the assistant never talks over the admin.
+      // Separate update: bot_state is a newer column and must not block the reply if absent.
+      const { error: takeoverError } = await supabaseAdmin
+        .from('chat_conversations')
+        .update({ bot_state: 'handed_off', bot_state_updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (takeoverError) {
+        console.warn('[customer-chat] Could not mark conversation as human-handled:', takeoverError.message);
+      }
+
       return NextResponse.json({ success: true, data: message });
+    }
+
+    if (action === 'set_bot_state') {
+      const { botState } = body;
+      if (!['active', 'handed_off', 'off'].includes(botState)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid bot state' },
+          { status: 400 }
+        );
+      }
+
+      const { data: updated, error } = await supabaseAdmin
+        .from('chat_conversations')
+        .update({ bot_state: botState, bot_state_updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      }
+
+      return NextResponse.json({ success: true, data: updated });
     }
 
     if (action === 'update_status') {
