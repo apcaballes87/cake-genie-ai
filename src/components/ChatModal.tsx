@@ -315,6 +315,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
     const activeImageAnalysisIdRef = useRef(0);
     const pendingFollowUpTimeoutsRef = useRef<number[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const lastCustomerMessageAtRef = useRef(0);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const supabase = createClient();
 
@@ -346,6 +347,11 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
+
+    useEffect(() => {
+        const lastCustomerMessage = [...messages].reverse().find((m) => m.isUser);
+        lastCustomerMessageAtRef.current = lastCustomerMessage ? new Date(lastCustomerMessage.timestamp).getTime() : 0;
     }, [messages]);
 
     useEffect(() => {
@@ -458,8 +464,23 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
             }
         };
 
-        const timer = window.setInterval(poll, 4000);
-        return () => window.clearInterval(timer);
+        // Poll quickly while a reply is likely on its way (just after the customer wrote),
+        // and lazily otherwise.
+        let cancelled = false;
+        let timer: number | undefined;
+        const schedule = () => {
+            const waitingForReply = Date.now() - lastCustomerMessageAtRef.current < 45_000;
+            timer = window.setTimeout(async () => {
+                await poll();
+                if (!cancelled) schedule();
+            }, waitingForReply ? 1500 : 5000);
+        };
+        schedule();
+
+        return () => {
+            cancelled = true;
+            if (timer !== undefined) window.clearTimeout(timer);
+        };
     }, [conversationId, isOpen]);
 
     useEffect(() => {
@@ -971,13 +992,13 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                                         <div
                                             className={`max-w-[80%] px-4 py-2 rounded-2xl ${message.isUser
                                                     ? 'bg-purple-600 text-white rounded-br-md'
-                                                    : message.sender_type === 'system'
+                                                    : message.sender_type === 'system' || message.is_bot
                                                         ? 'bg-purple-100 text-purple-800 border border-purple-200 rounded-bl-md'
                                                         : 'bg-white text-slate-800 border border-slate-200 rounded-bl-md'
                                                 }`}
                                         >
                                             {message.is_bot && (
-                                                <p className="text-[10px] font-semibold text-purple-600 mb-1">Genie Assistant (AI)</p>
+                                                <p className="text-[10px] font-semibold text-purple-600 mb-1">Genie Assistant</p>
                                             )}
                                             {message.imageUrl && (
                                                 <img

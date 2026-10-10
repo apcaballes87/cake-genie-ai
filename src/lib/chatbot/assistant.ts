@@ -20,7 +20,7 @@ import {
 } from '@/lib/chatbot/guardrails';
 
 const DEFAULT_MODEL = 'claude-haiku-5-5';
-const DEFAULT_DEBOUNCE_MS = 8000;
+const DEFAULT_DEBOUNCE_MS = 2000;
 const MODEL_TIMEOUT_MS = 12000;
 const HISTORY_LIMIT = 14;
 
