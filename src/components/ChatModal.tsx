@@ -24,8 +24,8 @@ interface ChatMessage {
     sender_type: string;
     created_at: string;
     is_read: boolean;
-}
     is_bot?: boolean | null;
+}
 
 interface ProductLink {
     slug: string;
@@ -44,8 +44,8 @@ interface Message {
     timestamp: string;
     is_read: boolean;
     is_sent?: boolean;
-}
     is_bot?: boolean;
+}
 
 interface ChatPageContext {
     url: string;
@@ -165,7 +165,6 @@ const ProductLinkCard: React.FC<{ slug: string; supabase: ReturnType<typeof crea
     );
 };
 
-async function saveSystemMessage(conversationId: string, content: string): Promise<string | null> {
 // Guest chats prove ownership with the random session id kept in localStorage;
 // signed-in customers also send their Supabase access token. The server never
 // trusts a user id or email typed into the request body.
@@ -188,6 +187,7 @@ async function chatApiFetch(input: string, init: RequestInit = {}): Promise<Resp
     return fetch(input, { ...init, headers });
 }
 
+async function saveSystemMessage(conversationId: string, content: string): Promise<string | null> {
     try {
         console.log('💾 Saving system message:', { conversationId, content: content.substring(0, 50) });
 
@@ -331,6 +331,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
             localStorage.setItem('chat_session_id', storedSession);
         }
         setSessionId(storedSession);
+        activeChatSessionId = storedSession;
 
         const guestEmail = localStorage.getItem('cart_guest_email');
         const guestName = localStorage.getItem('cart_pickup_name');
@@ -339,7 +340,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
         }
         if (guestName) {
             setName(guestName);
-        activeChatSessionId = storedSession;
         }
         setIsLocalStorageLoaded(true);
     }, []);
@@ -375,6 +375,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                                 timestamp: newMessage.created_at,
                                 is_read: newMessage.is_read,
                                 is_sent: true,
+                                is_bot: Boolean(newMessage.is_bot),
                             };
                             return [...prev, newMsg];
                         });
@@ -383,7 +384,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
             )
             .on(
                 'postgres_changes',
-                                is_bot: Boolean(newMessage.is_bot),
                 {
                     event: 'UPDATE',
                     schema: 'public',
@@ -406,14 +406,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
         };
     }, [conversationId, supabase]);
 
-    useEffect(() => {
-        if (isOpen && sessionId && isLocalStorageLoaded) {
-            loadOrCreateConversation();
-        } else if (!isOpen) {
-            clearPendingImageFollowUps();
-            setMessages([]);
-            setConversationId(null);
-            setIsLoading(true);
     // Guest chats can no longer subscribe to the database directly (that exposed every
     // guest conversation to anyone holding the public site key), so every customer polls
     // the authenticated API for new team/assistant replies.
@@ -470,6 +462,14 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
         return () => window.clearInterval(timer);
     }, [conversationId, isOpen]);
 
+    useEffect(() => {
+        if (isOpen && sessionId && isLocalStorageLoaded) {
+            loadOrCreateConversation();
+        } else if (!isOpen) {
+            clearPendingImageFollowUps();
+            setMessages([]);
+            setConversationId(null);
+            setIsLoading(true);
         }
     }, [isOpen, sessionId, userId, isLocalStorageLoaded]);
 
@@ -529,6 +529,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                     timestamp: msg.created_at,
                     is_read: msg.is_read,
                     is_sent: true,
+                    is_bot: Boolean(msg.is_bot),
                 })));
 
                 await chatApiFetch('/api/chat', {
@@ -537,7 +538,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                     body: JSON.stringify({
                         action: 'mark_read',
                         conversationId: convoId,
-                    is_bot: Boolean(msg.is_bot),
                     }),
                 });
             }
@@ -658,7 +658,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                         content: inputValue || '',
                         imageUrl,
                         sessionId: sessionId || undefined,
-                            pageContext: getCurrentPageContext(),
+                        pageContext: getCurrentPageContext(),
                     }),
                 });
 
@@ -976,6 +976,9 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                                                         : 'bg-white text-slate-800 border border-slate-200 rounded-bl-md'
                                                 }`}
                                         >
+                                            {message.is_bot && (
+                                                <p className="text-[10px] font-semibold text-purple-600 mb-1">Genie Assistant (AI)</p>
+                                            )}
                                             {message.imageUrl && (
                                                 <img
                                                     src={message.imageUrl}
@@ -996,9 +999,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                                             )}
                                             <p className={`text-[10px] mt-1 flex items-center gap-1 ${message.isUser ? 'text-purple-200' : 'text-slate-400'}`}>
                                                 {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            {message.is_bot && (
-                                                <p className="text-[10px] font-semibold text-purple-600 mb-1">Genie Assistant (AI)</p>
-                                            )}
                                                 {message.isUser && (
                                                     <span className="flex items-center">
                                                         {message.is_sent ? (
