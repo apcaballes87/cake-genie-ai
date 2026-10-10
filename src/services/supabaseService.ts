@@ -2907,14 +2907,13 @@ export async function createGuestUser(params: {
     const { userId, email, firstName, phoneNumber } = params;
 
     // Check if email is already registered to A DIFFERENT user
-    const { data: emailExists } = await supabase
-      .from('cakegenie_users')
-      .select('user_id')
-      .eq('email', email)
-      .neq('user_id', userId) // Exclude current user from check
-      .maybeSingle();
+    // Goes through a narrow RPC: cakegenie_users is no longer publicly readable.
+    const { data: emailExists } = await supabase.rpc('email_registered_to_other_user', {
+      p_email: email,
+      p_user_id: userId,
+    });
 
-    if (emailExists) {
+    if (emailExists === true) {
       // Email is already registered with another account
       return {
         success: false,

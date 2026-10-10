@@ -2,6 +2,7 @@ import { after, NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { triggerN8nWorkflow } from '@/services/n8nService';
 import { runAssistantForMessage, type HandoffNotice } from '@/lib/chatbot/assistant';
+import { getChatIdentity, loadAccessibleConversation } from '@/lib/chat/access';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -188,8 +189,14 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const conversationId = searchParams.get('conversation_id');
+    const identity = await getChatIdentity(request, supabaseAdmin);
 
     if (conversationId) {
+      const accessible = await loadAccessibleConversation(supabaseAdmin, identity, conversationId);
+      if (!accessible) {
+        return NextResponse.json({ success: false, error: 'Conversation not found' }, { status: 404 });
+      }
+
       const { data: messages, error } = await supabaseAdmin
         .from('chat_messages')
         .select('*')
@@ -201,6 +208,11 @@ export async function GET(request: NextRequest) {
       }
 
       return NextResponse.json({ success: true, data: messages || [] });
+    }
+
+    // Listing every conversation (names, emails, messages) is for dashboard admins only.
+    if (!identity.isAdmin) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
     const { data: conversations, error } = await supabaseAdmin
@@ -226,8 +238,19 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { action, conversationId, sessionId, userId, content, email, name, imageUrl } = body;
+    const { action, conversationId, content, email, name, imageUrl } = body;
     const pageContext = normalizePageContext(body.pageContext);
+    const identity = await getChatIdentity(request, supabaseAdmin);
+    // Identity comes from the verified token / session header, never from typed-in body fields.
+    const userId = identity.userId;
+    const sessionId = identity.sessionId ?? (typeof body.sessionId === 'string' ? body.sessionId.slice(0, 200) : null);
+
+    if (action === 'send_message' || action === 'send_system_message' || action === 'mark_read') {
+      const accessible = await loadAccessibleConversation(supabaseAdmin, identity, conversationId);
+      if (!accessible) {
+        return NextResponse.json({ success: false, error: 'Conversation not found' }, { status: 404 });
+      }
+    }
 
     if (action === 'send_message') {
       if (!content && !imageUrl || !conversationId) {
@@ -369,26 +392,13 @@ export async function POST(request: NextRequest) {
           .limit(1)
           .single();
 
-        if (existing) {
+        // A chat already owned by a different signed-in account is not ours to take over.
+        if (existing && (!existing.user_id || existing.user_id === userId)) {
           conversation = existing;
         }
       }
 
-      // Fallback to email if no active conversation found for userId or sessionId
-      if (!conversation && effectiveEmail) {
-        const { data: existing } = await supabaseAdmin
-          .from('chat_conversations')
-          .select('*')
-          .eq('customer_email', effectiveEmail)
-          .eq('status', 'active')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-
-        if (existing) {
-          conversation = existing;
-        }
-      }
+      // No lookup by email: an unverified, typed-in email must never open someone else's chat.
 
       if (conversation) {
         // Sync user_id, session_id, customer_email, or customer_name if they are missing or changed
@@ -397,7 +407,7 @@ export async function POST(request: NextRequest) {
         if (userId && conversation.user_id !== userId) {
           updates.user_id = userId;
         }
-        if (sessionId && conversation.session_id !== sessionId) {
+        if (sessionId && !conversation.session_id) {
           updates.session_id = sessionId;
         }
         if (effectiveEmail && conversation.customer_email !== effectiveEmail) {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getChatIdentity, loadAccessibleConversation } from '@/lib/chat/access';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -18,6 +19,12 @@ export async function GET(
 
   try {
     const { id } = await params;
+
+    const identity = await getChatIdentity(request, supabaseAdmin);
+    const accessible = await loadAccessibleConversation(supabaseAdmin, identity, id);
+    if (!accessible) {
+      return NextResponse.json({ success: false, error: 'Conversation not found' }, { status: 404 });
+    }
 
     const { data: conversation, error: convoError } = await supabaseAdmin
       .from('chat_conversations')
@@ -59,6 +66,13 @@ export async function PATCH(
 
   try {
     const { id } = await params;
+
+    // Replying as the merchant, closing chats, and bot controls are dashboard-admin actions.
+    const identity = await getChatIdentity(request, supabaseAdmin);
+    if (!identity.isAdmin) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { action, content, status } = body;
 
