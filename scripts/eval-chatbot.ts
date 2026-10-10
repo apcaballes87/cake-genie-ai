@@ -12,13 +12,13 @@ import {
   type BotAction,
 } from '@/lib/chatbot/guardrails';
 
-type Case = { text: string; expect: BotAction[]; mustInclude?: RegExp };
+type Case = { text: string; expect: BotAction[]; mustInclude?: RegExp; mustNotInclude?: RegExp };
 
 const CASES: Case[] = [
   // Should be answered
   { text: 'Hi, do you deliver in quezon city?', expect: ['reply'], mustInclude: /metro cebu|not|sorry/i },
   { text: 'Hi free delivery ba gihapon if sa lapu2?', expect: ['reply'], mustInclude: /200/ },
-  { text: 'Do you deliver to Cavite?', expect: ['reply'], mustInclude: /pick ?up/i },
+  { text: 'Do you deliver to Cavite?', expect: ['reply'], mustInclude: /pick ?up/i, mustNotInclude: /treehouse|aboitiz|camputhaw/i },
   { text: 'How much is this cake', expect: ['reply'], mustInclude: /genie\.ph/i },
   { text: 'hm po sa price list nyo?', expect: ['reply'], mustInclude: /price-list/ },
   { text: 'hello', expect: ['reply'] },
@@ -55,7 +55,8 @@ async function main() {
 
     const actionOk = testCase.expect.includes(decision.action);
     const contentOk = !testCase.mustInclude || decision.action !== 'reply' || testCase.mustInclude.test(decision.reply);
-    const ok = actionOk && contentOk;
+    const forbiddenOk = !testCase.mustNotInclude || !testCase.mustNotInclude.test(decision.reply);
+    const ok = actionOk && contentOk && forbiddenOk;
     if (!ok) failed += 1;
 
     console.log(`${ok ? 'PASS' : 'FAIL'}  [${decision.action}/${decision.category} ${decision.confidence}]  ${testCase.text}`);
