@@ -316,6 +316,8 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
     const pendingFollowUpTimeoutsRef = useRef<number[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const lastCustomerMessageAtRef = useRef(0);
+    const waitingForAssistantRef = useRef(false);
+    const assistantTypingTimeoutRef = useRef<number | undefined>(undefined);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const supabase = createClient();
 
@@ -352,7 +354,17 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
     useEffect(() => {
         const lastCustomerMessage = [...messages].reverse().find((m) => m.isUser);
         lastCustomerMessageAtRef.current = lastCustomerMessage ? new Date(lastCustomerMessage.timestamp).getTime() : 0;
+
+        // A reply from the assistant or the team ends the typing indicator.
+        const lastMessage = messages[messages.length - 1];
+        if (waitingForAssistantRef.current && lastMessage && !lastMessage.isUser) {
+            waitingForAssistantRef.current = false;
+            window.clearTimeout(assistantTypingTimeoutRef.current);
+            setIsTyping(false);
+        }
     }, [messages]);
+
+    useEffect(() => () => window.clearTimeout(assistantTypingTimeoutRef.current), []);
 
     useEffect(() => {
         if (!conversationId || !supabase) return;
@@ -842,6 +854,18 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                 ));
             }
 
+            if (result.assistantPending) {
+                // The assistant is composing a real answer: keep the typing dots up and skip the
+                // canned acknowledgement. The dots stop when a reply arrives or after a while.
+                waitingForAssistantRef.current = true;
+                window.clearTimeout(assistantTypingTimeoutRef.current);
+                assistantTypingTimeoutRef.current = window.setTimeout(() => {
+                    waitingForAssistantRef.current = false;
+                    setIsTyping(false);
+                }, 15_000);
+                return;
+            }
+
             setTimeout(() => {
                 const responses = [
                     "Thanks for reaching out! Our team will get back to you shortly.",
@@ -1047,11 +1071,11 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
 
                             {isTyping && (
                                 <div className="flex justify-start">
-                                    <div className="bg-white border border-slate-200 px-4 py-3 rounded-2xl rounded-bl-md">
+                                    <div className="bg-purple-100 border border-purple-200 px-4 py-3 rounded-2xl rounded-bl-md" aria-label="Genie Assistant is typing" role="status">
                                         <div className="flex gap-1">
-                                            <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                                            <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                                            <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                                            <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                                            <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                                            <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
                                         </div>
                                     </div>
                                 </div>

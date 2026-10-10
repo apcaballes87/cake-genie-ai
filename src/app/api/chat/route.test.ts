@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
+import { resetChatbotSettingsCache } from '@/lib/chatbot/settings';
 
 const notificationMocks = vi.hoisted(() => ({
   afterCallbacks: [] as Array<() => void | Promise<void>>,
@@ -126,6 +127,7 @@ describe('POST /api/chat', () => {
     notificationMocks.afterCallbacks.splice(0);
     notificationMocks.triggerN8nWorkflow.mockResolvedValue({ success: true, status: 200 });
 
+    resetChatbotSettingsCache();
     // Anonymous by default: no valid bearer token.
     notificationMocks.getUser.mockResolvedValue({ data: { user: null }, error: { message: 'invalid token' } });
 
@@ -421,6 +423,46 @@ describe('POST /api/chat', () => {
     expect(updatedConversationPayloads).toHaveLength(0);
     expect(insertedConversationPayloads).toHaveLength(1);
     expect(insertedConversationPayloads[0]).toEqual(expect.objectContaining({ user_id: null, session_id: 'new-session-id' }));
+  });
+
+  it('tells the widget the assistant is about to answer when it is on and active for the chat', async () => {
+    tableHandlers.chatbot_settings = { onMaybeSingle: async () => ({ data: { enabled: true }, error: null }) };
+    tableHandlers.chat_conversations.onMaybeSingle = async () => ({
+      data: { id: CONVERSATION_ID, user_id: null, session_id: 'guest_123', bot_state: 'active' },
+      error: null,
+    });
+    tableHandlers.chat_messages.onInsertSelectSingle = async () => ({ data: { id: 'message-1' }, error: null });
+
+    const { POST } = await import('./route');
+    const response = await POST(new NextRequest('http://localhost/api/chat', {
+      method: 'POST',
+      headers: guestHeaders,
+      body: JSON.stringify({ action: 'send_message', conversationId: CONVERSATION_ID, content: 'do you deliver to Makati?' }),
+    }));
+
+    expect((await response.json()).assistantPending).toBe(true);
+  });
+
+  it.each([
+    ['the assistant is switched off', { enabled: false }, 'active', 'do you deliver?'],
+    ['the chat was handed to a human', { enabled: true }, 'handed_off', 'do you deliver?'],
+    ['the message is only an image', { enabled: true }, 'active', '   '],
+  ])('does not claim the assistant is typing when %s', async (_label, setting, botState, content) => {
+    tableHandlers.chatbot_settings = { onMaybeSingle: async () => ({ data: setting, error: null }) };
+    tableHandlers.chat_conversations.onMaybeSingle = async () => ({
+      data: { id: CONVERSATION_ID, user_id: null, session_id: 'guest_123', bot_state: botState },
+      error: null,
+    });
+    tableHandlers.chat_messages.onInsertSelectSingle = async () => ({ data: { id: 'message-1' }, error: null });
+
+    const { POST } = await import('./route');
+    const response = await POST(new NextRequest('http://localhost/api/chat', {
+      method: 'POST',
+      headers: guestHeaders,
+      body: JSON.stringify({ action: 'send_message', conversationId: CONVERSATION_ID, content, imageUrl: content.trim() ? undefined : 'https://x/y.png' }),
+    }));
+
+    expect((await response.json()).assistantPending).toBe(false);
   });
 
   it('rejects messages for a conversation the caller does not own', async () => {

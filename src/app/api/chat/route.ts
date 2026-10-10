@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { triggerN8nWorkflow } from '@/services/n8nService';
 import { runAssistantForMessage, type HandoffNotice } from '@/lib/chatbot/assistant';
 import { getChatIdentity, loadAccessibleConversation } from '@/lib/chat/access';
+import { isChatbotEnabled } from '@/lib/chatbot/settings';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -245,9 +246,10 @@ export async function POST(request: NextRequest) {
     const userId = identity.userId;
     const sessionId = identity.sessionId ?? (typeof body.sessionId === 'string' ? body.sessionId.slice(0, 200) : null);
 
+    let accessibleConversation: Awaited<ReturnType<typeof loadAccessibleConversation>> = null;
     if (action === 'send_message' || action === 'send_system_message' || action === 'mark_read') {
-      const accessible = await loadAccessibleConversation(supabaseAdmin, identity, conversationId);
-      if (!accessible) {
+      accessibleConversation = await loadAccessibleConversation(supabaseAdmin, identity, conversationId);
+      if (!accessibleConversation) {
         return NextResponse.json({ success: false, error: 'Conversation not found' }, { status: 404 });
       }
     }
@@ -305,7 +307,12 @@ export async function POST(request: NextRequest) {
         pageContext,
       });
 
-      return NextResponse.json({ success: true, data: message }, { status: 201 });
+      // Lets the widget show a typing indicator instead of its canned acknowledgement.
+      const assistantPending = Boolean(typeof content === 'string' && content.trim())
+        && accessibleConversation?.bot_state === 'active'
+        && await isChatbotEnabled(supabaseAdmin);
+
+      return NextResponse.json({ success: true, data: message, assistantPending }, { status: 201 });
     }
 
     if (action === 'send_system_message') {

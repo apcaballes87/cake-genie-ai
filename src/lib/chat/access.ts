@@ -72,16 +72,18 @@ export async function loadAccessibleConversation(
   supabaseAdmin: SupabaseClient,
   identity: ChatIdentity,
   conversationId: unknown,
-): Promise<{ id: string; user_id: string | null; session_id: string | null } | null> {
+): Promise<{ id: string; user_id: string | null; session_id: string | null; bot_state: string | null } | null> {
   if (typeof conversationId !== 'string' || !/^[0-9a-f-]{36}$/i.test(conversationId)) {
     return null;
   }
 
   const { data } = await supabaseAdmin
     .from('chat_conversations')
-    .select('id, user_id, session_id')
+    .select('id, user_id, session_id, bot_state')
     .eq('id', conversationId)
     .maybeSingle();
 
-  return canAccessConversation(identity, data) ? (data as { id: string; user_id: string | null; session_id: string | null }) : null;
+  return canAccessConversation(identity, data)
+    ? (data as { id: string; user_id: string | null; session_id: string | null; bot_state: string | null })
+    : null;
 }
