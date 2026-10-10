@@ -187,6 +187,22 @@ async function chatApiFetch(input: string, init: RequestInit = {}): Promise<Resp
     return fetch(input, { ...init, headers });
 }
 
+// The widget shows system messages locally and also saves them; when the saved copy comes
+// back from the server it must not be shown a second time.
+function duplicatesLocalSystemMessage(
+    existing: Array<{ isUser: boolean; sender_type: string; text: string; timestamp: string }>,
+    incoming: { sender_type: string; content: string; created_at: string },
+): boolean {
+    if (incoming.sender_type !== 'system') return false;
+    const incomingAt = new Date(incoming.created_at).getTime();
+    return existing.some((m) =>
+        !m.isUser
+        && m.sender_type === 'system'
+        && m.text === incoming.content
+        && Math.abs(new Date(m.timestamp).getTime() - incomingAt) < 120_000,
+    );
+}
+
 async function saveSystemMessage(conversationId: string, content: string): Promise<string | null> {
     try {
         console.log('💾 Saving system message:', { conversationId, content: content.substring(0, 50) });
@@ -384,6 +400,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                     if (newMessage.sender_type !== 'customer') {
                         setMessages((prev) => {
                             if (prev.some((m) => m.id === newMessage.id)) return prev;
+                            if (duplicatesLocalSystemMessage(prev, newMessage)) return prev;
                             const newMsg: Message = {
                                 id: newMessage.id,
                                 text: newMessage.content,
@@ -453,7 +470,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                     });
 
                     const fresh: Message[] = serverMessages
-                        .filter((m) => m.sender_type !== 'customer' && !known.has(m.id))
+                        .filter((m) => m.sender_type !== 'customer' && !known.has(m.id) && !duplicatesLocalSystemMessage(prev, m))
                         .map((m) => ({
                             id: m.id,
                             text: m.content,

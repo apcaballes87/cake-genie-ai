@@ -121,7 +121,7 @@ describe('runAssistantForMessage', () => {
 
     expect(decideSpy).not.toHaveBeenCalled();
     expect(inserts.find((i) => i.table === 'chat_messages')?.payload).toMatchObject({ content: HANDOFF_HOLDING_MESSAGE, is_bot: true });
-    expect(updates.find((u) => u.table === 'chat_conversations')?.payload).toMatchObject({ bot_state: 'handed_off' });
+    expect(updates.find((u) => u.table === 'chat_conversations')?.payload).not.toHaveProperty('bot_state');
     expect(notices).toHaveLength(1);
     expect(notices[0]).toMatchObject({ category: 'complaint_refund', holdingMessageSent: true });
   });
@@ -188,9 +188,30 @@ describe('runAssistantForMessage', () => {
     expect(decideSpy).not.toHaveBeenCalled();
   });
 
-  it('stays quiet when the conversation is already handed off', async () => {
-    const { promise } = run([row('1', 'customer', 'hello')], async () => confident, { botState: 'handed_off' });
-    expect(await promise).toEqual({ status: 'skipped', reason: 'bot_state_handed_off' });
+  it('stays quiet when an admin switched the assistant off for this chat', async () => {
+    const { promise } = run([row('1', 'customer', 'hello')], async () => confident, { botState: 'off' });
+    expect(await promise).toEqual({ status: 'skipped', reason: 'bot_state_off' });
+  });
+
+  it('still answers an easy question after an earlier handoff', async () => {
+    const { promise, inserts } = run(
+      [row('1', 'customer', 'can I order for tomorrow?'), row('2', 'merchant', HANDOFF_HOLDING_MESSAGE, { is_bot: true }), row('3', 'customer', 'Are you open?')],
+      async () => confident,
+      { botState: 'handed_off' },
+    );
+    const outcome = await promise;
+    expect(outcome).toMatchObject({ status: 'done', decision: { action: 'reply' } });
+    expect(inserts.find((i) => i.table === 'chat_messages')?.payload).toMatchObject({ is_bot: true, content: confident.reply });
+  });
+
+  it('does not repeat the holding message on a second handoff in a row', async () => {
+    const { promise, inserts, notices } = run(
+      [row('1', 'customer', 'I want a refund'), row('2', 'merchant', HANDOFF_HOLDING_MESSAGE, { is_bot: true }), row('3', 'customer', 'hello?? I want a refund')],
+      async () => confident,
+    );
+    await promise;
+    expect(inserts.filter((i) => i.table === 'chat_messages')).toHaveLength(0);
+    expect(notices).toHaveLength(1);
   });
 
   it('lets only the newest message in a burst trigger an answer', async () => {

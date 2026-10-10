@@ -109,8 +109,10 @@ export function getSkipReason(input: PreconditionInput): string | null {
   if (!input.enabled) {
     return 'bot_disabled';
   }
-  if (input.botState !== 'active') {
-    return `bot_state_${input.botState ?? 'unknown'}`;
+  // Only an admin pausing the assistant for a chat (or the recent-human window below)
+  // keeps it quiet. A bot handoff alone must not silence later easy questions.
+  if (input.botState === 'off') {
+    return 'bot_state_off';
   }
   if (input.lastHumanReplyAt) {
     const windowMs = (input.takeoverWindowMinutes ?? DEFAULT_TAKEOVER_WINDOW_MINUTES) * 60_000;

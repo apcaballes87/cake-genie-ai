@@ -58,9 +58,13 @@ describe('getSkipReason', () => {
     expect(getSkipReason({ ...base, enabled: false })).toBe('bot_disabled');
   });
 
-  it('stays quiet once handed off or switched off', () => {
-    expect(getSkipReason({ ...base, botState: 'handed_off' })).toBe('bot_state_handed_off');
+  it('stays quiet only when an admin switched the assistant off for the chat', () => {
     expect(getSkipReason({ ...base, botState: 'off' })).toBe('bot_state_off');
+  });
+
+  it('keeps answering after an earlier handoff', () => {
+    expect(getSkipReason({ ...base, botState: 'handed_off' })).toBeNull();
+    expect(getSkipReason({ ...base, botState: null })).toBeNull();
   });
 
   it('stays quiet after a recent human reply but resumes later', () => {

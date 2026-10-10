@@ -328,21 +328,29 @@ export async function runAssistantForMessage(
     return { status: 'done', decision };
   }
 
-  // handoff: one holding message, flip the conversation to handed_off, alert the admin.
-  const { error: holdingError } = await supabase.from('chat_messages').insert({
-    conversation_id: conversationId,
-    content: HANDOFF_HOLDING_MESSAGE,
-    sender_type: 'merchant',
-    is_bot: true,
-    is_read: false,
-  });
-  if (holdingError) {
-    console.warn('[chat-assistant] Could not store holding message:', holdingError.message);
+  // handoff: one holding message (not repeated while the previous one is still the latest
+  // thing we said), then alert the admin. The assistant keeps answering later easy questions.
+  const lastNonCustomer = [...rows].reverse().find((row) => row.sender_type !== 'customer');
+  const alreadyHeld = Boolean(lastNonCustomer?.is_bot && lastNonCustomer.content === HANDOFF_HOLDING_MESSAGE);
+
+  let holdingError: { message: string } | null = null;
+  if (!alreadyHeld) {
+    const { error } = await supabase.from('chat_messages').insert({
+      conversation_id: conversationId,
+      content: HANDOFF_HOLDING_MESSAGE,
+      sender_type: 'merchant',
+      is_bot: true,
+      is_read: false,
+    });
+    holdingError = error;
+    if (error) {
+      console.warn('[chat-assistant] Could not store holding message:', error.message);
+    }
   }
 
   await supabase
     .from('chat_conversations')
-    .update({ bot_state: 'handed_off', updated_at: new Date().toISOString() })
+    .update({ updated_at: new Date().toISOString() })
     .eq('id', conversationId);
 
   await logEvent(decision, 'handoff', { latency_ms: latencyMs });

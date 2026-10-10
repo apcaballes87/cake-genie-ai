@@ -309,7 +309,8 @@ export async function POST(request: NextRequest) {
 
       // Lets the widget show a typing indicator instead of its canned acknowledgement.
       const assistantPending = Boolean(typeof content === 'string' && content.trim())
-        && accessibleConversation?.bot_state === 'active'
+        && Boolean(accessibleConversation)
+        && accessibleConversation?.bot_state !== 'off'
         && await isChatbotEnabled(supabaseAdmin);
 
       return NextResponse.json({ success: true, data: message, assistantPending }, { status: 201 });

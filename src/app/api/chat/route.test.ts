@@ -445,7 +445,7 @@ describe('POST /api/chat', () => {
 
   it.each([
     ['the assistant is switched off', { enabled: false }, 'active', 'do you deliver?'],
-    ['the chat was handed to a human', { enabled: true }, 'handed_off', 'do you deliver?'],
+    ['the assistant is paused for this chat', { enabled: true }, 'off', 'do you deliver?'],
     ['the message is only an image', { enabled: true }, 'active', '   '],
   ])('does not claim the assistant is typing when %s', async (_label, setting, botState, content) => {
     tableHandlers.chatbot_settings = { onMaybeSingle: async () => ({ data: setting, error: null }) };
