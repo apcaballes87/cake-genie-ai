@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { CustomizingHeroPanel } from './CustomizingHeroPanel';
 
@@ -169,7 +169,7 @@ describe('CustomizingHeroPanel', () => {
         expect(screen.queryByRole('button', { name: 'Upload Cake Design' })).not.toBeInTheDocument();
     });
 
-    it('shows a lower-left loader while the studio background edit is still pending', () => {
+    it('hides the paused studio background-edit pill while an old edit is still pending', () => {
         const props = buildProps();
         props.originalImagePreview = 'https://example.com/original-cake.jpg';
         props.preferredOriginalImageUrl = 'https://example.com/original-cake.jpg';
@@ -177,11 +177,7 @@ describe('CustomizingHeroPanel', () => {
 
         render(<CustomizingHeroPanel {...props} />);
 
-        expect(screen.getByLabelText('ai is editing your background')).toBeInTheDocument();
-        const loader = screen.getByLabelText('ai is editing your background');
-        expect(loader.className).toContain('py-1');
-        expect(loader.className).not.toContain('h-9');
-        expect(loader.className).not.toContain('max-md:min-h-[44px]');
+        expect(screen.queryByLabelText('ai is editing your background')).not.toBeInTheDocument();
     });
 
     it('does not show the removed icing-mask loader', () => {
@@ -233,7 +229,7 @@ describe('CustomizingHeroPanel', () => {
         expect(screen.queryByRole('dialog', { name: 'Full screen image preview' })).not.toBeInTheDocument();
     });
 
-    it('shows a mobile scroll cue when the hero uses the mobile scrollable image mode', () => {
+    it('allows vertical scrolling in the mobile hero and keeps the tall image scrollable', () => {
         const props = buildProps();
         props.enableMobileHeroPan = true;
         props.originalImagePreview = 'https://example.com/original-cake.jpg';
@@ -242,9 +238,67 @@ describe('CustomizingHeroPanel', () => {
 
         render(<CustomizingHeroPanel {...props} />);
 
+        const heroFrame = screen.getByTestId('customizer-hero-frame');
+        expect(heroFrame).toHaveClass('touch-pan-y', 'md:touch-auto', 'overscroll-auto');
+        expect(heroFrame).not.toHaveClass('touch-none');
+
+        const scrollArea = screen.getByTestId('mobile-hero-scroll-area');
+        expect(scrollArea).toHaveClass('overflow-y-auto', 'overscroll-auto');
+
         expect(screen.getByText('Scroll')).toBeInTheDocument();
         expect(screen.getByText('↑')).toBeInTheDocument();
         expect(screen.getByText('↓')).toBeInTheDocument();
+    });
+
+    it('keeps editable mobile bboxes inside the image scroll area', () => {
+        const props = buildProps();
+        props.enableMobileHeroPan = true;
+        props.initialHeroAspectRatio = '1 / 2';
+        props.originalImagePreview = 'https://example.com/original-cake.jpg';
+        props.preferredOriginalImageUrl = 'https://example.com/original-cake.jpg';
+        props.analysisResult = {
+            main_toppers: [{ group_id: 'topper-a', description: 'Topper A', box_2d: [100, 100, 200, 200] }],
+            support_elements: [],
+            cake_messages: [],
+        } as React.ComponentProps<typeof CustomizingHeroPanel>['analysisResult'];
+        props.editableDecorationTargets = [{ category: 'topper', groupId: 'topper-a', label: 'Topper A' }];
+        const onDecorationActivate = vi.fn();
+        props.onDecorationActivate = onDecorationActivate;
+
+        const rectSpy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(() => ({
+            x: 0,
+            y: 0,
+            width: 390,
+            height: 780,
+            top: 0,
+            right: 390,
+            bottom: 780,
+            left: 0,
+            toJSON: () => ({}),
+        }) as DOMRect);
+
+        try {
+            render(<CustomizingHeroPanel {...props} />);
+
+            const scrollArea = screen.getByTestId('mobile-hero-scroll-area');
+            const image = scrollArea.querySelector('img');
+            expect(image).not.toBeNull();
+            Object.defineProperties(image, {
+                naturalWidth: { configurable: true, value: 1000 },
+                naturalHeight: { configurable: true, value: 2000 },
+            });
+            fireEvent.load(image!);
+
+            const bbox = within(scrollArea).getByRole('button', { name: 'Edit Topper A' });
+            expect(bbox).toHaveAttribute('data-bbox-interactive', 'true');
+
+            fireEvent.click(bbox);
+            expect(onDecorationActivate).toHaveBeenCalledWith([
+                { category: 'topper', groupId: 'topper-a', label: 'Topper A' },
+            ]);
+        } finally {
+            rectSpy.mockRestore();
+        }
     });
 
     it('starts tall mobile hero images centered instead of at the top', () => {
@@ -345,7 +399,7 @@ describe('CustomizingHeroPanel', () => {
         expect(heroImages.some((image) => image.getAttribute('src') === 'https://example.com/studio-cake.webp')).toBe(false);
     });
 
-    it('shows and hides analysis controls for an analyzed customized image', () => {
+    it('does not show an analysis toggle for an analyzed customized image', () => {
         const props = buildProps();
         props.activeTab = 'customized';
         props.editedImage = 'https://example.com/customized-cake.jpg';
@@ -355,10 +409,7 @@ describe('CustomizingHeroPanel', () => {
 
         render(<CustomizingHeroPanel {...props} />);
 
-        fireEvent.click(screen.getByRole('button', { name: 'Hide analysis overlay' }));
-        expect(screen.getByRole('button', { name: 'Show analysis overlay' })).toBeInTheDocument();
-
-        fireEvent.click(screen.getByRole('button', { name: 'Show analysis overlay' }));
-        expect(screen.getByRole('button', { name: 'Hide analysis overlay' })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Hide analysis overlay' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Show analysis overlay' })).not.toBeInTheDocument();
     });
 });

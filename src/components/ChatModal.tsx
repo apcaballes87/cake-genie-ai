@@ -10,6 +10,7 @@ import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
 import { hasBoundingBoxData } from '@/lib/utils/analysisUtils';
 import { ChatMessageText } from './ChatMessageText';
 import { getCustomerChatImageExtension, prepareCustomerChatImage } from './customerChatImage';
+import { v4 as uuidv4 } from 'uuid';
 import {
     generateServerImageFingerprint,
     toFingerprintLookup,
@@ -23,8 +24,8 @@ interface ChatMessage {
     sender_type: string;
     created_at: string;
     is_read: boolean;
-}
     is_bot?: boolean | null;
+}
 
 interface ProductLink {
     slug: string;
@@ -43,8 +44,8 @@ interface Message {
     timestamp: string;
     is_read: boolean;
     is_sent?: boolean;
-}
     is_bot?: boolean;
+}
 
 interface ChatPageContext {
     url: string;
@@ -164,7 +165,6 @@ const ProductLinkCard: React.FC<{ slug: string; supabase: ReturnType<typeof crea
     );
 };
 
-async function saveSystemMessage(conversationId: string, content: string): Promise<string | null> {
 // Guest chats prove ownership with the random session id kept in localStorage;
 // signed-in customers also send their Supabase access token. The server never
 // trusts a user id or email typed into the request body.
@@ -187,6 +187,7 @@ async function chatApiFetch(input: string, init: RequestInit = {}): Promise<Resp
     return fetch(input, { ...init, headers });
 }
 
+async function saveSystemMessage(conversationId: string, content: string): Promise<string | null> {
     try {
         console.log('💾 Saving system message:', { conversationId, content: content.substring(0, 50) });
 
@@ -218,7 +219,8 @@ async function analyzeImageWithCache(
     imageData: { data: string; mimeType: string },
     imageUrl?: string,
     preparedFile?: File,
-): Promise<{ analysis: HybridAnalysisResult | null; slug: string | null; title: string | null; price: number | null; imageUrl: string | null; cacheKey: string | null; pipeline?: string | null; quality?: number | null }> {
+): Promise<{ analysis: HybridAnalysisResult | null; slug: string | null; title: string | null; price: number | null; imageUrl: string | null; cacheKey: string | null; pipeline?: string | null; quality?: number | null; requestId: string }> {
+    const pdqHitRequestId = uuidv4();
     const file = preparedFile || new File([
         dataURItoBlob(`data:${imageData.mimeType};base64,${imageData.data}`),
     ], 'chat-image.webp', { type: imageData.mimeType });
@@ -237,7 +239,11 @@ async function analyzeImageWithCache(
     );
 
     if (fingerprint.pdqHash && fingerprint.pdqQuality !== null && fingerprint.pdqQuality >= 50 && fingerprint.pdqPipeline) {
-        const cacheHit = await findSimilarAnalysisByHash(toFingerprintLookup(fingerprint), imageUrl);
+        const cacheHit = await findSimilarAnalysisByHash({
+            ...toFingerprintLookup(fingerprint),
+            requestId: pdqHitRequestId,
+            source: 'chat_upload',
+        }, imageUrl);
         if (cacheHit) {
             console.log('⚡ Chat: PDQ Cache Hit! Using cached analysis.');
             return {
@@ -249,6 +255,7 @@ async function analyzeImageWithCache(
                 cacheKey,
                 pipeline: fingerprint.pdqPipeline,
                 quality: fingerprint.pdqQuality,
+                requestId: pdqHitRequestId,
             };
         }
     } else {
@@ -257,7 +264,7 @@ async function analyzeImageWithCache(
 
     console.log('🔄 Chat: Cache miss, running AI analysis...');
     const fastResult = await analyzeCakeFeaturesOnly(compressedData.data, compressedData.mimeType);
-    if (!fastResult) return { analysis: null, slug: null, title: null, price: null, imageUrl: null, cacheKey, pipeline: fingerprint.pdqPipeline, quality: fingerprint.pdqQuality };
+    if (!fastResult) return { analysis: null, slug: null, title: null, price: null, imageUrl: null, cacheKey, pipeline: fingerprint.pdqPipeline, quality: fingerprint.pdqQuality, requestId: pdqHitRequestId };
     let finalResult = fastResult;
     const hasBbox = hasBoundingBoxData(fastResult);
     if (!hasBbox) {
@@ -284,11 +291,12 @@ async function analyzeImageWithCache(
                 cacheKey,
                 pipeline: fingerprint.pdqPipeline,
                 quality: fingerprint.pdqQuality,
+                requestId: pdqHitRequestId,
             };
         }
     }
 
-    return { analysis: finalResult, slug: null, title: null, price: null, imageUrl: null, cacheKey, pipeline: fingerprint.pdqPipeline, quality: fingerprint.pdqQuality };
+    return { analysis: finalResult, slug: null, title: null, price: null, imageUrl: null, cacheKey, pipeline: fingerprint.pdqPipeline, quality: fingerprint.pdqQuality, requestId: pdqHitRequestId };
 }
 
 const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmail, userName }) => {
@@ -323,6 +331,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
             localStorage.setItem('chat_session_id', storedSession);
         }
         setSessionId(storedSession);
+        activeChatSessionId = storedSession;
 
         const guestEmail = localStorage.getItem('cart_guest_email');
         const guestName = localStorage.getItem('cart_pickup_name');
@@ -331,7 +340,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
         }
         if (guestName) {
             setName(guestName);
-        activeChatSessionId = storedSession;
         }
         setIsLocalStorageLoaded(true);
     }, []);
@@ -367,6 +375,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                                 timestamp: newMessage.created_at,
                                 is_read: newMessage.is_read,
                                 is_sent: true,
+                                is_bot: Boolean(newMessage.is_bot),
                             };
                             return [...prev, newMsg];
                         });
@@ -375,7 +384,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
             )
             .on(
                 'postgres_changes',
-                                is_bot: Boolean(newMessage.is_bot),
                 {
                     event: 'UPDATE',
                     schema: 'public',
@@ -398,14 +406,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
         };
     }, [conversationId, supabase]);
 
-    useEffect(() => {
-        if (isOpen && sessionId && isLocalStorageLoaded) {
-            loadOrCreateConversation();
-        } else if (!isOpen) {
-            clearPendingImageFollowUps();
-            setMessages([]);
-            setConversationId(null);
-            setIsLoading(true);
     // Guest chats can no longer subscribe to the database directly (that exposed every
     // guest conversation to anyone holding the public site key), so every customer polls
     // the authenticated API for new team/assistant replies.
@@ -462,6 +462,14 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
         return () => window.clearInterval(timer);
     }, [conversationId, isOpen]);
 
+    useEffect(() => {
+        if (isOpen && sessionId && isLocalStorageLoaded) {
+            loadOrCreateConversation();
+        } else if (!isOpen) {
+            clearPendingImageFollowUps();
+            setMessages([]);
+            setConversationId(null);
+            setIsLoading(true);
         }
     }, [isOpen, sessionId, userId, isLocalStorageLoaded]);
 
@@ -521,6 +529,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                     timestamp: msg.created_at,
                     is_read: msg.is_read,
                     is_sent: true,
+                    is_bot: Boolean(msg.is_bot),
                 })));
 
                 await chatApiFetch('/api/chat', {
@@ -529,7 +538,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                     body: JSON.stringify({
                         action: 'mark_read',
                         conversationId: convoId,
-                    is_bot: Boolean(msg.is_bot),
                     }),
                 });
             }
@@ -562,7 +570,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
         return urlData.publicUrl;
     };
 
-    const queueImageLinkFollowUp = (analysisId: number, cacheKey: string, pipeline?: string | null, quality?: number | null) => {
+    const queueImageLinkFollowUp = (analysisId: number, cacheKey: string, pipeline?: string | null, quality?: number | null, requestId?: string) => {
         pendingImageHashRef.current = cacheKey;
 
         const followUpTimeout = window.setTimeout(async () => {
@@ -571,7 +579,13 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
             }
 
             const recheck = pipeline
-                ? await findSimilarAnalysisByHash({ pdqHash: cacheKey, pdqQuality: quality ?? 0, pdqPipeline: pipeline })
+                ? await findSimilarAnalysisByHash({
+                    pdqHash: cacheKey,
+                    pdqQuality: quality ?? 0,
+                    pdqPipeline: pipeline,
+                    requestId,
+                    source: 'chat_upload',
+                })
                 : null;
 
             if (analysisId !== activeImageAnalysisIdRef.current || pendingImageHashRef.current !== cacheKey) {
@@ -734,7 +748,13 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                     }
 
                     if (analysisResult.analysis && !analysisResult.slug && analysisResult.cacheKey) {
-                        queueImageLinkFollowUp(analysisId, analysisResult.cacheKey, analysisResult.pipeline, analysisResult.quality);
+                        queueImageLinkFollowUp(
+                            analysisId,
+                            analysisResult.cacheKey,
+                            analysisResult.pipeline,
+                            analysisResult.quality,
+                            analysisResult.requestId,
+                        );
                     }
                 } catch (analysisErr) {
                     console.error('Error analyzing image:', analysisErr);
@@ -956,6 +976,9 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                                                         : 'bg-white text-slate-800 border border-slate-200 rounded-bl-md'
                                                 }`}
                                         >
+                                            {message.is_bot && (
+                                                <p className="text-[10px] font-semibold text-purple-600 mb-1">Genie Assistant (AI)</p>
+                                            )}
                                             {message.imageUrl && (
                                                 <img
                                                     src={message.imageUrl}
@@ -976,9 +999,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                                             )}
                                             <p className={`text-[10px] mt-1 flex items-center gap-1 ${message.isUser ? 'text-purple-200' : 'text-slate-400'}`}>
                                                 {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            {message.is_bot && (
-                                                <p className="text-[10px] font-semibold text-purple-600 mb-1">Genie Assistant (AI)</p>
-                                            )}
                                                 {message.isUser && (
                                                     <span className="flex items-center">
                                                         {message.is_sent ? (

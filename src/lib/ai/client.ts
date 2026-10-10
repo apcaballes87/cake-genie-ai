@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { GoogleAuth, Impersonated } from 'google-auth-library';
+import { createHash } from 'crypto';
 import fs from 'fs';
 
 let ai: InstanceType<typeof GoogleGenAI> | null = null;
@@ -273,7 +274,16 @@ export async function getOrCreatePromptCache(
 ): Promise<string | null> {
     try {
         const cleanVersion = version.replace(/\./g, '-');
-        const cacheDisplayName = `genie-cake-analysis-prompt-v${cleanVersion}`;
+        // Provider caches are shared by display name. Include the exact prompt
+        // and system-instruction bytes so a staged contract change cannot reuse
+        // an older cache that happens to have the same semantic version.
+        const contractFingerprint = createHash('sha256')
+            .update(promptText)
+            .update('\0')
+            .update(systemInstruction)
+            .digest('hex')
+            .slice(0, 12);
+        const cacheDisplayName = `genie-cake-analysis-prompt-v${cleanVersion}-${contractFingerprint}`;
         
         console.info(`[AI Cache] Checking for active cache: ${cacheDisplayName}`);
         const listResult = await aiClient.caches.list();

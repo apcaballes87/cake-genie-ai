@@ -13,9 +13,9 @@ vi.mock('@/lib/supabase/client', () => ({ createClient: () => {
 describe('useDesignSharing', () => {
     beforeEach(() => {
         eq.mockClear();
-        maybeSingle.mockResolvedValue({ data: { slug: 'photo-cake-white-1-tier-cake-39cc' } });
+        maybeSingle.mockResolvedValue({ data: { slug: 'photo-cake-white-1-tier-cake-39cc', seo_status: 'pending' } });
     });
-    it('includes selected cake options in generated share links', async () => {
+    it('shares a pending analysis using only the slug, cake type, and size', async () => {
         const cakeInfo = {
             type: '1 Tier',
             size: '6" Round',
@@ -33,19 +33,37 @@ describe('useDesignSharing', () => {
         });
 
         expect(result.current.shareData?.botShareUrl).toBe(
-            'https://genie.ph/customizing/photo-cake-white-1-tier-cake-39cc?caketype=1+Tier&size=6%22+Round&height=4+in',
+            'https://genie.ph/customizing/photo-cake-white-1-tier-cake-39cc?caketype=1+Tier&size=6%22+Round',
         );
         expect(result.current.shareData?.shareUrl).toBe(
-            'http://localhost:3000/customizing/photo-cake-white-1-tier-cake-39cc?caketype=1+Tier&size=6%22+Round&height=4+in',
+            'http://localhost:3000/customizing/photo-cake-white-1-tier-cake-39cc?caketype=1+Tier&size=6%22+Round',
         );
+        expect(eq).toHaveBeenCalledWith('slug', 'photo-cake-white-1-tier-cake-39cc');
+        expect(eq).not.toHaveBeenCalledWith('seo_status', 'published');
     });
-    it('does not expose a locally known slug before publication', async () => {
+    it('does not expose a link if the cache row cannot be resolved', async () => {
         maybeSingle.mockResolvedValue({ data: null });
         const { result } = renderHook(() => useDesignSharing({ slug: 'pending-design', originalImageUrl: null }));
         await act(async () => { await result.current.handleShare(); });
-        expect(eq).toHaveBeenCalledWith('seo_status', 'published');
         expect(result.current.shareData).toBeNull();
         expect(result.current.isShareModalOpen).toBe(false);
+    });
+
+    it('preserves the existing cake height option for published designs', async () => {
+        maybeSingle.mockResolvedValue({ data: { slug: 'published-cake', seo_status: 'published' } });
+        const { result } = renderHook(() => useDesignSharing({
+            slug: 'published-cake',
+            originalImageUrl: null,
+            cakeInfo: { type: '1 Tier', size: '6" Round', thickness: '4 in' },
+        }));
+
+        await act(async () => {
+            await result.current.handleShare();
+        });
+
+        expect(result.current.shareData?.botShareUrl).toBe(
+            'https://genie.ph/customizing/published-cake?caketype=1+Tier&size=6%22+Round&height=4+in',
+        );
     });
 
 });

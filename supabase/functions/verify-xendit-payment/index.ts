@@ -2,6 +2,8 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
 import { mirrorOrderPurchaseToGa4 } from '../_shared/ga4MeasurementProtocol.ts'
+import { sendOpenAIAdsOrderCreated } from '../_shared/openaiAdsConversions.ts'
+import { getXenditSecretKey, resolvePaymentMode } from '../_shared/paymentMode.ts'
 
 declare const Deno: any;
 
@@ -61,16 +63,15 @@ serve(async (req) => {
   }
 
   try {
-    const { orderId, contributionId, payment_mode } = await req.json();
+    const { orderId, contributionId } = await req.json();
 
     if (!orderId && !contributionId) {
       throw new Error('orderId or contributionId is required in the request body.');
     }
 
-    const mode = payment_mode || 'test';
-    const XENDIT_SECRET_KEY = mode === 'live'
-      ? (Deno.env.get('XENDIT_LIVE_API_KEY') || Deno.env.get('XENDIT_SECRET_KEY'))
-      : (Deno.env.get('XENDIT_TEST_API_KEY') || Deno.env.get('XENDIT_SECRET_KEY'));
+    // Decided by the server, never by the request: see _shared/paymentMode.ts.
+    const mode = resolvePaymentMode();
+    const XENDIT_SECRET_KEY = getXenditSecretKey(mode);
 
     if (!XENDIT_SECRET_KEY) {
       throw new Error(`Xendit API Key for ${mode} mode is not set.`);
@@ -80,6 +81,10 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const ga4MeasurementId = Deno.env.get('GA4_MEASUREMENT_ID') ?? '';
     const ga4MeasurementProtocolApiSecret = Deno.env.get('GA4_MEASUREMENT_PROTOCOL_API_SECRET') ?? '';
+    const openAIAdsConfig = {
+      pixelId: Deno.env.get('OPENAI_ADS_PIXEL_ID'),
+      apiKey: Deno.env.get('OPENAI_ADS_CONVERSIONS_API_KEY'),
+    };
 
     if (!supabaseUrl || !serviceRoleKey) {
       throw new Error('Supabase environment variables are not set.');
@@ -202,7 +207,8 @@ serve(async (req) => {
               cake_type,
               cake_size,
               final_price,
-              quantity
+              quantity,
+              customization_details
             )
           `)
           .eq('order_id', contribution.order_id)
@@ -230,6 +236,13 @@ serve(async (req) => {
 
           if (updates.payment_status === 'paid' || updates.payment_status === 'partial') {
             await clearCartForOrder(supabaseAdmin, contribution.order_id);
+            const adsResult = await sendOpenAIAdsOrderCreated({
+              ...order,
+              payment_status: String(updates.payment_status),
+            }, openAIAdsConfig);
+            if (adsResult === 'failed') {
+              console.warn('OpenAI Ads conversion reporting failed (non-fatal).');
+            }
             if (ga4MeasurementId && ga4MeasurementProtocolApiSecret && order) {
               await mirrorOrderPurchaseToGa4({
                 supabaseAdmin,
@@ -312,7 +325,8 @@ serve(async (req) => {
             cake_type,
             cake_size,
             final_price,
-            quantity
+            quantity,
+            customization_details
           )
         `)
         .eq('order_id', orderId)
@@ -352,6 +366,13 @@ serve(async (req) => {
       if (updateOrderError) throw updateOrderError;
 
       await clearCartForOrder(supabaseAdmin, orderId);
+      const adsResult = await sendOpenAIAdsOrderCreated({
+        ...order,
+        payment_status: 'paid',
+      }, openAIAdsConfig);
+      if (adsResult === 'failed') {
+        console.warn('OpenAI Ads conversion reporting failed (non-fatal).');
+      }
       if (ga4MeasurementId && ga4MeasurementProtocolApiSecret) {
         await mirrorOrderPurchaseToGa4({
           supabaseAdmin,

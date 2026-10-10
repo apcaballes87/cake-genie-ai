@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { mirrorOrderPurchaseToGa4 } from '../_shared/ga4MeasurementProtocol.ts';
+import { sendOpenAIAdsOrderCreated } from '../_shared/openaiAdsConversions.ts';
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -15,6 +16,17 @@ const toCurrencyCents = (value: number) => Math.round(Number(value) * 100);
 
 const amountsMatch = (left: number, right: number) =>
     Math.abs(toCurrencyCents(left) - toCurrencyCents(right)) <= 1;
+
+function timingSafeEqual(a: string, b: string): boolean {
+    const encoder = new TextEncoder();
+    const left = encoder.encode(a);
+    const right = encoder.encode(b);
+    let diff = left.length ^ right.length;
+    for (let i = 0; i < Math.max(left.length, right.length); i++) {
+        diff |= (left[i] ?? 0) ^ (right[i] ?? 0);
+    }
+    return diff === 0;
+}
 
 function getWebhookCallbackToken(): string | null {
     return (
@@ -58,7 +70,17 @@ serve(async (req) => {
         const callbackToken = getWebhookCallbackToken();
         const receivedCallbackToken = req.headers.get('x-callback-token');
 
-        if (callbackToken && receivedCallbackToken !== callbackToken) {
+        // Fail closed: without a configured token anyone could POST a fake
+        // "PAID" event and have an order confirmed.
+        if (!callbackToken) {
+            console.error('❌ Xendit webhook callback token is not configured; rejecting webhook.');
+            return new Response(JSON.stringify({ success: false, error: 'Webhook not configured' }), {
+                status: 503,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
+
+        if (!receivedCallbackToken || !timingSafeEqual(receivedCallbackToken, callbackToken)) {
             console.error('❌ Invalid Xendit webhook callback token');
             return new Response(JSON.stringify({ success: false, error: 'Invalid webhook signature' }), {
                 status: 401,
@@ -66,14 +88,14 @@ serve(async (req) => {
             });
         }
 
-        if (!callbackToken) {
-            console.warn('⚠️  Xendit webhook token is not configured; webhook requests are not signature-verified.');
-        }
-
         const supabaseUrl = Deno.env.get('SUPABASE_URL');
         const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
         const ga4MeasurementId = Deno.env.get('GA4_MEASUREMENT_ID') ?? '';
         const ga4MeasurementProtocolApiSecret = Deno.env.get('GA4_MEASUREMENT_PROTOCOL_API_SECRET') ?? '';
+        const openAIAdsConfig = {
+            pixelId: Deno.env.get('OPENAI_ADS_PIXEL_ID'),
+            apiKey: Deno.env.get('OPENAI_ADS_CONVERSIONS_API_KEY'),
+        };
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
         console.log('\n========== XENDIT WEBHOOK RECEIVED ==========');
@@ -227,7 +249,8 @@ serve(async (req) => {
                             cake_type,
                             cake_size,
                             final_price,
-                            quantity
+                            quantity,
+                            customization_details
                         )
                     `)
                     .eq('order_id', contribution.order_id)
@@ -235,6 +258,10 @@ serve(async (req) => {
 
                 if (updatedOrder?.payment_status === 'paid' || updatedOrder?.payment_status === 'partial') {
                     await clearCartForOrder(supabase, contribution.order_id);
+                    const adsResult = await sendOpenAIAdsOrderCreated(updatedOrder, openAIAdsConfig);
+                    if (adsResult === 'failed') {
+                        console.warn('OpenAI Ads conversion reporting failed (non-fatal).');
+                    }
                     if (ga4MeasurementId && ga4MeasurementProtocolApiSecret) {
                         await mirrorOrderPurchaseToGa4({
                             supabaseAdmin: supabase,
@@ -344,7 +371,8 @@ serve(async (req) => {
                         cake_type,
                         cake_size,
                         final_price,
-                        quantity
+                        quantity,
+                        customization_details
                     )
                 `)
                 .eq('order_id', paymentRecord.order_id)
@@ -377,7 +405,7 @@ serve(async (req) => {
                 });
             }
 
-            await supabase
+            const { error: orderUpdateError } = await supabase
                 .from('cakegenie_orders')
                 .update({
                     order_status: 'confirmed',
@@ -385,9 +413,17 @@ serve(async (req) => {
                     updated_at: new Date().toISOString()
                 })
                 .eq('order_id', paymentRecord.order_id);
+            if (orderUpdateError) throw orderUpdateError;
 
             console.log(`✅ Order ${paymentRecord.order_id} marked as confirmed`);
             await clearCartForOrder(supabase, paymentRecord.order_id);
+            const adsResult = await sendOpenAIAdsOrderCreated({
+                ...order,
+                payment_status: 'paid',
+            }, openAIAdsConfig);
+            if (adsResult === 'failed') {
+                console.warn('OpenAI Ads conversion reporting failed (non-fatal).');
+            }
             if (ga4MeasurementId && ga4MeasurementProtocolApiSecret) {
                 await mirrorOrderPurchaseToGa4({
                     supabaseAdmin: supabase,

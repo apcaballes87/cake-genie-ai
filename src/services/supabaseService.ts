@@ -29,6 +29,7 @@ import {
 import { normalizeAnalysisForDefaultFulfillment } from '@/lib/ai/fulfillmentNormalization';
 import { normalizeAnalysisForThreeBandSizing } from '@/lib/ai/analysisSize';
 import type { BasePriceCatalog } from '@/lib/pricing/basePriceCatalog';
+import { buildLowestCakeBasePriceOptions } from '@/lib/commerce/cakeBasePriceOptions';
 
 // The default client (uses @supabase/ssr browser client)
 const supabase: SupabaseClient = getSupabaseClient();
@@ -178,30 +179,7 @@ export const getLowestCakeBasePriceOptions = async (
       return [];
     }
 
-    const lowestBySize = new Map<string, { size: string; price: number; displayOrder: number | null }>();
-
-    for (const item of data) {
-      const key = item.cakesize;
-      const nextPrice = Number(item.price);
-      const existing = lowestBySize.get(key);
-
-      if (!existing || nextPrice < existing.price) {
-        lowestBySize.set(key, {
-          size: item.cakesize,
-          price: nextPrice,
-          displayOrder: item.display_order ?? null,
-        });
-      }
-    }
-
-    return [...lowestBySize.values()]
-      .sort((left, right) => {
-        const leftOrder = left.displayOrder ?? Number.MAX_SAFE_INTEGER;
-        const rightOrder = right.displayOrder ?? Number.MAX_SAFE_INTEGER;
-        if (leftOrder !== rightOrder) return leftOrder - rightOrder;
-        return left.size.localeCompare(right.size);
-      })
-      .map(({ size, price }) => ({ size, price }));
+    return buildLowestCakeBasePriceOptions(data);
   } catch (err) {
     console.error('Error fetching lowest cake base price options:', JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
     throw new Error('Could not connect to the pricing database.');
@@ -434,7 +412,7 @@ export interface CacheHitResult {
 }
 
 export interface CacheWriteResult {
-  /** Empty until the server has published the design. */
+  /** Existing cache slug, available to share before SEO publication. */
   slug: string;
   seo_status: string;
   seo_title: string;
@@ -449,10 +427,13 @@ export interface FingerprintHashLookup {
   pdqHash?: string | null;
   pdqQuality?: number | null;
   pdqPipeline?: string | null;
+  requestId?: string | null;
+  source?: string | null;
 }
 
 const HEX_PHASH_PATTERN = /^[0-9a-f]{16}$/i;
 const HEX_PDQ_PATTERN = /^[0-9a-f]{64}$/i;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function normalizeHexPHash(candidate: string | null | undefined): string | null {
   if (typeof candidate !== 'string') {
@@ -470,6 +451,12 @@ function normalizeHashLookup(input: FingerprintHashLookup) {
       : null,
     pdqQuality: Number.isInteger(input.pdqQuality) ? input.pdqQuality : null,
     pdqPipeline: input.pdqPipeline?.trim() || null,
+    requestId: typeof input.requestId === 'string' && UUID_PATTERN.test(input.requestId.trim())
+      ? input.requestId.trim()
+      : uuidv4(),
+    source: typeof input.source === 'string' && input.source.trim()
+      ? input.source.trim().slice(0, 64)
+      : 'unknown',
   };
 }
 
@@ -647,7 +634,7 @@ function mapCacheHitResult(result: AnalysisCacheLookupRow, id: string | null): C
     seo_description: result.seo_description || null,
     keywords: result.keywords || null,
     alt_text: result.alt_text || null,
-    slug: result.seo_status === 'published' ? result.slug || null : null,
+    slug: result.slug || null,
     original_image_url: result.original_image_url || null,
     price: result.price ? Number(result.price) : null,
     availability: result.availability || null,
@@ -662,6 +649,33 @@ function mapCacheHitResult(result: AnalysisCacheLookupRow, id: string | null): C
     analysisResult,
     seoMetadata,
   };
+}
+
+async function recordPdqCacheHit(
+  cacheId: string | null,
+  lookup: ReturnType<typeof normalizeHashLookup>,
+): Promise<void> {
+  if (!cacheId || !lookup.pdqHash || lookup.pdqQuality == null || !lookup.pdqPipeline) {
+    return;
+  }
+
+  try {
+    const { error } = await supabase.rpc('record_pdq_cache_hit', {
+      p_cache_id: cacheId,
+      p_incoming_pdq_hash: lookup.pdqHash,
+      p_pdq_quality: lookup.pdqQuality,
+      p_pdq_pipeline: lookup.pdqPipeline,
+      p_request_id: lookup.requestId,
+      p_source: lookup.source,
+    });
+
+    if (error) {
+      console.warn('⚠️ Failed to record PDQ cache hit:', error.message);
+    }
+  } catch (error) {
+    // Analytics failure must never turn an otherwise valid cache hit into a miss.
+    console.warn('⚠️ Exception while recording PDQ cache hit:', error);
+  }
 }
 
 export async function findSimilarAnalysisByHash(fingerprint: FingerprintHashLookup, imageUrl?: string): Promise<CacheHitResult | null> {
@@ -721,6 +735,7 @@ export async function findSimilarAnalysisByHash(fingerprint: FingerprintHashLook
     }
 
     const cacheId = await resolveCacheHitId(result);
+    await recordPdqCacheHit(cacheId, lookup);
     return mapCacheHitResult(result, cacheId);
   } catch (err) {
     console.error('❌ Exception during analysis cache lookup:', err);
@@ -1051,6 +1066,7 @@ export async function cacheAnalysisResult(
   imageBlob?: Blob,
   options?: {
     client?: SupabaseClient;
+    /** @deprecated Immediate upload Studio triggers are no longer dispatched. */
     triggerStudioEdit?: boolean;
     fingerprintPipeline?: string | null;
     pdqHash?: string | null;
@@ -1274,20 +1290,12 @@ export async function cacheAnalysisResult(
     } else {
       console.log('✅ Analysis result cached successfully with pHash:', resolvedPHash, 'slug:', slug);
 
-      // Trigger background Image Studio edit (Fire and forget) for interactive
-      // flows only. Bulk admin imports can create a second hidden AI pipeline
-      // that collides with analysis traffic and causes quota contention.
-      if (options?.triggerStudioEdit !== false && resolvedPHash && typeof window !== 'undefined') {
-        fetch('/api/ai/trigger-studio-edit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pHash: resolvedPHash })
-        }).catch(err => console.warn('Background trigger fetch error:', err));
-      }
+      // Immediate upload-triggered Studio editing is retired. Delayed jobs are
+      // enqueued by the database after the 48-hour eligibility window instead.
     }
 
     return {
-      slug: persistedRow?.seo_status === 'published' ? persistedRow.slug || slug : '',
+      slug: persistedRow?.slug || slug,
       seo_status: persistedRow?.seo_status || 'pending',
       seo_title: persistedRow?.seo_status === 'published' ? persistedRow.seo_title || '' : '',
       price: totalPrice,
@@ -1483,7 +1491,7 @@ export async function getPopularDesigns(
   try {
     let query = client
       .from('cakegenie_analysis_cache')
-      .select('p_hash, slug, keywords, original_image_url, price, alt_text, availability, image_width, image_height, studio_edited_image_url, image_variants')
+      .select('p_hash, slug, keywords, original_image_url, price, alt_text, availability, image_width, image_height, studio_edited_image_url, image_variants, image_variants_indexed_source')
       .eq('seo_status', 'published')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
@@ -1567,7 +1575,7 @@ export async function getAllRecentDesigns(limit: number = 24, offset: number = 0
   try {
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
-      .select('slug, keywords, original_image_url, price, alt_text, created_at, p_hash, availability, analysis_json, image_width, image_height, studio_edited_image_url, image_variants')
+      .select('slug, keywords, original_image_url, price, alt_text, created_at, p_hash, availability, analysis_json, image_width, image_height, studio_edited_image_url, image_variants, image_variants_indexed_source')
       .eq('seo_status', 'published')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
@@ -1798,7 +1806,7 @@ export async function getDesignsByKeyword(keywordOrSlug: string, limit: number =
     // not fall back to accent tags or substring matching.
     const { data, error } = await supabase
       .from('cakegenie_analysis_cache')
-      .select('slug, keywords, original_image_url, price, alt_text, usage_count, p_hash, availability, analysis_json, image_width, image_height, studio_edited_image_url, image_variants, icing_colors')
+      .select('slug, keywords, original_image_url, price, alt_text, usage_count, p_hash, availability, analysis_json, image_width, image_height, studio_edited_image_url, image_variants, image_variants_indexed_source, icing_colors')
       .eq('seo_status', 'published')
       .not('original_image_url', 'is', null)
       .not('slug', 'is', null)
@@ -1929,7 +1937,7 @@ export async function getRelatedProductsByKeywords(
     const fetchRelatedProductsWithFilters = async () => {
       const distinctiveTerms = getDistinctiveRelatedSearchTerms(keywords);
       const selectFields =
-        'p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability, image_width, image_height, usage_count, studio_edited_image_url, image_variants';
+        'p_hash, original_image_url, price, keywords, analysis_json, slug, alt_text, availability, image_width, image_height, usage_count, studio_edited_image_url, image_variants, image_variants_indexed_source';
 
       const buildBaseQuery = () => {
         let query = client
@@ -2014,7 +2022,7 @@ export async function getRelatedProductsByKeywords(
       if (pHashes.length > 0) {
         const { data: studioRows, error: studioError } = await client
           .from('cakegenie_analysis_cache')
-          .select('p_hash, original_image_url, studio_edited_image_url')
+          .select('p_hash, original_image_url, studio_edited_image_url, image_variants, image_variants_indexed_source')
           .eq('seo_status', 'published')
           .in('p_hash', pHashes);
 
@@ -2031,6 +2039,9 @@ export async function getRelatedProductsByKeywords(
                 item.original_image_url ?? studioRow?.original_image_url ?? null,
               studio_edited_image_url:
                 item.studio_edited_image_url ?? studioRow?.studio_edited_image_url ?? null,
+              image_variants: item.image_variants ?? studioRow?.image_variants ?? null,
+              image_variants_indexed_source:
+                item.image_variants_indexed_source ?? studioRow?.image_variants_indexed_source ?? null,
             });
           });
         }
@@ -2074,7 +2085,7 @@ async function hydrateSearchProductRows(client: SupabaseClient, rows: any[]): Pr
 
   const { data: studioRows, error: studioError } = await client
     .from('cakegenie_analysis_cache')
-    .select('p_hash, original_image_url, studio_edited_image_url')
+    .select('p_hash, original_image_url, studio_edited_image_url, image_variants, image_variants_indexed_source')
     .eq('seo_status', 'published')
     .in('p_hash', pHashes);
   if (studioError || !studioRows) return rows.map(applyImageFallback);
@@ -2086,6 +2097,9 @@ async function hydrateSearchProductRows(client: SupabaseClient, rows: any[]): Pr
       ...item,
       original_image_url: item.original_image_url ?? studioRow?.original_image_url ?? null,
       studio_edited_image_url: item.studio_edited_image_url ?? studioRow?.studio_edited_image_url ?? null,
+      image_variants: item.image_variants ?? studioRow?.image_variants ?? null,
+      image_variants_indexed_source:
+        item.image_variants_indexed_source ?? studioRow?.image_variants_indexed_source ?? null,
     });
   });
 }
@@ -3073,15 +3087,16 @@ export async function uploadPaymentProof(
       .from('payments')
       .getPublicUrl(filePath);
 
+    // Narrow RPC: customers can no longer update cakegenie_orders directly.
     const { data, error: updateError } = await supabase
-      .from('cakegenie_orders')
-      .update({ payment_proof_url: publicUrl, payment_status: 'verifying' })
-      .eq('order_id', orderId)
-      .select().single();
+      .rpc('submit_payment_proof', {
+        p_order_id: orderId,
+        p_payment_proof_url: publicUrl,
+      });
 
     if (updateError) throw updateError;
 
-    return { data, error: null };
+    return { data: data as CakeGenieOrder, error: null };
   } catch (err) {
     return { data: null, error: err as Error };
   }
@@ -3344,22 +3359,26 @@ export async function getBillSharingCreations(userId: string): Promise<SupabaseS
  */
 export async function getSingleOrderPublic(orderId: string): Promise<SupabaseServiceResponse<CakeGenieOrder & { cakegenie_order_items: CakeGenieOrderItem[], order_contributions: OrderContribution[], organizer?: { first_name: string | null, email: string } }>> {
   try {
+    // Whitelisted RPC: the order tables are not publicly readable.
     const { data, error } = await supabase
-      .from('cakegenie_orders')
-      .select(`
-        *,
-        cakegenie_order_items(*),
-        order_contributions(*),
-        organizer:cakegenie_users!organizer_user_id(first_name, email)
-      `)
-      .eq('order_id', orderId)
-      .single();
+      .rpc('get_order_for_contribution', { p_order_id: orderId });
 
     if (error) {
       return { data: null, error };
     }
 
-    return { data, error: null };
+    if (!data) {
+      return { data: null, error: new Error('Order not found') };
+    }
+
+    return {
+      data: data as unknown as CakeGenieOrder & {
+        cakegenie_order_items: CakeGenieOrderItem[];
+        order_contributions: OrderContribution[];
+        organizer?: { first_name: string | null; email: string };
+      },
+      error: null,
+    };
   } catch (err) {
     return { data: null, error: err as Error };
   }

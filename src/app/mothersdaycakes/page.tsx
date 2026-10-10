@@ -111,19 +111,19 @@ const META_IMAGE =
     genieBusinessProfile.ogImageUrl;
 
 export const metadata: Metadata = {
-    title: { absolute: "Mother's Day Cakes 2026 in Cebu | Personalized Cakes for Mom | Genie.ph" },
+    title: { absolute: "Mother's Day Cakes in Cebu | Personalized Cakes for Mom | Genie.ph" },
     description:
-        "Mother's Day 2026 falls on Sunday, May 10, 2026. Find floral, photo, and personalized Mother's Day cakes in Cebu with instant pricing and online ordering at Genie.ph.",
+        "Find floral, photo, and personalized Mother's Day cakes in Cebu with instant pricing and online ordering at Genie.ph.",
     openGraph: {
-        title: "Mother's Day Cakes 2026 in Cebu | Personalized Cakes for Mom",
+        title: "Mother's Day Cakes in Cebu | Personalized Cakes for Mom",
         description:
-            "Order Mother's Day cakes in Cebu for Sunday, May 10, 2026. Browse floral, photo, and custom cakes for mom with instant pricing at Genie.ph.",
+            "Browse floral, photo, and custom cakes for mom in Cebu with instant pricing at Genie.ph.",
         images: [
             {
                 url: META_IMAGE,
                 width: 1200,
                 height: 630,
-                alt: "Genie.ph Mother's Day Cakes 2026",
+                alt: "Genie.ph Mother's Day Cakes",
             },
         ],
         url: 'https://genie.ph/mothersdaycakes',
@@ -134,15 +134,15 @@ export const metadata: Metadata = {
     },
     twitter: {
         card: 'summary_large_image',
-        title: "Mother's Day Cakes 2026 in Cebu | Personalized Cakes for Mom",
+        title: "Mother's Day Cakes in Cebu | Personalized Cakes for Mom",
         description:
-            "Mother's Day 2026 is on Sunday, May 10. Shop floral, photo, and custom cakes for mom at Genie.ph.",
+            "Shop floral, photo, and custom cakes for mom in Cebu at Genie.ph.",
         images: [
             {
                 url: META_IMAGE,
                 width: 1200,
                 height: 630,
-                alt: "Genie.ph Mother's Day Cakes 2026",
+                alt: "Genie.ph Mother's Day Cakes",
             },
         ],
     },
@@ -154,9 +154,9 @@ function MothersDaySchema() {
         '@graph': [
             {
                 '@type': 'WebPage',
-                name: "Mother's Day Cakes 2026 in Cebu",
+                name: "Mother's Day Cakes in Cebu",
                 description:
-                    "Browse Mother's Day cakes in Cebu for Sunday, May 10, 2026, including floral, photo, and personalized cakes for mom.",
+                    "Browse floral, photo, and personalized Mother's Day cakes for mom in Cebu.",
                 url: 'https://genie.ph/mothersdaycakes',
                 isPartOf: {
                     '@type': 'WebSite',
@@ -168,7 +168,7 @@ function MothersDaySchema() {
                 '@type': 'CollectionPage',
                 name: "Mother's Day Cakes",
                 description:
-                    "Shop Mother's Day cakes, floral cakes, and photo cakes for mom in Cebu for Mother's Day on Sunday, May 10, 2026.",
+                    "Shop Mother's Day cakes, floral cakes, and photo cakes for mom in Cebu.",
                 url: 'https://genie.ph/mothersdaycakes',
                 hasPart: [
                     {

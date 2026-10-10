@@ -3,6 +3,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
+import { getXenditSecretKey, resolvePaymentMode } from '../_shared/paymentMode.ts'
 
 declare const Deno: any;
 
@@ -23,15 +24,14 @@ serve(async (req) => {
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
-    const { contributionId, payment_mode } = await req.json();
+    const { contributionId } = await req.json();
     if (!contributionId) {
       throw new Error('contributionId is required in the request body.');
     }
 
-    const mode = payment_mode || 'test';
-    const XENDIT_SECRET_KEY = mode === 'live'
-      ? (Deno.env.get('XENDIT_LIVE_API_KEY') || Deno.env.get('XENDIT_SECRET_KEY'))
-      : (Deno.env.get('XENDIT_TEST_API_KEY') || Deno.env.get('XENDIT_SECRET_KEY'));
+    // Decided by the server, never by the request: see _shared/paymentMode.ts.
+    const mode = resolvePaymentMode();
+    const XENDIT_SECRET_KEY = getXenditSecretKey(mode);
 
     if (!XENDIT_SECRET_KEY) {
         throw new Error(`Xendit API Key for ${mode} mode is not set.`);

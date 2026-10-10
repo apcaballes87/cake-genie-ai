@@ -8,6 +8,7 @@ import {
   calculateLocalLineRatio,
   calculateNormalizedLineLength,
   calculateTopTierReferenceArea,
+  cakeThicknessForAspectRatio,
   classifyLocalBboxAreaSize,
   classifyLocalLineRatioSize,
   inferLocalCakeThickness,
@@ -73,7 +74,7 @@ describe('local bbox-area sizing', () => {
     })).toBe(4500);
   });
 
-  it('maps nearest aspect references and breaks exact ties toward the shorter height', () => {
+  it('maps aspect-ratio thresholds to the requested cake-height bands', () => {
     const lineForRatio = (height: number) => ({
       diameter: { start: { x: 0, y: 0 }, end: { x: 6, y: 0 } },
       height: { start: { x: 0, y: 0 }, end: { x: 0, y: height } },
@@ -81,12 +82,19 @@ describe('local bbox-area sizing', () => {
 
     expect(inferLocalCakeThickness('1 Tier', lineForRatio(3))).toBe('3 in');
     expect(inferLocalCakeThickness('1 Tier', lineForRatio(4))).toBe('4 in');
-    expect(inferLocalCakeThickness('1 Tier', lineForRatio(5))).toBe('5 in');
+    expect(inferLocalCakeThickness('1 Tier', lineForRatio(5))).toBe('6 in');
     expect(inferLocalCakeThickness('1 Tier', lineForRatio(6))).toBe('6 in');
     expect(inferLocalCakeThickness('1 Tier', {
       diameter: { start: { x: 0, y: 0 }, end: { x: 700, y: 0 } },
+      height: { start: { x: 0, y: 0 }, end: { x: 0, y: 500 } },
+    })).toBe('5 in');
+    expect(inferLocalCakeThickness('1 Tier', {
+      diameter: { start: { x: 0, y: 0 }, end: { x: 700, y: 0 } },
       height: { start: { x: 0, y: 0 }, end: { x: 0, y: 400 } },
-    })).toBe('3 in');
+    })).toBe('4 in');
+    expect(cakeThicknessForAspectRatio(2)).toBe('3 in');
+    expect(cakeThicknessForAspectRatio(1.5)).toBe('4 in');
+    expect(cakeThicknessForAspectRatio(1.2)).toBe('6 in');
   });
 
   it('respects cake-type thickness candidates while inferring locally', () => {
@@ -119,6 +127,7 @@ describe('local bbox-area sizing', () => {
     expect(classifyLocalBboxAreaSize('edible_3d_ordinary', 0.79, 'rainbow topper')).toBe('medium');
     expect(classifyLocalBboxAreaSize('edible_3d_ordinary', 0.80, 'rainbow topper')).toBe('large');
     expect(classifyLocalBboxAreaSize('candle', 0.15)).toBe('medium');
+    expect(classifyLocalBboxAreaSize('candle_stick', 0.15)).toBe('medium');
     expect(classifyLocalBboxAreaSize('gumpaste_panel', 0.40)).toBe('medium');
     expect(classifyLocalBboxAreaSize('edible_2d_complex', 0.50)).toBe('large');
     expect(classifyLocalBboxAreaSize('edible_logo_2d', 0.25)).toBe('medium');
@@ -254,6 +263,7 @@ describe('local line-ratio sizing', () => {
     expect(classifyLocalLineRatioSize('edible_crown', 0.50)).toBe('medium');
     expect(classifyLocalLineRatioSize('edible_flowers', 0.80)).toBe('large');
     expect(classifyLocalLineRatioSize('candle', 0.60)).toBe('large');
+    expect(classifyLocalLineRatioSize('candle_stick', 0.60)).toBe('large');
     expect(classifyLocalLineRatioSize('gumpaste_panel', 0.40)).toBe('medium');
     expect(classifyLocalLineRatioSize('edible_2d_complex', 0.50)).toBe('large');
     expect(classifyLocalLineRatioSize('edible_logo_2d', 0.25)).toBe('medium');

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 
-export type AppState = 'landing' | 'searching' | 'customizing' | 'cart' | 'auth' | 'addresses' | 'orders' | 'checkout' | 'order_confirmation' | 'shared_design' | 'about' | 'how_to_order' | 'contact' | 'reviews' | 'not_found' | 'set_password' | 'contribute' | 'shopify_customizing' | 'pricing_sandbox' | 'similarity_debugger';
+export type AppState = 'landing' | 'searching' | 'customizing' | 'cart' | 'auth' | 'addresses' | 'orders' | 'checkout' | 'order_confirmation' | 'shared_design' | 'about' | 'how_to_order' | 'contact' | 'reviews' | 'not_found' | 'set_password' | 'contribute' | 'shopify_customizing' | 'pricing_sandbox';
 
 export const useAppNavigation = () => {
     // State
@@ -48,7 +48,7 @@ export const useAppNavigation = () => {
         }
 
         const handleRouting = () => {
-            let pathWithQuery = window.location.hash.substring(1) || ''; // e.g., /order-confirmation?order_id=... or /auth/set-password#access_token=...
+            const pathWithQuery = window.location.hash.substring(1) || ''; // e.g., /order-confirmation?order_id=... or /auth/set-password#access_token=...
 
             // Supabase appends auth tokens with # (e.g., #access_token=...), so we need to handle both ? and #
             // Split by # first to remove Supabase auth tokens, then split by ? for regular query params
@@ -72,7 +72,6 @@ export const useAppNavigation = () => {
             const oldDesignMatch = path.match(/^\/design\/([a-zA-Z0-9-]+)\/?$/);
             const discountMatch = path.match(/^\/([A-Za-z0-9]+)\/?$/i);
             const contributeMatch = path.match(/^\/contribute\/([a-zA-Z0-9-]+)\/?$/);
-            const similarityDebuggerMatch = path.match(/^\/similarity-debugger\/?$/);
 
             // Static route matching
             const aboutMatch = path.match(/^\/about\/?$/);
@@ -134,8 +133,6 @@ export const useAppNavigation = () => {
                 if (appStateRef.current !== 'landing') {
                     setAppState('landing');
                 }
-            } else if (similarityDebuggerMatch) {
-                setAppState('similarity_debugger');
             } else {
                 // If the hash is cleared or doesn't match a special route, reset to landing.
                 if (appStateRef.current === 'shared_design' ||

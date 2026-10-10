@@ -1,5 +1,138 @@
 # Tasks
 
+## Create reusable Vertex/Gemini account-switch skill (2026-09-28)
+
+### Plan
+
+- [x] Initialize a discoverable skill with reusable Google Cloud, WIF, local ADC, Vercel, and Gemini-path guidance.
+- [x] Add a copy-paste developer prompt and safe account-switch checklist.
+- [x] Validate the skill structure and record the result.
+
+### Review
+
+- Created `/Users/apcaballes/.codex/skills/vertex-gemini-account-switch/SKILL.md` with separate production WIF, local ADC, batch GCS, and Gemini API-key lanes.
+- Added `references/developer-prompt.md` with a reusable account-switch prompt for developers.
+- Validation passed with the skill creator validator using `uv run --with pyyaml`.
+
+## Switch Vertex AI to project-4d0a4d0b-6717-4a7a-9c1 (2026-09-28)
+
+### Plan
+
+- [x] Identify the Google account that owns or can administer the target project.
+- [x] Verify target-project APIs, service account, WIF pool/provider, and least-privilege IAM.
+- [x] Update only the production Vertex environment variables and redeploy Vercel.
+- [x] Verify the live deployment and runtime error state, then record the required manual follow-up steps.
+
+### Review
+
+- Switched gcloud and local ADC to `pixelcakeph@gmail.com` with active project `project-4d0a4d0b-6717-4a7a-9c1` (project number `67341248721`).
+- Enabled Vertex AI, IAM, IAM Credentials, STS, and Cloud Resource Manager APIs.
+- Created `vercel-vertex-ai` for production WIF and `local-dev-vertex` for local ADC impersonation; granted scoped Vertex and impersonation permissions.
+- Created the production-only Vercel OIDC binding, generated `vercel-gcp-credentials.pixelcake.json`, and created `gs://cakegenie-ai-batch-project-4d0a4d0b-6717-4a7a-9c1/cakegenie-image-studio`.
+- Updated Vercel Production/Preview/Development variables and redeployed production deployment `dpl_5hHB9QatAN6Kg2pQ9v3qHoLumsea`, which reached `READY` and serves the `genie.ph` aliases.
+- MCP runtime-error inspection found no `/api/ai/validate` errors in the selected post-deploy window. A real customer image was not uploaded during verification; the final user smoke test remains to be performed in the browser.
+
+## Flatten topper option cards in the bottom sheet (2026-09-21)
+
+### Plan
+
+- [x] Remove the visual enclosing card from each topper/support option.
+- [x] Preserve title, description, toggle, material controls, replacement upload, and Apply Design behavior.
+- [x] Add focused coverage and verify the bottom-sheet render.
+
+### Review
+
+- Flattened `TopperCard` options by removing the white background, rounded border, shadow, clipping, and internal divider while preserving all option controls and interactions.
+- Verification passed: 24 focused Vitest tests across `TopperCard`, `CakeToppersOptions`, and `CustomizingToppersPanel`; scoped ESLint reported 0 errors; `git diff --check` passed; the populated customizer route loaded without a runtime overlay or console errors. The current fixture did not expose a topper launcher, so no live sheet state was mutated.
+
+## Move Cake Type below Cake Messages and hide Edit Design Details (2026-09-21)
+
+### Plan
+
+- [x] Render the Cake Type container below the Cake Messages container.
+- [x] Hide the Edit Design Details group from the customizing summary.
+- [x] Update focused tests and verify the scoped change.
+
+### Review
+
+- Moved the existing Cake Type card below Cake Messages and removed the Edit Design Details accordion and its decoration summary from the customizing summary.
+- Verification passed: 17 focused Vitest tests, scoped ESLint with 0 errors, `git diff --check`, and a populated local `/customizing/anime-cake-white-2-tier-cake-929e` browser check with no console errors or runtime overlay. The visible Cake Message card precedes Cake Type, and both Edit Design Details and Cake Toppers are absent.
+
+## Instrument storefront visit and funnel beacons (2026-09-21)
+
+### Plan
+
+- [x] Add a server-only `/api/track` route that validates the event allowlist, derives authenticated `user_id` and country, and inserts only supported `genie_visit_events` columns.
+- [x] Add a browser-safe tracker with stable anonymous identity, cart-compatible guest session identity, 30-minute session bookkeeping where compatible, UTM persistence/cleanup, device/path/referrer enrichment, and fire-and-forget delivery.
+- [x] Wire visit/page-view, add-to-cart, checkout-start, purchase, and email-captured events into the existing storefront seams without blocking checkout or changing order attribution.
+- [x] Add focused route/tracker regressions and run the required scoped checks, build, diff validation, and live read-only event-table verification.
+
+### Review
+
+- Added [track.ts](/Users/apcaballes/genieph-nextjs/src/lib/analytics/track.ts) and [the `/api/track` route](/Users/apcaballes/genieph-nextjs/src/app/api/track/route.ts). The route derives `user_id` from the cookie-backed auth client, enriches country from deployment headers, rejects unsupported fields/events, and writes only the live 15-column table contract. No migration or production data mutation was made.
+- Wired visit/page-view behavior through `AnalyticsBoundary`, successful cart persistence through `CartContext`, checkout start and order-created funnel events through `CartClient`, and email capture through the newsletter/signup surfaces. Existing buyer attribution and order attribution logic remain unchanged.
+- Verification passed: focused Vitest 6/6, scoped ESLint with 0 errors, `npm run build`, and `git -c core.fsmonitor=false diff --check`. Live read-only verification currently reports 0 event rows, 0 all-null identity rows, 0 duplicate visit sessions, and 0 UTM rows because this code is not deployed yet.
+
+## Add first-use bounding-box interaction cue (2026-09-21)
+
+### Plan
+
+- [x] Add a one-cycle white spotlight sequence for up to three editable hero boxes.
+- [x] Add a clear tap/click helper and stop the cue on pointer or keyboard interaction.
+- [x] Respect reduced-motion preferences and preserve the existing active-selection behavior.
+- [x] Add focused overlay tests for the cue, cancellation, and reduced-motion fallback.
+- [x] Run focused tests, scoped lint/type checks, and a populated customizer browser check.
+
+### Review
+
+- `BoundingBoxOverlay` now shows `Tap or click a highlighted detail to edit it` only when an actual editable decoration/message target exists, spotlights up to three unique targets once at 650ms per target, and stops on focus, pointer selection, or outside interaction.
+- The spotlight uses a white border and halo with a dark keyline for white cake surfaces; the selected target retains its existing category-colored active glow and label.
+- Reduced-motion users receive the static helper and normal outlines without the sequence or CSS transition. Existing 44px hit targets, keyboard activation, overlap deduplication, and background dismissal remain intact.
+- Verification passed: 17 overlay tests, 16 hero-panel tests, scoped ESLint with 0 errors (4 pre-existing warnings in `CustomizingHeroPanel.tsx`), `npm run build`, `git diff --check`, and browser checks on `/` and a populated `/customizing/[slug]` route with no error overlay or console errors. The inspected cached slug had no interactive bbox geometry, so the helper correctly remained hidden there.
+
+## Audit cache-hit attribution to cake design rows (2026-09-20)
+
+### Plan
+
+- [x] Trace the upload hit path and identify the cache-row identifier carried forward.
+- [x] Verify the live cache lookup RPC, cache schema, hit counters, and attribution fields.
+- [x] Compare recent cart/order design references against `cakegenie_analysis_cache`.
+- [x] Record the evidence-backed conclusion and any gap without changing production data.
+
+### Review
+
+- The main customizer hit path returns the matched cache row, carries its `id` and canonical `p_hash` into client state, and writes `designPHash` into the cart/order commerce snapshot.
+- This is an indirect pHash attribution, not a foreign-key relationship: cart and order-item tables have no cache-id or pHash column.
+- The live PDQ lookup RPC is read-only and the upload hit code does not increment `cakegenie_analysis_cache.usage_count` or create a hit event.
+- In the live 30-day sample, uploaded-image references resolved by pHash for 45/54 cart rows and 32/36 order-item rows; the remaining references were not resolvable to a current cache row by either pHash or slug.
+- Verification passed: live Supabase schema/RPC/function queries plus 18 focused Vitest tests. No production data was changed.
+
+## Count PDQ cache hits (2026-09-20)
+
+### Plan
+
+- [x] Add an append-only, RLS-protected PDQ hit ledger with request-level deduplication.
+- [x] Add a guarded Supabase RPC that verifies the matched cache row and records the actual PDQ distance.
+- [x] Record hits from the shared lookup path without changing cache analysis or `usage_count` behavior.
+- [x] Apply and verify the live migration, run focused tests, and document the counting query.
+
+### Review
+
+- Added `cakegenie_pdq_cache_hit_events`, keyed by `(request_id, cache_id)`, with RLS enabled and direct browser table access revoked.
+- Added `record_pdq_cache_hit`, which revalidates the matched cache row, PDQ pipeline/quality, placeholder status, and computed Hamming distance before recording.
+- Main customizer uploads, chat uploads, admin search, and URL analysis now record accepted PDQ hits. Existing cache rows and `usage_count` are unchanged.
+- Live verification passed: migration applied, ledger has 10 columns with RLS enabled, the RPC is `SECURITY DEFINER`, anon/authenticated have execute access, a real cache-row probe returned `true`, and a duplicate request produced one ledger row. The probe row was removed afterward.
+- Count hits with:
+
+  ```sql
+  select cache_id, matched_p_hash, source, count(*) as pdq_hits,
+         min(created_at) as first_hit_at, max(created_at) as last_hit_at
+  from public.cakegenie_pdq_cache_hit_events
+  group by cache_id, matched_p_hash, source
+  order by pdq_hits desc, last_hit_at desc;
+  ```
+
+
 ## Enforce blocked delivery dates in cart and checkout (2026-09-02)
 
 ### Plan
@@ -5411,3 +5544,459 @@ AI chat submit
 ## Review
 
 - Plan prepared from the verified current seams in `CustomizingClient`, `useDesignUpdate`, `/api/ai/chat-edit`, and `/api/ai/edit-image`. Product code has not been changed; implementation and verification remain pending.
+
+# Current task: add Apply Design to the topper bottom sheet (2026-09-20)
+
+## Plan
+
+- [x] Add optional bottom-sheet action forwarding through `CustomizingEditorSheet`.
+- [x] Render a touch-friendly Apply Design button for topper sheets using the existing pending-change guard.
+- [x] Add focused forwarding coverage and run tests/build/diff checks.
+
+## Review
+
+- Added the existing Apply Design action to the bottom of the main/support topper editor sheet. It stays disabled until topper/support changes exist or while an update is running.
+- Verification: focused CustomizingEditorSheet and CustomizingStepSummarySections tests passed (26 tests), `npm run build` passed, and `git diff --check` passed.
+
+# Current task: route duplicate-position cake-message bboxes by message ID (2026-09-21)
+
+## Plan
+
+- [x] Carry each message's stable UI ID through the bbox target and activation callback.
+- [x] Stop using message position as the active/lookup key when multiple messages share a position.
+- [x] Add duplicate-position regression coverage and run focused checks.
+
+## Review
+
+- Message bbox targets now carry the UI message ID; initial analyses without IDs use their original array index to preserve duplicate-position correspondence.
+- Verification: 44 focused overlay, hero, message-focus, and editor-sheet tests passed; `npm run build` and `git diff --check` passed.
+
+# Current task: spotlight every editable bbox in the customizer (2026-09-21)
+
+## Plan
+
+- [x] Remove the three-target spotlight cap while keeping the one-by-one sequence.
+- [x] Include every unique editable topper, support element, and cake message.
+- [x] Preserve message prioritization, dismissal, reduced-motion behavior, and touch targets.
+- [x] Add regression coverage for reaching all targets and run focused checks.
+
+## Review
+
+- The first-use cue now visits every unique editable bbox instead of stopping after three targets; cake messages still lead the sequence.
+- Verification: 35 focused overlay and hero tests passed, scoped ESLint passed, and `git diff --check` passed.
+
+# Current task: split clustered and individual piped-flower geometry (2026-09-22)
+
+## Plan
+
+- [x] Add the `integrated_bbox_v2` geometry scope contract without changing historical v1 cache rows.
+- [x] Keep piped clusters as one coverage-priced row; represent separate piped blooms as individually boxed `icing_decorations`.
+- [x] Enforce exact unit-box cardinality, preserve the bounded repair path, and add regression coverage for sizing and pricing.
+- [ ] Activate the already-staged v3.93 prompt after the compatible application code is deployed.
+
+## Review
+
+- Released the scoped `integrated_bbox_v2` contract. `unit` rows carry exact `min(quantity, 5)` local boxes, `piped_cluster` rows are limited to the two piped-flower types with quantity 1 and coverage, and non-countable treatments remain explicit.
+- The v2 validator rejects arrangement boxes for discrete rows, invalid scope/type pairings, cluster quantities other than 1, missing cluster coverage, scalar/non-nested v2 geometry, and mixed unit-size bands. The existing one-retry generation path returns failure before pricing or analysis-cache persistence when a replacement remains invalid.
+- Piped-cluster price lookup now prioritizes `coverage`, so review BBox area cannot replace the ₱0/₱100/₱200 coverage band. Independently placed piped blooms use `icing_decorations`, whose zero-price rules remain quantity-independent.
+- The offline fallback is v3.93/v2. Supabase prompt_id 101, version 3.93, MD5 `601c8d0c91dcea7f97f039c04f815ad9`, is staged and its old generic `unless` sentence was verified absent. Production remains safely on prompt_id 100, v3.92, until the compatible application code is deployed. Historical analysis-cache rows were not changed.
+- Verification: 200 focused Vitest tests passed; scoped ESLint, `git diff --check`, and `npm run build` passed. A standalone repository-wide `tsc --noEmit` still reports existing unrelated test/type errors; none were emitted from the changed production files.
+
+# Current task: add `candle_stick` classification and ₱10 pricing (2026-09-22)
+
+## Plan
+
+- [x] Add `candle_stick` to application schemas, labels, sizing, post-processing, and legacy pricing.
+- [x] Update the fallback prompt and add guarded v3.94 stage/activation and pricing migrations.
+- [x] Add focused schema, prompt, post-processing, pricing, sizing, and route coverage.
+- [x] Verify focused tests, lint/type checks, build, live prompt/pricing state, and cache invariance.
+
+## Review
+
+- Application implementation is complete. The live pricing rule is applied and verified; the guarded v3.94 prompt migration refused to run because live Supabase had externally transitioned to active v3.93 (`444e8ed1…`) instead of the approved v3.92/v3.93 checksum pair.
+- Verification: 228 focused Vitest tests passed across the final suites, `npm run build` passed, and `git -c core.fsmonitor=false diff --check` passed. Repository-wide TypeScript and scoped ESLint remain blocked by pre-existing unrelated errors; no new errors were reported in the changed production seams.
+
+# Current task: batch rerun analysis JSON with Studio-image priority (2026-09-22)
+
+## Plan
+
+- [x] Verify live source-image coverage, active prompt/schema, and existing batch-run state.
+- [x] Add a cache-rerun batch path using `gemini-3.1-flash-lite`, preferring `studio_edited_image_url` and falling back to `original_image_url`.
+- [ ] Persist only `analysis_json`; preserve price, SEO fields, tags, availability, and image metadata without firing existing cache triggers.
+- [x] Add focused selection/input/import regressions and run a small paid compatibility probe before the full rerun.
+- [ ] Submit the full rerun only after the probe validates source priority, bbox post-processing, and cache-column invariance.
+
+## Review
+
+- Live scope: 15,142 rows; 10,396 have Studio-edited images and 4,746 fall back to original images. Active prompt is v3.93 with `integrated_bbox_v2`.
+- The 3-row probe used `gemini-3.1-flash-lite`; Vertex completed it, 2 rows imported, and 1 row stayed untouched because the generated repeated-topper boxes failed the exact-cardinality validator.
+- The normal Supabase update changed only `analysis_json` in the client payload, but existing database triggers also recompute derived fields and can enqueue/reset SEO or Studio work. A narrowly scoped trigger-bypass helper was rejected by the Supabase safety gate, so the full run is paused pending explicit approval for that database-boundary change or another approved write path.
+- The user approved the narrowly scoped helper. It is now installed as a service-role-only RPC that updates only `analysis_json` with triggers suppressed for that statement; a no-op test preserved the failed probe row's non-analysis hash and SEO fields.
+- The 3-row probe imported 2 rows and left 1 validator failure untouched. The remaining run was submitted as batch 1 of 16 (1,000 rows); the provider is progressing asynchronously, currently reporting 834 successful, 27 failed, and 139 incomplete. The resumable importer is active; later batches have not been submitted yet.
+- Billing evidence now distinguishes the cost source: the user-provided current-month report shows approximately $173.45 for `Gemini 3.5 Flash Lite Text Input Caching Storage` under Vertex AI, not GCS. The cache-rerun batch path uses inline prompt text with `gemini-3.1-flash-lite` and contains no context-cache creation or `cachedContent` request, so this batch path should not create that SKU. The existing live analysis path still creates a 7-day `gemini-3.5-flash-lite` prompt cache and requires a separate cost-control decision.
+- Batch 1 reached `JOB_STATE_SUCCEEDED` with 925 provider successes and 75 provider failures. The first import attempt applied 0 rows because the production-only RPC's `session_replication_role` bypass was rejected by Supabase; its output was recovered from GCS Soft Delete without another AI submission. After installing and verifying the transaction-local trigger guard, the recovered import applied 362 rows and left 638 untouched because provider/strict integrated-bbox validation failed. Batch 2 is not submitted; the validation failure rate must be reviewed before continuing.
+- Verification: 21 focused Vitest tests passed.
+
+# Current task: prevent expected cake-analysis failures from returning HTTP 500 (2026-09-23)
+
+## Plan
+
+- [x] Reconcile missing or unsupported cake thickness through the shared type-specific helper, including the bounded missing-height-line fallback.
+- [x] Align integrated v2 geometry instructions, response schema, and validation for continuous icing treatments while keeping discrete rows unit-scoped.
+- [x] Validate `/api/ai/analyze` request bodies and normalize known request, model, timeout, provider, and enum-lookup failures to intentional statuses.
+- [x] Add regression coverage for request validation, retry/fallback behavior, geometry scope, thickness reconciliation, and error status mapping.
+- [x] Verify the effective v2 prompt contract against the active v3.93 prompt and local fallback; keep deployment and prompt activation gated.
+
+## Acceptance Criteria
+
+- Malformed JSON, null/non-object bodies, missing or wrongly typed fields, and invalid base64 return 400 before AI is called; unsupported MIME types return 415; body-size limit failures return 413.
+- A known cake type with unsupported thickness resolves to its nearest supported value; absent/unusable thickness uses its lowest supported value. Unknown cake types are not guessed.
+- One successful model repair returns 200. An invalid replacement returns 502 in `{ error }` form and does not produce priced or persisted analysis.
+- Timeouts return 504, quota exhaustion 429, authorization failures 401/403, provider/model availability or invalid-output failures 502/503, and unexpected application faults 500.
+- Continuous icing-border treatment passes only with icing material and quantity 1; discrete decorations still require unit geometry. Thrown type-enum lookups use canonical fallbacks.
+
+## Review
+
+- Added one type-specific thickness reconciliation rule across generated-analysis paths. Supported types map unsupported valid thicknesses to the nearest allowed value; missing or unusable thicknesses use that type's lowest supported value. Unknown cake types remain contract failures. If integrated v2 still has no usable height line after its single replacement attempt, the result uses that fallback without pretending a measurement was observed.
+- Updated the integrated v2 prompt override and fallback text, schema descriptions, and validator for one continuous `icing_decorations` icing treatment (`quantity: 1`). Discrete piped flowers and other decorations retain exact per-unit geometry. The fallback height line remains optional in the generation schema but required by accepted-response validation until the bounded repair path enables the fallback.
+- `/api/ai/analyze` now rejects malformed JSON, non-object/null bodies, missing or incorrectly typed fields, invalid base64, signature/MIME mismatches, unsupported MIME types, and oversized streams before invoking AI. Recognized outcomes map to 400, 413, 415, 401/403, 429, 502/503, or 504. Unknown application errors remain 500; thrown enum lookup errors use the existing canonical enum fallback.
+- A failed replacement response returns 502 in the existing `{ error }` shape. Validation fails before an accepted result is returned or rejection persistence is reached, so the invalid analysis is not priced or stored as an analysis result.
+- Read-only prompt check: Supabase still has active `prompt_id=101`, version `3.93`, MD5 `444e8ed102fb527ea747742dd3f94e52`. Its base prompt does not contain the new clauses verbatim; the authoritative `integrated_bbox_v2` system override is appended at request time and is covered by tests. The local fallback is v3.94 and carries the matching v2 geometry and height fallback rules. No live prompt row was changed or activated.
+- Verification: 167 focused Vitest tests passed across 6 files; scoped ESLint, `git diff --check`, and `npm run build` passed. Build emitted existing workspace-root, stale browser-data, and middleware deprecation warnings.
+- Follow-up used a clean snapshot of current `origin/main` and carried over only this reliability fix. Its focused suites pass (143 tests); Next compiled and TypeScript passed. Full local build stopped on unavailable Google Fonts network access. Vercel MCP's advertised direct deploy call returned `Tool deploy_to_vercel not found`. After the user explicitly authorized a direct main release, the scoped 13-file code/test change was pushed as `f3bc5ce6b075096a97505d5fc05e828019a560e7`. Vercel Production deployment `dpl_9E8oq5tszVaZ1otCQT5Dehzy3LRh` reached `READY`, the GitHub Vercel check succeeded, and aliases were assigned to `genie.ph`, `www.genie.ph`, and `genieph.vercel.app`. The MCP's read-only HTTP fetch followed a Vercel SSO redirect, so live route-level status behavior remains verified by the tests rather than a production POST smoke.
+
+# Current task: direct 100-row analysis rerun (2026-09-23)
+
+## Plan
+
+- [x] Add a direct, non-batch runner capped at 100 rows with Studio-image priority.
+- [x] Disable prompt/context caching and avoid all GCS batch staging.
+- [x] Route writes through the verified analysis_json-only guarded RPC.
+- [x] Validate the runner and execute the first guarded diagnostic slice with concurrency 1.
+- [ ] Continue in paced slices without reprocessing rows already updated by the diagnostic slice.
+- [ ] Record provider, image-fetch, validation, and persistence failures before deciding whether to continue.
+
+## Review
+
+- The default offset is 1002 so the first direct run does not pay to repeat the 1,000 rows already attempted by Batch 1. The previously untouched 638 rows remain available for a later targeted retry after this reliability check.
+- Direct connectivity was verified after removing the local key-file override from the ADC impersonation path. A full structured request completed with `MINIMAL` thinking; `LOW` exceeded the existing 120-second request timeout. The first paid direct slice was stopped after 10 rows (6 updated, 4 failed) when Vertex returned recurring 429 quota errors and integrated-bbox/contract failures. The runner now supports 20-second pacing and 60/120-second quota backoff before another slice.
+- The paced continuation covered the remaining 90 rows until quota backoff remained exhausted at row 53. Read-only verification of the full first logical 100-row range (offset 1002) shows 47 rows with fresh `integrated_bbox_v2` analysis and 53 rows untouched. The run is paused before further spend; no new batch/GCS artifacts or prompt cache were created.
+
+# Current task: log and classify direct-rerun failures (2026-09-23)
+
+## Plan
+
+- [x] Add append-only local JSONL diagnostics to the direct runner without adding database, GCS, batch, or prompt-cache writes.
+- [x] Preserve row identity, selected image source, run configuration, timing, nested causes, raw provider payloads, and raw model responses for failed rows.
+- [x] Classify provider 500/429 responses separately from analysis validation, image, database, and unknown failures.
+- [x] Verify the observed Vertex `500 INTERNAL` payload with an offline regression test and CLI smoke test.
+- [ ] Use the resulting log to determine targeted fixes and retry only the appropriate failed rows.
+
+## Review
+
+- The runner now writes `logs/direct-analysis-rerun-<timestamp>.jsonl` by default, or a caller-selected `--log-file` path. Each run and row is recorded; failed rows include `stage`, `retryable`, `provider_error`, nested `cause`, and `raw_response` where available.
+- The observed provider 500 is recorded as `stage=provider`, `provider_error.code=500`, `provider_error.status=INTERNAL`, and `provider_error.message=Internal error encountered.`. This is a generic Vertex provider failure, not an integrated-bbox validation failure; the provider payload exposes no more specific cause.
+- Verification: 7 focused Vitest tests passed, scoped ESLint passed, `git diff --check` passed, and the read-only `--help` CLI smoke test passed. No new AI, GCS, prompt-cache, or Supabase calls were made for this logging change.
+- Diagnostic run completed at offset 1065 with 50 rows: 47 updated, 3 untouched failures; 27 successful Studio-image rows, 20 successful original-image rows, and all 3 failures came from Studio-image rows. The JSONL log recorded 0 provider 500s and 0 provider 429s.
+- The three failures were all `analysis_validation`: two unit rows grouped boxes across size bands, and one unit row supplied a `bbox_confidence` array with the wrong cardinality. Each retained its raw model response in the local log. No Vertex Batch, GCS staging, prompt cache, or SEO/Studio write was used.
+- The initial LOW-thinking invocation at offset 1115 updated one Studio-image row, then two original-image requests timed out at 120 seconds (`AbortError`). The following continuation retried those rows and got provider 500s; its next two rows updated successfully. The original request used `gemini-3.1-flash-lite` with LOW. Deployed production `main` uses `gemini-3.5-flash-lite` with LOW, so the timeouts do not establish that LOW is a production problem. Available Vercel logs showed bbox contract-validation 500s, not LOW-related timeouts.
+- Continued the approved 50-row range serially with 20-second pacing. Across offsets 1115-1131, 17 unique rows were started: 6 were persisted with `integrated_bbox_v2`, 10 ended in provider/timeout failures, and one was interrupted after a 429 during bbox-repair validation. The final 45-row invocation log at `logs/direct-analysis-rerun-2026-09-23T03-23-59-477Z.jsonl` records 4 completed, 7 failed, and one interrupted row; the remaining 33 rows in the requested slice were never started. Supabase read-back confirms the 6 persisted rows and 11 rows without the new geometry version. No batch job, GCS staging/output, or prompt cache was used. Stop before resuming: repeated quota responses plus the runner's outer 429 retry can replay the full analysis after a quota during repair, risking duplicate model cost.
+
+# Current task: continue direct analysis rerun (2026-09-23)
+
+## Plan
+
+- [x] Verify the next stable 50-row range starts after the prior slice and does not include the six persisted rows.
+- [x] Remove whole-analysis retry on quota and stop the slice after its first 429.
+- [x] Test quota classification and verify the runner's CLI without making model calls.
+- [x] Run the next slice directly with Gemini 3.1 Flash Lite, LOW thinking, concurrency 1, and 20-second pacing until a quota response.
+- [x] Verify persisted `integrated_bbox_v2` rows and log provider, timeout, validation, and quota errors.
+
+## Review
+
+- The next range is absolute offset 1165, limit 50. A read-only Supabase check found 49 rows without a geometry version and one at `integrated_bbox_v1`; none are already `integrated_bbox_v2`.
+- The direct runner no longer replays a full analysis after a quota response. It records the affected row, stops dequeuing work at concurrency 1, records how many rows were not started, and exits nonzero.
+- Focused diagnostics test passes (4 tests); scoped ESLint and `node --import tsx scripts/rerun-analysis-cache-direct.ts --help` pass. `npx tsx ... --help` hit a sandbox pipe permission error; using Node's tsx loader avoided that limitation.
+- Processing started at 2026-09-23T04:12:48Z and safely stopped at the first provider quota response. Of 17 rows started, 9 persisted as `integrated_bbox_v2`, 6 timed out at the 120-second request limit, 1 remained untouched after bbox validation still failed on the replacement response, and 1 received Vertex 429. The other 33 rows were never started. Supabase read-back confirms exactly 9 new v2 rows; all 8 failures remain without v2.
+- The JSONL log is `logs/direct-analysis-rerun-2026-09-23T04-12-48-336Z.jsonl`. No Vertex Batch, GCS staging/output, or prompt cache was used. The quota guard stopped the queue and the exit status was 2; no full-analysis quota retry occurred. At least two malformed first responses were accepted after one bbox repair, while one repair remained invalid.
+
+# Current task: tolerant integrated bbox analysis (2026-09-23)
+
+## Plan
+
+- [x] Version-gate tolerant bbox analysis to prompt v3.95; keep v3.93–v3.94 strict.
+- [x] Add one bounded bbox-only retry, then salvage valid geometry and preserve rows/quantities with per-row review metadata.
+- [x] Normalize unambiguous scope mismatches, preserve confidence alignment, retain zero-box rows, and split only fully boxed mixed-size groups.
+- [x] Keep Studio-first direct-runner support and the guarded `analysis_json`-only persistence path; do not run cache rows.
+- [x] Stage v3.95 inactive from the verified active v3.93 source; do not activate it.
+- [x] Run focused tests, scoped ESLint, diff-check, and type-check review; verify live prompt state.
+- [ ] Before any cache rerun, score a manually labeled holdout for per-type count recall, bbox IoU, size-band accuracy, and scope mismatch rate.
+
+## Review
+
+- The v3.95 runtime is version-gated: v3.93 and v3.94 retain their strict behavior, while v3.95/fallback enables targeted bbox-only repair and row-local salvage. A single targeted bbox retry is allowed per analysis; retry/provider failure falls back to the original response for validation and salvage.
+- Tolerant post-processing preserves each original item and quantity, confidence-to-box alignment, and review counts. It normalizes invalid printout/treatment pairing to unit, retains zero-box rows with cached size when available, and splits only fully boxed mixed-size rows while preserving boxes/confidences and parent identity. Cake-message rows also survive an unlocalizable box with review metadata.
+- Supabase now has inactive v3.95 row MD5 `32a8aaa043d76033ec4c5df523d975b8`; the sole active row remains v3.93 MD5 `444e8ed102fb527ea747742dd3f94e52`. The staged v3.95 text contains no stale representative-single-box clause or v1 flat-item example. Prompt activation and deployment remain separate and were not performed.
+- Verification: 177 focused Vitest tests pass; scoped ESLint and `git diff --check` pass. Full `npx tsc --noEmit` still reports existing test/mock typing issues across the dirty workspace; no errors were reported in the modified runtime implementation files. No model calls, cache-row updates, GCS staging, or Vertex Batch work were performed.
+- Holdout metrics remain a required gate before any cache rerun. No labeled holdout set was supplied, and no paid model call was made for this implementation/staging pass.
+
+# Active v3.95 50-row direct test (2026-09-23)
+
+## Plan
+
+- [x] Verify v3.95 is the sole live active prompt and select 50 rows absent from prior run logs.
+- [x] Run with Gemini 3.1 Flash Lite, LOW, concurrency 1, Studio-first, no prompt cache, and no Vertex Batch/GCS.
+- [x] Stop on provider quota response and verify persisted outcomes and analysis-only write scope.
+
+## Review
+
+- Live prompt 102 / v3.95 was active. Selected 50 fresh rows: 37 with Studio-edited images and 13 originals. The run used LOW, concurrency 1, 20-second pacing, no prompt cache, and `gcs_batch=false`.
+- Stopped on the first provider 429: 2 rows persisted, 1 provider failure, 47 not started. The first saved row had no bbox review flags. The second retained an over-counted `red_ribbon_bows` support item at quantity 1 with its one valid box and `bbox_review` (`target=1`, `returned=5`, `valid=1`).
+- The guarded live RPC only sets `analysis_json`. No Vertex Batch or GCS temporary objects were used. The runner does not capture token usage, so exact AI cost is unknown; image fetches and RPCs still use Supabase and could count against its metering. Log: `logs/direct-analysis-rerun-2026-09-23T12-45-31-270Z.jsonl`.
+
+# Retry and production 429 comparison (2026-09-23)
+
+## Plan
+
+- [x] Compare the production analyzer route's model/thinking defaults and recent HTTP 429 routes against the direct cache runner.
+- [x] Retry only never-started rows with the same 429 stop guard; verify persisted rows.
+- [x] Record what the provider error proves and what remains unverified.
+
+## Review
+
+- Production `/api/ai/analyze` defaults to Gemini 3.5 Flash Lite and LOW; the direct cache runner overrides the model to Gemini 3.1 Flash Lite and also uses LOW. The direct run initializes Vertex in `global` for project `project-7626fc57-8f9e-4dd3-bf9`. Production project identity could not be read from available Vercel runtime output, so whether both use the same quota project is unknown.
+- Vercel's last-24-hour 429 aggregation showed 4 `/api/ai/validate` and 3 `/api/ai/edit-image` responses, with none on `/api/ai/analyze`. Thus the current observed production 429s are not customer cake-analysis quota failures.
+- Retried the 47 untouched rows plus 3 new rows. Two persisted, one failed with 429, and 47 were not started. One earlier row had an error-shaped response and entered the single full-contract replacement path; that path encountered provider 429. Logs do not record token usage or per-call billing. No prompt cache, Vertex Batch, or GCS staging was used. Log: `logs/direct-analysis-rerun-2026-09-23T13-22-30-207Z.jsonl`.
+- Google documents 429 as potentially either quota exhaustion or temporary shared capacity. This response lacks the quota metric/reason needed to distinguish them; check the project's Vertex AI usage/429 dashboard before another rerun.
+- Read-only Cloud Monitoring queries for the direct project's 13:20–13:27Z window returned no time series for global generate-content request/input/output quota-exceeded metrics. That leaves the exact quota-vs-shared-capacity cause unconfirmed; the provider's generic message is consistent with shared-capacity exhaustion.
+
+# Current task: restore mobile scrolling over customizer bboxes (2026-09-25)
+
+## Plan
+
+- [x] Allow vertical native scrolling when a gesture starts on a bbox in the mobile hero.
+- [x] Preserve internal tall-image scrolling and native scroll handoff to the page at the image edge.
+- [x] Add focused hero coverage and run the bbox overlay activation tests.
+- [ ] Verify actual touch scrolling and edge handoff on an iOS simulator or phone.
+
+## Review
+
+- Changed the mobile hero frame to `touch-pan-y`; the tall-image scroll area remains `overflow-y-auto` with `overscroll-auto`. Bbox overlay code and activation behavior are unchanged.
+- Verification passed: 36 focused Vitest tests across the hero and bbox overlay suites; scoped ESLint reported 0 errors and 4 pre-existing unused-variable warnings; `git diff --check` passed.
+- Local customizer browser smoke at 390×844 loaded with no page errors or Next.js error overlay. Computed styles were `touch-action: pan-y`, `overflow-y: auto`, and `overscroll-behavior-y: auto`. The inspected design had no live bbox controls. The browser runner could not complete native touch injection; no iOS simulator is installed and `adb devices` found no connected Android device, so actual gesture movement remains unverified on a touch device.
+
+## Follow-up correction (2026-09-26)
+
+- [x] Keep mobile bbox hit targets inside the tall image's native scroll container so bbox swipes pan the image before chaining to the page at its edge.
+- [x] Preserve bbox tap-to-edit while moving the mobile overlay into the image content coordinate space; retain the frame-relative desktop overlay.
+- [x] Add hero coverage for bbox containment and tap activation; run the focused hero and bbox overlay suites.
+- [ ] Verify image-first panning and page handoff on an iOS simulator or phone when a touch device is available.
+
+Review: the prior `touch-pan-y` change alone allowed page scrolling from bbox targets but did not route those gestures through the nested image scroller. Mobile bbox hit targets now live inside that scroller, which gives them the same native image-pan and edge-handoff behavior as uncovered image areas. The focused test suites pass 37 tests; native gesture movement remains unverified on a touch device.
+
+# Current task: collect creator birthdays (2026-09-25)
+
+## Plan
+
+- [x] Add a required birthday date field and explain it is for birthday cake surprises.
+- [x] Validate the birthday on the server and pass it through the protected creator application RPC.
+- [x] Add a nullable `birthday` column and replace the RPC signature in a new migration without changing existing creator rows.
+- [x] Include birthdays in the staff creator signup details.
+- [x] Review the scoped diff and migration shape; leave production schema application separate.
+
+## Review
+
+- Added a required date input with birthday-cake helper text. The server rejects missing, malformed, or future dates and passes valid values to the service-role-only RPC.
+- Updated the staff creator signup query and details modal to show the birthday as month/day, including a fallback for legacy rows without one.
+- The new migration keeps existing creator rows nullable, stores the new date for applications, replaces the RPC signature, preserves service-role-only execution, and requests a PostgREST schema reload. The migration is local and has not been applied to production.
+- Storefront scoped ESLint reported 0 errors and 4 existing `<img>` warnings in `page.tsx`; `git diff --check` and migration-shape checks passed. The admin dashboard has no local `node_modules/.bin/eslint`, so lint was unavailable there. No automated tests were run.
+
+# Current task: share fresh cake analyses by link (2026-09-25)
+
+## Plan
+
+- [x] Expose the existing cache slug to the uploader and share button before SEO publication.
+- [x] Render unpublished cache rows by slug with `noindex,nofollow`, then switch to standard SEO metadata when published.
+- [x] Let crawlers read the pre-publication noindex response while preserving published-only search and sitemap gates.
+- [x] Add focused coverage for link generation, pending/published page states, and crawler rules; run scoped verification.
+
+## Review
+
+- Fresh cache writes and cache hits now expose the persisted slug before SEO publication. The existing Share modal verifies the cache row, then builds `/customizing/{slug}?caketype=…&size=…` for unpublished rows; published designs retain their existing height option. It creates no link when the row or slug is unavailable.
+- The slug page resolves pending, processing, and failed cache rows. Those pages omit canonical and product structured data and return `noindex,nofollow`. Exact unpublished rows take precedence over published legacy-slug redirects. Published rows retain their normal SEO metadata and redirect behavior.
+- Robots rules allow crawlers to fetch cake option share URLs so they can read `noindex`. Existing search and sitemap queries remain published-only; the SEO worker’s existing revalidation and IndexNow path still handles publication.
+- Verification passed: 6 focused Vitest files, 64 passed and 1 skipped; `git diff --check` passed. ESLint passed for the share hook and robots files. The broader scoped lint run remains red on numerous existing `any` violations and warnings in the already-dirty page, context, service, and test files. Google’s robots documentation confirms that a more specific allow rule overrides a broad disallow and that crawlers need access to read page-level `noindex`.
+
+# Current task: warn for unsupported delivery addresses (2026-09-26)
+
+## Plan
+
+- [x] Match Cavite, Metro Manila, and all 16 Metro Manila cities in the complete address text.
+- [x] Show the existing red notice below the field while typing, ahead of suggested-location feedback.
+- [x] Keep the warning informational and preserve map-based confirmation behavior.
+- [x] Add matcher and modal interaction coverage; run focused verification.
+
+## Review
+
+- The shared cart address form now matches case-insensitively and accent-insensitively, including city-name boundaries and optional "City" suffixes.
+- The notice appears while the map is loading, updates as the field changes, and takes priority over a serviceable Google Places suggestion. It does not change confirmation behavior.
+- Verification passed: `npx vitest run src/components/AddressForm.test.ts` (7 tests) and ESLint for the test file. ESLint for `AddressForm.tsx` still reports violations present in the committed baseline.
+
+# Current task: prevent browser address autofill in map search (2026-09-26)
+
+## Plan
+
+- [x] Give the Google Places map-search input a neutral name and placeholder so browser-saved delivery addresses do not overlap the Places suggestions.
+- [x] Preserve the map search type, autocomplete-off setting, password-manager hints, and Google Places selection flow.
+- [x] Verify the input contract with the focused component test and inspect the local cart page.
+
+## Review
+
+- Renamed the map-search input to `place-search-query` and changed its placeholder to “Search for a place...”; retained `autocomplete="off"` and the existing password-manager opt-out attributes.
+- The focused component test checks the neutral input name, search type, autocomplete setting, and password-manager hints. The modal is opened through `AddressForm`, preserving the Google Places wiring.
+- Browser automation loaded the local cart page, but its empty state has no control to open the delivery modal. The component-level test is the verification for the input markup; saved-address popup behavior depends on the user's Chrome profile.
+
+# Current task: publish map-search autofill fix (2026-09-26)
+
+## Plan
+
+- [x] Refresh `origin/main` and create a clean snapshot for publication.
+- [x] Apply only the map-search input name and placeholder change plus its focused test.
+- [x] Run focused verification, commit the scoped files, push to `main`, and verify the remote commit.
+
+## Review
+
+- Published `c0d5c74ca0a4e034ec1fe65d2d96974e4f7d609c` (`fix: prevent address autofill in map search`) to `origin/main`, based on refreshed commit `c4ddd027`.
+- The commit includes only `src/components/AddressForm.tsx` and `src/components/AddressForm.test.ts`. The focused test passed (7 tests); staged `git diff --check` passed. Remote `refs/heads/main` resolves to the new commit.
+
+# Current task: clarify Supabase env names in Cloudflare migration (2026-09-27)
+
+## Plan
+
+- [x] Inspect Supabase env names in the active checkout without printing values.
+- [x] Compare the active checkout's local env-file presence with the clean migration worktree.
+- [x] Correct the distinction between app configuration and missing worktree-local build configuration; make no app or deployment changes.
+
+## Review
+
+- The active checkout has `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local`; its centralized Next.js Supabase adapter requires those exact names. `.env` also has `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, used by some legacy scripts, but they are not aliases in the app adapter.
+- The clean migration worktree has no `.env` or `.env.local`; this explains the local build-time missing-variable error. The project itself is configured. No env values were displayed or copied, and no app/deployment configuration was changed.
+
+# Current task: set staging Supabase environment on Cloudflare (2026-09-27)
+
+## Plan
+
+- [x] Inspect the actual Next.js Supabase env contract and identify only the two client configuration entries needed for the current invalid-key symptom; do not expose values.
+- [x] Check the Cloudflare account's Worker inventory and migration config for the intended staging Worker; do not touch production, DNS, or cron settings.
+- [ ] Before transmitting the local URL/key to Cloudflare through the UI, confirm the exact key names and destination with the user at action time.
+- [ ] If confirmed, enter only those two values and verify their names/scopes without reading values back.
+
+## Review
+
+- The app requires `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` for the current Supabase client setup. No values were read or transmitted.
+- Cloudflare's Worker inventory currently returns zero Workers. The prepared migration config names the intended staging script `genieph-cloudflare-staging`, but it is not deployed in the inspected account, so there is no deployed Worker/environment to attach these values to.
+- No Cloudflare variables or secrets were changed. Stop here rather than creating/deploying a Worker as an unrequested expansion; once the staging Worker exists, confirm these exact two public values and the destination before entering them.
+
+# Current task: export Cavite orders and estimate Xendit fees (2026-09-29)
+
+## Plan
+
+- [x] Identify the live order and payment tables, address fields, and the Cavite match rule.
+- [x] Check Xendit's published Philippine fees and effective dates for the requested period.
+- [x] Export July 1-to-now Cavite orders with the requested fields, excluding expired orders.
+- [x] Reconcile exported rows and payment totals, then record assumptions and limits.
+
+## Review
+
+- The final CSV includes 10 Bacoor orders created July 1 through September 29, 2026; all 8 expired orders are excluded. The address province field was blank on these rows, so Cavite is inferred from the city.
+- The 9 paid and 1 partial order reconcile exactly to 11 settled Xendit transactions: ₱15,365.75 paid/gross. Included order prices total ₱16,220.30. The CSV records paid amount, remaining balance, fee estimate, and estimated net proceeds.
+- Estimated fees use the published pre-August card rate for July transactions and the revised standard schedule from August 1. They include Philippine 12% VAT and exclude the Xendit processing fee effective October 1. The base assumes domestic cards where card origin is not recorded and domestic-card pricing where contribution channels are missing; the CSV includes a fee/net range for those uncertainties.
+- CSV structure verified after excluding expired orders: 10 data rows, 21 columns, unique order numbers, and matching paid/Xendit gross and net calculations. Artifact: `/private/tmp/cavite-orders-2026-07-01-to-2026-09-29.csv`.
+
+# Current task: implement SEO and image SEO audit plan (2026-09-30)
+
+## Plan
+
+- [x] Align robots, private-route metadata, published design rules, and truthful sitemap inventory.
+- [x] Align collection publication checks and canonical internal links.
+- [x] Verify public image GET headers and align image selection, sitemaps, alt text, and dimensions.
+- [x] Repair visible title, rating, and stale editorial copy within the approved SEO scope.
+- [x] Run focused tests, production build, rendered-route checks, and read-only Search Console verification.
+- [x] Review scoped diff and record results, risks, and any production-only follow-up below.
+
+## Review
+
+- Robots now come from `src/app/robots.ts` alone; `/_next/` is crawlable. Order confirmation, contributions, and password recovery render `noindex`. Pending design share links remain accessible by exact slug but have noindex, no Product schema, and no sitemap entry. Published adult-themed designs pass the same quality gate as other designs.
+- One collection eligibility predicate governs the page, HTML sitemap, XML sitemap, and image sitemap. On the final local production build, HTML and XML each linked exactly 208 collections with zero differences; the prior 133 HTML-only links are gone. The HTML sitemap now lists only design rows that pass the XML image/text/age gate (493 of its latest 500 candidates). Empty blog categories and products under inactive merchants are excluded, and synthetic sitemap modification dates are omitted.
+- The crawler image selector rejects manifests whose indexed source differs from the current source. The image sitemap includes eligible shared designs, emits only supported image tags, and returns uncached 503 on a failed database read. Merchant/blog markup no longer invents image dimensions.
+- Normal public GET found `X-Robots-Tag: none` on the tested Kuromi original and Studio images and a Peppa variant. Exact-object Storage updates preserved byte hashes, MIME types, dimensions, and URLs; CDN purge and fresh GET verified `200 image/webp` with `X-Robots-Tag: all` for all three. A further 25 current published sitemap variants were repaired and independently rechecked; all now return `all`. All 48 currently selected published shared-design Storage images already return `all` and were left intact. Historical or unselected objects can still return `none`; they were not mass-updated.
+- Design titles no longer display hash codes or mid-word cuts. The homepage rating is computed from approved, visible reviews (15 reviews, 4.9/5 at verification). Mother's Day copy is evergreen, and the pricing comparison uses the existing public order facts instead of 2025 market estimates.
+- Focused Vitest run: 18 files passed, 99 tests passed, 1 skipped; Storage helper suite: 20 passed. Production build completed, including TypeScript. Local rendered checks covered design, collection, product, blog, private routes, robots, XML parsing, schema, canonical tags, and HTML/XML collection parity. Scoped ESLint passed outside the already lint-noisy customizing page; its new title helper no longer introduces an `any` type.
+- Code is local and not deployed. After release, inspect representative page and image URLs in Search Console, then compare Web and Image performance separately from the September baseline. The universal same-day marketing promise still differs from the cart's one-day path for complex cakes; fulfillment policy needs an operational decision outside this SEO task.
+
+## Publication plan
+
+- [ ] Assemble only the SEO and image SEO changes on a clean checkout of the latest `origin/main`.
+- [ ] Run focused tests and a production build on that exact checkout; inspect the final diff for unrelated files.
+- [ ] Commit and push the verified commit to `main`, then confirm the remote commit.
+
+# Current task: homepage ecommerce CRO and UX audit (2026-09-30)
+
+## Plan
+
+- [x] Inspect the current public homepage at desktop and mobile widths, including primary paths and visible interactions.
+- [x] Check the homepage implementation and linked shopping flow so recommendations match actual capabilities.
+- [x] Prioritize specific UX and conversion improvements by impact and effort; separate observed issues from hypotheses.
+- [x] Record review evidence and limits below. No storefront implementation is requested.
+
+## Review
+
+- Reviewed the public homepage at desktop width and 390px mobile width, including the hero, demo, listing, a cake customization destination, and a Bento collection. The first mobile cake listings begin around document y=2,900px, after the comparison, demo, and delivery sections.
+- The hero gives upload a large button and cake browsing a small text link. The first product row is labeled Trending Now but local source selects the newest published designs. Current first mobile cards include niche cakes, and some listing images contain captured social/app interface chrome.
+- The linked Bento collection displays shopper-facing `ANSWER FIRST` and crawlability wording before products. Local homepage source confirms that the demo is separate from actual customization, some CTAs lack tracking, and delivery copy is broader than the cutoff and design-specific lead time behavior.
+- Recommended reusing existing visual listing/review components in a shorter shopping-first order, curating first cards, exposing category navigation, improving photos and card attributes, clarifying availability, and testing downstream purchase steps. This was an audit only; no storefront code was changed. Local source is dirty and may differ from production.
+
+## Connect Genie.ph catalog and conversions to ChatGPT Ads (2026-09-30)
+
+### Plan
+
+- [x] Build a CSV feed from published cake designs with stable slug IDs, the product page's real starting price, truthful availability, and only public edited images.
+- [x] Add a protected daily Vercel Cron that uploads a full snapshot over SFTP and reports asynchronous feed-ingestion results.
+- [x] Align Pixel product events with feed IDs, add product views, and add best-effort CAPI order events for paid/partial settlements without customer identifiers.
+- [x] Explicitly allow OAI-AdsBot while preserving OAI-SearchBot access.
+- [x] Add focused tests for catalog rows, price/availability, event ID alignment, settlement boundaries, crawler rules, and cron protection.
+
+### Review
+
+- The CSV builder exports eligible published designs with slug IDs, canonical product URLs, public edited images, the product page's starting price, mapped availability, PHP prices, and ads eligibility. Search and checkout eligibility remain disabled. Invalid, duplicate, unpriced, or non-public-image rows are excluded.
+- `/api/openai-ads/cron` requires `CRON_SECRET`, uploads a full daily CSV snapshot over SFTP, skips an empty catalog, and polls briefly for the upload's terminal status and counts/diagnostics; it returns a pending state if processing continues. The sync feature flag defaults off. `ssh2-sftp-client` is externalized from the Next.js server bundle so its runtime crypto dependency is preserved.
+- Pixel product views, cart additions, checkout starts, and order events use the feed slug IDs. Paid/partial Xendit settlement paths report CAPI with the order UUID as the shared deduplication ID, PHP minor units, and no customer identifiers. Reporting exceptions are caught so payment status is retained.
+- Robots permits OAI-AdsBot and preserves OAI-SearchBot access. Setup and account preflight steps are in `docs/operations/chatgpt-ads.md`.
+- Verification passed: 9 focused Vitest files / 54 tests, scoped ESLint, `git diff --check`, and `npm run build`. The standalone repository-wide `npx tsc --noEmit` and broad ESLint runs still report unrelated pre-existing test and dirty-file errors; the production build typecheck passes.
+- Dependency installation added the SFTP client and types. npm reported 30 audit findings in the installed dependency tree; no automated audit fix was run.
+- Not deployed and no feed was uploaded. Ads Manager shows Philippines and PHP on the account, and the feed ID/SFTP connection are configured in Vercel Production. Product Feeds API access and PHP acceptance remain unverified until an authorized first upload. The Advertiser API key, Pixel consent/privacy path, Pixel ID, and Supabase CAPI secrets remain outstanding. No campaign was created or launched.
+
+### Live account provisioning (2026-09-30)
+
+- [x] Created the `Genie.ph product catalog` feed in Ads Manager. The account settings show Philippines and PHP.
+- [x] Generated feed-specific SFTP access and stored the username and password as Vercel Production secrets.
+- [x] Stored the corrected SFTP URI and feed ID as Vercel Production config values; set `OPENAI_ADS_CATALOG_SYNC_ENABLED=false`.
+- [ ] Create an Ads Manager API key only after owner confirmation. The current Ads Manager dialog says these keys grant Ads Management API access; it does not offer a feed-only scope.
+- [ ] Deploy the integration code, configure the API key in Vercel, and make the first catalog upload only after confirming feed API access and checking ingestion results.
+- [ ] Provision Pixel/CAPI reporting after adding an appropriate consent gate and privacy disclosure; identify the correct Supabase project before setting Edge Function secrets or deploying functions.
+
+Vercel confirmed the Production variable changes and noted that a new deployment is required for them to take effect. No catalog upload or campaign change has occurred. Ads Manager shows the existing Genie.ph campaign is serving and displays a business-verification reminder; it was left untouched.
+
+# Current task: use a 0.67×diameter reference height for topper area (2026-10-02)
+
+## Plan
+
+- [x] Change integrated bbox topper/support reference area from diameter squared to cake diameter × (0.67 × cake diameter), independent of the measured wall line.
+- [x] Align the generated analysis contracts and fallback prompt with the app-owned formula.
+- [x] Update focused regression coverage and run it, then review the scoped diff.
+
+## Review
+
+- Topper/support area bands now use `cake_width × (0.67 × cake_width)` in integrated bbox sizing. The measured cake height remains available for cake-thickness inference but no longer changes topper size bands.
+- Updated the v1 and tolerant v2 system contracts and fallback prompt. Regression cases cover the 15% and 70% boundaries, the fixed ratio despite a different measured wall line, and tolerant responses with no height line.
+- Verification passed: focused Vitest suites for integrated bbox analysis and prompt rules (89 tests), plus scoped `git diff --check`. No prompt migration or production activation was performed.

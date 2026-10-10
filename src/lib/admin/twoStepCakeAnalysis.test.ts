@@ -98,6 +98,9 @@ describe('two-step v3.85 cake analysis', () => {
       bbox: { top_left: { x: 9, y: 8 }, bottom_right: { x: 11, y: 14 } },
     });
     expect(schema.required).toContain('grid_sizing');
+    const groupSchema = (schema as unknown as { properties: { observed_groups: { items: { properties: { grid_sizing: { required: string[]; properties: Record<string, unknown> } } } } } }).properties.observed_groups.items.properties.grid_sizing;
+    expect(groupSchema.required).toEqual(['bbox']);
+    expect(groupSchema.properties).not.toHaveProperty('size_line');
     expect(() => assertGridSizingPreserved(normalizedInventoryGrid, compilerGrid)).not.toThrow();
   });
 

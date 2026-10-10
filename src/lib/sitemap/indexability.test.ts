@@ -18,13 +18,15 @@ describe('sitemap indexability helpers', () => {
       created_at: '2026-05-01T00:00:00.000Z',
     })) as Parameters<typeof buildSitemapChunkHints>[1]
 
-    expect(buildSitemapChunkHints(customizedRows, sharedRows, NOW)).toMatchObject({
+    expect(buildSitemapChunkHints(customizedRows, sharedRows)).toMatchObject({
       customizedChunkCount: 1,
       sharedDesignChunkCount: 2,
     })
-    expect(buildSitemapChunkHints([], [], NOW)).toMatchObject({
+    expect(buildSitemapChunkHints([], [])).toMatchObject({
       customizedChunkCount: 0,
       sharedDesignChunkCount: 0,
+      customizedLastMod: null,
+      sharedDesignLastMod: null,
     })
   })
 
@@ -33,6 +35,18 @@ describe('sitemap indexability helpers', () => {
       original_image_url: 'https://example.com/original.jpg',
       studio_edited_image_url: 'https://example.com/edited.webp',
     })).toBe('https://example.com/edited.webp')
+  })
+
+  it('ignores a sitemap variant when its indexed source is older than the Studio image', () => {
+    expect(getPreferredSitemapImage({
+      original_image_url: 'https://example.com/original.jpg',
+      studio_edited_image_url: 'https://example.com/studio.jpg',
+      image_variants_indexed_source: 'https://example.com/original.jpg',
+      image_variants: {
+        format: 'webp', source: 'original_image_url',
+        variants: [{ width: 800, url: 'https://example.com/old-variant.webp', bytes: 100 }],
+      },
+    })).toBe('https://example.com/studio.jpg')
   })
 
   it('applies the sitemap age cutoff', () => {
@@ -104,7 +118,7 @@ describe('sitemap indexability helpers', () => {
       studio_edited_image_url: null,
       image_width: 800,
       image_height: 1000,
-    }, NOW)).toBeNull()
+    }, NOW)).toMatchObject({ slug: 'penis-cake-pink-1-tier-cake-0501' })
 
     expect(toIndexableCustomizedCakeRow({
       slug: 'tiny-image-blue-bento-cake-0303',
@@ -154,5 +168,17 @@ describe('sitemap indexability helpers', () => {
       url_slug: 'sunset-bento-purple-bento-cake-0303',
       image_url: 'https://example.com/customized.jpg',
     })
+  })
+
+  it('keeps published adult-themed shared designs when they pass normal quality checks', () => {
+    expect(toIndexableSharedDesignRow({
+      url_slug: 'adult-themed-cake-4321',
+      created_at: '2026-05-01T00:00:00.000Z',
+      title: 'Adult themed birthday cake',
+      alt_text: 'Adult themed birthday cake with flowers',
+      description: 'An adult themed custom cake design',
+      original_image_url: 'https://example.com/adult.jpg',
+      customized_image_url: null,
+    }, NOW)).toMatchObject({ url_slug: 'adult-themed-cake-4321' })
   })
 })

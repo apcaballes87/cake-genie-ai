@@ -4,9 +4,7 @@ export const INTERNAL_TRAFFIC_COOKIE_NAME = 'genie_internal_traffic'
 export const INTERNAL_TRAFFIC_COOKIE_VALUE = '1'
 export const INTERNAL_TRAFFIC_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30
 
-const ANALYTICS_EXCLUDED_EXACT_PATHS = new Set([
-  '/similarity-debugger',
-])
+const ANALYTICS_EXCLUDED_EXACT_PATHS = new Set<string>()
 
 export function isAnalyticsSuppressedPath(pathname: string | null | undefined): boolean {
   if (!pathname) return false

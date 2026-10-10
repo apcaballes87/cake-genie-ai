@@ -23,6 +23,7 @@ const typeEnums = {
     'edible_flowers',
     'piped_flowers_top',
     'candle',
+    'candle_stick',
     'toy',
     'plastic_crown',
     'edible_crown',
@@ -79,6 +80,48 @@ function validAnalysis(overrides: Record<string, unknown> = {}) {
 }
 
 describe('search analysis contract', () => {
+  it('defaults missing thickness to the lowest supported value for a known cake type', () => {
+    const result = postProcessSearchAnalysisResult(
+      validAnalysis({ cakeType: 'Square', cakeThickness: undefined }),
+      typeEnums,
+      'three_band',
+    );
+
+    expect(result.cakeThickness).toBe('3 in');
+  });
+
+  it('does not choose a thickness when the cake type is unknown', () => {
+    expect(() => postProcessSearchAnalysisResult(
+      validAnalysis({ cakeType: 'Unknown Shape', cakeThickness: '3 in' }),
+      typeEnums,
+      'three_band',
+    )).toThrow(/cakeType/);
+  });
+
+  it('keeps the integrated v2 treatment and height fallback wording aligned with the schema', () => {
+    const config = buildSearchAnalysisGenerationConfig(typeEnums, 'integrated_bbox_v2_tolerant');
+    const schema = config.responseSchema as unknown as {
+      properties: {
+        geometry: { required: string[] };
+        analysis: {
+          properties: {
+            support_elements: { items: { properties: Record<string, { description?: string }> } };
+          };
+        };
+      };
+    };
+
+    expect(config.systemInstruction).toContain('one continuous icing border or region');
+    expect(config.systemInstruction).toContain('material icing and quantity 1');
+    expect(config.systemInstruction).toContain('reconciles it to a supported type-specific value');
+    expect(config.systemInstruction).toContain('the application uses the lowest supported thickness for a confirmed cake type');
+    expect(schema.properties.analysis.properties.support_elements.items.properties.type.description)
+      .toContain('one continuous icing region');
+    expect(schema.properties.analysis.properties.support_elements.items.properties.quantity.description)
+      .toContain('after one targeted bbox-only retry');
+    expect(schema.properties.geometry.required).toEqual(['geometry_version']);
+  });
+
   it('pins greedy low-variance decoding and low thinking for single-image and batch analysis', () => {
     expect(buildSearchAnalysisGenerationConfig(typeEnums)).toMatchObject({
       temperature: 0,
@@ -119,6 +162,8 @@ describe('search analysis contract', () => {
     expect(schema.properties.main_toppers.items.properties.type.enum).toContain('edible_2d_complex');
     expect(schema.properties.main_toppers.items.properties.type.enum).toContain('edible_crown');
     expect(schema.properties.main_toppers.items.properties.type.enum).toContain('piped_flowers_top');
+    expect(schema.properties.main_toppers.items.properties.type.enum).toContain('candle_stick');
+    expect(schema.properties.support_elements.items.properties.type.enum).not.toContain('candle_stick');
     expect(schema.properties.main_toppers.items.properties.coverage.enum).toEqual(['small', 'medium', 'large']);
     expect(schema.properties.support_elements.items.properties.type.enum).not.toContain('edible_2d_complex');
     expect(schema.properties.support_elements.items.properties.type.enum).toContain('icing_doodle_intricate_side');
@@ -521,10 +566,10 @@ describe('search analysis contract', () => {
       }],
     }), typeEnums)).toThrow(/subtype/i);
 
-    expect(() => postProcessSearchAnalysisResult(validAnalysis({
+    expect(postProcessSearchAnalysisResult(validAnalysis({
       cakeType: 'Bento',
       cakeThickness: '7 in',
-    }), typeEnums)).toThrow(/cakeThickness/i);
+    }), typeEnums).cakeThickness).toBe('2 in');
 
     expect(() => postProcessSearchAnalysisResult(validAnalysis({
       support_elements: [{
@@ -975,6 +1020,13 @@ describe('search analysis contract', () => {
   it.each([
     ['single birthday candle', 'candle', 'wax'],
     ['set of birthday candles', 'candle', 'wax'],
+    ['plain stick candle', 'candle_stick', 'wax'],
+    ['plain straight cylindrical candle', 'candle_stick', 'wax'],
+    ['straight cylindrical candle', 'candle_stick', 'wax'],
+    ['number candle', 'candle', 'wax'],
+    ['heart candle', 'candle', 'wax'],
+    ['spiral candle', 'candle', 'wax'],
+    ['taper candle', 'candle', 'wax'],
     ['fondant edible crown', 'edible_crown', 'edible_fondant'],
     ['metallic fondant crown', 'edible_crown', 'edible_fondant'],
     ['plastic rhinestone tiara', 'plastic_crown', 'plastic'],

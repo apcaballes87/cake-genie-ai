@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   maybeSingle: vi.fn(), rpc: vi.fn(), providerGet: vi.fn(), providerCreate: vi.fn(),
-  update: vi.fn(), jobs: vi.fn(), cacheRows: vi.fn(),
+  update: vi.fn(), jobs: vi.fn(), cacheRows: vi.fn(), storageSave: vi.fn(),
 }));
-vi.mock('@google-cloud/storage', () => ({ Storage: class {} }));
+vi.mock('@google-cloud/storage', () => ({ Storage: class { bucket() { return { file: () => ({ save: mocks.storageSave }) }; } } }));
 vi.mock('@/lib/ai/client', () => ({ getGoogleCloudAuthOptions: () => ({}), getAI: () => ({ batches: { get: mocks.providerGet, create: mocks.providerCreate } }) }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('@/lib/indexNow', () => ({ submitIndexNow: vi.fn() }));
@@ -34,6 +34,8 @@ describe('SEO worker spending and recovery guards', () => {
     vi.stubEnv('SEO_BATCH_SUBMISSIONS_ENABLED', 'false');
     mocks.jobs.mockResolvedValue({ data: [], error: null });
     mocks.cacheRows.mockResolvedValue({ data: [], error: null });
+    mocks.storageSave.mockResolvedValue(undefined);
+    mocks.update.mockReturnValue({ eq: () => Promise.resolve({ data: {}, error: null }) });
   });
   it('does not submit until explicitly enabled', async () => {
     mocks.maybeSingle.mockResolvedValue({ data: null, error: null });
@@ -54,5 +56,24 @@ describe('SEO worker spending and recovery guards', () => {
     expect(mocks.providerCreate).not.toHaveBeenCalled();
     expect(mocks.rpc).not.toHaveBeenCalled();
     expect(mocks.update).not.toHaveBeenCalled();
+  });
+
+  it('fails and releases jobs after a definitive provider submission rejection', async () => {
+    vi.stubEnv('SEO_BATCH_SUBMISSIONS_ENABLED', 'true');
+    vi.stubEnv('VERTEX_AI_BATCH_GCS_URI', 'gs://test-bucket/prefix');
+    const item = {
+      id: 'job', cache_id: 'cache', analysis_revision: 'revision',
+      analysis_json: { cakeType: 'Round' }, attempt_count: 1, status: 'submitted',
+    };
+    mocks.maybeSingle.mockResolvedValue({ data: null, error: null });
+    mocks.rpc.mockResolvedValue({ data: [item], error: null });
+    mocks.providerCreate.mockRejectedValue(new Error(JSON.stringify({
+      error: { code: 403, message: 'The billing account for the owning project is disabled in state closed', errors: [{ reason: 'accountDisabled' }] },
+    })));
+
+    await expect(runSeoBatchWorker()).rejects.toThrow('accountDisabled');
+
+    expect(mocks.rpc).toHaveBeenCalledWith('fail_seo_batch_item', expect.objectContaining({ p_job_id: 'job', p_run_id: expect.any(String) }));
+    expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({ status: 'failed', error: expect.stringContaining('accountDisabled') }));
   });
 });

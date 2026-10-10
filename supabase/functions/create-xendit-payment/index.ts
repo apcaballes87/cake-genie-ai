@@ -1,8 +1,16 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
+import { sendOpenAIAdsOrderCreated } from '../_shared/openaiAdsConversions.ts'
+import { getXenditSecretKey, resolvePaymentMode } from '../_shared/paymentMode.ts'
 
 declare const Deno: any;
+
+const jsonResponse = (body: Record<string, unknown>, status: number) =>
+    new Response(JSON.stringify(body), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status,
+    });
 
 serve(async (req) => {
     if (req.method === 'OPTIONS') {
@@ -19,6 +27,18 @@ serve(async (req) => {
 
         const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
+        // The caller must be a signed-in user (guests are anonymous-auth users).
+        // The function is deployed without gateway JWT verification, and the public
+        // anon key is itself a valid JWT, so identify the user here.
+        const accessToken = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
+        const { data: authData, error: authError } = accessToken
+            ? await supabaseAdmin.auth.getUser(accessToken)
+            : { data: { user: null }, error: new Error('Missing access token') };
+        const callerId = authData?.user?.id ?? null;
+        if (authError || !callerId) {
+            return jsonResponse({ success: false, error: 'Please sign in to pay for this order.' }, 401);
+        }
+
         let requestBody;
         try {
             requestBody = await req.json();
@@ -32,18 +52,37 @@ serve(async (req) => {
             orderId,
             success_redirect_url,
             failure_redirect_url,
-            payment_mode,
             customerEmail,
             customerName,
             paymentTokenId
         } = requestBody || {};
 
-        console.log('Processing payment for Order ID:', orderId, 'payment_mode:', payment_mode);
+        // Never taken from the request: see _shared/paymentMode.ts.
+        const mode = resolvePaymentMode();
+
+        console.log('Processing payment for Order ID:', orderId, 'payment_mode:', mode);
 
         // 1. Fetch Order from Database to get Trusted Amount
         const { data: order, error: orderError } = await supabaseAdmin
             .from('cakegenie_orders')
-            .select('total_amount, order_number, user_id, order_status, payment_status')
+            .select(`
+                order_id,
+                total_amount,
+                order_number,
+                user_id,
+                order_status,
+                payment_status,
+                subtotal,
+                delivery_fee,
+                discount_amount,
+                discount_code_id,
+                cakegenie_order_items (
+                    cake_type,
+                    quantity,
+                    final_price,
+                    customization_details
+                )
+            `)
             .eq('order_id', orderId)
             .single();
 
@@ -52,12 +91,49 @@ serve(async (req) => {
             throw new Error('Order not found');
         }
 
+        // Only the order's owner may create a payment for it. Same message as a
+        // missing order so order ids cannot be probed.
+        if (order.user_id !== callerId) {
+            console.error(`User ${callerId} tried to pay for order ${order.order_number} owned by someone else`);
+            throw new Error('Order not found');
+        }
+
+        if (order.order_status === 'cancelled' || order.payment_status === 'paid' || order.payment_status === 'partial') {
+            throw new Error('This order can no longer be paid online.');
+        }
+
         const amount = Number(order.total_amount);
         console.log(`Order ${order.order_number} Total Amount: ${amount} (type: ${typeof amount})`);
 
+        if (!Number.isFinite(amount) || amount < 0) {
+            throw new Error('Invalid order amount.');
+        }
+
         // 2. Handle Free Orders (100% Discount)
-        if (amount <= 0) {
-            console.log('Order amount is 0 or negative. Marking as PAID immediately.');
+        if (amount === 0) {
+            // A zero total is only legitimate when a discount code covers the whole
+            // order and the order's own lines add up to the subtotal. Anything else
+            // (for example a tampered price) must not be auto-confirmed.
+            const subtotal = Number(order.subtotal);
+            const deliveryFee = Number(order.delivery_fee ?? 0);
+            const discountAmount = Number(order.discount_amount ?? 0);
+            const itemsSum = (order.cakegenie_order_items ?? []).reduce(
+                (sum: number, item: any) => sum + Number(item.final_price) * Number(item.quantity),
+                0,
+            );
+            const isFullyDiscounted =
+                Boolean(order.discount_code_id) &&
+                subtotal > 0 &&
+                discountAmount > 0 &&
+                discountAmount + 0.01 >= subtotal + deliveryFee &&
+                Math.abs(itemsSum - subtotal) <= 0.01;
+
+            if (!isFullyDiscounted) {
+                console.error(`Refusing free order ${order.order_number}: zero total without a covering discount code.`);
+                throw new Error('This order cannot be processed. Please contact support.');
+            }
+
+            console.log('Order is fully covered by a discount code. Marking as PAID.');
 
             const { error: updateError } = await supabaseAdmin
                 .from('cakegenie_orders')
@@ -73,6 +149,17 @@ serve(async (req) => {
                 throw new Error('Failed to process free order');
             }
 
+            const adsResult = await sendOpenAIAdsOrderCreated({
+                ...order,
+                payment_status: 'paid',
+            }, {
+                pixelId: Deno.env.get('OPENAI_ADS_PIXEL_ID'),
+                apiKey: Deno.env.get('OPENAI_ADS_CONVERSIONS_API_KEY'),
+            });
+            if (adsResult === 'failed') {
+                console.warn('OpenAI Ads conversion reporting failed (non-fatal).');
+            }
+
             return new Response(JSON.stringify({
                 success: true,
                 paymentUrl: success_redirect_url,
@@ -85,10 +172,7 @@ serve(async (req) => {
         }
 
         // 3. Proceed with Xendit Invoice API for non-zero amounts
-        const mode = payment_mode || 'test';
-        const XENDIT_SECRET_KEY = mode === 'live'
-            ? (Deno.env.get('XENDIT_LIVE_API_KEY') || Deno.env.get('XENDIT_SECRET_KEY'))
-            : (Deno.env.get('XENDIT_TEST_API_KEY') || Deno.env.get('XENDIT_SECRET_KEY'));
+        const XENDIT_SECRET_KEY = getXenditSecretKey(mode);
 
         console.log('Using API key for mode:', mode, 'Key exists:', !!XENDIT_SECRET_KEY);
 

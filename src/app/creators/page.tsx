@@ -110,6 +110,7 @@ export default function CreatorsLandingPage() {
         email: '',
         contact_number: '',
         address: '',
+        birthday: '',
         content_niche: '',
         tiktok_handle: '',
         tiktok_followers: undefined,
@@ -483,6 +484,20 @@ export default function CreatorsLandingPage() {
                                                 placeholder="09123456789"
                                                 autoComplete="tel"
                                             />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="creator-birthday" className="block text-sm font-medium text-gray-700 mb-1">Birthday *</label>
+                                            <input
+                                                id="creator-birthday"
+                                                required
+                                                type="date"
+                                                name="birthday"
+                                                value={formData.birthday || ''}
+                                                onChange={handleInputChange}
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-400 focus:border-transparent outline-none transition-all text-gray-800"
+                                                autoComplete="bday"
+                                            />
+                                            <p className="mt-1.5 text-xs text-gray-500">We’ll use this to plan a surprise birthday cake for you.</p>
                                         </div>
                                         <div className="sm:col-span-2">
                                             <label htmlFor="creator-address" className="block text-sm font-medium text-gray-700 mb-1">Delivery Address *</label>

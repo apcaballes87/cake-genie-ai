@@ -82,6 +82,7 @@ export const AI_CHAT_MAIN_TOPPER_TYPES = [
     'edible_photo_print',
     'edible_logo_2d',
     'candle',
+    'candle_stick',
     'edible_2d_shapes',
     'edible_flowers',
     'piped_flowers_top',

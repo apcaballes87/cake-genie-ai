@@ -17,6 +17,7 @@ import { debounce } from 'lodash-es';
 import { showError } from '@/lib/utils/toast';
 import { trackAddToCart, trackCartPersistenceStage, trackEvent } from '@/lib/analytics';
 import { trackBeacon } from '@/lib/analytics/track';
+import { buildOpenAIAdsProductContents } from '@/lib/openaiAds/contents';
 import { logErrorToSupabase } from '@/components/ErrorLogger';
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
 import { getCartOutbox, putCartOutbox, reassignCartOutboxOwner, removeCartOutbox, withCartOutboxRecordLock, type CartOutboxRecord, type CartOutboxStage, type CartOutboxSourceSurface } from '@/lib/cartOutbox';
@@ -662,7 +663,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 setCartItems(prev => prev.map(item => item.cart_item_id === tempId ? realItem : item));
             }
 
-            trackBeacon('add_to_cart');
+            trackBeacon('add_to_cart', {
+                openAiAdsContents: buildOpenAIAdsProductContents([realItem]),
+            });
 
         } catch (error: unknown) {
             if (!options?.skipOptimistic) {
@@ -974,7 +977,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 status: 'success',
                 durationMs: Date.now() - outboxStartedAt,
             });
-            trackBeacon('add_to_cart');
+            trackBeacon('add_to_cart', {
+                openAiAdsContents: buildOpenAIAdsProductContents([tempItem]),
+            });
         } catch (error) {
             backgroundUploadTasksRef.current.delete(tempId);
             trackCartPersistenceStage({
@@ -1059,12 +1064,20 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, []);
 
     const debouncedUpdateQuantity = useMemo(
-        () => debounce(async (cartItemId: string, quantity: number, originalCart: (CakeGenieCartItem & { merchant?: CakeGenieMerchant })[]) => {
+        () => debounce(async (cartItemId: string, quantity: number, previousQuantity: number, originalCart: (CakeGenieCartItem & { merchant?: CakeGenieMerchant })[]) => {
             try {
                 const { error } = await updateQuantityService(cartItemId, quantity);
                 if (error) {
                     setCartItems(originalCart);
                     throw error;
+                }
+                if (quantity > previousQuantity) {
+                    const updatedItem = originalCart.find((item) => item.cart_item_id === cartItemId);
+                    trackBeacon('add_to_cart', {
+                        openAiAdsContents: updatedItem
+                            ? buildOpenAIAdsProductContents([{ ...updatedItem, quantity }])
+                            : [],
+                    });
                 }
             } catch (error) {
                 throw error;
@@ -1088,7 +1101,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         );
 
         try {
-            await debouncedUpdateQuantity(cartItemId, quantity, originalCart);
+            await debouncedUpdateQuantity(cartItemId, quantity, itemToUpdate.quantity, originalCart);
         } catch (error) {
             throw error;
         }

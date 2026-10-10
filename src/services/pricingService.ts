@@ -223,6 +223,10 @@ export const calculatePrice = (
                 price = digitCount * 25; // 25 per digit
                 nonGumpasteTotal += price;
                 break;
+            case 'candle_stick':
+                price = 10 * Math.max(1, topper.quantity || 1);
+                nonGumpasteTotal += price;
+                break;
             case 'edible_flowers': {
                 const flowerUnitPrice = getEdibleFlowerPrice(topper.size);
                 const qty = topper.quantity || 1;

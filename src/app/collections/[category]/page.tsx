@@ -11,7 +11,8 @@ import { getAI } from '@/lib/ai/client'
 import { generateDynamicCollectionDescription } from '@/utils/designContentUtils'
 import { cache } from 'react'
 import { buildFAQPageSchema } from '@/lib/seo/schema'
-import { buildLicensedImageObject, getPublicCrawlerImageManifest, selectCrawlerImage } from '@/lib/seo/crawlerImage'
+import { isPublishedIndexableCollection } from '@/lib/seo/collectionEligibility'
+import { buildLicensedImageObject, getCurrentCrawlerImageManifest, selectCrawlerImage } from '@/lib/seo/crawlerImage'
 import {
     FEATURED_COLLECTION_LINKS,
     PRIORITY_COLLECTION_SEO,
@@ -55,12 +56,6 @@ type CollectionRecord = {
     publication_status?: string | null;
     is_indexable?: boolean | null;
 };
-
-function isPublishedCollection(collection: CollectionRecord | null): boolean {
-    return collection?.publication_status === 'published'
-        && collection?.is_indexable === true
-        && (collection?.item_count || 0) >= 8;
-}
 
 function humanizeSlug(slug: string): string {
     return slug
@@ -270,7 +265,7 @@ export async function generateMetadata(
     const requestedCategory = resolvePriorityCollectionSlug(category);
     const page = parseCollectionPage((await searchParams)?.page);
     const { data: collection } = await getCollectionBySlug(requestedCategory);
-    if (collection && !isPublishedCollection(collection)) {
+    if (!isPublishedIndexableCollection(collection)) {
         return {
             title: { absolute: 'Cake Collection | Genie.ph' },
             robots: { index: false, follow: false },
@@ -374,7 +369,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
 
     const { data: collection } = await getCollectionBySlug(requestedCategory);
 
-    if (collection && !isPublishedCollection(collection)) {
+    if (!isPublishedIndexableCollection(collection)) {
         return notFound();
     }
 
@@ -413,7 +408,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
             ...design,
             original_image_url: image.url,
             studio_edited_image_url: null,
-            image_variants: getPublicCrawlerImageManifest(design.image_variants),
+            image_variants: getCurrentCrawlerImageManifest(design),
         };
     }).filter((design) => Boolean(design.original_image_url));
 
@@ -503,7 +498,6 @@ export default async function CategoryPage({ params, searchParams }: Props) {
                 designs={designs}
                 keyword={canonicalCategory}
                 readableTitle={readableTitle}
-                category={canonicalCategory}
                 description={resolvedDesc}
                 designCount={totalDesignCount || designs.length}
                 heading={collectionHeading}

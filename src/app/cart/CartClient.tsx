@@ -27,6 +27,7 @@ import {
 } from '@/lib/analytics';
 import { GA4_MEASUREMENT_ID } from '@/lib/analyticsRoutes';
 import { trackBeacon } from '@/lib/analytics/track';
+import { buildOpenAIAdsProductContents } from '@/lib/openaiAds/contents';
 import { prepareBuyerAttributionForCheckout } from '@/lib/buyerAttribution';
 import { AddressForm, StaticMap } from '@/components/AddressForm';
 import { SplitWithFriendsModal } from '@/components/SplitWithFriendsModal';
@@ -408,7 +409,6 @@ function CartClient() {
     // Record that the user is on the cart page so the context tracks it.
     useEffect(() => {
         recordNavigation('cart', null);
-        trackBeacon('checkout_start');
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -445,12 +445,22 @@ function CartClient() {
 
     const {
         cartItems,
+        isLoading: cartIsLoading,
         eventDate,
         eventTime,
         deliveryInstructions,
         selectedAddressId,
         cartTotal: subtotal,
     } = useCart();
+    const checkoutStartedRef = useRef(false);
+
+    useEffect(() => {
+        if (cartIsLoading || checkoutStartedRef.current) return;
+        checkoutStartedRef.current = true;
+        trackBeacon('checkout_start', {
+            openAiAdsContents: buildOpenAIAdsProductContents(cartItems),
+        });
+    }, [cartIsLoading, cartItems]);
     const {
         setEventDate,
         setEventTime,

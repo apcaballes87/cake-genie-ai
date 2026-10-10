@@ -148,7 +148,16 @@ decorations.
     "gumpasteBaseBoard": false
   },
   "keyword": "...",
-  "cake_bbox": { "x": 0, "y": 0, "width": 0, "height": 0 }
+  "cake_measurements": {
+    "diameter": {
+      "start": { "x": 0, "y": 0 },
+      "end": { "x": 0, "y": 0 }
+    },
+    "height": {
+      "start": { "x": 0, "y": 0 },
+      "end": { "x": 0, "y": 0 }
+    }
+  }
 }
 ```
 
@@ -166,45 +175,92 @@ Apply rules in this order:
 7. Size, quantity, and grouping
 8. Item description and construction/material/type reconciliation
 9. Colors and icing
-10. Bounding boxes (cake_bbox + per-element bbox)
+10. Cake measurement lines and per-element bounding boxes
 
 ### BOUNDING BOX OUTPUT (REQUIRED FOR ACCEPTED IMAGES)
 
-For every accepted (non-rejected) image, you **must** output bounding boxes
-for the cake itself and for each detected element.
+For every accepted (non-rejected) image, you **must** output explicit
+measurement lines for the cake and optional bounding boxes for each detected
+element.
 
-**Coordinate system:** Raw pixel coordinates relative to the original image.
-Origin is **top-left** of the image. All values are non-negative integers.
+**Coordinate system:** Normalized 0–1000 coordinates, independent of the
+original image's pixel dimensions. Origin is **top-left** of the image. All
+values are non-negative integers from 0 through 1000.
 
-- `x`: left edge of the bounding box in pixels from the left edge of the image
-- `y`: top edge of the bounding box in pixels from the top edge of the image
-- `width`: width of the bounding box in pixels
-- `height`: height of the bounding box in pixels
+- `x`: left edge of the bounding box on the 0–1000 horizontal axis
+- `y`: top edge of the bounding box on the 0–1000 vertical axis
+- `width`: box width on the 0–1000 horizontal axis
+- `height`: box height on the 0–1000 vertical axis
 
-**`cake_bbox` (top-level, required):**
-A single bounding box enclosing the entire cake body (the main cake structure
-including all tiers, excluding any non-cake background). Estimate the tightest
-rectangle that covers the visible cake from its topmost point to its base/bottom.
+**`cake_measurements` (top-level, required for accepted images):**
+Two explicit line segments for the visible cake body. Every `start` and `end`
+point must include its own `x` and `y` coordinate. Do not derive these lines
+from an imaginary rectangle or from the cake board, plate, topper, or background.
 
 ```json
-"cake_bbox": { "x": 120, "y": 50, "width": 600, "height": 480 }
+"cake_measurements": {
+  "diameter": {
+    "start": { "x": 150, "y": 620 },
+    "end": { "x": 850, "y": 620 }
+  },
+  "height": {
+    "start": { "x": 500, "y": 420 },
+    "end": { "x": 500, "y": 860 }
+  }
+}
 ```
+
+The `diameter` line measures one cake circular/elliptical cross-section. When
+the top circle/ellipse is visible, draw it from the left-most edge of that
+visible circle/ellipse to the opposing right-most edge (the blue-line kind of placement in a slanted photo). If the top circle/ellipse is not visible, draw
+it from the opposing left and right edges of the cake wall at the same
+cross-sectional level (the black-line fallback). Use the exact visible edge
+point for each endpoint. The line may be slanted because the cake or camera is
+rotated, but it must represent this left-to-right cross-section—not an
+arbitrary diagonal across the front wall, a top-to-bottom rim, or a line
+through decorations. Do not force `start.y` and `end.y` to match. Exclude
+toppers, decorations, cake boards, plates, and background.
+
+The `height` line must run from the **near/front top rim** of the cake body to
+the **near/front bottom rim** of the cake body. In a three-quarter or tilted
+photo, the top surface is usually an ellipse: the correct top endpoint is on
+the **lower/closer arc of that ellipse**, exactly where the top surface
+transitions into the front-facing side wall (the red-line/green-circled kind of
+edge). It is normally below the rear/back arc in the image. Do **not** use the
+highest visible cake pixel, the rear/back arc of the top ellipse, a point on
+the exposed top surface, a topper, decoration, board, or plate. The bottom
+endpoint is the visible lower front rim where the front cake wall meets the
+board or plate—not the rear/base pixel. Use the exact visible point for each
+endpoint. Perspective may make the height line slanted; do not force a
+90-degree line or matching `start.x` and `end.x`. Exclude the board, plate,
+and background from the measured height.
+
+Do not emit `cake_bbox` for new analyses. Existing cached `cake_bbox` values
+are accepted only as a legacy compatibility fallback in the application.
 
 **Per-element `bbox` (optional, on each `main_toppers`, `support_elements`, and `cake_messages` item):**
 A bounding box around the specific decoration or message item. Only include
 when the item has a clearly distinguishable spatial extent in the image.
 If unsure, omit the `bbox` field from that item.
 
+**Repeated items:** When an analysis item has `quantity` greater than 1, its
+`bbox` must enclose **one** clearly visible, representative unit only—not the
+whole collection or the smallest rectangle enclosing every matching item. For
+example, an item described as `3 flowers` receives one box around a single
+flower. Choose a typical unobscured unit; omit the `bbox` if no single unit can
+be distinguished reliably.
+
 ```json
 "bbox": { "x": 200, "y": 80, "width": 150, "height": 120 }
 ```
 
 **Rules:**
-- `cake_bbox` is always required for accepted images. Use the JSON skeleton below.
+- `cake_measurements` is always required for accepted images. Every line endpoint must be explicit.
 - Per-element `bbox` fields are optional — only emit when clearly distinguishable.
-- Coordinates are pixel values relative to the original uploaded image dimensions.
+- For an item with `quantity > 1`, its `bbox` encloses exactly one representative unit, never the full group.
+- Coordinates are normalized values on a 0–1000 canvas; do **not** use the original image's raw pixel dimensions.
 - The `x` and `y` represent the **top-left corner** of the bounding box.
-- `width` and `height` are the box dimensions in pixels.
+- `width` and `height` are the normalized box dimensions. Keep `x + width` and `y + height` at or below 1000.
 
 ### PRE-EMISSION UPRIGHT WAFER-PAPER SIDE CHECKPOINT (REQUIRED)
 

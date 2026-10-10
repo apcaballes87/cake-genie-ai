@@ -23,6 +23,8 @@ import {
 import type { AnalysisGenerationSizeSchema } from '@/lib/admin/searchAnalysisContract';
 import { ThinkingLevel, Type } from '@google/genai';
 import { logCakeAnalysisDebug } from '@/lib/ai/analysisDebug';
+import { generateClaudeJson } from '@/lib/ai/claudeClient';
+import { getCakeAnalysisProviderSettings, type CakeAnalysisProvider } from '@/lib/ai/providerSettings';
 import {
     getIntegratedBboxRepairCandidates,
     mergeIntegratedBboxRepairResponse,
@@ -201,6 +203,8 @@ export type RunCakeAnalysisInput = {
     previousAnalysis?: unknown;
 };
 
+type ProviderTarget = { provider: CakeAnalysisProvider; model: string };
+
 export type RunCakeAnalysisResult = {
     result: GeneratedCakeAnalysisResult & {
         analysis_size_schema:
@@ -214,7 +218,8 @@ export type RunCakeAnalysisResult = {
     rawResponse: string;
     sizeSchema: AnalysisGenerationSizeSchema;
     effectiveSettings: {
-        model: CakeAnalysisModel;
+        model: CakeAnalysisModel | string;
+        provider: CakeAnalysisProvider;
         thinkingLevel: CakeAnalysisThinkingLevel;
         temperature: number;
         topP: number;
@@ -295,7 +300,36 @@ function clearCachedPromptCacheName(version: string) {
     }
 }
 
-export async function runActiveCakeAnalysis({
+/**
+ * Production callers omit `model`, so the provider comes from the
+ * admin-controlled `ai_provider_settings` row (with optional cross-provider
+ * fallback). Explicit lab/comparison models always run on Gemini as requested.
+ */
+export async function runActiveCakeAnalysis(input: RunCakeAnalysisInput): Promise<RunCakeAnalysisResult> {
+    if (input.model) {
+        return runCakeAnalysisWithProvider(input, { provider: 'gemini', model: input.model });
+    }
+
+    const settings = await getCakeAnalysisProviderSettings();
+    const targets: ProviderTarget[] = [
+        { provider: 'gemini', model: settings.geminiModel },
+        { provider: 'claude', model: settings.claudeModel },
+    ];
+    if (settings.provider === 'claude') targets.reverse();
+
+    try {
+        return await runCakeAnalysisWithProvider(input, targets[0]);
+    } catch (primaryError) {
+        // Skip a Claude fallback that cannot authenticate rather than masking
+        // the real Gemini error with a missing-key error.
+        const fallbackUnavailable = targets[1].provider === 'claude' && !process.env.ANTHROPIC_API_KEY;
+        if (!settings.fallbackEnabled || fallbackUnavailable) throw primaryError;
+        console.warn(`[AI Provider] ${targets[0].provider} analysis failed; falling back to ${targets[1].provider}.`, primaryError);
+        return runCakeAnalysisWithProvider(input, targets[1]);
+    }
+}
+
+async function runCakeAnalysisWithProvider({
     imageData,
     mimeType,
     requestContext,
@@ -304,15 +338,14 @@ export async function runActiveCakeAnalysis({
     persistRejectedUpload = true,
     promptVersion,
     promptText,
-    model = ANALYSIS_MODEL as CakeAnalysisModel,
     thinkingLevel = 'LOW',
     temperature,
     topP,
     topK,
     sizeSchema: requestedSizeSchema,
-    usePromptCache = true,
+    usePromptCache = false,
     previousAnalysis,
-}: RunCakeAnalysisInput): Promise<RunCakeAnalysisResult> {
+}: RunCakeAnalysisInput, { provider, model }: ProviderTarget): Promise<RunCakeAnalysisResult> {
     const supabase = createClient();
     // Explicit versions are supplied only by trusted server-side flows (admin
     // comparisons, selected reruns, or the local development selector). They
@@ -334,10 +367,11 @@ export async function runActiveCakeAnalysis({
         throw new Error(`AI prompt version ${promptVersion} was not found.`);
     }
 
-    const aiClient = await getAI(requestContext);
+    const aiClient = provider === 'gemini' ? await getAI(requestContext) : null;
     const sizeSchema = requestedSizeSchema ?? getAnalysisGenerationSizeSchema(promptDetails.version);
     const seoSchema = resolveAnalysisGenerationSeoSchema(promptDetails.promptText);
-    logCakeAnalysisDebug('Gemini request starting', {
+    logCakeAnalysisDebug('AI request starting', {
+        provider,
         promptVersion: promptDetails.version,
         sizeSchema,
         seoSchema,
@@ -357,11 +391,10 @@ export async function runActiveCakeAnalysis({
         // comparison/lab caller explicitly overrides it.
         thinkingConfig: { thinkingLevel: THINKING_LEVELS[thinkingLevel] },
     };
-    type GeneratedResponse = Awaited<ReturnType<typeof aiClient.models.generateContent>>;
-    let response: GeneratedResponse;
+    let responseText: string;
     let cacheName: string | null = null;
 
-    if (usePromptCache && promptText === undefined) {
+    if (aiClient && usePromptCache && promptText === undefined) {
         try {
             cacheName = await getCachedPromptCacheName(
                 aiClient,
@@ -373,7 +406,8 @@ export async function runActiveCakeAnalysis({
         }
     }
 
-    const generateResponse = async (
+    const generateGeminiResponse = async (
+        aiClient: Awaited<ReturnType<typeof getAI>>,
         repairInstruction?: string,
         responseSchemaOverride?: typeof baseConfig.responseSchema | ReturnType<typeof buildIntegratedBboxRepairSchema>,
     ) => {
@@ -439,6 +473,26 @@ export async function runActiveCakeAnalysis({
         });
     };
 
+    const generateResponse = async (
+        repairInstruction?: string,
+        responseSchemaOverride?: typeof baseConfig.responseSchema | ReturnType<typeof buildIntegratedBboxRepairSchema>,
+    ): Promise<string> => {
+        if (!aiClient) {
+            return generateClaudeJson({
+                model,
+                systemInstruction: baseConfig.systemInstruction,
+                promptText: promptDetails.promptText,
+                imageData,
+                mimeType,
+                repairInstruction,
+                responseSchema: responseSchemaOverride ?? baseConfig.responseSchema,
+                timeoutMs: AI_REQUEST_TIMEOUT_MS,
+            });
+        }
+        const response = await generateGeminiResponse(aiClient, repairInstruction, responseSchemaOverride);
+        return (response.text || '').trim();
+    };
+
     const parseAndValidateResponse = (
         candidateJsonText: string,
         options: { allowMissingCakeHeightLine?: boolean } = {},
@@ -467,8 +521,7 @@ export async function runActiveCakeAnalysis({
     };
 
     let bboxRepairAttempted = false;
-    const prepareResponseText = async (candidateResponse: GeneratedResponse): Promise<string> => {
-        const originalText = (candidateResponse.text || '').trim();
+    const prepareResponseText = async (originalText: string): Promise<string> => {
         if (sizeSchema !== 'integrated_bbox_v2_tolerant' || bboxRepairAttempted) return originalText;
 
         let envelope: unknown;
@@ -489,11 +542,10 @@ export async function runActiveCakeAnalysis({
             candidates,
         });
         try {
-            const repairResponse = await generateResponse(
+            const repairText = await generateResponse(
                 buildIntegratedBboxRepairInstruction(candidates),
                 buildIntegratedBboxRepairSchema(candidates.length),
             );
-            const repairText = (repairResponse.text || '').trim();
             const merged = mergeIntegratedBboxRepairResponse(
                 envelope,
                 candidates,
@@ -519,19 +571,19 @@ export async function runActiveCakeAnalysis({
         }
     };
 
-    response = await generateResponse();
+    responseText = await generateResponse();
     let parsedResponse: ReturnType<typeof parseAndValidateResponse>;
     try {
-        parsedResponse = parseAndValidateResponse(await prepareResponseText(response));
+        parsedResponse = parseAndValidateResponse(await prepareResponseText(responseText));
     } catch (error) {
         if (!(error instanceof CakeAnalysisResponseError)) throw error;
         // Structured output normally prevents this. A single bounded repair
         // gives the model one chance to satisfy the exact application contract
         // without inventing missing pricing fields or looping indefinitely.
         console.warn('[AI Contract] Generated response failed validation; requesting one complete replacement.', error);
-        response = await generateResponse(buildCakeAnalysisContractRepairInstruction(error, sizeSchema));
+        responseText = await generateResponse(buildCakeAnalysisContractRepairInstruction(error, sizeSchema));
         try {
-            parsedResponse = parseAndValidateResponse(await prepareResponseText(response));
+            parsedResponse = parseAndValidateResponse(await prepareResponseText(responseText));
         } catch (replacementError) {
             if (!(replacementError instanceof CakeAnalysisResponseError)) throw replacementError;
             if (
@@ -543,7 +595,7 @@ export async function runActiveCakeAnalysis({
             }
             console.warn('[AI Contract] Cake height geometry remains unusable after repair; applying the type-safe thickness fallback.');
             parsedResponse = parseAndValidateResponse(
-                await prepareResponseText(response),
+                await prepareResponseText(responseText),
                 { allowMissingCakeHeightLine: true },
             );
         }
@@ -596,6 +648,7 @@ export async function runActiveCakeAnalysis({
         sizeSchema,
         effectiveSettings: {
             model,
+            provider,
             thinkingLevel,
             temperature: baseConfig.temperature,
             topP: baseConfig.topP,

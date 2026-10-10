@@ -23,6 +23,10 @@ function checked<T extends { error: unknown }>(result: T): T {
   return result;
 }
 function message(error: unknown) { return error instanceof Error ? error.message : String(error); }
+function isNonAmbiguousSubmissionFailure(error: unknown) {
+  const text = message(error);
+  return /accountDisabled|billing account.*(?:disabled|closed)|permission.?denied|PERMISSION_DENIED|UNAUTHENTICATED|INVALID_ARGUMENT|\b(?:400|401|403|404)\b/i.test(text);
+}
 
 /**
  * Finalization is transactional; crawler notification is deliberately a
@@ -166,7 +170,18 @@ export async function runSeoBatchWorker(context?: Context) {
     checked(await admin.from(RUNS).update({ gemini_job_name: provider.name, status: 'submitted', updated_at: new Date().toISOString() }).eq('id', runId));
     return { status: 'submitted', runId, submitted: items.length, notified };
   } catch (error) {
-    checked(await admin.from(RUNS).update({ error: message(error), updated_at: new Date().toISOString() }).eq('id', runId));
+    const reason = message(error);
+    if (isNonAmbiguousSubmissionFailure(error)) {
+      // A definitive provider rejection means no batch job was created. Release
+      // claimed work so the next cron can retry it after the operator fixes the
+      // configuration, while preserving ambiguous submissions for review.
+      for (const item of items) {
+        checked(await admin.rpc('fail_seo_batch_item', { p_job_id: item.id, p_run_id: runId, p_error: reason }));
+      }
+      checked(await admin.from(RUNS).update({ status: 'failed', error: reason, updated_at: new Date().toISOString() }).eq('id', runId));
+    } else {
+      checked(await admin.from(RUNS).update({ error: reason, updated_at: new Date().toISOString() }).eq('id', runId));
+    }
     throw error;
   }
 }

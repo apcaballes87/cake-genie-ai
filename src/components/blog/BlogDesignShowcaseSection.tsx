@@ -1,11 +1,14 @@
 import Link from 'next/link';
 import { resolveBlogCommercialLinks } from '@/lib/utils/blogCommercialLinks';
-import { getOptimizedSupabaseImageSrc } from '@/lib/utils/supabaseImageUrl';
+import { selectCrawlerImage } from '@/lib/seo/crawlerImage';
 import { formatStartingPrice } from '@/lib/utils/currency';
 
 interface BlogDesignShowcaseProduct {
   p_hash: string;
   original_image_url: string;
+  studio_edited_image_url?: string | null;
+  image_variants?: unknown;
+  image_variants_indexed_source?: string | null;
   price?: number | null;
   availability?: string | null;
   slug?: string | null;
@@ -36,11 +39,6 @@ const getProductTitle = (product: BlogDesignShowcaseProduct) => {
     .join(' ');
 };
 
-const getProductDimensions = (product: BlogDesignShowcaseProduct) => ({
-  width: product.image_width && product.image_width > 0 ? product.image_width : 800,
-  height: product.image_height && product.image_height > 0 ? product.image_height : 1000,
-});
-
 export function BlogDesignShowcaseSection({
   title,
   intro,
@@ -66,10 +64,8 @@ export function BlogDesignShowcaseSection({
         {products.map((product, index) => {
           const label = getProductLabel(product, keyword);
           const productTitle = getProductTitle(product);
-          const imageSrc =
-            getOptimizedSupabaseImageSrc(product.original_image_url, product.image_width ?? 800) ||
-            product.original_image_url;
-          const { width, height } = getProductDimensions(product);
+          const image = selectCrawlerImage(product);
+          if (!image.url) return null;
 
           const card = (
             <div className="group mb-5 break-inside-avoid flex flex-col h-full">
@@ -82,11 +78,11 @@ export function BlogDesignShowcaseSection({
                 }
               >
                 <img
-                  src={imageSrc}
+                  src={image.url}
                   alt={label}
                   title={label}
-                  width={width}
-                  height={height}
+                  width={image.width || undefined}
+                  height={image.height || undefined}
                   loading="lazy"
                   decoding="async"
                   className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"

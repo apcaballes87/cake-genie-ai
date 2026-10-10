@@ -37,6 +37,7 @@ export const MAIN_TOPPER_TYPES = [
     'edible_photo_top',
     'edible_logo_2d',
     'candle',
+    'candle_stick',
     'edible_2d_shapes',
     'edible_flowers',
     'piped_flowers_top',

@@ -40,9 +40,7 @@ function getImageAttribute(attributes: string, name: string) {
 }
 
 function getKnownBlogImageDimensions(src: string | null) {
-  if (!src) {
-    return { width: '800', height: '450' };
-  }
+  if (!src) return null;
 
   if (src.includes('jolibeeparty2026.jpg')) {
     return { width: '735', height: '490' };
@@ -52,7 +50,7 @@ function getKnownBlogImageDimensions(src: string | null) {
     return { width: '950', height: '633' };
   }
 
-  return { width: '800', height: '450' };
+  return null;
 }
 
 function normalizeBlogImages(html: string) {
@@ -60,8 +58,10 @@ function normalizeBlogImages(html: string) {
     let attributes = rawAttributes;
     const dimensions = getKnownBlogImageDimensions(getImageAttribute(attributes, 'src'));
 
-    attributes = ensureImageAttribute(attributes, 'width', dimensions.width);
-    attributes = ensureImageAttribute(attributes, 'height', dimensions.height);
+    if (dimensions) {
+      attributes = ensureImageAttribute(attributes, 'width', dimensions.width);
+      attributes = ensureImageAttribute(attributes, 'height', dimensions.height);
+    }
     attributes = ensureImageAttribute(attributes, 'loading', 'lazy');
     attributes = ensureImageAttribute(attributes, 'decoding', 'async');
 
@@ -88,10 +88,10 @@ export function parseMarkdownToHtml(markdown: string): string {
   // Italic
   html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
 
-  // Images — width/height hint reduces CLS; actual size is responsive via CSS
+  // Images — add intrinsic dimensions below only when the source size is known.
   html = html.replace(
     /!\[([^\]]*)\]\(([^)]+)\)/g,
-    '<img src="$2" alt="$1" width="800" height="450" class="w-full h-auto rounded-xl my-8 shadow-md border border-purple-100" loading="lazy" decoding="async" />'
+    '<img src="$2" alt="$1" class="w-full h-auto rounded-xl my-8 shadow-md border border-purple-100" loading="lazy" decoding="async" />'
   );
 
   // Links

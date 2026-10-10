@@ -1,5 +1,3 @@
-import { generateUrlSlug } from './urlHelpers';
-
 interface ResolveBlogCommercialLinksInput {
   title?: string | null;
   slug?: string | null;
@@ -28,7 +26,6 @@ const KNOWN_COLLECTION_TARGETS = [
   { slug: 'unicorn-cake', label: 'Unicorn', patterns: ['unicorn'] },
   { slug: 'frozen-cake', label: 'Frozen', patterns: ['frozen', 'elsa', 'anna', 'olaf'] },
   { slug: 'bento-cake', label: 'Bento', patterns: ['bento'] },
-  { slug: 'birthday', label: 'Birthday', patterns: ['birthday', 'debut'] },
 ] as const;
 
 const BUYER_INTENT_PATTERNS = [
@@ -100,24 +97,21 @@ export function resolveBlogCommercialLinks(input: ResolveBlogCommercialLinksInpu
   if (isBuyerIntentTopic) {
     return {
       primary: {
-        href: '/collections/birthday',
+        href: '/collections',
         label: 'Browse Cakes Collections',
       },
       support: {
         href: '/how-to-order',
         label: 'See How Ordering Works',
       },
-      keywordLabel: 'Birthday',
+      keywordLabel,
     };
   }
 
-  const fallbackKeyword = getPrimaryKeyword(input.keyword) || input.title || input.slug || 'custom cake';
-  const fallbackSlug = generateUrlSlug(fallbackKeyword);
-
   return {
     primary: {
-      href: `/customizing/category/${fallbackSlug}`,
-      label: getPrimaryLabel(keywordLabel),
+      href: '/collections',
+      label: 'Browse Cake Collections',
     },
     support: {
       href: '/how-to-order',

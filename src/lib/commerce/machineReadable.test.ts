@@ -14,6 +14,7 @@ import {
   deriveDeliveryZone,
   getMerchantListingActivePrice,
   getCommercePolicyUrls,
+  getDesignPageStartingPrice,
   mapDesignAvailabilityToSchema,
   PH_Country_Code,
   validateLeadTimeConstants,
@@ -63,6 +64,18 @@ describe('machine-readable commerce helpers', () => {
       { size: '8" Round', price: 1899 },
       { size: '10" Round', price: 2199 },
     ]);
+  });
+
+  it('returns the first aligned option shown by the design page', () => {
+    expect(getDesignPageStartingPrice([
+      { size: '8 inch', price: 1500 },
+      { size: '6 inch', price: 1200 },
+    ], 1400)).toBe(1700);
+  });
+
+  it('uses the design page starting-price fallback when no options exist', () => {
+    expect(getDesignPageStartingPrice([], 1199)).toBe(1199);
+    expect(getDesignPageStartingPrice([], null)).toBeNull();
   });
 
   it('maps rush availability to an in-stock schema offer', () => {

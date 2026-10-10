@@ -210,6 +210,18 @@ export function alignPriceOptionsToStartingPrice(
   }));
 }
 
+/** Returns the same first visible price rendered as “Starting at” on a design page. */
+export function getDesignPageStartingPrice(
+  prices: BasePriceInfo[] | undefined,
+  startingPrice: number | null | undefined,
+): number | null {
+  const alignedPrices = alignPriceOptionsToStartingPrice(prices, startingPrice);
+  const visiblePrice = alignedPrices[0]?.price || startingPrice;
+  const numericPrice = Number(visiblePrice);
+
+  return Number.isFinite(numericPrice) && numericPrice > 0 ? numericPrice : null;
+}
+
 export function buildOfferShippingDetails(
   _merchant?: CakeGenieMerchant | null,
 ): {

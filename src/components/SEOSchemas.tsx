@@ -68,8 +68,8 @@ export function ProductSchema({ product, merchant, prices, ratingValue, reviewCo
     // Enhanced ImageObject with licensing metadata for Google Images "Licensable" badge
     const imageObject = product.image_url ? buildLicensedImageObject({
         url: product.image_url,
-        width: imageWidth || 1200,
-        height: imageHeight || 1200,
+        width: imageWidth,
+        height: imageHeight,
         name: sanitize(product.title),
         caption: sanitize(product.alt_text || product.title),
         creatorName: sanitize(merchant.business_name),

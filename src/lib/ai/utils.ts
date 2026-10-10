@@ -19,21 +19,47 @@ const ITEM_KEY_TYPE_ALIASES: Record<string, string> = {
     support_printout: 'support_printout',
 };
 
-export async function getDynamicTypeEnums(supabase: any) {
-    const { data, error } = await supabase
-        .from('pricing_rules')
-        .select('item_type, item_key, category, sub_item_type')
-        .eq('is_active', true);
+function fallbackDynamicTypeEnums() {
+    return {
+        mainTopperTypes: [...MAIN_TOPPER_TYPES],
+        supportElementTypes: [...SUPPORT_ELEMENT_TYPES],
+        subtypesByType: Object.fromEntries(
+            Object.entries(SUBTYPES_BY_TYPE).map(([type, subtypes]) => [type, [...subtypes]]),
+        ),
+    };
+}
 
-    if (error || !data) {
-        console.warn('Failed to fetch dynamic enums from database, using fallbacks');
-        return {
-            mainTopperTypes: [...MAIN_TOPPER_TYPES],
-            supportElementTypes: [...SUPPORT_ELEMENT_TYPES],
-            subtypesByType: Object.fromEntries(
-                Object.entries(SUBTYPES_BY_TYPE).map(([type, subtypes]) => [type, [...subtypes]]),
-            ),
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function getString(value: unknown): string | undefined {
+    return typeof value === 'string' && value ? value : undefined;
+}
+
+export async function getDynamicTypeEnums(supabase: unknown) {
+    let data: unknown;
+    let error: unknown;
+    try {
+        const queryClient = supabase as {
+            from: (table: string) => {
+                select: (columns: string) => {
+                    eq: (column: string, value: boolean) => PromiseLike<{ data: unknown; error: unknown }>;
+                };
+            };
         };
+        ({ data, error } = await queryClient
+            .from('pricing_rules')
+            .select('item_type, item_key, category, sub_item_type')
+            .eq('is_active', true));
+    } catch (queryError) {
+        console.warn('Failed to fetch dynamic enums from database, using fallbacks', queryError);
+        return fallbackDynamicTypeEnums();
+    }
+
+    if (error || !Array.isArray(data)) {
+        console.warn('Failed to fetch dynamic enums from database, using fallbacks');
+        return fallbackDynamicTypeEnums();
     }
 
     const mainTopperTypes = new Set<string>(MAIN_TOPPER_TYPES);
@@ -42,9 +68,17 @@ export async function getDynamicTypeEnums(supabase: any) {
         Object.entries(SUBTYPES_BY_TYPE).map(([type, subtypes]) => [type, [...subtypes]]),
     );
 
-    data.forEach((rule: any) => {
-        const rawItemType = rule.item_type || rule.sub_item_type || rule.item_key;
-        const resolvedItemType = ITEM_KEY_TYPE_ALIASES[rawItemType] || rule.item_type || ITEM_KEY_TYPE_ALIASES[rule.sub_item_type] || ITEM_KEY_TYPE_ALIASES[rule.item_key];
+    data.forEach((rawRule: unknown) => {
+        if (!isRecord(rawRule)) return;
+        const rule = rawRule;
+        const itemType = getString(rule.item_type);
+        const subItemType = getString(rule.sub_item_type);
+        const itemKey = getString(rule.item_key);
+        const rawItemType = itemType || subItemType || itemKey;
+        const resolvedItemType = (rawItemType && ITEM_KEY_TYPE_ALIASES[rawItemType])
+            || itemType
+            || (subItemType && ITEM_KEY_TYPE_ALIASES[subItemType])
+            || (itemKey && ITEM_KEY_TYPE_ALIASES[itemKey]);
         if (resolvedItemType) {
             if (rule.category === 'main_topper' && isValidMainTopperType(resolvedItemType)) {
                 mainTopperTypes.add(resolvedItemType);
@@ -54,19 +88,19 @@ export async function getDynamicTypeEnums(supabase: any) {
 
             const isCanonicalType = isValidMainTopperType(resolvedItemType)
                 || isValidSupportElementType(resolvedItemType);
-            if (rule.sub_item_type && isCanonicalType) {
+            if (subItemType && isCanonicalType) {
                 if (!subtypesByType[resolvedItemType]) {
                     subtypesByType[resolvedItemType] = [];
                 }
-                if (!subtypesByType[resolvedItemType].includes(rule.sub_item_type)) {
-                    subtypesByType[resolvedItemType].push(rule.sub_item_type);
+                if (!subtypesByType[resolvedItemType].includes(subItemType)) {
+                    subtypesByType[resolvedItemType].push(subItemType);
                 }
             }
         }
     });
 
     const mainTopperPriority = [
-        'candle', 'edible_photo_top', 'edible_logo_2d', 'edible_2d_complex', 'printout', 'cardstock', 'edible_2d_shapes',
+        'candle_stick', 'candle', 'edible_photo_top', 'edible_logo_2d', 'edible_2d_complex', 'printout', 'cardstock', 'edible_2d_shapes',
         'edible_flowers', 'piped_flowers_top', 'edible_3d_ordinary', 'edible_3d_complex', 'figurine', 'toy', 'plastic_crown', 'edible_crown',
         'icing_doodle', 'icing_doodle_intricate_top', 'icing_palette_knife', 'icing_brush_stroke', 'icing_splatter',
         'icing_minimalist_spread', 'meringue_pop', 'plastic_ball'

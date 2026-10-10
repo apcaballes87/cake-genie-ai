@@ -18,6 +18,7 @@ interface CustomizingEditorSheetProps {
     hideAiChat?: boolean;
     onClose: () => void;
     children: ReactNode;
+    actionButton?: ReactNode;
 }
 
 function getEditorTitle(activeCustomization: string | null, activeTopperSection: 'main' | 'support' | null) {
@@ -44,6 +45,7 @@ export const CustomizingEditorSheet = memo(function CustomizingEditorSheet({
     hideAiChat,
     onClose,
     children,
+    actionButton,
 }: CustomizingEditorSheetProps) {
     const title = getEditorTitle(activeCustomization, activeTopperSection);
     const bottomOffset = hideStickyBar
@@ -60,6 +62,7 @@ export const CustomizingEditorSheet = memo(function CustomizingEditorSheet({
             style={{ bottom: `${bottomOffset}px` }}
             wrapperClassName="md:max-w-7xl md:mx-auto md:justify-end md:px-6"
             className="md:w-[calc(50%-6px)] md:max-w-none"
+            actionButton={actionButton}
         >
             {children}
         </CustomizationBottomSheet>

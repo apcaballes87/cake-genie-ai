@@ -3,6 +3,7 @@ import {
     buildCakeTitle,
     extractTitleInputFromAnalysis,
     extractDesignCodeFromSlug,
+    stripInternalDesignCode,
     CAKE_TITLE_BUDGET,
     type CakeTitleInput,
 } from './cakeTitle';
@@ -188,7 +189,7 @@ describe('extractTitleInputFromAnalysis — R7.2 / R10.2 parity mapper', () => {
         expect(extractDesignCodeFromSlug(null)).toBeNull();
     });
 
-    it('appends design code to buildCakeTitle and adjusts budget', () => {
+    it('keeps internal design codes out of generated titles', () => {
         const input: CakeTitleInput = {
             keyword: 'Roblox',
             cakeType: '1 Tier',
@@ -198,12 +199,17 @@ describe('extractTitleInputFromAnalysis — R7.2 / R10.2 parity mapper', () => {
             designCode: 'C783',
         };
         const title = buildCakeTitle(input);
-        expect(title).toBe('Roblox-Inspired Sky Blue Birthday Cake - C783');
+        expect(title).toBe('Roblox-Inspired Sky Blue Birthday Cake');
         expect([...title].length).toBeLessThanOrEqual(CAKE_TITLE_BUDGET);
-        
-        // Under tight budget, it should truncate theme/body but keep suffix
+
         const tightTitle = buildCakeTitle(input, 25);
-        expect(tightTitle).toBe('Roblox-Inspir Cake - C783');
+        expect(tightTitle).toBe('Roblox-Inspired Cake');
         expect([...tightTitle].length).toBeLessThanOrEqual(25);
+    });
+
+    it('removes stored internal codes and never truncates a long theme mid-word', () => {
+        expect(stripInternalDesignCode('Floral Birthday Cake - C783 | Genie.ph')).toBe('Floral Birthday Cake');
+        expect(stripInternalDesignCode('New Year Cake - 2026', 'C783')).toBe('New Year Cake - 2026');
+        expect(buildCakeTitle({ keyword: 'Supercalifragilisticexpialidocious' }, 20)).toBe('Custom Cake');
     });
 });

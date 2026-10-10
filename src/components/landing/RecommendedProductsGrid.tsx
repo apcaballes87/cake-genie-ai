@@ -179,6 +179,7 @@ const RecommendedProductsGridComponent = ({
                                     image_width={item.image_width}
                                     image_height={item.image_height}
                                     image_variants={item.image_variants}
+                                    image_variants_indexed_source={item.image_variants_indexed_source}
                                     listName={listName}
                                 />
                             </div>

@@ -38,7 +38,8 @@ describe("mother's day landing page", () => {
 
     expect(metadata.alternates?.canonical).toBe('https://genie.ph/mothersdaycakes');
     expect(markup).toContain('CollectionPage');
-    expect(markup).toContain('May 10, 2026');
-    expect(markup).toContain('Looking for the best Mother');
+    expect(markup).not.toContain('May 10, 2026');
+    expect(markup).toContain('Looking for a Mother');
+    expect(metadata.title).toEqual({ absolute: "Mother's Day Cakes in Cebu | Personalized Cakes for Mom | Genie.ph" });
   });
 });

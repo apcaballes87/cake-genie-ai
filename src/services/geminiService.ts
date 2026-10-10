@@ -11,6 +11,7 @@ import { FEATURE_FLAGS, isRoboflowConfigured } from '@/config/features';
 import { compressImage, dataURItoBlob } from '@/lib/utils/imageOptimization';
 import { getEditImageCompressionOptions } from '@/utils/editImageTuning';
 import { logCakeAnalysisDebug } from '@/lib/ai/analysisDebug';
+import { dispatchClientApiErrorReport } from '@/lib/clientApiErrors';
 
 // Cache the prompt for 10 minutes (Still used? Maybe optional if moved to server entirely)
 // Keeping simple cache struct for now if deemed necessary for other things, but prompt fetching is now server-side
@@ -133,8 +134,21 @@ export async function analyzeCakeFeaturesOnly(
         });
 
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Analysis failed');
+            const error = await response.json().catch(() => null) as { error?: unknown } | null;
+            const errorMessage = typeof error?.error === 'string' ? error.error : 'Analysis failed';
+
+            if (response.status >= 500) {
+                const clientError = new Error(errorMessage);
+                dispatchClientApiErrorReport({
+                    endpoint: '/api/ai/analyze',
+                    method: 'POST',
+                    status: response.status,
+                    message: errorMessage,
+                    stack: clientError.stack,
+                });
+            }
+
+            throw new Error(errorMessage);
         }
 
         const result = await response.json();

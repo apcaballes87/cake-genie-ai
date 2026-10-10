@@ -16,6 +16,7 @@ import {
 import { syncBuyerAttributionForCurrentPage } from '@/lib/buyerAttribution'
 import { captureUtmParametersFromLocation, trackBeacon } from '@/lib/analytics/track'
 import { useAuth } from '@/contexts/AuthContext'
+import { trackOpenAIAdsPageView } from '@/lib/analytics/openaiAdsPixel'
 
 interface AnalyticsBoundaryProps {
   enabled: boolean
@@ -73,6 +74,8 @@ export function AnalyticsBoundary({ enabled, measurementId }: AnalyticsBoundaryP
     if (!isTrackable || typeof window === 'undefined') {
       return
     }
+
+    trackOpenAIAdsPageView(pathname || '/')
 
     const pagePath = searchParamString ? `${pathname}?${searchParamString}` : pathname
     void syncBuyerAttributionForCurrentPage(measurementId)

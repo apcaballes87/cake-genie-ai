@@ -1574,6 +1574,46 @@ describe('calculatePriceFromDatabase', () => {
     }
   });
 
+  it('prices plain candle sticks at ₱10 per individual stick', async () => {
+    const { calculatePriceFromDatabase } = await import('./pricingService.database');
+    pricingRows.push({
+      rule_id: 79,
+      item_key: 'candle_stick',
+      item_type: 'candle_stick',
+      classification: 'hero',
+      size: null,
+      description: 'Plain straight wax candle stick',
+      price: 10,
+      category: 'main_topper',
+      quantity_rule: 'per_piece',
+      multiplier_rule: null,
+      special_conditions: null,
+      is_active: true,
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z',
+    });
+
+    for (const [quantity, expectedPrice] of [[1, 10], [3, 30]] as const) {
+      const topper = {
+        id: `candle-stick-${quantity}`,
+        type: 'candle_stick',
+        description: 'Plain straight wax candle sticks',
+        quantity,
+        isEnabled: true,
+      } as unknown as MainTopperUI;
+      const result = await calculatePriceFromDatabase({
+        mainToppers: [topper],
+        supportElements: [],
+        cakeMessages: [],
+        icingDesign: {} as IcingDesignUI,
+        cakeInfo: { type: '1 Tier', size: '6" Round' } as CakeInfoUI,
+      });
+
+      expect(result.itemPrices.get(topper.id)).toBe(expectedPrice);
+      expect(result.addOnPricing.addOnPrice).toBe(expectedPrice);
+    }
+  });
+
   it('warns once for a whitespace-only legacy quantity rule and treats it as flat', async () => {
     const { calculatePriceFromDatabase } = await import('./pricingService.database');
     const warnSpy = vi.spyOn(console, 'warn');

@@ -5,12 +5,11 @@ export function MothersDayIntroContent() {
     <section className="py-4 md:py-6">
       <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
         <h2 className="mb-4 text-[22px] font-bold text-gray-900 md:text-[28px]">
-          Looking for the best Mother&apos;s Day cake in Cebu this 2026?
+          Looking for a Mother&apos;s Day cake in Cebu?
         </h2>
         <div className="prose prose-base mx-auto space-y-4 text-gray-600 md:prose-lg md:space-y-6">
           <p>
-            <strong>Mother&apos;s Day 2026 falls on Sunday, May 10, 2026,</strong> and the
-            sweetest gifts are the ones that feel thoughtful, beautiful, and personal. Genie.ph
+            The sweetest gifts feel thoughtful, beautiful, and personal. Genie.ph
             helps you buy a Mother&apos;s Day cake online with instant pricing, trusted Cebu bakers,
             and custom designs made for moms, grandmothers, wives, and every mother figure worth
             celebrating.

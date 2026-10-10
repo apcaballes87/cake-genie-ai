@@ -6,7 +6,6 @@ import {
     MAIN_TOPPER_TYPES,
     SUPPORT_ELEMENT_TYPES,
     VALID_SIZES,
-    SUBTYPES_BY_TYPE,
     CAKE_MESSAGE_TYPES,
     isValidMainTopperType,
     isValidSupportElementType,
@@ -113,19 +112,17 @@ export function validateAnalysis(input: ValidationInput): ValidationResult {
             });
         }
 
-        if (isSizelessSupportElementType(element.type)
-            && (element.size !== undefined || element.coverage !== undefined)) {
+        if (isSizelessSupportElementType(element.type) && element.coverage !== undefined) {
             errors.push({
                 field: `${fieldPrefix}.size`,
-                value: element.size ?? element.coverage,
-                message: `${element.type} must not carry a size or coverage band`,
+                value: element.coverage,
+                message: `${element.type} must not carry a coverage band`,
             });
         }
 
         // Check size (treat coverage as size for backward compatibility)
-        const effectiveSize = element.size || (element as any).coverage;
-        if (!isSizelessSupportElementType(element.type)
-            && effectiveSize && !isValidPersistedSize(effectiveSize) && effectiveSize !== 'mixed') {
+        const effectiveSize = element.size ?? element.coverage;
+        if (effectiveSize && !isValidPersistedSize(effectiveSize) && effectiveSize !== 'mixed') {
             warnings.push({
                 field: `${fieldPrefix}.size`,
                 value: effectiveSize,
@@ -152,7 +149,7 @@ export function validateAnalysis(input: ValidationInput): ValidationResult {
     input.cakeMessages?.forEach((message, index) => {
         const fieldPrefix = `cake_messages[${index}]`;
 
-        if (!CAKE_MESSAGE_TYPES.includes(message.type as any)) {
+        if (!CAKE_MESSAGE_TYPES.includes(message.type)) {
             warnings.push({
                 field: `${fieldPrefix}.type`,
                 value: message.type,

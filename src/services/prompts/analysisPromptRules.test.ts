@@ -555,9 +555,11 @@ describe('cake analysis prompt rules', () => {
   it('keeps candle classification in the fallback prompt source', () => {
     const prompt = readPrompt('src/services/prompts/fallback-prompt.txt');
 
-    expect(prompt).toContain('CANDLES ARE ALWAYS CANDLE TYPE');
-    expect(prompt).toContain('classify it as `candle` with material `wax`');
-    expect(prompt).toContain('Do NOT classify candles as `edible_3d_ordinary`, `edible_3d_complex`, `toy`, `gumpaste`, or fondant.');
+    expect(prompt).toContain('CANDLE AND CANDLE STICK CLASSIFICATION');
+    expect(prompt).toContain('Use `candle_stick` only for a plain, straight cylindrical wax candle');
+    expect(prompt).toContain('Use `candle` for number candles, heart candles, spiral candles, taper candles');
+    expect(prompt).toContain('Do not use `candle_stick` for a candle holder');
+    expect(prompt).toContain('Both `candle_stick` and `candle` use material `wax`');
   });
 
   it('keeps edible photo top versus edible photo print rules in the fallback prompt source', () => {
@@ -777,7 +779,7 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('`edible_logo_2d`, not `edible_2d_complex`, not `edible_lego_bricks`');
     expect(prompt).toContain('For `edible_2d_complex`, draw the representative `size_line` across the');
     expect(prompt).toContain('The application assigns its final size.');
-    expect(prompt).toContain('"type": "candle|toy|plastic_crown|edible_crown|cardstock|edible_photo_top|edible_logo_2d|edible_2d_complex|printout');
+    expect(prompt).toContain('"type": "candle_stick|candle|toy|plastic_crown|edible_crown|cardstock|edible_photo_top|edible_logo_2d|edible_2d_complex|printout');
 
     expect(SYSTEM_INSTRUCTION).toContain('Use "edible_2d_complex" only for one detailed, composed flat fondant/gumpaste artwork built from visibly distinct components');
     expect(SYSTEM_INSTRUCTION).toContain('A readable logo, wordmark, or brand design remains "edible_logo_2d".');
@@ -883,7 +885,7 @@ describe('cake analysis prompt rules', () => {
 
     if (prompt.includes('V3.95 INTEGRATED BOUNDING-BOX CONTRACT')) {
       expect(prompt).toContain('INTEGRATED CAKE ANALYSIS + PRECISE BOUNDING-BOX GEOMETRY');
-      expect(prompt).toContain('cake_area = cake_width * cake_width');
+      expect(prompt).toContain('cake_area = cake_width * (0.67 * cake_width)');
       expect(prompt).toContain('Small:  area_ratio_percent <= 15');
       expect(prompt).toContain('Medium: area_ratio_percent > 15 and <= 70');
       expect(prompt).toContain('Large:  area_ratio_percent > 70');
@@ -1240,7 +1242,7 @@ describe('cake analysis prompt rules', () => {
     expect(prompt).toContain('EDIBLE 2D LOGO CRAFT TOPPERS');
     expect(prompt).toContain('Use `edible_logo_2d` for flat or shallow-relief edible logo/name/brand panels made from gumpaste or fondant craft');
     expect(prompt).toContain('matte fondant Yonex logo letters on a side panel -> `edible_logo_2d`');
-    expect(prompt).toContain('"type": "candle|toy|plastic_crown|edible_crown|cardstock|edible_photo_top|edible_logo_2d|edible_2d_complex|printout');
+    expect(prompt).toContain('"type": "candle_stick|candle|toy|plastic_crown|edible_crown|cardstock|edible_photo_top|edible_logo_2d|edible_2d_complex|printout');
   });
 
   it('keeps edible Lego brick classification in the fallback prompt source', () => {

@@ -65,6 +65,24 @@ describe('CustomizingEditorSheet', () => {
         expect(props.onClose).toHaveBeenCalledTimes(1);
     });
 
+    it('forwards an optional action button to the bottom-sheet footer', () => {
+        const props = buildProps();
+        props.activeCustomization = 'toppers';
+        const onApply = vi.fn();
+        props.actionButton = (
+            <button type="button" onClick={onApply}>
+                Apply Design
+            </button>
+        );
+
+        render(<CustomizingEditorSheet {...props} />);
+
+        const button = screen.getByRole('button', { name: 'Apply Design' });
+        expect(button).toBeInTheDocument();
+        fireEvent.click(button);
+        expect(onApply).toHaveBeenCalledTimes(1);
+    });
+
     it('offsets the sheet above availability bar when visible', () => {
         const props = buildProps();
         props.showAvailabilityOffset = true;

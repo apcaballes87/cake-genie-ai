@@ -41,6 +41,7 @@ type CollectionDesign = Pick<
     | 'image_width'
     | 'image_height'
     | 'image_variants'
+    | 'image_variants_indexed_source'
 > & {
     alt_text?: string | null;
 };
@@ -143,6 +144,7 @@ export const DesignGridWithLoadMore: React.FC<DesignGridWithLoadMoreProps> = ({
                             image_width={design.image_width}
                             image_height={design.image_height}
                             image_variants={design.image_variants}
+                            image_variants_indexed_source={design.image_variants_indexed_source}
                             priority={index < 4}
                             collectionContext={collectionTitle}
                             listName="collection_page"

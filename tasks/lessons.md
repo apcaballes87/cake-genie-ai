@@ -1,5 +1,35 @@
 # Lessons
 
+- When a Google Cloud billing screenshot shows a model SKU such as `Text Input Caching Storage`, do not attribute the charge to GCS object storage. Verify the billed product/SKU and project ID separately; Vertex context-cache resources can retain prompt tokens for their TTL even when the GCS batch bucket is nearly empty.
+
+- For paid Vertex batch imports, never delete the output object until database persistence has been verified. If cleanup runs after an import failure, use the bucket's Soft Delete window to recover the exact output before considering an AI resubmission.
+
+- When adding a new hit counter, verify the exact live ledger query and distinguish it from legacy `usage_count`; report the attributed cache row, source, and timestamp so a user can reconcile a just-completed upload.
+
+- When a Prompt Lab exposes editable decoding controls, the server must validate supported ranges and forward the accepted values through every lab generation path. A fixed default is an initial state, not a rejection rule for every experiment.
+
+- For cake prompt patches, register every precedence-bearing rule in one OUTPUT ORDER list and cross-reference its step. Audit upstream rejection/membership gates, downstream enum and pricing contracts, and repeated summaries together; a local wording fix can otherwise remain unreachable or contradictory. Keep thickness ownership in one paragraph and geometry-field names distinct from real-world size estimates.
+
+- When Computer Use is requested for local configuration, first check the available terminal/host tools. If macOS Terminal UI is blocked by Computer Use safety restrictions, continue through the approved workspace shell or host connection instead of treating the UI restriction as the task blocker.
+
+- When repeated-item bboxes are too large, treat it as a generic representative-unit contract failure, not a type-specific lollipop problem. The bbox rule must apply uniformly to every repeated main/support row, and local sizing should continue to calculate from whatever bbox is emitted rather than adding isolated type exceptions.
+
+- For piped flowers, decide fulfillment scope before applying repeated-item geometry: a cohesive piped cluster is one coverage-priced row with quantity one and one cluster BBox, while independently placed piped blooms are `icing_decorations` with counted, local unit boxes. Never let a cluster BBox determine its coverage price.
+
+- When local cake sizing corrects high-angle geometry, preserve the AI-emitted measurement endpoints for the overlay and apply the effective height only inside the shared calculation. Use the same effective geometry for both eligible single-body `cakeThickness` inference and topper reference area, while leaving fixed-height and multi-tier types on their existing rules.
+
+- When the bbox reference-area formula changes, keep physical cake-height selection separate from topper/support sizing. Use diameter width squared for the stable area reference and add a regression proving that changing the height-line length cannot change the resulting size band.
+
+- When a feature is paused, hide its visible status indicator at the specific active render seam instead of removing unrelated loading states. For cake analysis speed changes, update both the helper default and shared request config so direct and batch calls send the same provider thinking level.
+
+- When hiding analysis visuals for a storefront request, add an explicit display-only overlay flag. Keep the validated geometry and detected-element boxes available so sizing, persistence, and admin review are unaffected.
+
+- When a repeated analysis row drives bbox-area pricing, define `box_2d` as one representative visible unit in both the response schema description and the highest-precedence generation instruction. Name multiple concrete repeated families so the rule applies uniformly instead of being read as a gemstone-only exception.
+
+- When repeated geometry has legitimate region-level treatments, separate discrete-unit and aggregate-treatment scope explicitly. Use a bounded type allowlist and preserve existing fulfillment quantity rules; never let “hard to count” alone turn a countable cluster into a full-region box.
+
+- When one grouped row needs per-unit geometry, keep the row-level quantity and priceable size for compatibility but return a bounded box/confidence collection: exactly min(quantity, 5) for discrete units, one regional box for aggregate treatments, and preserve a reader for historical singular boxes.
+
 - After changing Vercel environment variables, verify the deployed function's raw provider resource and redeploy before diagnosing Google IAM. The dashboard can show corrected values while the live deployment still uses its previous environment snapshot.
 
 - When a cake-analysis description/type mismatch can be corrected at the existing strict post-processing seam, prefer a narrow primary-object reconciliation table over redesigning the whole taxonomy. Split secondary garnish phrases first, preserve composite descriptions, and leave ambiguous rows unchanged.
@@ -74,6 +104,10 @@
 - When a user points out that the rejection rule already exists in the active cake-analysis prompt, do not describe the issue as a missing prompt rule. Separate prompt presence from enforcement: verify the production prompt row/version, model output, and cache-hit path before concluding why an upload was accepted.
 # Lesson: Verify every route-specific render seam for shared UI requests
 
+- When the user specifies physical cake height from image aspect ratio, keep the measured geometry line separate from the application-owned height band. Resolve overlapping thresholds explicitly: at exactly 1.2, the <=1.2 rule selects 6 inches.
+
+- When a user reports an unwanted upload-side image transformation, disable the trigger at every active seam: the landing upload coordinator, the shared cache-write fallback, and the trigger endpoint. Stopping only the visible client request still permits background or alternate upload paths to create an edited asset.
+
 - When adding a visible CTA to a route family, inspect both the base route and dynamic slug route before concluding the UI is covered. A shared-looking section may be rendered by separate components, and a condition such as `!slug && analysisResult` can make a valid component change invisible on the route users actually visit.
 # Lesson: Keep background AI fallback states silent when the original experience remains usable
 
@@ -86,3 +120,223 @@
 # Lesson: Separate live prompt state from a proposed migration version
 
 - When discussing an un-applied AI prompt release, state the current live version first and describe the higher version only as proposed/local. Never let a proposed migration version read as if it were active in production.
+
+# Lesson: Gate public cake discovery on publication readiness, not cache existence
+
+- When separating delayed SEO from cake analysis, keep `cakegenie_analysis_cache` as the public catalog source. Gate Trending, search, product pages, feeds, and sitemaps on the shared published state that represents the 48-hour delay plus completed title, description, and alt text; do not remove fresh cache records from uploader pricing or customization.
+
+# Lesson: Measure cake height from the front rim
+
+- For cake measurement overlays, the height line must start on the lower/closer arc of the visible top ellipse—the near/front rim where the top surface transitions into the front-facing wall—and end at the near/front lower rim, not the highest pixel, rear arc, board, or plate. Preserve the model's endpoint coordinates and allow perspective-slanted diameter and height lines; keep topper boxes independent of cake measurements.
+
+# Lesson: Keep local bbox sizing separate from historical AI size semantics
+
+- When moving cake-element sizing from AI to local geometry, use a new persisted sizing marker and preserve unmarked or prior three-band cache rows. Apply the local calculator only after all required geometry is present, and never use an AI size fallback for a fresh result when local sizing is the source of truth.
+
+# Lesson: Include explicit runtime and deployment blockers in operational prompts
+
+- When writing a runbook prompt for a service, state both whether runtime tests actually ran and which dependencies prevented them from running. Also distinguish a migration file being created from the migration being applied, and name required matching server secrets such as `ORB_INTERNAL_SECRET` on every deployment side.
+
+# Lesson: Verify bundled WASM through the real Next.js route
+
+- A server-only WASM unit test can pass while the Next.js bundle cannot locate its binary asset. Externalize the package when required by its runtime loader and smoke-test the actual HTTP route before treating the deployment path as verified.
+# Lesson: Validate crop robustness with real same-design assets
+
+When perceptual-hash distances look implausibly high, test the exact original
+assets and their controlled variants before changing the threshold. A small
+synthetic fixture can look healthy while real same-cake framing differences
+produce distances around `78` to `108`; normalization experiments must be
+compared on the same pipeline and must include visually similar hard negatives.
+
+# Lesson: Score cake inventory by identity and location, not total alone
+
+For cake-analysis gold fixtures, compare model observations to adjudicated object centers and identities before treating an exact total as accuracy. A model can miss one visible flower and duplicate another while preserving the same total count. Report exact-instance and grouping agreement separately from total-count agreement, and keep invalid geometry from improving apparent variance by reducing the number of assembled outputs.
+
+# Lesson: Exercise real observation variants before calling localhost usable
+
+A single successful cake fixture does not establish that a new private observation contract is usable from the browser. Replay mismatched-but-decisive structured evidence and realistic perspective-slanted measurement lines through the API route before handing off localhost. Treat construction evidence as authoritative for deterministic fallback mapping, and validate whether a line crosses the intended object with a practical geometric tolerance instead of requiring exact horizontal coordinates from a vision model.
+
+# Lesson: Do not add deferred or role-conflicting support types
+
+- A type mentioned in a patch list is not ready for the generated support enum until its role, runtime validation, display mapping, and pricing rule all agree. If readable content already belongs exclusively to `cake_messages`, keep it out of support types. If a product add-on has no approved pricing contract, preserve any required cake-type classification but omit the add-on and decorations exclusive to it from emitted item rows.
+
+# Lesson: Put pricing next to the analyzed item it explains
+
+- In internal analysis tools, show an item’s calculated add-on in that item’s own topper or support card. Keep base price, total, and size-option context inside the analysis summary instead of duplicating a separate final-price panel.
+
+# Lesson: Do not present invalid raw analysis as a zero-item result
+
+- When a provider JSON payload reaches the lab but fails the shared storefront contract, expose the exact validation reason and raw inventory separately. Do not render raw items as validated cards, show zero counts as if analysis succeeded, or allow missing-price metadata to crash the display.
+
+# Lesson: Keep run controls and run status together
+
+- On an internal test surface, put execution status and metadata directly beneath the settings that produced them. Leave detailed output cards in their existing result area so the input-to-output layout remains clear.
+
+# Lesson: Label production-equivalent and experimental AI runs honestly
+
+- A lab can use the production runner without writing customer state. When an active prompt is unchanged, call the runtime loader rather than replaying copied text; label edited prompts, staged versions, sizing presets, and alternate models as experiments. State any remaining privacy-driven difference, such as disabled prompt-cache writes.
+
+# Lesson: Keep diagnostic geometry beside the analyzed item
+
+- When a raw AI response reports per-item coordinates, do not duplicate the same measurements in a separate top-level `items` list and inside `main_toppers` or `support_elements`. Keep only shared geometry such as the cake-top diameter at the top level, and put each item measurement array on its owning analysis row so the response has one source of truth.
+
+# Lesson: Use one preview and return real box geometry
+
+- When the user asks for one image preview, render the grid and diagnostics in the Test image only; do not also show a server-generated grid image in the results column. If the user asks to see box coordinates, return a per-item grid `bbox` with top-left and bottom-right points instead of drawing only a vertical height line.
+
+# Lesson: Localize grid geometry separately from cake classification
+
+- Do not ask one vision response to classify, count, map storefront rows, and place pricing-critical grid geometry at the same time. Freeze the accepted row manifest first, then use an image-only coordinate pass that measures the physical top-tier cross-section and one tight representative unit per row. Reject reversed boxes and non-horizontal/non-vertical cake spans before local area sizing runs.
+
+# Lesson: Preserve the requested image transform in the named analysis path
+
+- If a user specifies `original image → grid overlay → one-pass cake analysis`, do not optimize that analysis call back to the unmodified image. The grid must be visible to every vision call that is expected to estimate grid coordinates; a later refinement pass may use the same overlay, but cannot replace the requested overlay-aware one-pass analysis.
+
+# Lesson: Normalize interchangeable vision-box corners before rejecting output
+
+- A vision model may provide the two opposite rectangle corners in reverse order even when both coordinates are valid. Canonicalize them with per-axis min/max before grid snapping and sizing; reject only zero-width or zero-height boxes. Do not discard an otherwise valid storefront analysis for recoverable corner ordering.
+
+# Lesson: Insert app-derived sizing before strict storefront validation
+
+- When a grid response schema intentionally removes model-provided `size`, calculate the bbox-area ratio and insert the app-derived category into every size-bearing row before calling the storefront validator. The post-validation pass may reconcile types and reapply the same geometry, but it cannot be the first place size is supplied. Use the explicitly requested global bands when the experiment defines them, not inherited type-aware bands.
+
+# Lesson: Snap vision boxes outward, never to the nearest shared line
+
+- When a visible grid must also be the pricing geometry, floor the normalized top/left edges and ceil the bottom/right edges. Nearest-line rounding can collapse valid sub-cell detections into zero area and make the entire analysis fail. Outward snapping keeps the box grid-aligned, contains the observed unit, and guarantees at least one cell for every positive-area source box.
+
+# Lesson: Expose the visual model input on coordinate-debug surfaces
+
+- A browser-rendered overlay is not enough to audit a vision-coordinate result. When a lab generates a grid raster for Gemini, return and expose its generated visual preview directly beneath the test image, and state which stage receives it. Distinguish the original-photo inventory input from the grid-overlay coordinate input in two-step mode.
+
+# Lesson: Never expose a raw data URL as the primary image-debug link
+
+- Some in-app browser contexts render a clicked `data:image/...` URI as text instead of an image. Decode the returned base64 payload into a typed Blob and open its temporary `blob:` URL, then offer a named download as a fallback.
+
+# Lesson: Calibrate vision boxes one immutable row at a time
+
+- A single locator request that sees several overlapping topper/support descriptions can borrow the largest salient rectangle for unrelated rows. Measure cake reference geometry independently, then issue one schema-locked, single-target locator request per immutable storefront row. Do not let provisional geometry from the classification response block the calibrated locator that supersedes it.
+
+# Lesson: Do not silently replace mandatory grid geometry
+
+- When the sizing experiment declares representative bboxes mandatory, a missing, malformed, or collapsed bbox is a contract failure. Do not substitute a line or alternate measurement method: keep the failure explicit so the locator/prompt can be corrected and the displayed box remains the priced geometry.
+
+# Lesson: Never replace one-pass raw coordinates after rendering them
+
+- If Prompt Lab presents raw one-pass grid JSON for review, the same normalized bbox values must drive the overlay, sizing table, category calculation, and pricing. A later calibration or locator request is a separate model answer and must never silently overwrite the displayed raw response.
+
+# Lesson: Keep grid coordinates out of optional pixel geometry
+
+- A grid-mode prompt can make Gemini place 0–20 coordinates into optional legacy fields such as `cake_messages[].bbox`, whose storefront contract requires 0–1000 pixel integers. Remove those fields from the grid response schema and strip any model-supplied value before validation. For the requested reference-area denominator, project valid perspective-slanted cake endpoints to horizontal diameter and vertical wall-height spans; reject only a zero extent.
+
+# Lesson: Keep shared module exports and consumers synchronized
+
+- When an experimental coordinate mode is wired into the server and UI, update the shared geometry module in the same change. Verify every imported prompt, schema, calculator, type, and overlay symbol exists before deployment; a partial export seam fails during Turbopack module analysis before behavior tests can exercise the feature.
+
+# Lesson: Make the UI expose every required coordinate mode
+
+- If a feature has two coordinate systems, do not leave the UI as a legacy enable/disable checkbox. Render exactly the two named choices and send the selected mode explicitly so the prompt suffix, image overlay, response schema, and result display cannot silently disagree.
+
+# Lesson: Anchor cake height to the visible front-center wall
+
+- For Prompt Lab cake geometry, “height” means the visible front wall: start at the top front edge where the top surface meets the sidewall and end at the base. State this explicitly in the geometry prompt and validate that the returned vertical line stays near the midpoint of the diameter span; axis validation alone can accept a rear or off-center line.
+
+# Lesson: Keep true one-pass geometry isolated from the two-call reference
+
+- A single combined Gemini response can carry baseline analysis and exhaustive geometry, but it cannot freeze an intermediate manifest. Expose it as a separate Prompt Lab experiment, validate nested analysis and geometry independently, and keep normal baseline pricing authoritative until the combined mode is benchmarked against the two-call reference.
+
+# Lesson: Do not let one-pass analysis validation hide independent geometry
+
+- In the combined response, a missing production field such as `support_elements[].size` must be reported as an analysis validation error without discarding valid geometry from the same response. Validate the nested analysis and geometry independently, and make the editable combined prompt explicitly prohibit null or missing required pricing fields.
+
+# Lesson: Merge geometry by stable analysis identity, not array position
+
+- To expose review boxes alongside priced `main_toppers` and `support_elements`, match geometry to normalized `group_id` (accepting a detector suffix such as `_elem`) and keep unmatched decorations in the exhaustive geometry inventory. Never assume the two arrays have the same order or cardinality.
+
+# Lesson: Keep provider schemas aligned with strict post-processing
+
+- If strict validation requires a field, the combined response schema must require it too. Direct-sizing analysis previously exposed `size` as optional at the provider boundary even though validation required it for non-filler rows; that allowed Gemini to omit it and fail the whole analysis. Also canonicalize recoverable reversed measurement endpoints while retaining the raw model response for audit.
+
+# Lesson: Test the user-named surface, not an adjacent diagnostic path
+
+- When the user asks to test landing-page upload analysis, exercise the homepage uploader and its navigation into the live customizer flow. Prompt Lab can verify an isolated contract, but it does not prove the landing-page upload, cache, enrichment, and rendered analysis behavior the user asked about.
+
+# Lesson: Preserve the contract cause behind generic AI route errors
+
+- A browser `500` with `Invalid response format from AI` does not identify whether JSON parsing, row geometry, or final storefront validation failed. Keep the public production message safe, but surface the nested validator cause in local development and include prompt/system-instruction bytes in prompt-cache reuse keys so landing-page tests exercise the current contract.
+
+# Lesson: Treat missing integrated geometry as a prompt/cache-version signal
+
+- A successful analysis can still have no boxes when its payload is `three_band_v1` or `ai_diameter_anchor`; those contracts intentionally omit `geometry` and `box_2d`. Check the emitted `analysis_size_schema` and server prompt version before changing the overlay. Keep historical rows unchanged and use a fresh or explicitly rerun v3.92 request for integrated geometry.
+
+# Lesson: Keep repeated-unit bbox failures bounded and visible
+
+- A discrete row must never use an arrangement-wide box. The integrated contract caps unit boxes at five, preserves the reported quantity for pricing, and logs when Gemini localizes fewer tight units than that cap; never silently turn the missing units into a large cluster box.
+
+# Lesson: Keep integrated area bands application-owned
+
+- When a size threshold changes, update the deterministic integrated-bbox calculator and its authoritative system override together. Historical schemas and cached size labels must remain unchanged.
+
+# Lesson: Canonicalize model measurement endpoints
+
+- A valid Gemini measurement can arrive in reverse endpoint order. Normalize diameter lines by x and height lines by y before orientation, midpoint, aspect-ratio, and sizing checks; reject only genuinely non-horizontal or non-vertical geometry.
+
+# Lesson: Distinguish endpoint order from perspective drift
+
+- A left-to-right diameter can still fail if its y-drift is large. Treat endpoint direction and perspective tolerance as separate validations; allow strongly slanted cake rims when a usable horizontal span remains, while retaining a truly axis-incompatible regression test.
+
+# Lesson: Keep conditional generated fields aligned across layers
+
+- If a flag such as `gumpasteBaseBoard` makes a color required, require that color in the integrated Gemini response schema and retain a deterministic post-processing fallback for omission. Otherwise Gemini can produce a semantically valid-looking response that the final validator rejects as a 500.
+
+# Lesson: Do not derive source identity from output metadata
+
+- Delayed image jobs must key their source revision from the original asset identity, not mutable output dimensions. Studio completion updates cache dimensions, so including them in the source revision or enqueue trigger would requeue the image that just completed.
+
+# Lesson: Bind delayed-job completions to the claim run
+
+- A stale worker can outlive its lease and overlap a retry. Finalize and failure RPCs must validate the claim run token as well as the source revision, so late work cannot overwrite the job that currently owns the retry.
+
+# Lesson: Keep analysis overlays aligned with the active hero image
+
+- Bounding boxes are useful on both original and customized tabs. Do not gate the overlay on the original tab; derive its rendered bounds from whichever hero image is active while preserving the original frame ratio.
+
+# Lesson: Start client-error audits from the database
+
+- For recent Genie.ph browser-error audits, query Supabase `public.client_errors` first; correlate cart failures through `metadata.cartRequestId` and inspect the live cart row before treating a scheduled retry as recovered. Use Clarity only as supplemental context.
+
+# Lesson: Pace direct model reruns after batch validation failures
+
+- When a large Vertex batch has already produced provider and strict-contract failures, use a direct runner capped at 100 rows with explicit per-row logs, no prompt/context cache, and no GCS staging. Start with concurrency 1, prefer the Studio image, pace rows, back off on 429s, and stop before paying through a recurring quota failure. Remove unrelated local credential-file overrides before ADC impersonation; otherwise every request can fail before reaching Vertex.
+
+# Lesson: Compare rerun settings to production before blaming a model setting
+
+- When a rerun times out, compare both model and thinking level against the deployed production commit before attributing latency. Genie production uses Gemini 3.5 Flash Lite at LOW; the cache rerun explicitly uses Gemini 3.1 Flash Lite. A timeout in that rerun alone is not evidence that LOW is a production problem.
+
+- When Vercel MCP is available for a deployment task, inspect its deployment capability and use it for an isolated Preview before reporting that deployment is blocked by local CLI credentials. Verify production is unaffected and validate the Preview before any production promotion.
+
+# Lesson: Keep bbox failures local to the affected row
+
+- Structured JSON validity does not guarantee bbox count or type/scope compatibility. For the tolerant contract, make one stable-`group_id` bbox-only retry, then retain valid boxes, the original item quantity, and a visible review status; do not reject otherwise valid cake analysis or discard decorations.
+
+# Lesson: Resolve the live active prompt immediately before a rerun
+
+- When the user says a prompt was activated, verify the live `is_active` row immediately before starting paid cache work, require the intended version to be the sole active row, and omit an explicit version override so the runner uses the active prompt. Record the prompt ID/version in the run log.
+
+# Lesson: Preserve an existing share URL shape when exposing pending designs
+
+- When a user points out that an existing slug and option query already identify the item, inspect the route and publication gate, then reuse that URL shape. Distinguish “link works while noindex, then becomes public after SEO publication” from “permanently private” before proposing new tokens, tables, or routes.
+
+# Lesson: Keep bbox gestures in the image scroll chain
+
+- For a tall mobile hero, editable bbox hit targets must be descendants of the image's `overflow-y-auto` scroller. `touch-pan-y` on the hero frame alone can send a bbox-started swipe to the page, skipping image panning. Preserve click/tap activation and verify image-first movement with page handoff at the image edge.
+
+# Lesson: Distinguish configured env names from missing worktree env files
+
+- When a clean migration worktree build reports a missing env variable, inspect the app's actual env adapter and compare only env-file presence/key names across checkouts. Do not imply the project lacks configuration when the isolated worktree simply does not contain its ignored `.env.local`; distinguish app-required `NEXT_PUBLIC_*` names from aliases used only by legacy scripts, and never print or copy values during diagnosis.
+
+# Lesson: Apply requested exclusions to both rows and totals
+
+- When a user narrows an order export (for example, excluding expired orders), remove those rows from the deliverable and recalculate every included-order total. Keep payment and fee reconciliations scoped to the retained orders, and verify the excluded status is absent from the final CSV.
+# 2026-10-02 — Apply numeric formula clarifications literally
+
+- When the user clarifies a sizing relationship with an explicit multiplier, update the plan, implementation, prompt contract, and regression test to that exact formula. Do not substitute a measured dimension or an approximately equivalent fraction.

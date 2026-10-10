@@ -27,6 +27,7 @@ vi.mock('@supabase/supabase-js', () => ({
 }));
 
 const pdqHash = 'ab'.repeat(32);
+const requestId = '11111111-1111-4111-8111-111111111111';
 
 describe('findSimilarAnalysisByHash', () => {
   beforeEach(() => {
@@ -38,10 +39,10 @@ describe('findSimilarAnalysisByHash', () => {
     mockClient.from.mockClear();
   });
 
-  it('uses the PDQ RPC with quality, pipeline, and the initial distance threshold', async () => {
+  it('returns a pending cache slug and records the PDQ cache hit', async () => {
     rpcMock.mockResolvedValue({
       data: [{
-        seo_status: 'published',
+        seo_status: 'pending',
         id: 'cache-row-1',
         p_hash: 'abc123def4567890',
         pdq_hash: pdqHash,
@@ -65,9 +66,12 @@ describe('findSimilarAnalysisByHash', () => {
       pdqHash,
       pdqQuality: 92,
       pdqPipeline: 'pdq-test',
+      requestId,
+      source: 'test_upload',
     });
 
     expect(result?.seoMetadata.slug).toBe('lavender-cake-abc123de');
+    expect(result?.seoMetadata.seo_status).toBe('pending');
     expect(result?.pdqHash).toBe(pdqHash);
     expect(rpcMock).toHaveBeenCalledWith('find_similar_analysis_by_pdq', {
       new_hash: pdqHash,
@@ -75,6 +79,14 @@ describe('findSimilarAnalysisByHash', () => {
       new_pipeline: 'pdq-test',
       max_distance: 35,
       min_quality: 50,
+    });
+    expect(rpcMock).toHaveBeenCalledWith('record_pdq_cache_hit', {
+      p_cache_id: 'cache-row-1',
+      p_incoming_pdq_hash: pdqHash,
+      p_pdq_quality: 92,
+      p_pdq_pipeline: 'pdq-test',
+      p_request_id: requestId,
+      p_source: 'test_upload',
     });
   });
 

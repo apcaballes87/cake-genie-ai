@@ -4,11 +4,16 @@
 
 export const FEATURE_FLAGS = {
     /**
-     * Temporarily pause automatic Image Studio edits for uploaded designs.
-     * Uploads still retain their original source, run cake analysis, and cache
-     * their analysis/pricing data. Re-enable only through a deliberate release.
+     * Retired immediate upload trigger. Delayed Studio editing is controlled by
+     * ENABLE_DELAYED_STUDIO_EDITING instead.
      */
     ENABLE_UPLOAD_AI_IMAGE_EDITING: false,
+
+    /**
+     * Enable the separate delayed Image Studio worker for newly queued rows.
+     * This is intentionally off until the queue/cron path is accepted.
+     */
+    ENABLE_DELAYED_STUDIO_EDITING: process.env.ENABLE_DELAYED_STUDIO_EDITING === 'true',
 
     /**
      * Use Roboflow for coordinate detection instead of Gemini

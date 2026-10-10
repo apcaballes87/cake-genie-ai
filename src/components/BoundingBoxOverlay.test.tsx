@@ -9,7 +9,7 @@ import {
 } from './BoundingBoxOverlay';
 
 describe('BoundingBoxOverlay', () => {
-    it('spotlights up to three editable boxes once and leaves the interaction hint visible', () => {
+    it('spotlights every editable box once and leaves the interaction hint visible', () => {
         vi.useFakeTimers();
 
         try {
@@ -35,7 +35,11 @@ describe('BoundingBoxOverlay', () => {
                 />
             );
 
-            expect(screen.getByTestId('bbox-interaction-hint')).toHaveTextContent('Tap or click a highlighted detail to edit it');
+            expect(screen.getByTestId('bbox-interaction-hint')).toHaveClass('top-1/3', 'bg-white', 'text-purple-800');
+            expect(screen.getByTestId('bbox-interaction-hint-mobile')).toHaveTextContent('Tap a highlighted detail to edit');
+            expect(screen.getByTestId('bbox-interaction-hint-mobile')).toHaveClass('lg:hidden');
+            expect(screen.getByTestId('bbox-interaction-hint-desktop')).toHaveTextContent('Click a highlighted detail to edit');
+            expect(screen.getByTestId('bbox-interaction-hint-desktop')).toHaveClass('hidden', 'lg:inline');
             expect(screen.getByTestId('bounding-box-outline-topper-0').style.boxShadow).toMatch(/255/);
             expect(screen.getByTestId('bounding-box-outline-support-1').style.boxShadow).toBe('none');
 
@@ -136,7 +140,7 @@ describe('BoundingBoxOverlay', () => {
         }
     });
 
-    it('spotlights an editable cake message before decoration boxes when the sequence is capped', () => {
+    it('spotlights an editable cake message before decoration boxes and still reaches every box', () => {
         vi.useFakeTimers();
 
         try {
@@ -167,7 +171,7 @@ describe('BoundingBoxOverlay', () => {
                         { category: 'topper', groupId: 'topper-b', label: 'Topper B' },
                         { category: 'topper', groupId: 'topper-c', label: 'Topper C' },
                     ]}
-                    editableCakeMessageTargets={[{ position: 'side', label: 'Happy Birthday' }]}
+                    editableCakeMessageTargets={[{ id: 'message-1', position: 'side', label: 'Happy Birthday' }]}
                     onDecorationActivate={vi.fn()}
                     onCakeMessageActivate={vi.fn()}
                 />
@@ -179,6 +183,18 @@ describe('BoundingBoxOverlay', () => {
             act(() => vi.advanceTimersByTime(650));
             expect(screen.getByTestId('bounding-box-outline-message-3').style.boxShadow).toBe('none');
             expect(screen.getByTestId('bounding-box-outline-topper-0').style.boxShadow).toMatch(/255/);
+
+            act(() => vi.advanceTimersByTime(650));
+            expect(screen.getByTestId('bounding-box-outline-topper-0').style.boxShadow).toBe('none');
+            expect(screen.getByTestId('bounding-box-outline-topper-1').style.boxShadow).toMatch(/255/);
+
+            act(() => vi.advanceTimersByTime(650));
+            expect(screen.getByTestId('bounding-box-outline-topper-1').style.boxShadow).toBe('none');
+            expect(screen.getByTestId('bounding-box-outline-topper-2').style.boxShadow).toMatch(/255/);
+
+            act(() => vi.advanceTimersByTime(650));
+            expect(screen.getByTestId('bounding-box-outline-topper-2').style.boxShadow).toBe('none');
+            expect(screen.getByTestId('bbox-interaction-hint')).toBeInTheDocument();
         } finally {
             vi.useRealTimers();
         }
@@ -224,6 +240,48 @@ describe('BoundingBoxOverlay', () => {
         const outline = screen.getByTestId('bounding-box-outline-topper-0');
         expect(outline.style.boxShadow).toContain('#10B981');
         expect(outline.style.border).toContain('2px');
+    });
+
+    it('highlights an editable bbox white while the mouse hovers over it', () => {
+        vi.useFakeTimers();
+
+        try {
+            const analysisResult = {
+                main_toppers: [{ group_id: 'topper-a', description: 'Topper A', box_2d: [100, 100, 200, 200] }],
+                support_elements: [],
+                cake_messages: [],
+            } as unknown as HybridAnalysisResult;
+
+            render(
+                <BoundingBoxOverlay
+                    analysisResult={analysisResult}
+                    imageWidth={1000}
+                    imageHeight={1000}
+                    containerWidth={1000}
+                    containerHeight={1000}
+                    useTopLeftOrigin
+                    editableDecorationTargets={[{ category: 'topper', groupId: 'topper-a', label: 'Topper A' }]}
+                    onDecorationActivate={vi.fn()}
+                />
+            );
+
+            act(() => vi.advanceTimersByTime(650));
+
+            const target = screen.getByRole('button', { name: 'Edit Topper A' });
+            const outline = screen.getByTestId('bounding-box-outline-topper-0');
+
+            fireEvent.mouseEnter(target);
+            expect(outline.style.border).toMatch(/255/);
+            expect(outline.style.boxShadow).toContain('255');
+            expect(outline.style.opacity).toBe('1');
+
+            fireEvent.mouseLeave(target);
+            expect(outline.style.border).toMatch(/16, 185, 129/);
+            expect(outline.style.boxShadow).toBe('none');
+            expect(outline.style.opacity).toBe('0.5');
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('returns every exact overlapping decoration while deduplicating repeated unit boxes', () => {
@@ -343,7 +401,7 @@ describe('BoundingBoxOverlay', () => {
                 containerWidth={1000}
                 containerHeight={1000}
                 useTopLeftOrigin
-                editableCakeMessageTargets={[{ position: 'side', label: 'Happy Birthday' }]}
+                editableCakeMessageTargets={[{ id: 'message-1', position: 'side', label: 'Happy Birthday' }]}
                 onCakeMessageActivate={onCakeMessageActivate}
             />
         );
@@ -353,9 +411,50 @@ describe('BoundingBoxOverlay', () => {
 
         fireEvent.click(target);
 
-        expect(onCakeMessageActivate).toHaveBeenCalledWith('side');
+        expect(onCakeMessageActivate).toHaveBeenCalledWith('message-1');
         expect(target).toHaveAttribute('aria-pressed', 'true');
         expect(screen.getByTestId('bounding-box-label-message-0')).toHaveTextContent('Happy Birthday');
+    });
+
+    it('keeps duplicate-position cake-message boxes tied to their own message IDs', () => {
+        const onCakeMessageActivate = vi.fn();
+        const analysisResult = {
+            main_toppers: [],
+            support_elements: [],
+            cake_messages: [
+                { text: 'First message', position: 'side', box_2d: [100, 100, 200, 300] },
+                { text: 'Second message', position: 'side', box_2d: [400, 500, 500, 700] },
+            ],
+        } as unknown as HybridAnalysisResult;
+
+        render(
+            <BoundingBoxOverlay
+                analysisResult={analysisResult}
+                imageWidth={1000}
+                imageHeight={1000}
+                containerWidth={1000}
+                containerHeight={1000}
+                useTopLeftOrigin
+                editableCakeMessageTargets={[
+                    { id: 'message-1', position: 'side', label: 'First message' },
+                    { id: 'message-2', position: 'side', label: 'Second message' },
+                ]}
+                onCakeMessageActivate={onCakeMessageActivate}
+            />
+        );
+
+        const first = screen.getByRole('button', { name: 'Edit cake message First message' });
+        const second = screen.getByRole('button', { name: 'Edit cake message Second message' });
+
+        fireEvent.click(first);
+        expect(onCakeMessageActivate).toHaveBeenLastCalledWith('message-1');
+        expect(first).toHaveAttribute('aria-pressed', 'true');
+        expect(second).toHaveAttribute('aria-pressed', 'false');
+
+        fireEvent.click(second);
+        expect(onCakeMessageActivate).toHaveBeenLastCalledWith('message-2');
+        expect(first).toHaveAttribute('aria-pressed', 'false');
+        expect(second).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('emits every overlapping topper and support target for a pointer tap', () => {

@@ -9,7 +9,7 @@ import {
     type DecorationBoxTarget,
 } from '@/components/BoundingBoxOverlay';
 import { ImageZoomModal } from '@/components/ImageZoomModal';
-import { Heart, ShieldCheck, Wand2, ScanEye, EyeOff, ZoomIn } from 'lucide-react';
+import { Heart, ShieldCheck, Wand2, ZoomIn } from 'lucide-react';
 import { ErrorIcon, ImageIcon, ResetIcon, Loader2, ReportIcon } from '../../components/icons';
 import MagicGlitter from '@/components/MagicGlitter';
 import { getCustomerFacingAnalysisError } from './analysisErrorDisplay';
@@ -70,7 +70,7 @@ interface CustomizingHeroPanelProps {
     editableDecorationTargets?: readonly DecorationBoxTarget[];
     onDecorationActivate?: (targets: DecorationBoxTarget[]) => void;
     editableCakeMessageTargets?: readonly CakeMessageBoxTarget[];
-    onCakeMessageActivate?: (position: CakeMessageBoxTarget['position']) => void;
+    onCakeMessageActivate?: (messageId: CakeMessageBoxTarget['id']) => void;
     onDecorationDismiss?: () => void;
     reviewSummary?: {
         total: number;
@@ -172,7 +172,6 @@ export const CustomizingHeroPanel = memo(({
     activeTab,
     isAnalyzing,
     isUpdatingDesign,
-    isStudioBackgroundEditingPending = false,
     isComposingSelfie = false,
     dynamicLoadingMessage,
     error,
@@ -217,7 +216,6 @@ export const CustomizingHeroPanel = memo(({
     const [overlayImageBounds, setOverlayImageBounds] = useState<OverlayImageBounds | null>(null);
     const heroFrameRef = useRef<HTMLDivElement | null>(null);
     const [isHeroImageZoomOpen, setIsHeroImageZoomOpen] = useState(false);
-    const [showAnalysis, setShowAnalysis] = useState(true);
     const { phrase: dynamicAnalysisPhrase, isVisible: isAnalysisPhraseVisible } = useDynamicLoadingPhrase(isAnalyzing);
     const mobileHeroScrollRef = useRef<HTMLDivElement | null>(null);
     const baseOriginalImageUrl = originalImagePreview || preferredOriginalImageUrl || null;
@@ -281,17 +279,15 @@ export const CustomizingHeroPanel = memo(({
     const zoomOriginalImage = originalHeroModalSrc || null;
     const zoomCustomizedImage = editedImage || null;
     const zoomInitialTab: ImageTab = activeTab === 'customized' && zoomCustomizedImage ? 'customized' : 'original';
+    // Upload-to-Studio background editing is paused. Keep the hero status slot
+    // available for the active selfie composite, but do not surface the paused
+    // background-edit pill over the uploaded cake image.
     const activeHeroLoader = isComposingSelfie
         ? {
             label: 'ai is adding your image to the cake',
             text: 'ai adding your image on this cake...',
         }
-        : isStudioBackgroundEditingPending
-                ? {
-                    label: 'ai is editing your background',
-                    text: 'ai is editing your background...',
-                }
-                : null;
+        : null;
 
     const openHeroImageModal = () => {
         if (!zoomOriginalImage) return;
@@ -338,6 +334,33 @@ export const CustomizingHeroPanel = memo(({
         centerMobileHeroScrollPosition();
     };
 
+    const renderBoundingBoxOverlay = (
+        bounds: OverlayImageBounds,
+        offsetX = bounds.left,
+        offsetY = bounds.top,
+    ) => {
+        if (!analysisResult) return null;
+
+        return (
+            <BoundingBoxOverlay
+                analysisResult={analysisResult}
+                containerWidth={bounds.width}
+                containerHeight={bounds.height}
+                imageWidth={originalImageDimensions?.width ?? bounds.width}
+                imageHeight={originalImageDimensions?.height ?? bounds.height}
+                offsetX={offsetX}
+                offsetY={offsetY}
+                useTopLeftOrigin
+                showCakeMeasurementLines={false}
+                editableDecorationTargets={editableDecorationTargets}
+                onDecorationActivate={onDecorationActivate}
+                editableCakeMessageTargets={editableCakeMessageTargets}
+                onCakeMessageActivate={onCakeMessageActivate}
+                onBackgroundActivate={onDecorationDismiss}
+            />
+        );
+    };
+
     // Track the actual rendered image, rather than the hero frame. The two
     // diverge for object-cover crops and a scrolled tall image on mobile.
     useEffect(() => {
@@ -362,6 +385,13 @@ export const CustomizingHeroPanel = memo(({
             let height = imageRect.height;
             let left = imageRect.left - frameRect.left;
             let top = imageRect.top - frameRect.top;
+
+            // Keep mobile hit targets inside the image's scroll container so
+            // native touch scrolling pans the image before chaining to the page.
+            if (mobileHeroScrollRef.current?.contains(image)) {
+                left = 0;
+                top = 0;
+            }
 
             if (window.getComputedStyle(image).objectFit === 'cover') {
                 const scale = Math.max(imageRect.width / image.naturalWidth, imageRect.height / image.naturalHeight);
@@ -462,6 +492,9 @@ export const CustomizingHeroPanel = memo(({
                                     className="pointer-events-none absolute inset-x-0 top-0 w-full h-auto align-top"
                                     onLoad={imageOnLoad}
                                 />
+                            ) : null}
+                            {analysisResult && overlayImageBounds ? (
+                                renderBoundingBoxOverlay(overlayImageBounds, 0, 0)
                             ) : null}
                         </div>
                     </div>
@@ -590,7 +623,7 @@ export const CustomizingHeroPanel = memo(({
                         ref={heroFrameRef}
                         data-testid="customizer-hero-frame"
                         className={enableMobileHeroPan
-                            ? 'relative w-full aspect-[5/4] md:min-h-0 rounded-3xl overflow-hidden touch-none md:touch-auto overscroll-auto md:[aspect-ratio:var(--hero-md-ratio)]'
+                            ? 'relative w-full aspect-[5/4] md:min-h-0 rounded-3xl overflow-hidden touch-pan-y md:touch-auto overscroll-auto md:[aspect-ratio:var(--hero-md-ratio)]'
                             : 'relative w-full min-h-[270px] md:min-h-[400px] rounded-3xl overflow-hidden'
                         }
                         onContextMenu={(event) => event.preventDefault()}
@@ -797,17 +830,6 @@ export const CustomizingHeroPanel = memo(({
                             <>
                                 {showSaveDesignButton ? (
                                 <div className="absolute bottom-4 left-4 max-md:bottom-3 max-md:left-3 z-10 flex flex-col gap-2">
-                                        {analysisResult && (
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowAnalysis(prev => !prev)}
-                                                className="backdrop-blur-sm rounded-full text-[10px] font-semibold transition-all shadow-md px-[10px] py-[4px] flex items-center !gap-[8px] genie-btn-secondary"
-                                                aria-label={showAnalysis ? 'Hide analysis overlay' : 'Show analysis overlay'}
-                                            >
-                                                {showAnalysis ? <ScanEye className="w-[12px] h-[12px]" /> : <EyeOff className="w-[12px] h-[12px]" />}
-                                                {showAnalysis ? 'Analysis' : 'Analysis'}
-                                            </button>
-                                        )}
                                         <button
                                             onClick={handleToggleSaveDesign}
                                             className={`backdrop-blur-sm rounded-full text-[10px] font-semibold transition-all shadow-md px-[10px] py-[4px] flex items-center !gap-[8px] ${isCurrentDesignSaved ? 'bg-pink-500 text-white hover:bg-pink-600' : 'genie-btn-secondary'}`}
@@ -899,23 +921,14 @@ export const CustomizingHeroPanel = memo(({
                         ) : null}
 
                         {/* Bounding box overlay from Gemini analysis */}
-                        {showAnalysis && analysisResult && overlayImageBounds && (
-                            <BoundingBoxOverlay
-                                analysisResult={analysisResult}
-                                containerWidth={overlayImageBounds.width}
-                                containerHeight={overlayImageBounds.height}
-                                imageWidth={originalImageDimensions?.width ?? overlayImageBounds.width}
-                                imageHeight={originalImageDimensions?.height ?? overlayImageBounds.height}
-                                offsetX={overlayImageBounds.left}
-                                offsetY={overlayImageBounds.top}
-                                useTopLeftOrigin
-                                showCakeMeasurementLines={false}
-                                editableDecorationTargets={editableDecorationTargets}
-                                onDecorationActivate={onDecorationActivate}
-                                editableCakeMessageTargets={editableCakeMessageTargets}
-                                onCakeMessageActivate={onCakeMessageActivate}
-                                onBackgroundActivate={onDecorationDismiss}
-                            />
+                        {analysisResult && overlayImageBounds && (
+                            shouldUseScrollableMobileHero ? (
+                                <div className="absolute inset-0 hidden md:block">
+                                    {renderBoundingBoxOverlay(overlayImageBounds)}
+                                </div>
+                            ) : (
+                                renderBoundingBoxOverlay(overlayImageBounds)
+                            )
                         )}
                     </div>
                 </div>

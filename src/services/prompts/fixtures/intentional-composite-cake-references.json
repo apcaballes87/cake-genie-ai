@@ -1,0 +1,36 @@
+{
+  "accepted_cases": [
+    {
+      "construction": "two vertically stitched substantial cake bodies that intentionally form one top-and-base design",
+      "cake_type": "2 Tier",
+      "rejection": {
+        "isRejected": false,
+        "reason": "",
+        "message": ""
+      }
+    },
+    {
+      "construction": "three vertically stitched substantial cake bodies that intentionally form one stacked design",
+      "cake_type": "3 Tier",
+      "rejection": {
+        "isRejected": false,
+        "reason": "",
+        "message": ""
+      }
+    },
+    {
+      "construction": "two adjoining complementary halves that intentionally form one two-in-one cake body",
+      "cake_type": "1 Tier",
+      "rejection": {
+        "isRejected": false,
+        "reason": "",
+        "message": ""
+      }
+    }
+  ],
+  "rejected_counterexamples": [
+    "separate full cakes presented as alternatives",
+    "before-and-after or comparison grid of cakes",
+    "separate primary cakes or boxes with no single target construction"
+  ]
+}

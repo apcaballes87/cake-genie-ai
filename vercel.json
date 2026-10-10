@@ -16,6 +16,14 @@
         {
             "path": "/api/seo/cron",
             "schedule": "0 * * * *"
+        },
+        {
+            "path": "/api/studio/cron",
+            "schedule": "15 * * * *"
+        },
+        {
+            "path": "/api/openai-ads/cron",
+            "schedule": "0 4 * * *"
         }
     ],
     "functions": {

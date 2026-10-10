@@ -194,7 +194,7 @@ describe('cacheAnalysisResult', () => {
     getDesignAvailabilityMock.mockReturnValue('same-day');
     const { cacheAnalysisResult } = await import('./supabaseService');
 
-    await cacheAnalysisResult(
+    const result = await cacheAnalysisResult(
       '1234567890abcdef',
       {
         cakeType: '1 Tier',
@@ -239,6 +239,30 @@ describe('cacheAnalysisResult', () => {
     expect(payload).not.toHaveProperty('seo_title');
     expect(payload).not.toHaveProperty('alt_text');
     expect(payload.analysis_json).not.toHaveProperty('seo_description');
+    expect(result?.slug).toBe(payload.slug);
+    expect(result?.seo_status).toBe('pending');
+  });
+
+  it('does not dispatch an immediate Studio edit even when the legacy option is passed', async () => {
+    const { cacheAnalysisResult } = await import('./supabaseService');
+
+    await cacheAnalysisResult(
+      '1234567890abcdef',
+      {
+        cakeType: '1 Tier',
+        cakeThickness: '4 in',
+        keyword: 'delayed studio',
+        icing_design: { base: 'soft_icing', colors: { side: 'white', top: 'white' } },
+        main_toppers: [],
+        support_elements: [],
+        cake_messages: [],
+      } as unknown as HybridAnalysisResult,
+      'https://example.com/delayed-studio.webp',
+      undefined,
+      { triggerStudioEdit: true },
+    );
+
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('stores fingerprint pipeline metadata with the canonical p_hash', async () => {

@@ -2,17 +2,29 @@
 
 import { useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { CLIENT_API_ERROR_EVENT, type ClientApiErrorReport } from '@/lib/clientApiErrors';
 
 // Generate a simple session ID for correlating errors
+let fallbackSessionId: string | null = null;
+
 const getSessionId = (): string => {
     if (typeof window === 'undefined') return '';
 
-    let sessionId = sessionStorage.getItem('error_session_id');
-    if (!sessionId) {
-        sessionId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        sessionStorage.setItem('error_session_id', sessionId);
+    try {
+        const storage = window.sessionStorage;
+        const storedSessionId = storage?.getItem('error_session_id');
+        if (storedSessionId) {
+            fallbackSessionId = storedSessionId;
+            return storedSessionId;
+        }
+
+        fallbackSessionId ??= `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+        storage?.setItem('error_session_id', fallbackSessionId);
+        return fallbackSessionId;
+    } catch {
+        fallbackSessionId ??= `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+        return fallbackSessionId;
     }
-    return sessionId;
 };
 
 // Check if cookies are blocked
@@ -31,7 +43,7 @@ const checkCookiesBlocked = (): boolean => {
 interface ErrorLogPayload {
     error_message: string;
     error_stack?: string;
-    error_type: 'error' | 'unhandledrejection' | 'cookie_blocked' | 'network' | 'unknown';
+    error_type: 'error' | 'unhandledrejection' | 'cookie_blocked' | 'network' | 'unknown' | 'api_error';
     page_url: string;
     page_path: string;
     user_agent: string;
@@ -147,14 +159,50 @@ export const ErrorLogger: React.FC = () => {
             });
         };
 
+        const handleClientApiError = (event: Event) => {
+            const report = (event as CustomEvent<unknown>).detail;
+            if (!report || typeof report !== 'object') return;
+
+            const apiError = report as Partial<ClientApiErrorReport>;
+            if (
+                typeof apiError.endpoint !== 'string' ||
+                typeof apiError.method !== 'string' ||
+                typeof apiError.status !== 'number' ||
+                apiError.status < 500 ||
+                typeof apiError.message !== 'string'
+            ) {
+                return;
+            }
+
+            void logErrorToSupabase({
+                error_message: `${apiError.method} ${apiError.endpoint} returned HTTP ${apiError.status}: ${apiError.message}`.slice(0, 1000),
+                error_stack: typeof apiError.stack === 'string' ? apiError.stack.slice(0, 5000) : undefined,
+                error_type: 'api_error',
+                page_url: window.location.href,
+                page_path: window.location.pathname,
+                user_agent: navigator.userAgent,
+                viewport_width: window.innerWidth,
+                viewport_height: window.innerHeight,
+                session_id: sessionId,
+                metadata: {
+                    source: 'client_api_error',
+                    endpoint: apiError.endpoint,
+                    method: apiError.method,
+                    status: apiError.status,
+                },
+            });
+        };
+
         // Add listeners
         window.addEventListener('error', handleError);
         window.addEventListener('unhandledrejection', handleUnhandledRejection);
+        window.addEventListener(CLIENT_API_ERROR_EVENT, handleClientApiError);
 
         // Cleanup
         return () => {
             window.removeEventListener('error', handleError);
             window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+            window.removeEventListener(CLIENT_API_ERROR_EVENT, handleClientApiError);
         };
     }, []);
 

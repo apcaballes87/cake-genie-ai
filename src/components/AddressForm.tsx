@@ -48,6 +48,44 @@ const SERVICEABLE_AREAS = [
     'Mandaue', 'Talisay', 'Lapu-lapu', 'Consolacion'
 ];
 
+const UNSERVICEABLE_ADDRESS_LOCATIONS = [
+    'Cavite',
+    'Metro Manila',
+    'Caloocan',
+    'Las Piñas',
+    'Makati',
+    'Malabon',
+    'Mandaluyong',
+    'Manila',
+    'Marikina',
+    'Muntinlupa',
+    'Navotas',
+    'Parañaque',
+    'Pasay',
+    'Pasig',
+    'Quezon City',
+    'San Juan',
+    'Taguig',
+    'Valenzuela',
+];
+const NOT_SERVICEABLE_ADDRESS_MESSAGE =
+    'We currently only deliver to Cebu City, Mandaue, Talisay, Lapu-Lapu, Cordova, and Liloan.';
+
+const normalizeAddressText = (value: string) =>
+    value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+const UNSERVICEABLE_ADDRESS_PATTERNS = UNSERVICEABLE_ADDRESS_LOCATIONS.map((location) => {
+    const normalizedLocation = normalizeAddressText(location)
+        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        .replace(/\s+/g, '\\s+');
+    return new RegExp(`(^|[^a-z0-9])${normalizedLocation}(?=$|[^a-z0-9])`);
+});
+
+export const addressContainsUnserviceableLocation = (address: string): boolean => {
+    const normalizedAddress = normalizeAddressText(address);
+    return UNSERVICEABLE_ADDRESS_PATTERNS.some((pattern) => pattern.test(normalizedAddress));
+};
+
 // Approximate city-center coordinates for manual address mode (when Google Maps is unavailable)
 const CITY_CENTER_COORDS: Record<string, { lat: number; lng: number }> = {
     'Cebu City': { lat: 10.3157, lng: 123.8854 },
@@ -127,12 +165,11 @@ export const getGooglePlaceLocationDetails = (place: GooglePlaceLike): GooglePla
     };
 };
 
-// This is a map-search control, not a postal-address form field. The
-// autocomplete token and search input type keep browser-saved addresses from
-// competing with the Google Places results.
+// Keep this map-search control's name neutral so browser autofill does not
+// mistake it for a delivery-address field and compete with Google Places.
 export const MAP_SEARCH_INPUT_ATTRIBUTES = {
     type: 'search',
-    name: 'delivery-location-search',
+    name: 'place-search-query',
     autoComplete: 'off',
     'data-lpignore': 'true',
     'data-1p-ignore': true,
@@ -143,7 +180,7 @@ export const MapSearchInput: React.FC<{ inputRef: RefObject<HTMLInputElement | n
     <input
         ref={inputRef}
         {...MAP_SEARCH_INPUT_ATTRIBUTES}
-        placeholder="Search for a building or street..."
+        placeholder="Search for a place..."
         aria-autocomplete="list"
         className="w-full px-4 py-3 bg-white rounded-full shadow-lg border border-purple-200 focus:ring-2 focus:ring-purple-200 focus:border-purple-400 focus:outline-none text-sm"
     />
@@ -167,6 +204,7 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
     const inputRef = useRef<HTMLInputElement | null>(null);
     const mapRef = useRef<any | null>(null);
     const selectedPlaceLocationRef = useRef<GooglePlaceLocationDetails | null>(null);
+    const hasUnserviceableAddressText = addressContainsUnserviceableLocation(completeAddress);
 
     useEffect(() => {
         setMounted(true);
@@ -411,15 +449,19 @@ const AddressPickerModal = ({ isOpen, onClose, onLocationSelect, initialCoords, 
                         required
                     />
                     <div className="mt-1 min-h-8">
-                        {suggestedAddress && !isGeocoding && (
+                        {hasUnserviceableAddressText ? (
+                            <div className="text-xs p-2 rounded-md text-red-600 bg-red-50 border border-red-200">
+                                <><strong>Not Serviceable Yet:</strong> {NOT_SERVICEABLE_ADDRESS_MESSAGE}</>
+                            </div>
+                        ) : suggestedAddress && !isGeocoding ? (
                             <div className={`text-xs p-2 rounded-md ${isServiceable ? 'text-purple-700 bg-purple-100/70' : 'text-red-600 bg-red-50 border border-red-200'}`}>
                                 {isServiceable ? (
                                     <><strong>Suggested Location:</strong> {suggestedAddress}</>
                                 ) : (
-                                    <><strong>Not Serviceable Yet:</strong> We currently only deliver to Cebu City, Mandaue, Talisay, Lapu-Lapu, Cordova, and Liloan.</>
+                                    <><strong>Not Serviceable Yet:</strong> {NOT_SERVICEABLE_ADDRESS_MESSAGE}</>
                                 )}
                             </div>
-                        )}
+                        ) : null}
                     </div>
                     <button
                         onClick={handleSubmit}

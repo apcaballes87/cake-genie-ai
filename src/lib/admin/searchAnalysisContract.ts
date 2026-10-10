@@ -118,6 +118,8 @@ const SAFE_COORDINATED_DESCRIPTORS = new RegExp(
 );
 const SECONDARY_LEAD_IN = /\b(?:around|behind|beside|near|under|beneath|next\s+to|wearing|holding|carrying|containing|surrounded\s+by|adorned(?:\s+(?:by|with))?)\b/i;
 const PRIMARY_GROUPING_OF = /\b(?:cluster|bouquet|arrangement|set|pair|group)\s+of\b/gi;
+const PLAIN_CANDLE_STICK_DESCRIPTION = /\b(?:(?:plain|straight|standard|ordinary)\s+)?candle\s+sticks?\b|\b(?:plain|straight|standard|ordinary)\s+stick\s+candles?\b|\b(?:plain\s+)?straight\s+cylindrical\s+candles?\b/i;
+const CANDLE_HOLDER_DESCRIPTION = /\b(?:candle\s+sticks?\s+holders?|stick\s+candles?\s+holders?|candle[ -]?holders?)\b/i;
 
 type ItemRole = 'main' | 'support';
 type TargetRole = ItemRole | 'preserve';
@@ -222,13 +224,27 @@ const DESCRIPTION_TYPE_RULES: DescriptionTypeRule[] = [
     ),
   },
   {
+    id: 'candle_stick',
+    targetType: 'candle_stick',
+    material: 'wax',
+    targetRole: 'main',
+    matches: (primary) => (
+      containsPrimaryNoun(primary, /\bcandles?\b/i)
+      && PLAIN_CANDLE_STICK_DESCRIPTION.test(primary)
+      && !CANDLE_HOLDER_DESCRIPTION.test(primary)
+      && !/\b(?:number|heart|spiral|taper|novelty|shaped)\s+candles?\b/i.test(primary)
+    ),
+  },
+  {
     id: 'candle',
     targetType: 'candle',
     material: 'wax',
     targetRole: 'main',
     matches: (primary) => (
       containsPrimaryNoun(primary, /\bcandles?\b/i)
-      && !/\b(?:candle[ -]?holders?|candle[ -]?shaped|edible|fondant|gumpaste)\b/i.test(primary)
+      && !PLAIN_CANDLE_STICK_DESCRIPTION.test(primary)
+      && !CANDLE_HOLDER_DESCRIPTION.test(primary)
+      && !/\b(?:candle[ -]?shaped|edible|fondant|gumpaste)\b/i.test(primary)
     ),
   },
   {
@@ -591,7 +607,7 @@ For the integrated_bbox_v1 response schema, this instruction overrides every ear
 
 BOX SCOPE POLICY: First decide whether the row is a discrete/countable item or an aggregate treatment. For every discrete/countable main_toppers or support_elements row—including candles, flowers, gems, dragees, stars, balls, chocolates, lollipops, and repeated figures—return one tight box per clearly visible unit in the row's box_2d array, up to min(quantity, ${INTEGRATED_MAX_UNIT_BOXES}) boxes. When all units are visible, quantity 1 means 1 box and quantities 2 through ${INTEGRATED_MAX_UNIT_BOXES} mean that many boxes; quantities above ${INTEGRATED_MAX_UNIT_BOXES} are capped at ${INTEGRATED_MAX_UNIT_BOXES} boxes while preserving the actual visible count in quantity. If some units cannot be localized with tight boundaries, return every confidently visible unit rather than inventing, merging, or enlarging a box; never use one arrangement-wide box for a discrete row. Return a matching bbox_confidence array with one confidence per box. Aggregate treatment scope is allowed only for these explicit types: ${INTEGRATED_AGGREGATE_GEOMETRY_TYPES.join(', ')}. For an aggregate-treatment type, return exactly one full-region box and one confidence, and use quantity 1 unless that type's existing fulfillment rule explicitly counts covered tiers. This includes inseparable or spread materials such as sand-like texture, sprinkles, splatter, brush-applied icing, piping, borders, panels, and wraps. Do not choose aggregate scope merely because a discrete cluster is difficult to count, and do not invent a new type for sand; use the closest existing allowed aggregate-treatment type. Cake messages remain one box and one confidence because they are not quantity-priced items.
 
-The application determines variable-height cakeThickness from cake_diameter_width / cake_height_length using >=2 => 3 in, >=1.5 => 4 in, >1.2 => 5 in, and <=1.2 => 6 in; do not treat your cakeThickness as authoritative. For topper/support size bands, the application uses cake_area = diameter_width * diameter_width; the height line is not part of that area denominator. It assigns Small when area_ratio_percent <= 15, Medium when area_ratio_percent > 15 and <= 70, and Large when area_ratio_percent > 70. The application accepts either endpoint order and canonicalizes diameter left-to-right and height top-to-bottom before validation and calculation. Rejected images have empty arrays and geometry_version only, with no measurement lines.
+The application determines variable-height cakeThickness from cake_diameter_width / cake_height_length using >=2 => 3 in, >=1.5 => 4 in, >1.2 => 5 in, and <=1.2 => 6 in; do not treat your cakeThickness as authoritative. For topper/support size bands, the application uses cake_area = diameter_width * (0.67 * diameter_width); cake_height_line is not part of that area denominator. It assigns Small when area_ratio_percent <= 15, Medium when area_ratio_percent > 15 and <= 70, and Large when area_ratio_percent > 70. The application accepts either endpoint order and canonicalizes diameter left-to-right and height top-to-bottom before validation and calculation. Rejected images have empty arrays and geometry_version only, with no measurement lines.
 
 FINAL CARDINALITY CHECK BEFORE JSON: For every discrete row, count the nested arrays inside box_2d before responding. Return no more than min(quantity, ${INTEGRATED_MAX_UNIT_BOXES}) distinct tight boxes, one for each confidently visible unit; when all units are visible, return the full capped count. Never collapse a discrete row into an arrangement-wide box because the units are small or difficult to count. Reserve one-box geometry only for a single visible unit or the explicit aggregate-treatment types above.`;
 
@@ -615,7 +631,7 @@ FIRST CHOOSE ONE GEOMETRY SCOPE FOR EACH TOPPER OR SUPPORT ROW:
 
 3. treatment — Use this only for a non-countable treated region of one of these types: ${INTEGRATED_TREATMENT_GEOMETRY_TYPES.join(', ')}. Never use treatment for printout or for individually countable decorations. For icing_decorations, treatment is allowed only for one continuous icing border or region with material icing and quantity 1. Individually placed piped blooms, leaf motifs, and other discrete decorations remain unit rows.
 
-Cake messages remain one box and one confidence when localizable; if none can be localized, keep the message row with empty geometry arrays. The application uses cake_area = diameter_width * diameter_width and assigns Small at <=15%, Medium at >15% and <=70%, and Large at >70%. It splits fully boxed mixed-size rows into homogeneous rows. Partial or capped samples are retained with review status and use the largest valid box's size band; when no box survives, cached size is preserved when available. The application determines variable-height cakeThickness from the cake diameter/height lines and reconciles it to a supported type-specific value. The diameter line is required. If the height line is missing or unusable after one complete replacement attempt, omit it; the application uses the lowest supported thickness for a confirmed cake type. Rejected images have empty arrays and geometry_version only, with no measurement lines.
+Cake messages remain one box and one confidence when localizable; if none can be localized, keep the message row with empty geometry arrays. The application uses cake_area = diameter_width * (0.67 * diameter_width) and assigns Small at <=15%, Medium at >15% and <=70%, and Large at >70%. It splits fully boxed mixed-size rows into homogeneous rows. Partial or capped samples are retained with review status and use the largest valid box's size band; when no box survives, cached size is preserved when available. The application determines variable-height cakeThickness from the cake diameter/height lines and reconciles it to a supported type-specific value. The diameter line is required. If the height line is missing or unusable after one complete replacement attempt, omit it; the application uses the lowest supported thickness for a confirmed cake type. Rejected images have empty arrays and geometry_version only, with no measurement lines.
 
 FINAL CHECK BEFORE JSON: Unit quantities 1–5 target exactly the matching number of boxes; quantities 6+ target five. Keep all valid boxes and preserve quantity if that target cannot be met. Keep box_2d and bbox_confidence arrays aligned, using empty arrays only when no valid box can be localized. Every piped_cluster row has one box, quantity 1, and coverage. Printout never uses treatment. Never merge separate decorations into a cluster box.`;
 

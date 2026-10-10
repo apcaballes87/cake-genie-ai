@@ -141,6 +141,33 @@ describe('collections category metadata', () => {
     ]);
   });
 
+  it('does not index or render a missing collection row', async () => {
+    getCollectionBySlug.mockResolvedValue({ data: null, error: null });
+    const { generateMetadata, default: CategoryPage } = await import('./page');
+
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ category: 'missing-cake' }),
+    });
+    expect(metadata.robots).toEqual({ index: false, follow: false });
+    expect(getDesignsByKeyword).not.toHaveBeenCalled();
+
+    notFound.mockImplementationOnce(() => { throw new Error('NEXT_NOT_FOUND'); });
+    await expect(CategoryPage({
+      params: Promise.resolve({ category: 'missing-cake' }),
+    })).rejects.toThrow('NEXT_NOT_FOUND');
+  });
+
+  it('does not index a collection below the publication threshold', async () => {
+    getCollectionBySlug.mockResolvedValue({
+      data: { slug: 'small-cake', item_count: 7, publication_status: 'published', is_indexable: true },
+      error: null,
+    });
+    const { generateMetadata } = await import('./page');
+    const metadata = await generateMetadata({ params: Promise.resolve({ category: 'small-cake' }) });
+    expect(metadata.robots).toEqual({ index: false, follow: false });
+    expect(getDesignsByKeyword).not.toHaveBeenCalled();
+  });
+
   it('does not offer another page when the live result slice is already short', async () => {
     const { default: CategoryPage } = await import('./page');
 

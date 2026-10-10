@@ -15,8 +15,8 @@
  * - Pure function: no I/O, no React. Unit-testable and reusable by both the
  *   write path (supabaseService) and the one-time backfill.
  *
- * The numeric design code (e.g. 1002) belongs to internal SKU/MPN only and is
- * never emitted into the visible title.
+ * The design code belongs to internal SKU/MPN only and is never emitted into
+ * the visible title.
  */
 
 import { hexToName } from '@/lib/utils/urlHelpers';
@@ -50,8 +50,16 @@ export interface CakeTitleInput {
     tags?: (string | null | undefined)[] | null;
     /** Optional hero-topper descriptions (used for detail inference only). */
     heroToppers?: (string | null | undefined)[] | null;
-    /** Unique design code suffix extracted from the slug hash. */
+    /** Legacy input kept for existing callers; never shown in public titles. */
     designCode?: string | null;
+}
+
+export function stripInternalDesignCode(title: string, expectedCode?: string | null): string {
+    return title
+        .replace(/\s*\|\s*Genie\.ph\s*$/i, '')
+        .replace(/\s+-\s+([a-f0-9]{4,16})\s*$/i, (suffix, code: string) =>
+            !expectedCode || code.toUpperCase().endsWith(expectedCode.toUpperCase()) ? '' : suffix)
+        .trim();
 }
 
 /**
@@ -249,9 +257,7 @@ function isRedundant(segment: string, existingLower: string): boolean {
  *   the theme.
  */
 export function buildCakeTitle(input: CakeTitleInput, budget: number = CAKE_TITLE_BUDGET): string {
-    const designCode = input.designCode ? input.designCode.trim() : '';
-    const suffix = designCode ? ` - ${designCode}` : '';
-    const bodyBudget = budget - suffix.length;
+    const bodyBudget = budget;
 
     const keyword = (input.keyword ?? '').trim();
     const keywordLower = keyword.toLowerCase();
@@ -319,13 +325,13 @@ export function buildCakeTitle(input: CakeTitleInput, budget: number = CAKE_TITL
     for (const parts of candidates) {
         const titleBody = assemble(parts);
         if ([...titleBody].length <= bodyBudget) {
-            return suffix ? `${titleBody}${suffix}` : titleBody;
+            return titleBody;
         }
     }
 
     // Still over budget: word-truncate the theme while keeping the appropriate head noun.
     const truncatedBody = truncateThemeToFit(theme, bodyBudget, isCupcake);
-    return suffix ? `${truncatedBody}${suffix}` : truncatedBody;
+    return truncatedBody;
 }
 
 function truncateThemeToFit(theme: string, budget: number, isCupcake?: boolean): string {
@@ -335,11 +341,17 @@ function truncateThemeToFit(theme: string, budget: number, isCupcake?: boolean):
     const cleanTheme = theme.replace(isCupcake ? /\s*cupcakes?\s*$/i : /\s*cake\s*$/i, '').trim() || 'Custom';
     const themeBudget = budget - suffix.length;
     if ([...cleanTheme].length <= themeBudget) return `${cleanTheme}${suffix}`;
-    const sliced = [...cleanTheme].slice(0, Math.max(0, themeBudget)).join('');
-    const lastSpace = sliced.lastIndexOf(' ');
-    const trimmed = (lastSpace > 0 ? sliced.slice(0, lastSpace) : sliced)
+    const words = cleanTheme.split(/\s+/);
+    const kept: string[] = [];
+    for (const word of words) {
+        const next = [...kept, word].join(' ');
+        if ([...next].length > themeBudget) break;
+        kept.push(word);
+    }
+    const trimmed = (kept.join(' ') || (themeBudget >= 6 ? 'Custom' : ''))
         .replace(isCupcake ? /\s*cupcakes?\s*$/i : /\s*cake\s*$/i, '')
         .trim();
+    if (!trimmed) return suffix.trim();
     return `${trimmed}${suffix}`;
 }
 

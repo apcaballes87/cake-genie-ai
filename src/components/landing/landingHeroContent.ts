@@ -67,7 +67,7 @@ export const DEFAULT_LANDING_HERO_CONTENT: LandingHeroContent = {
 };
 
 export const MOTHERS_DAY_HERO_CONTENT: LandingHeroContent = {
-  eyebrow: "Mother's Day Cakes in Cebu | May 10, 2026",
+  eyebrow: "Mother's Day Cakes in Cebu",
   headlineVariants: ["Mother's Day Cakes"],
   headlineA11yLabel: "Mother's Day Cakes.",
   lineTwo: 'Made With',

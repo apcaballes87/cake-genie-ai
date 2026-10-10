@@ -7,6 +7,8 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import type { CakeGenieOrder, CakeGenieOrderItem } from '@/lib/database.types';
 import { getPaymentStatus, verifyXenditPayment } from '@/services/xenditService';
 import { trackPurchase } from '@/lib/analytics';
+import { trackOpenAIAdsOrderCreated } from '@/lib/analytics/openaiAdsPixel';
+import { buildOpenAIAdsProductContents } from '@/lib/openaiAds/contents';
 
 type ConfirmationPaymentStatus = 'loading' | 'paid' | 'partial' | 'pending' | 'expired' | 'failed';
 
@@ -185,6 +187,12 @@ const OrderConfirmationContent: React.FC = () => {
             price: item.final_price,
             quantity: item.quantity,
         }));
+
+        trackOpenAIAdsOrderCreated({
+            orderId: order.order_id,
+            amountPesos: Number(order.total_amount),
+            items: buildOpenAIAdsProductContents(order.cakegenie_order_items || []),
+        });
 
         trackPurchase({
             transactionId: order.order_number,

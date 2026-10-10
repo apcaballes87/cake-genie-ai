@@ -32,7 +32,6 @@ interface CategoryClientProps {
     designs: Design[];
     keyword: string;
     readableTitle: string;
-    category: string;
     description?: string | null;
     designCount: number;
     heading: string;
@@ -66,7 +65,6 @@ const CategoryClient: React.FC<CategoryClientProps> = ({
     designs,
     keyword,
     readableTitle,
-    category,
     description,
     designCount,
     heading,
@@ -212,13 +210,6 @@ const CategoryClient: React.FC<CategoryClientProps> = ({
                                     Need a broader starting point? Browse the{' '}
                                     <Link href="/collections" className="font-semibold text-purple-700 hover:text-purple-800">
                                         full collections directory
-                                    </Link>
-                                    .
-                                </p>
-                                <p>
-                                    Want to edit a similar style from scratch? Open the{' '}
-                                    <Link href={`/customizing/category/${category}`} className="font-semibold text-purple-700 hover:text-purple-800">
-                                        matching customizer category
                                     </Link>
                                     .
                                 </p>

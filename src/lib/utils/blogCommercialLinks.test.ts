@@ -17,19 +17,23 @@ describe('resolveBlogCommercialLinks', () => {
     expect(resolveBlogCommercialLinks({ keyword }).primary.href).toBe(href);
   });
 
-  it('uses birthday collection for buyer-intent topics instead of shop', () => {
+  it('uses the published collection directory for buyer-intent topics', () => {
     expect(
       resolveBlogCommercialLinks({ title: 'Where to Order Custom Cakes in Cebu' }).primary,
     ).toEqual({
-      href: '/collections/birthday',
+      href: '/collections',
       label: 'Browse Cakes Collections',
     });
   });
 
-  it('falls back to customizing category routes for unknown topics', () => {
+  it('does not link birthday posts to an unpublished birthday collection', () => {
+    expect(resolveBlogCommercialLinks({ keyword: 'birthday cake' }).primary.href).toBe('/collections');
+  });
+
+  it('falls back to the published collections directory for unknown topics', () => {
     expect(resolveBlogCommercialLinks({ keyword: 'boho rainbow cake' }).primary).toEqual({
-      href: '/customizing/category/boho-rainbow-cake',
-      label: 'Browse Boho Rainbow Cake Designs',
+      href: '/collections',
+      label: 'Browse Cake Collections',
     });
   });
 });

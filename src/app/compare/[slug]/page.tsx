@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { PUBLIC_ORDER_FACTS } from '@/lib/seo/publicOrderFacts'
 
 type ComparisonData = {
     title: string
@@ -232,19 +233,19 @@ const comparisons: Record<string, ComparisonData> = {
         ctaText: 'Get instant pricing from verified bakers',
     },
     'custom-cake-pricing-cebu': {
-        title: 'Custom Cake Pricing Guide: Cebu 2025',
-        metaTitle: 'Custom Cake Prices in Cebu 2025: Complete Pricing Guide',
-        metaDescription: 'How much do custom cakes cost in Cebu in 2025? Compare prices for birthday, wedding, and bento cakes across different ordering platforms in Metro Cebu.',
-        intro: 'Planning a celebration in Cebu and wondering how much a custom cake will cost? This pricing guide compares current cake prices across different ordering methods in Metro Cebu for 2025. Prices are based on data from Genie.ph partner bakeries and market research across Cebu City, Mandaue, and Lapu-Lapu.',
+        title: 'Custom Cake Pricing Guide: Cebu',
+        metaTitle: 'Custom Cake Prices in Cebu: Starting Prices and Quote Guide',
+        metaDescription: PUBLIC_ORDER_FACTS.pricingShortSummary,
+        intro: `${PUBLIC_ORDER_FACTS.pricingSummary} ${PUBLIC_ORDER_FACTS.pricingProcessSummary}`,
         geniePros: [
             'AI-powered pricing for any design you upload',
             'Transparent price breakdown by component',
-            'Compare prices from 20+ verified bakers',
-            'No price markup surprises at checkout',
+            'Review the starting price before checkout',
+            'See how customization changes the quote',
             'Size and flavor pricing calculators',
-            'Weekly price monitoring for market rates',
+            'Delivery fees shown for the selected location',
         ],
-        alternativeName: 'Market Average',
+        alternativeName: 'Other Ordering Methods',
         alternativePros: [
             'Widely available at many bakeshops',
             'Opportunity for bulk discounts at some shops',
@@ -254,17 +255,12 @@ const comparisons: Record<string, ComparisonData> = {
             'Walk-in availability for last-minute needs',
         ],
         features: [
-            { feature: 'Bento Cake (4")', genie: '\u20B1350 - \u20B1650', alternative: '\u20B1400 - \u20B1800' },
-            { feature: 'Round 6" (6-8 pax)', genie: '\u20B1800 - \u20B11,500', alternative: '\u20B1800 - \u20B12,000' },
-            { feature: 'Round 8" (12-16 pax)', genie: '\u20B11,200 - \u20B12,500', alternative: '\u20B11,500 - \u20B13,000' },
-            { feature: 'Round 10" (20-25 pax)', genie: '\u20B11,800 - \u20B13,500', alternative: '\u20B12,000 - \u20B14,500' },
-            { feature: '2-Tier Wedding Cake', genie: '\u20B13,500 - \u20B18,000', alternative: '\u20B14,000 - \u20B112,000' },
-            { feature: '3-Tier Wedding Cake', genie: '\u20B16,000 - \u20B115,000', alternative: '\u20B18,000 - \u20B120,000+' },
-            { feature: 'Character Cake (Fondant)', genie: '\u20B11,500 - \u20B14,000', alternative: '\u20B12,000 - \u20B15,000' },
-            { feature: 'Minimalist / Korean Style', genie: '\u20B1800 - \u20B12,000', alternative: '\u20B11,000 - \u20B12,500' },
-            { feature: 'Delivery Fee', genie: 'Varies by location (\u20B150-200)', alternative: 'Pickup or \u20B1100-300' },
+            { feature: 'Bento starting price', genie: PUBLIC_ORDER_FACTS.bentoStartingPrice, alternative: 'Check the seller’s current menu or request a quote' },
+            { feature: 'Larger or detailed cakes', genie: 'Priced after AI analysis of the design and selected options', alternative: 'Request a quote for the design and size' },
+            { feature: 'Price detail', genie: 'Review size, icing, toppers, and finish before checkout', alternative: 'Depends on the seller’s quote process' },
+            { feature: 'Delivery fee', genie: 'Calculated for the selected delivery location', alternative: 'Check with the seller' },
         ],
-        verdict: 'Genie.ph generally offers competitive pricing because you can compare quotes from multiple bakers, driving prices down. Traditional bakeries and social media bakers may charge premiums, especially for elaborate designs where pricing is opaque. The biggest advantage of using Genie.ph for pricing is transparency. You know exactly what you are paying for before you commit.',
+        verdict: 'A reliable custom cake price depends on the actual design, size, decorations, and delivery location. Upload your reference image to see the Genie.ph starting price, then review the selected options and final total before checkout. For another seller, request a written quote for the same specifications before comparing.',
         ctaText: 'Upload a design to see exact pricing',
     },
 }

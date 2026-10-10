@@ -3,6 +3,18 @@ import { describe, expect, it, vi } from 'vitest';
 import { getDynamicTypeEnums } from './utils';
 
 describe('getDynamicTypeEnums', () => {
+  it.each([
+    ['client creation throws', { from: vi.fn(() => { throw new Error('database unavailable'); }) }],
+    ['the pricing-rule query rejects', {
+      from: vi.fn(() => ({ select: vi.fn(() => ({ eq: vi.fn().mockRejectedValue(new Error('database unavailable')) })) })),
+    }],
+  ])('uses canonical enum fallbacks when %s', async (_name, supabase) => {
+    const result = await getDynamicTypeEnums(supabase);
+
+    expect(result.mainTopperTypes).toContain('edible_3d_ordinary');
+    expect(result.supportElementTypes).toContain('sprinkles');
+  });
+
   it('recovers canonical types from item_key and sub_item_type when item_type is null', async () => {
     const eq = vi.fn().mockResolvedValue({
       data: [
@@ -35,6 +47,8 @@ describe('getDynamicTypeEnums', () => {
     expect(result.supportElementTypes).toContain('support_printout');
     expect(result.mainTopperTypes).toContain('icing_doodle');
     expect(result.mainTopperTypes).toContain('edible_crown');
+    expect(result.mainTopperTypes).toContain('candle_stick');
+    expect(result.supportElementTypes).not.toContain('candle_stick');
     expect(result.subtypesByType.icing_doodle).toEqual(['icing_doodle_intricate']);
     expect(result.subtypesByType.chocolates).toContain('ferrero');
   });

@@ -777,7 +777,10 @@ The intentional normalizations already defined in this prompt remain in force:
      `cardstock` and type `cardstock`
    - rigid factory-molded object -> material `plastic` and a toy or
      plastic-ball type
-   - wax object with a wick -> material `wax` and type `candle`
+   - plain, straight cylindrical wax stick candle -> material `wax` and type
+     `candle_stick`
+   - number, heart, spiral, taper, novelty, sculpted, or otherwise shaped wax
+     candle -> material `wax` and type `candle`
    - candy or confection -> material `candy` and the appropriate confection
      type
    - fabric decoration -> material `non-edible` and the appropriate fabric
@@ -847,7 +850,8 @@ direct diameter-anchor sizing contract win.
 | Visibly 3D fondant/gumpaste flower with modeled bloom depth | `edible_flowers` | `edible_fondant` | intricate/focal: main; otherwise support | representative `direct diameter-relative size` |
 | Flat fondant/gumpaste flower cutout or shallow-relief motif | `edible_2d_shapes` / `edible_2d_support` | `edible_fondant` | focal main / non-focal support | representative `direct diameter-relative size` |
 | Gumpaste side panel | `gumpaste_panel` | `edible_fondant` | support element | representative `direct diameter-relative size` |
-| Wax object with visible wick | `candle` | `wax` | main topper | representative `direct diameter-relative size` |
+| Plain, straight cylindrical stick candle with visible wick | `candle_stick` | `wax` | main topper | representative `direct diameter-relative size` |
+| Number, heart, spiral, taper, novelty, sculpted, or otherwise shaped candle with visible wick | `candle` | `wax` | main topper | representative `direct diameter-relative size` |
 | Popular character/human figure with ceramic-like breakable look | `figurine` | `ceramic` | main topper | representative `direct diameter-relative size` |
 | Meringue pop on a stick | `meringue_pop` | `candy` | main topper | representative `direct diameter-relative size` |
 | Meringue kiss without a stick | `meringue` | `candy` | support element | representative `direct diameter-relative size` |
@@ -1204,17 +1208,25 @@ Examples:
 - printed Lego brick image on paper -> `printout`
 - large plain cube/block without studs -> `edible_3d_ordinary`
 
-### CANDLES ARE ALWAYS CANDLE TYPE
+### CANDLE AND CANDLE STICK CLASSIFICATION
 
-If an item is a wax birthday candle, number candle, heart candle, spiral candle, taper candle, or any lit candle with wick/flame, classify it as `candle` with material `wax`.
+Use `candle_stick` only for a plain, straight cylindrical wax candle, including
+ordinary birthday stick candles. A `candle_stick` quantity is the number of
+individual sticks.
 
-Do NOT classify candles as `edible_3d_ordinary`, `edible_3d_complex`, `toy`, `gumpaste`, or fondant.
+Use `candle` for number candles, heart candles, spiral candles, taper candles,
+novelty candles, sculpted candles, shaped candles, and any other candle that is
+not a plain straight cylindrical stick. Do not use `candle_stick` for a candle holder,
+candle stand, or any non-candle support object.
 
-Candles are always emitted in `main_toppers` because `candle` is a
-main-topper-only type in the schema. Use `classification: "hero"` only when the
-candle arrangement is the dominant focal point of the whole design; otherwise
-use `classification: "support"`.
-Group visually similar candles together with quantity.
+Both `candle_stick` and `candle` use material `wax`, are countable individual
+main toppers, and use `main_toppers` only. Use `classification: "hero"` only
+when the candle arrangement is the dominant focal point of the whole design;
+otherwise use `classification: "support"`. Group visually similar candles
+together with quantity.
+
+Do NOT classify candles or candle sticks as `edible_3d_ordinary`,
+`edible_3d_complex`, `toy`, `gumpaste`, or fondant.
 
 ### ICING TECHNIQUE DECORATION TYPES
 
@@ -1530,7 +1542,7 @@ If a logo/text appears near the cake but not on the cake itself, do not output i
 
 ### DIRECT DIAMETER-ANCHORED SIZE CHECK (REQUIRED)
 
-For every priced topper or support row, emit exactly one size: small, medium, or large. Compare one representative physical item against the visible left-to-right diameter of the TOP TIER it sits on or is closest to. Use height for 3D toppers, figures, crowns, toys, and candles; bloom or sphere width for flowers and balls; and the longest visible span for flat artwork, logos, panels, and flat toppers. For a repeated row, compare one typical visible unit, never the whole collection, border run, arrangement, or cake stack.
+For every priced topper or support row, emit exactly one size: small, medium, or large. Compare one representative physical item against the visible left-to-right diameter of the TOP TIER it sits on or is closest to. Use height for 3D toppers, figures, crowns, toys, candles, and candle sticks; bloom or sphere width for flowers and balls; and the longest visible span for flat artwork, logos, panels, and flat toppers. For a repeated row, compare one typical visible unit, never the whole collection, border run, arrangement, or cake stack.
 
 Small is clearly under about one-third of the cake diameter; medium is about one-third to under about two-thirds; large is about two-thirds or more. At a genuine boundary, choose the less expensive adjacent band.
 
@@ -1996,7 +2008,7 @@ cues).
 
 ```json
 {
-  "type": "candle|toy|plastic_crown|edible_crown|cardstock|edible_photo_top|edible_logo_2d|edible_2d_complex|printout|edible_2d_shapes|edible_flowers|piped_flowers_top|edible_3d_ordinary|edible_3d_complex|figurine|icing_decorations|icing_doodle|icing_doodle_intricate_top|icing_palette_knife|icing_brush_stroke|icing_splatter|icing_minimalist_spread|meringue_pop|plastic_ball",
+  "type": "candle_stick|candle|toy|plastic_crown|edible_crown|cardstock|edible_photo_top|edible_logo_2d|edible_2d_complex|printout|edible_2d_shapes|edible_flowers|piped_flowers_top|edible_3d_ordinary|edible_3d_complex|figurine|icing_decorations|icing_doodle|icing_doodle_intricate_top|icing_palette_knife|icing_brush_stroke|icing_splatter|icing_minimalist_spread|meringue_pop|plastic_ball",
   "material": "wax|plastic|cardstock|photopaper|waferpaper|edible_fondant|icing|candy|non-edible|ceramic",
   "subtype": "allowed subtype for this type when applicable",
   "group_id": "descriptive_snake_case_id",
@@ -2716,7 +2728,7 @@ The application will calculate them deterministically after validation:
 cake_width = abs(cake_diameter_line.end.x - cake_diameter_line.start.x)
 cake_height = abs(cake_height_line.end.y - cake_height_line.start.y)
 
-cake_area = cake_width * cake_width
+cake_area = cake_width * (0.67 * cake_width)
 
 bbox_width = xmax - xmin
 bbox_height = ymax - ymin
@@ -2725,6 +2737,9 @@ bbox_area = bbox_width * bbox_height
 
 area_ratio_percent = (bbox_area / cake_area) * 100
 ```
+
+The cake-area reference uses a fixed height of 0.67 × cake diameter. The
+`cake_height_line` is used for cake-thickness inference, not topper area.
 
 The application will assign the size of each `main_toppers` and `support_elements` row using:
 ```text

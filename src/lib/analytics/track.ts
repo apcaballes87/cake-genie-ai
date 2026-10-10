@@ -1,6 +1,8 @@
 'use client'
 
 import { createClient } from '@/lib/supabase/client'
+import { trackOpenAIAdsEvent } from '@/lib/analytics/openaiAdsPixel'
+import type { OpenAIAdsProductContent } from '@/lib/openaiAds/contents'
 
 export const BEACON_EVENT_TYPES = [
   'visit_start',
@@ -16,6 +18,8 @@ export type BeaconEventType = typeof BEACON_EVENT_TYPES[number]
 export interface TrackBeaconOptions {
   /** A client-only dedupe key for events such as a purchase/order attempt. */
   dedupeKey?: string
+  /** Product contents use the same stable slug IDs as the OpenAI Ads feed. */
+  openAiAdsContents?: OpenAIAdsProductContent[]
 }
 
 interface StoredUtmParameters {
@@ -330,6 +334,20 @@ async function sendBeaconEvent(eventType: BeaconEventType, options: TrackBeaconO
     const payload = buildPayload(eventType, user)
 
     if (hasDedupeMarker(eventType, payload.session_id, options.dedupeKey)) return
+
+    if (eventType === 'add_to_cart') {
+      trackOpenAIAdsEvent('items_added', {
+        type: 'contents',
+        contents: options.openAiAdsContents || [],
+      })
+    } else if (eventType === 'checkout_start') {
+      trackOpenAIAdsEvent('checkout_started', {
+        type: 'contents',
+        contents: options.openAiAdsContents || [],
+      })
+    } else if (eventType === 'email_captured') {
+      trackOpenAIAdsEvent('lead_created', { type: 'customer_action' })
+    }
 
     setDedupeMarker(eventType, payload.session_id, options.dedupeKey)
     await deliver(payload)

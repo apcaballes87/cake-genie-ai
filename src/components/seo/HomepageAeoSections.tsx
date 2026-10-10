@@ -5,9 +5,10 @@ import { genieBusinessProfile } from '@/lib/seo/genieBusinessProfile'
 
 type HomepageAeoSectionsProps = {
   reviews: CakeGenieReview[]
+  reviewSummary: { total: number; averageRating: number }
 }
 
-export default function HomepageAeoSections({ reviews }: HomepageAeoSectionsProps) {
+export default function HomepageAeoSections({ reviews, reviewSummary }: HomepageAeoSectionsProps) {
   return (
     <>
       {/* Key Facts — structured data block for AI citation */}
@@ -20,10 +21,12 @@ export default function HomepageAeoSections({ reviews }: HomepageAeoSectionsProp
               <p className="font-display text-3xl font-semibold text-[var(--genie-primary)]">{genieBusinessProfile.foundedYear}</p>
               <p className="text-sm text-slate-600 mt-1">Founded in Cebu</p>
             </div>
-            <div>
-              <p className="font-display text-3xl font-semibold text-[var(--genie-primary)]">4.9/5</p>
-              <p className="text-sm text-slate-600 mt-1">Average customer rating</p>
-            </div>
+            {reviewSummary.total > 0 && reviewSummary.averageRating > 0 && (
+              <div>
+                <p className="font-display text-3xl font-semibold text-[var(--genie-primary)]">{reviewSummary.averageRating.toFixed(1)}/5</p>
+                <p className="text-sm text-slate-600 mt-1">Average customer rating from {reviewSummary.total} approved reviews</p>
+              </div>
+            )}
             <div>
               <p className="font-display text-3xl font-semibold text-[var(--genie-primary)]">₱499</p>
               <p className="text-sm text-slate-600 mt-1">Starting price bento</p>

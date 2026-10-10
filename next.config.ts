@@ -13,10 +13,9 @@ const nextConfig: NextConfig = {
   experimental: {
     inlineCss: true,
   },
-  // pdq-wasm loads its bundled Emscripten binary relative to the package at
-  // runtime. Keep it external so Next's server bundle preserves that package
-  // layout and includes the WASM asset in the traced server deployment.
-  serverExternalPackages: ['pdq-wasm'],
+  // These packages load runtime assets / crypto modules that should remain
+  // external in server bundles and be included in the traced deployment.
+  serverExternalPackages: ['pdq-wasm', 'ssh2-sftp-client'],
   // Image optimization: unoptimized=true due to Supabase quota limits (100/month Pro Plan).
   // Images are already .webp so no format conversion needed.
   // For better Core Web Vitals, consider upgrading Supabase or using Cloudinary/Imgix.
