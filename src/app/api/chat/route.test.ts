@@ -5,6 +5,7 @@ const notificationMocks = vi.hoisted(() => ({
   afterCallbacks: [] as Array<() => void | Promise<void>>,
   triggerN8nWorkflow: vi.fn(),
   runAssistantForMessage: vi.fn(),
+  getUser: vi.fn(),
 }));
 
 vi.mock('next/server', async (importOriginal) => {
@@ -26,6 +27,8 @@ vi.mock('@/services/n8nService', () => ({
   triggerN8nWorkflow: notificationMocks.triggerN8nWorkflow,
 }));
 
+const CONVERSATION_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
 
@@ -33,6 +36,7 @@ type TableHandler = {
   onInsert?: (payload: Record<string, unknown>) => void;
   onInsertSelectSingle?: (payload: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
   onSingle?: () => Promise<{ data: unknown; error: unknown }>;
+  onMaybeSingle?: () => Promise<{ data: unknown; error: unknown }>;
   onUpdate?: (payload: Record<string, unknown>) => void;
   onUpdateEq?: (payload: Record<string, unknown>) => Promise<{ data?: unknown; error: unknown }>;
 };
@@ -47,6 +51,13 @@ const fromMock = vi.fn((table: string) => {
     eq: vi.fn(() => builder),
     order: vi.fn(() => builder),
     limit: vi.fn(() => builder),
+    maybeSingle: vi.fn(async () => {
+      if (handler.onMaybeSingle) {
+        return handler.onMaybeSingle();
+      }
+
+      return { data: null, error: null };
+    }),
     single: vi.fn(async () => {
       if (handler.onSingle) {
         return handler.onSingle();
@@ -103,8 +114,11 @@ const fromMock = vi.fn((table: string) => {
 vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn(() => ({
     from: fromMock,
+    auth: { getUser: notificationMocks.getUser },
   })),
 }));
+
+const guestHeaders = { 'Content-Type': 'application/json', 'x-chat-session': 'guest_123' };
 
 describe('POST /api/chat', () => {
   beforeEach(() => {
@@ -112,7 +126,16 @@ describe('POST /api/chat', () => {
     notificationMocks.afterCallbacks.splice(0);
     notificationMocks.triggerN8nWorkflow.mockResolvedValue({ success: true, status: 200 });
 
-    tableHandlers.chat_conversations = {};
+    // Anonymous by default: no valid bearer token.
+    notificationMocks.getUser.mockResolvedValue({ data: { user: null }, error: { message: 'invalid token' } });
+
+    tableHandlers.chat_conversations = {
+      // The guest session `guest_123` owns this conversation.
+      onMaybeSingle: async () => ({
+        data: { id: CONVERSATION_ID, user_id: null, session_id: 'guest_123' },
+        error: null,
+      }),
+    };
     tableHandlers.chat_messages = {};
   });
 
@@ -125,7 +148,7 @@ describe('POST /api/chat', () => {
       insertedConversationPayloads.push(payload);
     };
     tableHandlers.chat_conversations.onInsertSelectSingle = async () => ({
-      data: { id: 'conversation-1' },
+      data: { id: CONVERSATION_ID },
       error: null,
     });
     tableHandlers.chat_messages.onInsert = (payload) => {
@@ -135,7 +158,7 @@ describe('POST /api/chat', () => {
     const { POST } = await import('./route');
     const request = new NextRequest('http://localhost/api/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: guestHeaders,
       body: JSON.stringify({
         action: 'start_conversation',
         sessionId: 'guest_123',
@@ -167,7 +190,7 @@ describe('POST /api/chat', () => {
     expect(insertedGreetingPayloads).toHaveLength(1);
     expect(insertedGreetingPayloads[0]).toEqual(
       expect.objectContaining({
-        conversation_id: 'conversation-1',
+        conversation_id: CONVERSATION_ID,
         content: 'Hi! How can we help you today?',
       }),
     );
@@ -201,10 +224,10 @@ describe('POST /api/chat', () => {
     const { POST } = await import('./route');
     const request = new NextRequest('http://localhost/api/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: guestHeaders,
       body: JSON.stringify({
         action: 'send_message',
-        conversationId: 'conversation-1',
+        conversationId: CONVERSATION_ID,
         content: 'How much is this?',
         pageContext: {
           url: 'https://genie.ph/customizing/minimalist-bento-cake',
@@ -221,7 +244,7 @@ describe('POST /api/chat', () => {
     expect(insertedMessagePayloads).toHaveLength(1);
     expect(insertedMessagePayloads[0]).toEqual(
       expect.objectContaining({
-        conversation_id: 'conversation-1',
+        conversation_id: CONVERSATION_ID,
         content: 'How much is this?',
         sender_type: 'customer',
       }),
@@ -242,7 +265,7 @@ describe('POST /api/chat', () => {
 
     expect(notificationMocks.runAssistantForMessage).toHaveBeenCalledTimes(1);
     expect(notificationMocks.runAssistantForMessage).toHaveBeenCalledWith(
-      { conversationId: 'conversation-1', messageId: 'message-1' },
+      { conversationId: CONVERSATION_ID, messageId: 'message-1' },
       expect.objectContaining({ notifyHandoff: expect.any(Function) }),
     );
     expect(notificationMocks.triggerN8nWorkflow).toHaveBeenCalledTimes(1);
@@ -250,7 +273,7 @@ describe('POST /api/chat', () => {
       event: 'customer_chat.message_created',
       data: {
         messageId: 'message-1',
-        conversationId: 'conversation-1',
+        conversationId: CONVERSATION_ID,
         senderType: 'customer',
         content: 'How much is this?',
         imageUrl: null,
@@ -275,10 +298,10 @@ describe('POST /api/chat', () => {
     const { POST } = await import('./route');
     const request = new NextRequest('http://localhost/api/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: guestHeaders,
       body: JSON.stringify({
         action: 'send_message',
-        conversationId: 'conversation-1',
+        conversationId: CONVERSATION_ID,
         content: 'Hello',
       }),
     });
@@ -290,19 +313,20 @@ describe('POST /api/chat', () => {
     expect(notificationMocks.triggerN8nWorkflow).not.toHaveBeenCalled();
   });
 
-  it('links and updates conversation when found via sessionId fallback', async () => {
+  it('links the verified user, email and name to a conversation found via the guest session', async () => {
     const updatedConversationPayloads: Record<string, unknown>[] = [];
+    notificationMocks.getUser.mockResolvedValue({
+      data: { user: { id: 'new-user-id', app_metadata: {} } },
+      error: null,
+    });
 
-    // Mock that user_id lookup fails (no conversation found)
-    // but sessionId lookup succeeds
+    // First query is by user_id and finds nothing; the second is by session_id.
     let queryCount = 0;
     tableHandlers.chat_conversations.onSingle = async () => {
       queryCount++;
       if (queryCount === 1) {
-        // First query is by user_id, returns empty
         return { data: null, error: { message: 'Not found' } };
       }
-      // Second query is by session_id, returns existing conversation
       return {
         data: {
           id: 'existing-conversation-id',
@@ -314,7 +338,6 @@ describe('POST /api/chat', () => {
         error: null,
       };
     };
-
     tableHandlers.chat_conversations.onUpdate = (payload) => {
       updatedConversationPayloads.push(payload);
     };
@@ -326,23 +349,19 @@ describe('POST /api/chat', () => {
     const { POST } = await import('./route');
     const request = new NextRequest('http://localhost/api/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...guestHeaders, Authorization: 'Bearer valid-token' },
       body: JSON.stringify({
         action: 'start_conversation',
         sessionId: 'guest_123',
-        userId: 'new-user-id',
         email: 'guest@example.com',
         name: 'Guest User',
       }),
     });
 
     const response = await POST(request);
-    const payload = await response.json();
 
     expect(response.status).toBe(201);
-    expect(payload.success).toBe(true);
     expect(updatedConversationPayloads).toHaveLength(1);
-    // Should link new userId, email, and name to the resolved conversation
     expect(updatedConversationPayloads[0]).toEqual(
       expect.objectContaining({
         user_id: 'new-user-id',
@@ -350,65 +369,131 @@ describe('POST /api/chat', () => {
         customer_name: 'Guest User',
       }),
     );
+    expect(updatedConversationPayloads[0]).not.toHaveProperty('session_id');
   });
 
-  it('links and updates conversation when found via customer_email fallback', async () => {
-    const updatedConversationPayloads: Record<string, unknown>[] = [];
-
-    // First query (userId lookup) fails, second query (sessionId lookup) fails,
-    // third query (email lookup) succeeds
-    let queryCount = 0;
-    tableHandlers.chat_conversations.onSingle = async () => {
-      queryCount++;
-      if (queryCount === 3) {
-        return {
-          data: {
-            id: 'existing-conversation-id',
-            user_id: null,
-            session_id: null,
-            customer_email: 'guest@example.com',
-            customer_name: null,
-          },
-          error: null,
-        };
-      }
-      return { data: null, error: { message: 'Not found' } };
+  it('ignores a user id typed into the request body', async () => {
+    const insertedConversationPayloads: Record<string, unknown>[] = [];
+    tableHandlers.chat_conversations.onSingle = async () => ({ data: null, error: { message: 'Not found' } });
+    tableHandlers.chat_conversations.onInsert = (payload) => {
+      insertedConversationPayloads.push(payload);
     };
+    tableHandlers.chat_conversations.onInsertSelectSingle = async () => ({ data: { id: CONVERSATION_ID }, error: null });
 
+    const { POST } = await import('./route');
+    const response = await POST(new NextRequest('http://localhost/api/chat', {
+      method: 'POST',
+      headers: guestHeaders,
+      body: JSON.stringify({ action: 'start_conversation', userId: 'victim-user-id', sessionId: 'guest_123' }),
+    }));
+
+    expect(response.status).toBe(201);
+    expect(insertedConversationPayloads[0].user_id).toBeNull();
+  });
+
+  it('never opens a conversation just because the typed-in email matches', async () => {
+    const updatedConversationPayloads: Record<string, unknown>[] = [];
+    const insertedConversationPayloads: Record<string, unknown>[] = [];
+
+    // Even if an email-matching conversation existed, no query may reach it.
+    tableHandlers.chat_conversations.onSingle = async () => ({ data: null, error: { message: 'Not found' } });
     tableHandlers.chat_conversations.onUpdate = (payload) => {
       updatedConversationPayloads.push(payload);
     };
-    tableHandlers.chat_conversations.onUpdateEq = async () => ({
-      data: { id: 'existing-conversation-id' },
-      error: null,
-    });
+    tableHandlers.chat_conversations.onInsert = (payload) => {
+      insertedConversationPayloads.push(payload);
+    };
+    tableHandlers.chat_conversations.onInsertSelectSingle = async () => ({ data: { id: CONVERSATION_ID }, error: null });
 
     const { POST } = await import('./route');
-    const request = new NextRequest('http://localhost/api/chat', {
+    const response = await POST(new NextRequest('http://localhost/api/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-chat-session': 'new-session-id' },
       body: JSON.stringify({
         action: 'start_conversation',
         sessionId: 'new-session-id',
-        userId: 'new-user-id',
-        email: 'guest@example.com',
-        name: 'Guest User',
+        email: 'someone-elses@example.com',
+        name: 'Attacker',
       }),
-    });
-
-    const response = await POST(request);
-    const payload = await response.json();
+    }));
 
     expect(response.status).toBe(201);
-    expect(payload.success).toBe(true);
-    expect(updatedConversationPayloads).toHaveLength(1);
-    // Should link the new userId and sessionId to the resolved email-matching conversation
-    expect(updatedConversationPayloads[0]).toEqual(
-      expect.objectContaining({
-        user_id: 'new-user-id',
-        session_id: 'new-session-id',
-        customer_name: 'Guest User',
+    expect(updatedConversationPayloads).toHaveLength(0);
+    expect(insertedConversationPayloads).toHaveLength(1);
+    expect(insertedConversationPayloads[0]).toEqual(expect.objectContaining({ user_id: null, session_id: 'new-session-id' }));
+  });
+
+  it('rejects messages for a conversation the caller does not own', async () => {
+    const { POST } = await import('./route');
+    const response = await POST(new NextRequest('http://localhost/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-chat-session': 'someone-elses-session' },
+      body: JSON.stringify({ action: 'send_message', conversationId: CONVERSATION_ID, content: 'hi' }),
+    }));
+
+    expect(response.status).toBe(404);
+    expect(notificationMocks.afterCallbacks).toHaveLength(0);
+  });
+
+  it('rejects messages that carry no proof of ownership at all', async () => {
+    const { POST } = await import('./route');
+    const response = await POST(new NextRequest('http://localhost/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'send_message', conversationId: CONVERSATION_ID, content: 'hi' }),
+    }));
+
+    expect(response.status).toBe(404);
+  });
+});
+
+describe('GET /api/chat', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    notificationMocks.getUser.mockResolvedValue({ data: { user: null }, error: { message: 'invalid token' } });
+    tableHandlers.chat_conversations = {
+      onMaybeSingle: async () => ({
+        data: { id: CONVERSATION_ID, user_id: null, session_id: 'guest_123' },
+        error: null,
       }),
-    );
+    };
+    tableHandlers.chat_messages = {};
+  });
+
+  it('refuses to list every conversation to the public', async () => {
+    const { GET } = await import('./route');
+    const response = await GET(new NextRequest('http://localhost/api/chat'));
+    expect(response.status).toBe(403);
+  });
+
+  it('refuses to list every conversation to a signed-in customer', async () => {
+    notificationMocks.getUser.mockResolvedValue({ data: { user: { id: 'customer', app_metadata: {} } }, error: null });
+    const { GET } = await import('./route');
+    const response = await GET(new NextRequest('http://localhost/api/chat', { headers: { Authorization: 'Bearer customer-token' } }));
+    expect(response.status).toBe(403);
+  });
+
+  it('lets a dashboard admin list conversations', async () => {
+    notificationMocks.getUser.mockResolvedValue({ data: { user: { id: 'admin', app_metadata: { genie_role: 'admin' } } }, error: null });
+    const { GET } = await import('./route');
+    const response = await GET(new NextRequest('http://localhost/api/chat', { headers: { Authorization: 'Bearer admin-token' } }));
+    expect(response.status).not.toBe(403);
+  });
+
+  it('hides a conversation from callers without its session id', async () => {
+    const { GET } = await import('./route');
+    const response = await GET(new NextRequest(`http://localhost/api/chat?conversation_id=${CONVERSATION_ID}`, {
+      headers: { 'x-chat-session': 'wrong-session' },
+    }));
+    expect(response.status).toBe(404);
+  });
+
+  it('returns messages to the guest session that owns the conversation', async () => {
+    const { GET } = await import('./route');
+    const response = await GET(new NextRequest(`http://localhost/api/chat?conversation_id=${CONVERSATION_ID}`, {
+      headers: { 'x-chat-session': 'guest_123' },
+    }));
+    expect(response.status).not.toBe(404);
+    expect(response.status).not.toBe(403);
   });
 });

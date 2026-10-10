@@ -166,10 +166,32 @@ const ProductLinkCard: React.FC<{ slug: string; supabase: ReturnType<typeof crea
 };
 
 async function saveSystemMessage(conversationId: string, content: string): Promise<string | null> {
+// Guest chats prove ownership with the random session id kept in localStorage;
+// signed-in customers also send their Supabase access token. The server never
+// trusts a user id or email typed into the request body.
+let activeChatSessionId = '';
+
+async function chatApiFetch(input: string, init: RequestInit = {}): Promise<Response> {
+    const headers = new Headers(init.headers);
+    if (activeChatSessionId) {
+        headers.set('x-chat-session', activeChatSessionId);
+    }
+    try {
+        const { data } = await createClient().auth.getSession();
+        const accessToken = data.session?.access_token;
+        if (accessToken) {
+            headers.set('Authorization', `Bearer ${accessToken}`);
+        }
+    } catch {
+        // Guests have no session; the chat session header is enough.
+    }
+    return fetch(input, { ...init, headers });
+}
+
     try {
         console.log('💾 Saving system message:', { conversationId, content: content.substring(0, 50) });
 
-        const response = await fetch('/api/chat', {
+        const response = await chatApiFetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -317,6 +339,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
         }
         if (guestName) {
             setName(guestName);
+        activeChatSessionId = storedSession;
         }
         setIsLocalStorageLoaded(true);
     }, []);
@@ -391,6 +414,62 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
             setMessages([]);
             setConversationId(null);
             setIsLoading(true);
+    // Guest chats can no longer subscribe to the database directly (that exposed every
+    // guest conversation to anyone holding the public site key), so every customer polls
+    // the authenticated API for new team/assistant replies.
+    useEffect(() => {
+        if (!conversationId || !isOpen) return;
+
+        const poll = async () => {
+            if (typeof document !== 'undefined' && document.hidden) return;
+            try {
+                const response = await chatApiFetch(`/api/chat?conversation_id=${conversationId}`);
+                const result = await response.json();
+                if (!result.success || !Array.isArray(result.data)) return;
+
+                const serverMessages = result.data as ChatMessage[];
+                setMessages((prev) => {
+                    const known = new Set(prev.map((m) => m.id));
+                    const readById = new Map(serverMessages.map((m) => [m.id, m.is_read]));
+
+                    let changed = false;
+                    const updated = prev.map((m) => {
+                        const serverRead = readById.get(m.id);
+                        if (serverRead !== undefined && serverRead !== m.is_read) {
+                            changed = true;
+                            return { ...m, is_read: serverRead };
+                        }
+                        return m;
+                    });
+
+                    const fresh: Message[] = serverMessages
+                        .filter((m) => m.sender_type !== 'customer' && !known.has(m.id))
+                        .map((m) => ({
+                            id: m.id,
+                            text: m.content,
+                            imageUrl: m.image_url || undefined,
+                            isUser: false,
+                            sender_type: m.sender_type as 'merchant' | 'system',
+                            timestamp: m.created_at,
+                            is_read: m.is_read,
+                            is_sent: true,
+                            is_bot: Boolean(m.is_bot),
+                        }));
+
+                    if (!changed && fresh.length === 0) return prev;
+                    return [...updated, ...fresh].sort(
+                        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+                    );
+                });
+            } catch {
+                // Transient network errors: the next tick retries.
+            }
+        };
+
+        const timer = window.setInterval(poll, 4000);
+        return () => window.clearInterval(timer);
+    }, [conversationId, isOpen]);
+
         }
     }, [isOpen, sessionId, userId, isLocalStorageLoaded]);
 
@@ -403,13 +482,12 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
     const loadOrCreateConversation = async () => {
         setIsLoading(true);
         try {
-            const response = await fetch('/api/chat', {
+            const response = await chatApiFetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     action: 'start_conversation',
                     sessionId: sessionId || undefined,
-                    userId: userId || undefined,
                     email: userEmail || email || undefined,
                     name: userName || name || undefined,
                     pageContext: getCurrentPageContext(),
@@ -439,7 +517,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
 
     const loadMessages = async (convoId: string) => {
         try {
-            const response = await fetch(`/api/chat?conversation_id=${convoId}`);
+            const response = await chatApiFetch(`/api/chat?conversation_id=${convoId}`);
             const result = await response.json();
             if (result.success && result.data) {
                 setMessages(result.data.map((msg: ChatMessage) => ({
@@ -453,7 +531,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                     is_sent: true,
                 })));
 
-                await fetch('/api/chat', {
+                await chatApiFetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -571,7 +649,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
 
                 setMessages(prev => [...prev, userMessage]);
 
-                const response = await fetch('/api/chat', {
+                const response = await chatApiFetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -580,8 +658,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                         content: inputValue || '',
                         imageUrl,
                         sessionId: sessionId || undefined,
-                        userId: userId || undefined,
-                        pageContext: getCurrentPageContext(),
+                            pageContext: getCurrentPageContext(),
                     }),
                 });
 
@@ -725,7 +802,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
         setIsTyping(true);
 
         try {
-            const response = await fetch('/api/chat', {
+            const response = await chatApiFetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -733,7 +810,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, userId, userEmai
                     conversationId,
                     content: inputValue,
                     sessionId: sessionId || undefined,
-                    userId: userId || undefined,
                     pageContext: getCurrentPageContext(),
                 }),
             });
