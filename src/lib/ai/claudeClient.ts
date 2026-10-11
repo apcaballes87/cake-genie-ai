@@ -1,4 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk';
+import {
+    buildPixelCoordinateInstruction,
+    convertPixelCoordinatesToNormalized,
+    prepareClaudeImage,
+} from '@/lib/ai/claudePixelCoordinates';
 
 let client: Anthropic | null = null;
 
@@ -73,6 +78,18 @@ export async function generateClaudeJson({
     const anthropic = getAnthropic();
     const jsonSchema = geminiSchemaToJsonSchema(responseSchema) as Record<string, unknown>;
 
+    // Responses that carry boxes or geometry lines are requested in pixels and
+    // converted to the 0–1000 contract afterwards; Claude does not reliably
+    // normalize on its own.
+    const usesCoordinates = JSON.stringify(jsonSchema).includes('"box_2d"');
+    const preparedImage = usesCoordinates ? await prepareClaudeImage(imageData, mimeType) : null;
+    const sentImageData = preparedImage?.data ?? imageData;
+    const sentMimeType = preparedImage?.mimeType ?? mimeType;
+    const userText = [
+        repairInstruction ?? 'Analyze this cake image and return the JSON object.',
+        preparedImage ? buildPixelCoordinateInstruction(preparedImage.width, preparedImage.height) : null,
+    ].filter(Boolean).join('\n\n');
+
     const buildParams = (withSchema: boolean): Anthropic.MessageCreateParamsNonStreaming => ({
         model,
         max_tokens: 16000,
@@ -97,9 +114,9 @@ export async function generateClaudeJson({
             content: [
                 {
                     type: 'image',
-                    source: { type: 'base64', media_type: mimeType as ClaudeImageMediaType, data: imageData },
+                    source: { type: 'base64', media_type: sentMimeType as ClaudeImageMediaType, data: sentImageData },
                 },
-                { type: 'text', text: repairInstruction ?? 'Analyze this cake image and return the JSON object.' },
+                { type: 'text', text: userText },
             ],
         }],
     });
@@ -122,5 +139,23 @@ export async function generateClaudeJson({
         .filter((block): block is Anthropic.TextBlock => block.type === 'text')
         .map((block) => block.text)
         .join('');
-    return stripJsonFences(text);
+    const jsonText = stripJsonFences(text);
+    return preparedImage
+        ? convertResponseToNormalized(jsonText, preparedImage.width, preparedImage.height)
+        : jsonText;
+}
+
+function convertResponseToNormalized(jsonText: string, width: number, height: number): string {
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(jsonText);
+    } catch {
+        // Leave malformed output for the caller's normal validation/repair path.
+        return jsonText;
+    }
+    const { value, converted, skippedReason } = convertPixelCoordinatesToNormalized(parsed, width, height);
+    if (skippedReason) {
+        console.warn(`[Claude] Left coordinates unconverted (${skippedReason}); image is ${width}×${height}.`);
+    }
+    return converted ? JSON.stringify(value) : jsonText;
 }
